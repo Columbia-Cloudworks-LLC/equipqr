@@ -35,7 +35,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
       
       <div className="hidden md:block">
         <Link to="/" className="flex items-center">
-          <span className="text-xl font-bold text-primary">EquipTrack</span>
+          <span className="text-xl font-bold text-primary">EquipQR</span>
         </Link>
       </div>
 

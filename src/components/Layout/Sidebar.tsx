@@ -54,7 +54,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       <div className="flex h-16 items-center border-b border-sidebar-border px-4">
         {!collapsed && (
           <NavLink to="/" className="flex items-center">
-            <span className="text-xl font-bold text-primary">EquipTrack</span>
+            <span className="text-xl font-bold text-primary">EquipQR</span>
           </NavLink>
         )}
       </div>
