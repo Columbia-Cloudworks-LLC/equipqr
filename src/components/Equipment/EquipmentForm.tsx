@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Equipment, EquipmentAttribute } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { AttributesEditor } from './AttributesEditor';
+import { getTeams } from '@/services/teamService';
 
 interface EquipmentFormProps {
   equipment?: Equipment;
@@ -31,6 +32,7 @@ interface EquipmentFormProps {
 
 export function EquipmentForm({ equipment, onSave, isLoading = false }: EquipmentFormProps) {
   const navigate = useNavigate();
+  const [teams, setTeams] = useState<{id: string; name: string}[]>([]);
   const [formData, setFormData] = useState<Partial<Equipment>>({
     name: equipment?.name || '',
     model: equipment?.model || '',
@@ -41,8 +43,24 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
     install_date: equipment?.install_date || '',
     warranty_expiration: equipment?.warranty_expiration || '',
     notes: equipment?.notes || '',
+    team_id: equipment?.team_id || '',
     attributes: equipment?.attributes || []
   });
+
+  useEffect(() => {
+    // Fetch teams for the dropdown
+    const fetchTeams = async () => {
+      try {
+        const fetchedTeams = await getTeams();
+        setTeams(fetchedTeams.map(team => ({ id: team.id, name: team.name })));
+      } catch (error) {
+        console.error("Error fetching teams:", error);
+        toast.error("Error loading teams");
+      }
+    };
+    
+    fetchTeams();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -170,6 +188,24 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
                 onChange={handleChange}
                 placeholder="Where is this equipment located"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="team_id">Team</Label>
+              <Select 
+                value={formData.team_id || ''} 
+                onValueChange={(value) => handleSelectChange('team_id', value)}
+              >
+                <SelectTrigger id="team_id">
+                  <SelectValue placeholder="Select team (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No team</SelectItem>
+                  {teams.map(team => (
+                    <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           

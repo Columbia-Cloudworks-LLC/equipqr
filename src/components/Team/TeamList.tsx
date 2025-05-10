@@ -23,13 +23,15 @@ import { MoreHorizontal } from 'lucide-react';
 
 interface TeamListProps {
   members: TeamMember[];
-  onRemoveMember: (id: string) => void;
-  onChangeRole: (id: string, role: UserRole) => void;
+  onRemoveMember: (id: string, teamId: string) => void;
+  onChangeRole: (id: string, role: UserRole, teamId: string) => void;
   onResendInvite: (id: string) => void;
+  teamId: string;
 }
 
-export function TeamList({ members, onRemoveMember, onChangeRole, onResendInvite }: TeamListProps) {
+export function TeamList({ members, onRemoveMember, onChangeRole, onResendInvite, teamId }: TeamListProps) {
   const getInitials = (name: string) => {
+    if (!name) return '?';
     return name
       .split(' ')
       .map((n) => n[0])
@@ -108,16 +110,13 @@ export function TeamList({ members, onRemoveMember, onChangeRole, onResendInvite
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'owner')}>
-                        Change to Owner
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'manager')}>
+                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'manager', teamId)}>
                         Change to Manager
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'technician')}>
+                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'technician', teamId)}>
                         Change to Technician
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'viewer')}>
+                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'viewer', teamId)}>
                         Change to Viewer
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -128,7 +127,7 @@ export function TeamList({ members, onRemoveMember, onChangeRole, onResendInvite
                       )}
                       <DropdownMenuItem 
                         className="text-red-600"
-                        onClick={() => onRemoveMember(member.id)}
+                        onClick={() => onRemoveMember(member.id, teamId)}
                       >
                         Remove Member
                       </DropdownMenuItem>

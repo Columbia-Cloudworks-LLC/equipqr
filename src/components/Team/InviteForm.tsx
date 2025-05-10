@@ -12,15 +12,18 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { UserRole } from '@/types/supabase-enums';
 
 interface InviteFormProps {
-  onInvite: (email: string, role: string) => void;
+  onInvite: (email: string, role: UserRole, teamId: string) => void;
   isLoading?: boolean;
+  teams: { id: string; name: string }[];
 }
 
-export function InviteForm({ onInvite, isLoading = false }: InviteFormProps) {
+export function InviteForm({ onInvite, isLoading = false, teams }: InviteFormProps) {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('Editor');
+  const [role, setRole] = useState<UserRole>('viewer');
+  const [teamId, setTeamId] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +34,13 @@ export function InviteForm({ onInvite, isLoading = false }: InviteFormProps) {
       return;
     }
     
-    onInvite(email, role);
+    // Validate team selection
+    if (!teamId) {
+      toast.error('Please select a team');
+      return;
+    }
+    
+    onInvite(email, role, teamId);
     setEmail('');
   };
 
@@ -53,22 +62,40 @@ export function InviteForm({ onInvite, isLoading = false }: InviteFormProps) {
               required
             />
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="team">Team</Label>
+            <Select value={teamId} onValueChange={setTeamId} required>
+              <SelectTrigger id="team">
+                <SelectValue placeholder="Select a team" />
+              </SelectTrigger>
+              <SelectContent>
+                {teams.map(team => (
+                  <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={setRole}>
+            <Select 
+              value={role} 
+              onValueChange={(value) => setRole(value as UserRole)}
+            >
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Admin">Admin (Full access)</SelectItem>
-                <SelectItem value="Editor">Editor (Can edit equipment)</SelectItem>
-                <SelectItem value="Viewer">Viewer (Read only)</SelectItem>
+                <SelectItem value="manager">Manager (Can manage team and equipment)</SelectItem>
+                <SelectItem value="technician">Technician (Can update equipment and add notes)</SelectItem>
+                <SelectItem value="viewer">Viewer (Read-only access)</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
         <CardFooter>
-          <Button className="w-full" type="submit" disabled={isLoading}>
+          <Button className="w-full" type="submit" disabled={isLoading || !teamId}>
             {isLoading ? 'Sending Invitation...' : 'Send Invitation'}
           </Button>
         </CardFooter>
