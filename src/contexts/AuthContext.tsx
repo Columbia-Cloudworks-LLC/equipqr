@@ -1,7 +1,7 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { getSessionInfo, validateSession } from "@/utils/storageAdapter";
 
@@ -23,7 +23,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast: useToastFn } = useToast();
 
   useEffect(() => {
     console.log("AuthProvider: Setting up auth state listener");
@@ -36,14 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentSession?.user ?? null);
         
         if (event === 'SIGNED_IN') {
-          toast({
-            title: "Signed in successfully",
-            description: "Welcome back!",
+          toast.success("Signed in successfully", {
+            description: "Welcome back!"
           });
         } else if (event === 'SIGNED_OUT') {
-          toast({
-            title: "Signed out successfully",
-            description: "You have been signed out",
+          toast.success("Signed out successfully", {
+            description: "You have been signed out"
           });
           
           // Clear any leftover session data for safety
@@ -62,10 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error("AuthProvider: Session retrieval error", error);
-        toast({
-          title: "Session error",
-          description: "There was an error retrieving your session. Please sign in again.",
-          variant: "destructive",
+        toast.error("Session error", {
+          description: "There was an error retrieving your session. Please sign in again."
         });
         
         // Attempt to clear corrupted session data
@@ -151,16 +146,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
       
-      toast({
-        title: "Account created successfully",
-        description: "Please check your email to verify your account",
+      toast.success("Account created successfully", {
+        description: "Please check your email to verify your account"
       });
     } catch (error: any) {
       console.error("AuthProvider: Sign up error", error);
-      toast({
-        title: "Error signing up",
-        description: error.message || "An error occurred during sign up",
-        variant: "destructive",
+      toast.error("Error signing up", {
+        description: error.message || "An error occurred during sign up"
       });
       throw error;
     } finally {
@@ -180,10 +172,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
     } catch (error: any) {
       console.error("AuthProvider: Sign in error", error);
-      toast({
-        title: "Error signing in",
-        description: error.message || "Invalid email or password",
-        variant: "destructive",
+      toast.error("Error signing in", {
+        description: error.message || "Invalid email or password"
       });
       throw error;
     } finally {
@@ -208,10 +198,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
     } catch (error: any) {
       console.error("AuthProvider: Google sign in error", error);
-      toast({
-        title: "Error signing in with Google",
-        description: error.message || "An error occurred during sign in",
-        variant: "destructive",
+      toast.error("Error signing in with Google", {
+        description: error.message || "An error occurred during sign in"
       });
       throw error;
     } finally {
@@ -233,9 +221,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("AuthProvider: No session found, cleaning up state directly");
         setUser(null);
         setSession(null);
-        toast({
-          title: "Signed out",
-          description: "You have been signed out",
+        toast.success("Signed out", {
+          description: "You have been signed out"
         });
         return;
       }
@@ -259,19 +246,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.removeItem("supabase.auth.token");
           }, 0);
           
-          toast({
-            title: "Signed out",
-            description: "You have been signed out (manual cleanup)",
+          toast.success("Signed out", {
+            description: "You have been signed out (manual cleanup)"
           });
           
           return;
         }
         
         // For other errors, show the error
-        useToastFn({
-          title: "Error signing out",
-          description: error.message || "An error occurred during sign out",
-          variant: "destructive",
+        toast.error("Error signing out", {
+          description: error.message || "An error occurred during sign out"
         });
         
         throw error;
@@ -289,10 +273,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, 100);
     } catch (error: any) {
       console.error("AuthProvider: Sign out error", error);
-      useToastFn({
-        title: "Error signing out",
-        description: error.message || "An error occurred during sign out",
-        variant: "destructive",
+      toast.error("Error signing out", {
+        description: error.message || "An error occurred during sign out"
       });
       throw error;
     } finally {
@@ -310,16 +292,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
 
-      toast({
-        title: "Password reset email sent",
-        description: "Please check your email for password reset instructions",
+      toast.success("Password reset email sent", {
+        description: "Please check your email for password reset instructions"
       });
     } catch (error: any) {
       console.error("AuthProvider: Password reset error", error);
-      toast({
-        title: "Error resetting password",
-        description: error.message || "An error occurred",
-        variant: "destructive",
+      toast.error("Error resetting password", {
+        description: error.message || "An error occurred"
       });
       throw error;
     } finally {
