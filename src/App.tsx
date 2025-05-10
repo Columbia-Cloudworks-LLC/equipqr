@@ -3,9 +3,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/Auth/ProtectedRoute";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 // Pages
 import Index from "./pages/Index";
@@ -18,6 +20,25 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
 import Profile from "./pages/Profile";
+
+// Component to handle hash fragments in root URL
+const RootRouteHandler = () => {
+  useEffect(() => {
+    const handleRootRedirect = async () => {
+      // Check if we have an access token in the URL hash
+      if (window.location.hash && window.location.hash.includes('access_token')) {
+        console.log("Root: Detected auth hash fragment, redirecting to callback handler");
+        // Redirect to the callback handler with the hash intact
+        window.location.href = `/auth/callback${window.location.hash}`;
+        return;
+      }
+    };
+
+    handleRootRedirect();
+  }, []);
+
+  return null;
+};
 
 const queryClient = new QueryClient();
 
@@ -35,15 +56,20 @@ const App = () => (
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             
-            {/* Protected routes */}
+            {/* Root route with special handler for auth redirects */}
             <Route
               path="/"
               element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
+                <>
+                  <RootRouteHandler />
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                </>
               }
             />
+            
+            {/* Protected routes */}
             <Route
               path="/equipment"
               element={

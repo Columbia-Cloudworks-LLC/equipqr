@@ -62,6 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [toast]);
 
+  // Helper function to get the proper auth callback URL based on current domain
+  const getRedirectUrl = () => {
+    const domain = window.location.origin;
+    return `${domain}/auth/callback`;
+  };
+
   const signUp = async (email: string, password: string, metadata?: Record<string, any>) => {
     try {
       setIsLoading(true);
@@ -120,10 +126,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       console.log("AuthProvider: Signing in with Google");
+      const redirectTo = getRedirectUrl();
+      console.log("AuthProvider: Using redirect URL:", redirectTo);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectTo,
         },
       });
 
@@ -165,7 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       console.log("AuthProvider: Resetting password for", email);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: getRedirectUrl().replace('/auth/callback', '/auth/reset-password'),
       });
 
       if (error) throw error;
