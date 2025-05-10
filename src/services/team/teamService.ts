@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { getAppUserId } from "@/utils/authUtils";
 
 export async function getTeams() {
   const { data, error } = await supabase
@@ -38,13 +39,17 @@ export async function createTeam(name: string) {
     throw new Error('User must be logged in to create a team');
   }
   
-  const userId = sessionData.session.user.id;
+  // Get the auth user ID
+  const authUserId = sessionData.session.user.id;
+  
+  // Get the corresponding app_user.id for the auth user
+  const appUserId = await getAppUserId(authUserId);
   
   // Get the user's organization ID
   const { data: userProfile, error: profileError } = await supabase
     .from('user_profiles')
     .select('org_id')
-    .eq('id', userId)
+    .eq('id', authUserId)
     .single();
     
   if (profileError) {
@@ -58,7 +63,7 @@ export async function createTeam(name: string) {
     .insert({
       name,
       org_id: userProfile.org_id,
-      created_by: userId
+      created_by: appUserId // Use the app_user.id instead of the auth.uid
     })
     .select()
     .single();
@@ -74,9 +79,9 @@ export async function createTeam(name: string) {
     const { error: memberError } = await supabase.functions.invoke('add_team_member', {
       body: {
         _team_id: data.id,
-        _user_id: userId,
+        _user_id: authUserId, // Keep using auth user ID here as the edge function expects it
         _role: 'manager',
-        _added_by: userId
+        _added_by: authUserId // Keep using auth user ID here as the edge function expects it
       }
     });
     
