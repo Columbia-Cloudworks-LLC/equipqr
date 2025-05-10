@@ -1,109 +1,130 @@
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TeamMember } from '@/types';
 import { TeamList } from '@/components/Team/TeamList';
 import { InviteForm } from '@/components/Team/InviteForm';
-import { toast } from 'sonner';
-import { MOCK_TEAM_MEMBERS } from '@/data/mockData';
 import { Layout } from '@/components/Layout/Layout';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { TeamMember } from '@/types';
+import { getTeamMembers, inviteMember, changeRole, removeMember, resendInvite } from '@/services/teamService';
 
-const TeamManagement = () => {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+export default function TeamManagement() {
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // In a real app, we would fetch data from an API
-    setTeamMembers(MOCK_TEAM_MEMBERS);
+    fetchTeamMembers();
   }, []);
 
-  const handleInvite = (email: string, role: string) => {
-    setIsLoading(true);
-    
-    // Check if member already exists
-    if (teamMembers.some((member) => member.email === email)) {
-      toast.error('This email address is already a team member');
+  const fetchTeamMembers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getTeamMembers();
+      setMembers(data);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching team members",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      return;
     }
-    
-    // Simulate API call
-    setTimeout(() => {
-      const newMember: TeamMember = {
-        id: `member-${Date.now()}`,
-        team_id: 'team-1',
-        user_id: `user-${Date.now()}`,
-        joined_at: new Date().toISOString(),
-        name: email.split('@')[0], // Use first part of email as name temporarily
-        email,
-        role: role,
-        status: 'Pending',
-      };
-      
-      setTeamMembers([newMember, ...teamMembers]);
-      toast.success('Invitation sent successfully');
-      setIsLoading(false);
-    }, 1000);
   };
 
-  const handleRemoveMember = (id: string) => {
-    // In a real app, we would call an API to remove the member
-    const updatedMembers = teamMembers.filter((member) => member.id !== id);
-    setTeamMembers(updatedMembers);
-    toast.success('Team member removed');
+  const handleInviteMember = async (email: string, role: string) => {
+    try {
+      await inviteMember(email, role);
+      toast({
+        title: "Invitation sent",
+        description: `Invitation email sent to ${email}`,
+      });
+      fetchTeamMembers();
+    } catch (error: any) {
+      toast({
+        title: "Error sending invitation",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleChangeRole = (id: string, role: string) => {
-    // In a real app, we would call an API to change the role
-    const updatedMembers = teamMembers.map((member) => {
-      if (member.id === id) {
-        return { ...member, role: role };
-      }
-      return member;
-    });
-    
-    setTeamMembers(updatedMembers);
-    toast.success('Role updated successfully');
+  const handleChangeRole = async (id: string, role: string) => {
+    try {
+      await changeRole(id, role);
+      toast({
+        title: "Role updated",
+        description: "Team member role updated successfully",
+      });
+      fetchTeamMembers();
+    } catch (error: any) {
+      toast({
+        title: "Error updating role",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleResendInvite = (id: string) => {
-    // In a real app, we would call an API to resend the invitation
-    toast.success('Invitation resent successfully');
+  const handleRemoveMember = async (id: string) => {
+    try {
+      await removeMember(id);
+      toast({
+        title: "Member removed",
+        description: "Team member removed successfully",
+      });
+      fetchTeamMembers();
+    } catch (error: any) {
+      toast({
+        title: "Error removing member",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResendInvite = async (id: string) => {
+    try {
+      await resendInvite(id);
+      toast({
+        title: "Invitation resent",
+        description: "Invitation email has been resent",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error resending invitation",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <Layout>
-      <div className="flex-1 space-y-6 p-6">
-        <h1 className="text-2xl font-bold tracking-tight">Team Management</h1>
+      <div className="p-6 space-y-6">
+        <h1 className="text-2xl font-bold">Team Management</h1>
         
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Team Members</CardTitle>
-                <CardDescription>
-                  Manage your team members and their access permissions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TeamList
-                  members={teamMembers}
-                  onRemoveMember={handleRemoveMember}
-                  onChangeRole={handleChangeRole}
-                  onResendInvite={handleResendInvite}
-                />
-              </CardContent>
-            </Card>
-          </div>
+        <Tabs defaultValue="members" className="w-full">
+          <TabsList>
+            <TabsTrigger value="members">Team Members</TabsTrigger>
+            <TabsTrigger value="invite">Invite People</TabsTrigger>
+          </TabsList>
           
-          <div>
-            <InviteForm onInvite={handleInvite} isLoading={isLoading} />
-          </div>
-        </div>
+          <TabsContent value="members" className="mt-6">
+            <TeamList
+              members={members}
+              onRemoveMember={handleRemoveMember}
+              onChangeRole={handleChangeRole}
+              onResendInvite={handleResendInvite}
+            />
+          </TabsContent>
+          
+          <TabsContent value="invite" className="mt-6 max-w-md">
+            <InviteForm onInvite={handleInviteMember} isLoading={isLoading} />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
-};
-
-export default TeamManagement;
+}

@@ -34,11 +34,6 @@ export async function getEquipmentById(id: string) {
 }
 
 export async function createEquipment(equipment: Partial<Equipment>) {
-  // We'll need the current user's organization and ID for this
-  // For now, we'll use placeholders until auth is implemented
-  const mockOrgId = '00000000-0000-0000-0000-000000000000';
-  const mockUserId = '00000000-0000-0000-0000-000000000000';
-  
   // Ensure name is provided as it's required in the database
   if (!equipment.name) {
     throw new Error('Equipment name is required');
@@ -48,12 +43,10 @@ export async function createEquipment(equipment: Partial<Equipment>) {
     .from('equipment')
     .insert({
       name: equipment.name,
-      org_id: mockOrgId, // Will come from auth context once implemented
-      created_by: mockUserId, // Will come from auth context once implemented
       model: equipment.model,
       serial_number: equipment.serial_number,
       manufacturer: equipment.manufacturer,
-      status: equipment.status,
+      status: equipment.status || 'active',
       location: equipment.location,
       install_date: equipment.install_date,
       warranty_expiration: equipment.warranty_expiration,

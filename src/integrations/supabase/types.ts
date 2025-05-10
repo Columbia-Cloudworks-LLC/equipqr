@@ -624,6 +624,94 @@ export type Database = {
           },
         ]
       }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          datetime_format_preference:
+            | Database["public"]["Enums"]["datetime_format"]
+            | null
+          display_name: string | null
+          id: string
+          job_title: string | null
+          org_id: string
+          phone_number: string | null
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          datetime_format_preference?:
+            | Database["public"]["Enums"]["datetime_format"]
+            | null
+          display_name?: string | null
+          id: string
+          job_title?: string | null
+          org_id: string
+          phone_number?: string | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          datetime_format_preference?:
+            | Database["public"]["Enums"]["datetime_format"]
+            | null
+          display_name?: string | null
+          id?: string
+          job_title?: string | null
+          org_id?: string
+          phone_number?: string | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          org_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          org_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          org_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_note: {
         Row: {
           created_at: string
@@ -632,6 +720,7 @@ export type Database = {
           equipment_id: string | null
           hours_worked: number | null
           id: string
+          is_public: boolean | null
           note: string
           work_order_id: string
         }
@@ -642,6 +731,7 @@ export type Database = {
           equipment_id?: string | null
           hours_worked?: number | null
           id?: string
+          is_public?: boolean | null
           note: string
           work_order_id: string
         }
@@ -652,6 +742,7 @@ export type Database = {
           equipment_id?: string | null
           hours_worked?: number | null
           id?: string
+          is_public?: boolean | null
           note?: string
           work_order_id?: string
         }
@@ -797,12 +888,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string; _org_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _org_id: string
+          _role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       access_role: "owner" | "manager" | "technician" | "viewer"
+      datetime_format:
+        | "MM/DD/YYYY h:mm A"
+        | "DD/MM/YYYY h:mm A"
+        | "YYYY-MM-DD HH:mm:ss"
+        | "ISO"
       equipment_status: "active" | "inactive" | "maintenance"
       image_status: "processing" | "ready" | "failed"
+      user_role: "owner" | "manager" | "technician" | "viewer"
       work_order_status:
         | "open"
         | "in_progress"
@@ -925,8 +1033,15 @@ export const Constants = {
   public: {
     Enums: {
       access_role: ["owner", "manager", "technician", "viewer"],
+      datetime_format: [
+        "MM/DD/YYYY h:mm A",
+        "DD/MM/YYYY h:mm A",
+        "YYYY-MM-DD HH:mm:ss",
+        "ISO",
+      ],
       equipment_status: ["active", "inactive", "maintenance"],
       image_status: ["processing", "ready", "failed"],
+      user_role: ["owner", "manager", "technician", "viewer"],
       work_order_status: [
         "open",
         "in_progress",
