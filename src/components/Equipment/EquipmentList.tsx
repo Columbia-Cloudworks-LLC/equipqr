@@ -21,12 +21,14 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Search, QrCode, Package } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface EquipmentListProps {
   equipment: Equipment[];
+  isLoading?: boolean;
 }
 
-export function EquipmentList({ equipment }: EquipmentListProps) {
+export function EquipmentList({ equipment, isLoading = false }: EquipmentListProps) {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -97,7 +99,23 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredEquipment.length > 0 ? (
+            {isLoading ? (
+              Array(5).fill(0).map((_, idx) => (
+                <TableRow key={`loading-${idx}`}>
+                  <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Skeleton className="h-8 w-8" />
+                      <Skeleton className="h-8 w-16" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : filteredEquipment.length > 0 ? (
               filteredEquipment.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.name}</TableCell>

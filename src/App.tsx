@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Equipment from "./pages/Equipment";
 import EquipmentDetail from "./pages/EquipmentDetail";
+import EquipmentForm from "./pages/EquipmentForm";
 import TeamManagement from "./pages/TeamManagement";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
@@ -40,7 +41,15 @@ const RootRouteHandler = () => {
   return null;
 };
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -98,7 +107,7 @@ const App = () => (
               path="/equipment/:id/edit"
               element={
                 <ProtectedRoute>
-                  <EquipmentDetail />
+                  <EquipmentForm />
                 </ProtectedRoute>
               }
             />
@@ -106,7 +115,7 @@ const App = () => (
               path="/equipment/new"
               element={
                 <ProtectedRoute>
-                  <EquipmentDetail />
+                  <EquipmentForm />
                 </ProtectedRoute>
               }
             />

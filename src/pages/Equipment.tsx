@@ -7,17 +7,27 @@ import { Package } from 'lucide-react';
 import { Equipment } from '@/types';
 import { EquipmentList } from '@/components/Equipment/EquipmentList';
 import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
-import { MOCK_EQUIPMENT } from '@/data/mockData';
 import { Layout } from '@/components/Layout/Layout';
+import { useQuery } from '@tanstack/react-query';
+import { getEquipment } from '@/services/equipmentService';
+import { toast } from 'sonner';
 
 const EquipmentPage = () => {
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [view, setView] = useState<string>('list');
+  
+  const { data: equipment = [], isLoading, error } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: getEquipment,
+  });
 
+  // Handle error state
   useEffect(() => {
-    // In a real app, we would fetch data from an API
-    setEquipment(MOCK_EQUIPMENT);
-  }, []);
+    if (error) {
+      toast.error('Failed to load equipment data', {
+        description: error instanceof Error ? error.message : 'Please try again later',
+      });
+    }
+  }, [error]);
 
   return (
     <Layout>
@@ -41,11 +51,15 @@ const EquipmentPage = () => {
           </div>
           
           <TabsContent value="list" className="mt-4">
-            <EquipmentList equipment={equipment} />
+            <EquipmentList equipment={equipment} isLoading={isLoading} />
           </TabsContent>
           
           <TabsContent value="grid" className="mt-4">
-            {equipment.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : equipment.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {equipment.map((item) => (
                   <EquipmentCard key={item.id} equipment={item} />

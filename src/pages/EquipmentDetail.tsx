@@ -26,33 +26,76 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Equipment, WorkNote } from '@/types';
 import QRCodeGenerator from '@/components/Equipment/QRCodeGenerator';
-import { MOCK_EQUIPMENT, MOCK_WORK_NOTES } from '@/data/mockData';
 import { Layout } from '@/components/Layout/Layout';
+import { getEquipmentById, deleteEquipment, recordScan } from '@/services/equipmentService';
+import { MOCK_WORK_NOTES } from '@/data/mockData';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const EquipmentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [equipment, setEquipment] = useState<Equipment | null>(null);
+  const queryClient = useQueryClient();
   const [workNotes, setWorkNotes] = useState<WorkNote[]>([]);
   const [newNote, setNewNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
 
+  // Fetch equipment data
+  const { data: equipment, isLoading, error } = useQuery({
+    queryKey: ['equipment', id],
+    queryFn: () => id ? getEquipmentById(id) : Promise.reject('No equipment ID provided'),
+    enabled: !!id,
+  });
+
+  // Record scan when viewing equipment details
   useEffect(() => {
-    // In a real app, we would fetch data from an API
-    const foundEquipment = MOCK_EQUIPMENT.find((item) => item.id === id);
-    if (foundEquipment) {
-      setEquipment(foundEquipment);
-      // Filter work notes for this equipment
+    if (id) {
+      recordScan(id).catch(err => {
+        console.error('Error recording scan:', err);
+      });
+    }
+  }, [id]);
+
+  // Handle error state
+  useEffect(() => {
+    if (error) {
+      toast.error('Failed to load equipment details', {
+        description: error instanceof Error ? error.message : 'Please try again later',
+      });
+    }
+  }, [error]);
+
+  useEffect(() => {
+    // For now, still using mock data for work notes
+    if (id) {
       const equipmentNotes = MOCK_WORK_NOTES.filter((note) => note.equipment_id === id);
       setWorkNotes(equipmentNotes);
-    } else {
-      toast.error('Equipment not found');
-      navigate('/equipment');
     }
-  }, [id, navigate]);
+  }, [id]);
+
+  // Delete equipment mutation
+  const deleteMutation = useMutation({
+    mutationFn: (equipmentId: string) => deleteEquipment(equipmentId),
+    onSuccess: () => {
+      toast.success('Equipment deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      navigate('/equipment');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete equipment', {
+        description: error instanceof Error ? error.message : 'Please try again later',
+      });
+    },
+  });
+
+  const handleDeleteEquipment = () => {
+    if (id) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   const handleAddNote = () => {
     if (!newNote.trim()) {
@@ -62,7 +105,7 @@ const EquipmentDetail = () => {
 
     setIsSubmitting(true);
 
-    // Simulate API call
+    // Simulate API call - TO BE REPLACED WITH REAL API CALL LATER
     setTimeout(() => {
       const newWorkNote: WorkNote = {
         id: `note-${Date.now()}`,
@@ -82,17 +125,55 @@ const EquipmentDetail = () => {
     }, 500);
   };
 
-  const handleDeleteEquipment = () => {
-    // In a real app, we would call an API to delete the equipment
-    toast.success('Equipment deleted successfully');
-    navigate('/equipment');
-  };
-
-  if (!equipment) {
+  if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-screen">
-          <p>Loading equipment details...</p>
+        <div className="flex-1 space-y-6 p-6">
+          <div className="flex justify-between">
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+          </div>
+          
+          <Skeleton className="h-10 w-60" />
+          
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-72" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Array(6).fill(0).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-6 w-full" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!equipment && !isLoading) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] p-6">
+          <Package className="h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Equipment Not Found</h2>
+          <p className="text-muted-foreground mb-6">The equipment you're looking for doesn't exist or has been deleted.</p>
+          <Button asChild>
+            <Link to="/equipment">Go to Equipment List</Link>
+          </Button>
         </div>
       </Layout>
     );
@@ -120,13 +201,13 @@ const EquipmentDetail = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{equipment.name}</h1>
-              <Badge variant="outline" className={getStatusColor(equipment.status)}>
-                {equipment.status}
+              <h1 className="text-2xl font-bold tracking-tight">{equipment?.name}</h1>
+              <Badge variant="outline" className={getStatusColor(equipment?.status || 'active')}>
+                {equipment?.status}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Last updated on {formattedDate(equipment.updated_at)}
+              Last updated on {formattedDate(equipment?.updated_at || '')}
             </p>
           </div>
           
@@ -189,34 +270,34 @@ const EquipmentDetail = () => {
                   <div className="space-y-4">
                     <div>
                       <h3 className="font-medium text-muted-foreground mb-1">Model</h3>
-                      <p>{equipment.model || 'N/A'}</p>
+                      <p>{equipment?.model || 'N/A'}</p>
                     </div>
                     <div>
                       <h3 className="font-medium text-muted-foreground mb-1">Serial Number</h3>
-                      <p>{equipment.serial_number || 'N/A'}</p>
+                      <p>{equipment?.serial_number || 'N/A'}</p>
                     </div>
                     <div>
                       <h3 className="font-medium text-muted-foreground mb-1">Manufacturer</h3>
-                      <p>{equipment.manufacturer || 'N/A'}</p>
+                      <p>{equipment?.manufacturer || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <div>
                       <h3 className="font-medium text-muted-foreground mb-1">Location</h3>
-                      <p>{equipment.location || 'N/A'}</p>
+                      <p>{equipment?.location || 'N/A'}</p>
                     </div>
                     <div>
                       <h3 className="font-medium text-muted-foreground mb-1">Install Date</h3>
-                      <p>{formattedDate(equipment.install_date || '')}</p>
+                      <p>{formattedDate(equipment?.install_date || '')}</p>
                     </div>
                     <div>
                       <h3 className="font-medium text-muted-foreground mb-1">Warranty Expiration</h3>
-                      <p>{formattedDate(equipment.warranty_expiration || '')}</p>
+                      <p>{formattedDate(equipment?.warranty_expiration || '')}</p>
                     </div>
                   </div>
                 </div>
                 
-                {equipment.notes && (
+                {equipment?.notes && (
                   <div>
                     <h3 className="font-medium text-muted-foreground mb-1">Notes</h3>
                     <p className="whitespace-pre-wrap">{equipment.notes}</p>
@@ -291,7 +372,7 @@ const EquipmentDetail = () => {
               <CardContent className="flex justify-center py-8">
                 <QRCodeGenerator 
                   value={qrCodeUrl} 
-                  equipmentName={equipment.name} 
+                  equipmentName={equipment?.name || 'Equipment'} 
                 />
               </CardContent>
             </Card>

@@ -7,16 +7,22 @@ import { Package, Users, QrCode, Settings } from 'lucide-react';
 import { DashboardStat, Equipment, TeamMember } from '@/types';
 import { DashboardStats } from '@/components/Dashboard/DashboardStats';
 import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
-import { MOCK_EQUIPMENT, MOCK_TEAM_MEMBERS } from '@/data/mockData';
+import { MOCK_TEAM_MEMBERS } from '@/data/mockData';
 import { Layout } from '@/components/Layout/Layout';
+import { useQuery } from '@tanstack/react-query';
+import { getEquipment } from '@/services/equipmentService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Index = () => {
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   
+  const { data: equipment = [], isLoading } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: getEquipment,
+  });
+
   useEffect(() => {
-    // In a real app, we would fetch data from an API
-    setEquipment(MOCK_EQUIPMENT);
+    // Still using mock data for team members for now
     setTeamMembers(MOCK_TEAM_MEMBERS);
   }, []);
 
@@ -82,12 +88,40 @@ const Index = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                {recentEquipment.map((item) => (
-                  <EquipmentCard key={item.id} equipment={item} />
-                ))}
-              </div>
-              {recentEquipment.length === 0 && (
+              {isLoading ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {Array(4).fill(0).map((_, i) => (
+                    <Card key={i}>
+                      <CardHeader className="pb-2">
+                        <Skeleton className="h-5 w-3/4" />
+                      </CardHeader>
+                      <CardContent className="text-sm">
+                        <div className="grid grid-cols-2 gap-2">
+                          {Array(4).fill(0).map((_, j) => (
+                            <div key={j}>
+                              <Skeleton className="h-3 w-16 mb-1" />
+                              <Skeleton className="h-4 w-20" />
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <div className="flex justify-between w-full">
+                          {Array(3).fill(0).map((_, k) => (
+                            <Skeleton key={k} className="h-8 w-16" />
+                          ))}
+                        </div>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              ) : recentEquipment.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {recentEquipment.map((item) => (
+                    <EquipmentCard key={item.id} equipment={item} />
+                  ))}
+                </div>
+              ) : (
                 <div className="flex flex-col items-center justify-center h-40 border border-dashed rounded-lg">
                   <Package className="h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">No equipment added yet</p>
