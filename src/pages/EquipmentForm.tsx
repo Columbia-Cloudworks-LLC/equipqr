@@ -15,17 +15,21 @@ const EquipmentFormPage = () => {
   const isEditMode = !!id;
   
   // Fetch equipment data if in edit mode
-  const { data: equipment, isLoading: isFetchingEquipment } = useQuery({
+  const { data: equipment, isLoading: isFetchingEquipment, error: equipmentError } = useQuery({
     queryKey: ['equipment', id],
     queryFn: () => getEquipmentById(id as string),
     enabled: isEditMode,
-    onError: (error) => {
+  });
+  
+  // Handle equipment fetch error
+  useEffect(() => {
+    if (equipmentError) {
       toast.error('Failed to load equipment details', {
-        description: error instanceof Error ? error.message : 'Please try again later',
+        description: equipmentError instanceof Error ? equipmentError.message : 'Please try again later',
       });
       navigate('/equipment');
     }
-  });
+  }, [equipmentError, navigate]);
 
   // Create equipment mutation
   const createMutation = useMutation({
