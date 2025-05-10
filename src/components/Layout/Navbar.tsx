@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface NavbarProps {
   onToggleSidebar: () => void;
@@ -27,10 +28,31 @@ interface NavbarProps {
 
 export function Navbar({ onToggleSidebar }: NavbarProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, checkSession } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleSignOut = async () => {
-    await signOut();
+    try {
+      setIsLoggingOut(true);
+      
+      // First check if we have a valid session
+      const hasValidSession = await checkSession();
+      console.log("Navbar: Session check before logout:", hasValidSession);
+      
+      if (!hasValidSession) {
+        console.log("Navbar: No valid session found, clearing local state");
+        // If no valid session, just show success message and let AuthContext
+        // handle the cleanup in the signOut function
+      }
+      
+      await signOut();
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error("Navbar: Sign out error", error);
+      toast.error("There was a problem signing out. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const getInitials = (name?: string) => {
@@ -101,9 +123,12 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
+              <DropdownMenuItem 
+                onClick={handleSignOut}
+                disabled={isLoggingOut}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>{isLoggingOut ? "Signing out..." : "Log out"}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -115,4 +140,3 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
       </div>
     </header>
   );
-}

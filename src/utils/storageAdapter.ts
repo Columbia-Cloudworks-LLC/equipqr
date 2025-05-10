@@ -1,0 +1,265 @@
+
+/**
+ * Cross-platform storage adapter that works reliably across web and mobile
+ * Uses IndexedDB with localStorage fallback
+ */
+
+type StorageValue = string | null;
+
+interface StorageAdapter {
+  getItem(key: string): Promise<StorageValue>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+}
+
+/**
+ * IndexedDB implementation for more reliable storage
+ */
+class IndexedDBStorage implements StorageAdapter {
+  private readonly DB_NAME = 'supabase-auth';
+  private readonly STORE_NAME = 'auth-store';
+  private readonly DB_VERSION = 1;
+
+  private async getConnection(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        reject(new Error('IndexedDB is not supported in this browser'));
+        return;
+      }
+
+      const request = window.indexedDB.open(this.DB_NAME, this.DB_VERSION);
+      
+      request.onerror = (event) => {
+        console.error('IndexedDB connection error:', event);
+        reject(new Error('Failed to connect to IndexedDB'));
+      };
+      
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+          db.createObjectStore(this.STORE_NAME);
+        }
+      };
+    });
+  }
+
+  async getItem(key: string): Promise<StorageValue> {
+    try {
+      const db = await this.getConnection();
+      
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(this.STORE_NAME, 'readonly');
+        const store = transaction.objectStore(this.STORE_NAME);
+        const request = store.get(key);
+        
+        request.onsuccess = () => {
+          resolve(request.result || null);
+        };
+        
+        request.onerror = () => {
+          reject(new Error(`Failed to get item: ${key}`));
+        };
+        
+        transaction.oncomplete = () => {
+          db.close();
+        };
+      });
+    } catch (error) {
+      console.error('IndexedDB getItem error:', error);
+      return localStorage.getItem(key);
+    }
+  }
+
+  async setItem(key: string, value: string): Promise<void> {
+    try {
+      const db = await this.getConnection();
+      
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(this.STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(this.STORE_NAME);
+        const request = store.put(value, key);
+        
+        request.onsuccess = () => {
+          resolve();
+        };
+        
+        request.onerror = () => {
+          reject(new Error(`Failed to set item: ${key}`));
+        };
+        
+        transaction.oncomplete = () => {
+          db.close();
+        };
+      });
+    } catch (error) {
+      console.error('IndexedDB setItem error:', error);
+      localStorage.setItem(key, value);
+    }
+  }
+
+  async removeItem(key: string): Promise<void> {
+    try {
+      const db = await this.getConnection();
+      
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(this.STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(this.STORE_NAME);
+        const request = store.delete(key);
+        
+        request.onsuccess = () => {
+          resolve();
+        };
+        
+        request.onerror = () => {
+          reject(new Error(`Failed to remove item: ${key}`));
+        };
+        
+        transaction.oncomplete = () => {
+          db.close();
+        };
+      });
+    } catch (error) {
+      console.error('IndexedDB removeItem error:', error);
+      localStorage.removeItem(key);
+    }
+  }
+}
+
+/**
+ * Adapter that wraps IndexedDB with localStorage fallback
+ * and provides a compatible interface for Supabase
+ */
+class CrossPlatformStorage implements StorageAdapter {
+  private indexedDB = new IndexedDBStorage();
+  
+  async getItem(key: string): Promise<StorageValue> {
+    try {
+      // Try IndexedDB first
+      const value = await this.indexedDB.getItem(key);
+      if (value !== null) {
+        return value;
+      }
+      
+      // Fall back to localStorage if IndexedDB failed
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.error('Storage getItem error:', error);
+      return localStorage.getItem(key);
+    }
+  }
+
+  async setItem(key: string, value: string): Promise<void> {
+    try {
+      // Store in both IndexedDB and localStorage for redundancy
+      await this.indexedDB.setItem(key, value);
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.error('Storage setItem error:', error);
+      localStorage.setItem(key, value);
+    }
+  }
+
+  async removeItem(key: string): Promise<void> {
+    try {
+      // Remove from both IndexedDB and localStorage
+      await this.indexedDB.removeItem(key);
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.error('Storage removeItem error:', error);
+      localStorage.removeItem(key);
+    }
+  }
+}
+
+/**
+ * Creates a storage object compatible with Supabase Auth
+ * that provides better reliability on mobile devices
+ */
+export const createSupabaseStorage = () => {
+  const crossPlatformStorage = new CrossPlatformStorage();
+  
+  return {
+    getItem: async (key: string) => {
+      console.log('Storage: Getting item', key);
+      const value = await crossPlatformStorage.getItem(key);
+      console.log('Storage: Got item', key, value ? '[value]' : 'null');
+      return value;
+    },
+    setItem: async (key: string, value: string) => {
+      console.log('Storage: Setting item', key);
+      await crossPlatformStorage.setItem(key, value);
+    },
+    removeItem: async (key: string) => {
+      console.log('Storage: Removing item', key);
+      await crossPlatformStorage.removeItem(key);
+    }
+  };
+};
+
+/**
+ * Utility function to check if a session is valid
+ */
+export const validateSession = async (session: any): Promise<boolean> => {
+  if (!session) return false;
+  if (!session.access_token) return false;
+  if (!session.refresh_token) return false;
+  
+  // Check if token is expired
+  try {
+    const payload = JSON.parse(atob(session.access_token.split('.')[1]));
+    const expiry = payload.exp * 1000; // Convert to milliseconds
+    
+    if (Date.now() >= expiry) {
+      console.warn('Session token expired');
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error validating session token:', error);
+    return false;
+  }
+};
+
+/**
+ * Debug utility to get current session info
+ */
+export const getSessionInfo = async (): Promise<Record<string, any>> => {
+  const storage = createSupabaseStorage();
+  
+  try {
+    const sessionKey = 'supabase.auth.token';
+    const sessionData = await storage.getItem(sessionKey);
+    
+    if (!sessionData) {
+      return { status: 'missing', sessionKey };
+    }
+    
+    try {
+      const session = JSON.parse(sessionData);
+      const isValid = await validateSession(session);
+      
+      return {
+        status: isValid ? 'valid' : 'invalid',
+        hasAccessToken: !!session.access_token,
+        hasRefreshToken: !!session.refresh_token,
+        expiresAt: session.expires_at,
+      };
+    } catch (error) {
+      return { 
+        status: 'corrupted',
+        error: error instanceof Error ? error.message : String(error),
+        rawData: sessionData
+      };
+    }
+  } catch (error) {
+    return { 
+      status: 'error',
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+};

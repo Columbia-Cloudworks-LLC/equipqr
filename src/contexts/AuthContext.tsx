@@ -1,8 +1,9 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { getSessionInfo, validateSession } from "@/utils/storageAdapter";
 
 interface AuthContextType {
   user: User | null;
@@ -13,6 +14,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  checkSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+  const { toast: useToastFn } = useToast();
 
   useEffect(() => {
     console.log("AuthProvider: Setting up auth state listener");
@@ -43,29 +45,96 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             title: "Signed out successfully",
             description: "You have been signed out",
           });
+          
+          // Clear any leftover session data for safety
+          setTimeout(() => {
+            console.log("AuthProvider: Running post-signout cleanup");
+            localStorage.removeItem("supabase.auth.token");
+          }, 0);
         }
       }
     );
 
     // THEN check for existing session
     console.log("AuthProvider: Checking for existing session");
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+    supabase.auth.getSession().then(({ data: { session: existingSession }, error }) => {
       console.log("AuthProvider: Session check complete", !!existingSession);
+      
+      if (error) {
+        console.error("AuthProvider: Session retrieval error", error);
+        toast({
+          title: "Session error",
+          description: "There was an error retrieving your session. Please sign in again.",
+          variant: "destructive",
+        });
+        
+        // Attempt to clear corrupted session data
+        setTimeout(() => {
+          localStorage.removeItem("supabase.auth.token");
+        }, 0);
+      }
+      
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       setIsLoading(false);
+      
+      // Log session diagnostics
+      setTimeout(async () => {
+        const sessionInfo = await getSessionInfo();
+        console.log("AuthProvider: Session diagnostics", sessionInfo);
+      }, 0);
     });
 
     return () => {
       console.log("AuthProvider: Unsubscribing from auth state changes");
       subscription.unsubscribe();
     };
-  }, [toast]);
+  }, []);
 
   // Helper function to get the proper auth callback URL based on current domain
   const getRedirectUrl = () => {
     const domain = window.location.origin;
     return `${domain}/auth/callback`;
+  };
+
+  /**
+   * Verifies if the current session is valid
+   * Returns true if session is valid, false otherwise
+   */
+  const checkSession = async (): Promise<boolean> => {
+    try {
+      console.log("AuthProvider: Checking session validity");
+      
+      // First check internal state
+      if (session && user) {
+        const isValid = await validateSession(session);
+        if (isValid) {
+          console.log("AuthProvider: Session is valid");
+          return true;
+        }
+      }
+      
+      // If internal state is invalid, check with Supabase directly
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("AuthProvider: Error checking session", error);
+        return false;
+      }
+      
+      const validSession = !!data.session;
+      console.log("AuthProvider: Session check result", validSession);
+      
+      // Update state if needed
+      if (validSession && !session) {
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+      }
+      
+      return validSession;
+    } catch (error) {
+      console.error("AuthProvider: Session check failed", error);
+      return false;
+    }
   };
 
   const signUp = async (email: string, password: string, metadata?: Record<string, any>) => {
@@ -154,11 +223,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       console.log("AuthProvider: Signing out user");
+      
+      // Check if we have a valid session before attempting to sign out
+      const sessionInfo = await getSessionInfo();
+      console.log("AuthProvider: Pre-signout session diagnostics", sessionInfo);
+      
+      // Extra session validation before trying to sign out
+      if (sessionInfo.status === 'missing') {
+        console.log("AuthProvider: No session found, cleaning up state directly");
+        setUser(null);
+        setSession(null);
+        toast({
+          title: "Signed out",
+          description: "You have been signed out",
+        });
+        return;
+      }
+      
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      
+      if (error) {
+        console.error("AuthProvider: Sign out error", error);
+        
+        // If we get "session not found" error, clean up manually
+        if (error.message?.includes("session") || error.message?.includes("Session")) {
+          console.log("AuthProvider: Session not found error, cleaning up manually");
+          
+          // Clear session data anyway to prevent getting stuck
+          setUser(null);
+          setSession(null);
+          
+          // Manually remove the token from storage
+          setTimeout(() => {
+            console.log("AuthProvider: Cleaning up local storage");
+            localStorage.removeItem("supabase.auth.token");
+          }, 0);
+          
+          toast({
+            title: "Signed out",
+            description: "You have been signed out (manual cleanup)",
+          });
+          
+          return;
+        }
+        
+        // For other errors, show the error
+        useToastFn({
+          title: "Error signing out",
+          description: error.message || "An error occurred during sign out",
+          variant: "destructive",
+        });
+        
+        throw error;
+      }
+      
+      // Double check that we're actually signed out
+      setTimeout(async () => {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          console.warn("AuthProvider: Still have session after signout, forcing cleanup");
+          localStorage.removeItem("supabase.auth.token");
+          setUser(null);
+          setSession(null);
+        }
+      }, 100);
     } catch (error: any) {
       console.error("AuthProvider: Sign out error", error);
-      toast({
+      useToastFn({
         title: "Error signing out",
         description: error.message || "An error occurred during sign out",
         variant: "destructive",
@@ -207,6 +338,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithGoogle,
         signOut,
         resetPassword,
+        checkSession,
       }}
     >
       {children}
