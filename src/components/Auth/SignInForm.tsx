@@ -1,0 +1,97 @@
+
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CardContent, CardFooter } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+interface SignInFormProps {
+  email: string;
+  setEmail: (email: string) => void;
+  handleGoogleSignIn: () => Promise<void>;
+  isLoading: boolean;
+}
+
+export function SignInForm({ email, setEmail, handleGoogleSignIn, isLoading }: SignInFormProps) {
+  const [password, setPassword] = useState("");
+  const { signIn } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await signIn(email, password);
+      // Don't navigate here - let the auth state change handler handle it
+      toast.success("Successfully signed in");
+    } catch (error) {
+      // Error is already handled in the auth context
+    }
+  };
+
+  return (
+    <form onSubmit={handleSignIn}>
+      <CardContent className="space-y-4 pt-4">
+        <div className="space-y-2">
+          <Label htmlFor="signin-email">Email</Label>
+          <Input
+            id="signin-email"
+            type="email"
+            placeholder="email@example.com"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <Label htmlFor="signin-password">Password</Label>
+            <Button
+              type="button"
+              variant="link"
+              className="p-0 h-auto text-xs"
+              onClick={() => navigate("/auth/forgot-password")}
+            >
+              Forgot password?
+            </Button>
+          </div>
+          <Input
+            id="signin-password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+      </CardContent>
+      <CardFooter className="flex-col gap-4">
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isLoading}
+        >
+          {isLoading ? "Signing in..." : "Sign In"}
+        </Button>
+        <div className="relative w-full">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card text-muted-foreground px-2">Or</span>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+        >
+          Sign in with Google
+        </Button>
+      </CardFooter>
+    </form>
+  );
+}
