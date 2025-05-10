@@ -140,3 +140,4 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
       </div>
     </header>
   );
+}
