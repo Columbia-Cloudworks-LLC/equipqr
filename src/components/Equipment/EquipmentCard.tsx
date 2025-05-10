@@ -13,10 +13,9 @@ interface EquipmentCardProps {
 export function EquipmentCard({ equipment }: EquipmentCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Available': return 'bg-green-100 text-green-800';
-      case 'In Use': return 'bg-blue-100 text-blue-800';
-      case 'Under Maintenance': return 'bg-yellow-100 text-yellow-800';
-      case 'Retired': return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-gray-100 text-gray-800';
+      case 'maintenance': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -35,19 +34,19 @@ export function EquipmentCard({ equipment }: EquipmentCardProps) {
         <div className="grid grid-cols-2 gap-2">
           <div>
             <p className="text-muted-foreground">Model</p>
-            <p className="font-medium">{equipment.model}</p>
+            <p className="font-medium">{equipment.model || 'N/A'}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Serial Number</p>
-            <p className="font-medium">{equipment.serialNumber}</p>
+            <p className="font-medium">{equipment.serial_number || 'N/A'}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Location</p>
-            <p className="font-medium">{equipment.location}</p>
+            <p className="font-medium">{equipment.location || 'Unspecified'}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Assigned To</p>
-            <p className="font-medium">{equipment.assignedTo || 'Unassigned'}</p>
+            <p className="text-muted-foreground">Manufacturer</p>
+            <p className="font-medium">{equipment.manufacturer || 'Unspecified'}</p>
           </div>
         </div>
       </CardContent>

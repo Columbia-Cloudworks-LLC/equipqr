@@ -32,14 +32,13 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
   const navigate = useNavigate();
   const [formData, setFormData] = useState<Partial<Equipment>>({
     name: equipment?.name || '',
-    category: equipment?.category || '',
     model: equipment?.model || '',
-    serialNumber: equipment?.serialNumber || '',
-    purchaseDate: equipment?.purchaseDate || '',
-    assignedTo: equipment?.assignedTo || '',
-    status: equipment?.status || 'Available',
+    serial_number: equipment?.serial_number || '',
+    manufacturer: equipment?.manufacturer || '',
+    status: equipment?.status || 'active',
     location: equipment?.location || '',
-    notes: equipment?.notes || '',
+    install_date: equipment?.install_date || '',
+    warranty_expiration: equipment?.warranty_expiration || '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -55,8 +54,8 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
     e.preventDefault();
     
     // Validation
-    if (!formData.name || !formData.model || !formData.serialNumber) {
-      toast.error('Please fill in all required fields');
+    if (!formData.name) {
+      toast.error('Please enter equipment name');
       return;
     }
     
@@ -84,59 +83,57 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="manufacturer">Manufacturer</Label>
               <Input
-                id="category"
-                name="category"
-                value={formData.category}
+                id="manufacturer"
+                name="manufacturer"
+                value={formData.manufacturer}
                 onChange={handleChange}
-                placeholder="Equipment Category"
+                placeholder="Manufacturer"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="model">Model *</Label>
+              <Label htmlFor="model">Model</Label>
               <Input
                 id="model"
                 name="model"
                 value={formData.model}
                 onChange={handleChange}
                 placeholder="Model Number"
-                required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="serialNumber">Serial Number *</Label>
+              <Label htmlFor="serial_number">Serial Number</Label>
               <Input
-                id="serialNumber"
-                name="serialNumber"
-                value={formData.serialNumber}
+                id="serial_number"
+                name="serial_number"
+                value={formData.serial_number}
                 onChange={handleChange}
                 placeholder="Serial Number"
-                required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="purchaseDate">Purchase Date</Label>
+              <Label htmlFor="install_date">Install Date</Label>
               <Input
-                id="purchaseDate"
-                name="purchaseDate"
+                id="install_date"
+                name="install_date"
                 type="date"
-                value={formData.purchaseDate}
+                value={formData.install_date}
                 onChange={handleChange}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="assignedTo">Assigned To</Label>
+              <Label htmlFor="warranty_expiration">Warranty Expiration</Label>
               <Input
-                id="assignedTo"
-                name="assignedTo"
-                value={formData.assignedTo}
+                id="warranty_expiration"
+                name="warranty_expiration"
+                type="date"
+                value={formData.warranty_expiration}
                 onChange={handleChange}
-                placeholder="Who is using this equipment"
               />
             </div>
             
@@ -150,10 +147,9 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Available">Available</SelectItem>
-                  <SelectItem value="In Use">In Use</SelectItem>
-                  <SelectItem value="Under Maintenance">Under Maintenance</SelectItem>
-                  <SelectItem value="Retired">Retired</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
                 </SelectContent>
               </Select>
             </div>

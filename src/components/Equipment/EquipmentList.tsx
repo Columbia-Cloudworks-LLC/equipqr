@@ -32,9 +32,9 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
 
   const filteredEquipment = equipment.filter((item) => {
     const matchesSearch = 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.serialNumber.toLowerCase().includes(searchQuery.toLowerCase());
+      (item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (item.model?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (item.serial_number?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
       
     const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
     
@@ -43,10 +43,9 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Available': return 'bg-green-100 text-green-800';
-      case 'In Use': return 'bg-blue-100 text-blue-800';
-      case 'Under Maintenance': return 'bg-yellow-100 text-yellow-800';
-      case 'Retired': return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-gray-100 text-gray-800';
+      case 'maintenance': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -71,10 +70,9 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="Available">Available</SelectItem>
-              <SelectItem value="In Use">In Use</SelectItem>
-              <SelectItem value="Under Maintenance">Under Maintenance</SelectItem>
-              <SelectItem value="Retired">Retired</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="maintenance">Maintenance</SelectItem>
             </SelectContent>
           </Select>
           <Button asChild>
@@ -103,14 +101,14 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
               filteredEquipment.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.model}</TableCell>
-                  <TableCell>{item.serialNumber}</TableCell>
+                  <TableCell>{item.model || 'N/A'}</TableCell>
+                  <TableCell>{item.serial_number || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={getStatusColor(item.status)}>
                       {item.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{item.location}</TableCell>
+                  <TableCell>{item.location || 'N/A'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="ghost" asChild>
