@@ -6,7 +6,6 @@ import { UserRole } from "@/types/supabase-enums";
 export async function getTeamMembers(teamId: string) {
   try {
     // Get team members using our custom function
-    // We need to use 'any' here since the function isn't in the Supabase types
     const { data, error } = await supabase.functions.invoke<TeamMember[]>('get_team_members', { 
       body: { team_id: teamId }
     });

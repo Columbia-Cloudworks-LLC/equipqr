@@ -70,7 +70,7 @@ export async function createTeam(name: string) {
   
   // Add the creator as a team member with 'manager' role
   try {
-    // Use the add_team_member database function
+    // Use the add_team_member edge function
     const { error: memberError } = await supabase.functions.invoke('add_team_member', {
       body: {
         _team_id: data.id,

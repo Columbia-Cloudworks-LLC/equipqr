@@ -662,6 +662,38 @@ export type Database = {
           },
         ]
       }
+      team_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          role: string
+          team_member_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role: string
+          team_member_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role?: string
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_roles_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -939,6 +971,10 @@ export type Database = {
           status: string
         }[]
       }
+      get_team_role: {
+        Args: { _user_id: string; _team_id: string }
+        Returns: string
+      }
       get_user_role: {
         Args: { _user_id: string; _org_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -949,6 +985,14 @@ export type Database = {
           _org_id: string
           _role: Database["public"]["Enums"]["user_role"]
         }
+        Returns: boolean
+      }
+      has_team_role: {
+        Args: { _user_id: string; _team_id: string; _role: string }
+        Returns: boolean
+      }
+      is_team_member: {
+        Args: { _user_id: string; _team_id: string }
         Returns: boolean
       }
     }

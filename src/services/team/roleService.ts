@@ -25,7 +25,7 @@ export async function changeRole(userId: string, role: UserRole, teamId: string)
       throw memberError;
     }
     
-    // Update the role using RPC function instead of direct table access
+    // Update the role using the edge function
     const { error: roleError } = await supabase.functions.invoke('add_team_member', {
       body: {
         _team_id: teamId,
@@ -49,7 +49,8 @@ export async function changeRole(userId: string, role: UserRole, teamId: string)
 
 export async function removeMember(userId: string, teamId: string) {
   try {
-    // Delete the team_member record
+    // Delete the team_member record - this will automatically delete associated team_roles
+    // due to the CASCADE constraint we set up
     const { error } = await supabase
       .from('team_member')
       .delete()
