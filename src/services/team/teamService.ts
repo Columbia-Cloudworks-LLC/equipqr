@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
 
@@ -77,7 +76,7 @@ export async function createTeam(name: string) {
       _user_id: userId,
       _role: 'manager',
       _added_by: userId
-    });
+    } as any);
     
     if (memberError) {
       console.error('Error adding creator to team:', memberError);

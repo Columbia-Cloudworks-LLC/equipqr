@@ -31,7 +31,7 @@ export async function changeRole(userId: string, role: UserRole, teamId: string)
       _user_id: userId,
       _role: role,
       _added_by: currentUserId
-    });
+    } as any);
       
     if (roleError) {
       console.error('Error updating role:', roleError);

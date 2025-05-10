@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Equipment, EquipmentAttribute } from '@/types';
@@ -22,7 +21,7 @@ import {
 } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { AttributesEditor } from './AttributesEditor';
-import { getTeams } from '@/services/teamService';
+import { getTeams } from '@/services/team';
 
 interface EquipmentFormProps {
   equipment?: Equipment;

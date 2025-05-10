@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
@@ -6,9 +5,10 @@ import { UserRole } from "@/types/supabase-enums";
 export async function getTeamMembers(teamId: string) {
   try {
     // Get team members using our custom function
+    // We need to use 'any' here since the function isn't in the Supabase types
     const { data, error } = await supabase.rpc('get_team_members', { 
       team_id: teamId 
-    });
+    } as any);
     
     if (error) {
       console.error('Error fetching team members:', error);
@@ -82,7 +82,7 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
         _user_id: existingUser.id,
         _role: role,
         _added_by: currentUserId
-      });
+      } as any);
       
       if (addError) {
         console.error('Error adding member to team:', addError);
