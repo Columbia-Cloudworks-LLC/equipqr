@@ -46,7 +46,7 @@ const EquipmentDetail = () => {
     if (foundEquipment) {
       setEquipment(foundEquipment);
       // Filter work notes for this equipment
-      const equipmentNotes = MOCK_WORK_NOTES.filter((note) => note.equipmentId === id);
+      const equipmentNotes = MOCK_WORK_NOTES.filter((note) => note.equipment_id === id);
       setWorkNotes(equipmentNotes);
     } else {
       toast.error('Equipment not found');
@@ -66,11 +66,13 @@ const EquipmentDetail = () => {
     setTimeout(() => {
       const newWorkNote: WorkNote = {
         id: `note-${Date.now()}`,
-        equipmentId: id || '',
-        authorId: 'current-user',
-        author: 'John Doe',
-        content: newNote,
-        createdAt: new Date().toISOString(),
+        equipment_id: id || '',
+        work_order_id: 'wo-temp',  // Temporary placeholder
+        created_by: 'current-user',
+        note: newNote,
+        created_at: new Date().toISOString(),
+        author: 'John Doe',        // For UI display compatibility
+        content: newNote           // For UI display compatibility
       };
 
       setWorkNotes([newWorkNote, ...workNotes]);
@@ -98,10 +100,9 @@ const EquipmentDetail = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Available': return 'bg-green-100 text-green-800';
-      case 'In Use': return 'bg-blue-100 text-blue-800';
-      case 'Under Maintenance': return 'bg-yellow-100 text-yellow-800';
-      case 'Retired': return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-gray-100 text-gray-800';
+      case 'maintenance': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -125,7 +126,7 @@ const EquipmentDetail = () => {
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Last updated on {formattedDate(equipment.lastUpdated)}
+              Last updated on {formattedDate(equipment.updated_at)}
             </p>
           </div>
           
@@ -187,16 +188,16 @@ const EquipmentDetail = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-medium text-muted-foreground mb-1">Category</h3>
-                      <p>{equipment.category || 'N/A'}</p>
-                    </div>
-                    <div>
                       <h3 className="font-medium text-muted-foreground mb-1">Model</h3>
-                      <p>{equipment.model}</p>
+                      <p>{equipment.model || 'N/A'}</p>
                     </div>
                     <div>
                       <h3 className="font-medium text-muted-foreground mb-1">Serial Number</h3>
-                      <p>{equipment.serialNumber}</p>
+                      <p>{equipment.serial_number || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-muted-foreground mb-1">Manufacturer</h3>
+                      <p>{equipment.manufacturer || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="space-y-4">
@@ -205,12 +206,12 @@ const EquipmentDetail = () => {
                       <p>{equipment.location || 'N/A'}</p>
                     </div>
                     <div>
-                      <h3 className="font-medium text-muted-foreground mb-1">Assigned To</h3>
-                      <p>{equipment.assignedTo || 'Unassigned'}</p>
+                      <h3 className="font-medium text-muted-foreground mb-1">Install Date</h3>
+                      <p>{formattedDate(equipment.install_date || '')}</p>
                     </div>
                     <div>
-                      <h3 className="font-medium text-muted-foreground mb-1">Purchase Date</h3>
-                      <p>{formattedDate(equipment.purchaseDate)}</p>
+                      <h3 className="font-medium text-muted-foreground mb-1">Warranty Expiration</h3>
+                      <p>{formattedDate(equipment.warranty_expiration || '')}</p>
                     </div>
                   </div>
                 </div>
@@ -256,12 +257,12 @@ const EquipmentDetail = () => {
                       <CardDescription className="flex justify-between">
                         <span>{note.author}</span>
                         <time className="text-muted-foreground">
-                          {formattedDate(note.createdAt)}
+                          {formattedDate(note.created_at)}
                         </time>
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p className="whitespace-pre-wrap">{note.content}</p>
+                      <p className="whitespace-pre-wrap">{note.note}</p>
                     </CardContent>
                   </Card>
                 ))}

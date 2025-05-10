@@ -32,11 +32,13 @@ const TeamManagement = () => {
     setTimeout(() => {
       const newMember: TeamMember = {
         id: `member-${Date.now()}`,
+        team_id: 'team-1',
+        user_id: `user-${Date.now()}`,
+        joined_at: new Date().toISOString(),
         name: email.split('@')[0], // Use first part of email as name temporarily
         email,
-        role: role as 'Admin' | 'Editor' | 'Viewer',
+        role: role,
         status: 'Pending',
-        joinedAt: new Date().toISOString(),
       };
       
       setTeamMembers([newMember, ...teamMembers]);
@@ -56,7 +58,7 @@ const TeamManagement = () => {
     // In a real app, we would call an API to change the role
     const updatedMembers = teamMembers.map((member) => {
       if (member.id === id) {
-        return { ...member, role: role as 'Admin' | 'Editor' | 'Viewer' };
+        return { ...member, role: role };
       }
       return member;
     });

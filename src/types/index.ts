@@ -1,4 +1,3 @@
-
 export interface Equipment {
   id: string;
   org_id: string;
@@ -15,6 +14,7 @@ export interface Equipment {
   created_at: string;
   updated_at: string;
   deleted_at?: string;
+  notes?: string; // Adding this for compatibility with existing code
 }
 
 export interface WorkNote {
@@ -26,6 +26,8 @@ export interface WorkNote {
   hours_worked?: number;
   created_at: string;
   deleted_at?: string;
+  author?: string; // Adding for compatibility with existing code
+  content?: string; // Adding for compatibility with existing code
 }
 
 export interface TeamMember {
@@ -33,6 +35,11 @@ export interface TeamMember {
   team_id: string;
   user_id: string;
   joined_at: string;
+  // Additional fields needed for the UI
+  name?: string;
+  email?: string;
+  role?: string;
+  status?: string;
 }
 
 export interface Team {

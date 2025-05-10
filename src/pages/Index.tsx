@@ -29,12 +29,12 @@ const Index = () => {
     },
     {
       label: 'In Use',
-      value: equipment.filter(item => item.status === 'In Use').length,
+      value: equipment.filter(item => item.status === 'active').length,
       icon: Package,
     },
     {
       label: 'Maintenance',
-      value: equipment.filter(item => item.status === 'Under Maintenance').length,
+      value: equipment.filter(item => item.status === 'maintenance').length,
       change: -5,
       icon: Settings,
     },
@@ -48,7 +48,7 @@ const Index = () => {
 
   // Get recently added equipment (last 4)
   const recentEquipment = [...equipment]
-    .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     .slice(0, 4);
 
   return (

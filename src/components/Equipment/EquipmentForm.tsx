@@ -39,6 +39,7 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
     location: equipment?.location || '',
     install_date: equipment?.install_date || '',
     warranty_expiration: equipment?.warranty_expiration || '',
+    notes: equipment?.notes || '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
