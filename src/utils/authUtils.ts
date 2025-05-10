@@ -52,13 +52,22 @@ export async function getUserOrganizationId(userId: string): Promise<string> {
 
 /**
  * Process input data to handle empty strings for date fields
+ * @param data The data object to process
+ * @param dateFields Array of field names to check for empty strings
+ * @returns A new object with processed date fields
  */
 export function processDateFields<T extends Record<string, any>>(data: T, dateFields: string[]): T {
-  const processed = { ...data };
+  // Create a shallow copy of the input object
+  const processed = { ...data } as T;
   
+  // Process each date field
   dateFields.forEach(field => {
-    if (field in processed && (processed[field] === '' || processed[field] === undefined)) {
-      processed[field] = null;
+    if (field in processed) {
+      const value = processed[field as keyof T];
+      if (value === '' || value === undefined) {
+        // Use type assertion to safely assign to the property
+        (processed as Record<string, any>)[field] = null;
+      }
     }
   });
   
