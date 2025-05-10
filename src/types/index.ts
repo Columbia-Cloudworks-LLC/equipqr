@@ -1,3 +1,4 @@
+
 export interface Equipment {
   id: string;
   org_id: string;
@@ -38,7 +39,7 @@ export interface TeamMember {
   // Additional fields needed for the UI
   name?: string;
   email?: string;
-  role?: string;
+  role?: string; // Keep as string since it comes from the database as string
   status?: string;
 }
 

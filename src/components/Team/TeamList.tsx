@@ -1,5 +1,6 @@
 
 import { TeamMember } from '@/types';
+import { UserRole } from '@/types/supabase-enums';
 import {
   Table,
   TableBody,
@@ -23,7 +24,7 @@ import { MoreHorizontal } from 'lucide-react';
 interface TeamListProps {
   members: TeamMember[];
   onRemoveMember: (id: string) => void;
-  onChangeRole: (id: string, role: string) => void;
+  onChangeRole: (id: string, role: UserRole) => void;
   onResendInvite: (id: string) => void;
 }
 
@@ -38,9 +39,10 @@ export function TeamList({ members, onRemoveMember, onChangeRole, onResendInvite
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'Admin': return 'bg-purple-100 text-purple-800';
-      case 'Editor': return 'bg-blue-100 text-blue-800';
-      case 'Viewer': return 'bg-gray-100 text-gray-800';
+      case 'owner': return 'bg-purple-100 text-purple-800';
+      case 'manager': return 'bg-blue-100 text-blue-800';
+      case 'technician': return 'bg-green-100 text-green-800';
+      case 'viewer': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -106,13 +108,16 @@ export function TeamList({ members, onRemoveMember, onChangeRole, onResendInvite
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'Admin')}>
-                        Change to Admin
+                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'owner')}>
+                        Change to Owner
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'Editor')}>
-                        Change to Editor
+                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'manager')}>
+                        Change to Manager
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'Viewer')}>
+                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'technician')}>
+                        Change to Technician
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'viewer')}>
                         Change to Viewer
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />

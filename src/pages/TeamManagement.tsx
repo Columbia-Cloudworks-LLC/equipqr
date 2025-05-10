@@ -6,6 +6,7 @@ import { Layout } from '@/components/Layout/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { TeamMember } from '@/types';
+import { UserRole } from '@/types/supabase-enums';
 import { getTeamMembers, inviteMember, changeRole, removeMember, resendInvite } from '@/services/teamService';
 
 export default function TeamManagement() {
@@ -50,7 +51,7 @@ export default function TeamManagement() {
     }
   };
 
-  const handleChangeRole = async (id: string, role: string) => {
+  const handleChangeRole = async (id: string, role: UserRole) => {
     try {
       await changeRole(id, role);
       toast({
