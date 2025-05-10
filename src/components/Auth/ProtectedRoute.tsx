@@ -15,8 +15,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     if (!isLoading && !user) {
       // When redirecting to login, pass the current path as state
+      const currentPath = location.pathname + location.search + location.hash;
+      console.log("ProtectedRoute: Redirecting unauthorized user to /auth with returnTo:", currentPath);
+      
       navigate("/auth", { 
-        state: { returnTo: location.pathname + location.search + location.hash },
+        state: { returnTo: currentPath },
         replace: true
       });
     }
@@ -35,7 +38,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user) {
     // When using Navigate, also pass the current path as state
-    return <Navigate to="/auth" state={{ returnTo: location.pathname + location.search + location.hash }} replace />;
+    const currentPath = location.pathname + location.search + location.hash;
+    console.log("ProtectedRoute: Using Navigate to redirect to /auth with returnTo:", currentPath);
+    return <Navigate to="/auth" state={{ returnTo: currentPath }} replace />;
   }
 
   return <>{children}</>;

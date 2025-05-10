@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export default function Auth() {
   const { user, signIn, signUp, signInWithGoogle, isLoading } = useAuth();
@@ -24,23 +25,25 @@ export default function Auth() {
   const [jobTitle, setJobTitle] = useState("");
   const [organizationName, setOrganizationName] = useState("");
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: toastUI } = useToast();
   const location = useLocation();
 
   // Get returnTo URL from state or query params
   const getReturnUrl = () => {
-    // First check location state
+    // First check location state (from programmatic redirects)
     if (location.state?.returnTo) {
+      console.log("Found returnTo in location state:", location.state.returnTo);
       return location.state.returnTo;
     }
 
-    // Then check URL query parameters
+    // Then check URL query parameters (from QR scans or direct links)
     const params = new URLSearchParams(location.search);
     const returnTo = params.get("returnTo");
     
     if (returnTo) {
       // Verify the URL is relative for security
       if (returnTo.startsWith("/")) {
+        console.log("Found returnTo in query params:", returnTo);
         return returnTo;
       }
     }
@@ -51,18 +54,29 @@ export default function Auth() {
 
   const returnTo = getReturnUrl();
 
+  useEffect(() => {
+    // Save the return URL to localStorage to persist through redirects
+    if (returnTo && returnTo !== "/") {
+      localStorage.setItem("authReturnTo", returnTo);
+      console.log("Saved returnTo to localStorage:", returnTo);
+    }
+  }, [returnTo]);
+
   // If the user is already logged in, redirect to the return URL
   useEffect(() => {
     if (user) {
-      navigate(returnTo, { replace: true });
+      const destination = getReturnUrl();
+      console.log("User already logged in, navigating to:", destination);
+      navigate(destination, { replace: true });
     }
-  }, [user, navigate, returnTo]);
+  }, [user, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await signIn(email, password);
-      navigate(returnTo);
+      // Don't navigate here - let the auth state change handler handle it
+      toast.success("Successfully signed in");
     } catch (error) {
       // Error is already handled in the auth context
     }
@@ -71,7 +85,7 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast({
+      toastUI({
         title: "Missing required fields",
         description: "Please fill in all required fields",
         variant: "destructive",
@@ -95,6 +109,7 @@ export default function Auth() {
       // Save the return URL in localStorage before redirecting to Google
       if (returnTo && returnTo !== "/") {
         localStorage.setItem("authReturnTo", returnTo);
+        console.log("Saved returnTo before Google auth:", returnTo);
       }
       await signInWithGoogle();
     } catch (error) {

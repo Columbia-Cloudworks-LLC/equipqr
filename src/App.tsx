@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -129,6 +130,17 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            
+            {/* Scanner URL - for direct QR scanning */}
+            <Route
+              path="/scanner"
+              element={
+                <ProtectedRoute>
+                  <EquipmentDetail />
+                </ProtectedRoute>
+              }
+            />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>

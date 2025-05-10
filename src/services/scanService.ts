@@ -8,6 +8,8 @@ import { toast } from "sonner";
  */
 export async function recordScan(equipmentId: string, userId?: string): Promise<boolean> {
   try {
+    console.log(`Recording scan for equipment ${equipmentId}${userId ? ` by user ${userId}` : ' (anonymous)'}`);
+    
     // Check if we have a valid equipment ID
     if (!equipmentId) {
       console.error('Invalid equipment ID for scan');
@@ -35,6 +37,9 @@ export async function recordScan(equipmentId: string, userId?: string): Promise<
         console.log('Anonymous scan recorded (client-side only)');
         // For anonymous users, we don't record in the database but still return true
         // This way the scan event is still considered successful from the UI perspective
+        toast.success("Equipment scanned successfully", { 
+          description: "Sign in to record scan history and access all features"
+        });
         return true;
       }
       
@@ -42,6 +47,7 @@ export async function recordScan(equipmentId: string, userId?: string): Promise<
       throw error;
     }
     
+    toast.success("Equipment scan recorded successfully");
     return true;
   } catch (error: any) {
     console.error('Error in recordScan:', error);
@@ -60,6 +66,7 @@ export async function recordScan(equipmentId: string, userId?: string): Promise<
  */
 export async function getScanHistory(equipmentId: string) {
   try {
+    console.log(`Getting scan history for equipment ${equipmentId}`);
     const { data, error } = await supabase
       .from('scan_history')
       .select(`
@@ -74,6 +81,7 @@ export async function getScanHistory(equipmentId: string) {
       throw error;
     }
     
+    console.log(`Retrieved ${data?.length || 0} scan records`);
     return data || [];
   } catch (error: any) {
     console.error('Error in getScanHistory:', error);

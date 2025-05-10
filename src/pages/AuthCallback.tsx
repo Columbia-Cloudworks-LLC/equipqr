@@ -27,7 +27,7 @@ export default function AuthCallback() {
           
           if (accessToken) {
             console.log("AuthCallback: Setting session from hash fragment");
-            // Set the session using the extracted tokens - removing expires_in to fix type error
+            // Set the session using the extracted tokens
             const { error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
@@ -37,7 +37,10 @@ export default function AuthCallback() {
             
             // Check if there's a saved return URL in localStorage
             const returnTo = localStorage.getItem("authReturnTo");
+            console.log("AuthCallback: Checking saved returnTo:", returnTo);
+            
             if (returnTo) {
+              console.log("AuthCallback: Navigating to saved return URL:", returnTo);
               localStorage.removeItem("authReturnTo");
               navigate(returnTo);
               return;
@@ -57,7 +60,10 @@ export default function AuthCallback() {
         
         // Check if there's a saved return URL in localStorage
         const returnTo = localStorage.getItem("authReturnTo");
+        console.log("AuthCallback: Checking saved returnTo:", returnTo);
+        
         if (returnTo) {
+          console.log("AuthCallback: Navigating to saved return URL:", returnTo);
           localStorage.removeItem("authReturnTo");
           navigate(returnTo);
           return;
