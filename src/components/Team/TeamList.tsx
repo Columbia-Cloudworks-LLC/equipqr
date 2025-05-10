@@ -64,7 +64,7 @@ export function TeamList({ members, onRemoveMember, onChangeRole, onResendInvite
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                      <AvatarFallback>{getInitials(member.name || '')}</AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">{member.name}</p>
@@ -84,14 +84,14 @@ export function TeamList({ members, onRemoveMember, onChangeRole, onResendInvite
                   )}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={getRoleColor(member.role)}>
+                  <Badge variant="outline" className={getRoleColor(member.role || '')}>
                     {member.role}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   {member.status === 'Active' ? (
-                    <time dateTime={member.joinedAt}>
-                      {new Date(member.joinedAt).toLocaleDateString()}
+                    <time dateTime={member.joined_at}>
+                      {new Date(member.joined_at).toLocaleDateString()}
                     </time>
                   ) : (
                     'Not joined yet'
