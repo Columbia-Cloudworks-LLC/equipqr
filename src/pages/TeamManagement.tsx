@@ -11,13 +11,13 @@ import { UserRole } from '@/types/supabase-enums';
 import { 
   getTeams, 
   getTeamMembers,
-  getOrganizationMembers, // Updated with the renamed function
+  getOrganizationMembers,
   inviteMember, 
   changeRole, 
   removeMember, 
   resendInvite, 
   createTeam 
-} from '@/services/teamService';
+} from '@/services/team';
 
 export default function TeamManagement() {
   const [members, setMembers] = useState<TeamMember[]>([]);
