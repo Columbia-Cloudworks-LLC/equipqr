@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
@@ -6,9 +7,9 @@ export async function getTeamMembers(teamId: string) {
   try {
     // Get team members using our custom function
     // We need to use 'any' here since the function isn't in the Supabase types
-    const { data, error } = await supabase.rpc('get_team_members', { 
-      team_id: teamId 
-    } as any);
+    const { data, error } = await supabase.functions.invoke<TeamMember[]>('get_team_members', { 
+      body: { team_id: teamId }
+    });
     
     if (error) {
       console.error('Error fetching team members:', error);
@@ -38,7 +39,7 @@ export async function getOrganizationMembers() {
   
   // Now get all users in this organization with their roles using our custom function
   const { data, error } = await supabase
-    .rpc('get_organization_members', { org_id: orgId });
+    .rpc('get_organization_members', { org_id: orgId } as any);
     
   if (error) {
     console.error('Error fetching organization members:', error);
@@ -77,12 +78,14 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
   // If the user exists, add them to the team directly
   if (existingUser) {
     try {
-      const { error: addError } = await supabase.rpc('add_team_member', {
-        _team_id: teamId,
-        _user_id: existingUser.id,
-        _role: role,
-        _added_by: currentUserId
-      } as any);
+      const { error: addError } = await supabase.functions.invoke('add_team_member', {
+        body: {
+          _team_id: teamId,
+          _user_id: existingUser.id,
+          _role: role,
+          _added_by: currentUserId
+        }
+      });
       
       if (addError) {
         console.error('Error adding member to team:', addError);

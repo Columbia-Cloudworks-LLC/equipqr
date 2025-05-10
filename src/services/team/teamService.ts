@@ -1,5 +1,5 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { TeamMember } from "@/types";
 
 export async function getTeams() {
   const { data, error } = await supabase
@@ -71,12 +71,14 @@ export async function createTeam(name: string) {
   // Add the creator as a team member with 'manager' role
   try {
     // Use the add_team_member database function
-    const { error: memberError } = await supabase.rpc('add_team_member', {
-      _team_id: data.id,
-      _user_id: userId,
-      _role: 'manager',
-      _added_by: userId
-    } as any);
+    const { error: memberError } = await supabase.functions.invoke('add_team_member', {
+      body: {
+        _team_id: data.id,
+        _user_id: userId,
+        _role: 'manager',
+        _added_by: userId
+      }
+    });
     
     if (memberError) {
       console.error('Error adding creator to team:', memberError);

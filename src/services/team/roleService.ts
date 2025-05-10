@@ -26,12 +26,14 @@ export async function changeRole(userId: string, role: UserRole, teamId: string)
     }
     
     // Update the role using RPC function instead of direct table access
-    const { error: roleError } = await supabase.rpc('add_team_member', {
-      _team_id: teamId,
-      _user_id: userId,
-      _role: role,
-      _added_by: currentUserId
-    } as any);
+    const { error: roleError } = await supabase.functions.invoke('add_team_member', {
+      body: {
+        _team_id: teamId,
+        _user_id: userId,
+        _role: role,
+        _added_by: currentUserId
+      }
+    });
       
     if (roleError) {
       console.error('Error updating role:', roleError);
