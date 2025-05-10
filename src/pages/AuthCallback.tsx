@@ -24,15 +24,13 @@ export default function AuthCallback() {
           
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
-          const expiresIn = hashParams.get('expires_in');
           
           if (accessToken) {
             console.log("AuthCallback: Setting session from hash fragment");
-            // Set the session using the extracted tokens
+            // Set the session using the extracted tokens - removing expires_in to fix type error
             const { error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
-              expires_in: parseInt(expiresIn || '3600'),
             });
             
             if (error) throw error;
