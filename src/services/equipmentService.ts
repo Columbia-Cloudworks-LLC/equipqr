@@ -57,11 +57,14 @@ export async function createEquipment(equipment: Partial<Equipment>) {
       throw new Error('Equipment name is required');
     }
     
-    // Get the current user's ID and organization ID
-    const { data: userData } = await supabase.auth.getSession();
-    if (!userData.session?.user) {
+    // Get the current user's ID
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
       throw new Error('User must be logged in to create equipment');
     }
+    
+    const userId = sessionData.session.user.id;
+    console.log('Current auth user ID:', userId);
     
     // Extract attributes before sending to database
     const attributes = equipment.attributes || [];
@@ -69,16 +72,48 @@ export async function createEquipment(equipment: Partial<Equipment>) {
     delete equipmentData.attributes;
     
     // Get the user profile to determine organization ID
-    const { data: userProfile, error: profileError } = await supabase
+    // First try to get user profile using auth uid directly
+    let { data: userProfile, error: profileError } = await supabase
       .from('user_profiles')
       .select('org_id')
-      .eq('id', userData.session.user.id)
+      .eq('id', userId)
       .single();
     
-    if (profileError || !userProfile?.org_id) {
-      console.error('Error fetching user profile:', profileError);
+    // If no profile found with auth uid as id, try looking up in app_user table
+    if (profileError) {
+      console.log('No direct profile match, checking app_user table');
+      
+      const { data: appUser, error: appUserError } = await supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', userId)
+        .single();
+      
+      if (appUserError || !appUser) {
+        console.error('Error finding app user:', appUserError);
+        throw new Error('Failed to find your user profile. Please ensure your profile is set up correctly.');
+      }
+      
+      // Now try to get the profile with the app_user id
+      const { data: profile, error: secondProfileError } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', appUser.id)
+        .single();
+      
+      if (secondProfileError || !profile?.org_id) {
+        console.error('Error fetching user profile with app_user id:', secondProfileError);
+        throw new Error('Failed to determine your organization. Please contact support.');
+      }
+      
+      userProfile = profile;
+    }
+    
+    if (!userProfile?.org_id) {
       throw new Error('Failed to determine your organization. Please ensure your profile is set up correctly.');
     }
+    
+    console.log('Found organization ID:', userProfile.org_id);
     
     // Start a transaction for equipment and attributes
     const { data, error } = await supabase
@@ -95,7 +130,7 @@ export async function createEquipment(equipment: Partial<Equipment>) {
         notes: equipment.notes,
         team_id: equipment.team_id,
         // Add required fields
-        created_by: userData.session.user.id,
+        created_by: userId,
         org_id: userProfile.org_id
       })
       .select()
