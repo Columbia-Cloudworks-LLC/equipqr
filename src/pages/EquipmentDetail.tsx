@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -195,6 +194,27 @@ const EquipmentDetail = () => {
 
   const qrCodeUrl = window.location.origin + `/equipment/${id}`;
 
+  const renderAttributes = () => {
+    if (!equipment?.attributes || equipment.attributes.length === 0) {
+      return (
+        <div className="text-muted-foreground italic">
+          No custom attributes
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        {equipment.attributes.map((attr) => (
+          <div key={attr.id} className="flex flex-col">
+            <span className="text-sm text-muted-foreground">{attr.key}</span>
+            <span className="font-medium">{attr.value || 'N/A'}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <Layout>
       <div className="flex-1 space-y-6 p-6">
@@ -303,6 +323,11 @@ const EquipmentDetail = () => {
                     <p className="whitespace-pre-wrap">{equipment.notes}</p>
                   </div>
                 )}
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Custom Attributes</h3>
+                  {renderAttributes()}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

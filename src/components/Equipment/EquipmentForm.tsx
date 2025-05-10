@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Equipment } from '@/types';
+import { Equipment, EquipmentAttribute } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { AttributesEditor } from './AttributesEditor';
 
 interface EquipmentFormProps {
   equipment?: Equipment;
@@ -40,6 +41,7 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
     install_date: equipment?.install_date || '',
     warranty_expiration: equipment?.warranty_expiration || '',
     notes: equipment?.notes || '',
+    attributes: equipment?.attributes || []
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -49,6 +51,10 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAttributesChange = (attributes: EquipmentAttribute[]) => {
+    setFormData((prev) => ({ ...prev, attributes }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -176,6 +182,14 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
               onChange={handleChange}
               placeholder="Additional information about this equipment"
               rows={4}
+            />
+          </div>
+          
+          {/* Custom Attributes Section */}
+          <div className="pt-4 border-t">
+            <AttributesEditor 
+              attributes={formData.attributes || []} 
+              onChange={handleAttributesChange}
             />
           </div>
         </CardContent>

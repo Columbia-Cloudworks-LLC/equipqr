@@ -1,4 +1,3 @@
-
 export interface Equipment {
   id: string;
   org_id: string;
@@ -15,7 +14,17 @@ export interface Equipment {
   created_at: string;
   updated_at: string;
   deleted_at?: string;
-  notes?: string; // Adding this for compatibility with existing code
+  notes?: string;
+  attributes?: EquipmentAttribute[];
+}
+
+export interface EquipmentAttribute {
+  id?: string;
+  equipment_id: string;
+  key: string;
+  value: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface WorkNote {
@@ -27,8 +36,8 @@ export interface WorkNote {
   hours_worked?: number;
   created_at: string;
   deleted_at?: string;
-  author?: string; // Adding for compatibility with existing code
-  content?: string; // Adding for compatibility with existing code
+  author?: string;
+  content?: string;
 }
 
 export interface TeamMember {
@@ -36,10 +45,9 @@ export interface TeamMember {
   team_id: string;
   user_id: string;
   joined_at: string;
-  // Additional fields needed for the UI
   name?: string;
   email?: string;
-  role?: string; // Keep as string since it comes from the database as string
+  role?: string;
   status?: string;
 }
 
