@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -65,6 +64,9 @@ const App = () => (
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             
+            {/* Special case for equipment scanned via QR code - can be accessed anonymously */}
+            <Route path="/equipment/:id" element={<EquipmentDetail />} />
+            
             {/* Root route with special handler for auth redirects */}
             <Route
               path="/"
@@ -84,14 +86,6 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Equipment />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/equipment/:id"
-              element={
-                <ProtectedRoute>
-                  <EquipmentDetail />
                 </ProtectedRoute>
               }
             />

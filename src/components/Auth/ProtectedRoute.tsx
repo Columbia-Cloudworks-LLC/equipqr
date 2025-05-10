@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
@@ -10,12 +10,17 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!isLoading && !user) {
-      navigate("/auth");
+      // When redirecting to login, pass the current path as state
+      navigate("/auth", { 
+        state: { returnTo: location.pathname + location.search + location.hash },
+        replace: true
+      });
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, location]);
 
   if (isLoading) {
     return (
@@ -29,7 +34,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    // When using Navigate, also pass the current path as state
+    return <Navigate to="/auth" state={{ returnTo: location.pathname + location.search + location.hash }} replace />;
   }
 
   return <>{children}</>;

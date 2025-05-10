@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,17 +25,44 @@ export default function Auth() {
   const [organizationName, setOrganizationName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const location = useLocation();
 
-  // If the user is already logged in, redirect to the home page
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
+  // Get returnTo URL from state or query params
+  const getReturnUrl = () => {
+    // First check location state
+    if (location.state?.returnTo) {
+      return location.state.returnTo;
+    }
+
+    // Then check URL query parameters
+    const params = new URLSearchParams(location.search);
+    const returnTo = params.get("returnTo");
+    
+    if (returnTo) {
+      // Verify the URL is relative for security
+      if (returnTo.startsWith("/")) {
+        return returnTo;
+      }
+    }
+
+    // Default to home
+    return "/";
+  };
+
+  const returnTo = getReturnUrl();
+
+  // If the user is already logged in, redirect to the return URL
+  useEffect(() => {
+    if (user) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [user, navigate, returnTo]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await signIn(email, password);
-      navigate("/");
+      navigate(returnTo);
     } catch (error) {
       // Error is already handled in the auth context
     }
@@ -65,11 +92,18 @@ export default function Auth() {
 
   const handleGoogleSignIn = async () => {
     try {
+      // Save the return URL in localStorage before redirecting to Google
+      if (returnTo && returnTo !== "/") {
+        localStorage.setItem("authReturnTo", returnTo);
+      }
       await signInWithGoogle();
     } catch (error) {
       // Error is already handled in the auth context
     }
   };
+
+  // Don't render a redirect since we're using useEffect to handle redirects
+  if (user && !isLoading) return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

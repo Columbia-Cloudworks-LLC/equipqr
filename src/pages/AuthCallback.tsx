@@ -34,6 +34,15 @@ export default function AuthCallback() {
             });
             
             if (error) throw error;
+            
+            // Check if there's a saved return URL in localStorage
+            const returnTo = localStorage.getItem("authReturnTo");
+            if (returnTo) {
+              localStorage.removeItem("authReturnTo");
+              navigate(returnTo);
+              return;
+            }
+            
             navigate('/');
             return;
           }
@@ -45,6 +54,15 @@ export default function AuthCallback() {
         
         if (error) throw error;
         console.log("AuthCallback: Session retrieved successfully", !!data.session);
+        
+        // Check if there's a saved return URL in localStorage
+        const returnTo = localStorage.getItem("authReturnTo");
+        if (returnTo) {
+          localStorage.removeItem("authReturnTo");
+          navigate(returnTo);
+          return;
+        }
+        
         navigate('/');
       } catch (error: any) {
         console.error("AuthCallback Error:", error);
