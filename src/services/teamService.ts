@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
 
-export async function getTeamMembers() {
+// Renamed from getTeamMembers to getOrganizationMembers to avoid duplication
+export async function getOrganizationMembers() {
   // First get the organization ID for the current user
   const { data: userProfile, error: profileError } = await supabase
     .from('user_profiles')
@@ -22,7 +23,7 @@ export async function getTeamMembers() {
     .rpc('get_organization_members', { org_id: orgId });
     
   if (error) {
-    console.error('Error fetching team members:', error);
+    console.error('Error fetching organization members:', error);
     throw error;
   }
   
@@ -98,13 +99,18 @@ export async function createTeam(name: string) {
   
   // Add the creator as a team member with 'manager' role
   try {
-    // Call the add_team_member RPC function
-    await supabase.rpc('add_team_member', {
+    // Fix: Use the custom RPC function added in the SQL migration
+    const { error: memberError } = await supabase.rpc('add_team_member', {
       _team_id: data.id,
       _user_id: userId,
       _role: 'manager',
       _added_by: userId
     });
+    
+    if (memberError) {
+      console.error('Error adding creator to team:', memberError);
+      // Continue anyway as the team was created
+    }
   } catch (memberError) {
     console.error('Error adding creator to team:', memberError);
     // Continue anyway as the team was created
@@ -142,12 +148,17 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
   // If the user exists, add them to the team directly
   if (existingUser) {
     try {
-      await supabase.rpc('add_team_member', {
+      const { error: addError } = await supabase.rpc('add_team_member', {
         _team_id: teamId,
         _user_id: existingUser.id,
         _role: role,
         _added_by: currentUserId
       });
+      
+      if (addError) {
+        console.error('Error adding member to team:', addError);
+        throw addError;
+      }
       
       return { success: true };
     } catch (addError) {
@@ -184,12 +195,12 @@ export async function changeRole(userId: string, role: UserRole, teamId: string)
       throw memberError;
     }
     
-    // Update the role
-    const { error: roleError } = await supabase
+    // Update the role - now using proper table name that we created in the migration
+    const { data, error: roleError } = await supabase
       .from('team_roles')
       .upsert({
         team_member_id: teamMember.id,
-        role,
+        role: role,
         assigned_by: currentUserId
       }, { onConflict: 'team_member_id' });
       
@@ -232,6 +243,8 @@ export async function resendInvite(userId: string) {
   return { success: true };
 }
 
+// This is the second definition of getTeamMembers which now becomes our primary one
+// since it gets members of a specific team rather than all organization members
 export async function getTeamMembers(teamId: string) {
   try {
     // Get team members using our custom function

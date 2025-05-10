@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { TeamList } from '@/components/Team/TeamList';
 import { InviteForm } from '@/components/Team/InviteForm';
@@ -11,7 +10,8 @@ import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
 import { 
   getTeams, 
-  getTeamMembers, 
+  getTeamMembers,
+  getOrganizationMembers, // Updated with the renamed function
   inviteMember, 
   changeRole, 
   removeMember, 
