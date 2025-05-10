@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
+import { UserRole } from "@/types/supabase-enums";
 
 export async function getTeamMembers() {
   // First get the organization ID for the current user
@@ -16,7 +17,7 @@ export async function getTeamMembers() {
   
   const orgId = userProfile.org_id;
   
-  // Now get all users in this organization with their roles
+  // Now get all users in this organization with their roles using our custom function
   const { data, error } = await supabase
     .rpc('get_organization_members', { org_id: orgId });
     
@@ -35,7 +36,7 @@ export async function inviteMember(email: string, role: string) {
   return { success: true };
 }
 
-export async function changeRole(userId: string, role: string) {
+export async function changeRole(userId: string, role: UserRole) {
   // First get the organization ID for the current user
   const { data: userProfile, error: profileError } = await supabase
     .from('user_profiles')

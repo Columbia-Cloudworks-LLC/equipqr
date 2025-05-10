@@ -888,6 +888,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_organization_members: {
+        Args: { org_id: string }
+        Returns: {
+          id: string
+          team_id: string
+          user_id: string
+          joined_at: string
+          name: string
+          email: string
+          role: string
+          status: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string; _org_id: string }
         Returns: Database["public"]["Enums"]["user_role"]

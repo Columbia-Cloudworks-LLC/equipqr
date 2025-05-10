@@ -22,13 +22,14 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout/Layout";
+import { DateTimeFormat } from "@/types/supabase-enums";
 
 interface UserProfile {
   id: string;
   display_name: string | null;
   job_title: string | null;
   timezone: string;
-  datetime_format_preference: string;
+  datetime_format_preference: DateTimeFormat;
   phone_number: string | null;
 }
 
@@ -95,7 +96,9 @@ export default function Profile() {
     if (!profile) return;
     setProfile({
       ...profile,
-      [field]: value,
+      [field]: field === 'datetime_format_preference' 
+        ? value as DateTimeFormat 
+        : value,
     });
   };
 

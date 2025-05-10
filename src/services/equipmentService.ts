@@ -39,6 +39,23 @@ export async function createEquipment(equipment: Partial<Equipment>) {
     throw new Error('Equipment name is required');
   }
   
+  // Get the current user's ID and organization ID
+  const { data: userData } = await supabase.auth.getSession();
+  if (!userData.session?.user) {
+    throw new Error('User must be logged in to create equipment');
+  }
+  
+  // Get the user profile to determine organization ID
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('org_id')
+    .eq('id', userData.session.user.id)
+    .single();
+    
+  if (!userProfile?.org_id) {
+    throw new Error('User organization could not be determined');
+  }
+  
   const { data, error } = await supabase
     .from('equipment')
     .insert({
@@ -50,7 +67,10 @@ export async function createEquipment(equipment: Partial<Equipment>) {
       location: equipment.location,
       install_date: equipment.install_date,
       warranty_expiration: equipment.warranty_expiration,
-      team_id: equipment.team_id
+      team_id: equipment.team_id,
+      // Add required fields
+      created_by: userData.session.user.id,
+      org_id: userProfile.org_id
     })
     .select()
     .single();
