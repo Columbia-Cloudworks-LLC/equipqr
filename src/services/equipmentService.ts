@@ -115,24 +115,27 @@ export async function createEquipment(equipment: Partial<Equipment>) {
     
     console.log('Found organization ID:', userProfile.org_id);
     
+    // Process dates - convert empty strings to null to avoid PostgreSQL errors
+    const processedEquipment = {
+      name: equipment.name,
+      model: equipment.model,
+      serial_number: equipment.serial_number,
+      manufacturer: equipment.manufacturer,
+      status: equipment.status || 'active',
+      location: equipment.location,
+      install_date: equipment.install_date === '' ? null : equipment.install_date,
+      warranty_expiration: equipment.warranty_expiration === '' ? null : equipment.warranty_expiration,
+      notes: equipment.notes,
+      team_id: equipment.team_id,
+      // Add required fields
+      created_by: userId,
+      org_id: userProfile.org_id
+    };
+    
     // Start a transaction for equipment and attributes
     const { data, error } = await supabase
       .from('equipment')
-      .insert({
-        name: equipment.name,
-        model: equipment.model,
-        serial_number: equipment.serial_number,
-        manufacturer: equipment.manufacturer,
-        status: equipment.status || 'active',
-        location: equipment.location,
-        install_date: equipment.install_date,
-        warranty_expiration: equipment.warranty_expiration,
-        notes: equipment.notes,
-        team_id: equipment.team_id,
-        // Add required fields
-        created_by: userId,
-        org_id: userProfile.org_id
-      })
+      .insert(processedEquipment)
       .select()
       .single();
       
@@ -181,13 +184,18 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     const equipmentData = { ...equipment };
     delete equipmentData.attributes;
     
+    // Process dates - convert empty strings to null
+    const processedEquipment = {
+      ...equipmentData,
+      install_date: equipmentData.install_date === '' ? null : equipmentData.install_date,
+      warranty_expiration: equipmentData.warranty_expiration === '' ? null : equipmentData.warranty_expiration,
+      updated_at: new Date().toISOString(),
+    };
+    
     // Update the equipment
     const { data, error } = await supabase
       .from('equipment')
-      .update({
-        ...equipmentData,
-        updated_at: new Date().toISOString(),
-      })
+      .update(processedEquipment)
       .eq('id', id)
       .select()
       .single();

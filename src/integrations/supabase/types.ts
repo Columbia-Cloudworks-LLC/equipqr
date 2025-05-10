@@ -264,6 +264,7 @@ export type Database = {
           manufacturer: string | null
           model: string | null
           name: string
+          notes: string | null
           org_id: string
           serial_number: string | null
           status: Database["public"]["Enums"]["equipment_status"]
@@ -281,6 +282,7 @@ export type Database = {
           manufacturer?: string | null
           model?: string | null
           name: string
+          notes?: string | null
           org_id: string
           serial_number?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
@@ -298,6 +300,7 @@ export type Database = {
           manufacturer?: string | null
           model?: string | null
           name?: string
+          notes?: string | null
           org_id?: string
           serial_number?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
