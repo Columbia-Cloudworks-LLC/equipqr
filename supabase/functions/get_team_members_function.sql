@@ -31,8 +31,9 @@ BEGIN
   FROM
     public.team_member tm
     LEFT JOIN public.team_roles tr ON tr.team_member_id = tm.id
-    JOIN auth.users au ON tm.user_id = au.id
-    LEFT JOIN public.user_profiles up ON tm.user_id = up.id
+    JOIN public.app_user app_u ON tm.user_id = app_u.id
+    JOIN auth.users au ON app_u.auth_uid = au.id
+    LEFT JOIN public.user_profiles up ON au.id = up.id
   WHERE
     tm.team_id = _team_id;
 END;

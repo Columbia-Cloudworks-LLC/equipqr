@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
+import { getAppUserId } from "@/utils/authUtils";
 
 export async function getTeamMembers(teamId: string) {
   try {
@@ -55,12 +56,12 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
     throw new Error('User must be logged in to invite a team member');
   }
   
-  const currentUserId = sessionData.session.user.id;
+  const currentAuthUserId = sessionData.session.user.id;
   
   // Check if the user already exists in the system by email
   const { data: existingUser, error: userError } = await supabase
     .from('app_user')
-    .select('id')
+    .select('id, auth_uid')
     .eq('email', email.toLowerCase())
     .maybeSingle();
     
@@ -80,9 +81,9 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       const { error: addError } = await supabase.functions.invoke('add_team_member', {
         body: {
           _team_id: teamId,
-          _user_id: existingUser.id,
+          _user_id: existingUser.auth_uid, // Use auth_uid from app_user
           _role: role,
-          _added_by: currentUserId
+          _added_by: currentAuthUserId
         }
       });
       
