@@ -6,13 +6,15 @@ interface TeamInvitationsListProps {
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvite: (id: string) => Promise<void>;
   isLoading: boolean;
+  isViewOnly?: boolean;
 }
 
 export function TeamInvitationsList({
   invitations,
   onResendInvite,
   onCancelInvite,
-  isLoading
+  isLoading,
+  isViewOnly = false
 }: TeamInvitationsListProps) {
   return (
     <PendingInvitationsList
@@ -20,6 +22,7 @@ export function TeamInvitationsList({
       onResendInvite={onResendInvite}
       onCancelInvite={onCancelInvite}
       isLoading={isLoading}
+      isViewOnly={isViewOnly}
     />
   );
 }

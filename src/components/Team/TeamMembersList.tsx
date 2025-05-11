@@ -9,6 +9,7 @@ interface TeamMembersListProps {
   onChangeRole: (id: string, role: UserRole, teamId: string) => void;
   onResendInvite: (id: string) => Promise<void>;
   teamId: string;
+  isViewOnly?: boolean;
 }
 
 export function TeamMembersList({
@@ -16,7 +17,8 @@ export function TeamMembersList({
   onRemoveMember,
   onChangeRole,
   onResendInvite,
-  teamId
+  teamId,
+  isViewOnly = false
 }: TeamMembersListProps) {
   return (
     <TeamList
@@ -25,6 +27,7 @@ export function TeamMembersList({
       onChangeRole={onChangeRole}
       onResendInvite={onResendInvite}
       teamId={teamId}
+      isViewOnly={isViewOnly}
     />
   );
 }
