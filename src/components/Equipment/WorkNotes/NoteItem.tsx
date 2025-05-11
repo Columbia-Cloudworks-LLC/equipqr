@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { WorkNote } from '@/services/workNotesService';
+import { WorkNote } from '@/services/workNotes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, Edit, Trash } from 'lucide-react';

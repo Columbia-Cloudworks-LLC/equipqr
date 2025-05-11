@@ -10,7 +10,7 @@ import {
   deleteWorkNote,
   canManageWorkNotes,
   canCreateWorkNotes 
-} from '@/services/workNotesService';
+} from '@/services/workNotes';
 
 export function useWorkNotes(equipmentId: string) {
   const [editingNote, setEditingNote] = useState<WorkNote | null>(null);
@@ -90,7 +90,7 @@ export function useWorkNotes(equipmentId: string) {
       equipment_id: equipmentId,
       note: note.trim(),
       is_public: isPublic,
-      hours_worked: isNaN(hours) ? undefined : hours
+      hours_worked: isNaN(hours) ? null : hours
     });
   };
   
@@ -100,12 +100,12 @@ export function useWorkNotes(equipmentId: string) {
     if (!editingNote || !editingNote.id) return;
     
     // Convert the hours_worked string to a number if it exists
-    let hoursValue: number | undefined;
+    let hoursValue: number | null = null;
     
     if (editingNote.hours_worked !== undefined && editingNote.hours_worked !== null) {
       if (typeof editingNote.hours_worked === 'string') {
-        const parsed = parseFloat(editingNote.hours_worked as string);
-        hoursValue = isNaN(parsed) ? undefined : parsed;
+        const parsed = parseFloat(editingNote.hours_worked as unknown as string);
+        hoursValue = isNaN(parsed) ? null : parsed;
       } else {
         hoursValue = editingNote.hours_worked as number;
       }
@@ -126,7 +126,7 @@ export function useWorkNotes(equipmentId: string) {
     if (editingNote) {
       setEditingNote({
         ...editingNote,
-        hours_worked: value === '' ? undefined : value
+        hours_worked: value === '' ? null : value
       });
     }
   };
