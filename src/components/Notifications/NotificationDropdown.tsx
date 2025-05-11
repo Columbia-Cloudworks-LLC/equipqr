@@ -69,6 +69,9 @@ export function NotificationDropdown() {
     }
   };
 
+  // Filter out any accepted invitations (belt and suspenders approach since the backend should already filter these)
+  const pendingInvitations = invitations.filter(inv => inv.status === 'pending');
+
   // Don't render the notification bell if there's no authenticated user
   if (!user) {
     return null;
@@ -104,8 +107,8 @@ export function NotificationDropdown() {
             <div className="p-4 flex justify-center">
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
             </div>
-          ) : invitations.length > 0 ? (
-            invitations.map((invitation) => (
+          ) : pendingInvitations.length > 0 ? (
+            pendingInvitations.map((invitation) => (
               <InvitationNotification
                 key={invitation.id}
                 invitation={invitation}
@@ -123,7 +126,7 @@ export function NotificationDropdown() {
             </div>
           )}
         </div>
-        {invitations.length > 0 && (
+        {pendingInvitations.length > 0 && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

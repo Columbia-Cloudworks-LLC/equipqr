@@ -40,6 +40,16 @@ export function useInvitationAcceptance(token: string | undefined, user: any) {
         description: `You have successfully joined as a ${result.role || "member"}`
       });
       
+      // Clear any local dismissed notifications since status has changed
+      if (window.localStorage) {
+        try {
+          const dismissedKey = 'dismissed_notifications';
+          window.localStorage.removeItem(dismissedKey);
+        } catch (e) {
+          console.warn('Could not clear dismissed notifications from localStorage:', e);
+        }
+      }
+      
       // Redirect to team management page
       navigate('/team');
       

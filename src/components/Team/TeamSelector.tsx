@@ -27,8 +27,11 @@ export function TeamSelector({
   placeholder = "Select a team",
   allowNoTeam = true
 }: TeamSelectorProps) {
+  // Handle null or undefined values
+  const safeValue = value || 'none';
+  
   return (
-    <Select value={value} onValueChange={onChange}>
+    <Select value={safeValue} onValueChange={onChange}>
       <SelectTrigger>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>

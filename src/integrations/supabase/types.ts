@@ -402,6 +402,50 @@ export type Database = {
           },
         ]
       }
+      equipment_work_notes: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          equipment_id: string
+          hours_worked: number | null
+          id: string
+          is_public: boolean
+          note: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          equipment_id: string
+          hours_worked?: number | null
+          id?: string
+          is_public?: boolean
+          note: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          equipment_id?: string
+          hours_worked?: number | null
+          id?: string
+          is_public?: boolean
+          note?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_work_notes_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       image_upload: {
         Row: {
           bucket: string
@@ -1014,6 +1058,20 @@ export type Database = {
       gen_invitation_token: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_equipment_work_notes: {
+        Args: { equipment_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          equipment_id: string
+          hours_worked: number | null
+          id: string
+          is_public: boolean
+          note: string
+          updated_at: string
+        }[]
       }
       get_organization_members: {
         Args: { org_id: string }

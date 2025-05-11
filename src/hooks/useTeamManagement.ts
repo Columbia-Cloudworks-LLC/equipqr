@@ -16,6 +16,7 @@ export function useTeamManagement() {
     isLoading: isTeamsLoading,
     isCreatingTeam,
     error: teamsError,
+    fetchTeams,
     handleCreateTeam 
   } = useTeams();
   
@@ -51,6 +52,11 @@ export function useTeamManagement() {
     handleUpgradeRole
   } = useRoleManagement(members, selectedTeamId);
 
+  // Refresh teams when component mounts
+  useEffect(() => {
+    fetchTeams();
+  }, []);
+
   // Set the first team as selected if available and none is selected
   useEffect(() => {
     if (teams.length > 0 && !selectedTeamId) {
@@ -61,8 +67,9 @@ export function useTeamManagement() {
 
   // Fetch team members when selectedTeamId changes
   useEffect(() => {
-    if (selectedTeamId && isMember) {
+    if (selectedTeamId && selectedTeamId !== 'none' && isMember) {
       fetchTeamMembers();
+      fetchPendingInvitations();
     }
   }, [selectedTeamId, isMember]);
 
@@ -74,13 +81,13 @@ export function useTeamManagement() {
 
   // Memoize functions to prevent unnecessary re-renders
   const refetchTeamMembers = useCallback(() => {
-    if (selectedTeamId && isMember) {
+    if (selectedTeamId && selectedTeamId !== 'none' && isMember) {
       fetchTeamMembers();
     }
   }, [selectedTeamId, isMember, fetchTeamMembers]);
   
   const refetchPendingInvitations = useCallback(() => {
-    if (selectedTeamId && isMember) {
+    if (selectedTeamId && selectedTeamId !== 'none' && isMember) {
       fetchPendingInvitations();
     }
   }, [selectedTeamId, isMember, fetchPendingInvitations]);
@@ -90,6 +97,7 @@ export function useTeamManagement() {
     if (team?.id) {
       setSelectedTeamId(team.id);
     }
+    return team;
   }, [handleCreateTeam]);
 
   return {
@@ -119,5 +127,6 @@ export function useTeamManagement() {
     handleRequestRoleUpgrade,
     refetchTeamMembers,
     refetchPendingInvitations,
+    fetchTeams
   };
 }

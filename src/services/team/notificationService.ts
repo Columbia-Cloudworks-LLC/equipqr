@@ -23,9 +23,12 @@ export async function getActiveNotifications() {
     // Get all pending invitations
     const invitations = await getActiveInvitationsInternal();
     
-    // Filter for invitations that match the current user's email and haven't been dismissed
+    // Filter for invitations that match the current user's email,
+    // are still pending (not accepted or cancelled),
+    // and haven't been dismissed locally
     const activeInvitations = invitations.filter(inv => 
       inv.email.toLowerCase() === userEmail && 
+      inv.status === 'pending' &&
       !isNotificationDismissed(inv.id)
     );
     

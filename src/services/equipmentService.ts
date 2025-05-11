@@ -98,13 +98,13 @@ export async function createEquipment(equipment: Partial<Equipment>) {
       install_date: equipment.install_date,
       warranty_expiration: equipment.warranty_expiration,
       notes: equipment.notes,
-      team_id: equipment.team_id,
+      team_id: equipment.team_id === 'none' ? null : equipment.team_id,
       // Add required fields
       created_by: appUserId, // Using the app_user ID instead of auth user ID
       org_id: orgId
     }, ['install_date', 'warranty_expiration']);
     
-    // Start a transaction for equipment and attributes
+    // Create the equipment record
     const { data, error } = await supabase
       .from('equipment')
       .insert(processedEquipment)
@@ -118,13 +118,9 @@ export async function createEquipment(equipment: Partial<Equipment>) {
     
     // If we have attributes, insert them
     if (attributes.length > 0) {
-      const attributesWithEquipmentId = attributes.map(attr => ({
-        ...attr,
-        equipment_id: data.id
-      }));
-      
       try {
-        const savedAttributes = await saveEquipmentAttributes(data.id, attributesWithEquipmentId);
+        console.log('Saving attributes:', attributes);
+        const savedAttributes = await saveEquipmentAttributes(data.id, attributes);
         return { ...data, attributes: savedAttributes } as Equipment;
       } catch (attrError) {
         console.error('Error adding equipment attributes:', attrError);
@@ -150,6 +146,11 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     const equipmentData = { ...equipment };
     delete equipmentData.attributes;
     
+    // Handle 'none' value for team_id
+    if (equipmentData.team_id === 'none') {
+      equipmentData.team_id = null;
+    }
+    
     // Process dates and prepare data
     const processedEquipment = processDateFields({
       ...equipmentData,
@@ -171,6 +172,7 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     
     // Update attributes
     try {
+      console.log('Saving updated attributes:', attributes);
       const updatedAttributes = await saveEquipmentAttributes(id, attributes);
       return { ...data, attributes: updatedAttributes } as Equipment;
     } catch (attrError) {

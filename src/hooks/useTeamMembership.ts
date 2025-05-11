@@ -23,7 +23,7 @@ export function useTeamMembership(teamId: string | null) {
 
   // Check team membership when teamId or currentUserId changes
   useEffect(() => {
-    if (teamId && currentUserId) {
+    if (teamId && teamId !== 'none' && currentUserId) {
       checkTeamMembership(teamId, currentUserId);
     } else {
       setIsMember(true); // Reset to true when no team is selected

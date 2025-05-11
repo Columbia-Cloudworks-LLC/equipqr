@@ -19,7 +19,7 @@ export async function isUserTeamMember(userId: string, teamId: string): Promise<
 // Add function to get all equipment assigned to a team
 export async function getTeamEquipment(teamId: string) {
   try {
-    if (!teamId) return [];
+    if (!teamId || teamId === 'none') return [];
     
     const { supabase } = await import('@/integrations/supabase/client');
     
