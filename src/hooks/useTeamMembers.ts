@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
@@ -137,7 +136,7 @@ export function useTeamMembers(teamId: string) {
     }
   };
 
-  const handleResendInvite = async (id: string) => {
+  const handleResendInvite = async (id: string): Promise<void> => {
     try {
       setError(null);
       await resendInvite(id);
@@ -154,7 +153,7 @@ export function useTeamMembers(teamId: string) {
     }
   };
   
-  const handleCancelInvitation = async (id: string) => {
+  const handleCancelInvitation = async (id: string): Promise<void> => {
     try {
       setError(null);
       await cancelInvitation(id);

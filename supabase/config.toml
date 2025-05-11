@@ -40,3 +40,6 @@ verify_jwt = true
 
 [functions.repair_team_membership]
 verify_jwt = true
+
+[functions.send_invitation_email]
+verify_jwt = true
