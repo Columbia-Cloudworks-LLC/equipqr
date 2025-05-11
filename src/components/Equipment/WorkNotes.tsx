@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { 
@@ -170,14 +169,19 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
     });
   };
 
-  // Handle deleting a work note
-  const handleDeleteNote = (id: string) => {
-    deleteMutation.mutate(id);
-  };
-
   // Toggle note expansion
   const toggleExpand = (id: string) => {
     setIsExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Helper function to handle hours_worked input in the edit dialog
+  const handleHoursWorkedChange = (value: string) => {
+    if (editingNote) {
+      setEditingNote({
+        ...editingNote,
+        hours_worked: value === '' ? undefined : value
+      });
+    }
   };
 
   // Filter notes based on public/private tab
@@ -422,7 +426,7 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
                     step="0.25"
                     min="0"
                     value={editingNote.hours_worked || ''}
-                    onChange={(e) => setEditingNote({...editingNote, hours_worked: e.target.value})}
+                    onChange={(e) => handleHoursWorkedChange(e.target.value)}
                     placeholder="Hours"
                   />
                 </div>
