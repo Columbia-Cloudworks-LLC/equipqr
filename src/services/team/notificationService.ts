@@ -1,7 +1,7 @@
 
 import { getActiveInvitations as getActiveInvitationsInternal } from './invitationQueries';
 import { 
-  dismissNotification as dismissNotificationLocal,
+  dismissNotification,
   isNotificationDismissed,
   clearAllDismissedNotifications,
   clearLocalDismissedNotifications
@@ -41,7 +41,7 @@ export async function getActiveNotifications() {
 
 // Re-export functions from notificationStorage
 export {
-  dismissNotificationLocal as dismissNotification,
+  dismissNotification,
   isNotificationDismissed,
   clearAllDismissedNotifications,
   clearLocalDismissedNotifications
