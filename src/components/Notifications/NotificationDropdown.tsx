@@ -70,7 +70,10 @@ export function NotificationDropdown() {
   };
 
   // Filter out any accepted invitations (belt and suspenders approach since the backend should already filter these)
-  const pendingInvitations = invitations.filter(inv => inv.status === 'pending');
+  // Using optional chaining to safely access status property since we added it as optional
+  const pendingInvitations = invitations.filter(inv => 
+    inv.status === undefined || inv.status === 'pending'
+  );
 
   // Don't render the notification bell if there's no authenticated user
   if (!user) {

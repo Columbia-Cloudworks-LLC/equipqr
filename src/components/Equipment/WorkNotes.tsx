@@ -148,18 +148,22 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
     e.preventDefault();
     if (!editingNote || !editingNote.id) return;
     
-    const hours = editingNote.hours_worked ? 
-      typeof editingNote.hours_worked === 'string' ? 
-        parseFloat(editingNote.hours_worked) : 
-        editingNote.hours_worked : 
-      undefined;
+    // FIX for TS2322: Convert string to number properly
+    let hoursValue: number | undefined;
+    
+    if (typeof editingNote.hours_worked === 'string') {
+      const parsed = parseFloat(editingNote.hours_worked);
+      hoursValue = isNaN(parsed) ? undefined : parsed;
+    } else {
+      hoursValue = editingNote.hours_worked;
+    }
     
     updateMutation.mutate({
       id: editingNote.id,
       updates: {
         note: editingNote.note,
         is_public: editingNote.is_public,
-        hours_worked: isNaN(hours as number) ? undefined : hours
+        hours_worked: hoursValue
       }
     });
   };

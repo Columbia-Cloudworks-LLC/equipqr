@@ -8,6 +8,7 @@ export interface Invitation {
   role: string;
   token: string;
   created_at: string;
+  status?: string; // Add status field to fix the type error
 }
 
 export interface NotificationsContextType {

@@ -28,7 +28,7 @@ export async function getActiveNotifications() {
     // and haven't been dismissed locally
     const activeInvitations = invitations.filter(inv => 
       inv.email.toLowerCase() === userEmail && 
-      inv.status === 'pending' &&
+      (inv.status === 'pending' || inv.status === undefined) && // Check both for backward compatibility
       !isNotificationDismissed(inv.id)
     );
     
@@ -41,7 +41,7 @@ export async function getActiveNotifications() {
 
 // Re-export functions from notificationStorage
 export {
-  dismissNotification,
+  dismissNotificationLocal as dismissNotification,
   isNotificationDismissed,
   clearAllDismissedNotifications,
   clearLocalDismissedNotifications
