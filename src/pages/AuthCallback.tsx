@@ -15,7 +15,6 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        console.log("Processing auth callback...");
         setProcessingAuth(true);
         
         // Process the OAuth callback or email confirmation
@@ -33,22 +32,15 @@ export default function AuthCallback() {
           return;
         }
 
-        console.log("Auth successful, session established");
-        
         // Wait for auth state to fully settle
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Refresh notifications AFTER successful authentication
-        console.log("Refreshing notifications after successful auth");
         setProcessingNotifications(true);
         try {
-          // Add a small delay to ensure session is propagated
-          await new Promise(resolve => setTimeout(resolve, 500));
           await refreshNotifications();
-          console.log("Notifications refreshed successfully after login");
         } catch (notifError) {
           console.error("Failed to refresh notifications:", notifError);
-          // Don't block the auth flow if notifications fail
         } finally {
           setProcessingNotifications(false);
         }
@@ -57,7 +49,6 @@ export default function AuthCallback() {
         const invitationPath = sessionStorage.getItem('invitationPath');
         
         if (invitationPath) {
-          console.log(`Redirecting to invitation path: ${invitationPath}`);
           // Clear the stored path
           sessionStorage.removeItem('invitationPath');
           
@@ -68,7 +59,6 @@ export default function AuthCallback() {
           navigate(invitationPath);
         } else {
           // Default redirect to home
-          console.log("Redirecting to home page");
           toast.success("Signed in successfully");
           navigate("/");
         }

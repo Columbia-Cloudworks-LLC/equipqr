@@ -28,19 +28,16 @@ export function NotificationDropdown() {
   const { user } = useAuth();
   const [localLoading, setLocalLoading] = useState(false);
 
-  // Fetch invitations when dropdown is opened, but only if we have a user
+  // Fetch invitations when dropdown is opened
   const handleOpenChange = async (open: boolean) => {
     setIsOpen(open);
     
     if (open && user) {
-      console.log("Notification dropdown opened - refreshing notifications");
       setRefreshAttempted(true);
       setLocalLoading(true);
       
       try {
         await refreshNotifications();
-      } catch (error) {
-        console.error("Error refreshing notifications from dropdown:", error);
       } finally {
         setLocalLoading(false);
       }
@@ -67,8 +64,6 @@ export function NotificationDropdown() {
     try {
       await refreshNotifications();
       setRefreshAttempted(true);
-    } catch (error) {
-      console.error("Error manually refreshing notifications:", error);
     } finally {
       setLocalLoading(false);
     }

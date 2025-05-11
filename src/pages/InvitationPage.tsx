@@ -51,16 +51,15 @@ export default function InvitationPage() {
 
   const handleAcceptInvitation = async () => {
     if (!user) {
-      // Redirect to login with return path
+      // Store the invitation route to redirect back after login
+      sessionStorage.setItem('invitationPath', window.location.pathname);
+      
       toast.info("Please sign in to accept the invitation", {
         description: "You'll be redirected back after signing in"
       });
       
-      // Store the invitation route to redirect back after login
-      sessionStorage.setItem('invitationPath', window.location.pathname);
-      
       // Redirect to auth page
-      navigate('/auth', { state: { returnTo: window.location.pathname } });
+      navigate('/auth');
       return;
     }
 

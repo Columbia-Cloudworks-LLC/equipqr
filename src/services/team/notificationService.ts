@@ -8,19 +8,12 @@ import {
 } from './notificationStorage';
 
 // Main function to get active notifications (non-dismissed invitations)
-export async function getActiveNotifications(retryCount = 0, maxRetries = 2) {
+export async function getActiveNotifications() {
   try {
-    console.log(`Fetching active notifications`);
-    
-    const invitations = await getActiveInvitationsInternal(retryCount, maxRetries);
+    const invitations = await getActiveInvitationsInternal();
     
     // Filter out dismissed invitations
     const activeInvitations = invitations.filter(inv => !isNotificationDismissed(inv.id));
-    
-    console.log(`Found ${activeInvitations.length} active (non-dismissed) invitations`);
-    if (activeInvitations.length === 0 && invitations.length > 0) {
-      console.log("Note: Found invitations but they were all dismissed");
-    }
     
     return activeInvitations;
   } catch (error) {
