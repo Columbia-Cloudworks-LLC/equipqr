@@ -24,10 +24,24 @@ export async function getPendingInvitationsForUser() {
     
     console.log(`Checking for invitations for email: ${userEmail}`);
     
+    // First, let's check if there are any invitations regardless of status (for debugging)
+    const { data: allInvitations, error: allError } = await supabase
+      .from('team_invitations')
+      .select('*, team:team_id(name)')
+      .ilike('email', userEmail);
+      
+    console.log(`DEBUG: Found ${allInvitations?.length || 0} total invitations (any status) for ${userEmail}`);
+    if (allInvitations?.length) {
+      allInvitations.forEach(inv => {
+        console.log(`DEBUG: Invitation ${inv.id} status: ${inv.status}, email: ${inv.email}`);
+      });
+    }
+    
+    // Get only pending invitations
     const { data, error } = await supabase
       .from('team_invitations')
       .select('*, team:team_id(name)')
-      .eq('email', userEmail)
+      .ilike('email', userEmail)  // Using ilike instead of eq for case-insensitive matching
       .eq('status', 'pending');
       
     if (error) {
@@ -35,7 +49,13 @@ export async function getPendingInvitationsForUser() {
       throw error;
     }
     
-    console.log(`Found ${data?.length || 0} pending invitations`);
+    console.log(`Found ${data?.length || 0} pending invitations for ${userEmail}`);
+    if (data?.length) {
+      data.forEach(inv => {
+        console.log(`Invitation detail - ID: ${inv.id}, Team: ${inv.team?.name || 'Unknown'}, Role: ${inv.role}`);
+      });
+    }
+    
     return data || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitationsForUser:', error);
@@ -76,11 +96,29 @@ export async function getActiveNotifications(retryCount = 0, maxRetries = 2) {
       console.log("No active session, skipping notification check");
       return [];
     }
+
+    // Add a small delay to ensure the session is fully established
+    if (retryCount === 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
     
     const invitations = await getPendingInvitationsForUser();
+    
+    if (invitations.length === 0 && retryCount < maxRetries) {
+      // If no invitations found on first attempt, try again after a delay
+      console.log(`No invitations found on attempt ${retryCount + 1}, will retry in ${(retryCount + 1) * 1000}ms`);
+      await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
+      return getActiveNotifications(retryCount + 1, maxRetries);
+    }
+    
     const activeInvitations = invitations.filter(inv => !isNotificationDismissed(inv.id));
     
     console.log(`Found ${activeInvitations.length} active (non-dismissed) invitations`);
+    if (activeInvitations.length === 0 && invitations.length > 0) {
+      console.log("Note: Found invitations but they were all dismissed");
+    }
+    
+    console.log(`Retrieved ${activeInvitations.length} active notifications`);
     return activeInvitations;
   } catch (error) {
     console.error("Error in getActiveNotifications:", error);
@@ -102,4 +140,11 @@ export async function getActiveNotifications(retryCount = 0, maxRetries = 2) {
 // Clear all dismissed notifications
 export function clearAllDismissedNotifications() {
   localStorage.removeItem('dismissed_notifications');
+}
+
+// Function to force refresh local dismissed notifications status
+export function clearLocalDismissedNotifications() {
+  localStorage.removeItem('dismissed_notifications');
+  console.log("Cleared local dismissed notifications cache");
+  return [];
 }

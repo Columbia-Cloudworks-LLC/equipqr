@@ -9,7 +9,7 @@ import {
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Bell, ExternalLink, AlertCircle } from 'lucide-react';
+import { Bell, ExternalLink, AlertCircle, RotateCcw } from 'lucide-react';
 import { InvitationNotification } from "./InvitationNotification";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,19 +17,33 @@ import { useAuth } from "@/contexts/AuthContext";
 export function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [refreshAttempted, setRefreshAttempted] = useState(false);
-  const { invitations, isLoading, hasNewNotifications, refreshNotifications, dismissInvitation } = useNotifications();
+  const { 
+    invitations, 
+    isLoading, 
+    hasNewNotifications, 
+    refreshNotifications, 
+    dismissInvitation,
+    resetDismissedNotifications
+  } = useNotifications();
   const { user } = useAuth();
+  const [localLoading, setLocalLoading] = useState(false);
 
   // Fetch invitations when dropdown is opened, but only if we have a user
-  const handleOpenChange = (open: boolean) => {
+  const handleOpenChange = async (open: boolean) => {
     setIsOpen(open);
     
     if (open && user) {
       console.log("Notification dropdown opened - refreshing notifications");
       setRefreshAttempted(true);
-      refreshNotifications().catch(error => {
+      setLocalLoading(true);
+      
+      try {
+        await refreshNotifications();
+      } catch (error) {
         console.error("Error refreshing notifications from dropdown:", error);
-      });
+      } finally {
+        setLocalLoading(false);
+      }
     }
   };
 
@@ -46,6 +60,18 @@ export function NotificationDropdown() {
 
   const handleDismiss = (id: string) => {
     dismissInvitation(id);
+  };
+  
+  const handleManualRefresh = async () => {
+    setLocalLoading(true);
+    try {
+      await refreshNotifications();
+      setRefreshAttempted(true);
+    } catch (error) {
+      console.error("Error manually refreshing notifications:", error);
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
   // Don't render the notification bell if there's no authenticated user
@@ -65,11 +91,21 @@ export function NotificationDropdown() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        <div className="py-2 px-4 font-medium border-b">
-          Notifications
+        <div className="py-2 px-4 font-medium border-b flex justify-between items-center">
+          <span>Notifications</span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleManualRefresh} 
+            disabled={localLoading}
+            className="h-6 w-6"
+          >
+            <RotateCcw className={`h-3.5 w-3.5 ${localLoading ? 'animate-spin' : ''}`} />
+            <span className="sr-only">Refresh</span>
+          </Button>
         </div>
         <div className="max-h-96 overflow-y-auto">
-          {isLoading ? (
+          {(isLoading || localLoading) ? (
             <div className="p-4 flex justify-center">
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
             </div>
@@ -82,9 +118,13 @@ export function NotificationDropdown() {
                 onDecline={() => handleDismiss(invitation.id)}
               />
             ))
-          ) : refreshAttempted && (
+          ) : refreshAttempted ? (
             <div className="p-4 text-center text-muted-foreground">
               No new notifications
+            </div>
+          ) : (
+            <div className="p-4 text-center text-muted-foreground">
+              Click refresh to check for new notifications
             </div>
           )}
         </div>
@@ -99,11 +139,16 @@ export function NotificationDropdown() {
             </DropdownMenuItem>
           </>
         )}
+        <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link to="/my-invitations" className="flex w-full items-center justify-center py-2 text-sm text-muted-foreground">
             <AlertCircle className="mr-2 h-3 w-3" />
             Check all invitations
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={resetDismissedNotifications} className="flex w-full items-center justify-center py-2 text-xs text-muted-foreground">
+          <RotateCcw className="mr-1 h-3 w-3" />
+          Reset notification status
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

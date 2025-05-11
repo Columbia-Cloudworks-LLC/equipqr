@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getActiveNotifications, dismissNotification } from '@/services/team/notificationService';
+import { getActiveNotifications, dismissNotification, clearLocalDismissedNotifications } from '@/services/team/notificationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -10,6 +10,7 @@ interface NotificationsContextType {
   hasNewNotifications: boolean;
   refreshNotifications: () => Promise<void>;
   dismissInvitation: (id: string) => void;
+  resetDismissedNotifications: () => void;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
@@ -19,19 +20,28 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [isLoading, setIsLoading] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [lastRefreshAttempt, setLastRefreshAttempt] = useState<Date | null>(null);
-  const { user, session } = useAuth();
+  const [retryCount, setRetryCount] = useState(0);
+  const { user, session, checkSession } = useAuth();
   
   // Use a debounced refresh function to prevent multiple rapid calls
   const debouncedRefresh = useCallback(async () => {
-    // Prevent refreshing more than once every 3 seconds
+    // Prevent refreshing more than once every 2 seconds
     const now = new Date();
-    if (lastRefreshAttempt && (now.getTime() - lastRefreshAttempt.getTime()) < 3000) {
+    if (lastRefreshAttempt && (now.getTime() - lastRefreshAttempt.getTime()) < 2000) {
       console.log("Skipping notification refresh - too soon after last refresh");
       return;
     }
     
+    // Check if we have a valid session before proceeding
+    let validSession = !!session;
+    
+    if (!validSession && user) {
+      console.log("Session appears invalid but user exists - checking session validity");
+      validSession = await checkSession();
+    }
+    
     // Only refresh if we have a valid user and session
-    if (!user || !session) {
+    if (!user || !validSession) {
       console.log("Skipping notification refresh - no valid user/session");
       setInvitations([]);
       setHasNewNotifications(false);
@@ -48,14 +58,29 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       
       setInvitations(data);
       setHasNewNotifications(data.length > 0);
+      
+      // Reset retry count on successful fetch
+      setRetryCount(0);
     } catch (error) {
       console.error("Error fetching notifications:", error);
-      // Don't show error toast to users - this is an ambient feature
-      // but log it for debugging
+      
+      // Implement exponential backoff strategy for retries
+      if (retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000;
+        console.log(`Will retry notification fetch in ${delay}ms (retry ${retryCount + 1}/3)`);
+        
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          debouncedRefresh();
+        }, delay);
+      } else {
+        console.log("Max retries reached for notification refresh");
+        setRetryCount(0);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [user, session, lastRefreshAttempt]);
+  }, [user, session, lastRefreshAttempt, retryCount, checkSession]);
   
   // Called after authentication is complete
   const refreshNotifications = useCallback(async () => {
@@ -68,11 +93,22 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     await debouncedRefresh();
   }, [user, debouncedRefresh]);
 
+  // Reset dismissed notifications
+  const resetDismissedNotifications = useCallback(() => {
+    clearLocalDismissedNotifications();
+    refreshNotifications();
+    toast.success("Notification status reset");
+  }, [refreshNotifications]);
+
   // Fetch notifications when authentication state changes
   useEffect(() => {
     if (user && session) {
       console.log("Auth state changed with valid user/session - refreshing notifications");
-      debouncedRefresh();
+      
+      // Small delay to make sure auth is fully established
+      setTimeout(() => {
+        debouncedRefresh();
+      }, 1000);
     } else {
       // Reset state when user logs out
       console.log("Auth state changed with no user/session - resetting notifications");
@@ -111,7 +147,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         isLoading,
         hasNewNotifications,
         refreshNotifications,
-        dismissInvitation
+        dismissInvitation,
+        resetDismissedNotifications
       }}
     >
       {children}

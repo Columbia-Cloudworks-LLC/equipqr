@@ -8,6 +8,7 @@ import { toast } from "sonner";
 export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
   const [processingAuth, setProcessingAuth] = useState(true);
+  const [processingNotifications, setProcessingNotifications] = useState(false);
   const navigate = useNavigate();
   const { refreshNotifications } = useNotifications();
 
@@ -34,17 +35,22 @@ export default function AuthCallback() {
 
         console.log("Auth successful, session established");
         
-        // Wait briefly for auth state to settle
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait for auth state to fully settle
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Refresh notifications AFTER successful authentication
         console.log("Refreshing notifications after successful auth");
+        setProcessingNotifications(true);
         try {
+          // Add a small delay to ensure session is propagated
+          await new Promise(resolve => setTimeout(resolve, 500));
           await refreshNotifications();
-          console.log("Notifications refreshed successfully");
+          console.log("Notifications refreshed successfully after login");
         } catch (notifError) {
           console.error("Failed to refresh notifications:", notifError);
           // Don't block the auth flow if notifications fail
+        } finally {
+          setProcessingNotifications(false);
         }
 
         // Check if there was an invitation redirect stored
@@ -99,7 +105,8 @@ export default function AuthCallback() {
       <div className="text-center">
         <h2 className="text-2xl font-semibold mb-4">Authenticating...</h2>
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-        {!processingAuth && <p className="mt-4 text-muted-foreground">Refreshing notifications...</p>}
+        {processingAuth && <p className="mt-4 text-muted-foreground">Setting up your session...</p>}
+        {!processingAuth && processingNotifications && <p className="mt-4 text-muted-foreground">Checking for notifications...</p>}
       </div>
     </div>
   );
