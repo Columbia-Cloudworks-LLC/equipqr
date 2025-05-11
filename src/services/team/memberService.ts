@@ -192,7 +192,7 @@ export async function validateTeamMembership(userId: string, teamId: string) {
   }
 }
 
-// Add function to repair team membership
+// Fix the repairTeamMembership function
 export async function repairTeamMembership(teamId: string) {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -224,7 +224,7 @@ export async function repairTeamMembership(teamId: string) {
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .in('role', ['owner', 'admin']);
+        .in('role', ['owner']);
         
       if (rolesError || !userRoles || userRoles.length === 0) {
         throw new Error('You do not have permission to repair this team.');

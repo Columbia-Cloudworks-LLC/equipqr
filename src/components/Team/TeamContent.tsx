@@ -7,7 +7,7 @@ import { UserRole } from '@/types/supabase-enums';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Tool } from "lucide-react";
+import { AlertTriangle, CircleAlert } from "lucide-react";
 
 interface TeamContentProps {
   selectedTeamId: string;
@@ -43,7 +43,7 @@ export function TeamContent({
   if (selectedTeamId && !isMember && onRepairTeam) {
     return (
       <div className="space-y-4">
-        <Alert variant="warning">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Access Issue Detected</AlertTitle>
           <AlertDescription>
@@ -54,7 +54,7 @@ export function TeamContent({
                 disabled={isRepairingTeam}
                 className="flex items-center gap-2"
               >
-                <Tool className="h-4 w-4" />
+                <CircleAlert className="h-4 w-4" />
                 {isRepairingTeam ? 'Repairing...' : 'Repair Team Membership'}
               </Button>
             </div>
