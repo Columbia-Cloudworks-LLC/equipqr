@@ -156,7 +156,7 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
         const parsed = parseFloat(editingNote.hours_worked);
         hoursValue = isNaN(parsed) ? undefined : parsed;
       } else {
-        hoursValue = editingNote.hours_worked;
+        hoursValue = editingNote.hours_worked as number;
       }
     }
     
