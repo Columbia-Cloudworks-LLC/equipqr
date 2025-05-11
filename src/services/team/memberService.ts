@@ -17,6 +17,11 @@ export async function getTeamMembers(teamId: string) {
       throw error;
     }
     
+    if (!data) {
+      console.warn('No team members found or data is null');
+      return [];
+    }
+    
     return data as TeamMember[];
   } catch (error) {
     console.error('Error in getTeamMembers:', error);
@@ -25,29 +30,39 @@ export async function getTeamMembers(teamId: string) {
 }
 
 export async function getOrganizationMembers() {
-  // First get the organization ID for the current user
-  const { data: userProfile, error: profileError } = await supabase
-    .from('user_profiles')
-    .select('org_id')
-    .single();
+  try {
+    // First get the organization ID for the current user
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .single();
+      
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      throw profileError;
+    }
     
-  if (profileError) {
-    console.error('Error fetching user profile:', profileError);
-    throw profileError;
-  }
-  
-  const orgId = userProfile.org_id;
-  
-  // Now get all users in this organization with their roles using our custom function
-  const { data, error } = await supabase
-    .rpc('get_organization_members', { org_id: orgId } as any);
+    if (!userProfile || !userProfile.org_id) {
+      console.error('User profile or org_id is missing');
+      throw new Error('User organization not found');
+    }
     
-  if (error) {
-    console.error('Error fetching organization members:', error);
+    const orgId = userProfile.org_id;
+    
+    // Now get all users in this organization with their roles using our custom function
+    const { data, error } = await supabase
+      .rpc('get_organization_members', { org_id: orgId });
+      
+    if (error) {
+      console.error('Error fetching organization members:', error);
+      throw error;
+    }
+    
+    return data as TeamMember[];
+  } catch (error) {
+    console.error('Error in getOrganizationMembers:', error);
     throw error;
   }
-  
-  return data as TeamMember[];
 }
 
 export async function inviteMember(email: string, role: UserRole, teamId: string) {
@@ -81,14 +96,13 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
     if (existingUser) {
       try {
         console.log(`Existing user found with auth_uid: ${existingUser.auth_uid}`);
-        // Ensure we're passing auth_uid as a string, since we're using it to look up the user
-        // in the edge function which expects a string for comparison with app_user.auth_uid
+        
         const { error: addError } = await supabase.functions.invoke('add_team_member', {
           body: {
-            _team_id: teamId.toString(),
-            _user_id: existingUser.auth_uid.toString(), // Ensure it's a string
+            _team_id: teamId,
+            _user_id: existingUser.auth_uid, 
             _role: role,
-            _added_by: currentAuthUserId.toString() // Ensure it's a string
+            _added_by: currentAuthUserId
           }
         });
         

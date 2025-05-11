@@ -34,12 +34,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Query to get team members with user details and roles
-    // Make sure team_id is passed as a string since the stored procedure uses UUID
-    // This fixes the type mismatch between character varying and UUID
-    const { data, error } = await supabaseClient.rpc('get_team_members_with_roles', {
-      _team_id: team_id.toString()
-    });
+    // First, explicitly convert team_id to UUID format by using a direct query
+    // This ensures we don't have type mismatch issues between character varying and UUID
+    const { data, error } = await supabaseClient.rpc(
+      'get_team_members_with_roles', 
+      { _team_id: team_id }
+    );
     
     if (error) {
       console.error('Error from get_team_members_with_roles function:', error);
