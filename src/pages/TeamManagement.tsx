@@ -10,9 +10,11 @@ import { Layout } from '@/components/Layout/Layout';
 export default function TeamManagement() {
   const {
     members,
+    pendingInvitations,
     teams,
     selectedTeamId,
     isLoading,
+    isLoadingInvitations,
     isCreatingTeam,
     isRepairingTeam,
     isMember,
@@ -27,10 +29,12 @@ export default function TeamManagement() {
     handleChangeRole,
     handleRemoveMember,
     handleResendInvite,
+    handleCancelInvitation,
     handleRepairTeam,
     handleUpgradeRole,
     handleRequestRoleUpgrade,
     refetchTeamMembers,
+    refetchPendingInvitations,
   } = useTeamManagement();
 
   // Determine if the user has viewer role only
@@ -68,8 +72,10 @@ export default function TeamManagement() {
             <TeamContent
               selectedTeamId={selectedTeamId}
               members={members}
+              pendingInvitations={pendingInvitations}
               teams={teams}
               isLoading={isLoading}
+              isLoadingInvitations={isLoadingInvitations}
               isCreatingTeam={isCreatingTeam}
               isRepairingTeam={isRepairingTeam}
               isUpgradingRole={isUpgradingRole}
@@ -81,10 +87,12 @@ export default function TeamManagement() {
               onChangeRole={handleChangeRole}
               onRemoveMember={handleRemoveMember}
               onResendInvite={handleResendInvite}
+              onCancelInvitation={handleCancelInvitation}
               onCreateTeam={handleCreateTeam}
               onRepairTeam={handleRepairTeam}
               onUpgradeRole={handleUpgradeRole}
               onRequestRoleUpgrade={handleRequestRoleUpgrade}
+              onFetchPendingInvitations={refetchPendingInvitations}
             />
           </>
         ) : isLoading ? (

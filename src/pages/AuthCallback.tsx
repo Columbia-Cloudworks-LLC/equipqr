@@ -1,89 +1,67 @@
 
-import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AuthCallback() {
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    const handleOAuthCallback = async () => {
+    const handleAuthCallback = async () => {
       try {
-        console.log("AuthCallback: Processing authentication callback");
-        
-        // Check for access token in hash fragment (Google auth often returns this way)
-        if (location.hash && location.hash.includes('access_token')) {
-          console.log("AuthCallback: Found access token in hash fragment");
-          
-          // Extract the hash without the # character
-          const hashParams = new URLSearchParams(
-            location.hash.substring(1)
-          );
-          
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-          
-          if (accessToken) {
-            console.log("AuthCallback: Setting session from hash fragment");
-            // Set the session using the extracted tokens
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-            
-            if (error) throw error;
-            
-            // Check if there's a saved return URL in localStorage
-            const returnTo = localStorage.getItem("authReturnTo");
-            console.log("AuthCallback: Checking saved returnTo:", returnTo);
-            
-            if (returnTo) {
-              console.log("AuthCallback: Navigating to saved return URL:", returnTo);
-              localStorage.removeItem("authReturnTo");
-              navigate(returnTo);
-              return;
-            }
-            
-            navigate('/');
-            return;
-          }
-        }
-        
-        // Standard path for normal redirects 
-        console.log("AuthCallback: Using standard getSession flow");
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) throw error;
-        console.log("AuthCallback: Session retrieved successfully", !!data.session);
-        
-        // Check if there's a saved return URL in localStorage
-        const returnTo = localStorage.getItem("authReturnTo");
-        console.log("AuthCallback: Checking saved returnTo:", returnTo);
-        
-        if (returnTo) {
-          console.log("AuthCallback: Navigating to saved return URL:", returnTo);
-          localStorage.removeItem("authReturnTo");
-          navigate(returnTo);
+        // Process the OAuth callback or email confirmation
+        const { error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Error in auth callback:", error);
+          setError(error.message);
           return;
         }
+
+        // Check if there was an invitation redirect stored
+        const invitationPath = sessionStorage.getItem('invitationPath');
         
-        navigate('/');
-      } catch (error: any) {
-        console.error("AuthCallback Error:", error);
-        toast.error(error.message || 'Authentication error');
-        navigate('/auth');
+        if (invitationPath) {
+          // Clear the stored path
+          sessionStorage.removeItem('invitationPath');
+          
+          // Redirect back to the invitation page
+          navigate(invitationPath);
+        } else {
+          // Default redirect to home
+          navigate("/");
+        }
+      } catch (err: any) {
+        console.error("Error in auth callback:", err);
+        setError(err.message);
       }
     };
 
-    handleOAuthCallback();
-  }, [navigate, location]);
+    handleAuthCallback();
+  }, [navigate]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+          <h2 className="text-2xl font-bold mb-4 text-red-600">Authentication Error</h2>
+          <p className="text-gray-700 mb-4">{error}</p>
+          <button
+            onClick={() => navigate("/auth")}
+            className="w-full bg-primary text-white py-2 rounded hover:bg-primary/90"
+          >
+            Return to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <h2 className="text-2xl font-semibold mb-4">Completing sign in</h2>
+        <h2 className="text-2xl font-semibold mb-4">Authenticating...</h2>
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
       </div>
     </div>

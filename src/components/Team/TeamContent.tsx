@@ -2,18 +2,22 @@
 import { TeamList } from '@/components/Team/TeamList';
 import { InviteForm } from '@/components/Team/InviteForm';
 import { TeamCreationForm } from '@/components/Team/TeamCreationForm';
+import { PendingInvitationsList } from '@/components/Team/PendingInvitationsList';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CircleAlert, ArrowUpToLine } from "lucide-react";
+import { useEffect } from 'react';
 
 interface TeamContentProps {
   selectedTeamId: string;
   members: TeamMember[];
+  pendingInvitations?: any[];
   teams: { id: string; name: string }[];
   isLoading: boolean;
+  isLoadingInvitations?: boolean;
   isCreatingTeam: boolean;
   isRepairingTeam?: boolean;
   isUpgradingRole?: boolean;
@@ -25,17 +29,21 @@ interface TeamContentProps {
   onChangeRole: (id: string, role: UserRole, teamId: string) => void;
   onRemoveMember: (id: string, teamId: string) => void;
   onResendInvite: (id: string) => void;
+  onCancelInvitation?: (id: string) => void;
   onCreateTeam: (name: string) => void;
   onRepairTeam?: (teamId: string) => void;
   onUpgradeRole?: (teamId: string) => void;
   onRequestRoleUpgrade?: (teamId: string) => void;
+  onFetchPendingInvitations?: () => void;
 }
 
 export function TeamContent({
   selectedTeamId,
   members,
+  pendingInvitations = [],
   teams,
   isLoading,
+  isLoadingInvitations = false,
   isCreatingTeam,
   isRepairingTeam = false,
   isUpgradingRole = false,
@@ -47,11 +55,20 @@ export function TeamContent({
   onChangeRole,
   onRemoveMember,
   onResendInvite,
+  onCancelInvitation = () => {},
   onCreateTeam,
   onRepairTeam,
   onUpgradeRole,
-  onRequestRoleUpgrade
+  onRequestRoleUpgrade,
+  onFetchPendingInvitations
 }: TeamContentProps) {
+  // Fetch pending invitations when the team is selected and component mounts
+  useEffect(() => {
+    if (selectedTeamId && onFetchPendingInvitations && isMember && currentUserRole !== 'viewer') {
+      onFetchPendingInvitations();
+    }
+  }, [selectedTeamId, onFetchPendingInvitations, isMember, currentUserRole]);
+
   // Handle repair access case
   if (selectedTeamId && !isMember && onRepairTeam) {
     return (
@@ -140,6 +157,7 @@ export function TeamContent({
     <Tabs defaultValue="members" className="w-full">
       <TabsList>
         <TabsTrigger value="members">Team Members</TabsTrigger>
+        <TabsTrigger value="pending">Pending Invitations</TabsTrigger>
         <TabsTrigger value="invite">Invite People</TabsTrigger>
         <TabsTrigger value="create">Create Team</TabsTrigger>
       </TabsList>
@@ -155,6 +173,19 @@ export function TeamContent({
           />
         ) : (
           <p>Select a team to view members</p>
+        )}
+      </TabsContent>
+      
+      <TabsContent value="pending" className="mt-6">
+        {selectedTeamId ? (
+          <PendingInvitationsList
+            invitations={pendingInvitations}
+            onResendInvite={onResendInvite}
+            onCancelInvite={onCancelInvitation}
+            isLoading={isLoadingInvitations}
+          />
+        ) : (
+          <p>Select a team to view pending invitations</p>
         )}
       </TabsContent>
       

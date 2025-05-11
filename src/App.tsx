@@ -15,6 +15,7 @@ import Equipment from "./pages/Equipment";
 import EquipmentDetail from "./pages/EquipmentDetail";
 import EquipmentForm from "./pages/EquipmentForm";
 import TeamManagement from "./pages/TeamManagement";
+import InvitationPage from "./pages/InvitationPage";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -64,6 +65,9 @@ const App = () => (
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            
+            {/* Public route for invitation acceptance */}
+            <Route path="/invitation/:token" element={<InvitationPage />} />
             
             {/* Special case for equipment scanned via QR code - can be accessed anonymously */}
             <Route path="/equipment/:id" element={<EquipmentDetail />} />

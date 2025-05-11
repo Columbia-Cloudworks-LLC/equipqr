@@ -21,13 +21,17 @@ export function useTeamManagement() {
   
   const {
     members,
+    pendingInvitations,
     isLoading: isMembersLoading,
+    isLoadingInvitations,
     error: membersError,
     fetchTeamMembers,
+    fetchPendingInvitations,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
-    handleResendInvite
+    handleResendInvite,
+    handleCancelInvitation
   } = useTeamMembers(selectedTeamId);
   
   const {
@@ -73,6 +77,12 @@ export function useTeamManagement() {
       fetchTeamMembers();
     }
   };
+  
+  const refetchPendingInvitations = () => {
+    if (selectedTeamId && isMember) {
+      fetchPendingInvitations();
+    }
+  };
 
   const handleCreateAndSelectTeam = async (name: string) => {
     const team = await handleCreateTeam(name);
@@ -83,9 +93,11 @@ export function useTeamManagement() {
 
   return {
     members,
+    pendingInvitations,
     teams,
     selectedTeamId,
     isLoading,
+    isLoadingInvitations,
     isCreatingTeam,
     isRepairingTeam,
     isUpgradingRole,
@@ -100,9 +112,11 @@ export function useTeamManagement() {
     handleChangeRole,
     handleRemoveMember,
     handleResendInvite,
+    handleCancelInvitation,
     handleRepairTeam,
     handleUpgradeRole,
     handleRequestRoleUpgrade,
     refetchTeamMembers,
+    refetchPendingInvitations,
   };
 }

@@ -8,12 +8,16 @@ import {
   changeRole,
   removeMember,
   resendInvite,
-  inviteMember
+  inviteMember,
+  getPendingInvitations,
+  cancelInvitation
 } from '@/services/team';
 
 export function useTeamMembers(teamId: string) {
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTeamMembers = async () => {
@@ -44,15 +48,50 @@ export function useTeamMembers(teamId: string) {
     }
   };
 
+  const fetchPendingInvitations = async () => {
+    if (!teamId) {
+      console.warn('Cannot fetch pending invitations: No team ID provided');
+      setPendingInvitations([]);
+      return;
+    }
+    
+    try {
+      setIsLoadingInvitations(true);
+      console.log(`Fetching pending invitations for team ${teamId}`);
+      const data = await getPendingInvitations(teamId);
+      console.log('Fetched pending invitations:', data);
+      setPendingInvitations(data || []);
+    } catch (error: any) {
+      console.error('Error in fetchPendingInvitations:', error);
+      toast.error("Error fetching pending invitations", {
+        description: error.message || "Unknown error occurred",
+      });
+      setPendingInvitations([]);
+    } finally {
+      setIsLoadingInvitations(false);
+    }
+  };
+
   const handleInviteMember = async (email: string, role: UserRole, teamId: string) => {
     try {
       setIsLoading(true);
       setError(null);
-      await inviteMember(email, role, teamId);
-      toast.success("Invitation sent", {
-        description: `Invitation email sent to ${email}`,
-      });
-      await fetchTeamMembers();
+      const result = await inviteMember(email, role, teamId);
+      
+      if (result.directlyAdded) {
+        toast.success("Member added", {
+          description: `${email} was added directly to the team`,
+        });
+      } else {
+        toast.success("Invitation sent", {
+          description: `Invitation email sent to ${email}`,
+        });
+      }
+      
+      await Promise.all([
+        fetchTeamMembers(),
+        fetchPendingInvitations()
+      ]);
     } catch (error: any) {
       console.error('Error in handleInviteMember:', error);
       setError('Failed to send invitation. Please try again.');
@@ -105,6 +144,7 @@ export function useTeamMembers(teamId: string) {
       toast.success("Invitation resent", {
         description: "Invitation email has been resent",
       });
+      await fetchPendingInvitations();
     } catch (error: any) {
       console.error('Error in handleResendInvite:', error);
       setError('Failed to resend invitation. Please try again.');
@@ -113,15 +153,36 @@ export function useTeamMembers(teamId: string) {
       });
     }
   };
+  
+  const handleCancelInvitation = async (id: string) => {
+    try {
+      setError(null);
+      await cancelInvitation(id);
+      toast.success("Invitation cancelled", {
+        description: "The invitation has been cancelled",
+      });
+      await fetchPendingInvitations();
+    } catch (error: any) {
+      console.error('Error in handleCancelInvitation:', error);
+      setError('Failed to cancel invitation. Please try again.');
+      toast.error("Error cancelling invitation", {
+        description: error.message,
+      });
+    }
+  };
 
   return {
     members,
+    pendingInvitations,
     isLoading,
+    isLoadingInvitations,
     error,
     fetchTeamMembers,
+    fetchPendingInvitations,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
-    handleResendInvite
+    handleResendInvite,
+    handleCancelInvitation
   };
 }
