@@ -81,12 +81,14 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
     if (existingUser) {
       try {
         console.log(`Existing user found with auth_uid: ${existingUser.auth_uid}`);
+        // Ensure we're passing auth_uid as a string, since we're using it to look up the user
+        // in the edge function which expects a string for comparison with app_user.auth_uid
         const { error: addError } = await supabase.functions.invoke('add_team_member', {
           body: {
-            _team_id: teamId,
-            _user_id: existingUser.auth_uid, // Important: This is a string/varchar in the database
+            _team_id: teamId.toString(),
+            _user_id: existingUser.auth_uid.toString(), // Ensure it's a string
             _role: role,
-            _added_by: currentAuthUserId
+            _added_by: currentAuthUserId.toString() // Ensure it's a string
           }
         });
         

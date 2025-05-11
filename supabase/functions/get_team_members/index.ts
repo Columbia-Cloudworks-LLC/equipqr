@@ -35,8 +35,10 @@ serve(async (req) => {
     );
     
     // Query to get team members with user details and roles
+    // Make sure team_id is passed as a string since the stored procedure uses UUID
+    // This fixes the type mismatch between character varying and UUID
     const { data, error } = await supabaseClient.rpc('get_team_members_with_roles', {
-      _team_id: team_id
+      _team_id: team_id.toString()
     });
     
     if (error) {

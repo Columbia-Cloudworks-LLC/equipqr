@@ -35,6 +35,6 @@ BEGIN
     JOIN auth.users au ON app_u.auth_uid = au.id
     LEFT JOIN public.user_profiles up ON au.id = up.id
   WHERE
-    tm.team_id = _team_id;
+    tm.team_id = _team_id::UUID;
 END;
 $$;
