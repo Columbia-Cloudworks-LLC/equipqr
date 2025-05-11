@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { TeamSelector } from '@/components/Team/TeamSelector';
 import { TeamContent } from '@/components/Team/TeamContent';

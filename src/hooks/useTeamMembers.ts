@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -19,7 +20,7 @@ export function useTeamMembers(teamId: string) {
   const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTeamMembers = async () => {
+  const fetchTeamMembers = useCallback(async () => {
     if (!teamId) {
       console.warn('Cannot fetch team members: No team ID provided');
       setError('No team selected. Please select a team to view members.');
@@ -45,9 +46,9 @@ export function useTeamMembers(teamId: string) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [teamId]);
 
-  const fetchPendingInvitations = async () => {
+  const fetchPendingInvitations = useCallback(async () => {
     if (!teamId) {
       console.warn('Cannot fetch pending invitations: No team ID provided');
       setPendingInvitations([]);
@@ -69,9 +70,9 @@ export function useTeamMembers(teamId: string) {
     } finally {
       setIsLoadingInvitations(false);
     }
-  };
+  }, [teamId]);
 
-  const handleInviteMember = async (email: string, role: UserRole, teamId: string) => {
+  const handleInviteMember = useCallback(async (email: string, role: UserRole, teamId: string) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -100,9 +101,9 @@ export function useTeamMembers(teamId: string) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchTeamMembers, fetchPendingInvitations]);
 
-  const handleChangeRole = async (id: string, role: UserRole, teamId: string) => {
+  const handleChangeRole = useCallback(async (id: string, role: UserRole, teamId: string) => {
     try {
       setError(null);
       await changeRole(id, role, teamId);
@@ -117,9 +118,9 @@ export function useTeamMembers(teamId: string) {
         description: error.message,
       });
     }
-  };
+  }, [fetchTeamMembers]);
 
-  const handleRemoveMember = async (id: string, teamId: string) => {
+  const handleRemoveMember = useCallback(async (id: string, teamId: string) => {
     try {
       setError(null);
       await removeMember(id, teamId);
@@ -134,9 +135,9 @@ export function useTeamMembers(teamId: string) {
         description: error.message,
       });
     }
-  };
+  }, [fetchTeamMembers]);
 
-  const handleResendInvite = async (id: string): Promise<void> => {
+  const handleResendInvite = useCallback(async (id: string): Promise<void> => {
     try {
       setError(null);
       await resendInvite(id);
@@ -151,9 +152,9 @@ export function useTeamMembers(teamId: string) {
         description: error.message,
       });
     }
-  };
+  }, [fetchPendingInvitations]);
   
-  const handleCancelInvitation = async (id: string): Promise<void> => {
+  const handleCancelInvitation = useCallback(async (id: string): Promise<void> => {
     try {
       setError(null);
       await cancelInvitation(id);
@@ -168,7 +169,7 @@ export function useTeamMembers(teamId: string) {
         description: error.message,
       });
     }
-  };
+  }, [fetchPendingInvitations]);
 
   return {
     members,

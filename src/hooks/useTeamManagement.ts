@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
 import { useTeams } from './useTeams';
@@ -72,24 +72,25 @@ export function useTeamManagement() {
   // Combined loading state
   const isLoading = isTeamsLoading || isMembersLoading;
 
-  const refetchTeamMembers = () => {
+  // Memoize functions to prevent unnecessary re-renders
+  const refetchTeamMembers = useCallback(() => {
     if (selectedTeamId && isMember) {
       fetchTeamMembers();
     }
-  };
+  }, [selectedTeamId, isMember, fetchTeamMembers]);
   
-  const refetchPendingInvitations = () => {
+  const refetchPendingInvitations = useCallback(() => {
     if (selectedTeamId && isMember) {
       fetchPendingInvitations();
     }
-  };
+  }, [selectedTeamId, isMember, fetchPendingInvitations]);
 
-  const handleCreateAndSelectTeam = async (name: string) => {
+  const handleCreateAndSelectTeam = useCallback(async (name: string) => {
     const team = await handleCreateTeam(name);
     if (team?.id) {
       setSelectedTeamId(team.id);
     }
-  };
+  }, [handleCreateTeam]);
 
   return {
     members,

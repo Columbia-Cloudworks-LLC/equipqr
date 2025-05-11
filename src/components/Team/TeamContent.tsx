@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CircleAlert, ArrowUpToLine } from "lucide-react";
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface TeamContentProps {
   selectedTeamId: string;
@@ -62,12 +62,21 @@ export function TeamContent({
   onRequestRoleUpgrade,
   onFetchPendingInvitations
 }: TeamContentProps) {
-  // Fetch pending invitations when the team is selected and component mounts
+  const [activeTab, setActiveTab] = useState('members');
+
+  // Fetch pending invitations only on initial mount and when team changes
   useEffect(() => {
     if (selectedTeamId && onFetchPendingInvitations && isMember && currentUserRole !== 'viewer') {
       onFetchPendingInvitations();
     }
-  }, [selectedTeamId, onFetchPendingInvitations, isMember, currentUserRole]);
+  }, [selectedTeamId, isMember, currentUserRole]);
+  
+  // Fetch pending invitations when the "Pending Invitations" tab is selected
+  useEffect(() => {
+    if (activeTab === 'pending' && onFetchPendingInvitations && selectedTeamId) {
+      onFetchPendingInvitations();
+    }
+  }, [activeTab, selectedTeamId]);
 
   // Handle repair access case
   if (selectedTeamId && !isMember && onRepairTeam) {
@@ -154,7 +163,7 @@ export function TeamContent({
   }
 
   return (
-    <Tabs defaultValue="members" className="w-full">
+    <Tabs defaultValue="members" className="w-full" onValueChange={setActiveTab}>
       <TabsList>
         <TabsTrigger value="members">Team Members</TabsTrigger>
         <TabsTrigger value="pending">Pending Invitations</TabsTrigger>
