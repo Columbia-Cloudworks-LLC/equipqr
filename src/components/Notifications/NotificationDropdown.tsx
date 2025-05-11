@@ -1,57 +1,36 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Bell } from "lucide-react";
+import { Bell, ExternalLink } from 'lucide-react';
 import { InvitationNotification } from "./InvitationNotification";
-import { getActiveNotifications, dismissNotification } from "@/services/team/notificationService";
-import { toast } from "sonner";
+import { useNotifications } from "@/contexts/NotificationsContext";
 
 export function NotificationDropdown() {
-  const [invitations, setInvitations] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-
-  const fetchInvitations = async () => {
-    try {
-      setIsLoading(true);
-      const data = await getActiveNotifications();
-      setInvitations(data);
-    } catch (error: any) {
-      console.error("Error fetching notifications:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { invitations, isLoading, hasNewNotifications, refreshNotifications, dismissInvitation } = useNotifications();
 
   // Fetch invitations when dropdown is opened
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (open) {
-      fetchInvitations();
+      refreshNotifications();
     }
   };
 
-  // Initial fetch
-  useEffect(() => {
-    fetchInvitations();
-    
-    // Fetch notifications every 5 minutes if user is active
-    const interval = setInterval(fetchInvitations, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   const handleAccept = () => {
-    fetchInvitations();
+    refreshNotifications();
   };
 
   const handleDismiss = (id: string) => {
-    dismissNotification(id);
-    setInvitations(invitations.filter(inv => inv.id !== id));
+    dismissInvitation(id);
   };
 
   return (
@@ -59,7 +38,7 @@ export function NotificationDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {invitations.length > 0 && (
+          {hasNewNotifications && (
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span>
           )}
           <span className="sr-only">Notifications</span>
@@ -89,6 +68,17 @@ export function NotificationDropdown() {
             </div>
           )}
         </div>
+        {invitations.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/my-invitations" className="flex w-full items-center justify-center py-2 font-medium">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View all invitations
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

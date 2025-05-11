@@ -6,6 +6,7 @@ export async function getPendingInvitationsForUser() {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
+      console.warn("No authenticated user found when checking for invitations");
       return [];
     }
 
@@ -15,6 +16,8 @@ export async function getPendingInvitationsForUser() {
       console.warn("User email not found in session");
       return [];
     }
+    
+    console.log(`Checking for invitations for email: ${userEmail}`);
     
     const { data, error } = await supabase
       .from('team_invitations')
@@ -27,6 +30,7 @@ export async function getPendingInvitationsForUser() {
       throw error;
     }
     
+    console.log(`Found ${data?.length || 0} pending invitations`);
     return data || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitationsForUser:', error);
@@ -58,6 +62,16 @@ export function isNotificationDismissed(id: string) {
 
 // Function to get non-dismissed invitations
 export async function getActiveNotifications() {
-  const invitations = await getPendingInvitationsForUser();
-  return invitations.filter(inv => !isNotificationDismissed(inv.id));
+  try {
+    const invitations = await getPendingInvitationsForUser();
+    return invitations.filter(inv => !isNotificationDismissed(inv.id));
+  } catch (error) {
+    console.error("Error in getActiveNotifications:", error);
+    return [];
+  }
+}
+
+// Clear all dismissed notifications
+export function clearAllDismissedNotifications() {
+  localStorage.removeItem('dismissed_notifications');
 }

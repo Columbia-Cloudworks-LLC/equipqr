@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Users, QrCode, Settings } from 'lucide-react';
+import { Package, Users, QrCode, Settings, Mail, X } from 'lucide-react';
 import { DashboardStat, Equipment, TeamMember } from '@/types';
 import { DashboardStats } from '@/components/Dashboard/DashboardStats';
 import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
@@ -12,14 +12,23 @@ import { Layout } from '@/components/Layout/Layout';
 import { useQuery } from '@tanstack/react-query';
 import { getEquipment } from '@/services/equipmentService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNotifications } from '@/contexts/NotificationsContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Index = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [showInvitationAlert, setShowInvitationAlert] = useState(true);
+  const { invitations, refreshNotifications } = useNotifications();
   
   const { data: equipment = [], isLoading } = useQuery({
     queryKey: ['equipment'],
     queryFn: getEquipment,
   });
+
+  // Refresh notifications when the dashboard loads
+  useEffect(() => {
+    refreshNotifications();
+  }, [refreshNotifications]);
 
   useEffect(() => {
     // Still using mock data for team members for now
@@ -60,6 +69,29 @@ const Index = () => {
   return (
     <Layout>
       <div className="flex-1 space-y-6 p-6">
+        {invitations.length > 0 && showInvitationAlert && (
+          <Alert className="bg-primary/5 border-primary/10 flex items-center justify-between">
+            <div className="flex items-center">
+              <Mail className="h-5 w-5 mr-2" />
+              <AlertDescription className="flex-1">
+                You have {invitations.length} pending team invitation{invitations.length > 1 ? 's' : ''}. 
+                <Button variant="link" asChild className="h-auto p-0 ml-1">
+                  <Link to="/my-invitations">View invitations</Link>
+                </Button>
+              </AlertDescription>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6" 
+              onClick={() => setShowInvitationAlert(false)}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Dismiss</span>
+            </Button>
+          </Alert>
+        )}
+        
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <div className="flex items-center gap-2">
@@ -168,6 +200,6 @@ const Index = () => {
       </div>
     </Layout>
   );
-};
+}
 
 export default Index;

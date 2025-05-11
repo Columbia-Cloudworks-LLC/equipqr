@@ -2,10 +2,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useNotifications } from "@/contexts/NotificationsContext";
 
 export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { refreshNotifications } = useNotifications();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -18,6 +20,9 @@ export default function AuthCallback() {
           setError(error.message);
           return;
         }
+
+        // Refresh notifications when auth is successful
+        await refreshNotifications();
 
         // Check if there was an invitation redirect stored
         const invitationPath = sessionStorage.getItem('invitationPath');
@@ -39,7 +44,7 @@ export default function AuthCallback() {
     };
 
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, refreshNotifications]);
 
   if (error) {
     return (
