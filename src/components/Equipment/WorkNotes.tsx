@@ -169,6 +169,11 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
     });
   };
 
+  // Handle deleting a work note
+  const handleDeleteNote = (id: string) => {
+    deleteMutation.mutate(id);
+  };
+
   // Toggle note expansion
   const toggleExpand = (id: string) => {
     setIsExpanded(prev => ({ ...prev, [id]: !prev[id] }));
