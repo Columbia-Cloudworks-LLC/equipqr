@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { TeamMember } from "@/types";
+import { TeamMember, ApiTeamMember, mapApiTeamMemberToTeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
 import { getAppUserId } from "@/utils/authUtils";
 
@@ -27,7 +27,7 @@ export async function getTeamMembers(teamId: string) {
     }
     
     // Get team members using our edge function - pass the teamId directly
-    const { data, error } = await supabase.functions.invoke<TeamMember[]>('get_team_members', { 
+    const { data, error } = await supabase.functions.invoke<ApiTeamMember[]>('get_team_members', { 
       body: { team_id: teamId }
     });
     
@@ -49,7 +49,8 @@ export async function getTeamMembers(teamId: string) {
       return [];
     }
     
-    return data as TeamMember[];
+    // Map the API response to our TeamMember type
+    return data.map(member => mapApiTeamMemberToTeamMember(member));
   } catch (error: any) {
     console.error('Error in getTeamMembers:', error);
     throw new Error(`Team members fetch failed: ${error.message || 'Unknown error'}`);
