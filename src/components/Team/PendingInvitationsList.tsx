@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TeamListHeader } from './TeamListHeader';
 
 interface PendingInvitation {
   id: string;
@@ -42,13 +43,15 @@ interface PendingInvitationsListProps {
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvite: (id: string) => Promise<void>;
   isLoading: boolean;
+  isViewOnly?: boolean;
 }
 
 export function PendingInvitationsList({
   invitations,
   onResendInvite,
   onCancelInvite,
-  isLoading
+  isLoading,
+  isViewOnly = false
 }: PendingInvitationsListProps) {
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
   const [cancellingInvite, setCancellingInvite] = useState<string | null>(null);
@@ -103,95 +106,102 @@ export function PendingInvitationsList({
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Invited</TableHead>
-            <TableHead>Expires</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {invitations.map((invitation) => {
-            const createdDate = new Date(invitation.created_at);
-            const expiresDate = new Date(invitation.expires_at);
-            const isExpired = expiresDate < new Date();
-            
-            return (
-              <TableRow key={invitation.id} className={isExpired ? 'bg-red-50' : ''}>
-                <TableCell>{invitation.email}</TableCell>
-                <TableCell>
-                  <Badge variant={invitation.role === 'manager' ? 'default' : 'outline'}>
-                    {invitation.role}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span>{format(createdDate, 'MMM d, yyyy')}</span>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>{format(createdDate, 'PPpp')}</TooltipContent>
-                  </Tooltip>
-                </TableCell>
-                <TableCell>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1">
-                        <Calendar className={`h-4 w-4 ${isExpired ? 'text-red-500' : 'text-gray-500'}`} />
-                        <span className={isExpired ? 'text-red-500 font-medium' : ''}>
-                          {format(expiresDate, 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>{format(expiresDate, 'PPpp')}</TooltipContent>
-                  </Tooltip>
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Actions</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
-                        onClick={() => handleResendInvite(invitation.id)}
-                        disabled={resendingInvite === invitation.id}
-                        className="flex items-center gap-2"
-                      >
-                        <Mail className="h-4 w-4" />
-                        {resendingInvite === invitation.id ? 'Sending...' : 'Resend invitation'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => copyInvitationLink(invitation.token)}
-                        className="flex items-center gap-2"
-                      >
-                        <Copy className="h-4 w-4" />
-                        Copy invitation link
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleCancelInvite(invitation.id)}
-                        disabled={cancellingInvite === invitation.id}
-                        className="flex items-center gap-2 text-destructive focus:text-destructive"
-                      >
-                        <XCircle className="h-4 w-4" />
-                        {cancellingInvite === invitation.id ? 'Cancelling...' : 'Cancel invitation'}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+    <div className="space-y-4">
+      <TeamListHeader isViewOnly={isViewOnly} />
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Invited</TableHead>
+              <TableHead>Expires</TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {invitations.map((invitation) => {
+              const createdDate = new Date(invitation.created_at);
+              const expiresDate = new Date(invitation.expires_at);
+              const isExpired = expiresDate < new Date();
+              
+              return (
+                <TableRow key={invitation.id} className={isExpired ? 'bg-red-50' : ''}>
+                  <TableCell>{invitation.email}</TableCell>
+                  <TableCell>
+                    <Badge variant={invitation.role === 'manager' ? 'default' : 'outline'}>
+                      {invitation.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4 text-gray-500" />
+                          <span>{format(createdDate, 'MMM d, yyyy')}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>{format(createdDate, 'PPpp')}</TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1">
+                          <Calendar className={`h-4 w-4 ${isExpired ? 'text-red-500' : 'text-gray-500'}`} />
+                          <span className={isExpired ? 'text-red-500 font-medium' : ''}>
+                            {format(expiresDate, 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>{format(expiresDate, 'PPpp')}</TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    {!isViewOnly ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            onClick={() => handleResendInvite(invitation.id)}
+                            disabled={resendingInvite === invitation.id}
+                            className="flex items-center gap-2"
+                          >
+                            <Mail className="h-4 w-4" />
+                            {resendingInvite === invitation.id ? 'Sending...' : 'Resend invitation'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => copyInvitationLink(invitation.token)}
+                            className="flex items-center gap-2"
+                          >
+                            <Copy className="h-4 w-4" />
+                            Copy invitation link
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleCancelInvite(invitation.id)}
+                            disabled={cancellingInvite === invitation.id}
+                            className="flex items-center gap-2 text-destructive focus:text-destructive"
+                          >
+                            <XCircle className="h-4 w-4" />
+                            {cancellingInvite === invitation.id ? 'Cancelling...' : 'Cancel invitation'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">No actions available</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
