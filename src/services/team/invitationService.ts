@@ -240,7 +240,7 @@ export async function validateInvitationToken(token: string) {
     console.log("Validating token:", token);
     const { data, error } = await supabase
       .from('team_invitations')
-      .select('*, team:team_id(*)')
+      .select('*, team:team_id(id, name)')
       .eq('token', token)
       .eq('status', 'pending')
       .single();
@@ -251,6 +251,24 @@ export async function validateInvitationToken(token: string) {
     }
     
     console.log("Invitation found:", data);
+    
+    // Ensure team information is present
+    if (!data.team || !data.team.name) {
+      console.warn("Team information missing in invitation:", data);
+      
+      // Try to fetch team information separately
+      const { data: teamData, error: teamError } = await supabase
+        .from('team')
+        .select('name')
+        .eq('id', data.team_id)
+        .single();
+        
+      if (!teamError && teamData) {
+        data.team = { id: data.team_id, name: teamData.name };
+      } else {
+        console.error("Failed to fetch team information:", teamError);
+      }
+    }
     
     // Check if the invitation has expired
     if (data.expires_at && new Date(data.expires_at) < new Date()) {
@@ -317,10 +335,12 @@ export async function acceptInvitation(token: string) {
       toast.error('Could not mark invitation as accepted, but you were added to the team.');
     }
     
+    const teamName = invitation.team?.name || "the team";
+    
     return { 
       success: true,
       teamId: invitation.team_id,
-      teamName: invitation.team?.name || "the team",
+      teamName: teamName,
       role: invitation.role
     };
   } catch (error: any) {

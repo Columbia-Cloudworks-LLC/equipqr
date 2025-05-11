@@ -83,8 +83,8 @@ export default function InvitationPage() {
       const result = await acceptInvitation(token!);
       console.log("Acceptance result:", result);
       
-      toast.success(`Welcome to ${result.teamName || invitation?.team?.name || "the team"}!`, {
-        description: `You have successfully joined as a ${result.role || invitation?.role || "member"}`
+      toast.success(`Welcome to ${result.teamName || "the team"}!`, {
+        description: `You have successfully joined as a ${result.role || "member"}`
       });
       
       // Redirect to team management page
@@ -167,7 +167,7 @@ export default function InvitationPage() {
   }
 
   // Safely get team name with fallback
-  const teamName = invitation?.team?.name || "Unknown Team";
+  const teamName = invitation?.team?.name || "Team";
 
   return (
     <Layout>

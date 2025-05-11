@@ -27,7 +27,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const navigate = useNavigate();
   
   // Safely get team name with fallback to prevent errors
-  const teamName = invitation?.team?.name || 'Unknown Team';
+  const teamName = invitation?.team?.name || 'Team';
   
   const handleAccept = async () => {
     try {

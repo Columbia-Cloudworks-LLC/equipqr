@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,7 +23,11 @@ export default function AuthCallback() {
         if (invitationPath) {
           console.log("Redirecting to stored invitation path:", invitationPath);
           sessionStorage.removeItem('invitationPath'); // Clear the stored path
-          navigate(invitationPath);
+          
+          // Small delay to ensure auth state is fully propagated
+          setTimeout(() => {
+            navigate(invitationPath);
+          }, 500);
         } else {
           // Otherwise redirect to the dashboard
           navigate('/');
