@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMember, ApiTeamMember, mapApiTeamMemberToTeamMember } from "@/types";
 import { getAppUserId } from "@/utils/authUtils";
@@ -94,8 +93,71 @@ export async function getOrganizationMembers() {
   }
 }
 
-export async function resendInvite(userId: string) {
-  // Placeholder for resending an invitation
-  console.log(`Resending invitation to user ${userId}`);
-  return { success: true };
+export async function changeRole(userId: string, newRole: string, teamId: string) {
+  try {
+    console.log(`Changing role for user ${userId} to ${newRole} in team ${teamId}`);
+    
+    // Validate that the current user is authorized to change roles
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('You must be logged in to change team roles');
+    }
+    
+    const currentUserId = sessionData.session.user.id;
+    
+    // Call our custom edge function to change a user's role
+    const { data, error } = await supabase.functions.invoke('change_user_role', {
+      body: {
+        user_id: userId,
+        team_id: teamId,
+        new_role: newRole,
+        requester_id: currentUserId
+      }
+    });
+    
+    if (error) {
+      console.error('Error changing role:', error);
+      throw new Error(`Failed to change role: ${error.message}`);
+    }
+    
+    console.log('Role updated successfully:', data);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('Error in changeRole:', error);
+    throw new Error(`Role change failed: ${error.message}`);
+  }
+}
+
+export async function removeMember(userId: string, teamId: string) {
+  try {
+    console.log(`Removing user ${userId} from team ${teamId}`);
+    
+    // First verify the current user has permission to remove members
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('You must be logged in to remove team members');
+    }
+    
+    const currentUserId = sessionData.session.user.id;
+    
+    // Call our custom edge function to remove a team member
+    const { data, error } = await supabase.functions.invoke('remove_team_member', {
+      body: {
+        user_to_remove: userId,
+        team_id: teamId,
+        requester_id: currentUserId
+      }
+    });
+    
+    if (error) {
+      console.error('Error removing team member:', error);
+      throw new Error(`Failed to remove team member: ${error.message}`);
+    }
+    
+    console.log('Team member removed successfully:', data);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('Error in removeMember:', error);
+    throw new Error(`Member removal failed: ${error.message}`);
+  }
 }
