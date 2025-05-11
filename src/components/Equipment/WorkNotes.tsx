@@ -148,14 +148,16 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
     e.preventDefault();
     if (!editingNote || !editingNote.id) return;
     
-    // FIX for TS2322: Convert string to number properly
+    // Convert the hours_worked string to a number if it exists
     let hoursValue: number | undefined;
     
-    if (typeof editingNote.hours_worked === 'string') {
-      const parsed = parseFloat(editingNote.hours_worked);
-      hoursValue = isNaN(parsed) ? undefined : parsed;
-    } else {
-      hoursValue = editingNote.hours_worked;
+    if (editingNote.hours_worked !== undefined && editingNote.hours_worked !== null) {
+      if (typeof editingNote.hours_worked === 'string') {
+        const parsed = parseFloat(editingNote.hours_worked);
+        hoursValue = isNaN(parsed) ? undefined : parsed;
+      } else {
+        hoursValue = editingNote.hours_worked;
+      }
     }
     
     updateMutation.mutate({
