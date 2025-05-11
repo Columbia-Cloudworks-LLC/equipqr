@@ -3,17 +3,22 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNotifications } from "@/contexts/NotificationsContext";
+import { toast } from "sonner";
 
 export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
+  const [processingAuth, setProcessingAuth] = useState(true);
   const navigate = useNavigate();
   const { refreshNotifications } = useNotifications();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        console.log("Processing auth callback...");
+        setProcessingAuth(true);
+        
         // Process the OAuth callback or email confirmation
-        const { error } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
 
         if (error) {
           console.error("Error in auth callback:", error);
@@ -21,25 +26,51 @@ export default function AuthCallback() {
           return;
         }
 
-        // Refresh notifications when auth is successful
-        await refreshNotifications();
+        if (!data.session) {
+          console.error("No session in auth callback");
+          setError("Authentication failed. No session received.");
+          return;
+        }
+
+        console.log("Auth successful, session established");
+        
+        // Wait briefly for auth state to settle
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh notifications AFTER successful authentication
+        console.log("Refreshing notifications after successful auth");
+        try {
+          await refreshNotifications();
+          console.log("Notifications refreshed successfully");
+        } catch (notifError) {
+          console.error("Failed to refresh notifications:", notifError);
+          // Don't block the auth flow if notifications fail
+        }
 
         // Check if there was an invitation redirect stored
         const invitationPath = sessionStorage.getItem('invitationPath');
         
         if (invitationPath) {
+          console.log(`Redirecting to invitation path: ${invitationPath}`);
           // Clear the stored path
           sessionStorage.removeItem('invitationPath');
           
           // Redirect back to the invitation page
+          toast.success("Signed in successfully", {
+            description: "Now you can accept the invitation"
+          });
           navigate(invitationPath);
         } else {
           // Default redirect to home
+          console.log("Redirecting to home page");
+          toast.success("Signed in successfully");
           navigate("/");
         }
       } catch (err: any) {
-        console.error("Error in auth callback:", err);
+        console.error("Unexpected error in auth callback:", err);
         setError(err.message);
+      } finally {
+        setProcessingAuth(false);
       }
     };
 
@@ -68,6 +99,7 @@ export default function AuthCallback() {
       <div className="text-center">
         <h2 className="text-2xl font-semibold mb-4">Authenticating...</h2>
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        {!processingAuth && <p className="mt-4 text-muted-foreground">Refreshing notifications...</p>}
       </div>
     </div>
   );

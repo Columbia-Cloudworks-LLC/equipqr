@@ -4,7 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 // Function to get pending invitations for the current user
 export async function getPendingInvitationsForUser() {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error("Error retrieving session when checking for invitations:", sessionError);
+      return [];
+    }
+    
     if (!sessionData?.session?.user) {
       console.warn("No authenticated user found when checking for invitations");
       return [];
@@ -60,13 +65,36 @@ export function isNotificationDismissed(id: string) {
   return dismissed.includes(id);
 }
 
-// Function to get non-dismissed invitations
-export async function getActiveNotifications() {
+// Function to get non-dismissed invitations with retry logic
+export async function getActiveNotifications(retryCount = 0, maxRetries = 2) {
   try {
+    console.log(`Attempting to get active notifications (attempt ${retryCount + 1}/${maxRetries + 1})`);
+    
+    // Check if we have an active session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      console.log("No active session, skipping notification check");
+      return [];
+    }
+    
     const invitations = await getPendingInvitationsForUser();
-    return invitations.filter(inv => !isNotificationDismissed(inv.id));
+    const activeInvitations = invitations.filter(inv => !isNotificationDismissed(inv.id));
+    
+    console.log(`Found ${activeInvitations.length} active (non-dismissed) invitations`);
+    return activeInvitations;
   } catch (error) {
     console.error("Error in getActiveNotifications:", error);
+    
+    // Implement retry logic
+    if (retryCount < maxRetries) {
+      console.log(`Retrying notification fetch (${retryCount + 1}/${maxRetries})`);
+      // Wait a bit before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+      return getActiveNotifications(retryCount + 1, maxRetries);
+    }
+    
+    // Return empty array after max retries
+    console.log("Max retries reached, returning empty notifications array");
     return [];
   }
 }
