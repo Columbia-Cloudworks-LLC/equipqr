@@ -16,13 +16,16 @@ interface TeamContentProps {
   isLoading: boolean;
   isCreatingTeam: boolean;
   isRepairingTeam?: boolean;
+  isUpgradingRole?: boolean; // New prop for role upgrade
   isMember?: boolean;
+  currentUserRole?: string; // New prop for current role
   onInviteMember: (email: string, role: UserRole, teamId: string) => void;
   onChangeRole: (id: string, role: UserRole, teamId: string) => void;
   onRemoveMember: (id: string, teamId: string) => void;
   onResendInvite: (id: string) => void;
   onCreateTeam: (name: string) => void;
   onRepairTeam?: (teamId: string) => void;
+  onUpgradeRole?: (teamId: string) => void; // New prop for role upgrade
 }
 
 export function TeamContent({
@@ -32,14 +35,18 @@ export function TeamContent({
   isLoading,
   isCreatingTeam,
   isRepairingTeam = false,
+  isUpgradingRole = false,
   isMember = true,
+  currentUserRole,
   onInviteMember,
   onChangeRole,
   onRemoveMember,
   onResendInvite,
   onCreateTeam,
-  onRepairTeam
+  onRepairTeam,
+  onUpgradeRole
 }: TeamContentProps) {
+  // Handle repair access case
   if (selectedTeamId && !isMember && onRepairTeam) {
     return (
       <div className="space-y-4">
@@ -60,6 +67,56 @@ export function TeamContent({
             </div>
           </AlertDescription>
         </Alert>
+      </div>
+    );
+  }
+
+  // Handle viewer role with upgrade option
+  if (selectedTeamId && isMember && currentUserRole === 'viewer' && onUpgradeRole) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Viewer Role Detected</AlertTitle>
+          <AlertDescription>
+            You currently have view-only access to this team. To manage team members or make changes, you need a manager role.
+            <div className="mt-4">
+              <Button
+                onClick={() => onUpgradeRole(selectedTeamId)}
+                disabled={isUpgradingRole}
+                className="flex items-center gap-2"
+              >
+                <CircleAlert className="h-4 w-4" />
+                {isUpgradingRole ? 'Upgrading Role...' : 'Upgrade to Manager Role'}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+        
+        <Tabs defaultValue="members" className="w-full">
+          <TabsList>
+            <TabsTrigger value="members">Team Members</TabsTrigger>
+            <TabsTrigger value="create">Create Team</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="members" className="mt-6">
+            <TeamList
+              members={members}
+              onRemoveMember={onRemoveMember}
+              onChangeRole={onChangeRole}
+              onResendInvite={onResendInvite}
+              teamId={selectedTeamId}
+              isViewOnly={true}
+            />
+          </TabsContent>
+          
+          <TabsContent value="create" className="mt-6 max-w-md">
+            <TeamCreationForm 
+              onCreateTeam={onCreateTeam}
+              isLoading={isCreatingTeam}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }

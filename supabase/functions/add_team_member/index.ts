@@ -82,18 +82,6 @@ serve(async (req) => {
     
     console.log(`Found app_user.id: ${appUser.id} for auth_uid: ${_user_id}`);
     
-    // Get the app_user.id for the user who is adding the member
-    const { data: addedByAppUser, error: addedByError } = await supabaseClient
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', _added_by)
-      .maybeSingle();
-    
-    if (addedByError) {
-      console.log('Warning: Could not find app_user for _added_by', _added_by);
-      // Continue anyway, as this is not critical
-    }
-    
     // Now use the app_user.id for team_member operations
     // Check if team member already exists
     const { data: existingMember, error: checkError } = await supabaseClient
@@ -158,7 +146,8 @@ serve(async (req) => {
       );
     }
     
-    const assignedBy = addedByAppUser?.id || null; // Use app_user.id for assigned_by if available
+    // IMPORTANT: We use _added_by directly as auth.uid, NOT app_user.id
+    // This is because team_roles.assigned_by references auth.users(id)
     
     // If role exists, update it
     if (existingRole) {
@@ -167,7 +156,7 @@ serve(async (req) => {
         .from('team_roles')
         .update({
           role: _role,
-          assigned_by: assignedBy,
+          assigned_by: _added_by,  // Use auth.uid directly
           assigned_at: new Date().toISOString()
         })
         .eq('id', existingRole.id);
@@ -187,7 +176,7 @@ serve(async (req) => {
         .insert({
           team_member_id: teamMemberId,
           role: _role,
-          assigned_by: assignedBy,
+          assigned_by: _added_by,  // Use auth.uid directly
           assigned_at: new Date().toISOString()
         });
       
@@ -200,8 +189,32 @@ serve(async (req) => {
       }
     }
     
+    // Verify the role was actually created
+    const { data: verifyRole, error: verifyError } = await supabaseClient
+      .from('team_roles')
+      .select('id, role')
+      .eq('team_member_id', teamMemberId)
+      .maybeSingle();
+      
+    if (verifyError || !verifyRole) {
+      console.error('Error verifying role creation:', verifyError || 'No role found');
+      return new Response(
+        JSON.stringify({ 
+          warning: "Team member was created but role verification failed",
+          team_member_id: teamMemberId,
+          success: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+    
     return new Response(
-      JSON.stringify({ success: true, team_member_id: teamMemberId }),
+      JSON.stringify({ 
+        success: true, 
+        team_member_id: teamMemberId,
+        role_id: verifyRole.id,
+        role: verifyRole.role
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
     

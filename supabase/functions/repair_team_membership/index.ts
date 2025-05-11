@@ -98,14 +98,14 @@ serve(async (req) => {
       if (!existingRole) {
         console.log('User is a team member but has no role assigned. Adding manager role.');
         
-        // Add manager role if missing
+        // Add manager role if missing - IMPORTANT: Use user_id (auth.uid) not app_user.id for assigned_by
         const { data: newRole, error: roleError } = await supabaseClient
           .from('team_roles')
           .insert({
             team_member_id: existingMember.id,
             role: 'manager',
             assigned_at: new Date().toISOString(),
-            assigned_by: appUser.id
+            assigned_by: user_id  // Use auth.uid instead of app_user.id to avoid foreign key constraint
           })
           .select('id')
           .single();
@@ -184,7 +184,7 @@ serve(async (req) => {
       );
     }
     
-    // Add manager role
+    // Add manager role - IMPORTANT: Use user_id (auth.uid) not app_user.id for assigned_by
     let newRole;
     try {
       const { data, error: roleError } = await supabaseClient
@@ -193,7 +193,7 @@ serve(async (req) => {
           team_member_id: newMember.id,
           role: 'manager',
           assigned_at: new Date().toISOString(),
-          assigned_by: appUser.id
+          assigned_by: user_id  // Use auth.uid instead of app_user.id to avoid foreign key constraint
         })
         .select('id')
         .single();
@@ -260,14 +260,14 @@ serve(async (req) => {
       if (!hasRole) {
         console.warn('Role was not properly assigned, attempting one more time');
         
-        // Try one more time to add the role
+        // Try one more time to add the role - using auth.uid
         const { data: retryRole, error: retryError } = await supabaseClient
           .from('team_roles')
           .insert({
             team_member_id: newMember.id,
             role: 'manager',
             assigned_at: new Date().toISOString(),
-            assigned_by: appUser.id
+            assigned_by: user_id  // Use auth.uid instead of app_user.id
           })
           .select('id')
           .single();

@@ -253,3 +253,37 @@ export async function repairTeamMembership(teamId: string) {
     throw new Error(`Repair failed: ${error.message}`);
   }
 }
+
+// New function to fix team member role - assigns manager role
+export async function upgradeToManagerRole(teamId: string) {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('User must be logged in to upgrade role');
+    }
+    
+    const userId = sessionData.session.user.id;
+    console.log(`Upgrading user ${userId} to manager role in team ${teamId}`);
+    
+    // Use add_team_member to update the role (it handles both add and update)
+    const { data, error } = await supabase.functions.invoke('add_team_member', {
+      body: {
+        _team_id: teamId,
+        _user_id: userId, 
+        _role: 'manager',
+        _added_by: userId
+      }
+    });
+    
+    if (error) {
+      console.error('Error upgrading to manager role:', error);
+      throw new Error(`Failed to upgrade role: ${error.message}`);
+    }
+    
+    console.log('Role upgrade successful:', data);
+    return { success: true, details: data };
+  } catch (error: any) {
+    console.error('Error in upgradeToManagerRole:', error);
+    throw new Error(`Role upgrade failed: ${error.message}`);
+  }
+}

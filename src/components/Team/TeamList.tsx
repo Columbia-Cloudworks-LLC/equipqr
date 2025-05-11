@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
 import {
@@ -9,17 +10,29 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { 
+  MoreHorizontal, 
+  UserX, 
+  RefreshCw,
+  Info,
+  AlertTriangle
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TeamListProps {
   members: TeamMember[];
@@ -27,126 +40,156 @@ interface TeamListProps {
   onChangeRole: (id: string, role: UserRole, teamId: string) => void;
   onResendInvite: (id: string) => void;
   teamId: string;
+  isViewOnly?: boolean; // New prop for view-only mode
 }
 
-export function TeamList({ members, onRemoveMember, onChangeRole, onResendInvite, teamId }: TeamListProps) {
-  const getInitials = (name: string) => {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
-  };
+export function TeamList({ 
+  members, 
+  onRemoveMember, 
+  onChangeRole, 
+  onResendInvite,
+  teamId,
+  isViewOnly = false
+}: TeamListProps) {
+  const [changingRoleFor, setChangingRoleFor] = useState<string | null>(null);
+  const [removingMember, setRemovingMember] = useState<string | null>(null);
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'owner': return 'bg-purple-100 text-purple-800';
-      case 'manager': return 'bg-blue-100 text-blue-800';
-      case 'technician': return 'bg-green-100 text-green-800';
-      case 'viewer': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const handleRoleChange = async (memberId: string, userId: string, newRole: UserRole) => {
+    try {
+      setChangingRoleFor(memberId);
+      await onChangeRole(userId, newRole, teamId);
+    } finally {
+      setChangingRoleFor(null);
     }
   };
 
+  const handleRemoveMember = async (userId: string) => {
+    try {
+      setRemovingMember(userId);
+      await onRemoveMember(userId, teamId);
+    } finally {
+      setRemovingMember(null);
+    }
+  };
+
+  const handleResendInvite = async (id: string) => {
+    try {
+      setResendingInvite(id);
+      await onResendInvite(id);
+    } finally {
+      setResendingInvite(null);
+    }
+  };
+
+  if (!members || members.length === 0) {
+    return (
+      <div className="text-center p-8 border rounded-md">
+        <p className="text-gray-500">No team members found</p>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-md border">
+      {isViewOnly && (
+        <div className="bg-amber-50 p-4 border-b flex items-center gap-2 text-amber-800">
+          <AlertTriangle className="h-4 w-4" />
+          <span className="text-sm">You are in view-only mode. You need a manager role to make changes.</span>
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Member</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
-            <TableHead>Joined</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-[80px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {members.length > 0 ? (
-            members.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>{getInitials(member.name || '')}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{member.name}</p>
-                      <p className="text-sm text-muted-foreground">{member.email}</p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {member.status === 'Active' ? (
-                    <Badge variant="outline" className="bg-green-100 text-green-800">
-                      Active
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
-                      Pending
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={getRoleColor(member.role || '')}>
-                    {member.role}
+          {members.map((member) => (
+            <TableRow key={member.id}>
+              <TableCell className="font-medium">
+                {member.name || 'Unknown'}
+              </TableCell>
+              <TableCell>{member.email}</TableCell>
+              <TableCell>
+                {isViewOnly ? (
+                  <Badge variant={member.role === 'manager' ? 'default' : 'outline'}>
+                    {member.role || 'viewer'}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  {member.status === 'Active' ? (
-                    <time dateTime={member.joined_at}>
-                      {new Date(member.joined_at).toLocaleDateString()}
-                    </time>
-                  ) : (
-                    'Not joined yet'
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
+                ) : (
+                  <Select 
+                    defaultValue={member.role || 'viewer'}
+                    onValueChange={(value) => handleRoleChange(member.id, member.user_id, value as UserRole)}
+                    disabled={changingRoleFor === member.id}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="technician">Technician</SelectItem>
+                      <SelectItem value="viewer">Viewer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge variant={member.status === 'Active' ? 'default' : 'outline'}>
+                  {member.status || 'Unknown'}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                {!isViewOnly ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
+                      <Button variant="ghost" size="icon">
                         <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Actions</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'manager', teamId)}>
-                        Change to Manager
+                      <DropdownMenuItem 
+                        onClick={() => handleRemoveMember(member.user_id)}
+                        disabled={removingMember === member.user_id}
+                        className="flex items-center gap-2"
+                      >
+                        <UserX className="h-4 w-4" />
+                        {removingMember === member.user_id ? 'Removing...' : 'Remove from team'}
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'technician', teamId)}>
-                        Change to Technician
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangeRole(member.id, 'viewer', teamId)}>
-                        Change to Viewer
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
                       {member.status === 'Pending' && (
-                        <DropdownMenuItem onClick={() => onResendInvite(member.id)}>
-                          Resend Invitation
+                        <DropdownMenuItem 
+                          onClick={() => handleResendInvite(member.id)}
+                          disabled={resendingInvite === member.id}
+                          className="flex items-center gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          {resendingInvite === member.id ? 'Resending...' : 'Resend invitation'}
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem 
-                        className="text-red-600"
-                        onClick={() => onRemoveMember(member.id, teamId)}
-                      >
-                        Remove Member
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-4">
-                No team members found
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Info className="h-4 w-4" />
+                        <span className="sr-only">Info</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Upgrade to manager role to modify team members</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </TableCell>
             </TableRow>
-          )}
+          ))}
         </TableBody>
       </Table>
     </div>
   );
 }
-
-export default TeamList;

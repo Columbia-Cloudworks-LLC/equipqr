@@ -48,7 +48,7 @@ serve(async (req) => {
     const { data: team, error: teamError } = await supabaseClient
       .from('team')
       .select('id')
-      .eq('id', team_id)
+      .eq('id', team_id) // team_id is already validated as UUID format
       .is('deleted_at', null)
       .single();
     
@@ -91,10 +91,12 @@ serve(async (req) => {
     }
     
     try {
-      // Call the function with an explicit cast of team_id to UUID in SQL
+      // Call the database function with explicit casting of team_id to UUID in the query
       const { data, error } = await supabaseClient.rpc(
         'get_team_members_with_roles', 
-        { _team_id: team_id }
+        { 
+          _team_id: team_id // When passed directly in a RPC, it needs to be the exact parameter name
+        }
       );
       
       if (error) {

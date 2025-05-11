@@ -79,15 +79,14 @@ export async function createTeam(name: string) {
     const { data: memberData, error: memberError } = await supabase.functions.invoke('add_team_member', {
       body: {
         _team_id: data.id,
-        _user_id: authUserId, // Keep using auth user ID here as the edge function expects it
+        _user_id: authUserId, // Use auth user ID here as the edge function expects it
         _role: 'manager',
-        _added_by: authUserId // Keep using auth user ID here as the edge function expects it
+        _added_by: authUserId // Use auth user ID here as the edge function expects it
       }
     });
     
     if (memberError) {
       console.error('Error adding creator to team:', memberError);
-      // Instead of silently continuing, let's try to handle the error
       
       // Try to delete the team if adding the member failed
       const { error: deleteError } = await supabase
@@ -116,6 +115,8 @@ export async function createTeam(name: string) {
       console.error('Team member verification failed:', verifyError || 'Not a team member');
       throw new Error('Team was created but your membership could not be verified. Please try to repair the team.');
     }
+    
+    console.log('Team created successfully with member:', memberData);
     
   } catch (memberError) {
     console.error('Error adding creator to team:', memberError);
