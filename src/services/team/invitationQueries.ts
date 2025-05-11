@@ -10,19 +10,14 @@ export async function getPendingInvitationsForUser() {
       return [];
     }
     
-    if (!sessionData?.session?.user) {
-      console.log("No authenticated user found when checking for invitations");
+    if (!sessionData?.session?.user?.email) {
+      console.log("No authenticated user email found when checking for invitations");
       return [];
     }
 
-    const userEmail = sessionData.session.user.email?.toLowerCase();
+    const userEmail = sessionData.session.user.email.toLowerCase();
     
-    if (!userEmail) {
-      console.log("User email not found in session");
-      return [];
-    }
-    
-    // Get pending invitations - the RLS policy will ensure we only get invitations for this email
+    // Get pending invitations - using RLS policy to filter by email
     const { data, error } = await supabase
       .from('team_invitations')
       .select('*, team:team_id(name)')
@@ -33,9 +28,14 @@ export async function getPendingInvitationsForUser() {
       throw error;
     }
     
-    console.log(`Found ${data?.length || 0} pending invitations for ${userEmail}`);
+    // Double check email matching (case insensitive)
+    const filteredData = data?.filter(inv => 
+      inv.email.toLowerCase() === userEmail
+    );
     
-    return data || [];
+    console.log(`Found ${filteredData?.length || 0} pending invitations for ${userEmail}`);
+    
+    return filteredData || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitationsForUser:', error);
     throw new Error(`Failed to get pending invitations: ${error.message}`);

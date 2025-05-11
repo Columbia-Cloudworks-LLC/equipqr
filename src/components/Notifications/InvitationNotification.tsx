@@ -29,12 +29,19 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const handleAccept = async () => {
     try {
       setIsAccepting(true);
-      await acceptInvitation(invitation.token);
-      toast.success(`You've joined ${invitation.team.name}!`);
+      
+      // Call the acceptInvitation function which will handle the proper role assignment
+      const result = await acceptInvitation(invitation.token);
+      
+      toast.success(`You've joined ${invitation.team.name}!`, {
+        description: `You have successfully joined as a ${result.role || invitation.role}`
+      });
+      
       onAccept();
       navigate('/team');
     } catch (error: any) {
       toast.error(`Failed to accept invitation: ${error.message}`);
+      console.error("Invitation acceptance error:", error);
     } finally {
       setIsAccepting(false);
     }

@@ -14,16 +14,16 @@ export function useNotificationsState() {
   
   // Debounced refresh function to prevent multiple rapid calls
   const debouncedRefresh = useCallback(async () => {
-    // Prevent refreshing more than once every 2 seconds
-    const now = new Date();
-    if (lastRefreshAttempt && (now.getTime() - lastRefreshAttempt.getTime()) < 2000) {
-      return;
-    }
-    
-    // Only refresh if we have a valid user and session
+    // Don't refresh if no user is authenticated
     if (!user || !session) {
       setInvitations([]);
       setHasNewNotifications(false);
+      return;
+    }
+    
+    // Prevent refreshing more than once every 2 seconds
+    const now = new Date();
+    if (lastRefreshAttempt && (now.getTime() - lastRefreshAttempt.getTime()) < 2000) {
       return;
     }
     

@@ -20,6 +20,7 @@ export default function InvitationPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
 
+  // Validate the invitation token on component mount
   useEffect(() => {
     async function checkInvitation() {
       if (!token) {
@@ -36,6 +37,14 @@ export default function InvitationPage() {
           setError(result.error || 'Invalid invitation');
         } else if (result.invitation) {
           setInvitation(result.invitation);
+          
+          // Check if the current user's email matches the invitation email
+          if (user?.email && result.invitation.email && 
+              user.email.toLowerCase() !== result.invitation.email.toLowerCase()) {
+            setError(`This invitation was sent to ${result.invitation.email}. 
+                      You are currently logged in as ${user.email}. 
+                      Please log out and sign in with the correct account.`);
+          }
         }
       } catch (err: any) {
         console.error('Error validating invitation:', err);
@@ -47,7 +56,7 @@ export default function InvitationPage() {
     }
 
     checkInvitation();
-  }, [token]);
+  }, [token, user]);
 
   const handleAcceptInvitation = async () => {
     if (!user) {
@@ -191,13 +200,19 @@ export default function InvitationPage() {
                 <span className="text-muted-foreground">Invited by:</span>
                 <span className="font-medium">{invitation?.invited_by_email}</span>
               </div>
+              {invitation?.email && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Invitation sent to:</span>
+                  <span className="font-medium">{invitation?.email}</span>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button 
               onClick={handleAcceptInvitation} 
               className="w-full" 
-              disabled={isAccepting}
+              disabled={isAccepting || (user && invitation?.email && user.email.toLowerCase() !== invitation.email.toLowerCase())}
             >
               {isAccepting ? (
                 <>
@@ -215,6 +230,13 @@ export default function InvitationPage() {
             {!user && (
               <div className="text-sm text-center text-muted-foreground">
                 You'll need to sign in or create an account to join this team
+              </div>
+            )}
+            
+            {user && invitation?.email && user.email.toLowerCase() !== invitation.email.toLowerCase() && (
+              <div className="text-sm text-center text-destructive">
+                This invitation was sent to {invitation.email}. You are currently logged in as {user.email}.
+                Please log out and sign in with the correct account.
               </div>
             )}
             
