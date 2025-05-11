@@ -971,6 +971,19 @@ export type Database = {
           status: string
         }[]
       }
+      get_team_members_with_roles: {
+        Args: { _team_id: string }
+        Returns: {
+          id: string
+          team_id: string
+          user_id: string
+          joined_at: string
+          name: string
+          email: string
+          role: string
+          status: string
+        }[]
+      }
       get_team_role: {
         Args: { _user_id: string; _team_id: string }
         Returns: string
