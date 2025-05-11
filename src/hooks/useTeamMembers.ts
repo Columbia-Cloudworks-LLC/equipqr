@@ -5,10 +5,10 @@ import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
 import { 
   getTeamMembers,
-  inviteMember, 
-  changeRole, 
-  removeMember, 
-  resendInvite
+  changeRole,
+  removeMember,
+  resendInvite,
+  inviteMember
 } from '@/services/team';
 
 export function useTeamMembers(teamId: string) {

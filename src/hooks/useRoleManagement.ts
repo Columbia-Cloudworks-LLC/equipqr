@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { checkRoleChangePermission, upgradeToManagerRole, requestRoleUpgrade } from '@/services/team/memberService';
+import { checkRoleChangePermission, upgradeToManagerRole, requestRoleUpgrade } from '@/services/team';
 
 export function useRoleManagement(members: TeamMember[], teamId: string | null) {
   const [currentUserRole, setCurrentUserRole] = useState<string | undefined>(undefined);
