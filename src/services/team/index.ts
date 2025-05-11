@@ -14,5 +14,8 @@ export {
 // Export all invitation-related functions from invitationService
 export * from './invitationService';
 
+// Export notification-related functions
+export * from './notificationService';
+
 // Export all role-related functions
 export * from './roleService';
