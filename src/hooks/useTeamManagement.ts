@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
@@ -9,8 +10,11 @@ import {
   changeRole, 
   removeMember, 
   resendInvite, 
-  createTeam 
+  createTeam,
+  validateTeamMembership,
+  repairTeamMembership
 } from '@/services/team';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Team {
   id: string;
@@ -23,19 +27,56 @@ export function useTeamManagement() {
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const [isRepairingTeam, setIsRepairingTeam] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isMember, setIsMember] = useState<boolean>(true);
+
+  // Get the current user's ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        setCurrentUserId(data.session.user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     fetchTeams();
   }, []);
 
   useEffect(() => {
-    if (selectedTeamId) {
-      fetchTeamMembers(selectedTeamId);
+    if (selectedTeamId && currentUserId) {
+      checkTeamMembership(selectedTeamId, currentUserId);
     } else {
       setMembers([]);
+      setIsMember(true); // Reset to true when no team is selected
     }
-  }, [selectedTeamId]);
+  }, [selectedTeamId, currentUserId]);
+
+  const checkTeamMembership = async (teamId: string, userId: string) => {
+    try {
+      setIsLoading(true);
+      const isMember = await validateTeamMembership(userId, teamId);
+      
+      setIsMember(isMember);
+      
+      if (isMember) {
+        fetchTeamMembers(teamId);
+      } else {
+        setMembers([]);
+        setError('You are not a member of this team. This may be due to an issue during team creation.');
+      }
+    } catch (error: any) {
+      console.error('Error checking team membership:', error);
+      setError('Failed to verify team membership.');
+      setMembers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchTeams = async () => {
     try {
@@ -107,11 +148,16 @@ export function useTeamManagement() {
     try {
       setIsCreatingTeam(true);
       setError(null);
-      await createTeam(name);
+      const team = await createTeam(name);
       toast.success("Team created successfully", {
         description: `Team "${name}" has been created`,
       });
       await fetchTeams();
+      
+      // Select the newly created team
+      if (team?.id) {
+        setSelectedTeamId(team.id);
+      }
     } catch (error: any) {
       console.error('Error in handleCreateTeam:', error);
       setError('Failed to create team. Please try again.');
@@ -120,6 +166,32 @@ export function useTeamManagement() {
       });
     } finally {
       setIsCreatingTeam(false);
+    }
+  };
+
+  const handleRepairTeam = async (teamId: string) => {
+    if (!teamId) return;
+    
+    try {
+      setIsRepairingTeam(true);
+      setError(null);
+      await repairTeamMembership(teamId);
+      toast.success("Team membership repaired", {
+        description: "You have been added as a team manager",
+      });
+      
+      // Re-check team membership and fetch members
+      if (currentUserId) {
+        await checkTeamMembership(teamId, currentUserId);
+      }
+    } catch (error: any) {
+      console.error('Error in handleRepairTeam:', error);
+      setError(`Failed to repair team: ${error.message}`);
+      toast.error("Error repairing team", {
+        description: error.message,
+      });
+    } finally {
+      setIsRepairingTeam(false);
     }
   };
 
@@ -205,7 +277,9 @@ export function useTeamManagement() {
     selectedTeamId,
     isLoading,
     isCreatingTeam,
+    isRepairingTeam,
     error,
+    isMember,
     setSelectedTeamId,
     handleCreateTeam,
     handleInviteMember,
@@ -213,5 +287,6 @@ export function useTeamManagement() {
     handleRemoveMember,
     handleResendInvite,
     refetchTeamMembers,
+    handleRepairTeam,
   };
 }

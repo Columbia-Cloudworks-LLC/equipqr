@@ -13,6 +13,8 @@ export default function TeamManagement() {
     selectedTeamId,
     isLoading,
     isCreatingTeam,
+    isRepairingTeam,
+    isMember,
     error,
     setSelectedTeamId,
     handleCreateTeam,
@@ -20,6 +22,7 @@ export default function TeamManagement() {
     handleChangeRole,
     handleRemoveMember,
     handleResendInvite,
+    handleRepairTeam,
     refetchTeamMembers,
   } = useTeamManagement();
 
@@ -50,11 +53,14 @@ export default function TeamManagement() {
               teams={teams}
               isLoading={isLoading}
               isCreatingTeam={isCreatingTeam}
+              isRepairingTeam={isRepairingTeam}
+              isMember={isMember}
               onInviteMember={handleInviteMember}
               onChangeRole={handleChangeRole}
               onRemoveMember={handleRemoveMember}
               onResendInvite={handleResendInvite}
               onCreateTeam={handleCreateTeam}
+              onRepairTeam={handleRepairTeam}
             />
           </>
         ) : isLoading ? (

@@ -22,6 +22,16 @@ serve(async (req) => {
       );
     }
     
+    // Validate UUID format for team_id and user_id
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(_team_id)) {
+      console.error(`Invalid UUID format for team_id: ${_team_id}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid team ID format" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
     // Create Supabase client
     const supabaseClient = createClient(
       // Supabase API URL - env var exposed by default when deployed
@@ -30,13 +40,28 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
+    // First check if the team exists
+    const { data: team, error: teamError } = await supabaseClient
+      .from('team')
+      .select('id')
+      .eq('id', _team_id)
+      .is('deleted_at', null)
+      .single();
+    
+    if (teamError) {
+      console.error('Error finding team:', teamError);
+      return new Response(
+        JSON.stringify({ error: "Team not found", details: teamError.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+    
     console.log(`Getting app_user for auth_uid: ${_user_id}`);
     // First, get the app_user.id that corresponds to the auth user ID
-    // Cast auth_uid to text when comparing with _user_id
     const { data: appUser, error: appUserError } = await supabaseClient
       .from('app_user')
       .select('id')
-      .eq('auth_uid', String(_user_id)) // Ensure auth_uid is treated as string
+      .eq('auth_uid', _user_id)
       .maybeSingle();
     
     if (appUserError) {
@@ -61,7 +86,7 @@ serve(async (req) => {
     const { data: addedByAppUser, error: addedByError } = await supabaseClient
       .from('app_user')
       .select('id')
-      .eq('auth_uid', String(_added_by)) // Ensure auth_uid is treated as string
+      .eq('auth_uid', _added_by)
       .maybeSingle();
     
     if (addedByError) {

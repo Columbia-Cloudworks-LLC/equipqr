@@ -76,7 +76,7 @@ export async function createTeam(name: string) {
   // Add the creator as a team member with 'manager' role
   try {
     // Use the add_team_member edge function
-    const { error: memberError } = await supabase.functions.invoke('add_team_member', {
+    const { data: memberData, error: memberError } = await supabase.functions.invoke('add_team_member', {
       body: {
         _team_id: data.id,
         _user_id: authUserId, // Keep using auth user ID here as the edge function expects it
@@ -87,11 +87,39 @@ export async function createTeam(name: string) {
     
     if (memberError) {
       console.error('Error adding creator to team:', memberError);
-      // Continue anyway as the team was created
+      // Instead of silently continuing, let's try to handle the error
+      
+      // Try to delete the team if adding the member failed
+      const { error: deleteError } = await supabase
+        .from('team')
+        .delete()
+        .eq('id', data.id);
+      
+      if (deleteError) {
+        console.error('Error deleting team after membership creation failure:', deleteError);
+        // This leaves an "orphaned" team in the database, but we alert the user
+        throw new Error('Team was created but you could not be added as a member. Please contact support.');
+      } else {
+        throw new Error('Failed to add you as a team member. Team creation was rolled back.');
+      }
     }
+    
+    // Additional verification to ensure team member was actually added
+    const { data: verifyMember, error: verifyError } = await supabase.functions.invoke('validate_team_access', {
+      body: {
+        team_id: data.id,
+        user_id: authUserId
+      }
+    });
+    
+    if (verifyError || !verifyMember?.is_member) {
+      console.error('Team member verification failed:', verifyError || 'Not a team member');
+      throw new Error('Team was created but your membership could not be verified. Please try to repair the team.');
+    }
+    
   } catch (memberError) {
     console.error('Error adding creator to team:', memberError);
-    // Continue anyway as the team was created
+    throw new Error(`Team created, but failed to add you as a member: ${memberError.message}`);
   }
   
   return data;

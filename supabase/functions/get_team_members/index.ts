@@ -24,6 +24,16 @@ serve(async (req) => {
       );
     }
     
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(team_id)) {
+      console.error(`Invalid UUID format for team_id: ${team_id}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid team ID format" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
     console.log(`Fetching team members for team: ${team_id}`);
     
     // Create Supabase client
@@ -34,9 +44,57 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
+    // First, check if the team exists
+    const { data: team, error: teamError } = await supabaseClient
+      .from('team')
+      .select('id')
+      .eq('id', team_id)
+      .is('deleted_at', null)
+      .single();
+    
+    if (teamError) {
+      console.error('Error fetching team:', teamError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Team not found", 
+          details: teamError.message 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+    
+    // Get the user ID from the JWT
+    const authHeader = req.headers.get('authorization');
+    let userId = null;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        // Decode the token to get the user ID
+        const { data: { user }, error: tokenError } = await supabaseClient.auth.getUser(token);
+        
+        if (tokenError || !user) {
+          console.error('Error getting user from token:', tokenError);
+          return new Response(
+            JSON.stringify({ 
+              error: "Authentication error",
+              details: tokenError?.message || "Invalid token"
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+          );
+        }
+        
+        userId = user.id;
+      } catch (tokenError) {
+        console.error('Error decoding token:', tokenError);
+      }
+    }
+    
+    // Optional: Check if the user is a member of the organization or has access to this team
+    // This can be implemented based on your access control requirements
+    
     try {
-      // Call the function passing team_id as UUID
-      // The function now expects UUID directly, so don't convert to String
+      // Call the function passing team_id directly as UUID (no type conversion needed)
       const { data, error } = await supabaseClient.rpc(
         'get_team_members_with_roles', 
         { _team_id: team_id }

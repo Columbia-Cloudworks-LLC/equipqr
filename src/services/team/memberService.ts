@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
@@ -107,8 +106,26 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       throw new Error(`Failed to check if user exists: ${userError.message}`);
     }
 
-    // In a real implementation, we would send an invitation email
-    // and create a record in an invitations table
+    // Validate teamId is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(teamId)) {
+      console.error(`Invalid UUID format for teamId: ${teamId}`);
+      throw new Error("Invalid team ID format. Please select a valid team.");
+    }
+
+    // First check if the current user is a member of the team
+    const { data: currentUserMembership, error: membershipError } = await supabase.functions.invoke('validate_team_access', {
+      body: {
+        team_id: teamId,
+        user_id: currentAuthUserId
+      }
+    });
+
+    if (membershipError || !currentUserMembership?.is_member) {
+      console.error('Error verifying team membership:', membershipError || 'Not a team member');
+      throw new Error('You do not have permission to invite members to this team.');
+    }
+
     console.log(`Inviting ${email} with role ${role} to team ${teamId}`);
     
     // If the user exists, add them to the team directly
@@ -118,7 +135,7 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
         
         const { data, error: addError } = await supabase.functions.invoke('add_team_member', {
           body: {
-            _team_id: String(teamId), // Explicitly convert to string
+            _team_id: teamId,
             _user_id: existingUser.auth_uid, 
             _role: role,
             _added_by: currentAuthUserId
@@ -151,4 +168,87 @@ export async function resendInvite(userId: string) {
   // Placeholder for resending an invitation
   console.log(`Resending invitation to user ${userId}`);
   return { success: true };
+}
+
+// Add new function to check if a user is a member of a team
+export async function validateTeamMembership(userId: string, teamId: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke('validate_team_access', {
+      body: {
+        team_id: teamId, 
+        user_id: userId
+      }
+    });
+    
+    if (error) {
+      console.error('Error validating team membership:', error);
+      throw new Error(`Failed to validate team membership: ${error.message}`);
+    }
+    
+    return data?.is_member || false;
+  } catch (error: any) {
+    console.error('Error in validateTeamMembership:', error);
+    throw new Error(`Validation failed: ${error.message}`);
+  }
+}
+
+// Add function to repair team membership
+export async function repairTeamMembership(teamId: string) {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('User must be logged in to repair team membership');
+    }
+    
+    const userId = sessionData.session.user.id;
+    
+    // Verify if user is the team creator or org admin
+    const { data: team, error: teamError } = await supabase
+      .from('team')
+      .select('created_by')
+      .eq('id', teamId)
+      .single();
+      
+    if (teamError) {
+      console.error('Error fetching team details:', teamError);
+      throw new Error(`Failed to verify team: ${teamError.message}`);
+    }
+    
+    // Get the app_user.id for the current user
+    const appUserId = await getAppUserId(userId);
+    
+    // Check if the user is the creator of this team
+    if (team.created_by !== appUserId) {
+      // Check if user has organization admin privileges instead
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .in('role', ['owner', 'admin']);
+        
+      if (rolesError || !userRoles || userRoles.length === 0) {
+        throw new Error('You do not have permission to repair this team.');
+      }
+    }
+    
+    // Add the user to the team with manager role
+    const { data, error: repairError } = await supabase.functions.invoke('add_team_member', {
+      body: {
+        _team_id: teamId,
+        _user_id: userId,
+        _role: 'manager',
+        _added_by: userId
+      }
+    });
+    
+    if (repairError) {
+      console.error('Error repairing team membership:', repairError);
+      throw new Error(`Failed to repair team membership: ${repairError.message}`);
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error in repairTeamMembership:', error);
+    throw new Error(`Repair failed: ${error.message}`);
+  }
 }
