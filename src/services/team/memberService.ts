@@ -7,6 +7,12 @@ import { getAppUserId } from "@/utils/authUtils";
 export async function getTeamMembers(teamId: string) {
   try {
     console.log(`Fetching team members for team: ${teamId}`);
+    
+    if (!teamId) {
+      console.warn('No teamId provided to getTeamMembers');
+      return [];
+    }
+    
     // Get team members using our custom function
     const { data, error } = await supabase.functions.invoke<TeamMember[]>('get_team_members', { 
       body: { team_id: teamId }
@@ -35,7 +41,7 @@ export async function getOrganizationMembers() {
     const { data: userProfile, error: profileError } = await supabase
       .from('user_profiles')
       .select('org_id')
-      .single();
+      .maybeSingle();
       
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
@@ -58,7 +64,7 @@ export async function getOrganizationMembers() {
       throw error;
     }
     
-    return data as TeamMember[];
+    return data as TeamMember[] || [];
   } catch (error) {
     console.error('Error in getOrganizationMembers:', error);
     throw error;
@@ -97,7 +103,7 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       try {
         console.log(`Existing user found with auth_uid: ${existingUser.auth_uid}`);
         
-        const { error: addError } = await supabase.functions.invoke('add_team_member', {
+        const { data, error: addError } = await supabase.functions.invoke('add_team_member', {
           body: {
             _team_id: teamId,
             _user_id: existingUser.auth_uid, 
@@ -111,6 +117,7 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
           throw addError;
         }
         
+        console.log('Team member added successfully:', data);
         return { success: true };
       } catch (addError) {
         console.error('Error adding member to team:', addError);

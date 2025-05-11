@@ -34,28 +34,34 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // First, explicitly convert team_id to UUID format by using a direct query
-    // This ensures we don't have type mismatch issues between character varying and UUID
-    const { data, error } = await supabaseClient.rpc(
-      'get_team_members_with_roles', 
-      { _team_id: team_id }
-    );
-    
-    if (error) {
-      console.error('Error from get_team_members_with_roles function:', error);
+    try {
+      // Call the updated SQL function that accepts text parameter
+      const { data, error } = await supabaseClient.rpc(
+        'get_team_members_with_roles', 
+        { _team_id: team_id }
+      );
+      
+      if (error) {
+        console.error('Error from get_team_members_with_roles function:', error);
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      console.log(`Found ${data?.length || 0} team members`);
+      
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify(data || []),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    } catch (functionError) {
+      console.error('Error calling get_team_members_with_roles:', functionError);
+      return new Response(
+        JSON.stringify({ error: `Database function error: ${functionError.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
-    
-    console.log(`Found ${data?.length || 0} team members`);
-    
-    return new Response(
-      JSON.stringify(data || []),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
-    
   } catch (error) {
     console.error('Unexpected error in get_team_members function:', error);
     return new Response(

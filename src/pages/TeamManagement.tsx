@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { TeamList } from '@/components/Team/TeamList';
 import { InviteForm } from '@/components/Team/InviteForm';
@@ -8,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { 
   getTeams, 
   getTeamMembers,
@@ -25,6 +28,7 @@ export default function TeamManagement() {
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTeams();
@@ -41,14 +45,27 @@ export default function TeamManagement() {
   const fetchTeams = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const fetchedTeams = await getTeams();
+      
+      console.log('Fetched teams:', fetchedTeams);
+      
+      if (!fetchedTeams || fetchedTeams.length === 0) {
+        console.log('No teams found');
+        setTeams([]);
+        return;
+      }
+      
       setTeams(fetchedTeams.map(team => ({ id: team.id, name: team.name })));
       
       // Set the first team as selected if available
       if (fetchedTeams.length > 0 && !selectedTeamId) {
+        console.log('Setting selected team to:', fetchedTeams[0].id);
         setSelectedTeamId(fetchedTeams[0].id);
       }
     } catch (error: any) {
+      console.error('Error in fetchTeams:', error);
+      setError('Failed to load your teams. Please try again.');
       toast.error("Error fetching teams", {
         description: error.message,
       });
@@ -60,9 +77,14 @@ export default function TeamManagement() {
   const fetchTeamMembers = async (teamId: string) => {
     try {
       setIsLoading(true);
+      setError(null);
+      console.log(`Fetching members for team ${teamId}`);
       const data = await getTeamMembers(teamId);
-      setMembers(data);
+      console.log('Fetched team members:', data);
+      setMembers(data || []);
     } catch (error: any) {
+      console.error('Error in fetchTeamMembers:', error);
+      setError('Failed to load team members. Please try again.');
       toast.error("Error fetching team members", {
         description: error.message,
       });
@@ -74,12 +96,15 @@ export default function TeamManagement() {
   const handleCreateTeam = async (name: string) => {
     try {
       setIsCreatingTeam(true);
+      setError(null);
       await createTeam(name);
       toast.success("Team created successfully", {
         description: `Team "${name}" has been created`,
       });
       await fetchTeams();
     } catch (error: any) {
+      console.error('Error in handleCreateTeam:', error);
+      setError('Failed to create team. Please try again.');
       toast.error("Error creating team", {
         description: error.message,
       });
@@ -91,6 +116,7 @@ export default function TeamManagement() {
   const handleInviteMember = async (email: string, role: UserRole, teamId: string) => {
     try {
       setIsLoading(true);
+      setError(null);
       await inviteMember(email, role, teamId);
       toast.success("Invitation sent", {
         description: `Invitation email sent to ${email}`,
@@ -99,6 +125,8 @@ export default function TeamManagement() {
         fetchTeamMembers(selectedTeamId);
       }
     } catch (error: any) {
+      console.error('Error in handleInviteMember:', error);
+      setError('Failed to send invitation. Please try again.');
       toast.error("Error sending invitation", {
         description: error.message,
       });
@@ -109,6 +137,7 @@ export default function TeamManagement() {
 
   const handleChangeRole = async (id: string, role: UserRole, teamId: string) => {
     try {
+      setError(null);
       await changeRole(id, role, teamId);
       toast.success("Role updated", {
         description: "Team member role updated successfully",
@@ -117,6 +146,8 @@ export default function TeamManagement() {
         fetchTeamMembers(selectedTeamId);
       }
     } catch (error: any) {
+      console.error('Error in handleChangeRole:', error);
+      setError('Failed to update role. Please try again.');
       toast.error("Error updating role", {
         description: error.message,
       });
@@ -125,6 +156,7 @@ export default function TeamManagement() {
 
   const handleRemoveMember = async (id: string, teamId: string) => {
     try {
+      setError(null);
       await removeMember(id, teamId);
       toast.success("Member removed", {
         description: "Team member removed successfully",
@@ -133,6 +165,8 @@ export default function TeamManagement() {
         fetchTeamMembers(selectedTeamId);
       }
     } catch (error: any) {
+      console.error('Error in handleRemoveMember:', error);
+      setError('Failed to remove team member. Please try again.');
       toast.error("Error removing member", {
         description: error.message,
       });
@@ -141,11 +175,14 @@ export default function TeamManagement() {
 
   const handleResendInvite = async (id: string) => {
     try {
+      setError(null);
       await resendInvite(id);
       toast.success("Invitation resent", {
         description: "Invitation email has been resent",
       });
     } catch (error: any) {
+      console.error('Error in handleResendInvite:', error);
+      setError('Failed to resend invitation. Please try again.');
       toast.error("Error resending invitation", {
         description: error.message,
       });
@@ -156,6 +193,13 @@ export default function TeamManagement() {
     <Layout>
       <div className="p-6 space-y-6">
         <h1 className="text-2xl font-bold">Team Management</h1>
+        
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         
         {teams.length > 0 ? (
           <>
@@ -205,6 +249,8 @@ export default function TeamManagement() {
               </TabsContent>
             </Tabs>
           </>
+        ) : isLoading ? (
+          <p>Loading teams...</p>
         ) : (
           <div className="max-w-md">
             <p className="mb-6">Start by creating your first team:</p>

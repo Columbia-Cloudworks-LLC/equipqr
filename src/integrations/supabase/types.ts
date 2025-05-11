@@ -972,7 +972,7 @@ export type Database = {
         }[]
       }
       get_team_members_with_roles: {
-        Args: { _team_id: string }
+        Args: { _team_id: string } | { _team_id: string }
         Returns: {
           id: string
           team_id: string
