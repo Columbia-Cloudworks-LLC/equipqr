@@ -85,13 +85,13 @@ serve(async (req) => {
       );
     }
     
-    // Check for organization-level roles
+    // Check for organization-level roles - use 'owner' instead of 'admin' as it's not in the enum
     const { data: orgRoles, error: rolesError } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user_id)
       .eq('org_id', team.org_id)
-      .in('role', ['owner', 'admin']);
+      .in('role', ['owner']);  // Only check for 'owner' role
     
     if (rolesError) {
       console.error('Error checking organization roles:', rolesError);

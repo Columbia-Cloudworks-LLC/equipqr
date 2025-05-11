@@ -19,6 +19,8 @@ export function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
       return "There may be an issue with your team selection. Try selecting a different team or returning to the dashboard.";
     } else if (error.includes('format is invalid')) {
       return "The team identifier appears to be in an invalid format. Try selecting a team from the dropdown.";
+    } else if (error.includes('Repair failed')) {
+      return "The team repair process encountered an error. This might be due to permission issues or database constraints. Try signing out and signing back in, or contact your organization administrator.";
     }
     return null;
   };
