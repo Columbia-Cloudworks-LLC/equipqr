@@ -35,10 +35,11 @@ serve(async (req) => {
     );
     
     try {
-      // Call the function with team_id as string
+      // Call the function passing team_id as UUID
+      // The function now expects UUID directly, so don't convert to String
       const { data, error } = await supabaseClient.rpc(
         'get_team_members_with_roles', 
-        { _team_id: String(team_id) }
+        { _team_id: team_id }
       );
       
       if (error) {
