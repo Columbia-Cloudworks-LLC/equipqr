@@ -237,9 +237,10 @@ export async function cancelInvitation(invitationId: string) {
 // Function to validate an invitation token
 export async function validateInvitationToken(token: string) {
   try {
+    console.log("Validating token:", token);
     const { data, error } = await supabase
       .from('team_invitations')
-      .select('*, team:team_id(name)')
+      .select('*, team:team_id(*)')
       .eq('token', token)
       .eq('status', 'pending')
       .single();
@@ -248,6 +249,8 @@ export async function validateInvitationToken(token: string) {
       console.error('Error validating invitation token:', error);
       return { valid: false, error: 'Invalid or expired invitation link.' };
     }
+    
+    console.log("Invitation found:", data);
     
     // Check if the invitation has expired
     if (data.expires_at && new Date(data.expires_at) < new Date()) {
@@ -264,6 +267,7 @@ export async function validateInvitationToken(token: string) {
 // Function to accept an invitation
 export async function acceptInvitation(token: string) {
   try {
+    console.log("Accepting invitation with token:", token);
     // First validate the token
     const { valid, invitation, error } = await validateInvitationToken(token);
     
@@ -278,6 +282,8 @@ export async function acceptInvitation(token: string) {
     }
     
     const currentUserId = sessionData.session.user.id;
+    console.log("Current user ID:", currentUserId);
+    console.log("Invitation data:", invitation);
     
     // Add the user to the team with the specified role
     const { data, error: addError } = await supabase.functions.invoke('add_team_member', {
@@ -293,6 +299,8 @@ export async function acceptInvitation(token: string) {
       console.error('Error adding user to team:', addError);
       throw new Error(`Failed to add you to the team: ${addError.message}`);
     }
+    
+    console.log("User successfully added to team:", data);
     
     // Mark the invitation as accepted
     const { error: updateError } = await supabase
@@ -312,7 +320,7 @@ export async function acceptInvitation(token: string) {
     return { 
       success: true,
       teamId: invitation.team_id,
-      teamName: invitation.team.name,
+      teamName: invitation.team?.name || "the team",
       role: invitation.role
     };
   } catch (error: any) {

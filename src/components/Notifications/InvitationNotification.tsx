@@ -10,8 +10,8 @@ interface InvitationNotificationProps {
   invitation: {
     id: string;
     email: string;
-    team: {
-      name: string;
+    team?: {
+      name?: string;
     };
     role: string;
     token: string;
@@ -26,6 +26,9 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const [isDeclined, setIsDeclined] = useState(false);
   const navigate = useNavigate();
   
+  // Safely get team name with fallback to prevent errors
+  const teamName = invitation?.team?.name || 'Unknown Team';
+  
   const handleAccept = async () => {
     try {
       setIsAccepting(true);
@@ -33,7 +36,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
       // Call the acceptInvitation function which will handle the proper role assignment
       const result = await acceptInvitation(invitation.token);
       
-      toast.success(`You've joined ${invitation.team.name}!`, {
+      toast.success(`You've joined ${result.teamName || teamName}!`, {
         description: `You have successfully joined as a ${result.role || invitation.role}`
       });
       
@@ -76,7 +79,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          You've been invited to join <span className="font-medium">{invitation.team.name}</span> as a <span className="font-medium">{invitation.role}</span>
+          You've been invited to join <span className="font-medium">{teamName}</span> as a <span className="font-medium">{invitation.role}</span>
         </p>
         <div className="flex gap-2 mt-2">
           <Button 

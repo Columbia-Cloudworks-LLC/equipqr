@@ -13,11 +13,17 @@ export default function MyInvitations() {
   const { invitations, isLoading, refreshNotifications, resetDismissedNotifications } = useNotifications();
   const [directInvitations, setDirectInvitations] = useState<any[]>([]);
   const [isDirectLoading, setIsDirectLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Initial load of notifications via context
   useEffect(() => {
     // Refresh notifications when page loads
-    refreshNotifications();
+    try {
+      refreshNotifications();
+    } catch (error: any) {
+      console.error("Error refreshing notifications:", error);
+      setLoadError(`Failed to load notifications: ${error.message}`);
+    }
   }, [refreshNotifications]);
   
   // Direct database query as a fallback
@@ -25,10 +31,14 @@ export default function MyInvitations() {
     const loadDirectInvitations = async () => {
       try {
         setIsDirectLoading(true);
+        setLoadError(null);
+        console.log("Loading direct invitations as fallback");
         const invites = await getPendingInvitationsForUser();
+        console.log("Direct invitations loaded:", invites);
         setDirectInvitations(invites);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error loading direct invitations:", error);
+        setLoadError(`Failed to load invitations: ${error.message}`);
       } finally {
         setIsDirectLoading(false);
       }
@@ -45,6 +55,7 @@ export default function MyInvitations() {
   const loading = isLoading || isDirectLoading;
   
   const handleResetAndRefresh = () => {
+    setLoadError(null);
     resetDismissedNotifications();
     refreshNotifications();
   };
@@ -65,6 +76,13 @@ export default function MyInvitations() {
             Refresh
           </Button>
         </div>
+        
+        {loadError && (
+          <Alert variant="destructive">
+            <AlertTitle>Error loading invitations</AlertTitle>
+            <AlertDescription>{loadError}</AlertDescription>
+          </Alert>
+        )}
         
         {loading ? (
           <div className="flex justify-center items-center p-8">

@@ -30,7 +30,10 @@ export default function InvitationPage() {
       }
 
       try {
+        console.log("Validating invitation token:", token);
         const result = await validateInvitationToken(token);
+        console.log("Validation result:", result);
+        
         setIsValid(result.valid);
         
         if (!result.valid) {
@@ -76,10 +79,12 @@ export default function InvitationPage() {
       setIsAccepting(true);
       setError(null);
       
+      console.log("Accepting invitation with token:", token);
       const result = await acceptInvitation(token!);
+      console.log("Acceptance result:", result);
       
-      toast.success(`Welcome to ${result.teamName}!`, {
-        description: `You have successfully joined as a ${result.role}`
+      toast.success(`Welcome to ${result.teamName || invitation?.team?.name || "the team"}!`, {
+        description: `You have successfully joined as a ${result.role || invitation?.role || "member"}`
       });
       
       // Redirect to team management page
@@ -161,6 +166,9 @@ export default function InvitationPage() {
     );
   }
 
+  // Safely get team name with fallback
+  const teamName = invitation?.team?.name || "Unknown Team";
+
   return (
     <Layout>
       <div className="container max-w-md mx-auto py-12">
@@ -173,7 +181,7 @@ export default function InvitationPage() {
             <CardDescription>
               {invitation ? (
                 <>
-                  You've been invited to join <strong>{invitation.team?.name}</strong> as a <strong>{invitation.role}</strong>
+                  You've been invited to join <strong>{teamName}</strong> as a <strong>{invitation.role || "member"}</strong>
                 </>
               ) : 'You have been invited to join a team'}
             </CardDescription>
@@ -190,15 +198,15 @@ export default function InvitationPage() {
             <div className="rounded-lg bg-muted p-4 text-sm space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Team:</span>
-                <span className="font-medium">{invitation?.team?.name}</span>
+                <span className="font-medium">{teamName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Role:</span>
-                <span className="font-medium">{invitation?.role}</span>
+                <span className="font-medium">{invitation?.role || "member"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Invited by:</span>
-                <span className="font-medium">{invitation?.invited_by_email}</span>
+                <span className="font-medium">{invitation?.invited_by_email || "Unknown"}</span>
               </div>
               {invitation?.email && (
                 <div className="flex justify-between">
