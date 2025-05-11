@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Clear any leftover session data for safety
           setTimeout(() => {
             console.log("AuthProvider: Running post-signout cleanup");
-            localStorage.removeItem("supabase.auth.token");
+            clearStorageData();
           }, 0);
         }
       }
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Attempt to clear corrupted session data
         setTimeout(() => {
-          localStorage.removeItem("supabase.auth.token");
+          clearStorageData();
         }, 0);
       }
       
@@ -85,6 +85,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Helper function to clear all storage data related to auth
+  const clearStorageData = () => {
+    console.log("AuthProvider: Clearing all storage data");
+    
+    // Clear Supabase-specific storage keys
+    const projectRef = "oxeheowbfsshpyldlskb";
+    const keys = [
+      `sb-${projectRef}-auth-token`,
+      `sb-${projectRef}-auth-token-code-verifier`,
+      "supabase.auth.token",
+      "supabase-auth-token"
+    ];
+    
+    // Clear from localStorage
+    keys.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+        console.log(`AuthProvider: Removed ${key} from localStorage`);
+      } catch (e) {
+        console.error(`AuthProvider: Failed to remove ${key} from localStorage`, e);
+      }
+    });
+    
+    // Reset state
+    setUser(null);
+    setSession(null);
+  };
 
   // Helper function to get the proper auth callback URL based on current domain
   const getRedirectUrl = () => {
@@ -216,42 +244,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionInfo = await getSessionInfo();
       console.log("AuthProvider: Pre-signout session diagnostics", sessionInfo);
       
-      // Extra session validation before trying to sign out
-      if (sessionInfo.status === 'missing') {
-        console.log("AuthProvider: No session found, cleaning up state directly");
-        setUser(null);
-        setSession(null);
-        toast.success("Signed out", {
-          description: "You have been signed out"
-        });
-        return;
-      }
+      // Clear local state first to prevent UI flashing with old data
+      clearStorageData();
       
+      // Then call Supabase signOut to properly invalidate the session on the server
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error("AuthProvider: Sign out error", error);
-        
-        // If we get "session not found" error, clean up manually
-        if (error.message?.includes("session") || error.message?.includes("Session")) {
-          console.log("AuthProvider: Session not found error, cleaning up manually");
-          
-          // Clear session data anyway to prevent getting stuck
-          setUser(null);
-          setSession(null);
-          
-          // Manually remove the token from storage
-          setTimeout(() => {
-            console.log("AuthProvider: Cleaning up local storage");
-            localStorage.removeItem("supabase.auth.token");
-          }, 0);
-          
-          toast.success("Signed out", {
-            description: "You have been signed out (manual cleanup)"
-          });
-          
-          return;
-        }
         
         // For other errors, show the error
         toast.error("Error signing out", {
@@ -261,16 +261,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
       
-      // Double check that we're actually signed out
+      // Double check that we're actually signed out after a short delay
       setTimeout(async () => {
         const { data } = await supabase.auth.getSession();
         if (data.session) {
           console.warn("AuthProvider: Still have session after signout, forcing cleanup");
-          localStorage.removeItem("supabase.auth.token");
-          setUser(null);
-          setSession(null);
+          clearStorageData();
+        } else {
+          console.log("AuthProvider: Successfully signed out and cleared session");
         }
       }, 100);
+
+      toast.success("Signed out", {
+        description: "You have been signed out"
+      });
+      
+      // Navigate to auth page after successful logout
+      window.location.href = "/auth";
+      
     } catch (error: any) {
       console.error("AuthProvider: Sign out error", error);
       toast.error("Error signing out", {

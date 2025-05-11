@@ -1,4 +1,3 @@
-
 /**
  * Cross-platform storage adapter that works reliably across web and mobile
  * Uses IndexedDB with localStorage fallback
@@ -230,13 +229,22 @@ export const validateSession = async (session: any): Promise<boolean> => {
  */
 export const getSessionInfo = async (): Promise<Record<string, any>> => {
   const storage = createSupabaseStorage();
+  const projectRef = "oxeheowbfsshpyldlskb";
   
   try {
-    const sessionKey = 'supabase.auth.token';
-    const sessionData = await storage.getItem(sessionKey);
+    // Check both possible session keys
+    const sessionKey = `sb-${projectRef}-auth-token`;
+    const legacySessionKey = 'supabase.auth.token';
     
+    let sessionData = await storage.getItem(sessionKey);
     if (!sessionData) {
-      return { status: 'missing', sessionKey };
+      sessionData = await storage.getItem(legacySessionKey);
+      if (!sessionData) {
+        return { 
+          status: 'missing', 
+          checkedKeys: [sessionKey, legacySessionKey]
+        };
+      }
     }
     
     try {
@@ -245,6 +253,7 @@ export const getSessionInfo = async (): Promise<Record<string, any>> => {
       
       return {
         status: isValid ? 'valid' : 'invalid',
+        storageKey: sessionData === await storage.getItem(sessionKey) ? sessionKey : legacySessionKey,
         hasAccessToken: !!session.access_token,
         hasRefreshToken: !!session.refresh_token,
         expiresAt: session.expires_at,

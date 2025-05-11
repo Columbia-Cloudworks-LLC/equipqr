@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -28,25 +28,15 @@ interface NavbarProps {
 
 export function Navbar({ onToggleSidebar }: NavbarProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const { user, signOut, checkSession } = useAuth();
+  const { user, signOut } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
       setIsLoggingOut(true);
-      
-      // First check if we have a valid session
-      const hasValidSession = await checkSession();
-      console.log("Navbar: Session check before logout:", hasValidSession);
-      
-      if (!hasValidSession) {
-        console.log("Navbar: No valid session found, clearing local state");
-        // If no valid session, just show success message and let AuthContext
-        // handle the cleanup in the signOut function
-      }
-      
       await signOut();
-      toast.success("Signed out successfully");
+      // The signOut function now handles navigation to the auth page
     } catch (error) {
       console.error("Navbar: Sign out error", error);
       toast.error("There was a problem signing out. Please try again.");
