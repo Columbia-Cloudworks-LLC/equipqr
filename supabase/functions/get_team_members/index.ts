@@ -35,10 +35,10 @@ serve(async (req) => {
     );
     
     try {
-      // Call the updated SQL function that accepts text parameter
+      // Always call the text version of the function and ensure team_id is passed as string
       const { data, error } = await supabaseClient.rpc(
         'get_team_members_with_roles', 
-        { _team_id: team_id }
+        { _team_id: String(team_id) }
       );
       
       if (error) {

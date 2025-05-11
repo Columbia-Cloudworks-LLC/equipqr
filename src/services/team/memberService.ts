@@ -13,14 +13,14 @@ export async function getTeamMembers(teamId: string) {
       return [];
     }
     
-    // Get team members using our custom function
+    // Get team members using our edge function
     const { data, error } = await supabase.functions.invoke<TeamMember[]>('get_team_members', { 
-      body: { team_id: teamId }
+      body: { team_id: String(teamId) } // Explicitly convert to string
     });
     
     if (error) {
       console.error('Error fetching team members:', error);
-      throw error;
+      throw new Error(`Failed to fetch team members: ${error.message || 'Unknown error'}`);
     }
     
     if (!data) {
@@ -29,9 +29,9 @@ export async function getTeamMembers(teamId: string) {
     }
     
     return data as TeamMember[];
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in getTeamMembers:', error);
-    throw error;
+    throw new Error(`Team members fetch failed: ${error.message || 'Unknown error'}`);
   }
 }
 
@@ -45,7 +45,7 @@ export async function getOrganizationMembers() {
       
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
-      throw profileError;
+      throw new Error('Failed to find your user profile. Please ensure your profile is set up correctly.');
     }
     
     if (!userProfile || !userProfile.org_id) {
@@ -61,13 +61,13 @@ export async function getOrganizationMembers() {
       
     if (error) {
       console.error('Error fetching organization members:', error);
-      throw error;
+      throw new Error(`Failed to fetch organization members: ${error.message}`);
     }
     
     return data as TeamMember[] || [];
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in getOrganizationMembers:', error);
-    throw error;
+    throw new Error(`Organization members fetch failed: ${error.message}`);
   }
 }
 
@@ -91,7 +91,7 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       
     if (userError) {
       console.error('Error checking existing user:', userError);
-      throw userError;
+      throw new Error(`Failed to check if user exists: ${userError.message}`);
     }
 
     // In a real implementation, we would send an invitation email
@@ -105,7 +105,7 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
         
         const { data, error: addError } = await supabase.functions.invoke('add_team_member', {
           body: {
-            _team_id: teamId,
+            _team_id: String(teamId), // Explicitly convert to string
             _user_id: existingUser.auth_uid, 
             _role: role,
             _added_by: currentAuthUserId
@@ -114,23 +114,23 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
         
         if (addError) {
           console.error('Error adding member to team:', addError);
-          throw addError;
+          throw new Error(`Failed to add member to team: ${addError.message}`);
         }
         
         console.log('Team member added successfully:', data);
         return { success: true };
-      } catch (addError) {
+      } catch (addError: any) {
         console.error('Error adding member to team:', addError);
-        throw addError;
+        throw new Error(`Failed to add member to team: ${addError.message}`);
       }
     }
     
     // This would be implemented with a server-side invite flow
     // For now, we'll return a simulated success
     return { success: true, pendingInvite: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in inviteMember:', error);
-    throw error;
+    throw new Error(`Invitation failed: ${error.message}`);
   }
 }
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
@@ -63,7 +62,7 @@ export function useTeamManagement() {
       console.error('Error in fetchTeams:', error);
       setError('Failed to load your teams. Please try again.');
       toast.error("Error fetching teams", {
-        description: error.message,
+        description: error.message || "Unknown error occurred",
       });
     } finally {
       setIsLoading(false);
@@ -71,6 +70,14 @@ export function useTeamManagement() {
   };
 
   const fetchTeamMembers = async (teamId: string) => {
+    if (!teamId) {
+      console.warn('Cannot fetch team members: No team ID provided');
+      setError('No team selected. Please select a team to view members.');
+      setMembers([]);
+      setIsLoading(false);
+      return;
+    }
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -80,10 +87,11 @@ export function useTeamManagement() {
       setMembers(data || []);
     } catch (error: any) {
       console.error('Error in fetchTeamMembers:', error);
-      setError('Failed to load team members. Please try again.');
+      setError(`Failed to load team members: ${error.message || 'Unknown error'}`);
       toast.error("Error fetching team members", {
-        description: error.message,
+        description: error.message || "Unknown error occurred",
       });
+      setMembers([]);
     } finally {
       setIsLoading(false);
     }
