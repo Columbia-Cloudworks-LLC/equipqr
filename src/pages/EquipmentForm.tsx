@@ -62,10 +62,16 @@ const EquipmentFormPage = () => {
   });
 
   const handleSave = (formData: Partial<Equipment>) => {
+    // Process team_id - ensure it's handled correctly (null vs empty string)
+    const processedData = {
+      ...formData,
+      team_id: formData.team_id || null  // Ensure team_id is null if empty
+    };
+
     if (isEditMode && id) {
-      updateMutation.mutate({ id, data: formData });
+      updateMutation.mutate({ id, data: processedData });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(processedData);
     }
   };
 

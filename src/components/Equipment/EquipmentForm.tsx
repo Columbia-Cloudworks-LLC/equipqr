@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Equipment, EquipmentAttribute } from '@/types';
@@ -22,6 +23,7 @@ import {
 import { toast } from 'sonner';
 import { AttributesEditor } from './AttributesEditor';
 import { getTeams } from '@/services/team';
+import { TeamSelector } from '@/components/Team/TeamSelector';
 
 interface EquipmentFormProps {
   equipment?: Equipment;
@@ -67,7 +69,9 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Handle "none" as null for team_id
+    const processedValue = name === 'team_id' && value === 'none' ? null : value;
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
   };
 
   const handleAttributesChange = (attributes: EquipmentAttribute[]) => {
@@ -191,20 +195,12 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
 
             <div className="space-y-2">
               <Label htmlFor="team_id">Team</Label>
-              <Select 
-                value={formData.team_id || ''} 
-                onValueChange={(value) => handleSelectChange('team_id', value)}
-              >
-                <SelectTrigger id="team_id">
-                  <SelectValue placeholder="Select team (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No team</SelectItem>
-                  {teams.map(team => (
-                    <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TeamSelector 
+                teams={teams} 
+                value={formData.team_id || 'none'} 
+                onChange={(value) => handleSelectChange('team_id', value)}
+                placeholder="Select team (optional)"
+              />
             </div>
           </div>
           
