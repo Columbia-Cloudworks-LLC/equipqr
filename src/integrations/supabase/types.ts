@@ -626,6 +626,59 @@ export type Database = {
           },
         ]
       }
+      team_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by_email: string | null
+          role: string
+          status: string
+          team_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by_email?: string | null
+          role?: string
+          status?: string
+          team_id: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_email?: string | null
+          role?: string
+          status?: string
+          team_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_member: {
         Row: {
           id: string
@@ -958,6 +1011,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      gen_invitation_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_organization_members: {
         Args: { org_id: string }
         Returns: {

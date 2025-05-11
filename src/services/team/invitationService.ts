@@ -74,8 +74,30 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       }
     }
     
-    // This would be implemented with a server-side invite flow
-    // For now, we'll return a simulated success
+    // User doesn't exist, create invitation
+    const { data: invitation, error: inviteError } = await supabase
+      .from('team_invitations')
+      .insert({
+        team_id: teamId,
+        email: email.toLowerCase(),
+        role: role,
+        created_by: existingUser?.id || currentAuthUserId,
+        invited_by_email: sessionData.session.user.email,
+        token: await generateToken(),
+        status: 'pending'
+      })
+      .select()
+      .single();
+      
+    if (inviteError) {
+      console.error('Error creating invitation:', inviteError);
+      throw new Error(`Failed to create invitation: ${inviteError.message}`);
+    }
+    
+    console.log('Invitation created:', invitation);
+    
+    // In a real application, we would send an email here with the invitation link
+    // For now, just return success
     return { success: true, pendingInvite: true };
   } catch (error: any) {
     console.error('Error in inviteMember:', error);
@@ -83,8 +105,62 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
   }
 }
 
-export async function resendInvite(userId: string) {
-  // Placeholder for resending an invitation
-  console.log(`Resending invitation to user ${userId}`);
-  return { success: true };
+export async function resendInvite(invitationId: string) {
+  try {
+    // Get the invitation details
+    const { data: invitation, error: getError } = await supabase
+      .from('team_invitations')
+      .select('*')
+      .eq('id', invitationId)
+      .single();
+      
+    if (getError || !invitation) {
+      console.error('Error getting invitation:', getError);
+      throw new Error('Failed to find the invitation.');
+    }
+    
+    // Generate a new token and update the invitation
+    const newToken = await generateToken();
+    
+    const { error: updateError } = await supabase
+      .from('team_invitations')
+      .update({ 
+        token: newToken,
+        updated_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      })
+      .eq('id', invitationId);
+      
+    if (updateError) {
+      console.error('Error updating invitation:', updateError);
+      throw new Error(`Failed to update invitation: ${updateError.message}`);
+    }
+    
+    // In a real application, we would send an email here with the new invitation link
+    // For now, just return success
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error in resendInvite:', error);
+    throw new Error(`Resend invitation failed: ${error.message}`);
+  }
+}
+
+// Helper function to generate a token
+async function generateToken() {
+  try {
+    // Call the gen_invitation_token function
+    const { data, error } = await supabase.rpc('gen_invitation_token');
+    
+    if (error) {
+      console.error('Error generating token:', error);
+      // Fallback to client-side token generation
+      return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in generateToken:', error);
+    // Fallback to client-side token generation
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
 }
