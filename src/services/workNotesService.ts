@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { getAppUserId } from '@/utils/authUtils';
 
@@ -10,7 +9,7 @@ export interface WorkNote {
   updated_at?: string;
   note: string;
   is_public: boolean;
-  hours_worked?: number;
+  hours_worked?: number | string;
   deleted_at?: string | null;
   creator?: {
     display_name?: string;
