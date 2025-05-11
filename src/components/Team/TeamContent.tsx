@@ -7,7 +7,7 @@ import { UserRole } from '@/types/supabase-enums';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, CircleAlert } from "lucide-react";
+import { AlertTriangle, CircleAlert, ArrowUpToLine } from "lucide-react";
 
 interface TeamContentProps {
   selectedTeamId: string;
@@ -16,16 +16,19 @@ interface TeamContentProps {
   isLoading: boolean;
   isCreatingTeam: boolean;
   isRepairingTeam?: boolean;
-  isUpgradingRole?: boolean; // New prop for role upgrade
+  isUpgradingRole?: boolean;
+  isRequestingRole?: boolean;
   isMember?: boolean;
-  currentUserRole?: string; // New prop for current role
+  currentUserRole?: string;
+  canChangeRoles?: boolean;
   onInviteMember: (email: string, role: UserRole, teamId: string) => void;
   onChangeRole: (id: string, role: UserRole, teamId: string) => void;
   onRemoveMember: (id: string, teamId: string) => void;
   onResendInvite: (id: string) => void;
   onCreateTeam: (name: string) => void;
   onRepairTeam?: (teamId: string) => void;
-  onUpgradeRole?: (teamId: string) => void; // New prop for role upgrade
+  onUpgradeRole?: (teamId: string) => void;
+  onRequestRoleUpgrade?: (teamId: string) => void;
 }
 
 export function TeamContent({
@@ -36,15 +39,18 @@ export function TeamContent({
   isCreatingTeam,
   isRepairingTeam = false,
   isUpgradingRole = false,
+  isRequestingRole = false,
   isMember = true,
   currentUserRole,
+  canChangeRoles = false,
   onInviteMember,
   onChangeRole,
   onRemoveMember,
   onResendInvite,
   onCreateTeam,
   onRepairTeam,
-  onUpgradeRole
+  onUpgradeRole,
+  onRequestRoleUpgrade
 }: TeamContentProps) {
   // Handle repair access case
   if (selectedTeamId && !isMember && onRepairTeam) {
@@ -72,7 +78,15 @@ export function TeamContent({
   }
 
   // Handle viewer role with upgrade option
-  if (selectedTeamId && isMember && currentUserRole === 'viewer' && onUpgradeRole) {
+  if (selectedTeamId && isMember && currentUserRole === 'viewer') {
+    const handleRoleAction = () => {
+      if (canChangeRoles && onUpgradeRole) {
+        onUpgradeRole(selectedTeamId);
+      } else if (onRequestRoleUpgrade) {
+        onRequestRoleUpgrade(selectedTeamId);
+      }
+    };
+    
     return (
       <div className="space-y-6">
         <Alert variant="warning">
@@ -82,12 +96,13 @@ export function TeamContent({
             You currently have view-only access to this team. To manage team members or make changes, you need a manager role.
             <div className="mt-4">
               <Button
-                onClick={() => onUpgradeRole(selectedTeamId)}
-                disabled={isUpgradingRole}
+                onClick={handleRoleAction}
+                disabled={isUpgradingRole || isRequestingRole}
                 className="flex items-center gap-2"
               >
-                <CircleAlert className="h-4 w-4" />
-                {isUpgradingRole ? 'Upgrading Role...' : 'Upgrade to Manager Role'}
+                <ArrowUpToLine className="h-4 w-4" />
+                {isUpgradingRole || isRequestingRole ? 'Processing...' : 
+                 canChangeRoles ? 'Upgrade to Manager Role' : 'Request Manager Role'}
               </Button>
             </div>
           </AlertDescription>

@@ -1,16 +1,25 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowUpToLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ErrorDisplayProps {
   error: string | null;
   onRetry?: () => void;
-  onUpgradeRole?: () => void; // New prop for role upgrade
-  isViewer?: boolean; // New prop to identify viewer role errors
+  onUpgradeRole?: () => void; 
+  isViewer?: boolean; 
+  canDirectlyUpgrade?: boolean;
+  isRequestingUpgrade?: boolean;
 }
 
-export function ErrorDisplay({ error, onRetry, onUpgradeRole, isViewer }: ErrorDisplayProps) {
+export function ErrorDisplay({ 
+  error, 
+  onRetry, 
+  onUpgradeRole, 
+  isViewer, 
+  canDirectlyUpgrade = false,
+  isRequestingUpgrade = false
+}: ErrorDisplayProps) {
   if (!error && !isViewer) return null;
   
   // Define specific helpful messages for common errors
@@ -41,8 +50,17 @@ export function ErrorDisplay({ error, onRetry, onUpgradeRole, isViewer }: ErrorD
           You currently have a viewer role for this team. Some management actions may be restricted.
           {onUpgradeRole && (
             <div className="mt-3">
-              <Button variant="outline" size="sm" onClick={onUpgradeRole}>
-                Upgrade to Manager Role
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onUpgradeRole} 
+                disabled={isRequestingUpgrade}
+                className="flex items-center gap-2"
+              >
+                <ArrowUpToLine className="h-4 w-4" />
+                {isRequestingUpgrade ? 'Processing...' : canDirectlyUpgrade 
+                  ? 'Upgrade to Manager Role' 
+                  : 'Request Manager Role'}
               </Button>
             </div>
           )}
@@ -68,9 +86,18 @@ export function ErrorDisplay({ error, onRetry, onUpgradeRole, isViewer }: ErrorD
               Try Again
             </Button>
           )}
-          {onUpgradeRole && (
-            <Button variant="outline" size="sm" onClick={onUpgradeRole}>
-              Upgrade to Manager Role
+          {onUpgradeRole && isViewer && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onUpgradeRole}
+              disabled={isRequestingUpgrade}
+              className="flex items-center gap-2"
+            >
+              <ArrowUpToLine className="h-4 w-4" />
+              {isRequestingUpgrade ? 'Processing...' : canDirectlyUpgrade 
+                ? 'Upgrade to Manager Role' 
+                : 'Request Manager Role'}
             </Button>
           )}
         </div>

@@ -6,7 +6,7 @@ import { TeamContent } from '@/components/Team/TeamContent';
 import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
 import { EmptyTeamState } from '@/components/Team/EmptyTeamState';
 import { Layout } from '@/components/Layout/Layout';
-import { upgradeToManagerRole } from '@/services/team/memberService';
+import { upgradeToManagerRole, requestRoleUpgrade, checkRoleChangePermission } from '@/services/team/memberService';
 import { toast } from 'sonner';
 
 export default function TeamManagement() {
@@ -30,7 +30,9 @@ export default function TeamManagement() {
   } = useTeamManagement();
 
   const [isUpgradingRole, setIsUpgradingRole] = useState(false);
+  const [isRequestingRole, setIsRequestingRole] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | undefined>(undefined);
+  const [canChangeRoles, setCanChangeRoles] = useState(false);
 
   // Determine the current user's role in the selected team
   useEffect(() => {
@@ -52,7 +54,41 @@ export default function TeamManagement() {
     }
   }, [members]);
 
-  // Handle role upgrade
+  // Check if user has permission to manage roles
+  useEffect(() => {
+    const checkPermission = async () => {
+      if (selectedTeamId) {
+        try {
+          const hasPermission = await checkRoleChangePermission(selectedTeamId);
+          setCanChangeRoles(hasPermission);
+        } catch (error) {
+          console.error("Error checking role permission:", error);
+          setCanChangeRoles(false);
+        }
+      }
+    };
+    
+    checkPermission();
+  }, [selectedTeamId, currentUserRole]);
+
+  // Handle role upgrade request
+  const handleRequestRoleUpgrade = async (teamId: string) => {
+    try {
+      setIsRequestingRole(true);
+      const result = await requestRoleUpgrade(teamId);
+      toast.success("Role upgrade requested", {
+        description: result.message,
+      });
+    } catch (error: any) {
+      toast.error("Error requesting role upgrade", {
+        description: error.message,
+      });
+    } finally {
+      setIsRequestingRole(false);
+    }
+  };
+
+  // Handle direct role upgrade (for users with permission)
   const handleUpgradeRole = async (teamId: string) => {
     try {
       setIsUpgradingRole(true);
@@ -83,8 +119,14 @@ export default function TeamManagement() {
         <ErrorDisplay 
           error={error} 
           onRetry={selectedTeamId ? refetchTeamMembers : undefined} 
-          onUpgradeRole={isViewerOnly ? () => handleUpgradeRole(selectedTeamId) : undefined}
+          onUpgradeRole={isViewerOnly ? 
+            (canChangeRoles ? 
+              () => handleUpgradeRole(selectedTeamId) : 
+              () => handleRequestRoleUpgrade(selectedTeamId)
+            ) : undefined}
           isViewer={isViewerOnly}
+          canDirectlyUpgrade={canChangeRoles}
+          isRequestingUpgrade={isRequestingRole}
         />
         
         {teams.length > 0 ? (
@@ -106,8 +148,10 @@ export default function TeamManagement() {
               isCreatingTeam={isCreatingTeam}
               isRepairingTeam={isRepairingTeam}
               isUpgradingRole={isUpgradingRole}
+              isRequestingRole={isRequestingRole}
               isMember={isMember}
               currentUserRole={currentUserRole}
+              canChangeRoles={canChangeRoles}
               onInviteMember={handleInviteMember}
               onChangeRole={handleChangeRole}
               onRemoveMember={handleRemoveMember}
@@ -115,6 +159,7 @@ export default function TeamManagement() {
               onCreateTeam={handleCreateTeam}
               onRepairTeam={handleRepairTeam}
               onUpgradeRole={handleUpgradeRole}
+              onRequestRoleUpgrade={handleRequestRoleUpgrade}
             />
           </>
         ) : isLoading ? (
