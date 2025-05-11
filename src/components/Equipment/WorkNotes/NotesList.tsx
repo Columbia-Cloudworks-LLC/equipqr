@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { WorkNote } from '@/services/workNotesService';
+import { WorkNote } from '@/services/workNotes';
 import { NoteItem } from './NoteItem';
 
 interface NotesListProps {

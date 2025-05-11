@@ -84,13 +84,13 @@ export function useWorkNotes(equipmentId: string) {
   
   // Handle adding a new work note
   const handleAddNote = (note: string, isPublic: boolean, hoursWorked: string) => {
-    const hours = parseFloat(hoursWorked);
+    const hours = hoursWorked ? parseFloat(hoursWorked) : null;
     
     createMutation.mutate({
       equipment_id: equipmentId,
       note: note.trim(),
       is_public: isPublic,
-      hours_worked: isNaN(hours) ? null : hours
+      hours_worked: hours
     });
   };
   
@@ -126,7 +126,7 @@ export function useWorkNotes(equipmentId: string) {
     if (editingNote) {
       setEditingNote({
         ...editingNote,
-        hours_worked: value === '' ? null : value
+        hours_worked: value === '' ? null : parseFloat(value) || null
       });
     }
   };
