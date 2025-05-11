@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
@@ -19,9 +20,16 @@ export async function getTeamMembers(teamId: string) {
       throw new Error("Invalid team ID format. Please select a valid team.");
     }
     
+    // Check if the current user is authenticated
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      console.error('User is not authenticated');
+      throw new Error('Authentication required. Please sign in to view team members.');
+    }
+    
     // Get team members using our edge function - pass the teamId directly
     const { data, error } = await supabase.functions.invoke<TeamMember[]>('get_team_members', { 
-      body: { team_id: teamId } // Pass as is - no explicit string conversion
+      body: { team_id: teamId }
     });
     
     if (error) {
@@ -30,6 +38,8 @@ export async function getTeamMembers(teamId: string) {
       // Provide more specific error messages based on the error
       if (error.message?.includes('Invalid UUID') || error.message?.includes('invalid format')) {
         throw new Error(`Team ID format is invalid. Please try selecting a different team.`);
+      } else if (error.message?.includes('Authentication')) {
+        throw new Error(`Authentication error: ${error.message}. Please sign in again.`);
       } else {
         throw new Error(`Failed to fetch team members: ${error.message || 'Unknown error'}`);
       }
@@ -173,6 +183,13 @@ export async function resendInvite(userId: string) {
 // Add new function to check if a user is a member of a team
 export async function validateTeamMembership(userId: string, teamId: string) {
   try {
+    if (!userId || !teamId) {
+      console.error('Missing userId or teamId in validateTeamMembership');
+      throw new Error('User ID and Team ID are required to validate membership');
+    }
+    
+    console.log(`Validating team membership for user ${userId} in team ${teamId}`);
+    
     const { data, error } = await supabase.functions.invoke('validate_team_access', {
       body: {
         team_id: teamId, 
@@ -187,7 +204,12 @@ export async function validateTeamMembership(userId: string, teamId: string) {
 
     console.log('Team membership validation result:', data);
     
-    return data?.is_member || false;
+    if (!data) {
+      console.warn('No data returned from validate_team_access function');
+      return false;
+    }
+    
+    return data.is_member === true;
   } catch (error: any) {
     console.error('Error in validateTeamMembership:', error);
     throw new Error(`Validation failed: ${error.message}`);

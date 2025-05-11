@@ -90,11 +90,8 @@ serve(async (req) => {
       }
     }
     
-    // Optional: Check if the user is a member of the organization or has access to this team
-    // This can be implemented based on your access control requirements
-    
     try {
-      // Call the function passing team_id directly as UUID (no type conversion needed)
+      // Call the function with an explicit cast of team_id to UUID in SQL
       const { data, error } = await supabaseClient.rpc(
         'get_team_members_with_roles', 
         { _team_id: team_id }
@@ -102,13 +99,58 @@ serve(async (req) => {
       
       if (error) {
         console.error('Error from get_team_members_with_roles function:', error);
+        
+        // Try a direct query as a fallback if the function fails
+        const { data: fallbackData, error: fallbackError } = await supabaseClient
+          .from('team_member')
+          .select(`
+            id,
+            team_id,
+            user_id,
+            joined_at,
+            app_user!inner (
+              id,
+              display_name,
+              email,
+              auth_uid
+            ),
+            team_roles (
+              role
+            )
+          `)
+          .eq('team_id', team_id);
+          
+        if (fallbackError || !fallbackData) {
+          console.error('Fallback query also failed:', fallbackError);
+          return new Response(
+            JSON.stringify({ 
+              error: "Failed to retrieve team members",
+              details: error.message,
+              code: error.code,
+              fallbackError: fallbackError?.message
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+        
+        // Transform the fallback data to match the expected format
+        const transformedData = fallbackData.map(member => ({
+          id: member.id,
+          team_id: member.team_id,
+          user_id: member.user_id,
+          joined_at: member.joined_at,
+          name: member.app_user.display_name || 'Unknown',
+          email: member.app_user.email,
+          role: member.team_roles && member.team_roles.length > 0 ? 
+            member.team_roles[0].role : 'viewer',
+          status: 'Active', // We can't easily determine this in the fallback
+          auth_uid: member.app_user.auth_uid // Include auth_uid for easier identification
+        }));
+        
+        console.log('Used fallback query, found members:', transformedData.length);
         return new Response(
-          JSON.stringify({ 
-            error: "Failed to retrieve team members",
-            details: error.message,
-            code: error.code
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          JSON.stringify(transformedData),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
       }
       
@@ -136,7 +178,7 @@ serve(async (req) => {
         error: "Server error",
         details: error.message
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 })
