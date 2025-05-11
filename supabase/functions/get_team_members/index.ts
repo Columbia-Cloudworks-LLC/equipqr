@@ -26,25 +26,6 @@ serve(async (req) => {
     
     console.log(`Fetching team members for team: ${team_id}`);
     
-    // Validate team_id is a valid UUID format
-    try {
-      // Simple UUID format validation (basic check)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(String(team_id))) {
-        console.error(`Invalid UUID format for team_id: ${team_id}`);
-        return new Response(
-          JSON.stringify({ error: "Invalid team ID format" }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-    } catch (validationError) {
-      console.error('Error validating team_id:', validationError);
-      return new Response(
-        JSON.stringify({ error: "Invalid team ID format" }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-    
     // Create Supabase client
     const supabaseClient = createClient(
       // Supabase API URL - env var exposed by default when deployed
@@ -54,7 +35,7 @@ serve(async (req) => {
     );
     
     try {
-      // Call the function with team_id as string, now we only have one version of the function
+      // Call the function with team_id as string
       const { data, error } = await supabaseClient.rpc(
         'get_team_members_with_roles', 
         { _team_id: String(team_id) }
