@@ -97,6 +97,12 @@ export function useTeamManagement() {
     }
   };
 
+  const refetchTeamMembers = () => {
+    if (selectedTeamId) {
+      fetchTeamMembers(selectedTeamId);
+    }
+  };
+
   const handleCreateTeam = async (name: string) => {
     try {
       setIsCreatingTeam(true);
@@ -206,5 +212,6 @@ export function useTeamManagement() {
     handleChangeRole,
     handleRemoveMember,
     handleResendInvite,
+    refetchTeamMembers,
   };
 }

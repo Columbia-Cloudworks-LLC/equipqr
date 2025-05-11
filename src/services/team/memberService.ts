@@ -13,6 +13,13 @@ export async function getTeamMembers(teamId: string) {
       return [];
     }
     
+    // Validate UUID format before sending to the API
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(String(teamId))) {
+      console.error(`Invalid UUID format for teamId: ${teamId}`);
+      throw new Error("Invalid team ID format. Please select a valid team.");
+    }
+    
     // Get team members using our edge function
     const { data, error } = await supabase.functions.invoke<TeamMember[]>('get_team_members', { 
       body: { team_id: String(teamId) } // Explicitly convert to string
@@ -20,7 +27,13 @@ export async function getTeamMembers(teamId: string) {
     
     if (error) {
       console.error('Error fetching team members:', error);
-      throw new Error(`Failed to fetch team members: ${error.message || 'Unknown error'}`);
+      
+      // Provide more specific error messages based on the error
+      if (error.message?.includes('Invalid UUID') || error.message?.includes('invalid format')) {
+        throw new Error(`Team ID format is invalid. Please try selecting a different team.`);
+      } else {
+        throw new Error(`Failed to fetch team members: ${error.message || 'Unknown error'}`);
+      }
     }
     
     if (!data) {

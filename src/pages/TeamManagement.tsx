@@ -20,6 +20,7 @@ export default function TeamManagement() {
     handleChangeRole,
     handleRemoveMember,
     handleResendInvite,
+    refetchTeamMembers,
   } = useTeamManagement();
 
   return (
@@ -27,7 +28,10 @@ export default function TeamManagement() {
       <div className="p-6 space-y-6">
         <h1 className="text-2xl font-bold">Team Management</h1>
         
-        <ErrorDisplay error={error} />
+        <ErrorDisplay 
+          error={error} 
+          onRetry={selectedTeamId ? refetchTeamMembers : undefined} 
+        />
         
         {teams.length > 0 ? (
           <>

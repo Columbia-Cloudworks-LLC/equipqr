@@ -26,6 +26,25 @@ serve(async (req) => {
     
     console.log(`Fetching team members for team: ${team_id}`);
     
+    // Validate team_id is a valid UUID format
+    try {
+      // Simple UUID format validation (basic check)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(String(team_id))) {
+        console.error(`Invalid UUID format for team_id: ${team_id}`);
+        return new Response(
+          JSON.stringify({ error: "Invalid team ID format" }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    } catch (validationError) {
+      console.error('Error validating team_id:', validationError);
+      return new Response(
+        JSON.stringify({ error: "Invalid team ID format" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
     // Create Supabase client
     const supabaseClient = createClient(
       // Supabase API URL - env var exposed by default when deployed
@@ -35,7 +54,7 @@ serve(async (req) => {
     );
     
     try {
-      // Always call the text version of the function and ensure team_id is passed as string
+      // Call the function with team_id as string, now we only have one version of the function
       const { data, error } = await supabaseClient.rpc(
         'get_team_members_with_roles', 
         { _team_id: String(team_id) }
@@ -44,12 +63,17 @@ serve(async (req) => {
       if (error) {
         console.error('Error from get_team_members_with_roles function:', error);
         return new Response(
-          JSON.stringify({ error: error.message }),
+          JSON.stringify({ 
+            error: "Failed to retrieve team members",
+            details: error.message,
+            code: error.code
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
       
-      console.log(`Found ${data?.length || 0} team members`);
+      const memberCount = data?.length || 0;
+      console.log(`Found ${memberCount} team members`);
       
       return new Response(
         JSON.stringify(data || []),
@@ -58,14 +82,20 @@ serve(async (req) => {
     } catch (functionError) {
       console.error('Error calling get_team_members_with_roles:', functionError);
       return new Response(
-        JSON.stringify({ error: `Database function error: ${functionError.message}` }),
+        JSON.stringify({ 
+          error: "Database function error",
+          details: functionError.message
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
   } catch (error) {
     console.error('Unexpected error in get_team_members function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: "Server error",
+        details: error.message
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }

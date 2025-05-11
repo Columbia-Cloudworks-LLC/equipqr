@@ -1,13 +1,29 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ErrorDisplayProps {
   error: string | null;
+  onRetry?: () => void;
 }
 
-export function ErrorDisplay({ error }: ErrorDisplayProps) {
+export function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
   if (!error) return null;
+  
+  // Define specific helpful messages for common errors
+  const getHelpfulMessage = () => {
+    if (error.includes('team members')) {
+      return "Please try refreshing the page, or check if you have the necessary permissions.";
+    } else if (error.includes('Team ID')) {
+      return "There may be an issue with your team selection. Try selecting a different team or returning to the dashboard.";
+    } else if (error.includes('format is invalid')) {
+      return "The team identifier appears to be in an invalid format. Try selecting a team from the dropdown.";
+    }
+    return null;
+  };
+  
+  const helpfulMessage = getHelpfulMessage();
   
   return (
     <Alert variant="destructive" className="mb-6">
@@ -15,9 +31,16 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
       <AlertTitle>Error</AlertTitle>
       <AlertDescription>
         {error}
-        {error.includes("team members") && (
+        {helpfulMessage && (
           <div className="mt-2 text-sm">
-            Please try refreshing the page, or check if you have the necessary permissions.
+            {helpfulMessage}
+          </div>
+        )}
+        {onRetry && (
+          <div className="mt-3">
+            <Button variant="outline" size="sm" onClick={onRetry}>
+              Try Again
+            </Button>
           </div>
         )}
       </AlertDescription>
