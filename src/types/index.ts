@@ -1,3 +1,4 @@
+
 export interface Equipment {
   id: string;
   org_id: string;
@@ -49,6 +50,7 @@ export interface TeamMember {
   email?: string;
   role?: string;
   status?: string;
+  auth_uid?: string; // Added this property to fix the build error
 }
 
 export interface Team {
