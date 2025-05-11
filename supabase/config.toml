@@ -34,3 +34,9 @@ verify_jwt = true
 
 [functions.get_team_members]
 verify_jwt = true
+
+[functions.validate_team_access]
+verify_jwt = true
+
+[functions.repair_team_membership]
+verify_jwt = true

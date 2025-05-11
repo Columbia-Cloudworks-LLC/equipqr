@@ -21,6 +21,8 @@ export function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
       return "The team identifier appears to be in an invalid format. Try selecting a team from the dropdown.";
     } else if (error.includes('Repair failed')) {
       return "The team repair process encountered an error. This might be due to permission issues or database constraints. Try signing out and signing back in, or contact your organization administrator.";
+    } else if (error.includes('not a member')) {
+      return "You don't have access to this team. Use the 'Repair Team Membership' option to fix this issue.";
     }
     return null;
   };

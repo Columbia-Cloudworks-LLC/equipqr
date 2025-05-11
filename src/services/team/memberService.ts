@@ -184,6 +184,8 @@ export async function validateTeamMembership(userId: string, teamId: string) {
       console.error('Error validating team membership:', error);
       throw new Error(`Failed to validate team membership: ${error.message}`);
     }
+
+    console.log('Team membership validation result:', data);
     
     return data?.is_member || false;
   } catch (error: any) {
@@ -192,7 +194,7 @@ export async function validateTeamMembership(userId: string, teamId: string) {
   }
 }
 
-// Fix the repairTeamMembership function
+// Fixed repairTeamMembership function to use the dedicated edge function
 export async function repairTeamMembership(teamId: string) {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -201,52 +203,29 @@ export async function repairTeamMembership(teamId: string) {
     }
     
     const userId = sessionData.session.user.id;
+    console.log(`Attempting to repair team membership for user ${userId} in team ${teamId}`);
     
-    // Verify if user is the team creator or org admin
-    const { data: team, error: teamError } = await supabase
-      .from('team')
-      .select('created_by')
-      .eq('id', teamId)
-      .single();
-      
-    if (teamError) {
-      console.error('Error fetching team details:', teamError);
-      throw new Error(`Failed to verify team: ${teamError.message}`);
-    }
-    
-    // Get the app_user.id for the current user
-    const appUserId = await getAppUserId(userId);
-    
-    // Check if the user is the creator of this team
-    if (team.created_by !== appUserId) {
-      // Check if user has organization admin privileges instead
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .in('role', ['owner']);
-        
-      if (rolesError || !userRoles || userRoles.length === 0) {
-        throw new Error('You do not have permission to repair this team.');
-      }
-    }
-    
-    // Add the user to the team with manager role
-    const { data, error: repairError } = await supabase.functions.invoke('add_team_member', {
+    // Call the repair_team_membership edge function directly
+    const { data, error } = await supabase.functions.invoke('repair_team_membership', {
       body: {
-        _team_id: teamId,
-        _user_id: userId,
-        _role: 'manager',
-        _added_by: userId
+        team_id: teamId,
+        user_id: userId
       }
     });
     
-    if (repairError) {
-      console.error('Error repairing team membership:', repairError);
-      throw new Error(`Failed to repair team membership: ${repairError.message}`);
+    if (error) {
+      console.error('Error repairing team membership:', error);
+      throw new Error(`Failed to repair team membership: ${error.message}`);
     }
     
-    return { success: true };
+    if (!data?.success) {
+      const errorMessage = data?.error || 'Unknown error during team repair';
+      console.error('Team repair failed:', errorMessage);
+      throw new Error(`Repair failed: ${errorMessage}`);
+    }
+    
+    console.log('Team membership repair successful:', data);
+    return { success: true, details: data };
   } catch (error: any) {
     console.error('Error in repairTeamMembership:', error);
     throw new Error(`Repair failed: ${error.message}`);

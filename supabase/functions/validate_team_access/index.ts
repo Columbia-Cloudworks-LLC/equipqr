@@ -22,6 +22,16 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(team_id)) {
+      console.error(`Invalid UUID format for team_id: ${team_id}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid team ID format" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
     
     // Create Supabase client
     const supabaseClient = createClient(
@@ -41,7 +51,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "User not found", 
-          is_member: false 
+          is_member: false,
+          debug: { auth_uid: user_id, error: appUserError }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
@@ -66,7 +77,7 @@ serve(async (req) => {
       );
     }
     
-    // Also check if the user is an organization admin or owner
+    // Also check if the user is an organization owner
     // First, get the team's organization ID
     const { data: team, error: teamError } = await supabaseClient
       .from('team')
@@ -85,26 +96,33 @@ serve(async (req) => {
       );
     }
     
-    // Check for organization-level roles - use 'owner' instead of 'admin' as it's not in the enum
+    // Check for organization-level roles
     const { data: orgRoles, error: rolesError } = await supabaseClient
       .from('user_roles')
       .select('role')
-      .eq('user_id', user_id)
-      .eq('org_id', team.org_id)
-      .in('role', ['owner']);  // Only check for 'owner' role
+      .eq('user_id', user_id)  // Using auth user ID for user_roles table
+      .eq('org_id', team.org_id);
     
     if (rolesError) {
       console.error('Error checking organization roles:', rolesError);
       // Continue anyway, not a critical error
     }
     
-    const hasOrgAccess = (orgRoles && orgRoles.length > 0);
+    // Check if any roles exist and if any are 'owner' role
+    const hasOrgAccess = orgRoles && orgRoles.length > 0 && 
+      orgRoles.some(r => r.role === 'owner');
     
     return new Response(
       JSON.stringify({ 
         is_member: !!teamMember || hasOrgAccess,
         has_org_access: hasOrgAccess,
-        team_member_id: teamMember?.id || null
+        team_member_id: teamMember?.id || null,
+        debug: {
+          app_user_id: appUser.id,
+          org_id: team.org_id,
+          org_roles: orgRoles || [],
+          team_member: !!teamMember
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
