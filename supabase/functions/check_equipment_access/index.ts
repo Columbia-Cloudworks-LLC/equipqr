@@ -111,6 +111,24 @@ serve(async (req) => {
       }
     }
     
+    // Check if user has org-level access
+    const { data: orgRoles } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user_id)
+      .eq('org_id', equipment.org_id);
+      
+    if (orgRoles && orgRoles.length > 0) {
+      // If user has any role in the equipment's organization, grant access
+      return new Response(
+        JSON.stringify({ 
+          has_access: true,
+          reason: "org_role"
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+    
     // No access found
     return new Response(
       JSON.stringify({ 
@@ -129,4 +147,4 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
-})
+});

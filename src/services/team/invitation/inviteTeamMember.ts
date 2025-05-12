@@ -1,55 +1,33 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { generateToken, sendInvitationEmail } from './invitationHelpers';
 import { UserRole } from "@/types/supabase-enums";
-import { sendInvitationEmail, generateToken } from "./invitationHelpers";
 
 /**
- * Invite a new member to a team
+ * Invite a user to join a team
  */
 export async function inviteMember(email: string, role: UserRole, teamId: string) {
   try {
-    // Get the current user's ID
+    console.log(`Sending invitation to ${email} for role ${role} in team ${teamId}`);
+    
+    // Get the current user's session
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
-      throw new Error('User must be logged in to invite a team member');
+      throw new Error('You must be logged in to send invitations');
     }
     
-    const currentAuthUserId = sessionData.session.user.id;
-    console.log(`Current auth user ID: ${currentAuthUserId}`);
+    // Check if the user is already part of the team
+    const { data: existingUser, error: userCheckError } = await supabase.rpc(
+      'get_user_by_email',
+      { email_address: email.toLowerCase() }
+    );
     
-    // Check if the user already exists in the system by email
-    const { data: existingUser, error: userError } = await supabase
-      .from('app_user')
-      .select('id, auth_uid')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
-      
-    if (userError) {
-      console.error('Error checking existing user:', userError);
-      throw new Error(`Failed to check if user exists: ${userError.message}`);
+    if (userCheckError) {
+      console.error('Error checking if user exists:', userCheckError);
+      // Continue with invitation flow since we can't confirm if user exists
     }
-
-    // Validate teamId is a valid UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(teamId)) {
-      console.error(`Invalid UUID format for teamId: ${teamId}`);
-      throw new Error("Invalid team ID format. Please select a valid team.");
-    }
-
-    // First check if the current user is a member of the team
-    const { data: currentUserMembership, error: membershipError } = await supabase.functions.invoke('validate_team_access', {
-      body: {
-        team_id: teamId,
-        user_id: currentAuthUserId
-      }
-    });
-
-    if (membershipError || !currentUserMembership?.is_member) {
-      console.error('Error verifying team membership:', membershipError || 'Not a team member');
-      throw new Error('You do not have permission to invite members to this team.');
-    }
-
-    // Get team name for the email
+    
+    // Get team details to include in the invitation
     const { data: team, error: teamError } = await supabase
       .from('team')
       .select('name')
@@ -58,63 +36,22 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       
     if (teamError) {
       console.error('Error fetching team details:', teamError);
-      throw new Error(`Failed to fetch team details: ${teamError.message}`);
+      throw new Error(`Failed to find team: ${teamError.message}`);
     }
     
-    console.log(`Inviting ${email} with role ${role} to team ${teamId} (${team.name})`);
-    
-    // If the user exists, add them to the team directly
-    if (existingUser) {
-      try {
-        console.log(`Existing user found with auth_uid: ${existingUser.auth_uid}`);
-        
-        const { data, error: addError } = await supabase.functions.invoke('add_team_member', {
-          body: {
-            _team_id: teamId,
-            _user_id: existingUser.auth_uid, 
-            _role: role,
-            _added_by: currentAuthUserId
-          }
-        });
-        
-        if (addError) {
-          console.error('Error adding member to team:', addError);
-          throw new Error(`Failed to add member to team: ${addError.message}`);
-        }
-        
-        console.log('Team member added successfully:', data);
-        
-        // Send notification email to the added user
-        await sendInvitationEmail({
-          recipientEmail: email,
-          teamName: team.name,
-          inviterEmail: sessionData.session.user.email || "",
-          token: "direct-add", // No token needed for direct adds
-          action: "invite",
-          role: role
-        });
-        
-        return { success: true, directlyAdded: true };
-      } catch (addError: any) {
-        console.error('Error adding member to team:', addError);
-        throw new Error(`Failed to add member to team: ${addError.message}`);
-      }
-    }
-    
-    // Generate a token for the invitation
+    // Generate a unique token for the invitation
     const token = await generateToken();
     
-    // User doesn't exist, create invitation
+    // Save the invitation in the database
     const { data: invitation, error: inviteError } = await supabase
       .from('team_invitations')
       .insert({
-        team_id: teamId,
         email: email.toLowerCase(),
+        team_id: teamId,
         role: role,
-        created_by: currentAuthUserId,
-        invited_by_email: sessionData.session.user.email,
         token: token,
-        status: 'pending'
+        created_by: sessionData.session.user.id,
+        invited_by_email: sessionData.session.user.email
       })
       .select()
       .single();
@@ -124,22 +61,64 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       throw new Error(`Failed to create invitation: ${inviteError.message}`);
     }
     
-    console.log('Invitation created:', invitation);
+    // If the user exists, we can add them directly to the team
+    let directlyAdded = false;
+    if (existingUser?.id) {
+      try {
+        // Try to add the user directly to the team
+        const { data: directAdd, error: directAddError } = await supabase.functions.invoke('add_team_member', {
+          body: {
+            _team_id: teamId,
+            _user_id: existingUser.id,
+            _role: role,
+            _added_by: sessionData.session.user.id
+          }
+        });
+        
+        if (!directAddError) {
+          directlyAdded = true;
+          console.log(`User ${email} was directly added to team ${teamId}`);
+          
+          // Mark the invitation as accepted
+          const { error: updateError } = await supabase
+            .from('team_invitations')
+            .update({
+              status: 'accepted',
+              accepted_at: new Date().toISOString()
+            })
+            .eq('id', invitation.id);
+            
+          if (updateError) {
+            console.error('Error updating invitation status:', updateError);
+            // Not critical, continue
+          }
+        }
+      } catch (directError) {
+        console.error('Error directly adding user to team:', directError);
+        // Continue with invitation flow as fallback
+      }
+    }
     
-    // Send the invitation email
-    await sendInvitationEmail({
-      recipientEmail: email,
-      teamName: team.name,
-      inviterEmail: sessionData.session.user.email || "",
-      inviterName: sessionData.session.user.user_metadata?.name,
-      token: token,
-      action: "invite",
-      role: role
-    });
+    // Send invitation email if user wasn't directly added
+    if (!directlyAdded) {
+      await sendInvitationEmail({
+        recipientEmail: email,
+        teamName: team.name,
+        inviterEmail: sessionData.session.user.email,
+        inviterName: sessionData.session.user.user_metadata?.display_name,
+        token: token,
+        action: 'invite',
+        role
+      });
+    }
     
-    return { success: true, pendingInvite: true };
+    return { 
+      success: true, 
+      directlyAdded,
+      invitationId: invitation.id
+    };
   } catch (error: any) {
     console.error('Error in inviteMember:', error);
-    throw new Error(`Invitation failed: ${error.message}`);
+    throw new Error(`Failed to send invitation: ${error.message}`);
   }
 }

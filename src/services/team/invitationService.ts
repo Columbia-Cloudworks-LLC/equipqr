@@ -26,6 +26,7 @@ export {
 
 /**
  * Get pending invitations for the current user's email
+ * This works across organizations
  */
 export async function getPendingTeamInvitations() {
   try {

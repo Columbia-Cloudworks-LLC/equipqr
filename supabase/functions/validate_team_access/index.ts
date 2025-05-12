@@ -39,32 +39,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Use our updated check_team_access function which now has proper search_path set
-    const { data: accessResult, error: accessError } = await supabaseClient.rpc(
-      'check_team_access',
-      { 
-        user_id: user_id,
-        team_id: team_id
-      }
-    );
-    
-    if (accessError) {
-      console.error('Error checking team access:', accessError);
-      return new Response(
-        JSON.stringify({ 
-          error: accessError.message, 
-          is_member: false 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-    
-    // Get app_user id for additional context
-    const { data: appUser, error: appUserError } = await supabaseClient
+    // Get app_user id for this auth user
+    const { data: appUser } = await supabaseClient
       .from('app_user')
       .select('id')
       .eq('auth_uid', user_id)
       .maybeSingle();
+      
+    let teamMemberId = null;
+    if (appUser?.id) {
+      // Check if user is a team member (direct check)
+      const { data: teamMember } = await supabaseClient
+        .from('team_member')
+        .select('id')
+        .eq('user_id', appUser.id)
+        .eq('team_id', team_id)
+        .maybeSingle();
+        
+      teamMemberId = teamMember?.id || null;
+    }
     
     // Get the team's organization ID for context
     const { data: team, error: teamError } = await supabaseClient
@@ -84,17 +77,22 @@ serve(async (req) => {
       );
     }
     
-    // Get specific team membership info if it exists
-    let teamMemberId = null;
-    if (appUser?.id) {
-      const { data: membership } = await supabaseClient
-        .from('team_member')
-        .select('id')
-        .eq('user_id', appUser.id)
-        .eq('team_id', team_id)
-        .maybeSingle();
-      
-      teamMemberId = membership?.id || null;
+    // Get user's organization
+    const { data: userProfile, error: profileError } = await supabaseClient
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', user_id)
+      .single();
+    
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      return new Response(
+        JSON.stringify({ 
+          error: "User not found", 
+          is_member: false 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
     }
     
     // Check for organization-level roles
@@ -108,16 +106,23 @@ serve(async (req) => {
     const hasOrgAccess = orgRoles && orgRoles.length > 0 && 
       orgRoles.some(r => r.role === 'owner');
     
+    // User has access if:
+    // 1. They're a direct member of the team OR
+    // 2. They have an org-level 'owner' role for the team's organization OR
+    // 3. They're in the team's organization
+    const isMember = teamMemberId !== null || hasOrgAccess || userProfile.org_id === team.org_id;
+    
     return new Response(
       JSON.stringify({ 
-        is_member: accessResult === true,
+        is_member: isMember,
         has_org_access: hasOrgAccess,
         team_member_id: teamMemberId,
         debug: {
           app_user_id: appUser?.id,
           org_id: team.org_id,
+          user_org_id: userProfile.org_id,
+          is_same_org: userProfile.org_id === team.org_id,
           org_roles: orgRoles || [],
-          access_check_result: accessResult
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -133,4 +138,4 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
-})
+});

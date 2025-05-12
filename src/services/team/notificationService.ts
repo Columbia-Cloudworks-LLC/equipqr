@@ -1,7 +1,9 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   loadDismissedNotifications, 
-  saveDismissedNotifications 
+  saveDismissedNotifications,
+  clearLocalDismissedNotifications
 } from './notificationStorage';
 
 // Function to get pending invitations for the current user
@@ -42,7 +44,7 @@ export async function getPendingInvitationsForUser() {
 }
 
 // Function to get active notifications with minimal retry logic
-export async function getActiveInvitations(retryCount = 0, maxRetries = 1) {
+export async function getActiveNotifications(retryCount = 0, maxRetries = 1) {
   try {
     // Check if we have an active session
     const { data: sessionData } = await supabase.auth.getSession();
@@ -57,17 +59,17 @@ export async function getActiveInvitations(retryCount = 0, maxRetries = 1) {
     if (invitations.length === 0 && retryCount < maxRetries) {
       console.log(`No invitations found on attempt ${retryCount + 1}, will retry in 1s`);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      return getActiveInvitations(retryCount + 1, maxRetries);
+      return getActiveNotifications(retryCount + 1, maxRetries);
     }
     
     return invitations;
   } catch (error) {
-    console.error("Error in getActiveInvitations:", error);
+    console.error("Error in getActiveNotifications:", error);
     
     // Implement minimal retry logic
     if (retryCount < maxRetries) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      return getActiveInvitations(retryCount + 1, maxRetries);
+      return getActiveNotifications(retryCount + 1, maxRetries);
     }
     
     return [];
@@ -115,3 +117,8 @@ export async function isNotificationDismissed(notificationId: string): Promise<b
     return false;
   }
 }
+
+/**
+ * Export the clearLocalDismissedNotifications function from notificationStorage
+ */
+export { clearLocalDismissedNotifications };
