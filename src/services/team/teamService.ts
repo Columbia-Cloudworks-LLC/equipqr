@@ -10,9 +10,9 @@ export { getTeams, getTeamById } from './retrieval/getTeamDetails';
 export { createTeam } from './creation/createTeam';
 
 // Re-export team validation functions
+// Don't re-export checkRoleChangePermission to avoid conflict with roleService
 export { 
   validateTeamMembership,
   repairTeamMembership,
-  checkRoleChangePermission,
   getTeamAccessDetails
 } from './teamValidationService';

@@ -1,7 +1,6 @@
 
 // Re-export from team service files
 export * from './teamService';
-export * from './teamValidationService';
 
 // For memberService, we'll export everything except resendInvite to avoid conflicts
 export { 
@@ -20,5 +19,12 @@ export { inviteMember } from './invitation/inviteTeamMember';
 // Export notification-related functions
 export * from './notificationService';
 
-// Export all role-related functions
+// Export all role-related functions (including roleService's checkRoleChangePermission)
 export * from './roleService';
+
+// Export from teamValidationService but exclude the conflicting function
+export { 
+  validateTeamMembership,
+  repairTeamMembership,
+  getTeamAccessDetails
+} from './teamValidationService';
