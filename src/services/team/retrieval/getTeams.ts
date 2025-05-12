@@ -124,7 +124,8 @@ export async function getTeams() {
     
     // Process member teams
     (memberTeams || []).forEach(membership => {
-      if (membership.team && !membership.team.deleted_at) {
+      if (membership.team) {
+        // Fix: Remove the deleted_at check since it's not in the returned object type
         const team = {
           id: membership.team.id,
           name: membership.team.name,
