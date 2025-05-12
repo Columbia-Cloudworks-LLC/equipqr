@@ -14,7 +14,7 @@ import { SignInForm } from "@/components/Auth/SignInForm";
 import { SignUpForm } from "@/components/Auth/SignUpForm";
 
 export default function Auth() {
-  const { user, signInWithGoogle, isLoading } = useAuth();
+  const { user, signInWithGoogle, isLoading, checkSession } = useAuth();
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,6 +39,13 @@ export default function Auth() {
       }
     }
 
+    // Check localStorage for any saved return URL
+    const storedReturnTo = localStorage.getItem("authReturnTo");
+    if (storedReturnTo) {
+      console.log("Found returnTo in localStorage:", storedReturnTo);
+      return storedReturnTo;
+    }
+
     // Default to home
     return "/";
   };
@@ -53,14 +60,36 @@ export default function Auth() {
     }
   }, [returnTo]);
 
-  // If the user is already logged in, redirect to the return URL
+  // Function to validate the session and redirect if needed
+  const validateAndRedirect = async () => {
+    try {
+      // Check if the session is valid
+      const isValid = await checkSession();
+      
+      if (isValid) {
+        console.log("User session is valid, navigating to:", returnTo);
+        // Clear the stored return URL as we're using it now
+        localStorage.removeItem("authReturnTo");
+        navigate(returnTo, { replace: true });
+      } else {
+        console.log("No valid session found, showing auth forms");
+      }
+    } catch (error) {
+      console.error("Error validating session:", error);
+    }
+  };
+
+  // Check session when component mounts
+  useEffect(() => {
+    validateAndRedirect();
+  }, []);
+
+  // Check again when user changes
   useEffect(() => {
     if (user) {
-      const destination = getReturnUrl();
-      console.log("User already logged in, navigating to:", destination);
-      navigate(destination, { replace: true });
+      validateAndRedirect();
     }
-  }, [user, navigate]);
+  }, [user]);
 
   const handleGoogleSignIn = async () => {
     try {

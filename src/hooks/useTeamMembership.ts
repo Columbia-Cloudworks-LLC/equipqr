@@ -11,6 +11,7 @@ export function useTeamMembership(teamId: string | null) {
   const [error, setError] = useState<string | null>(null);
   const [accessReason, setAccessReason] = useState<string | null>(null);
   const [accessRole, setAccessRole] = useState<string | null>(null);
+  const [hasCrossOrgAccess, setHasCrossOrgAccess] = useState<boolean>(false);
 
   // Get the current user's ID
   useEffect(() => {
@@ -31,6 +32,7 @@ export function useTeamMembership(teamId: string | null) {
       setIsMember(true); // Reset to true when no team is selected
       setAccessReason(null);
       setAccessRole(null);
+      setHasCrossOrgAccess(false);
     }
   }, [teamId, currentUserId]);
 
@@ -38,15 +40,26 @@ export function useTeamMembership(teamId: string | null) {
     try {
       // Use the enhanced team access details function
       const accessDetails = await getTeamAccessDetails(userId, teamId);
+      
       setIsMember(accessDetails.isMember);
       setAccessReason(accessDetails.accessReason);
       setAccessRole(accessDetails.role);
+      setHasCrossOrgAccess(accessDetails.hasOrgAccess || accessDetails.accessReason === 'org_owner');
       
       if (!accessDetails.isMember) {
         setError('You are not a member of this team. This may be due to an issue during team creation.');
       } else {
         setError(null);
       }
+      
+      // Log detailed access information for debugging
+      console.log('Team access details:', {
+        teamId,
+        isMember: accessDetails.isMember,
+        reason: accessDetails.accessReason,
+        role: accessDetails.role,
+        hasCrossOrgAccess: accessDetails.hasOrgAccess
+      });
     } catch (error: any) {
       console.error('Error checking team access:', error);
       setError('Failed to verify team membership.');
@@ -86,6 +99,7 @@ export function useTeamMembership(teamId: string | null) {
     error,
     accessReason,
     accessRole,
+    hasCrossOrgAccess,
     handleRepairTeam,
     checkTeamMembership: checkDetailedTeamAccess
   };
