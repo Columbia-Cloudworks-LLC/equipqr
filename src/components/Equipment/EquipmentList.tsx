@@ -20,8 +20,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, QrCode, Package } from 'lucide-react';
+import { Search, QrCode, Package, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -30,7 +31,11 @@ interface EquipmentListProps {
 
 export function EquipmentList({ equipment, isLoading = false }: EquipmentListProps) {
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterTeam, setFilterTeam] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Extract unique teams for filtering
+  const teams = [...new Set(equipment.map(item => item.team_name).filter(Boolean))];
 
   const filteredEquipment = equipment.filter((item) => {
     const matchesSearch = 
@@ -40,7 +45,9 @@ export function EquipmentList({ equipment, isLoading = false }: EquipmentListPro
       
     const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
     
-    return matchesSearch && matchesStatus;
+    const matchesTeam = filterTeam === 'all' || item.team_name === filterTeam;
+    
+    return matchesSearch && matchesStatus && matchesTeam;
   });
 
   const getStatusColor = (status: string) => {
@@ -65,9 +72,9 @@ export function EquipmentList({ equipment, isLoading = false }: EquipmentListPro
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -77,6 +84,21 @@ export function EquipmentList({ equipment, isLoading = false }: EquipmentListPro
               <SelectItem value="maintenance">Maintenance</SelectItem>
             </SelectContent>
           </Select>
+
+          {teams.length > 0 && (
+            <Select value={filterTeam} onValueChange={setFilterTeam}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Filter by team" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Teams</SelectItem>
+                {teams.map(team => (
+                  <SelectItem key={team} value={team || ''}>{team}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
           <Button asChild>
             <Link to="/equipment/new">
               <Package className="mr-2 h-4 w-4" />
@@ -94,6 +116,7 @@ export function EquipmentList({ equipment, isLoading = false }: EquipmentListPro
               <TableHead>Model</TableHead>
               <TableHead>Serial Number</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Team</TableHead>
               <TableHead>Location</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -106,6 +129,7 @@ export function EquipmentList({ equipment, isLoading = false }: EquipmentListPro
                   <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -126,6 +150,32 @@ export function EquipmentList({ equipment, isLoading = false }: EquipmentListPro
                       {item.status}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    {item.team_name ? (
+                      <div className="flex items-center">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+                        <span>
+                          {item.team_name}
+                          {item.is_external_org && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-blue-50">
+                                    External
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Equipment from another organization</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </span>
+                      </div>
+                    ) : (
+                      'N/A'
+                    )}
+                  </TableCell>
                   <TableCell>{item.location || 'N/A'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -143,7 +193,7 @@ export function EquipmentList({ equipment, isLoading = false }: EquipmentListPro
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   No equipment found matching the current filters
                 </TableCell>
               </TableRow>

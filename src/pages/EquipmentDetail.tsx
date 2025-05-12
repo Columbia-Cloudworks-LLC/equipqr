@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
 import { Layout } from '@/components/Layout/Layout';
@@ -6,13 +7,27 @@ import { Button } from '@/components/ui/button';
 import { getEquipmentById } from '@/services/equipmentService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, Edit, QrCode } from 'lucide-react';
+import { ArrowLeft, Edit, QrCode, Info, Users } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { WorkNotes } from '@/components/Equipment/WorkNotes';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from '@/components/ui/badge';
 
 export default function EquipmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [canEdit, setCanEdit] = useState(true);
   
   const {
     data: equipment,
@@ -32,7 +47,12 @@ export default function EquipmentDetail() {
         description: errorMessage,
       });
     }
-  }, [error]);
+
+    // Check if user can edit this equipment (based on organization/team)
+    if (equipment) {
+      setCanEdit(!equipment.is_external_org || equipment.can_edit);
+    }
+  }, [error, equipment]);
 
   if (isLoading) {
     return (
@@ -98,16 +118,75 @@ export default function EquipmentDetail() {
                 QR Code
               </RouterLink>
             </Button>
-            <Button asChild>
-              <RouterLink to={`/equipment/${id}/edit`}>
+            {canEdit ? (
+              <Button asChild>
+                <RouterLink to={`/equipment/${id}/edit`}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </RouterLink>
+              </Button>
+            ) : (
+              <Button variant="ghost" disabled title="You don't have permission to edit this equipment">
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
-              </RouterLink>
-            </Button>
+              </Button>
+            )}
           </div>
         </div>
         
-        <EquipmentCard equipment={equipment} />
+        {equipment.is_external_org && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4" />
+            <AlertTitle>External Organization Equipment</AlertTitle>
+            <AlertDescription>
+              This equipment is shared from another organization.
+              {!canEdit && " You have view-only access."}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Organization & Team Info */}
+        {(equipment.org_name || equipment.team_name) && (
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-base flex items-center">
+                <Users className="mr-2 h-4 w-4" />
+                Access Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="py-0">
+              <div className="grid grid-cols-2 gap-4">
+                {equipment.org_name && (
+                  <div>
+                    <p className="text-sm font-medium">Organization</p>
+                    <p className="text-sm text-muted-foreground">
+                      {equipment.org_name}
+                      {equipment.is_external_org && (
+                        <Badge variant="outline" className="ml-2 text-xs bg-blue-50">
+                          External
+                        </Badge>
+                      )}
+                    </p>
+                  </div>
+                )}
+                {equipment.team_name && (
+                  <div>
+                    <p className="text-sm font-medium">Team</p>
+                    <p className="text-sm text-muted-foreground">{equipment.team_name}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium">Access Level</p>
+                  <p className="text-sm text-muted-foreground">
+                    {canEdit ? 'Edit Access' : 'View Only'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        <EquipmentCard equipment={equipment} showOrgInfo={false} />
         
         <Separator />
         

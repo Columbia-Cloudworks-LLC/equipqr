@@ -4,13 +4,15 @@ import { Equipment } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Edit, QrCode } from 'lucide-react';
+import { Eye, Edit, QrCode, Users } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EquipmentCardProps {
   equipment: Equipment;
+  showOrgInfo?: boolean;
 }
 
-export function EquipmentCard({ equipment }: EquipmentCardProps) {
+export function EquipmentCard({ equipment, showOrgInfo = true }: EquipmentCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
@@ -24,7 +26,31 @@ export function EquipmentCard({ equipment }: EquipmentCardProps) {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg">{equipment.name}</CardTitle>
+          <div className="flex flex-col">
+            <CardTitle className="text-lg">{equipment.name}</CardTitle>
+            {showOrgInfo && equipment.team_name && (
+              <div className="flex items-center mt-1">
+                <Users className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+                <span className="text-xs text-muted-foreground">
+                  {equipment.team_name}
+                  {equipment.is_external_org && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-blue-50">
+                            External
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Equipment from another organization</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </span>
+              </div>
+            )}
+          </div>
           <Badge variant="outline" className={getStatusColor(equipment.status)}>
             {equipment.status}
           </Badge>

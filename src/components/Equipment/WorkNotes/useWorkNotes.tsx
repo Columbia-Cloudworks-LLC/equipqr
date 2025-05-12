@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
@@ -12,17 +12,44 @@ import {
   canCreateWorkNotes 
 } from '@/services/workNotes';
 
+// Organization type for filtering
+interface Organization {
+  id: string;
+  name: string;
+  is_external?: boolean;
+}
+
 export function useWorkNotes(equipmentId: string) {
   const [editingNote, setEditingNote] = useState<WorkNote | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const [canCreate, setCanCreate] = useState(false);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const queryClient = useQueryClient();
   
   // Fetch work notes
-  const { data: workNotes = [], isLoading } = useQuery({
+  const { data: workNotes = [], isLoading, refetch: refetchNotes } = useQuery({
     queryKey: ['workNotes', equipmentId],
     queryFn: () => getWorkNotes(equipmentId),
   });
+  
+  // Extract organizations from notes for filtering
+  useEffect(() => {
+    if (workNotes.length > 0) {
+      const orgMap = new Map<string, Organization>();
+      
+      workNotes.forEach(note => {
+        if (note.organization_id && note.organization_name) {
+          orgMap.set(note.organization_id, {
+            id: note.organization_id,
+            name: note.organization_name,
+            is_external: note.is_external_org
+          });
+        }
+      });
+      
+      setOrganizations(Array.from(orgMap.values()));
+    }
+  }, [workNotes]);
   
   // Check user permissions
   useEffect(() => {
@@ -144,6 +171,7 @@ export function useWorkNotes(equipmentId: string) {
     workNotes,
     publicNotes,
     allNotes,
+    organizations,
     isLoading,
     canEdit,
     canCreate,
@@ -154,5 +182,6 @@ export function useWorkNotes(equipmentId: string) {
     handleDeleteNote,
     handleHoursWorkedChange,
     createMutation,
+    refetchNotes
   };
 }

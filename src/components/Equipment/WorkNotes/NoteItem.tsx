@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { WorkNote } from '@/services/workNotes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Edit, Trash } from 'lucide-react';
+import { Clock, Edit, Trash, Building, Users } from 'lucide-react';
 import { 
   AlertDialog,
   AlertDialogTrigger,
@@ -16,6 +16,12 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface NoteItemProps {
   note: WorkNote;
@@ -33,23 +39,58 @@ export function NoteItem({ note, canEdit, setEditingNote, onDeleteNote }: NoteIt
 
   return (
     <div 
-      className={`border rounded-md p-3 ${!note.is_public ? 'bg-gray-50' : ''}`}
+      className={`border rounded-md p-3 ${
+        note.is_external_org ? 
+          'bg-blue-50 border-blue-100' : 
+          !note.is_public ? 'bg-gray-50' : ''
+      }`}
     >
       <div className="flex justify-between items-start">
-        <div>
+        <div className="w-full pr-16">
           <div className="flex items-center gap-2 mb-1">
             <Badge variant={note.is_public ? 'outline' : 'secondary'} className={note.is_public ? 'bg-green-100 text-green-800' : ''}>
               {note.is_public ? 'Public' : 'Private'}
             </Badge>
+            
             {note.creator?.display_name && (
               <span className="text-sm text-muted-foreground">
                 {note.creator.display_name}
               </span>
             )}
+            
             <span className="text-xs text-muted-foreground">
               {note.created_at && format(new Date(note.created_at), 'MMM d, yyyy h:mm a')}
             </span>
           </div>
+          
+          {/* Organization info for cross-org notes */}
+          {note.is_external_org && note.organization_name && (
+            <div className="flex items-center text-xs text-muted-foreground mb-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center">
+                      <Building className="h-3 w-3 mr-1" />
+                      {note.organization_name}
+                      <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-blue-50 border-blue-200">
+                        External
+                      </Badge>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Note from an external organization</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              {note.team_name && (
+                <span className="ml-2 flex items-center">
+                  <Users className="h-3 w-3 mr-1" />
+                  {note.team_name}
+                </span>
+              )}
+            </div>
+          )}
           
           <div className={`text-sm mt-1 ${isExpanded ? '' : 'line-clamp-2'}`}>
             {note.note}
@@ -65,8 +106,8 @@ export function NoteItem({ note, canEdit, setEditingNote, onDeleteNote }: NoteIt
           )}
         </div>
         
-        {canEdit && (
-          <div className="flex space-x-2">
+        {canEdit && !note.is_external_org && (
+          <div className="flex space-x-2 absolute top-3 right-3">
             <Button 
               variant="ghost" 
               size="icon"
