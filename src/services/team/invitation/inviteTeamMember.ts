@@ -17,7 +17,7 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
     }
     
     // Check if the user is already part of the team using our function
-    const { data: existingUser, error: userCheckError } = await supabase.rpc(
+    const { data: existingUserArray, error: userCheckError } = await supabase.rpc(
       'get_user_by_email',
       { email_address: email.toLowerCase() }
     );
@@ -60,6 +60,9 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       console.error('Error creating invitation:', inviteError);
       throw new Error(`Failed to create invitation: ${inviteError.message}`);
     }
+    
+    // Extract the existing user from the array (if it exists)
+    const existingUser = existingUserArray && existingUserArray.length > 0 ? existingUserArray[0] : null;
     
     // If the user exists, we can add them directly to the team
     let directlyAdded = false;
