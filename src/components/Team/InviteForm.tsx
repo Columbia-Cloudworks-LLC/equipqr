@@ -16,11 +16,12 @@ import { UserRole } from '@/types/supabase-enums';
 
 interface InviteFormProps {
   onInvite: (email: string, role: UserRole, teamId: string) => void;
+  onCancel?: () => void;
   isLoading?: boolean;
   teams: { id: string; name: string }[];
 }
 
-export function InviteForm({ onInvite, isLoading = false, teams }: InviteFormProps) {
+export function InviteForm({ onInvite, onCancel, isLoading = false, teams }: InviteFormProps) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole>('viewer');
   const [teamId, setTeamId] = useState('');
@@ -94,8 +95,13 @@ export function InviteForm({ onInvite, isLoading = false, teams }: InviteFormPro
             </Select>
           </div>
         </CardContent>
-        <CardFooter>
-          <Button className="w-full" type="submit" disabled={isLoading || !teamId}>
+        <CardFooter className="flex justify-between">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button className={onCancel ? "flex-1 ml-2" : "w-full"} type="submit" disabled={isLoading || !teamId}>
             {isLoading ? 'Sending Invitation...' : 'Send Invitation'}
           </Button>
         </CardFooter>
