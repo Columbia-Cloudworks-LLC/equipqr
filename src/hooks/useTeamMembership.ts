@@ -2,13 +2,15 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { validateTeamMembership, repairTeamMembership } from '@/services/team';
+import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team';
 
 export function useTeamMembership(teamId: string | null) {
   const [isMember, setIsMember] = useState<boolean>(true);
   const [isRepairingTeam, setIsRepairingTeam] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [accessReason, setAccessReason] = useState<string | null>(null);
+  const [accessRole, setAccessRole] = useState<string | null>(null);
 
   // Get the current user's ID
   useEffect(() => {
@@ -24,24 +26,29 @@ export function useTeamMembership(teamId: string | null) {
   // Check team membership when teamId or currentUserId changes
   useEffect(() => {
     if (teamId && teamId !== 'none' && currentUserId) {
-      checkTeamMembership(teamId, currentUserId);
+      checkDetailedTeamAccess(teamId, currentUserId);
     } else {
       setIsMember(true); // Reset to true when no team is selected
+      setAccessReason(null);
+      setAccessRole(null);
     }
   }, [teamId, currentUserId]);
 
-  const checkTeamMembership = async (teamId: string, userId: string) => {
+  const checkDetailedTeamAccess = async (teamId: string, userId: string) => {
     try {
-      const isMember = await validateTeamMembership(userId, teamId);
-      setIsMember(isMember);
+      // Use the enhanced team access details function
+      const accessDetails = await getTeamAccessDetails(userId, teamId);
+      setIsMember(accessDetails.isMember);
+      setAccessReason(accessDetails.accessReason);
+      setAccessRole(accessDetails.role);
       
-      if (!isMember) {
+      if (!accessDetails.isMember) {
         setError('You are not a member of this team. This may be due to an issue during team creation.');
       } else {
         setError(null);
       }
     } catch (error: any) {
-      console.error('Error checking team membership:', error);
+      console.error('Error checking team access:', error);
       setError('Failed to verify team membership.');
     }
   };
@@ -59,7 +66,7 @@ export function useTeamMembership(teamId: string | null) {
       
       // Re-check team membership
       if (currentUserId) {
-        await checkTeamMembership(teamId, currentUserId);
+        await checkDetailedTeamAccess(teamId, currentUserId);
       }
     } catch (error: any) {
       console.error('Error in handleRepairTeam:', error);
@@ -77,7 +84,9 @@ export function useTeamMembership(teamId: string | null) {
     isRepairingTeam,
     currentUserId,
     error,
+    accessReason,
+    accessRole,
     handleRepairTeam,
-    checkTeamMembership
+    checkTeamMembership: checkDetailedTeamAccess
   };
 }

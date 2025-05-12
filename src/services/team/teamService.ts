@@ -8,3 +8,11 @@ export { getTeams, getTeamById } from './retrieval/getTeamDetails';
 
 // Re-export team creation functions
 export { createTeam } from './creation/createTeam';
+
+// Re-export team validation functions
+export { 
+  validateTeamMembership,
+  repairTeamMembership,
+  checkRoleChangePermission,
+  getTeamAccessDetails
+} from './teamValidationService';

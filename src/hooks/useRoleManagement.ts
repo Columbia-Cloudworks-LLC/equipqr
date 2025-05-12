@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
@@ -33,6 +34,7 @@ export function useRoleManagement(members: TeamMember[], teamId: string | null) 
     const checkPermission = async () => {
       if (teamId) {
         try {
+          // Use the more robust role permission check
           const hasPermission = await checkRoleChangePermission(teamId);
           setCanChangeRoles(hasPermission);
         } catch (error) {
