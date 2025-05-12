@@ -1055,6 +1055,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_team_access: {
+        Args: { user_id: string; team_id: string }
+        Returns: boolean
+      }
       gen_invitation_token: {
         Args: Record<PropertyKey, never>
         Returns: string
