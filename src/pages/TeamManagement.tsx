@@ -6,6 +6,7 @@ import { TeamContent } from '@/components/Team/TeamContent';
 import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
 import { EmptyTeamState } from '@/components/Team/EmptyTeamState';
 import { Layout } from '@/components/Layout/Layout';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TeamManagement() {
   const {
@@ -35,10 +36,22 @@ export default function TeamManagement() {
     handleRequestRoleUpgrade,
     refetchTeamMembers,
     refetchPendingInvitations,
+    fetchTeams
   } = useTeamManagement();
 
   // Determine if the user has viewer role only
   const isViewerOnly = isMember && currentUserRole === 'viewer';
+  
+  // Log state for debugging
+  useEffect(() => {
+    console.log('TeamManagement render:', {
+      teamsCount: teams.length,
+      selectedTeamId,
+      isLoading,
+      error,
+      isMember
+    });
+  }, [teams.length, selectedTeamId, isLoading, error, isMember]);
 
   return (
     <Layout>
@@ -47,7 +60,7 @@ export default function TeamManagement() {
         
         <ErrorDisplay 
           error={error} 
-          onRetry={selectedTeamId ? refetchTeamMembers : undefined} 
+          onRetry={selectedTeamId ? refetchTeamMembers : fetchTeams} 
           onUpgradeRole={isViewerOnly ? 
             (canChangeRoles ? 
               () => handleUpgradeRole(selectedTeamId) : 
@@ -58,7 +71,12 @@ export default function TeamManagement() {
           isRequestingUpgrade={isRequestingRole}
         />
         
-        {teams.length > 0 ? (
+        {isLoading && teams.length === 0 ? (
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-full max-w-xs" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        ) : teams.length > 0 ? (
           <>
             <div className="max-w-xs">
               <TeamSelector 
@@ -95,8 +113,6 @@ export default function TeamManagement() {
               onFetchPendingInvitations={refetchPendingInvitations}
             />
           </>
-        ) : isLoading ? (
-          <p>Loading teams...</p>
         ) : (
           <EmptyTeamState
             onCreateTeam={handleCreateTeam}

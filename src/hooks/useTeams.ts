@@ -6,6 +6,9 @@ import { getTeams, createTeam } from '@/services/team';
 interface Team {
   id: string;
   name: string;
+  org_id?: string;
+  org_name?: string;
+  is_external_org?: boolean;
 }
 
 export function useTeams() {
@@ -18,6 +21,8 @@ export function useTeams() {
     try {
       setIsLoading(true);
       setError(null);
+      
+      console.log('Fetching teams from useTeams hook');
       const fetchedTeams = await getTeams();
       
       console.log('Fetched teams:', fetchedTeams);
@@ -28,7 +33,7 @@ export function useTeams() {
         return;
       }
       
-      setTeams(fetchedTeams.map(team => ({ id: team.id, name: team.name })));
+      setTeams(fetchedTeams);
       
     } catch (error: any) {
       console.error('Error in fetchTeams:', error);
@@ -65,6 +70,7 @@ export function useTeams() {
   };
 
   useEffect(() => {
+    console.log('useTeams hook initialized, fetching teams');
     fetchTeams();
   }, []);
 

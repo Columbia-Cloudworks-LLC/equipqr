@@ -57,6 +57,19 @@ export function TeamSelector({
     });
   }
   
+  if (teams.length === 0) {
+    return (
+      <Select value="none" onValueChange={onChange} disabled>
+        <SelectTrigger>
+          <SelectValue placeholder="No teams available" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">No teams available</SelectItem>
+        </SelectContent>
+      </Select>
+    );
+  }
+  
   return (
     <Select value={safeValue} onValueChange={onChange}>
       <SelectTrigger>
@@ -70,12 +83,14 @@ export function TeamSelector({
         {hasOrgInfo ? (
           <>
             {/* Main organization teams */}
-            <SelectGroup>
-              <SelectLabel>My Organization</SelectLabel>
-              {mainOrgTeams.map(team => (
-                <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-              ))}
-            </SelectGroup>
+            {mainOrgTeams.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>My Organization</SelectLabel>
+                {mainOrgTeams.map(team => (
+                  <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                ))}
+              </SelectGroup>
+            )}
             
             {/* External organization teams */}
             {Object.entries(externalOrgTeams).map(([orgId, orgTeams]) => (

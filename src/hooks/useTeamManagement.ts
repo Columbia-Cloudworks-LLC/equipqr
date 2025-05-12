@@ -54,6 +54,7 @@ export function useTeamManagement() {
 
   // Refresh teams when component mounts
   useEffect(() => {
+    console.log('useTeamManagement: Initial teams fetch');
     fetchTeams();
   }, []);
 
@@ -67,9 +68,12 @@ export function useTeamManagement() {
 
   // Fetch team members when selectedTeamId changes
   useEffect(() => {
-    if (selectedTeamId && selectedTeamId !== 'none' && isMember) {
-      fetchTeamMembers();
-      fetchPendingInvitations();
+    if (selectedTeamId && selectedTeamId !== 'none') {
+      console.log(`Selected team changed to: ${selectedTeamId}, isMember: ${isMember}`);
+      if (isMember) {
+        fetchTeamMembers();
+        fetchPendingInvitations();
+      }
     }
   }, [selectedTeamId, isMember]);
 
@@ -99,6 +103,17 @@ export function useTeamManagement() {
     }
     return team;
   }, [handleCreateTeam]);
+  
+  // Log for debugging
+  useEffect(() => {
+    console.log('useTeamManagement state:', {
+      teams: teams.length,
+      selectedTeamId,
+      isLoading,
+      isMember,
+      members: members.length
+    });
+  }, [teams.length, selectedTeamId, isLoading, isMember, members.length]);
 
   return {
     members,
