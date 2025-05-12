@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { getAppUserId, getUserOrganizationId, processDateFields } from "@/utils/authUtils";
@@ -18,106 +17,18 @@ export async function getEquipment() {
     
     const authUserId = sessionData.session.user.id;
 
-    // First get equipment from user's organization
-    const { data: orgEquipment, error: orgError } = await supabase
-      .from('equipment')
-      .select(`
-        *,
-        team:team_id (name),
-        org:org_id (name)
-      `)
-      .is('deleted_at', null)
-      .order('name');
-      
-    if (orgError) {
-      console.error('Error fetching organization equipment:', orgError);
-      throw orgError;
-    }
-    
-    // Get app_user ID from auth user ID
-    const appUserId = await getAppUserId(authUserId);
-    
-    // Get user's team memberships
-    const { data: teamMemberships, error: membershipError } = await supabase
-      .from('team_member')
-      .select('team_id')
-      .eq('user_id', appUserId);
-    
-    if (membershipError) {
-      console.error('Error fetching team memberships:', membershipError);
-      return orgEquipment || [];
-    }
-    
-    // If user is not a member of any teams, just return org equipment
-    if (!teamMemberships || teamMemberships.length === 0) {
-      console.log(`User has no team memberships, returning ${orgEquipment?.length || 0} organization equipment`);
-      return processEquipmentList(orgEquipment || []);
-    }
-    
-    // Extract team IDs
-    const teamIds = teamMemberships.map(tm => tm.team_id);
-    
-    // Get equipment for these teams
-    const { data: teamEquipment, error: teamError } = await supabase
-      .from('equipment')
-      .select(`
-        *,
-        team:team_id (name, org_id),
-        org:org_id (name)
-      `)
-      .in('team_id', teamIds)
-      .is('deleted_at', null)
-      .order('name');
-    
-    if (teamError) {
-      console.error('Error fetching team equipment:', teamError);
-      return processEquipmentList(orgEquipment || []);
-    }
-    
-    // Combine equipment lists, ensuring no duplicates by ID
-    const equipmentMap = new Map();
-    
-    // Get user's primary organization for determining external orgs
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', authUserId)
-      .single();
-    
-    const userOrgId = userProfile?.org_id;
-    
-    // Add organization equipment
-    (orgEquipment || []).forEach(item => {
-      const processed = {
-        ...item,
-        team_name: item.team?.name || null,
-        org_name: item.org?.name || 'Unknown Organization',
-        is_external_org: false,
-      };
-      equipmentMap.set(item.id, processed);
+    // Use the edge function to fetch equipment, which bypasses RLS recursion issues
+    const { data, error } = await supabase.functions.invoke('list_user_equipment', {
+      body: { user_id: authUserId }
     });
     
-    // Add team equipment (if it's not already in the map)
-    (teamEquipment || []).forEach(item => {
-      if (!equipmentMap.has(item.id)) {
-        // Check if this is from an external organization
-        const isExternalOrg = item.team?.org_id && userOrgId && item.team.org_id !== userOrgId;
-        
-        const processed = {
-          ...item,
-          team_name: item.team?.name || null,
-          org_name: item.org?.name || 'Unknown Organization',
-          is_external_org: isExternalOrg,
-        };
-        equipmentMap.set(item.id, processed);
-      }
-    });
+    if (error) {
+      console.error('Error fetching equipment via edge function:', error);
+      throw new Error('Failed to retrieve equipment data');
+    }
     
-    // Convert map to array
-    const combinedEquipment = Array.from(equipmentMap.values());
-    console.log(`Successfully fetched ${combinedEquipment.length} equipment items (${orgEquipment?.length || 0} org + ${teamEquipment?.length || 0} team)`);
-    
-    return combinedEquipment as Equipment[];
+    console.log(`Successfully fetched ${data?.length || 0} equipment items via edge function`);
+    return data || [];
   } catch (error) {
     console.error('Error in getEquipment:', error);
     throw error;
