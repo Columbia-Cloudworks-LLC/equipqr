@@ -7,15 +7,16 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Team {
   id: string;
   name: string;
   org_name?: string;
-  is_external_org?: boolean;
-  access_type?: string;
+  is_external?: boolean;
+  role?: string;
 }
 
 interface TeamSelectorProps {
@@ -23,58 +24,65 @@ interface TeamSelectorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  disabled?: boolean;
 }
 
-export function TeamSelector({
-  teams,
-  value,
-  onChange,
-  placeholder = "Select team",
-  disabled = false,
-}: TeamSelectorProps) {
+export function TeamSelector({ teams, value, onChange, placeholder = "Select a team" }: TeamSelectorProps) {
+  // Group teams by organization if org_name is present
+  const hasOrgInfo = teams.some(team => team.org_name);
+  const groupedTeams = hasOrgInfo ? 
+    teams.reduce((acc, team) => {
+      const orgName = team.org_name || 'Your Organization';
+      if (!acc[orgName]) {
+        acc[orgName] = [];
+      }
+      acc[orgName].push(team);
+      return acc;
+    }, {} as Record<string, Team[]>) :
+    { 'All Teams': teams };
+  
   return (
-    <Select value={value || ""} onValueChange={onChange} disabled={disabled}>
+    <Select value={value} onValueChange={onChange}>
       <SelectTrigger>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
+      
       <SelectContent>
-        {teams.length > 0 ? (
-          <>
-            <SelectGroup>
-              <SelectLabel>Your Teams</SelectLabel>
-              {teams
-                .filter(team => !team.is_external_org)
-                .map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
+        <SelectItem value="none">No team</SelectItem>
+        
+        {hasOrgInfo ? (
+          Object.entries(groupedTeams).map(([orgName, orgTeams]) => (
+            <SelectGroup key={orgName}>
+              <SelectLabel>{orgName}</SelectLabel>
+              {orgTeams.map(team => (
+                <SelectItem key={team.id} value={team.id}>
+                  <div className="flex items-center">
                     {team.name}
-                  </SelectItem>
-                ))}
+                    {team.is_external && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-blue-50">
+                              External
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">From {team.org_name}</p>
+                            {team.role && <p className="text-xs">Role: {team.role}</p>}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
             </SelectGroup>
-            
-            {/* Add external teams in separate group */}
-            {teams.some(team => team.is_external_org) && (
-              <SelectGroup>
-                <SelectLabel>External Teams</SelectLabel>
-                {teams
-                  .filter(team => team.is_external_org)
-                  .map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      <div className="flex items-center gap-2">
-                        {team.name}
-                        <Badge variant="outline" className="ml-1 text-xs">
-                          {team.org_name || 'External'}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-              </SelectGroup>
-            )}
-          </>
+          ))
         ) : (
-          <SelectItem value="none" disabled>
-            No teams available
-          </SelectItem>
+          teams.map(team => (
+            <SelectItem key={team.id} value={team.id}>
+              {team.name}
+            </SelectItem>
+          ))
         )}
       </SelectContent>
     </Select>

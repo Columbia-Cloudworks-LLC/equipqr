@@ -21,7 +21,11 @@ export async function getEquipment() {
     // First get equipment from user's organization
     const { data: orgEquipment, error: orgError } = await supabase
       .from('equipment')
-      .select('*')
+      .select(`
+        *,
+        team:team_id (name),
+        org:org_id (name)
+      `)
       .is('deleted_at', null)
       .order('name');
       
@@ -47,7 +51,7 @@ export async function getEquipment() {
     // If user is not a member of any teams, just return org equipment
     if (!teamMemberships || teamMemberships.length === 0) {
       console.log(`User has no team memberships, returning ${orgEquipment?.length || 0} organization equipment`);
-      return orgEquipment || [];
+      return processEquipmentList(orgEquipment || []);
     }
     
     // Extract team IDs
@@ -56,28 +60,56 @@ export async function getEquipment() {
     // Get equipment for these teams
     const { data: teamEquipment, error: teamError } = await supabase
       .from('equipment')
-      .select('*')
+      .select(`
+        *,
+        team:team_id (name, org_id),
+        org:org_id (name)
+      `)
       .in('team_id', teamIds)
       .is('deleted_at', null)
       .order('name');
     
     if (teamError) {
       console.error('Error fetching team equipment:', teamError);
-      return orgEquipment || [];
+      return processEquipmentList(orgEquipment || []);
     }
     
     // Combine equipment lists, ensuring no duplicates by ID
     const equipmentMap = new Map();
     
+    // Get user's primary organization for determining external orgs
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', authUserId)
+      .single();
+    
+    const userOrgId = userProfile?.org_id;
+    
     // Add organization equipment
     (orgEquipment || []).forEach(item => {
-      equipmentMap.set(item.id, item);
+      const processed = {
+        ...item,
+        team_name: item.team?.name || null,
+        org_name: item.org?.name || 'Unknown Organization',
+        is_external_org: false,
+      };
+      equipmentMap.set(item.id, processed);
     });
     
     // Add team equipment (if it's not already in the map)
     (teamEquipment || []).forEach(item => {
       if (!equipmentMap.has(item.id)) {
-        equipmentMap.set(item.id, item);
+        // Check if this is from an external organization
+        const isExternalOrg = item.team?.org_id && userOrgId && item.team.org_id !== userOrgId;
+        
+        const processed = {
+          ...item,
+          team_name: item.team?.name || null,
+          org_name: item.org?.name || 'Unknown Organization',
+          is_external_org: isExternalOrg,
+        };
+        equipmentMap.set(item.id, processed);
       }
     });
     
@@ -90,6 +122,18 @@ export async function getEquipment() {
     console.error('Error in getEquipment:', error);
     throw error;
   }
+}
+
+/**
+ * Process equipment list to add team and org names
+ */
+function processEquipmentList(equipmentList: any[]): Equipment[] {
+  return equipmentList.map(item => ({
+    ...item,
+    team_name: item.team?.name || null,
+    org_name: item.org?.name || 'Unknown Organization',
+    is_external_org: false, // Default to false for org equipment
+  }));
 }
 
 /**
@@ -121,7 +165,11 @@ export async function getEquipmentById(id: string) {
     // First fetch the equipment
     const { data: equipment, error } = await supabase
       .from('equipment')
-      .select('*')
+      .select(`
+        *,
+        team:team_id (name, org_id),
+        org:org_id (name)
+      `)
       .eq('id', id)
       .is('deleted_at', null)
       .single();
@@ -131,12 +179,43 @@ export async function getEquipmentById(id: string) {
       throw error;
     }
     
+    // Get user's primary organization for determining external orgs
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', authUserId)
+      .single();
+    
+    const userOrgId = userProfile?.org_id;
+    const isExternalOrg = equipment.team?.org_id && userOrgId && equipment.team.org_id !== userOrgId;
+    
+    // Check if user has edit permissions
+    let canEdit = !isExternalOrg; // Default: can edit if it's in user's org
+    
+    if (isExternalOrg) {
+      // Get role for this team or org to determine edit permissions
+      const { data: teamAccess } = await supabase.functions.invoke('validate_team_access', {
+        body: {
+          team_id: equipment.team_id,
+          user_id: authUserId
+        }
+      });
+      
+      // Can edit if manager or higher role
+      const editRoles = ['manager', 'creator', 'owner', 'admin'];
+      canEdit = teamAccess?.role && editRoles.includes(teamAccess.role);
+    }
+    
     // Then fetch the attributes
     const attributes = await getEquipmentAttributes(id);
     
-    // Return equipment with attributes
+    // Return equipment with attributes and extra info
     return {
       ...equipment,
+      team_name: equipment.team?.name || null, 
+      org_name: equipment.org?.name || 'Unknown Organization',
+      is_external_org: isExternalOrg,
+      can_edit: canEdit,
       attributes
     } as Equipment;
   } catch (error) {
@@ -168,9 +247,43 @@ export async function createEquipment(equipment: Partial<Equipment>) {
     const appUserId = await getAppUserId(authUserId);
     console.log('Mapped to app_user ID:', appUserId);
     
-    // Get organization ID
-    const orgId = await getUserOrganizationId(authUserId);
-    console.log('Found organization ID:', orgId);
+    let orgId;
+    
+    // If equipment is for a team, get that team's org_id
+    if (equipment.team_id && equipment.team_id !== 'none') {
+      console.log(`Getting org ID for team ${equipment.team_id}`);
+      
+      // Check if user has permission to create equipment for this team
+      const { data: permissionCheck } = await supabase.functions.invoke('check_equipment_create_permission', {
+        body: {
+          user_id: authUserId,
+          team_id: equipment.team_id
+        }
+      });
+      
+      if (!permissionCheck?.can_create) {
+        throw new Error('You do not have permission to create equipment for this team');
+      }
+      
+      // Get team's organization ID
+      const { data: team, error: teamError } = await supabase
+        .from('team')
+        .select('org_id')
+        .eq('id', equipment.team_id)
+        .single();
+        
+      if (teamError) {
+        console.error('Error fetching team:', teamError);
+        throw new Error('Failed to get team information');
+      }
+      
+      orgId = team.org_id;
+      console.log(`Using team's org ID: ${orgId}`);
+    } else {
+      // Use user's organization ID for non-team equipment
+      orgId = await getUserOrganizationId(authUserId);
+      console.log('Using user org ID:', orgId);
+    }
     
     // Extract attributes before sending to database
     const attributes = equipment.attributes || [];
