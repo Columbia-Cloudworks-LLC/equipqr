@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Equipment } from '@/types';
@@ -6,7 +5,9 @@ import { EquipmentForm as EquipmentFormComponent } from '@/components/Equipment/
 import { Layout } from '@/components/Layout/Layout';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getEquipmentById, createEquipment, updateEquipment } from '@/services/equipmentService';
+import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
+import { createEquipment } from '@/services/equipment/equipmentCreateService';
+import { updateEquipment } from '@/services/equipment/equipmentUpdateService';
 
 const EquipmentFormPage = () => {
   const { id } = useParams<{ id: string }>();

@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
 import { Layout } from '@/components/Layout/Layout';
 import { Button } from '@/components/ui/button';
-import { getEquipmentById } from '@/services/equipmentService';
+import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ArrowLeft, Edit, QrCode, Info, Users } from 'lucide-react';

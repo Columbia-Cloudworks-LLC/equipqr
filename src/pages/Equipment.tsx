@@ -9,7 +9,7 @@ import { EquipmentList } from '@/components/Equipment/EquipmentList';
 import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
 import { Layout } from '@/components/Layout/Layout';
 import { useQuery } from '@tanstack/react-query';
-import { getEquipment } from '@/services/equipmentService';
+import { getEquipment } from '@/services/equipment/equipmentListService';
 import { toast } from 'sonner';
 
 const EquipmentPage = () => {

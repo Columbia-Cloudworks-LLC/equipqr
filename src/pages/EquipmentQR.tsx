@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout/Layout';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
 import QRCodeGenerator from '@/components/Equipment/QRCodeGenerator';
-import { getEquipmentById } from '@/services/equipmentService';
+import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
