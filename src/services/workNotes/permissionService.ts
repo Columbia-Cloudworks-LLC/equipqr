@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/supabase-enums';
 
 /**
  * Check if the current user has permission to manage work notes
