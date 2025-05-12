@@ -3,15 +3,15 @@ import React from 'react';
 import { WorkNote } from '@/services/workNotes';
 import { NoteItem } from './NoteItem';
 
-interface NotesListProps {
+export interface NotesListProps {
   notes: WorkNote[];
   isLoading: boolean;
-  canEdit: boolean;
-  setEditingNote: (note: WorkNote) => void;
+  canManage: boolean;
+  onEditNote: (note: WorkNote) => void;
   onDeleteNote: (id: string) => void;
 }
 
-export function NotesList({ notes, isLoading, canEdit, setEditingNote, onDeleteNote }: NotesListProps) {
+export function NotesList({ notes, isLoading, canManage, onEditNote, onDeleteNote }: NotesListProps) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-6">
@@ -34,8 +34,8 @@ export function NotesList({ notes, isLoading, canEdit, setEditingNote, onDeleteN
         <NoteItem 
           key={note.id} 
           note={note} 
-          canEdit={canEdit} 
-          setEditingNote={setEditingNote} 
+          canEdit={canManage} 
+          setEditingNote={onEditNote} 
           onDeleteNote={onDeleteNote} 
         />
       ))}

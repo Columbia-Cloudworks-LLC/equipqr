@@ -27,7 +27,12 @@ export function useWorkNotes(equipmentId: string) {
   const queryClient = useQueryClient();
   
   // Fetch work notes
-  const { data: workNotes = [], isLoading, refetch: refetchNotes } = useQuery({
+  const { 
+    data: workNotes = [], 
+    isLoading, 
+    error,
+    refetch: refetchNotes 
+  } = useQuery({
     queryKey: ['workNotes', equipmentId],
     queryFn: () => getWorkNotes(equipmentId),
   });
@@ -73,7 +78,8 @@ export function useWorkNotes(equipmentId: string) {
   
   // Create work note mutation
   const createMutation = useMutation({
-    mutationFn: createWorkNote,
+    mutationFn: (data: { equipment_id: string, note: string, is_public: boolean, hours_worked: number | null }) => 
+      createWorkNote(data.equipment_id, data.note, data.hours_worked, data.is_public),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workNotes', equipmentId] });
       toast.success('Work note added successfully');
@@ -173,13 +179,15 @@ export function useWorkNotes(equipmentId: string) {
     allNotes,
     organizations,
     isLoading,
+    error,
     canEdit,
     canCreate,
     editingNote,
     setEditingNote,
-    handleAddNote,
-    handleUpdateNote,
-    handleDeleteNote,
+    addNote: handleAddNote,
+    updateNote: handleUpdateNote,
+    deleteNote: handleDeleteNote,
+    editNote: setEditingNote,
     handleHoursWorkedChange,
     createMutation,
     refetchNotes

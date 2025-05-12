@@ -65,15 +65,19 @@ export async function canManageWorkNotes(equipmentId: string): Promise<boolean> 
         return true;
       }
       
-      // Check team role using the safe function
-      const { data: teamRole } = await supabase.rpc(
-        'get_team_role_safe',
-        { _user_id: userId, _team_id: equipment.team_id }
-      );
-      
-      // Team managers can manage work notes
-      if (teamRole === 'manager') {
-        return true;
+      // Check team role using RPC function
+      try {
+        const { data: teamRole } = await supabase.rpc(
+          'get_team_role',
+          { _user_id: userId, _team_id: equipment.team_id }
+        );
+        
+        // Team managers can manage work notes
+        if (teamRole === 'manager') {
+          return true;
+        }
+      } catch (error) {
+        console.error('Error checking team role:', error);
       }
     }
     
@@ -149,15 +153,19 @@ export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> 
         return true;
       }
       
-      // Check team role using the safe function
-      const { data: teamRole } = await supabase.rpc(
-        'get_team_role_safe',
-        { _user_id: userId, _team_id: equipment.team_id }
-      );
-      
-      // Team managers and technicians can create work notes
-      if (teamRole === 'manager' || teamRole === 'technician') {
-        return true;
+      // Check team role using RPC function
+      try {
+        const { data: teamRole } = await supabase.rpc(
+          'get_team_role',
+          { _user_id: userId, _team_id: equipment.team_id }
+        );
+        
+        // Team managers and technicians can create work notes
+        if (teamRole === 'manager' || teamRole === 'technician') {
+          return true;
+        }
+      } catch (error) {
+        console.error('Error checking team role:', error);
       }
       
       // Check for cross-organization access

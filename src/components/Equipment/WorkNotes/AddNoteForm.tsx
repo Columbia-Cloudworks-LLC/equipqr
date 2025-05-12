@@ -7,12 +7,12 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { PlusCircle, Eye, EyeOff } from 'lucide-react';
 
-interface AddNoteFormProps {
-  isPending: boolean;
-  onSubmit: (note: string, isPublic: boolean, hoursWorked: string) => void;
+export interface AddNoteFormProps {
+  onAddNote: (note: string, isPublic: boolean, hoursWorked: string) => void;
+  isPending?: boolean;
 }
 
-export function AddNoteForm({ isPending, onSubmit }: AddNoteFormProps) {
+export function AddNoteForm({ isPending = false, onAddNote }: AddNoteFormProps) {
   const [newNote, setNewNote] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [hoursWorked, setHoursWorked] = useState<string>('');
@@ -20,7 +20,7 @@ export function AddNoteForm({ isPending, onSubmit }: AddNoteFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote.trim()) return;
-    onSubmit(newNote, isPublic, hoursWorked);
+    onAddNote(newNote, isPublic, hoursWorked);
     setNewNote('');
     setIsPublic(false);
     setHoursWorked('');

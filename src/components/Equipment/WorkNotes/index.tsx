@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { NotesList } from './NotesList';
 import { AddNoteForm } from './AddNoteForm';
@@ -18,13 +19,14 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
   const [permissionLoading, setPermissionLoading] = useState<boolean>(true);
 
   const { 
-    notes, 
+    workNotes, 
     isLoading, 
     error, 
     addNote, 
     editNote,
     deleteNote,
-    refetchNotes
+    refetchNotes,
+    createMutation
   } = useWorkNotes(equipmentId);
 
   // Check permissions when component mounts
@@ -90,11 +92,14 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
       )}
       
       {canCreate && (
-        <AddNoteForm onAddNote={addNote} />
+        <AddNoteForm 
+          onAddNote={addNote} 
+          isPending={createMutation.isPending}
+        />
       )}
       
       <NotesList 
-        notes={notes} 
+        notes={workNotes} 
         isLoading={isLoading} 
         canManage={canManage || false} 
         onEditNote={editNote}
