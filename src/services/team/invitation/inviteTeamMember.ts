@@ -17,10 +17,14 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
     }
     
     // Check if the user is already part of the team
-    const { data: existingUser, error: userCheckError } = await supabase.rpc(
-      'get_user_by_email',
-      { email_address: email.toLowerCase() }
-    );
+    // Using a direct query instead of the RPC function that doesn't exist
+    const { data: existingUsers, error: userCheckError } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .limit(1);
+    
+    const existingUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null;
     
     if (userCheckError) {
       console.error('Error checking if user exists:', userCheckError);
