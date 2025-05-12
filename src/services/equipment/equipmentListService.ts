@@ -12,24 +12,25 @@ export async function getEquipment(): Promise<Equipment[]> {
     if (!sessionData?.session?.user) {
       throw new Error('User must be logged in to view equipment');
     }
-    
-    const authUserId = sessionData.session.user.id;
 
-    // Use the edge function to fetch equipment, which bypasses RLS recursion issues
-    const { data, error } = await supabase.functions.invoke('list_user_equipment', {
-      body: { user_id: authUserId }
-    });
+    // Direct query using the RLS policies now - no need for edge function
+    const { data, error } = await supabase
+      .from('equipment')
+      .select(`
+        *,
+        team:team_id (name, org_id),
+        org:org_id (name)
+      `)
+      .is('deleted_at', null)
+      .order('name');
     
     if (error) {
-      console.error('Error fetching equipment via edge function:', error);
-      return []; // Return empty array instead of throwing
+      console.error('Error fetching equipment:', error);
+      return []; 
     }
     
-    // Ensure we always have a valid array to work with
-    const equipmentArray = Array.isArray(data) ? data : [];
-    console.log(`Successfully fetched ${equipmentArray.length} equipment items via edge function`);
-    
-    return equipmentArray;
+    console.log(`Successfully fetched ${data?.length || 0} equipment items`);
+    return processEquipmentList(data || []);
   } catch (error) {
     console.error('Error in getEquipment:', error);
     return []; // Return empty array on error

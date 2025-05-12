@@ -1,12 +1,11 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { 
-  createAdminClient,
-  checkEquipmentAccess,
   corsHeaders,
   createErrorResponse,
   createSuccessResponse
 } from '../_shared/index.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -28,37 +27,63 @@ serve(async (req) => {
       return createErrorResponse("Invalid equipment ID format");
     }
     
-    console.log(`Processing access check for equipment ${equipment_id} by user ${user_id}`);
+    // Create regular Supabase client - no admin bypass needed with our security definer functions
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     
-    // Create Supabase client
-    const supabase = await createAdminClient();
-    
-    // Check equipment access using the shared function
-    const accessResult = await checkEquipmentAccess(supabase, user_id, equipment_id);
-    
-    console.log('Access check result:', accessResult);
-    
-    // Get equipment team for the response (if applicable)
-    let teamId = null;
-    if (accessResult.details?.teamId) {
-      teamId = accessResult.details.teamId;
-    } else if (accessResult.hasAccess) {
-      // Try to get team_id from the equipment
-      const { data: equipment } = await supabase
-        .from('equipment')
-        .select('team_id')
-        .eq('id', equipment_id)
-        .maybeSingle();
-        
-      teamId = equipment?.team_id || null;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase environment variables');
     }
     
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Use RPC calls to check access
+    const { data: canAccess, error: accessError } = await supabase.rpc(
+      'can_access_equipment',
+      {
+        p_uid: user_id,
+        p_equipment_id: equipment_id
+      }
+    );
+    
+    if (accessError) {
+      console.error('Error checking equipment access:', accessError);
+      return createErrorResponse(accessError.message);
+    }
+    
+    if (!canAccess) {
+      return createSuccessResponse({
+        has_access: false,
+        reason: 'no_permission'
+      });
+    }
+    
+    // Check if user can edit the equipment
+    const { data: canEdit, error: editError } = await supabase.rpc(
+      'can_edit_equipment',
+      {
+        p_uid: user_id,
+        p_equipment_id: equipment_id
+      }
+    );
+    
+    if (editError) {
+      console.error('Error checking equipment edit permission:', editError);
+      // Still allow view access even if edit check fails
+    }
+    
+    // Get the equipment's team if available
+    const { data: equipment } = await supabase
+      .from('equipment')
+      .select('team_id')
+      .eq('id', equipment_id)
+      .maybeSingle();
+      
     return createSuccessResponse({
-      has_access: accessResult.hasAccess,
-      reason: accessResult.reason,
-      role: accessResult.role,
-      team_id: teamId,
-      details: accessResult.details
+      has_access: true,
+      reason: 'permission_granted',
+      role: canEdit ? 'editor' : 'viewer',
+      team_id: equipment?.team_id || null
     });
     
   } catch (error) {

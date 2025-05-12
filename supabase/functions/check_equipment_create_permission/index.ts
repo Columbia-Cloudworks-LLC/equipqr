@@ -1,11 +1,11 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { 
-  createAdminClient,
   corsHeaders,
   createErrorResponse,
   createSuccessResponse
 } from '../_shared/index.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -20,11 +20,20 @@ serve(async (req) => {
       return createErrorResponse("Missing required parameters: team_id and user_id");
     }
 
-    // Create Supabase admin client to bypass RLS
-    const supabase = await createAdminClient();
+    // Create regular Supabase client - no admin bypass needed with our security definer functions
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     
-    // First, get the team's organization ID using our safe helper function
-    const { data: teamData } = await supabase.rpc('get_team_org', { team_id_param: team_id });
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // First, get the team's organization ID
+    const { data: teamData } = await supabase.rpc('get_team_org', { 
+      team_id_param: team_id 
+    });
     
     if (!teamData) {
       return createErrorResponse("Team not found");
@@ -32,54 +41,30 @@ serve(async (req) => {
     
     const teamOrgId = teamData;
     
-    // Get user's organization ID
-    const { data: userProfile, error: userProfileError } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', user_id)
-      .single();
-      
-    if (userProfileError) {
-      console.error('Error fetching user profile:', userProfileError);
-      return createErrorResponse("User profile not found");
-    }
-    
     // Check if user has an org-level role that allows equipment creation
-    const { data: userRole } = await supabase.rpc('get_user_role', { 
-      _user_id: user_id,
-      _org_id: teamOrgId
-    });
-    
-    const orgRolesWithAccess = ['owner', 'admin'];
-    if (userRole && orgRolesWithAccess.includes(userRole)) {
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user_id)
+      .eq('org_id', teamOrgId)
+      .maybeSingle();
+      
+    if (userRoles?.role === 'owner' || userRoles?.role === 'manager') {
       return createSuccessResponse({ 
         can_create: true, 
         reason: 'org_role',
         org_id: teamOrgId,
-        role: userRole
+        role: userRoles.role
       });
     }
     
-    // If user is not an org admin/owner, check team membership
-    // First get the app_user ID from auth user ID
-    const { data: appUser, error: appUserError } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', user_id)
-      .single();
-      
-    if (appUserError) {
-      console.error('Error fetching app_user:', appUserError);
-      return createErrorResponse("App user not found");
-    }
-    
-    // Check if user is a team member with appropriate role using our safe helper function
+    // Check if user is a team member with appropriate role
     const { data: teamRole } = await supabase.rpc('get_team_role_safe', {
       _user_id: user_id,
       _team_id: team_id
     });
     
-    const teamRolesWithAccess = ['manager', 'owner'];
+    const teamRolesWithAccess = ['manager', 'creator', 'owner'];
     if (teamRole && teamRolesWithAccess.includes(teamRole)) {
       return createSuccessResponse({ 
         can_create: true, 
@@ -89,8 +74,15 @@ serve(async (req) => {
       });
     }
     
+    // Get user's organization ID
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', user_id)
+      .single();
+    
     // If the user's org matches the team's org, they may have default access
-    if (userProfile.org_id === teamOrgId) {
+    if (userProfile && userProfile.org_id === teamOrgId) {
       return createSuccessResponse({ 
         can_create: true, 
         reason: 'same_org',

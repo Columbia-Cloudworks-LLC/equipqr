@@ -1,12 +1,11 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { 
-  createAdminClient,
-  checkRolePermission,
   corsHeaders,
   createErrorResponse,
   createSuccessResponse
 } from '../_shared/index.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -23,17 +22,61 @@ serve(async (req) => {
       return createErrorResponse("Missing required parameters: team_id and user_id must be provided");
     }
     
-    // Create Supabase client
-    const supabase = await createAdminClient();
+    // Create regular Supabase client - no admin bypass needed with our security definer functions
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     
-    // Check role permission using the shared function
-    const permissionResult = await checkRolePermission(supabase, user_id, team_id);
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
     
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // First get the team's org_id
+    const { data: teamOrgId } = await supabase.rpc('get_team_org', {
+      team_id_param: team_id
+    });
+    
+    if (!teamOrgId) {
+      return createErrorResponse("Team not found");
+    }
+    
+    // Check if user is an org owner
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user_id)
+      .eq('org_id', teamOrgId)
+      .eq('role', 'owner')
+      .maybeSingle();
+    
+    if (userRoles) {
+      return createSuccessResponse({ 
+        hasPermission: true, 
+        reason: 'org_role',
+        role: 'owner' 
+      });
+    }
+    
+    // Check if user is a team manager/owner
+    const { data: teamRole } = await supabase.rpc('get_team_role_safe', {
+      _user_id: user_id,
+      _team_id: team_id
+    });
+    
+    const managerRoles = ['manager', 'owner'];
+    if (teamRole && managerRoles.includes(teamRole)) {
+      return createSuccessResponse({ 
+        hasPermission: true, 
+        reason: 'team_role',
+        role: teamRole
+      });
+    }
+    
+    // User doesn't have permission
     return createSuccessResponse({ 
-      hasPermission: permissionResult.hasAccess, 
-      reason: permissionResult.reason,
-      role: permissionResult.role,
-      details: permissionResult.details
+      hasPermission: false, 
+      reason: 'insufficient_permissions' 
     });
     
   } catch (error) {

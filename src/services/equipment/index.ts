@@ -1,10 +1,9 @@
 
-// Re-export all equipment-related services
+// Main equipment service
+// Re-export all functions from the equipment service files
+
 export * from './equipmentListService';
-export * from './equipmentDetailsService';
+export * from './equipmentDetailsService'; 
 export * from './equipmentCreateService';
 export * from './equipmentUpdateService';
 export * from './equipmentDeleteService';
-
-// Re-export the scan service for backwards compatibility
-export { recordScan } from "../scanService";

@@ -1055,6 +1055,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_equipment: {
+        Args: { p_uid: string; p_equipment_id: string }
+        Returns: boolean
+      }
+      can_access_team: {
+        Args: { p_uid: string; p_team_id: string }
+        Returns: boolean
+      }
+      can_edit_equipment: {
+        Args: { p_uid: string; p_equipment_id: string }
+        Returns: boolean
+      }
+      can_insert_to_team_org: {
+        Args: { p_uid: string; p_org_id: string }
+        Returns: boolean
+      }
       check_team_access: {
         Args: { user_id: string; team_id: string }
         Returns: boolean

@@ -1,86 +1,69 @@
 
-import { createAdminClient } from './adminClient.ts';
+// Helper functions to check team access permissions
+// Now leverages the database security definer functions instead of custom logic
 
 // Helper function to check team access
 export async function checkTeamAccess(supabase, userId, teamId) {
   try {
     console.log(`Checking team access for user ${userId} on team ${teamId}`);
     
-    // Use the database function that avoids recursion
-    const { data: teamAccess, error: teamAccessError } = await supabase.rpc(
-      'check_team_access_detailed',
-      {
-        user_id: userId,
-        team_id: teamId
-      }
-    );
+    // Use the new can_access_team function
+    const { data, error } = await supabase.rpc('can_access_team', {
+      p_uid: userId,
+      p_team_id: teamId
+    });
     
-    if (teamAccessError) {
-      console.error('Error checking team access:', teamAccessError);
+    if (error) {
+      console.error('Error checking team access:', error);
       return { 
         hasAccess: false, 
         reason: 'function_error',
-        details: { message: teamAccessError.message }
+        details: { message: error.message }
       };
     }
     
-    // The function returns an array with one row, so we need to get the first element
-    if (teamAccess && teamAccess.length > 0) {
-      const accessData = teamAccess[0];
-      console.log('Team access check result from function:', accessData);
+    if (data === true) {
+      // Get team role if they're a member
+      let role = null;
+      
+      const { data: roleData } = await supabase.rpc('get_team_role_safe', {
+        _user_id: userId,
+        _team_id: teamId
+      });
+      
+      if (roleData) {
+        role = roleData;
+      } else {
+        // Check if they're an org owner
+        const { data: teamData } = await supabase.rpc('get_team_org', {
+          team_id_param: teamId
+        });
+        
+        if (teamData) {
+          // Check if user is an org owner
+          const { data: userRoles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .eq('org_id', teamData)
+            .eq('role', 'owner')
+            .maybeSingle();
+            
+          if (userRoles) {
+            role = 'owner';
+          }
+        }
+      }
       
       return {
-        hasAccess: accessData.has_access,
-        reason: accessData.access_reason,
-        role: accessData.team_role,
-        details: {
-          userOrgId: accessData.user_org_id,
-          teamOrgId: accessData.team_org_id,
-          isTeamMember: accessData.is_team_member,
-          isOrgOwner: accessData.is_org_owner
-        }
-      };
-    }
-    
-    // If the function call failed or returned empty, fall back to checking cross-org access
-    console.log('No result from check_team_access_detailed, checking cross-organization access');
-    
-    // Get the team's organization using RPC to avoid recursion
-    const { data: teamOrgId } = await supabase.rpc('get_team_org', {
-      team_id_param: teamId
-    });
-    
-    if (!teamOrgId) {
-      return {
-        hasAccess: false,
-        reason: 'team_not_found'
-      };
-    }
-    
-    // Check for cross-organization access
-    const { data: orgAcl } = await supabase
-      .from('organization_acl')
-      .select('role')
-      .eq('subject_id', userId)
-      .eq('subject_type', 'user')
-      .eq('org_id', teamOrgId)
-      .or('expires_at.gt.now,expires_at.is.null')
-      .maybeSingle();
-      
-    if (orgAcl) {
-      console.log('Access granted: User has cross-organization access');
-      return { 
-        hasAccess: true, 
-        reason: 'cross_org_access',
-        role: orgAcl.role,
-        details: {
-          orgId: teamOrgId
-        }
+        hasAccess: true,
+        reason: 'permission_granted',
+        role: role,
+        details: {}
       };
     }
     
     // No access granted
-    console.log('Access denied: No permission found');
     return { 
       hasAccess: false, 
       reason: 'no_permission' 
@@ -98,51 +81,51 @@ export async function checkTeamAccess(supabase, userId, teamId) {
 // Helper function to check team role permissions
 export async function checkRolePermission(supabase, userId, teamId) {
   try {
-    // Use our detailed team access function
-    const { data: teamAccess, error: teamAccessError } = await supabase.rpc(
-      'check_team_access_detailed',
-      {
-        user_id: userId,
-        team_id: teamId
-      }
-    );
+    // Get team's org first
+    const { data: teamOrgId } = await supabase.rpc('get_team_org', {
+      team_id_param: teamId
+    });
     
-    if (teamAccessError) {
-      console.error('Error checking team access:', teamAccessError);
+    if (!teamOrgId) {
       return { 
         hasAccess: false, 
-        reason: 'function_error',
-        details: { message: teamAccessError.message }
+        reason: 'team_not_found'
       };
     }
     
-    // Process the result
-    if (teamAccess && teamAccess.length > 0) {
-      const accessData = teamAccess[0];
+    // Check if user is org owner
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('org_id', teamOrgId)
+      .eq('role', 'owner')
+      .maybeSingle();
       
-      // Check if user has sufficient role
-      if (accessData.has_access) {
-        // Managers, admins and owners can change roles
-        if (accessData.is_org_owner) {
-          return { 
-            hasAccess: true, 
-            reason: 'org_role',
-            role: 'owner'
-          };
-        }
-        
-        const managerRoles = ['manager', 'admin', 'owner'];
-        if (accessData.team_role && managerRoles.includes(accessData.team_role)) {
-          return {
-            hasAccess: true,
-            reason: 'team_role',
-            role: accessData.team_role
-          };
-        }
-      }
+    if (userRoles) {
+      return { 
+        hasAccess: true, 
+        reason: 'org_role',
+        role: 'owner'
+      };
     }
     
-    // No access granted
+    // Check if user has manager role in the team
+    const { data: teamRole } = await supabase.rpc('get_team_role_safe', {
+      _user_id: userId,
+      _team_id: teamId
+    });
+    
+    const managerRoles = ['manager', 'owner'];
+    if (teamRole && managerRoles.includes(teamRole)) {
+      return {
+        hasAccess: true,
+        reason: 'team_role',
+        role: teamRole
+      };
+    }
+    
+    // No permission
     return { 
       hasAccess: false, 
       reason: 'insufficient_permissions' 
