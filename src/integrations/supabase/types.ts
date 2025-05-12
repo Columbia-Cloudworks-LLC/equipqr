@@ -1107,6 +1107,14 @@ export type Database = {
         Args: { _user_id: string; _team_id: string }
         Returns: string
       }
+      get_user_by_email: {
+        Args: { email_address: string }
+        Returns: {
+          id: string
+          email: string
+          auth_uid: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string; _org_id: string }
         Returns: Database["public"]["Enums"]["user_role"]

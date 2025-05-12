@@ -102,7 +102,3 @@ port = 54324
 
 [functions.change_user_role]
 
-[analytics]
-enabled = false
-port = 54327
-vector_port = 54328
