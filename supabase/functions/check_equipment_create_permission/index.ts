@@ -23,35 +23,39 @@ serve(async (req) => {
     // Create Supabase client
     const supabase = createAdminClient();
     
-    // Get the team's organization
-    const { data: team, error: teamError } = await supabase
-      .from('team')
-      .select('org_id')
-      .eq('id', team_id)
-      .single();
-      
-    if (teamError) {
-      console.error('Error fetching team details:', teamError);
-      return createErrorResponse("Team not found");
+    // Get the team's organization in a way that avoids recursion
+    // Direct query to avoid RLS recursion
+    const { data: teamData, error: teamError } = await supabase.rpc(
+      'get_team_org',
+      { team_id_param: team_id }
+    );
+    
+    if (teamError || !teamData) {
+      console.error('Error fetching team organization:', teamError || 'No data returned');
+      return createErrorResponse("Could not determine team organization");
     }
+    
+    const team_org_id = teamData;
+    console.log(`Team ${team_id} belongs to organization ${team_org_id}`);
     
     // Check if user is an org owner for this team's organization
     const { data: orgRole } = await supabase.rpc(
       'get_user_role',
-      { _user_id: user_id, _org_id: team.org_id }
+      { _user_id: user_id, _org_id: team_org_id }
     );
     
     if (orgRole === 'owner') {
       return createSuccessResponse({
         can_create: true,
         reason: 'org_owner',
-        role: 'owner'
+        role: 'owner',
+        org_id: team_org_id
       });
     }
     
-    // Check user's role in the team
+    // Check user's role in the team using a safer function that avoids recursion
     const { data: teamRole } = await supabase.rpc(
-      'get_team_role',
+      'get_team_role_safe',
       { _user_id: user_id, _team_id: team_id }
     );
     
@@ -59,7 +63,8 @@ serve(async (req) => {
       return createSuccessResponse({
         can_create: true,
         reason: 'team_role',
-        role: teamRole
+        role: teamRole,
+        org_id: team_org_id
       });
     }
     
@@ -69,7 +74,7 @@ serve(async (req) => {
       .select('role')
       .eq('subject_id', user_id)
       .eq('subject_type', 'user')
-      .eq('org_id', team.org_id)
+      .eq('org_id', team_org_id)
       .or('expires_at.gt.now,expires_at.is.null')
       .maybeSingle();
     
@@ -77,14 +82,16 @@ serve(async (req) => {
       return createSuccessResponse({
         can_create: true,
         reason: 'cross_org_access',
-        role: orgAcl.role
+        role: orgAcl.role,
+        org_id: team_org_id
       });
     }
     
     // User doesn't have permission
     return createSuccessResponse({
       can_create: false,
-      reason: 'insufficient_permissions'
+      reason: 'insufficient_permissions',
+      org_id: team_org_id
     });
     
   } catch (error) {

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { getAppUserId, getUserOrganizationId, processDateFields } from "@/utils/authUtils";
@@ -167,31 +168,31 @@ export async function createEquipment(equipment: Partial<Equipment>) {
     if (equipment.team_id && equipment.team_id !== 'none') {
       console.log(`Getting org ID for team ${equipment.team_id}`);
       
-      // Check if user has permission to create equipment for this team
-      const { data: permissionCheck } = await supabase.functions.invoke('check_equipment_create_permission', {
+      // Use the edge function to check permission instead of direct DB access
+      // This avoids RLS recursion issues
+      const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_create_permission', {
         body: {
           user_id: authUserId,
           team_id: equipment.team_id
         }
       });
       
+      if (permissionError) {
+        console.error('Error checking equipment creation permission:', permissionError);
+        throw new Error('Failed to verify permissions');
+      }
+      
       if (!permissionCheck?.can_create) {
         throw new Error('You do not have permission to create equipment for this team');
       }
       
-      // Get team's organization ID
-      const { data: team, error: teamError } = await supabase
-        .from('team')
-        .select('org_id')
-        .eq('id', equipment.team_id)
-        .single();
-        
-      if (teamError) {
-        console.error('Error fetching team:', teamError);
-        throw new Error('Failed to get team information');
+      // Get the org_id from the response
+      orgId = permissionCheck.org_id;
+      
+      if (!orgId) {
+        throw new Error('Failed to determine organization for this team');
       }
       
-      orgId = team.org_id;
       console.log(`Using team's org ID: ${orgId}`);
     } else {
       // Use user's organization ID for non-team equipment
