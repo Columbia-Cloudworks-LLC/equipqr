@@ -1,11 +1,10 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { 
   createAdminClient,
   corsHeaders,
   createErrorResponse,
   createSuccessResponse
-} from '../_shared/permissions.ts';
+} from '../_shared/index.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
