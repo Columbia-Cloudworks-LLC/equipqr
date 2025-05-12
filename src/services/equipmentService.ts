@@ -6,21 +6,90 @@ import { getEquipmentAttributes, saveEquipmentAttributes } from "./equipmentAttr
 import { recordScan } from "./scanService";
 
 /**
- * Get all equipment items
+ * Get all equipment items including those from teams the user belongs to
  */
 export async function getEquipment() {
-  const { data, error } = await supabase
-    .from('equipment')
-    .select('*')
-    .is('deleted_at', null)
-    .order('name');
+  try {
+    console.log('Fetching all equipment for current user');
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('User must be logged in to view equipment');
+    }
     
-  if (error) {
-    console.error('Error fetching equipment:', error);
+    const authUserId = sessionData.session.user.id;
+
+    // First get equipment from user's organization
+    const { data: orgEquipment, error: orgError } = await supabase
+      .from('equipment')
+      .select('*')
+      .is('deleted_at', null)
+      .order('name');
+      
+    if (orgError) {
+      console.error('Error fetching organization equipment:', orgError);
+      throw orgError;
+    }
+    
+    // Get app_user ID from auth user ID
+    const appUserId = await getAppUserId(authUserId);
+    
+    // Get user's team memberships
+    const { data: teamMemberships, error: membershipError } = await supabase
+      .from('team_member')
+      .select('team_id')
+      .eq('user_id', appUserId);
+    
+    if (membershipError) {
+      console.error('Error fetching team memberships:', membershipError);
+      return orgEquipment || [];
+    }
+    
+    // If user is not a member of any teams, just return org equipment
+    if (!teamMemberships || teamMemberships.length === 0) {
+      console.log(`User has no team memberships, returning ${orgEquipment?.length || 0} organization equipment`);
+      return orgEquipment || [];
+    }
+    
+    // Extract team IDs
+    const teamIds = teamMemberships.map(tm => tm.team_id);
+    
+    // Get equipment for these teams
+    const { data: teamEquipment, error: teamError } = await supabase
+      .from('equipment')
+      .select('*')
+      .in('team_id', teamIds)
+      .is('deleted_at', null)
+      .order('name');
+    
+    if (teamError) {
+      console.error('Error fetching team equipment:', teamError);
+      return orgEquipment || [];
+    }
+    
+    // Combine equipment lists, ensuring no duplicates by ID
+    const equipmentMap = new Map();
+    
+    // Add organization equipment
+    (orgEquipment || []).forEach(item => {
+      equipmentMap.set(item.id, item);
+    });
+    
+    // Add team equipment (if it's not already in the map)
+    (teamEquipment || []).forEach(item => {
+      if (!equipmentMap.has(item.id)) {
+        equipmentMap.set(item.id, item);
+      }
+    });
+    
+    // Convert map to array
+    const combinedEquipment = Array.from(equipmentMap.values());
+    console.log(`Successfully fetched ${combinedEquipment.length} equipment items (${orgEquipment?.length || 0} org + ${teamEquipment?.length || 0} team)`);
+    
+    return combinedEquipment as Equipment[];
+  } catch (error) {
+    console.error('Error in getEquipment:', error);
     throw error;
   }
-  
-  return data as Equipment[];
 }
 
 /**
@@ -28,6 +97,27 @@ export async function getEquipment() {
  */
 export async function getEquipmentById(id: string) {
   try {
+    // Get current user's auth ID
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('User must be logged in to view equipment details');
+    }
+    
+    const authUserId = sessionData.session.user.id;
+    
+    // Verify access to this equipment
+    const { data: accessCheck } = await supabase.functions.invoke('check_equipment_access', {
+      body: {
+        equipment_id: id,
+        user_id: authUserId
+      }
+    });
+    
+    if (!accessCheck?.has_access) {
+      console.error('User does not have access to this equipment');
+      throw new Error('You do not have permission to view this equipment');
+    }
+    
     // First fetch the equipment
     const { data: equipment, error } = await supabase
       .from('equipment')

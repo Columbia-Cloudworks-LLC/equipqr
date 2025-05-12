@@ -2,44 +2,44 @@
 project_id = "oxeheowbfsshpyldlskb"
 
 [api]
-enabled = true
 port = 54321
 schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
 [db]
 port = 54322
+shadow_port = 54320
+major_version = 15
 
 [studio]
 port = 54323
 
 [inbucket]
 port = 54324
-
-[auth]
-enabled = true
-site_url = "http://localhost:3000"
+smtp_port = 54325
+pop3_port = 54326
 
 [storage]
-enabled = true
+file_size_limit = 50000000
 
-[realtime]
-enabled = true
+[auth]
+site_url = "https://example.com"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
 
-[analytics]
-enabled = false
+[dashboard]
+port = 8443
 
 [functions]
-[functions.add_team_member]
-verify_jwt = true
-
-[functions.get_team_members]
-verify_jwt = true
-
-[functions.validate_team_access]
-verify_jwt = true
-
-[functions.repair_team_membership]
-verify_jwt = true
-
-[functions.send_invitation_email]
-verify_jwt = true
+validate_team_access = {}
+check_team_role_permission = {}
+send_invitation_email = {}
+add_team_member = {}
+repair_team_membership = {}
+request_role_upgrade = {}
+get_team_members = {}
+check_equipment_access = {}
