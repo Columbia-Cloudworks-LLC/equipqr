@@ -1,8 +1,9 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { getAppUserId, getUserOrganizationId, processDateFields } from "@/utils/authUtils";
-import { getEquipmentAttributes, saveEquipmentAttributes } from "./equipmentAttributesService";
-import { recordScan } from "./scanService";
+import { getEquipmentAttributes, saveEquipmentAttributes } from "@/services/equipmentAttributesService";
+import { recordScan } from "@/services/scanService";
 
 /**
  * Get all equipment items including those from teams the user belongs to
@@ -296,4 +297,4 @@ export async function deleteEquipment(id: string) {
 }
 
 // Re-export scan service functionality
-export { recordScan } from "./scanService";
+export { recordScan } from "@/services/scanService";
