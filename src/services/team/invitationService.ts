@@ -1,42 +1,63 @@
 
-// Re-export all invitation-related functions from the invitation directory
-export * from "./invitation";
+import { supabase } from "@/integrations/supabase/client";
+import { validateInvitationToken } from "./invitation/validateInvitation";
+import { acceptInvitation } from "./invitation/acceptInvitation";
+import { sendInvitationEmail, generateToken } from "./invitation/invitationHelpers";
+import { getPendingInvitationsForUser } from "./notificationService";
+import { 
+  resendInvite, 
+  cancelInvitation, 
+  getPendingInvitations 
+} from "./invitation/invitationActions";
 
-// Add new functionality to check if a user is a member of a team
-export async function isUserTeamMember(userId: string, teamId: string): Promise<boolean> {
-  try {
-    if (!userId || !teamId) return false;
-    
-    // Use the existing validateTeamMembership function
-    const { validateTeamMembership } = await import('./teamValidationService');
-    return await validateTeamMembership(userId, teamId);
-  } catch (error) {
-    console.error("Error checking team membership:", error);
-    return false;
-  }
-}
+/**
+ * Export all functions to maintain compatibility with existing code
+ */
+export {
+  validateInvitationToken,
+  acceptInvitation,
+  sendInvitationEmail,
+  generateToken,
+  getPendingInvitationsForUser,
+  resendInvite,
+  cancelInvitation,
+  getPendingInvitations
+};
 
-// Add function to get all equipment assigned to a team
-export async function getTeamEquipment(teamId: string) {
+/**
+ * Get pending invitations for the current user's email
+ */
+export async function getPendingTeamInvitations() {
   try {
-    if (!teamId || teamId === 'none') return [];
-    
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    const { data, error } = await supabase
-      .from('equipment')
-      .select('*')
-      .eq('team_id', teamId)
-      .is('deleted_at', null);
-      
-    if (error) {
-      console.error("Error fetching team equipment:", error);
-      throw error;
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error("Error retrieving session:", sessionError);
+      return [];
     }
     
+    if (!sessionData?.session?.user?.email) {
+      console.error("No authenticated user email found");
+      return [];
+    }
+    
+    const userEmail = sessionData.session.user.email.toLowerCase();
+    
+    // Query invitations directly with an email filter to avoid RLS errors
+    const { data, error } = await supabase
+      .from('team_invitations')
+      .select('*, team:team_id(name)')
+      .eq('email', userEmail)
+      .eq('status', 'pending');
+    
+    if (error) {
+      console.error('Error fetching pending invitations:', error);
+      throw new Error(`Failed to fetch invitations: ${error.message}`);
+    }
+    
+    console.log(`Found ${data?.length || 0} pending invitations for ${userEmail}`);
     return data || [];
-  } catch (error) {
-    console.error("Error in getTeamEquipment:", error);
-    throw error;
+  } catch (error: any) {
+    console.error('Error in getPendingTeamInvitations:', error);
+    return [];
   }
 }

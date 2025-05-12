@@ -2,24 +2,27 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Gets the app_user.id associated with the current authenticated user
- * This is necessary because auth.uid() and app_user.id are different
+ * Convert auth.users ID to app_user ID
  */
 export async function getAppUserId(authUserId: string): Promise<string> {
   try {
-    // Try to find the app_user record linked to this auth user
-    const { data: appUser, error: appUserError } = await supabase
+    const { data, error } = await supabase
       .from('app_user')
       .select('id')
       .eq('auth_uid', authUserId)
-      .single();
+      .maybeSingle();
     
-    if (appUserError || !appUser) {
-      console.error('Error finding app user:', appUserError);
-      throw new Error('Failed to find your user profile. Please ensure your profile is set up correctly.');
+    if (error) {
+      console.error('Error getting app_user ID:', error);
+      throw error;
     }
     
-    return appUser.id;
+    if (!data || !data.id) {
+      console.error('No app_user found for auth_uid:', authUserId);
+      throw new Error('User profile not found');
+    }
+    
+    return data.id;
   } catch (error) {
     console.error('Error in getAppUserId:', error);
     throw error;
@@ -27,23 +30,27 @@ export async function getAppUserId(authUserId: string): Promise<string> {
 }
 
 /**
- * Gets the organization ID for the current user
+ * Get user's organization ID
  */
-export async function getUserOrganizationId(userId: string): Promise<string> {
+export async function getUserOrganizationId(authUserId: string): Promise<string> {
   try {
-    // Get the user profile to determine organization ID
-    const { data: userProfile, error: profileError } = await supabase
+    const { data, error } = await supabase
       .from('user_profiles')
       .select('org_id')
-      .eq('id', userId)
+      .eq('id', authUserId)
       .single();
-      
-    if (profileError || !userProfile?.org_id) {
-      console.error('Error fetching user profile:', profileError);
-      throw new Error('Failed to determine your organization. Please ensure your profile is set up correctly.');
+    
+    if (error) {
+      console.error('Error getting user organization ID:', error);
+      throw error;
     }
     
-    return userProfile.org_id;
+    if (!data || !data.org_id) {
+      console.error('No organization found for user:', authUserId);
+      throw new Error('User organization not found');
+    }
+    
+    return data.org_id;
   } catch (error) {
     console.error('Error in getUserOrganizationId:', error);
     throw error;
