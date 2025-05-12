@@ -24,7 +24,7 @@ serve(async (req) => {
     }
     
     // Create Supabase client
-    const supabase = createAdminClient();
+    const supabase = await createAdminClient();
     
     // Check role permission using the shared function
     const permissionResult = await checkRolePermission(supabase, user_id, team_id);

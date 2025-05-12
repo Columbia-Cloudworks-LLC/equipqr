@@ -21,7 +21,7 @@ serve(async (req) => {
     }
 
     // Create Supabase client
-    const supabase = createAdminClient();
+    const supabase = await createAdminClient();
     
     // Get the team's organization in a way that avoids recursion
     // Direct query to avoid RLS recursion

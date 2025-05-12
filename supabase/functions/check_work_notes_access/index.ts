@@ -6,7 +6,6 @@ import {
   corsHeaders,
   createErrorResponse,
   createSuccessResponse,
-  AccessResult
 } from '../_shared/permissions.ts';
 
 serve(async (req) => {
@@ -23,7 +22,7 @@ serve(async (req) => {
     }
 
     // Create Supabase admin client - this bypasses RLS policies
-    const supabase = createAdminClient();
+    const supabase = await createAdminClient();
     
     // Use the shared equipment access check function that uses direct queries
     // to avoid RLS policy recursion issues
