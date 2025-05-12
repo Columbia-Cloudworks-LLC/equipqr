@@ -74,7 +74,7 @@ serve(async (req) => {
     
     if (membershipError) {
       console.error('Error fetching team memberships:', membershipError);
-      // Continue with org equipment only
+      // Continue with org equipment only - ensure we return an array
       return createSuccessResponse(processEquipmentList(orgEquipment || []));
     }
     
@@ -101,17 +101,19 @@ serve(async (req) => {
     
     if (teamError) {
       console.error('Error fetching team equipment:', teamError);
-      // Continue with org equipment only
+      // Continue with org equipment only - ensure we return an array
       return createSuccessResponse(processEquipmentList(orgEquipment || []));
     }
     
-    // Combine equipment lists with processed data
+    // Combine equipment lists with processed data - ensure we return an array
     const combinedEquipment = combineEquipmentLists(orgEquipment || [], teamEquipment || [], userProfile.org_id);
     
+    console.log(`Successfully fetched ${combinedEquipment.length} equipment items via edge function`);
     return createSuccessResponse(combinedEquipment);
   } catch (error) {
     console.error('Unexpected error:', error);
-    return createErrorResponse(error.message);
+    // Return an empty array on error rather than null
+    return createSuccessResponse([]);
   }
 });
 

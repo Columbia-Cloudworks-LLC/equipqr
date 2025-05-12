@@ -10,6 +10,7 @@ export function useNotificationsState() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [lastRefreshAttempt, setLastRefreshAttempt] = useState<Date | null>(null);
+  const [hasError, setHasError] = useState(false);
   const { user, session } = useAuth();
   
   // Debounced refresh function to prevent multiple rapid calls
@@ -30,13 +31,23 @@ export function useNotificationsState() {
     try {
       setLastRefreshAttempt(now);
       setIsLoading(true);
+      setHasError(false);
       
-      const data = await getActiveNotifications();
+      const data = await getActiveNotifications().catch(error => {
+        console.error("Error in getActiveNotifications:", error);
+        setHasError(true);
+        return []; // Return empty array on error
+      });
       
-      setInvitations(data);
-      setHasNewNotifications(data.length > 0);
+      // Ensure we always have a valid array
+      const notificationArray = Array.isArray(data) ? data : [];
+      
+      setInvitations(notificationArray);
+      setHasNewNotifications(notificationArray.length > 0);
     } catch (error) {
       console.error("Error fetching notifications:", error);
+      setHasError(true);
+      // Don't update state on error to avoid wiping out previous valid data
     } finally {
       setIsLoading(false);
     }
@@ -54,18 +65,27 @@ export function useNotificationsState() {
 
   // Reset dismissed notifications
   const resetDismissedNotifications = useCallback(() => {
-    clearLocalDismissedNotifications();
-    refreshNotifications();
-    toast.success("Notification status reset");
+    try {
+      clearLocalDismissedNotifications();
+      refreshNotifications();
+      toast.success("Notification status reset");
+    } catch (error) {
+      console.error("Error resetting dismissed notifications:", error);
+      toast.error("Failed to reset notification status");
+    }
   }, [refreshNotifications]);
 
   // Fetch notifications when authentication state changes
   useEffect(() => {
     if (user && session) {
       // Small delay to make sure auth is fully established
-      setTimeout(() => {
-        debouncedRefresh();
+      const timer = setTimeout(() => {
+        debouncedRefresh().catch(error => {
+          console.error("Failed to refresh notifications on auth state change:", error);
+        });
       }, 1000);
+      
+      return () => clearTimeout(timer);
     } else {
       // Reset state when user logs out
       setInvitations([]);
@@ -78,7 +98,9 @@ export function useNotificationsState() {
     if (!user) return;
     
     const interval = setInterval(() => {
-      debouncedRefresh();
+      debouncedRefresh().catch(error => {
+        console.error("Failed to refresh notifications in periodic check:", error);
+      });
     }, 5 * 60 * 1000);
     
     return () => {
@@ -87,18 +109,23 @@ export function useNotificationsState() {
   }, [user, debouncedRefresh]);
 
   const dismissInvitation = useCallback((id: string) => {
-    dismissNotification(id);
-    setInvitations(prevInvitations => {
-      const filtered = prevInvitations.filter(inv => inv.id !== id);
-      setHasNewNotifications(filtered.length > 0);
-      return filtered;
-    });
+    try {
+      dismissNotification(id);
+      setInvitations(prevInvitations => {
+        const filtered = prevInvitations.filter(inv => inv.id !== id);
+        setHasNewNotifications(filtered.length > 0);
+        return filtered;
+      });
+    } catch (error) {
+      console.error("Error dismissing invitation:", error);
+    }
   }, []);
 
   return {
     invitations,
     isLoading,
     hasNewNotifications,
+    hasError,
     refreshNotifications,
     dismissInvitation,
     resetDismissedNotifications

@@ -24,14 +24,17 @@ export async function getEquipment() {
     
     if (error) {
       console.error('Error fetching equipment via edge function:', error);
-      throw new Error('Failed to retrieve equipment data');
+      return []; // Return empty array instead of throwing
     }
     
-    console.log(`Successfully fetched ${data?.length || 0} equipment items via edge function`);
-    return data || [];
+    // Ensure we always have a valid array to work with
+    const equipmentArray = Array.isArray(data) ? data : [];
+    console.log(`Successfully fetched ${equipmentArray.length} equipment items via edge function`);
+    
+    return equipmentArray;
   } catch (error) {
     console.error('Error in getEquipment:', error);
-    throw error;
+    return []; // Return empty array on error
   }
 }
 

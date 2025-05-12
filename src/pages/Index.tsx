@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,20 +19,40 @@ const Index = () => {
   const [showInvitationAlert, setShowInvitationAlert] = useState(true);
   const { invitations, refreshNotifications } = useNotifications();
   
-  const { data: equipment = [], isLoading } = useQuery({
+  const { data: equipmentData = [], isLoading, isError } = useQuery({
     queryKey: ['equipment'],
     queryFn: getEquipment,
+    retry: 1,
   });
+
+  // Safely ensure equipment is always an array
+  const equipment = Array.isArray(equipmentData) ? equipmentData : [];
 
   // Refresh notifications when the dashboard loads
   useEffect(() => {
-    refreshNotifications();
+    try {
+      refreshNotifications().catch(error => {
+        console.error("Failed to refresh notifications:", error);
+        // Non-critical error, don't block the UI
+      });
+    } catch (error) {
+      console.error("Error refreshing notifications:", error);
+    }
   }, [refreshNotifications]);
 
   useEffect(() => {
     // Still using mock data for team members for now
     setTeamMembers(MOCK_TEAM_MEMBERS);
   }, []);
+
+  // Safely calculate equipment counts with defensive checks
+  const activeCount = Array.isArray(equipment) 
+    ? equipment.filter(item => item?.status === 'active').length 
+    : 0;
+    
+  const maintenanceCount = Array.isArray(equipment)
+    ? equipment.filter(item => item?.status === 'maintenance').length
+    : 0;
 
   const stats: DashboardStat[] = [
     {
@@ -44,12 +63,12 @@ const Index = () => {
     },
     {
       label: 'In Use',
-      value: equipment.filter(item => item.status === 'active').length,
+      value: activeCount,
       icon: Package,
     },
     {
       label: 'Maintenance',
-      value: equipment.filter(item => item.status === 'maintenance').length,
+      value: maintenanceCount,
       change: -5,
       icon: Settings,
     },
@@ -61,15 +80,22 @@ const Index = () => {
     },
   ];
 
-  // Get recently added equipment (last 4)
-  const recentEquipment = [...equipment]
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 4);
+  // Get recently added equipment (last 4) with error handling
+  const recentEquipment = Array.isArray(equipment) 
+    ? [...equipment]
+        .sort((a, b) => {
+          // Safely handle missing dates or invalid format
+          const dateA = a?.updated_at ? new Date(a.updated_at).getTime() : 0;
+          const dateB = b?.updated_at ? new Date(b.updated_at).getTime() : 0;
+          return dateB - dateA;
+        })
+        .slice(0, 4)
+    : [];
 
   return (
     <Layout>
       <div className="flex-1 space-y-6 p-6">
-        {invitations.length > 0 && showInvitationAlert && (
+        {Array.isArray(invitations) && invitations.length > 0 && showInvitationAlert && (
           <Alert className="bg-primary/5 border-primary/10 flex items-center justify-between">
             <div className="flex items-center">
               <Mail className="h-5 w-5 mr-2" />
@@ -146,6 +172,14 @@ const Index = () => {
                       </CardFooter>
                     </Card>
                   ))}
+                </div>
+              ) : isError ? (
+                <div className="flex flex-col items-center justify-center h-40 border border-dashed rounded-lg">
+                  <Package className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">Could not load equipment data</p>
+                  <Button variant="link" onClick={() => window.location.reload()}>
+                    Try again
+                  </Button>
                 </div>
               ) : recentEquipment.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2">

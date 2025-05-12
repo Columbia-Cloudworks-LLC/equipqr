@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Equipment } from '@/types';
@@ -30,22 +29,35 @@ interface EquipmentListProps {
 }
 
 export function EquipmentList({ equipment, isLoading = false }: EquipmentListProps) {
+  // Ensure equipment is always an array, even if somehow passed as something else
+  const safeEquipment = Array.isArray(equipment) ? equipment : [];
+  
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterTeam, setFilterTeam] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Extract unique teams for filtering
-  const teams = [...new Set(equipment.map(item => item.team_name).filter(Boolean))];
+  // Extract unique teams for filtering with error handling
+  const teams = [...new Set(safeEquipment
+    .map(item => item?.team_name)
+    .filter(Boolean)
+  )];
 
-  const filteredEquipment = equipment.filter((item) => {
-    const matchesSearch = 
-      (item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (item.model?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (item.serial_number?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-      
-    const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
+  // Apply filters with defensive programming
+  const filteredEquipment = safeEquipment.filter((item) => {
+    // Safe string comparisons - protect against undefined values
+    const itemName = (item?.name || '').toLowerCase();
+    const itemModel = (item?.model || '').toLowerCase();
+    const itemSerial = (item?.serial_number || '').toLowerCase();
+    const searchLower = searchQuery.toLowerCase();
     
-    const matchesTeam = filterTeam === 'all' || item.team_name === filterTeam;
+    const matchesSearch = 
+      itemName.includes(searchLower) ||
+      itemModel.includes(searchLower) ||
+      itemSerial.includes(searchLower);
+      
+    const matchesStatus = filterStatus === 'all' || item?.status === filterStatus;
+    
+    const matchesTeam = filterTeam === 'all' || item?.team_name === filterTeam;
     
     return matchesSearch && matchesStatus && matchesTeam;
   });
