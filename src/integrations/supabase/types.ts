@@ -1115,7 +1115,15 @@ export type Database = {
           status: string
         }[]
       }
+      get_team_org: {
+        Args: { team_id_param: string }
+        Returns: string
+      }
       get_team_role: {
+        Args: { _user_id: string; _team_id: string }
+        Returns: string
+      }
+      get_team_role_safe: {
         Args: { _user_id: string; _team_id: string }
         Returns: string
       }
