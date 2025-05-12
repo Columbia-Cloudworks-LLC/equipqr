@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Equipment from "./pages/Equipment";
 import EquipmentDetail from "./pages/EquipmentDetail";
+import EquipmentQR from "./pages/EquipmentQR";
 import EquipmentForm from "./pages/EquipmentForm";
 import TeamManagement from "./pages/TeamManagement";
 import InvitationPage from "./pages/InvitationPage";
@@ -110,7 +112,7 @@ const App = () => (
                 path="/equipment/:id/qr"
                 element={
                   <ProtectedRoute>
-                    <EquipmentDetail />
+                    <EquipmentQR />
                   </ProtectedRoute>
                 }
               />
