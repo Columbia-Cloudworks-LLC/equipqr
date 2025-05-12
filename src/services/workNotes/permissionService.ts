@@ -179,7 +179,7 @@ export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> 
         .maybeSingle();
       
       // Users with cross-org access as managers or technicians can create notes
-      if (crossOrgAccess?.role === 'manager' || crossOrgAccess?.role === 'technician') {
+      if (crossOrgAccess && (crossOrgAccess.role === 'manager' || crossOrgAccess.role === 'technician')) {
         return true;
       }
     }
