@@ -1059,6 +1059,18 @@ export type Database = {
         Args: { user_id: string; team_id: string }
         Returns: boolean
       }
+      check_team_access_detailed: {
+        Args: { user_id: string; team_id: string }
+        Returns: {
+          has_access: boolean
+          access_reason: string
+          user_org_id: string
+          team_org_id: string
+          is_team_member: boolean
+          is_org_owner: boolean
+          team_role: string
+        }[]
+      }
       gen_invitation_token: {
         Args: Record<PropertyKey, never>
         Returns: string
