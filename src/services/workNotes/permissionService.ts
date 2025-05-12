@@ -62,7 +62,7 @@ export async function canManageWorkNotes(equipmentId: string): Promise<boolean> 
       );
       
       // Organization owners and admins can manage all notes
-      if (orgRole === 'owner' || orgRole === UserRole.admin) {
+      if (orgRole === 'owner' || orgRole === 'admin') {
         return true;
       }
       
@@ -150,7 +150,7 @@ export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> 
       );
       
       // Organization owners and admins can create notes
-      if (orgRole === 'owner' || orgRole === UserRole.admin) {
+      if (orgRole === 'owner' || orgRole === 'admin') {
         return true;
       }
       
