@@ -14,84 +14,96 @@ serve(async (req) => {
   }
 
   try {
-    const { user_id, team_id } = await req.json();
+    const { team_id, user_id } = await req.json();
     
-    if (!user_id || !team_id) {
-      return createErrorResponse("Missing required parameters: user_id and team_id must be provided");
+    if (!team_id || !user_id) {
+      return createErrorResponse("Missing required parameters: team_id and user_id");
     }
 
-    // Create Supabase client
+    // Create Supabase admin client to bypass RLS
     const supabase = await createAdminClient();
     
-    // Get the team's organization in a way that avoids recursion
-    // Direct query to avoid RLS recursion
-    const { data: teamData, error: teamError } = await supabase.rpc(
-      'get_team_org',
-      { team_id_param: team_id }
-    );
+    // First, get the team's organization ID using our safe helper function
+    const { data: teamData } = await supabase.rpc('get_team_org', { team_id_param: team_id });
     
-    if (teamError || !teamData) {
-      console.error('Error fetching team organization:', teamError || 'No data returned');
-      return createErrorResponse("Could not determine team organization");
+    if (!teamData) {
+      return createErrorResponse("Team not found");
     }
     
-    const team_org_id = teamData;
-    console.log(`Team ${team_id} belongs to organization ${team_org_id}`);
+    const teamOrgId = teamData;
     
-    // Check if user is an org owner for this team's organization
-    const { data: orgRole } = await supabase.rpc(
-      'get_user_role',
-      { _user_id: user_id, _org_id: team_org_id }
-    );
+    // Get user's organization ID
+    const { data: userProfile, error: userProfileError } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', user_id)
+      .single();
+      
+    if (userProfileError) {
+      console.error('Error fetching user profile:', userProfileError);
+      return createErrorResponse("User profile not found");
+    }
     
-    if (orgRole === 'owner') {
-      return createSuccessResponse({
-        can_create: true,
-        reason: 'org_owner',
-        role: 'owner',
-        org_id: team_org_id
+    // Check if user has an org-level role that allows equipment creation
+    const { data: userRole } = await supabase.rpc('get_user_role', { 
+      _user_id: user_id,
+      _org_id: teamOrgId
+    });
+    
+    const orgRolesWithAccess = ['owner', 'admin'];
+    if (userRole && orgRolesWithAccess.includes(userRole)) {
+      return createSuccessResponse({ 
+        can_create: true, 
+        reason: 'org_role',
+        org_id: teamOrgId,
+        role: userRole
       });
     }
     
-    // Check user's role in the team using a safer function that avoids recursion
-    const { data: teamRole } = await supabase.rpc(
-      'get_team_role_safe',
-      { _user_id: user_id, _team_id: team_id }
-    );
+    // If user is not an org admin/owner, check team membership
+    // First get the app_user ID from auth user ID
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', user_id)
+      .single();
+      
+    if (appUserError) {
+      console.error('Error fetching app_user:', appUserError);
+      return createErrorResponse("App user not found");
+    }
     
-    if (teamRole && ['manager', 'creator'].includes(teamRole)) {
-      return createSuccessResponse({
-        can_create: true,
+    // Check if user is a team member with appropriate role using our safe helper function
+    const { data: teamRole } = await supabase.rpc('get_team_role_safe', {
+      _user_id: user_id,
+      _team_id: team_id
+    });
+    
+    const teamRolesWithAccess = ['manager', 'owner'];
+    if (teamRole && teamRolesWithAccess.includes(teamRole)) {
+      return createSuccessResponse({ 
+        can_create: true, 
         reason: 'team_role',
-        role: teamRole,
-        org_id: team_org_id
+        org_id: teamOrgId,
+        role: teamRole
       });
     }
     
-    // Check for organization_acl entries (cross-org access)
-    const { data: orgAcl } = await supabase
-      .from('organization_acl')
-      .select('role')
-      .eq('subject_id', user_id)
-      .eq('subject_type', 'user')
-      .eq('org_id', team_org_id)
-      .or('expires_at.gt.now,expires_at.is.null')
-      .maybeSingle();
-    
-    if (orgAcl && orgAcl.role === 'manager') {
-      return createSuccessResponse({
-        can_create: true,
-        reason: 'cross_org_access',
-        role: orgAcl.role,
-        org_id: team_org_id
+    // If the user's org matches the team's org, they may have default access
+    if (userProfile.org_id === teamOrgId) {
+      return createSuccessResponse({ 
+        can_create: true, 
+        reason: 'same_org',
+        org_id: teamOrgId,
+        role: 'member'
       });
     }
     
-    // User doesn't have permission
-    return createSuccessResponse({
-      can_create: false,
+    // User does not have permission
+    return createSuccessResponse({ 
+      can_create: false, 
       reason: 'insufficient_permissions',
-      org_id: team_org_id
+      org_id: teamOrgId
     });
     
   } catch (error) {

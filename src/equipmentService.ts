@@ -18,77 +18,24 @@ export async function getEquipment() {
     
     const authUserId = sessionData.session.user.id;
 
-    // First get equipment from user's organization
-    const { data: orgEquipment, error: orgError } = await supabase
-      .from('equipment')
-      .select('*')
-      .is('deleted_at', null)
-      .order('name');
-      
-    if (orgError) {
-      console.error('Error fetching organization equipment:', orgError);
-      throw orgError;
-    }
-    
-    // Get app_user ID from auth user ID
-    const appUserId = await getAppUserId(authUserId);
-    
-    // Get user's team memberships
-    const { data: teamMemberships, error: membershipError } = await supabase
-      .from('team_member')
-      .select('team_id')
-      .eq('user_id', appUserId);
-    
-    if (membershipError) {
-      console.error('Error fetching team memberships:', membershipError);
-      return orgEquipment || [];
-    }
-    
-    // If user is not a member of any teams, just return org equipment
-    if (!teamMemberships || teamMemberships.length === 0) {
-      console.log(`User has no team memberships, returning ${orgEquipment?.length || 0} organization equipment`);
-      return orgEquipment || [];
-    }
-    
-    // Extract team IDs
-    const teamIds = teamMemberships.map(tm => tm.team_id);
-    
-    // Get equipment for these teams
-    const { data: teamEquipment, error: teamError } = await supabase
-      .from('equipment')
-      .select('*')
-      .in('team_id', teamIds)
-      .is('deleted_at', null)
-      .order('name');
-    
-    if (teamError) {
-      console.error('Error fetching team equipment:', teamError);
-      return orgEquipment || [];
-    }
-    
-    // Combine equipment lists, ensuring no duplicates by ID
-    const equipmentMap = new Map();
-    
-    // Add organization equipment
-    (orgEquipment || []).forEach(item => {
-      equipmentMap.set(item.id, item);
+    // Use the edge function to fetch equipment, which bypasses RLS recursion issues
+    const { data, error } = await supabase.functions.invoke('list_user_equipment', {
+      body: { user_id: authUserId }
     });
     
-    // Add team equipment (if it's not already in the map)
-    (teamEquipment || []).forEach(item => {
-      if (!equipmentMap.has(item.id)) {
-        equipmentMap.set(item.id, item);
-      }
-    });
+    if (error) {
+      console.error('Error fetching equipment via edge function:', error);
+      return []; // Return empty array instead of throwing
+    }
     
-    // Convert map to array
-    const combinedEquipment = Array.from(equipmentMap.values());
-    console.log(`Successfully fetched ${combinedEquipment.length} equipment items (${orgEquipment?.length || 0} org + ${teamEquipment?.length || 0} team)`);
+    // Ensure we always have a valid array to work with
+    const equipmentArray = Array.isArray(data) ? data : [];
+    console.log(`Successfully fetched ${equipmentArray.length} equipment items via edge function`);
     
-    return combinedEquipment as Equipment[];
+    return equipmentArray;
   } catch (error) {
     console.error('Error in getEquipment:', error);
-    throw error;
+    return []; // Return empty array on error
   }
 }
 
@@ -121,7 +68,11 @@ export async function getEquipmentById(id: string) {
     // First fetch the equipment
     const { data: equipment, error } = await supabase
       .from('equipment')
-      .select('*')
+      .select(`
+        *,
+        team:team_id (name, org_id),
+        org:org_id (name)
+      `)
       .eq('id', id)
       .is('deleted_at', null)
       .single();
@@ -131,12 +82,43 @@ export async function getEquipmentById(id: string) {
       throw error;
     }
     
+    // Get user's primary organization for determining external orgs
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', authUserId)
+      .single();
+    
+    const userOrgId = userProfile?.org_id;
+    const isExternalOrg = equipment.team?.org_id && userOrgId && equipment.team.org_id !== userOrgId;
+    
+    // Check if user has edit permissions
+    let canEdit = !isExternalOrg; // Default: can edit if it's in user's org
+    
+    if (isExternalOrg) {
+      // If from an external org, need to check specific permissions
+      const { data: teamAccess } = await supabase.functions.invoke('check_team_role_permission', {
+        body: {
+          user_id: authUserId,
+          team_id: equipment.team_id
+        }
+      });
+      
+      // Can edit if manager or higher role
+      const editRoles = ['manager', 'owner', 'admin'];
+      canEdit = teamAccess?.hasPermission && teamAccess?.role && editRoles.includes(teamAccess.role);
+    }
+    
     // Then fetch the attributes
     const attributes = await getEquipmentAttributes(id);
     
-    // Return equipment with attributes
+    // Return equipment with attributes and extra info
     return {
       ...equipment,
+      team_name: equipment.team?.name || null, 
+      org_name: equipment.org?.name || 'Unknown Organization',
+      is_external_org: isExternalOrg,
+      can_edit: canEdit,
       attributes
     } as Equipment;
   } catch (error) {
@@ -168,9 +150,43 @@ export async function createEquipment(equipment: Partial<Equipment>) {
     const appUserId = await getAppUserId(authUserId);
     console.log('Mapped to app_user ID:', appUserId);
     
-    // Get organization ID
-    const orgId = await getUserOrganizationId(authUserId);
-    console.log('Found organization ID:', orgId);
+    let orgId;
+    
+    // If equipment is for a team, get that team's org_id
+    if (equipment.team_id && equipment.team_id !== 'none') {
+      console.log(`Getting org ID for team ${equipment.team_id}`);
+      
+      // Use the edge function to check permission instead of direct DB access
+      // This avoids RLS recursion issues
+      const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_create_permission', {
+        body: {
+          user_id: authUserId,
+          team_id: equipment.team_id
+        }
+      });
+      
+      if (permissionError) {
+        console.error('Error checking equipment creation permission:', permissionError);
+        throw new Error('Failed to verify permissions');
+      }
+      
+      if (!permissionCheck?.can_create) {
+        throw new Error('You do not have permission to create equipment for this team');
+      }
+      
+      // Get the org_id from the response
+      orgId = permissionCheck.org_id;
+      
+      if (!orgId) {
+        throw new Error('Failed to determine organization for this team');
+      }
+      
+      console.log(`Using team's org ID: ${orgId}`);
+    } else {
+      // Use user's organization ID for non-team equipment
+      orgId = await getUserOrganizationId(authUserId);
+      console.log('Using user org ID:', orgId);
+    }
     
     // Extract attributes before sending to database
     const attributes = equipment.attributes || [];
@@ -224,76 +240,6 @@ export async function createEquipment(equipment: Partial<Equipment>) {
     console.error('Error in createEquipment:', error);
     throw error;
   }
-}
-
-/**
- * Update existing equipment
- */
-export async function updateEquipment(id: string, equipment: Partial<Equipment>) {
-  try {
-    // Extract attributes before sending to database
-    const attributes = equipment.attributes || [];
-    const equipmentData = { ...equipment };
-    delete equipmentData.attributes;
-    
-    // Handle 'none' value for team_id
-    if (equipmentData.team_id === 'none') {
-      equipmentData.team_id = null;
-    }
-    
-    // Process dates and prepare data
-    const processedEquipment = processDateFields({
-      ...equipmentData,
-      updated_at: new Date().toISOString(),
-    }, ['install_date', 'warranty_expiration']);
-    
-    // Update the equipment
-    const { data, error } = await supabase
-      .from('equipment')
-      .update(processedEquipment)
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating equipment:', error);
-      throw error;
-    }
-    
-    // Update attributes
-    try {
-      console.log('Saving updated attributes:', attributes);
-      const updatedAttributes = await saveEquipmentAttributes(id, attributes);
-      return { ...data, attributes: updatedAttributes } as Equipment;
-    } catch (attrError) {
-      console.error('Error updating equipment attributes:', attrError);
-      // Return equipment without updated attributes on error
-      return data as Equipment;
-    }
-  } catch (error) {
-    console.error('Error in updateEquipment:', error);
-    throw error;
-  }
-}
-
-/**
- * Soft delete equipment
- */
-export async function deleteEquipment(id: string) {
-  // Soft delete by setting deleted_at
-  const { error } = await supabase
-    .from('equipment')
-    .update({
-      deleted_at: new Date().toISOString(),
-    })
-    .eq('id', id);
-    
-  if (error) {
-    console.error('Error deleting equipment:', error);
-    throw error;
-  }
-  
-  return true;
 }
 
 // Re-export scan service functionality

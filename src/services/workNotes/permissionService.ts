@@ -2,20 +2,20 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Check if the current user can edit work notes
+ * Check if the current user has permission to manage work notes
+ * for a specific equipment
  */
 export async function canManageWorkNotes(equipmentId: string): Promise<boolean> {
   try {
-    // Get current user session
+    // Get current user's auth ID
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user?.id) {
+    if (!sessionData?.session?.user) {
       return false;
     }
-
+    
     const userId = sessionData.session.user.id;
     
-    // Call the check_work_notes_access edge function which uses direct queries 
-    // to avoid RLS recursion issues
+    // Use the edge function to check work notes permissions
     const { data, error } = await supabase.functions.invoke('check_work_notes_access', {
       body: {
         equipment_id: equipmentId,
@@ -24,33 +24,33 @@ export async function canManageWorkNotes(equipmentId: string): Promise<boolean> 
     });
     
     if (error) {
-      console.error('Error checking work note permissions:', error);
+      console.error('Error checking work notes access:', error);
       return false;
     }
     
-    // Return the can_manage permission from the result
+    // Return whether user can manage notes
     return data?.can_manage || false;
   } catch (error) {
-    console.error('Error checking work note permissions:', error);
+    console.error('Exception in canManageWorkNotes:', error);
     return false;
   }
 }
 
 /**
- * Check if the current user can create work notes (managers and technicians)
+ * Check if the current user has permission to create work notes
+ * for a specific equipment
  */
 export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> {
   try {
-    // Get current user session
+    // Get current user's auth ID
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user?.id) {
+    if (!sessionData?.session?.user) {
       return false;
     }
-
+    
     const userId = sessionData.session.user.id;
     
-    // Call the check_work_notes_access edge function which uses direct queries
-    // to avoid RLS recursion issues
+    // Use the edge function to check work notes permissions
     const { data, error } = await supabase.functions.invoke('check_work_notes_access', {
       body: {
         equipment_id: equipmentId,
@@ -59,14 +59,14 @@ export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> 
     });
     
     if (error) {
-      console.error('Error checking work note creation permissions:', error);
+      console.error('Error checking work notes access:', error);
       return false;
     }
     
-    // Return the can_create permission from the result
+    // Return whether user can create notes
     return data?.can_create || false;
   } catch (error) {
-    console.error('Error checking work note creation permissions:', error);
+    console.error('Exception in canCreateWorkNotes:', error);
     return false;
   }
 }

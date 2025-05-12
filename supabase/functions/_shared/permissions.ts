@@ -74,40 +74,21 @@ export async function checkEquipmentAccess(supabase, userId, equipmentId) {
     
     // Second check: If equipment belongs to a team
     if (equipment.team_id) {
-      // Get app_user id from auth user id
-      const { data: appUser } = await supabase
-        .from('app_user')
-        .select('id')
-        .eq('auth_uid', userId)
-        .single();
+      // Use our safe helper function to check team role without recursion
+      const { data: teamRole } = await supabase.rpc('get_team_role_safe', {
+        _user_id: userId,
+        _team_id: equipment.team_id
+      });
       
-      if (appUser) {
-        // Check if user is a member of the team
-        const { data: teamMember } = await supabase
-          .from('team_member')
-          .select('id')
-          .eq('user_id', appUser.id)
-          .eq('team_id', equipment.team_id)
-          .maybeSingle();
-          
-        if (teamMember) {
-          // Get team member's role
-          const { data: teamRole } = await supabase
-            .from('team_roles')
-            .select('role')
-            .eq('team_member_id', teamMember.id)
-            .maybeSingle();
-          
-          return { 
-            hasAccess: true, 
-            reason: 'team_access',
-            role: teamRole?.role || 'member',
-            details: {
-              teamId: equipment.team_id,
-              teamMemberId: teamMember.id
-            }
-          };
-        }
+      if (teamRole) {
+        return { 
+          hasAccess: true, 
+          reason: 'team_access',
+          role: teamRole,
+          details: {
+            teamId: equipment.team_id
+          }
+        };
       }
       
       // Check for cross-organization access via organization_acl
@@ -150,15 +131,13 @@ export async function checkEquipmentAccess(supabase, userId, equipmentId) {
 // Helper function to check team role permissions
 export async function checkRolePermission(supabase, userId, teamId) {
   try {
-    // Get team's organization
-    const { data: team, error: teamError } = await supabase
-      .from('team')
-      .select('org_id')
-      .eq('id', teamId)
-      .single();
+    // Get team's organization using our safe helper function
+    const { data: teamOrgId } = await supabase.rpc('get_team_org', {
+      team_id_param: teamId
+    });
     
-    if (teamError || !team) {
-      console.error('Error fetching team:', teamError);
+    if (!teamOrgId) {
+      console.error('Team not found or has no organization');
       return { 
         hasAccess: false, 
         reason: 'team_not_found' 
@@ -168,7 +147,7 @@ export async function checkRolePermission(supabase, userId, teamId) {
     // First check: is the user an org owner or admin?
     const { data: orgRole } = await supabase.rpc(
       'get_user_role',
-      { _user_id: userId, _org_id: team.org_id }
+      { _user_id: userId, _org_id: teamOrgId }
     );
     
     if (orgRole === 'owner' || orgRole === 'admin') {
@@ -179,46 +158,18 @@ export async function checkRolePermission(supabase, userId, teamId) {
       };
     }
     
-    // Get app_user id from auth user id
-    const { data: appUser } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', userId)
-      .maybeSingle();
+    // Use our safe helper function to check team role without recursion
+    const { data: teamRole } = await supabase.rpc('get_team_role_safe', {
+      _user_id: userId,
+      _team_id: teamId
+    });
     
-    if (!appUser) {
+    if (teamRole === 'manager') {
       return {
-        hasAccess: false,
-        reason: 'user_not_found'
+        hasAccess: true,
+        reason: 'team_role',
+        role: 'manager'
       };
-    }
-    
-    // Check if user is a team member with manager role
-    const { data: teamMember } = await supabase
-      .from('team_member')
-      .select('id')
-      .eq('user_id', appUser.id)
-      .eq('team_id', teamId)
-      .maybeSingle();
-    
-    if (teamMember) {
-      // Get team member's role
-      const { data: teamRole } = await supabase
-        .from('team_roles')
-        .select('role')
-        .eq('team_member_id', teamMember.id)
-        .maybeSingle();
-      
-      if (teamRole && teamRole.role === 'manager') {
-        return {
-          hasAccess: true,
-          reason: 'team_role',
-          role: 'manager',
-          details: {
-            teamMemberId: teamMember.id
-          }
-        };
-      }
     }
     
     // No access granted

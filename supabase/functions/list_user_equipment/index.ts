@@ -21,7 +21,7 @@ serve(async (req) => {
     }
 
     // Create Supabase client with admin rights to bypass RLS
-    const supabase = createAdminClient();
+    const supabase = await createAdminClient();
     
     // Get user's organization ID
     const { data: userProfile, error: userError } = await supabase

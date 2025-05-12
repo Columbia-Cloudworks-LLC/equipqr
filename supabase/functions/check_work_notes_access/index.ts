@@ -34,7 +34,7 @@ serve(async (req) => {
     
     if (accessResult.hasAccess) {
       // Get more detailed role information if the user has basic access
-      if (accessResult.reason === 'org_owner' || accessResult.role === 'owner') {
+      if (accessResult.reason === 'org_role' || accessResult.role === 'owner') {
         // Org owners can do everything
         canCreate = true;
         canManage = true;
@@ -60,6 +60,10 @@ serve(async (req) => {
           canCreate = false;
           canManage = false;
         }
+      } else if (accessResult.reason === 'same_org') {
+        // Default organization member access
+        canCreate = true;  
+        canManage = false;
       }
     }
     
