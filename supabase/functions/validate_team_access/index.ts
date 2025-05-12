@@ -39,7 +39,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Use our new check_team_access function
+    // Use our updated check_team_access function which now has proper search_path set
     const { data: accessResult, error: accessError } = await supabaseClient.rpc(
       'check_team_access',
       { 
