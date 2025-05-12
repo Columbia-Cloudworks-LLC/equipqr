@@ -1,32 +1,11 @@
-
-import React, { useState } from 'react';
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardContent, 
-  CardFooter 
-} from '@/components/ui/card';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Eye, User, Filter } from 'lucide-react';
-import { useWorkNotes } from './useWorkNotes';
+import { useEffect, useState } from 'react';
 import { NotesList } from './NotesList';
-import { EditNoteDialog } from './EditNoteDialog';
 import { AddNoteForm } from './AddNoteForm';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Info } from 'lucide-react';
+import { useWorkNotes } from './useWorkNotes';
+import { canCreateWorkNotes, canManageWorkNotes } from '@/services/workNotes/permissionService';
 import { toast } from 'sonner';
 
 interface WorkNotesProps {
@@ -34,138 +13,95 @@ interface WorkNotesProps {
 }
 
 export function WorkNotes({ equipmentId }: WorkNotesProps) {
-  const [organizationFilter, setOrganizationFilter] = useState<string>("all");
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  const {
-    publicNotes,
-    allNotes,
-    organizations,
-    isLoading,
-    canEdit,
-    canCreate,
-    editingNote,
-    setEditingNote,
-    handleAddNote,
-    handleUpdateNote,
-    handleDeleteNote,
-    handleHoursWorkedChange,
-    createMutation,
+  const [canCreate, setCanCreate] = useState<boolean | null>(null);
+  const [canManage, setCanManage] = useState<boolean | null>(null);
+  const [permissionLoading, setPermissionLoading] = useState<boolean>(true);
+
+  const { 
+    notes, 
+    isLoading, 
+    error, 
+    addNote, 
+    editNote,
+    deleteNote,
     refetchNotes
   } = useWorkNotes(equipmentId);
-  
-  const filteredPublicNotes = organizationFilter === "all" 
-    ? publicNotes 
-    : publicNotes.filter(note => note.organization_id === organizationFilter);
-  
-  const filteredAllNotes = organizationFilter === "all" 
-    ? allNotes 
-    : allNotes.filter(note => note.organization_id === organizationFilter);
-    
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await refetchNotes();
-      toast.success("Work notes refreshed");
-    } catch (error) {
-      toast.error("Failed to refresh work notes");
-    } finally {
-      setIsRefreshing(false);
+
+  // Check permissions when component mounts
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        setPermissionLoading(true);
+        const [createPermission, managePermission] = await Promise.all([
+          canCreateWorkNotes(equipmentId),
+          canManageWorkNotes(equipmentId)
+        ]);
+        setCanCreate(createPermission);
+        setCanManage(managePermission);
+      } catch (err) {
+        console.error('Error checking permissions:', err);
+        toast.error('Failed to check permissions');
+        // Default to no permissions on error
+        setCanCreate(false);
+        setCanManage(false);
+      } finally {
+        setPermissionLoading(false);
+      }
+    };
+
+    if (equipmentId) {
+      checkPermissions();
     }
-  };
-  
-  return (
-    <Card className="mb-6">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Work Notes</CardTitle>
-        <div className="flex items-center gap-2">
-          {organizations.length > 1 && (
-            <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by organization" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Organizations</SelectItem>
-                {organizations.map(org => (
-                  <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh} 
-            disabled={isRefreshing}
-          >
-            <Filter className="h-4 w-4 mr-1" />
-            {isRefreshing ? "Refreshing..." : "Refresh"}
-          </Button>
+  }, [equipmentId]);
+
+  // Handle work notes data fetching error
+  useEffect(() => {
+    if (error) {
+      toast.error('Failed to load work notes', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
+    }
+  }, [error]);
+
+  if (permissionLoading) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Work Notes</h2>
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-36 w-full" />
         </div>
-      </CardHeader>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold">Work Notes</h2>
       
-      <Tabs defaultValue={canEdit ? "all" : "public"}>
-        <TabsList className="ml-6">
-          <TabsTrigger value="public" className="flex items-center">
-            <Eye className="h-4 w-4 mr-1" />
-            Public Notes
-          </TabsTrigger>
-          {canEdit && (
-            <TabsTrigger value="all" className="flex items-center">
-              <User className="h-4 w-4 mr-1" />
-              All Notes
-            </TabsTrigger>
-          )}
-        </TabsList>
-        
-        <CardContent>
-          {/* Public Notes Tab */}
-          <TabsContent value="public" className="space-y-4">
-            <NotesList 
-              notes={filteredPublicNotes}
-              isLoading={isLoading}
-              canEdit={canEdit}
-              setEditingNote={setEditingNote}
-              onDeleteNote={handleDeleteNote}
-            />
-          </TabsContent>
-          
-          {/* All Notes Tab (for managers/technicians) */}
-          {canEdit && (
-            <TabsContent value="all" className="space-y-4">
-              <NotesList 
-                notes={filteredAllNotes}
-                isLoading={isLoading}
-                canEdit={canEdit}
-                setEditingNote={setEditingNote}
-                onDeleteNote={handleDeleteNote}
-              />
-            </TabsContent>
-          )}
-        </CardContent>
-      </Tabs>
-      
-      {/* Note edit dialog */}
-      <EditNoteDialog 
-        editingNote={editingNote}
-        setEditingNote={setEditingNote}
-        onUpdateNote={handleUpdateNote}
-        handleHoursWorkedChange={handleHoursWorkedChange}
-      />
-      
-      {/* Add new note form */}
-      {canCreate && (
-        <>
-          <Separator />
-          <CardFooter className="pt-4">
-            <AddNoteForm 
-              isPending={createMutation.isPending} 
-              onSubmit={handleAddNote}
-            />
-          </CardFooter>
-        </>
+      {canCreate === false && (
+        <Alert variant="default" className="bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Limited Access</AlertTitle>
+          <AlertDescription>
+            You can view work notes but don't have permission to create new notes for this equipment.
+          </AlertDescription>
+        </Alert>
       )}
-    </Card>
+      
+      {canCreate && (
+        <AddNoteForm onAddNote={addNote} />
+      )}
+      
+      <NotesList 
+        notes={notes} 
+        isLoading={isLoading} 
+        canManage={canManage || false} 
+        onEditNote={editNote}
+        onDeleteNote={deleteNote}
+      />
+    </div>
   );
 }
+
+export default WorkNotes;

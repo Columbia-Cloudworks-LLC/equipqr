@@ -1,52 +1,32 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { getAppUserId } from '@/utils/authUtils';
-import { WorkNote } from './types';
+import { supabase } from "@/integrations/supabase/client";
+import { WorkNote } from "./types";
+import { getAppUserId } from "@/utils/authUtils";
 
 /**
- * Create a new work note for equipment
+ * Create a new work note
  */
-export async function createWorkNote(data: {
-  equipment_id: string;
-  note: string;
-  is_public: boolean;
-  hours_worked: number | null;
-}): Promise<WorkNote> {
+export async function createWorkNote(equipmentId: string, note: string, hoursWorked?: number, isPublic: boolean = false): Promise<WorkNote> {
   try {
-    // Get current user's app_user ID
+    // Get current user's ID
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to create work notes');
+      throw new Error('User must be logged in to create work notes');
     }
     
-    const userId = sessionData.session.user.id;
+    const authUserId = sessionData.session.user.id;
     
-    // First check permission using the edge function
-    const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke(
-      'check_work_notes_access', 
-      {
-        body: {
-          equipment_id: data.equipment_id,
-          user_id: userId
-        }
-      }
-    );
-    
-    if (permissionError || !permissionCheck?.can_create) {
-      throw new Error('You do not have permission to create work notes for this equipment');
-    }
-    
-    // Get app_user ID for database reference
-    const appUserId = await getAppUserId(userId);
+    // Convert auth user ID to app_user ID
+    const appUserId = await getAppUserId(authUserId);
     
     // Create the work note
-    const { data: workNote, error } = await supabase
+    const { data, error } = await supabase
       .from('equipment_work_notes')
       .insert({
-        equipment_id: data.equipment_id,
-        note: data.note,
-        is_public: data.is_public,
-        hours_worked: data.hours_worked,
+        equipment_id: equipmentId,
+        note,
+        hours_worked: hoursWorked,
+        is_public: isPublic,
         created_by: appUserId
       })
       .select()
@@ -54,139 +34,70 @@ export async function createWorkNote(data: {
       
     if (error) {
       console.error('Error creating work note:', error);
-      throw new Error('Failed to add work note');
+      throw new Error(`Failed to create work note: ${error.message}`);
     }
     
-    return workNote as WorkNote;
-  } catch (error: any) {
-    console.error('Error in createWorkNote:', error);
+    return data as WorkNote;
+  } catch (error) {
+    console.error('Exception in createWorkNote:', error);
     throw error;
   }
 }
 
 /**
- * Update an existing work note
+ * Update a work note
  */
-export async function updateWorkNote(id: string, updates: Partial<WorkNote>): Promise<WorkNote> {
+export async function updateWorkNote(noteId: string, updates: Partial<WorkNote>): Promise<WorkNote> {
   try {
-    // Get current user's auth ID
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to update work notes');
-    }
+    // Remove fields that shouldn't be directly updated
+    const { id, created_at, created_by, equipment_id, ...validUpdates } = updates;
     
-    const userId = sessionData.session.user.id;
-    
-    // First get the note to check the equipment ID
-    const { data: note, error: noteError } = await supabase
-      .from('equipment_work_notes')
-      .select('equipment_id')
-      .eq('id', id)
-      .single();
-      
-    if (noteError) {
-      console.error('Error getting work note:', noteError);
-      throw new Error('Work note not found');
-    }
-    
-    // Check permission using the edge function
-    const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke(
-      'check_work_notes_access', 
-      {
-        body: {
-          equipment_id: note.equipment_id,
-          user_id: userId
-        }
-      }
-    );
-    
-    if (permissionError || !permissionCheck?.can_manage) {
-      throw new Error('You do not have permission to update this work note');
-    }
-    
-    // Only allow specific fields to be updated
-    const validUpdates = {
-      note: updates.note,
-      is_public: updates.is_public,
-      hours_worked: updates.hours_worked
+    // Add updated timestamp
+    const noteUpdates = {
+      ...validUpdates,
+      updated_at: new Date().toISOString()
     };
     
     // Update the work note
-    const { data: updatedNote, error } = await supabase
+    const { data, error } = await supabase
       .from('equipment_work_notes')
-      .update(validUpdates)
-      .eq('id', id)
+      .update(noteUpdates)
+      .eq('id', noteId)
       .select()
       .single();
       
     if (error) {
       console.error('Error updating work note:', error);
-      throw new Error('Failed to update work note');
+      throw new Error(`Failed to update work note: ${error.message}`);
     }
     
-    return updatedNote as WorkNote;
-  } catch (error: any) {
-    console.error('Error in updateWorkNote:', error);
+    return data as WorkNote;
+  } catch (error) {
+    console.error('Exception in updateWorkNote:', error);
     throw error;
   }
 }
 
 /**
- * Delete a work note (soft delete)
+ * Soft delete a work note
  */
-export async function deleteWorkNote(id: string): Promise<boolean> {
+export async function deleteWorkNote(noteId: string): Promise<void> {
   try {
-    // Get current user's auth ID
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to delete work notes');
-    }
-    
-    const userId = sessionData.session.user.id;
-    
-    // First get the note to check the equipment ID
-    const { data: note, error: noteError } = await supabase
-      .from('equipment_work_notes')
-      .select('equipment_id')
-      .eq('id', id)
-      .single();
-      
-    if (noteError) {
-      console.error('Error getting work note:', noteError);
-      throw new Error('Work note not found');
-    }
-    
-    // Check permission using the edge function
-    const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke(
-      'check_work_notes_access', 
-      {
-        body: {
-          equipment_id: note.equipment_id,
-          user_id: userId
-        }
-      }
-    );
-    
-    if (permissionError || !permissionCheck?.can_manage) {
-      throw new Error('You do not have permission to delete this work note');
-    }
-    
-    // Soft delete the work note
+    // Soft delete by setting deleted_at
     const { error } = await supabase
       .from('equipment_work_notes')
       .update({
-        deleted_at: new Date().toISOString()
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
-      .eq('id', id);
+      .eq('id', noteId);
       
     if (error) {
       console.error('Error deleting work note:', error);
-      throw new Error('Failed to delete work note');
+      throw new Error(`Failed to delete work note: ${error.message}`);
     }
-    
-    return true;
-  } catch (error: any) {
-    console.error('Error in deleteWorkNote:', error);
+  } catch (error) {
+    console.error('Exception in deleteWorkNote:', error);
     throw error;
   }
 }
