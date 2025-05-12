@@ -54,12 +54,45 @@ serve(async (req) => {
       teamMemberId = teamMember?.id || null;
     }
     
+    // Get team information for display purposes
+    let team = null;
+    let orgName = null;
+    
+    if (accessResult.hasAccess) {
+      const { data: teamData } = await supabase
+        .from('team')
+        .select('name, org_id')
+        .eq('id', team_id)
+        .single();
+        
+      if (teamData) {
+        team = { 
+          name: teamData.name,
+          org_id: teamData.org_id 
+        };
+        
+        // Get organization name
+        const { data: orgData } = await supabase
+          .from('organization')
+          .select('name')
+          .eq('id', teamData.org_id)
+          .single();
+          
+        if (orgData) {
+          orgName = orgData.name;
+        }
+      }
+    }
+    
     return createSuccessResponse({
       is_member: accessResult.hasAccess,
-      has_org_access: accessResult.reason === 'org_owner',
+      has_org_access: accessResult.reason === 'org_owner' || accessResult.reason === 'same_org',
+      has_cross_org_access: accessResult.reason === 'cross_org_access',
       team_member_id: teamMemberId,
       access_reason: accessResult.reason,
       role: accessResult.role,
+      team: team,
+      org_name: orgName,
       debug: {
         ...accessResult.details,
         app_user_id: appUser?.id

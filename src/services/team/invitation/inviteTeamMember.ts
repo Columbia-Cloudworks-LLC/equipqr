@@ -30,7 +30,7 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
     // Get team details to include in the invitation
     const { data: team, error: teamError } = await supabase
       .from('team')
-      .select('name')
+      .select('name, org_id')
       .eq('id', teamId)
       .single();
       
@@ -63,6 +63,33 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
     
     // Extract the existing user from the array (if it exists)
     const existingUser = existingUserArray && existingUserArray.length > 0 ? existingUserArray[0] : null;
+    
+    // If we found an existing user, create a cross-org access entry
+    if (existingUser?.auth_uid) {
+      try {
+        // Add organization_acl entry to grant temporary cross-org access
+        const { error: aclError } = await supabase
+          .from('organization_acl')
+          .insert({
+            org_id: team.org_id,
+            subject_id: existingUser.auth_uid,
+            subject_type: 'user',
+            role: 'viewer',
+            // Add expiration date for temporary access (14 days)
+            expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+          });
+        
+        if (aclError) {
+          console.error('Error creating organization ACL entry:', aclError);
+          // Continue with invitation flow even if ACL creation fails
+        } else {
+          console.log('Created temporary organization access for invited user');
+        }
+      } catch (aclCreateError) {
+        console.error('Error in creating organization ACL entry:', aclCreateError);
+        // Continue with invitation flow even if ACL creation fails
+      }
+    }
     
     // If the user exists, we can add them directly to the team
     let directlyAdded = false;

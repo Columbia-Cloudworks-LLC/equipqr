@@ -52,9 +52,13 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
     return {
       isMember: data?.is_member || false,
       hasOrgAccess: data?.has_org_access || false,
+      hasCrossOrgAccess: data?.has_cross_org_access || false,
       teamMemberId: data?.team_member_id,
       accessReason: data?.access_reason,
-      role: data?.role
+      role: data?.role,
+      teamName: data?.team?.name,
+      teamOrgId: data?.team?.org_id,
+      orgName: data?.org_name
     };
   } catch (error) {
     console.error('Error in getTeamAccessDetails:', error);

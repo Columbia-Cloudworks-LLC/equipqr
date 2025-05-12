@@ -17,25 +17,21 @@ export async function getPendingInvitationsForUser() {
 
     const userEmail = sessionData.session.user.email.toLowerCase();
     
-    // Get pending invitations - using RLS policy to filter by email
-    const { data, error } = await supabase
-      .from('team_invitations')
-      .select('*, team:team_id(name)')
-      .eq('status', 'pending');
+    // Use a direct call to an edge function to avoid RLS recursion issues
+    const { data, error } = await supabase.functions.invoke('get_user_invitations', {
+      body: {
+        email: userEmail
+      }
+    });
       
     if (error) {
       console.error('Error fetching pending invitations for user:', error);
       throw error;
     }
     
-    // Double check email matching (case insensitive)
-    const filteredData = data?.filter(inv => 
-      inv.email.toLowerCase() === userEmail
-    );
+    console.log(`Found ${data?.invitations?.length || 0} pending invitations for ${userEmail}`);
     
-    console.log(`Found ${filteredData?.length || 0} pending invitations for ${userEmail}`);
-    
-    return filteredData || [];
+    return data?.invitations || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitationsForUser:', error);
     throw new Error(`Failed to get pending invitations: ${error.message}`);

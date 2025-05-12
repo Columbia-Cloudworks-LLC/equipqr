@@ -48,6 +48,19 @@ serve(async (req) => {
           canCreate = true;
           canManage = false;
         }
+      } else if (accessResult.reason === 'cross_org_access') {
+        // Cross-organization access - allow view and create based on role
+        if (accessResult.role === 'manager') {
+          canCreate = true;
+          canManage = true;
+        } else if (accessResult.role === 'technician') {
+          canCreate = true;
+          canManage = false;
+        } else {
+          // Viewers in cross-org context
+          canCreate = false;
+          canManage = false;
+        }
       }
     }
     

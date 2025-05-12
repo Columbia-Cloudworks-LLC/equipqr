@@ -1,4 +1,3 @@
-
 /**
  * Shared permission checking utilities for edge functions
  */
@@ -31,6 +30,7 @@ export function createAdminClient() {
  * Check if a user has access to a team by checking:
  * 1. Direct team membership
  * 2. Organization access (same org or org-level permissions)
+ * 3. Organization ACL entries (cross-org access)
  */
 export async function checkTeamAccess(
   supabase: ReturnType<typeof createAdminClient>,
@@ -115,26 +115,48 @@ export async function checkTeamAccess(
     // Same organization check
     const isSameOrg = userProfile.org_id === team.org_id;
     
+    // NEW: Check for organization_acl entries (cross-org access)
+    const { data: orgAcl } = await supabase
+      .from('organization_acl')
+      .select('role')
+      .eq('subject_id', userId)
+      .eq('subject_type', 'user')
+      .eq('org_id', team.org_id)
+      .or('expires_at.gt.now,expires_at.is.null')
+      .maybeSingle();
+    
+    const hasCrossOrgAccess = Boolean(orgAcl);
+    
     // User has access if:
     // 1. They're a direct member of the team OR
     // 2. They have an org-level 'owner' role for the team's organization OR
-    // 3. They're in the team's organization
-    const hasAccess = isDirectMember || hasOrgAccess || isSameOrg;
+    // 3. They're in the team's organization OR
+    // 4. They have a valid cross-org ACL entry
+    const hasAccess = isDirectMember || hasOrgAccess || isSameOrg || hasCrossOrgAccess;
     
     // Determine the reason for access
     let reason = 'no_access';
     if (isDirectMember) reason = 'team_member';
     else if (hasOrgAccess) reason = 'org_owner';
     else if (isSameOrg) reason = 'same_org';
+    else if (hasCrossOrgAccess) reason = 'cross_org_access';
+    
+    // Determine the effective role
+    let effectiveRole = null;
+    if (isDirectMember) effectiveRole = teamRole;
+    else if (hasOrgAccess) effectiveRole = 'owner';
+    else if (isSameOrg) effectiveRole = 'org_member';
+    else if (hasCrossOrgAccess) effectiveRole = orgAcl?.role || 'viewer';
     
     return {
       hasAccess,
       reason,
-      role: isDirectMember ? teamRole : (hasOrgAccess ? 'owner' : (isSameOrg ? 'org_member' : null)),
+      role: effectiveRole,
       details: {
         isDirectMember,
         hasOrgAccess,
         isSameOrg,
+        hasCrossOrgAccess,
         teamOrgId: team.org_id,
         userOrgId: userProfile.org_id
       }
@@ -291,7 +313,7 @@ export async function checkEquipmentAccess(
       }
     }
     
-    // Check if user has org-level access
+    // Check if user has org-level access through user_roles
     const { data: orgRoles } = await supabase
       .from('user_roles')
       .select('role')
@@ -304,6 +326,24 @@ export async function checkEquipmentAccess(
         hasAccess: true,
         reason: 'org_role',
         role: orgRoles[0].role
+      };
+    }
+    
+    // NEW: Check for organization_acl entries (cross-org access)
+    const { data: orgAcl } = await supabase
+      .from('organization_acl')
+      .select('role')
+      .eq('subject_id', userId)
+      .eq('subject_type', 'user')
+      .eq('org_id', equipment.org_id)
+      .or('expires_at.gt.now,expires_at.is.null')
+      .maybeSingle();
+    
+    if (orgAcl) {
+      return {
+        hasAccess: true,
+        reason: 'cross_org_access',
+        role: orgAcl.role
       };
     }
     

@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { validateInvitationToken } from '@/services/team/invitationService';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export function useInvitationValidation(token: string | undefined) {
+export function useInvitationValidation(token?: string) {
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -11,7 +11,7 @@ export function useInvitationValidation(token: string | undefined) {
   const { user, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
-    async function checkInvitation() {
+    const validateToken = async () => {
       if (!token) {
         setError('No invitation token provided');
         setIsValidating(false);
@@ -19,36 +19,34 @@ export function useInvitationValidation(token: string | undefined) {
       }
 
       try {
-        console.log("Validating invitation token:", token);
-        const result = await validateInvitationToken(token);
-        console.log("Validation result:", result);
+        // Use edge function to validate invitation to avoid RLS recursion
+        const { data, error } = await supabase.functions.invoke('validate_invitation', {
+          body: { token }
+        });
         
-        setIsValid(result.valid);
-        
-        if (!result.valid) {
-          setError(result.error || 'Invalid invitation');
-        } else if (result.invitation) {
-          setInvitation(result.invitation);
-          
-          // Check if the current user's email matches the invitation email
-          if (user?.email && result.invitation.email && 
-              user.email.toLowerCase() !== result.invitation.email.toLowerCase()) {
-            setError(`This invitation was sent to ${result.invitation.email}. 
-                      You are currently logged in as ${user.email}. 
-                      Please log out and sign in with the correct account.`);
-          }
+        if (error || !data?.valid) {
+          console.error('Error validating invitation token:', error || data?.error);
+          setError(data?.error || 'This invitation is invalid or has expired.');
+          setIsValid(false);
+        } else {
+          setInvitation(data.invitation);
+          setIsValid(true);
+          setError(null);
         }
       } catch (err: any) {
-        console.error('Error validating invitation:', err);
-        setError(`Error validating invitation: ${err.message}`);
+        console.error('Error in validateToken:', err);
+        setError(`Failed to validate invitation: ${err.message}`);
         setIsValid(false);
       } finally {
         setIsValidating(false);
       }
-    }
+    };
 
-    checkInvitation();
-  }, [token, user]);
+    // Only validate if we have a token and auth status is known
+    if (token && !isAuthLoading) {
+      validateToken();
+    }
+  }, [token, isAuthLoading]);
 
   return {
     isValidating,

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { acceptInvitation } from "@/services/team/invitationService";
 import { Check, X, Loader2 } from 'lucide-react';
@@ -12,7 +13,9 @@ interface InvitationNotificationProps {
     email: string;
     team?: {
       name?: string;
+      org_id?: string;
     };
+    org_name?: string;
     role: string;
     token: string;
     created_at: string;
@@ -28,6 +31,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   
   // Safely get team name with fallback to prevent errors
   const teamName = invitation?.team?.name || 'Team';
+  const orgName = invitation?.org_name;
   
   const handleAccept = async () => {
     try {
@@ -81,6 +85,15 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
         <p className="text-sm text-muted-foreground">
           You've been invited to join <span className="font-medium">{teamName}</span> as a <span className="font-medium">{invitation.role}</span>
         </p>
+        
+        {orgName && (
+          <div className="mt-1">
+            <Badge variant="outline" className="text-xs">
+              {orgName} Organization
+            </Badge>
+          </div>
+        )}
+        
         <div className="flex gap-2 mt-2">
           <Button 
             size="sm" 

@@ -12,7 +12,8 @@ export function useTeamMembership(teamId: string | null) {
   const [accessReason, setAccessReason] = useState<string | null>(null);
   const [accessRole, setAccessRole] = useState<string | null>(null);
   const [hasCrossOrgAccess, setHasCrossOrgAccess] = useState<boolean>(false);
-
+  const [teamOrgName, setTeamOrgName] = useState<string | null>(null);
+  
   // Get the current user's ID
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -36,6 +37,7 @@ export function useTeamMembership(teamId: string | null) {
       setAccessReason(null);
       setAccessRole(null);
       setHasCrossOrgAccess(false);
+      setTeamOrgName(null);
       setError(null);
     }
   }, [teamId, currentUserId]);
@@ -52,7 +54,8 @@ export function useTeamMembership(teamId: string | null) {
       setIsMember(accessDetails.isMember);
       setAccessReason(accessDetails.accessReason);
       setAccessRole(accessDetails.role);
-      setHasCrossOrgAccess(accessDetails.hasOrgAccess || accessDetails.accessReason === 'org_owner');
+      setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess);
+      setTeamOrgName(accessDetails.orgName || null);
       
       if (!accessDetails.isMember) {
         setError('You are not a member of this team. This may be due to an issue during team creation.');
@@ -66,7 +69,8 @@ export function useTeamMembership(teamId: string | null) {
         isMember: accessDetails.isMember,
         reason: accessDetails.accessReason,
         role: accessDetails.role,
-        hasCrossOrgAccess: accessDetails.hasOrgAccess
+        hasCrossOrgAccess: accessDetails.hasCrossOrgAccess,
+        orgName: accessDetails.orgName
       });
     } catch (error: any) {
       console.error('Error checking team access:', error);
@@ -110,6 +114,7 @@ export function useTeamMembership(teamId: string | null) {
     accessReason,
     accessRole,
     hasCrossOrgAccess,
+    teamOrgName,
     handleRepairTeam,
     checkTeamMembership: checkDetailedTeamAccess
   };

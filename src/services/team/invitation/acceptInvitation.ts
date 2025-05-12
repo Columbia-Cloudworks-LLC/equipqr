@@ -43,6 +43,46 @@ export async function acceptInvitation(token: string) {
     
     console.log("User successfully added to team:", data);
     
+    // Get the team's organization ID to add cross-org access
+    const { data: team } = await supabase
+      .from('team')
+      .select('org_id')
+      .eq('id', invitation.team_id)
+      .single();
+      
+    if (team?.org_id) {
+      // First check for existing ACL entry that might be temporary
+      const { data: existingAcl } = await supabase
+        .from('organization_acl')
+        .select('id')
+        .eq('org_id', team.org_id)
+        .eq('subject_id', currentUserId)
+        .eq('subject_type', 'user')
+        .maybeSingle();
+        
+      if (existingAcl?.id) {
+        // Update the existing ACL entry to remove expiration (make permanent)
+        await supabase
+          .from('organization_acl')
+          .update({ expires_at: null })
+          .eq('id', existingAcl.id);
+          
+        console.log('Updated existing organization access to permanent');
+      } else {
+        // Create a permanent ACL entry (no expiration)
+        await supabase
+          .from('organization_acl')
+          .insert({
+            org_id: team.org_id,
+            subject_id: currentUserId,
+            subject_type: 'user',
+            role: invitation.role === 'manager' ? 'manager' : 'viewer'
+          });
+          
+        console.log('Added permanent organization access for user');
+      }
+    }
+    
     // Mark the invitation as accepted
     const { error: updateError } = await supabase
       .from('team_invitations')
