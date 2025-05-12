@@ -1,4 +1,3 @@
-
 export interface TeamMember {
   id: string;
   auth_uid?: string;
@@ -33,6 +32,12 @@ export interface Equipment {
   updated_at: string;
   deleted_at?: string;
   attributes?: EquipmentAttribute[];
+  
+  // Adding cross-organization properties
+  team_name?: string;
+  org_name?: string;
+  is_external_org?: boolean;
+  can_edit?: boolean;
 }
 
 export interface EquipmentAttribute {
