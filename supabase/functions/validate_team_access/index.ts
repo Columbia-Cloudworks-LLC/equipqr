@@ -28,11 +28,15 @@ serve(async (req) => {
       return createErrorResponse("Invalid team ID format");
     }
     
+    console.log(`Processing access check for team ${team_id} by user ${user_id}`);
+    
     // Create Supabase client
-    const supabase = createAdminClient();
+    const supabase = await createAdminClient();
     
     // Check team access using the shared function
     const accessResult = await checkTeamAccess(supabase, user_id, team_id);
+    
+    console.log('Team access check result:', accessResult);
     
     // Get app_user id for this auth user (for compatibility with existing code)
     const { data: appUser } = await supabase

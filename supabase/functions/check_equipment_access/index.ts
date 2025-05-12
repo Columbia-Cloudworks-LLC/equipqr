@@ -28,11 +28,15 @@ serve(async (req) => {
       return createErrorResponse("Invalid equipment ID format");
     }
     
+    console.log(`Processing access check for equipment ${equipment_id} by user ${user_id}`);
+    
     // Create Supabase client
     const supabase = await createAdminClient();
     
     // Check equipment access using the shared function
     const accessResult = await checkEquipmentAccess(supabase, user_id, equipment_id);
+    
+    console.log('Access check result:', accessResult);
     
     // Get equipment team for the response (if applicable)
     let teamId = null;
