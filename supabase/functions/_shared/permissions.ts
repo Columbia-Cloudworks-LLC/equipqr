@@ -1,3 +1,4 @@
+
 /**
  * Shared permission checking utilities for edge functions
  */

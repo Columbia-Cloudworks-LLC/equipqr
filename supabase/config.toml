@@ -101,3 +101,5 @@ port = 54324
 [functions.repair_team_membership]
 
 [functions.change_user_role]
+
+[functions.get_user_teams]
