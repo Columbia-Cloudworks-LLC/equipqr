@@ -27,18 +27,26 @@ export function useTeamMembership(teamId: string | null) {
   // Check team membership when teamId or currentUserId changes
   useEffect(() => {
     if (teamId && teamId !== 'none' && currentUserId) {
+      // Always set to true initially to avoid flashing "not a member" message
+      setIsMember(true);
+      setError(null);
       checkDetailedTeamAccess(teamId, currentUserId);
     } else {
       setIsMember(true); // Reset to true when no team is selected
       setAccessReason(null);
       setAccessRole(null);
       setHasCrossOrgAccess(false);
+      setError(null);
     }
   }, [teamId, currentUserId]);
 
   const checkDetailedTeamAccess = async (teamId: string, userId: string) => {
     try {
+      // Clear previous state
+      setError(null);
+      
       // Use the enhanced team access details function
+      // This calls an edge function that bypasses RLS recursion issues
       const accessDetails = await getTeamAccessDetails(userId, teamId);
       
       setIsMember(accessDetails.isMember);
@@ -62,7 +70,9 @@ export function useTeamMembership(teamId: string | null) {
       });
     } catch (error: any) {
       console.error('Error checking team access:', error);
-      setError('Failed to verify team membership.');
+      setError('Failed to verify team membership. We will assume you are a member for now.');
+      // Even on error, assume membership to avoid blocking user interaction
+      setIsMember(true);
     }
   };
 

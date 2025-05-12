@@ -14,7 +14,8 @@ export async function canManageWorkNotes(equipmentId: string): Promise<boolean> 
 
     const userId = sessionData.session.user.id;
     
-    // Call the check_work_notes_access edge function
+    // Call the check_work_notes_access edge function which uses direct queries 
+    // to avoid RLS recursion issues
     const { data, error } = await supabase.functions.invoke('check_work_notes_access', {
       body: {
         equipment_id: equipmentId,
@@ -48,7 +49,8 @@ export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> 
 
     const userId = sessionData.session.user.id;
     
-    // Call the check_work_notes_access edge function
+    // Call the check_work_notes_access edge function which uses direct queries
+    // to avoid RLS recursion issues
     const { data, error } = await supabase.functions.invoke('check_work_notes_access', {
       body: {
         equipment_id: equipmentId,

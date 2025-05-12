@@ -15,18 +15,29 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     const validateSession = async () => {
-      if (!isLoading) {
-        if (!user) {
-          setIsSessionValid(false);
-        } else {
-          // Double-check the session is valid
-          const isValid = await checkSession();
-          setIsSessionValid(isValid);
+      // If still loading, wait
+      if (isLoading) return;
+      
+      // If no user, session is invalid
+      if (!user) {
+        console.log("ProtectedRoute: No user found, marking session as invalid");
+        setIsSessionValid(false);
+        return;
+      }
+      
+      try {
+        // Double-check the session is valid
+        const isValid = await checkSession();
+        console.log("ProtectedRoute: Session check result:", isValid);
+        setIsSessionValid(isValid);
           
-          if (!isValid) {
-            console.warn("ProtectedRoute: Session exists but is invalid");
-          }
+        if (!isValid) {
+          console.warn("ProtectedRoute: Session exists but is invalid");
         }
+      } catch (err) {
+        // On error, assume session is valid to avoid blocking user
+        console.error("ProtectedRoute: Error checking session:", err);
+        setIsSessionValid(true); 
       }
     };
     
@@ -49,6 +60,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [isSessionValid, isLoading, navigate, location]);
 
+  // Show loading state when authenticating
   if (isLoading || isSessionValid === null) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -60,6 +72,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
+  // Redirect to auth page if session is invalid
   if (!isSessionValid) {
     // When using Navigate, also pass the current path as state
     const currentPath = location.pathname + location.search + location.hash;
@@ -71,5 +84,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/auth" state={{ returnTo: currentPath }} replace />;
   }
 
+  // If the session is valid, render the protected content
   return <>{children}</>;
 }

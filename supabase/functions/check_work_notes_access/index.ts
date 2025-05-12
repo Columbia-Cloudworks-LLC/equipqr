@@ -22,10 +22,11 @@ serve(async (req) => {
       return createErrorResponse("Missing required parameters: equipment_id and user_id must be provided");
     }
 
-    // Create Supabase client
+    // Create Supabase admin client - this bypasses RLS policies
     const supabase = createAdminClient();
     
-    // Use the shared equipment access check function
+    // Use the shared equipment access check function that uses direct queries
+    // to avoid RLS policy recursion issues
     const accessResult = await checkEquipmentAccess(supabase, user_id, equipment_id);
     
     // Additional check for more specific work notes permissions

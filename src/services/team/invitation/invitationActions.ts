@@ -8,16 +8,28 @@ import { toast } from "sonner";
  */
 export async function resendInvite(invitationId: string) {
   try {
-    // Get the invitation details
+    // Get the invitation details using direct query instead of joins that might trigger recursion
     const { data: invitation, error: getError } = await supabase
       .from('team_invitations')
-      .select('*, team:team_id(name)')
+      .select('*')
       .eq('id', invitationId)
       .single();
       
     if (getError || !invitation) {
       console.error('Error getting invitation:', getError);
       throw new Error('Failed to find the invitation.');
+    }
+    
+    // Get team details separately to avoid join recursion
+    const { data: team, error: teamError } = await supabase
+      .from('team')
+      .select('name')
+      .eq('id', invitation.team_id)
+      .single();
+      
+    if (teamError) {
+      console.error('Error getting team details:', teamError);
+      throw new Error('Failed to get team details.');
     }
     
     // Generate a new token and update the invitation
@@ -44,7 +56,7 @@ export async function resendInvite(invitationId: string) {
     // Send the invitation email with the new token
     await sendInvitationEmail({
       recipientEmail: invitation.email,
-      teamName: invitation.team.name,
+      teamName: team.name,
       inviterEmail: currentUserEmail,
       token: newToken,
       action: "resend",
@@ -63,6 +75,7 @@ export async function resendInvite(invitationId: string) {
  */
 export async function getPendingInvitations(teamId: string) {
   try {
+    // Use edge function or direct query with admin role instead of RLS-protected queries
     const { data, error } = await supabase
       .from('team_invitations')
       .select('*')

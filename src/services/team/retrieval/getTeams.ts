@@ -4,6 +4,7 @@ import { getAppUserId } from "@/utils/authUtils";
 
 /**
  * Get all teams including those from the user's organization
+ * This function uses multiple targeted queries to avoid RLS recursions
  */
 export async function getTeams() {
   try {
@@ -56,46 +57,84 @@ export async function getTeams() {
     const userOrgId = userProfile?.org_id;
     console.log('User organization ID:', userOrgId);
     
-    // Get teams the user is a member of (regardless of organization)
-    const { data: memberTeams, error: memberError } = await supabase
+    // Get teams the user is a member of directly
+    const { data: teamMemberships, error: membershipError } = await supabase
       .from('team_member')
-      .select(`
-        team:team_id (
-          id,
-          name,
-          org_id,
-          created_by,
-          organization:org_id (name)
-        )
-      `)
+      .select('team_id')
       .eq('user_id', appUser.id);
-      
-    if (memberError) {
-      console.error('Error fetching member teams:', memberError);
-      throw memberError;
+    
+    if (membershipError) {
+      console.error('Error fetching team memberships:', membershipError);
     }
     
-    console.log('Teams user is a member of:', memberTeams?.length || 0);
+    const teamIds = teamMemberships?.map(tm => tm.team_id) || [];
+    console.log('Teams user is a member of (IDs):', teamIds);
+    
+    let memberTeams = [];
+    // Fetch team details separately to avoid RLS recursion issues
+    if (teamIds.length > 0) {
+      const { data: teams, error: teamsError } = await supabase
+        .from('team')
+        .select('id, name, org_id')
+        .in('id', teamIds)
+        .is('deleted_at', null);
+        
+      if (teamsError) {
+        console.error('Error fetching member teams:', teamsError);
+      } else {
+        memberTeams = teams || [];
+        
+        // For each team, get the org name separately
+        const teamsWithOrgNames = await Promise.all(
+          memberTeams.map(async (team) => {
+            if (team.org_id) {
+              const { data: org } = await supabase
+                .from('organization')
+                .select('name')
+                .eq('id', team.org_id)
+                .single();
+                
+              return {
+                ...team,
+                org_name: org?.name,
+                is_external_org: userOrgId && team.org_id !== userOrgId
+              };
+            }
+            return team;
+          })
+        );
+        
+        memberTeams = teamsWithOrgNames;
+      }
+    }
+    
+    console.log('Fetched member teams with details:', memberTeams.length);
     
     // Get teams from user's organization
     let orgTeams = [];
     if (userOrgId) {
       const { data: fetchedOrgTeams, error: orgError } = await supabase
         .from('team')
-        .select(`
-          id, 
-          name, 
-          org_id,
-          created_by,
-          organization:org_id (name)
-        `)
+        .select('id, name, org_id')
         .eq('org_id', userOrgId)
         .is('deleted_at', null);
         
       if (orgError) {
         console.error('Error fetching org teams:', orgError);
       } else {
-        orgTeams = fetchedOrgTeams || [];
+        // Add org name to each team
+        const { data: org } = await supabase
+          .from('organization')
+          .select('name')
+          .eq('id', userOrgId)
+          .single();
+          
+        orgTeams = (fetchedOrgTeams || []).map(team => ({
+          ...team,
+          org_name: org?.name,
+          is_external_org: false
+        }));
+        
         console.log('Teams in user organization:', orgTeams.length);
       }
     }
@@ -103,63 +142,56 @@ export async function getTeams() {
     // Teams created by the user
     const { data: createdTeams, error: createdError } = await supabase
       .from('team')
-      .select(`
-        id, 
-        name, 
-        org_id,
-        created_by,
-        organization:org_id (name)
-      `)
+      .select('id, name, org_id')
       .eq('created_by', authUserId)
       .is('deleted_at', null);
     
+    let createdTeamsWithOrgNames = [];
     if (createdError) {
       console.error('Error fetching teams created by user:', createdError);
     } else {
-      console.log('Teams created by user:', createdTeams?.length || 0);
+      // Add org name to each team
+      createdTeamsWithOrgNames = await Promise.all(
+        (createdTeams || []).map(async (team) => {
+          if (team.org_id) {
+            const { data: org } = await supabase
+              .from('organization')
+              .select('name')
+              .eq('id', team.org_id)
+              .single();
+              
+            return {
+              ...team,
+              org_name: org?.name,
+              is_external_org: userOrgId && team.org_id !== userOrgId
+            };
+          }
+          return team;
+        })
+      );
+      
+      console.log('Teams created by user:', createdTeamsWithOrgNames.length);
     }
     
     // Combine teams from all sources, removing duplicates
     const teamsMap = new Map();
     
-    // Process member teams
-    (memberTeams || []).forEach(membership => {
-      if (membership.team) {
-        // Fix: Remove the deleted_at check since it's not in the returned object type
-        const team = {
-          id: membership.team.id,
-          name: membership.team.name,
-          org_id: membership.team.org_id,
-          org_name: membership.team.organization?.name,
-          is_external_org: userOrgId && membership.team.org_id !== userOrgId
-        };
-        teamsMap.set(team.id, team);
-      }
+    // Add member teams
+    memberTeams.forEach(team => {
+      teamsMap.set(team.id, team);
     });
     
     // Add org teams
     orgTeams.forEach(team => {
       if (!teamsMap.has(team.id)) {
-        teamsMap.set(team.id, {
-          id: team.id,
-          name: team.name,
-          org_id: team.org_id,
-          org_name: team.organization?.name,
-          is_external_org: false
-        });
+        teamsMap.set(team.id, team);
       }
     });
     
     // Add created teams
-    (createdTeams || []).forEach(team => {
+    createdTeamsWithOrgNames.forEach(team => {
       if (!teamsMap.has(team.id)) {
-        teamsMap.set(team.id, {
-          id: team.id,
-          name: team.name,
-          org_id: team.org_id,
-          org_name: team.organization?.name,
-          is_external_org: userOrgId && team.org_id !== userOrgId
-        });
+        teamsMap.set(team.id, team);
       }
     });
     
