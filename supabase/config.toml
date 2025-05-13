@@ -155,7 +155,7 @@ client_id = ""
 secret = ""
 
 [functions]
-# avoid local port clash
-port = 54324
-# bundle the helpers for every build
+# Use a different port to avoid conflicts with Inbucket
+port = 54327
+# Properly include the shared files with the correct path
 included_files = ["_shared/**/*"]
