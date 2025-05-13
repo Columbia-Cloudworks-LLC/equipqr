@@ -27,6 +27,7 @@ export async function getEquipment(): Promise<Equipment[]> {
       return getEquipmentDirectQuery();
     }
     
+    // Validate that we received an array
     if (!Array.isArray(data)) {
       console.error('Invalid response from list_user_equipment function:', data);
       return [];

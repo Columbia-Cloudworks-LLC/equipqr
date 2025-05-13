@@ -172,6 +172,8 @@ port = 54321
 
 [functions.list_user_equipment]
 
+[functions.list_user_pending_invitations]
+
 [functions.repair_team_membership]
 
 [functions.request_role_upgrade]

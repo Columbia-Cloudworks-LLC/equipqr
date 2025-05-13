@@ -1,26 +1,20 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { 
-  corsHeaders,
-  createErrorResponse,
-  createSuccessResponse
-} from '../_shared/cors.ts';
+import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { team_id, user_id } = await req.json();
+    const { user_id, team_id, org_id } = await req.json();
     
-    if (!team_id || !user_id) {
-      return createErrorResponse("Missing required parameters: team_id and user_id");
+    if (!user_id || (!team_id && !org_id)) {
+      return createErrorResponse("Missing required parameters");
     }
-
-    // Create regular Supabase client - no admin bypass needed with our security definer functions
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     
@@ -30,72 +24,62 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    // First, get the team's organization ID
-    const { data: teamData } = await supabase.rpc('get_team_org', { 
-      team_id_param: team_id 
-    });
-    
-    if (!teamData) {
-      return createErrorResponse("Team not found");
+    // Check org-level permission first if org_id is provided
+    if (org_id) {
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user_id)
+        .eq('org_id', org_id)
+        .limit(1);
+        
+      if (userRoles && userRoles.length > 0) {
+        const role = userRoles[0].role;
+        if (role === 'owner' || role === 'manager') {
+          return createSuccessResponse({
+            can_create: true,
+            role: role,
+            org_id: org_id,
+            reason: 'org_role'
+          });
+        }
+      }
     }
     
-    const teamOrgId = teamData;
-    
-    // Check if user has an org-level role that allows equipment creation
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user_id)
-      .eq('org_id', teamOrgId)
-      .maybeSingle();
+    // Check team-level permission if team_id is provided
+    if (team_id) {
+      const { data: role } = await supabase.rpc(
+        'get_user_role_in_team',
+        {
+          p_user_uid: user_id,
+          p_team_id: team_id
+        }
+      );
       
-    if (userRoles?.role === 'owner' || userRoles?.role === 'manager') {
-      return createSuccessResponse({ 
-        can_create: true, 
-        reason: 'org_role',
-        org_id: teamOrgId,
-        role: userRoles.role
-      });
+      const canCreate = role && ['owner', 'manager', 'admin', 'creator'].includes(role);
+      
+      if (canCreate) {
+        // Get the team's org_id
+        const { data: team } = await supabase
+          .from('team')
+          .select('org_id')
+          .eq('id', team_id)
+          .single();
+          
+        return createSuccessResponse({
+          can_create: true,
+          role: role,
+          team_id: team_id,
+          org_id: team?.org_id,
+          reason: 'team_role'
+        });
+      }
     }
     
-    // Check if user is a team member with appropriate role
-    const { data: teamRole } = await supabase.rpc('get_team_role_safe', {
-      _user_id: user_id,
-      _team_id: team_id
-    });
-    
-    const teamRolesWithAccess = ['manager', 'creator', 'owner'];
-    if (teamRole && teamRolesWithAccess.includes(teamRole)) {
-      return createSuccessResponse({ 
-        can_create: true, 
-        reason: 'team_role',
-        org_id: teamOrgId,
-        role: teamRole
-      });
-    }
-    
-    // Get user's organization ID
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', user_id)
-      .single();
-    
-    // If the user's org matches the team's org, they may have default access
-    if (userProfile && userProfile.org_id === teamOrgId) {
-      return createSuccessResponse({ 
-        can_create: true, 
-        reason: 'same_org',
-        org_id: teamOrgId,
-        role: 'member'
-      });
-    }
-    
-    // User does not have permission
-    return createSuccessResponse({ 
-      can_create: false, 
-      reason: 'insufficient_permissions',
-      org_id: teamOrgId
+    // Default no permission
+    return createSuccessResponse({
+      can_create: false,
+      reason: 'no_permission'
     });
     
   } catch (error) {

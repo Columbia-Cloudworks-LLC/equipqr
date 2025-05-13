@@ -1155,6 +1155,10 @@ export type Database = {
         Args: { _user_id: string; _org_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_user_role_in_team: {
+        Args: { p_user_uid: string; p_team_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _user_id: string

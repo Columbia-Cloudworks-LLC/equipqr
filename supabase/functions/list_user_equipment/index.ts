@@ -1,7 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
+import { createAdminClient } from '../_shared/adminClient.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,152 +16,74 @@ serve(async (req) => {
       return createErrorResponse("Missing required parameter: user_id");
     }
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabase = createAdminClient();
     
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase environment variables');
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Get user's organization ID
-    const { data: userProfile, error: userError } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', user_id)
-      .single();
-      
-    if (userError) {
-      console.error('Error fetching user profile:', userError);
-      return createErrorResponse("User profile not found");
-    }
-    
-    // Get app_user ID from auth user ID
-    const { data: appUser, error: appUserError } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', user_id)
-      .single();
-      
-    if (appUserError) {
-      console.error('Error fetching app_user:', appUserError);
-      return createErrorResponse("App user not found");
-    }
-    
-    const appUserId = appUser.id;
-    
-    // First get equipment from user's organization
-    const { data: orgEquipment, error: orgError } = await supabase
+    // Get all equipment accessible to the user
+    const { data: equipmentData, error } = await supabase
       .from('equipment')
       .select(`
         *,
         team:team_id (name, org_id),
         org:org_id (name)
       `)
-      .eq('org_id', userProfile.org_id)
       .is('deleted_at', null)
       .order('name');
       
-    if (orgError) {
-      console.error('Error fetching organization equipment:', orgError);
-      return createErrorResponse(orgError.message);
+    if (error) {
+      console.error('Error fetching equipment:', error);
+      return createErrorResponse(`Failed to fetch equipment: ${error.message}`);
     }
     
-    // Get user's team memberships (using app_user ID)
-    const { data: teamMemberships, error: membershipError } = await supabase
-      .from('team_member')
-      .select('team_id')
-      .eq('user_id', appUserId);
+    // Filter equipment based on user's access rights using our new helper functions
+    const accessPromises = equipmentData.map(async (equipment) => {
+      // Check if user can access this equipment item
+      const { data: canAccess, error: accessError } = await supabase.rpc(
+        'can_access_equipment',
+        { p_uid: user_id, p_equipment_id: equipment.id }
+      );
+      
+      if (accessError) {
+        console.error(`Access check error for equipment ${equipment.id}:`, accessError);
+        return null;
+      }
+      
+      if (!canAccess) {
+        return null;
+      }
+      
+      // Check if user can edit this equipment item
+      const { data: canEdit } = await supabase.rpc(
+        'can_edit_equipment',
+        { p_uid: user_id, p_equipment_id: equipment.id }
+      );
+      
+      // Get user's org_id to determine if this is external
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', user_id)
+        .single();
+      
+      const isExternalOrg = equipment.team?.org_id && userProfile?.org_id && 
+                          equipment.team.org_id !== userProfile.org_id;
+      
+      return {
+        ...equipment,
+        team_name: equipment.team?.name || null,
+        org_name: equipment.org?.name || 'Unknown Organization',
+        is_external_org: isExternalOrg,
+        can_edit: !!canEdit
+      };
+    });
     
-    if (membershipError) {
-      console.error('Error fetching team memberships:', membershipError);
-      // Continue with org equipment only - ensure we return an array
-      return createSuccessResponse(processEquipmentList(orgEquipment || []));
-    }
+    const accessResults = await Promise.all(accessPromises);
+    const accessibleEquipment = accessResults.filter(item => item !== null);
     
-    // If user is not a member of any teams, just return org equipment
-    if (!teamMemberships || teamMemberships.length === 0) {
-      console.log(`User has no team memberships, returning ${orgEquipment?.length || 0} organization equipment`);
-      return createSuccessResponse(processEquipmentList(orgEquipment || []));
-    }
+    // Return the filtered equipment list directly (not wrapped in a data object)
+    return createSuccessResponse(accessibleEquipment);
     
-    // Extract team IDs
-    const teamIds = teamMemberships.map(tm => tm.team_id);
-    
-    // Get equipment for these teams
-    const { data: teamEquipment, error: teamError } = await supabase
-      .from('equipment')
-      .select(`
-        *,
-        team:team_id (name, org_id),
-        org:org_id (name)
-      `)
-      .in('team_id', teamIds)
-      .is('deleted_at', null)
-      .order('name');
-    
-    if (teamError) {
-      console.error('Error fetching team equipment:', teamError);
-      // Continue with org equipment only - ensure we return an array
-      return createSuccessResponse(processEquipmentList(orgEquipment || []));
-    }
-    
-    // Combine equipment lists with processed data - ensure we return an array
-    const combinedEquipment = combineEquipmentLists(orgEquipment || [], teamEquipment || [], userProfile.org_id);
-    
-    console.log(`Successfully fetched ${combinedEquipment.length} equipment items via edge function`);
-    return createSuccessResponse(combinedEquipment);
   } catch (error) {
     console.error('Unexpected error:', error);
-    // Return an empty array on error rather than null
-    return createSuccessResponse([]);
+    return createErrorResponse(`Unexpected error: ${error.message}`);
   }
 });
-
-// Process equipment list to add team and org names
-function processEquipmentList(equipmentList: any[]): any[] {
-  return equipmentList.map(item => ({
-    ...item,
-    team_name: item.team?.name || null,
-    org_name: item.org?.name || 'Unknown Organization',
-    is_external_org: false, // Default to false for org equipment
-  }));
-}
-
-// Combine equipment lists from org and teams, marking external org items
-function combineEquipmentLists(orgEquipment: any[], teamEquipment: any[], userOrgId: string): any[] {
-  // Create a map to ensure no duplicates
-  const equipmentMap = new Map();
-  
-  // Add organization equipment
-  orgEquipment.forEach(item => {
-    const processed = {
-      ...item,
-      team_name: item.team?.name || null,
-      org_name: item.org?.name || 'Unknown Organization',
-      is_external_org: false,
-    };
-    equipmentMap.set(item.id, processed);
-  });
-  
-  // Add team equipment (if it's not already in the map)
-  teamEquipment.forEach(item => {
-    if (!equipmentMap.has(item.id)) {
-      // Check if this is from an external organization
-      const isExternalOrg = item.team?.org_id && userOrgId && item.team.org_id !== userOrgId;
-      
-      const processed = {
-        ...item,
-        team_name: item.team?.name || null,
-        org_name: item.org?.name || 'Unknown Organization',
-        is_external_org: isExternalOrg,
-      };
-      equipmentMap.set(item.id, processed);
-    }
-  });
-  
-  // Convert map to array
-  return Array.from(equipmentMap.values());
-}
