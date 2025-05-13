@@ -157,7 +157,7 @@ secret = ""
 [functions]
 # Port to serve Edge Functions on
 port = 54321
-included_files = ["*/**/*"]  # Include all files in functions directory
+included_files = ["*/**/*"]
 
 [functions.check_equipment_access]
 
@@ -186,4 +186,3 @@ included_files = ["*/**/*"]  # Include all files in functions directory
 [functions.validate_team_access]
 
 [functions.add_team_member]
-
