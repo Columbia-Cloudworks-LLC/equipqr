@@ -107,3 +107,8 @@ port = 54324
 [functions.check_equipment_create_permission]
 
 [functions.list_user_equipment]
+
+[functions.get_user_invitations]
+
+[functions.validate_invitation]
+
