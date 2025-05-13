@@ -1,6 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createAdminClient } from '../_shared/adminClient.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -16,8 +16,15 @@ serve(async (req) => {
       return createErrorResponse("Missing required parameter: user_id");
     }
 
-    // Create Supabase client with admin rights to bypass RLS
-    const supabase = await createAdminClient();
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Get user's organization ID
     const { data: userProfile, error: userError } = await supabase

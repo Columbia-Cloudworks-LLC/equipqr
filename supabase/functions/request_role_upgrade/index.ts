@@ -1,12 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.42.0';
-
-// Configure CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
   // Handle CORS preflight request
@@ -20,10 +15,7 @@ serve(async (req) => {
     const { team_id, user_id } = body;
     
     if (!team_id || !user_id) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameters: team_id and user_id must be provided' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      return createErrorResponse('Missing required parameters: team_id and user_id must be provided');
     }
     
     // Create a Supabase client
@@ -40,10 +32,7 @@ serve(async (req) => {
     
     if (teamError) {
       console.error('Error fetching team details:', teamError);
-      return new Response(
-        JSON.stringify({ error: `Failed to fetch team details: ${teamError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      return createErrorResponse(`Failed to fetch team details: ${teamError.message}`, 500);
     }
     
     // Get user details - use auth.users for current user information
@@ -55,10 +44,7 @@ serve(async (req) => {
     
     if (userError) {
       console.error('Error fetching user details:', userError);
-      return new Response(
-        JSON.stringify({ error: `Failed to fetch user details: ${userError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      return createErrorResponse(`Failed to fetch user details: ${userError.message}`, 500);
     }
     
     // Get team member information
@@ -71,10 +57,7 @@ serve(async (req) => {
     
     if (memberError) {
       console.error('Error fetching team member:', memberError);
-      return new Response(
-        JSON.stringify({ error: `Failed to fetch team member: ${memberError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      return createErrorResponse(`Failed to fetch team member: ${memberError.message}`, 500);
     }
     
     // In a full implementation, we would insert the request into a role_requests table
@@ -94,28 +77,22 @@ serve(async (req) => {
     console.log(`Notification would be sent to team managers: ${managerEmails.join(', ')}`);
     
     // For now, just return success - in a real implementation we would store the request
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Role upgrade request submitted successfully',
-        requestDetails: {
-          teamId: team_id,
-          teamName: team.name,
-          userId: user_id,
-          userName: user.display_name || user.email,
-          requestedAt: new Date().toISOString(),
-          status: 'pending',
-          notifiedManagers: managerEmails.length
-        }
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return createSuccessResponse({ 
+      success: true, 
+      message: 'Role upgrade request submitted successfully',
+      requestDetails: {
+        teamId: team_id,
+        teamName: team.name,
+        userId: user_id,
+        userName: user.display_name || user.email,
+        requestedAt: new Date().toISOString(),
+        status: 'pending',
+        notifiedManagers: managerEmails.length
+      }
+    });
     
   } catch (error) {
     console.error('Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ error: `Unexpected error: ${error.message}` }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    return createErrorResponse(`Unexpected error: ${error.message}`, 500);
   }
 });

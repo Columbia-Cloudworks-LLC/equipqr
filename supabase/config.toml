@@ -181,4 +181,3 @@ port = 54321
 [functions.validate_invitation]
 
 [functions.validate_team_access]
-
