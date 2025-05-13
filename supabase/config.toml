@@ -157,5 +157,5 @@ secret = ""
 [functions]
 # Use a different port to avoid conflicts with Inbucket
 port = 54327
-# Properly include the shared files with the correct path
+# Include shared files using the correct path
 included_files = ["_shared/**/*"]
