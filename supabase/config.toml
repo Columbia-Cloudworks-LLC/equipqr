@@ -155,7 +155,7 @@ client_id = ""
 secret = ""
 
 [functions]
-# Avoid port clash with PostgREST when running `supabase start`
+# avoid local port clash
 port = 54324
-# Include the shared helpers in every function's build
-included_files = ["../_shared/**/*"]
+# bundle the helpers for every build
+included_files = ["_shared/**/*"]
