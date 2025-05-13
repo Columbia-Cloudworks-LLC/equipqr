@@ -2,7 +2,7 @@
 // Helper functions to check equipment access permissions
 // Now leverages the database security definer functions instead of custom logic
 
-import { corsHeaders } from './corsHeaders.ts';
+import { corsHeaders } from './cors.ts';
 
 // Helper function to check equipment access
 export async function checkEquipmentAccess(supabase, userId, equipmentId) {
