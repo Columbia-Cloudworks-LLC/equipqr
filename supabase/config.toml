@@ -105,3 +105,5 @@ port = 54324
 [functions.get_user_teams]
 
 [functions.check_equipment_create_permission]
+
+[functions.list_user_equipment]
