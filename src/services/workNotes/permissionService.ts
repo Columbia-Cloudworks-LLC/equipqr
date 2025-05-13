@@ -1,6 +1,6 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types/supabase-enums';
+import { supabase } from "@/integrations/supabase/client";
+import { UserRole } from "@/types/supabase-enums";
 
 /**
  * Check if the current user has permission to manage work notes
@@ -62,7 +62,6 @@ export async function canManageWorkNotes(equipmentId: string): Promise<boolean> 
       );
       
       // Organization owners can manage all notes
-      // Note: 'admin' is not in our UserRole type, so we only check for 'owner'
       if (orgRole === 'owner') {
         return true;
       }
@@ -151,7 +150,6 @@ export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> 
       );
       
       // Organization owners can create notes
-      // Note: 'admin' is not in our UserRole type, so we only check for 'owner'
       if (orgRole === 'owner') {
         return true;
       }

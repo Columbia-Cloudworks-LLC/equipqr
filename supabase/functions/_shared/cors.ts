@@ -1,30 +1,49 @@
 
-// CORS headers for Supabase Edge Functions
 export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-requested-with",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
-// Helper functions for creating consistent responses
-export function createErrorResponse(message: string, status = 400) {
+/**
+ * Create a standardized error response
+ * @param message Error message
+ * @param status HTTP status code (default: 400)
+ * @returns Response object with error details
+ */
+export function createErrorResponse(message: string, status: number = 400) {
   return new Response(
-    JSON.stringify({
-      error: message
+    JSON.stringify({ 
+      error: message, 
+      success: false
     }),
-    {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: status
+    { 
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
     }
   );
 }
 
-export function createSuccessResponse(data: any, status = 200) {
+/**
+ * Create a standardized success response
+ * @param data Response data
+ * @param status HTTP status code (default: 200)
+ * @returns Response object with data
+ */
+export function createSuccessResponse(data: any, status: number = 200) {
   return new Response(
     JSON.stringify(data),
-    {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: status
+    { 
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
     }
   );
+}
+
+/**
+ * Handle CORS preflight requests
+ * @returns Response for OPTIONS requests
+ */
+export function handleCorsPreflightRequest() {
+  return new Response(null, { headers: corsHeaders });
 }

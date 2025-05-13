@@ -1,154 +1,140 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { generateToken, sendInvitationEmail } from './invitationHelpers';
-import { UserRole } from "@/types/supabase-enums";
+import { supabase } from '@/integrations/supabase/client';
+import { sendInvitationEmail, generateToken } from './invitationHelpers';
+import { UserRole } from '@/types/supabase-enums';
 
 /**
  * Invite a user to join a team
+ * @param email The email address of the user to invite
+ * @param teamId The ID of the team to invite to
+ * @param role The role to assign to the user (default: viewer)
+ * @returns Data about the created invitation
  */
-export async function inviteMember(email: string, role: UserRole, teamId: string) {
+export async function inviteMember(
+  email: string,
+  teamId: string,
+  role: UserRole = 'viewer'
+): Promise<{ success: boolean; data?: any; error?: any }> {
   try {
-    console.log(`Sending invitation to ${email} for role ${role} in team ${teamId}`);
+    console.log(`Inviting ${email} to team ${teamId} with role ${role}`);
     
-    // Get the current user's session
+    if (!email || !teamId) {
+      throw new Error('Email and team ID are required');
+    }
+    
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Get current user session
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to send invitations');
+      throw new Error('You must be logged in to invite team members');
     }
     
-    // Check if the user is already part of the team using our function
-    const { data: existingUserArray, error: userCheckError } = await supabase.rpc(
-      'get_user_by_email',
-      { email_address: email.toLowerCase() }
-    );
+    // Check if the user has manager permissions for the team
+    const { data: permissionData } = await supabase.functions.invoke('check_team_role_permission', {
+      body: { 
+        team_id: teamId, 
+        user_id: sessionData.session.user.id 
+      }
+    });
     
-    if (userCheckError) {
-      console.error('Error checking if user exists:', userCheckError);
-      // Continue with invitation flow since we can't confirm if user exists
+    if (!permissionData?.hasPermission) {
+      throw new Error('You do not have permission to invite users to this team');
     }
     
-    // Get team details to include in the invitation
-    const { data: team, error: teamError } = await supabase
-      .from('team')
-      .select('name, org_id')
-      .eq('id', teamId)
-      .single();
+    // Check if user is already a member of the team
+    const { data: existingUser } = await supabase.rpc('get_user_by_email', {
+      email_address: normalizedEmail
+    });
+    
+    if (existingUser) {
+      // Check if already a member
+      const { data: existingMember } = await supabase.rpc(
+        'check_team_membership',
+        {
+          p_email: normalizedEmail,
+          p_team_id: teamId
+        }
+      );
       
-    if (teamError) {
-      console.error('Error fetching team details:', teamError);
-      throw new Error(`Failed to find team: ${teamError.message}`);
+      if (existingMember?.is_member) {
+        return {
+          success: false,
+          error: 'This user is already a member of the team'
+        };
+      }
     }
     
-    // Generate a unique token for the invitation
+    // Check if there's a pending invitation
+    const { data: pendingInvites } = await supabase
+      .from('team_invitations')
+      .select('id, status, email')
+      .eq('team_id', teamId)
+      .eq('email', normalizedEmail)
+      .or('status.eq.pending,status.eq.sent');
+      
+    if (pendingInvites && pendingInvites.length > 0) {
+      return {
+        success: false,
+        error: 'There is already a pending invitation for this email'
+      };
+    }
+    
+    // Generate a unique token for invitation
     const token = await generateToken();
     
-    // Save the invitation in the database
+    // Get inviter's email for context
+    const inviterEmail = sessionData.session.user.email;
+    
+    // Create an invitation record
     const { data: invitation, error: inviteError } = await supabase
       .from('team_invitations')
       .insert({
-        email: email.toLowerCase(),
         team_id: teamId,
+        email: normalizedEmail,
         role: role,
         token: token,
         created_by: sessionData.session.user.id,
-        invited_by_email: sessionData.session.user.email
+        status: 'pending',
+        invited_by_email: inviterEmail
       })
       .select()
       .single();
-      
+    
     if (inviteError) {
       console.error('Error creating invitation:', inviteError);
       throw new Error(`Failed to create invitation: ${inviteError.message}`);
     }
     
-    // Extract the existing user from the array (if it exists)
-    const existingUser = existingUserArray && existingUserArray.length > 0 ? existingUserArray[0] : null;
-    
-    // If we found an existing user, create a cross-org access entry
-    if (existingUser?.auth_uid) {
-      try {
-        // Add organization_acl entry to grant temporary cross-org access
-        const { error: aclError } = await supabase
-          .from('organization_acl')
-          .insert({
-            org_id: team.org_id,
-            subject_id: existingUser.auth_uid,
-            subject_type: 'user',
-            role: 'viewer',
-            // Add expiration date for temporary access (14 days)
-            expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
-          });
-        
-        if (aclError) {
-          console.error('Error creating organization ACL entry:', aclError);
-          // Continue with invitation flow even if ACL creation fails
-        } else {
-          console.log('Created temporary organization access for invited user');
-        }
-      } catch (aclCreateError) {
-        console.error('Error in creating organization ACL entry:', aclCreateError);
-        // Continue with invitation flow even if ACL creation fails
-      }
+    // Send invitation email
+    try {
+      await sendInvitationEmail(normalizedEmail, token, teamId);
+      
+      // Update invitation status to 'sent'
+      await supabase
+        .from('team_invitations')
+        .update({ status: 'sent' })
+        .eq('id', invitation.id);
+    } catch (emailError) {
+      console.error('Error sending invitation email:', emailError);
+      // Still return success but with a warning
+      return {
+        success: true,
+        data: invitation,
+        error: 'Invitation created but email notification failed'
+      };
     }
     
-    // If the user exists, we can add them directly to the team
-    let directlyAdded = false;
-    if (existingUser?.id) {
-      try {
-        // Try to add the user directly to the team
-        const { data: directAdd, error: directAddError } = await supabase.functions.invoke('add_team_member', {
-          body: {
-            _team_id: teamId,
-            _user_id: existingUser.id,
-            _role: role,
-            _added_by: sessionData.session.user.id
-          }
-        });
-        
-        if (!directAddError) {
-          directlyAdded = true;
-          console.log(`User ${email} was directly added to team ${teamId}`);
-          
-          // Mark the invitation as accepted
-          const { error: updateError } = await supabase
-            .from('team_invitations')
-            .update({
-              status: 'accepted',
-              accepted_at: new Date().toISOString()
-            })
-            .eq('id', invitation.id);
-            
-          if (updateError) {
-            console.error('Error updating invitation status:', updateError);
-            // Not critical, continue
-          }
-        }
-      } catch (directError) {
-        console.error('Error directly adding user to team:', directError);
-        // Continue with invitation flow as fallback
-      }
-    }
-    
-    // Send invitation email if user wasn't directly added
-    if (!directlyAdded) {
-      await sendInvitationEmail({
-        recipientEmail: email,
-        teamName: team.name,
-        inviterEmail: sessionData.session.user.email,
-        inviterName: sessionData.session.user.user_metadata?.display_name,
-        token: token,
-        action: 'invite',
-        role
-      });
-    }
-    
-    return { 
-      success: true, 
-      directlyAdded,
-      invitationId: invitation.id
+    return {
+      success: true,
+      data: invitation
     };
   } catch (error: any) {
     console.error('Error in inviteMember:', error);
-    throw new Error(`Failed to send invitation: ${error.message}`);
+    return {
+      success: false,
+      error: error.message || 'Failed to invite team member'
+    };
   }
 }
