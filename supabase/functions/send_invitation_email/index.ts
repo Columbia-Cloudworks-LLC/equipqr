@@ -1,15 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { corsHeaders } from '../_shared/cors.ts';
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 const resend = new Resend(resendApiKey);
 const appUrl = Deno.env.get("APP_URL") || "http://localhost:3000";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 interface InvitationEmailRequest {
   recipientEmail: string;

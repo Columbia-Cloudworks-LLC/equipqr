@@ -1,15 +1,20 @@
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
-export async function canAccessTeam(
-  supabase: SupabaseClient,
-  userId: string, 
-  teamId: string
-): Promise<boolean> {
-  // Use the secure RPC function to check access
-  const { data, error } = await supabase.rpc('check_team_access', {
-    user_id: userId,
-    team_id: teamId
+// Helper function to check if a user has access to a team
+export async function canAccessTeam(userId: string, teamId: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing required environment variables for Supabase client');
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  
+  const { data, error } = await supabase.rpc('can_access_team', {
+    p_uid: userId,
+    p_team_id: teamId
   });
   
   if (error) {
@@ -20,15 +25,20 @@ export async function canAccessTeam(
   return data === true;
 }
 
-export async function getTeamRole(
-  supabase: SupabaseClient,
-  userId: string,
-  teamId: string
-): Promise<string | null> {
-  // Use the secure RPC function to get the team role
-  const { data, error } = await supabase.rpc('get_team_role_safe', {
-    _user_id: userId,
-    _team_id: teamId
+// Helper function to get user's role in a team
+export async function getUserRoleInTeam(userId: string, teamId: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing required environment variables for Supabase client');
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  
+  const { data, error } = await supabase.rpc('get_user_role_in_team', {
+    p_user_uid: userId,
+    p_team_id: teamId
   });
   
   if (error) {
