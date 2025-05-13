@@ -78,13 +78,19 @@ export function useTeamMembers(teamId: string) {
       setError(null);
       const result = await inviteMember(email, role, teamId);
       
-      if (result.directlyAdded) {
-        toast.success("Member added", {
-          description: `${email} was added directly to the team`,
-        });
+      if (result.success) {
+        if (result.data?.directly_added) {
+          toast.success("Member added", {
+            description: `${email} was added directly to the team`,
+          });
+        } else {
+          toast.success("Invitation sent", {
+            description: `Invitation email sent to ${email}`,
+          });
+        }
       } else {
-        toast.success("Invitation sent", {
-          description: `Invitation email sent to ${email}`,
+        toast.error("Invitation failed", {
+          description: result.error || "Unknown error occurred",
         });
       }
       

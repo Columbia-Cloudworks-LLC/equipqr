@@ -51,7 +51,7 @@ export async function saveEquipmentAttributes(
     
     // Prepare arrays for operations
     const toUpdate: EquipmentAttribute[] = [];
-    const toInsert: Partial<EquipmentAttribute>[] = [];
+    const toInsert: { equipment_id: string; key: string; value?: string }[] = [];
     
     // Determine which attributes to update vs. insert
     attributes.forEach(attr => {
@@ -69,7 +69,7 @@ export async function saveEquipmentAttributes(
           });
         }
       } else {
-        // New attribute
+        // New attribute - ensuring required properties are present
         toInsert.push({
           equipment_id: equipmentId,
           key: attr.key,

@@ -47,17 +47,14 @@ export async function getScanHistory(equipmentId: string, limit: number = 10) {
       return [];
     }
     
+    // Simplified query to avoid relying on relationships
     const { data, error } = await supabase
       .from('scan_history')
       .select(`
         id,
         ts,
         scanned_by_user_id,
-        scanned_from_ip,
-        scanner:scanned_by_user_id (
-          display_name,
-          org:user_profiles(organization(name))
-        )
+        scanned_from_ip
       `)
       .eq('equipment_id', equipmentId)
       .order('ts', { ascending: false })
@@ -68,10 +65,36 @@ export async function getScanHistory(equipmentId: string, limit: number = 10) {
       return [];
     }
     
-    // Process data to extract user and organization info
-    return data.map(scan => {
-      const userName = scan.scanner?.display_name || 'Anonymous';
-      const orgName = scan.scanner?.org?.[0]?.organization?.name || 'Unknown Organization';
+    // Process data to add user and organization info
+    const scanHistory = await Promise.all(data.map(async scan => {
+      let userName = 'Anonymous';
+      let orgName = 'Unknown Organization';
+      
+      if (scan.scanned_by_user_id) {
+        // Get user info
+        const { data: user } = await supabase
+          .from('user_profiles')
+          .select('display_name, org_id')
+          .eq('id', scan.scanned_by_user_id)
+          .single();
+          
+        if (user?.display_name) {
+          userName = user.display_name;
+          
+          // Get org name
+          if (user.org_id) {
+            const { data: org } = await supabase
+              .from('organization')
+              .select('name')
+              .eq('id', user.org_id)
+              .single();
+              
+            if (org?.name) {
+              orgName = org.name;
+            }
+          }
+        }
+      }
       
       return {
         id: scan.id,
@@ -81,7 +104,9 @@ export async function getScanHistory(equipmentId: string, limit: number = 10) {
         orgName,
         ipAddress: scan.scanned_from_ip
       };
-    });
+    }));
+    
+    return scanHistory;
   } catch (error) {
     console.error('Error in getScanHistory:', error);
     return [];

@@ -6,14 +6,14 @@ import { UserRole } from '@/types/supabase-enums';
 /**
  * Invite a user to join a team
  * @param email The email address of the user to invite
+ * @param role The role to assign to the user
  * @param teamId The ID of the team to invite to
- * @param role The role to assign to the user (default: viewer)
  * @returns Data about the created invitation
  */
 export async function inviteMember(
   email: string,
-  teamId: string,
-  role: UserRole = 'viewer'
+  role: UserRole,
+  teamId: string
 ): Promise<{ success: boolean; data?: any; error?: any }> {
   try {
     console.log(`Inviting ${email} to team ${teamId} with role ${role}`);
@@ -48,17 +48,23 @@ export async function inviteMember(
       email_address: normalizedEmail
     });
     
+    let isAlreadyMember = false;
+    
     if (existingUser) {
-      // Check if already a member
-      const { data: existingMember } = await supabase.rpc(
-        'check_team_membership',
-        {
-          p_email: normalizedEmail,
-          p_team_id: teamId
-        }
-      );
+      // Check if already a member by querying team_member directly
+      const { data: existingMember, error: memberCheckError } = await supabase
+        .from('team_member')
+        .select('id')
+        .eq('team_id', teamId)
+        .eq('user_id', existingUser.id);
+        
+      if (memberCheckError) {
+        console.error('Error checking team membership:', memberCheckError);
+      }
       
-      if (existingMember?.is_member) {
+      isAlreadyMember = existingMember && existingMember.length > 0;
+      
+      if (isAlreadyMember) {
         return {
           success: false,
           error: 'This user is already a member of the team'
@@ -116,20 +122,26 @@ export async function inviteMember(
         .from('team_invitations')
         .update({ status: 'sent' })
         .eq('id', invitation.id);
+        
+      return {
+        success: true,
+        data: {
+          invitation,
+          directly_added: false
+        }
+      };
     } catch (emailError) {
       console.error('Error sending invitation email:', emailError);
       // Still return success but with a warning
       return {
         success: true,
-        data: invitation,
+        data: {
+          invitation,
+          directly_added: false
+        },
         error: 'Invitation created but email notification failed'
       };
     }
-    
-    return {
-      success: true,
-      data: invitation
-    };
   } catch (error: any) {
     console.error('Error in inviteMember:', error);
     return {

@@ -1,20 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { canManageWorkNotes } from "./permissionService";
-
-export type WorkNote = {
-  id: string;
-  equipment_id: string;
-  note: string;
-  is_public: boolean;
-  created_at: string;
-  created_by: string;
-  hours_worked: number | null;
-  user_name?: string;
-  organization_id?: string;
-  organization_name?: string;
-  is_external_org?: boolean;
-};
+import { WorkNote } from "./types";
 
 /**
  * Get work notes for a specific equipment
@@ -42,16 +29,12 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       
     const userOrgId = userProfile?.org_id;
     
-    // Get the work notes
+    // Get the work notes - using simplified query that doesn't rely on relationships
     const { data, error } = await supabase
       .from('equipment_work_notes')
       .select(`
-        *,
-        creator:created_by (
-          id,
-          display_name,
-          org:user_profiles(org_id, organization(name))
-        )
+        id, equipment_id, created_by, note, is_public, 
+        hours_worked, created_at, updated_at, deleted_at
       `)
       .eq('equipment_id', equipmentId)
       .is('deleted_at', null)
@@ -62,27 +45,71 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       throw new Error(`Failed to fetch work notes: ${error.message}`);
     }
     
-    // Process the notes to add creator info and organization info
-    return (data || []).map(note => {
-      const creatorName = note.creator?.display_name || 'Unknown';
-      const organizationId = note.creator?.org?.[0]?.org_id;
-      const organizationName = note.creator?.org?.[0]?.organization?.name || 'Unknown Organization';
-      const isExternalOrg = organizationId && userOrgId && organizationId !== userOrgId;
+    // Get additional creator information in a separate query
+    const workNotes: WorkNote[] = await Promise.all((data || []).map(async (note) => {
+      let creatorName = 'Unknown';
+      let creatorEmail = '';
+      let organizationId = null;
+      let organizationName = 'Unknown Organization';
+      let isExternalOrg = false;
+      
+      if (note.created_by) {
+        // Get creator info
+        const { data: creator } = await supabase
+          .from('user_profiles')
+          .select(`
+            display_name,
+            org_id
+          `)
+          .eq('id', note.created_by)
+          .single();
+          
+        if (creator) {
+          creatorName = creator.display_name || 'Unknown';
+          organizationId = creator.org_id;
+          
+          // Get creator email
+          const { data: authUser } = await supabase
+            .from('app_user')
+            .select('email')
+            .eq('auth_uid', note.created_by)
+            .single();
+            
+          if (authUser) {
+            creatorEmail = authUser.email;
+          }
+          
+          // Get organization name
+          if (organizationId) {
+            const { data: org } = await supabase
+              .from('organization')
+              .select('name')
+              .eq('id', organizationId)
+              .single();
+              
+            if (org) {
+              organizationName = org.name;
+            }
+            
+            // Check if this is an external organization
+            isExternalOrg = organizationId !== userOrgId;
+          }
+        }
+      }
       
       return {
-        id: note.id,
-        equipment_id: note.equipment_id,
-        note: note.note,
-        is_public: note.is_public,
-        created_at: note.created_at,
-        created_by: note.created_by,
-        hours_worked: note.hours_worked,
-        user_name: creatorName,
+        ...note,
+        creator: {
+          display_name: creatorName,
+          email: creatorEmail
+        },
         organization_id: organizationId,
         organization_name: organizationName,
         is_external_org: isExternalOrg
       };
-    });
+    }));
+    
+    return workNotes;
   } catch (error: any) {
     console.error('Error in getWorkNotes:', error);
     throw error;
@@ -261,3 +288,4 @@ export async function deleteWorkNote(id: string): Promise<boolean> {
 
 // Re-export the permission service functions
 export { canCreateWorkNotes, canManageWorkNotes } from './permissionService';
+export type { WorkNote } from './types';
