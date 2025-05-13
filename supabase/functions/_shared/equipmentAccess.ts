@@ -1,13 +1,16 @@
 
+// Helper functions for equipment access validation
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
-// Helper function to check if a user can access an equipment item
-export async function canAccessEquipment(userId: string, equipmentId: string) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+/**
+ * Check if a user has access to a piece of equipment
+ */
+export async function validateEquipmentAccess(userId: string, equipmentId: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
   
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing required environment variables for Supabase client');
+    throw new Error('Missing Supabase environment variables');
   }
   
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -19,19 +22,21 @@ export async function canAccessEquipment(userId: string, equipmentId: string) {
   
   if (error) {
     console.error('Error checking equipment access:', error);
-    return false;
+    throw error;
   }
   
-  return data === true;
+  return !!data;
 }
 
-// Helper function to check if a user can edit an equipment item
-export async function canEditEquipment(userId: string, equipmentId: string) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+/**
+ * Check if a user has edit permissions for a piece of equipment
+ */
+export async function validateEquipmentEditAccess(userId: string, equipmentId: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
   
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing required environment variables for Supabase client');
+    throw new Error('Missing Supabase environment variables');
   }
   
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -42,9 +47,9 @@ export async function canEditEquipment(userId: string, equipmentId: string) {
   });
   
   if (error) {
-    console.error('Error checking equipment edit permission:', error);
-    return false;
+    console.error('Error checking equipment edit access:', error);
+    throw error;
   }
   
-  return data === true;
+  return !!data;
 }

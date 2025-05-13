@@ -184,4 +184,3 @@ included_files = ["*/**/*"]  # Include all files in functions directory
 [functions.validate_invitation]
 
 [functions.validate_team_access]
-

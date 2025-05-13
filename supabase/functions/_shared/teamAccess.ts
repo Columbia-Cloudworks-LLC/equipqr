@@ -1,13 +1,16 @@
 
+// Helper functions for team access validation
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
-// Helper function to check if a user has access to a team
-export async function canAccessTeam(userId: string, teamId: string) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+/**
+ * Check if a user has access to a team
+ */
+export async function validateTeamAccess(userId: string, teamId: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
   
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing required environment variables for Supabase client');
+    throw new Error('Missing Supabase environment variables');
   }
   
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -19,32 +22,29 @@ export async function canAccessTeam(userId: string, teamId: string) {
   
   if (error) {
     console.error('Error checking team access:', error);
-    return false;
+    throw error;
   }
   
-  return data === true;
+  return !!data;
 }
 
-// Helper function to get user's role in a team
-export async function getUserRoleInTeam(userId: string, teamId: string) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+/**
+ * Check if a user has a specific role in a team
+ */
+export async function validateTeamRole(userId: string, teamId: string, role: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
   
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing required environment variables for Supabase client');
+    throw new Error('Missing Supabase environment variables');
   }
   
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   
-  const { data, error } = await supabase.rpc('get_user_role_in_team', {
-    p_user_uid: userId,
-    p_team_id: teamId
+  const { data: userRole } = await supabase.rpc('get_team_role_safe', {
+    _user_id: userId,
+    _team_id: teamId
   });
   
-  if (error) {
-    console.error('Error getting team role:', error);
-    return null;
-  }
-  
-  return data;
+  return userRole === role;
 }
