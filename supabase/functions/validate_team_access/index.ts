@@ -4,7 +4,7 @@ import {
   corsHeaders,
   createErrorResponse,
   createSuccessResponse
-} from '../_shared/index.ts';
+} from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 serve(async (req) => {
