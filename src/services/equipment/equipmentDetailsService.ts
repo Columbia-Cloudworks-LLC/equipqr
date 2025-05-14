@@ -10,16 +10,20 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
   try {
     console.log(`Fetching equipment details for ID: ${id}`);
     // First check session
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData?.session?.user) {
+      console.error('Authentication error:', sessionError);
       throw new Error('User must be logged in to view equipment details');
     }
+    
+    const userId = sessionData.session.user.id;
+    console.log(`User ${userId} requesting equipment ${id}`);
     
     // Use the edge function to check access first
     const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_access', {
       body: { 
         equipment_id: id,
-        user_id: sessionData.session.user.id
+        user_id: userId
       }
     });
     
@@ -28,8 +32,11 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       throw new Error(`Access check failed: ${accessError.message}`);
     }
     
+    console.log('Access check result:', accessCheck);
+    
     if (!accessCheck?.has_access) {
-      console.error('Access denied:', accessCheck?.reason);
+      const reason = accessCheck?.reason || 'unknown';
+      console.error('Access denied:', reason);
       throw new Error('You do not have permission to view this equipment');
     }
     
@@ -54,7 +61,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const { data: userProfile } = await supabase
       .from('user_profiles')
       .select('org_id')
-      .eq('id', sessionData.session.user.id)
+      .eq('id', userId)
       .single();
     
     const isExternalOrg = equipment.team?.org_id && userProfile?.org_id && 

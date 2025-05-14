@@ -33,7 +33,8 @@ export default function EquipmentDetail() {
     data: equipment,
     isLoading,
     error,
-    refetch
+    refetch,
+    isError
   } = useQuery({
     queryKey: ['equipment', id],
     queryFn: () => getEquipmentById(id as string),
@@ -76,7 +77,7 @@ export default function EquipmentDetail() {
     );
   }
 
-  if (!equipment || error) {
+  if (isError || !equipment) {
     return (
       <Layout>
         <div className="flex-1 p-6 space-y-4">
@@ -87,11 +88,15 @@ export default function EquipmentDetail() {
             </Button>
           </div>
           
+          <Alert variant="destructive">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {(error as Error)?.message || "The equipment you're looking for doesn't exist or you don't have permission to view it."}
+            </AlertDescription>
+          </Alert>
+          
           <div className="text-center py-12">
-            <h2 className="text-xl font-semibold">Equipment not found</h2>
-            <p className="text-muted-foreground mt-2">
-              The equipment you're looking for doesn't exist or you don't have permission to view it.
-            </p>
             <Button 
               variant="outline" 
               className="mt-4" 

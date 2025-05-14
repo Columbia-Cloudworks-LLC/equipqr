@@ -23,7 +23,7 @@ serve(async (req) => {
       return createErrorResponse("Invalid equipment ID format");
     }
     
-    // Create regular Supabase client
+    // Create service role client (bypasses RLS)
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
@@ -31,11 +31,10 @@ serve(async (req) => {
       throw new Error('Missing Supabase environment variables');
     }
     
-    // Use service role key to bypass RLS for consistent access checks
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Use direct query to check access instead of RPC to avoid type issues
-    const { data: equipment } = await adminClient
+    // Use direct query to fetch equipment details
+    const { data: equipment, error: equipmentError } = await adminClient
       .from('equipment')
       .select(`
         id, 
@@ -46,6 +45,11 @@ serve(async (req) => {
       .is('deleted_at', null)
       .single();
     
+    if (equipmentError) {
+      console.error('Error fetching equipment:', equipmentError);
+      return createErrorResponse(`Equipment fetch error: ${equipmentError.message}`);
+    }
+    
     if (!equipment) {
       return createSuccessResponse({
         has_access: false,
@@ -53,29 +57,34 @@ serve(async (req) => {
       });
     }
     
+    console.log(`Found equipment: ${JSON.stringify(equipment)}`);
+    
     // Get user's organization
-    const { data: userProfile } = await adminClient
+    const { data: userProfile, error: profileError } = await adminClient
       .from('user_profiles')
       .select('org_id')
       .eq('id', user_id)
       .single();
     
-    // Same organization check
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      // Continue checking other access methods
+    }
+    
+    // Same organization check - immediate access
     if (userProfile && userProfile.org_id === equipment.org_id) {
-      // User can always access equipment from same organization
-      const canEdit = true;  // Same org users can edit
-      
+      console.log(`User has same-org access: ${userProfile.org_id} = ${equipment.org_id}`);
       return createSuccessResponse({
         has_access: true,
         reason: 'same_organization',
-        role: canEdit ? 'editor' : 'viewer',
+        role: 'editor',
         team_id: equipment.team_id
       });
     }
     
     // If not same org but has team_id, check team access
     if (equipment.team_id) {
-      // Check if user is member of this team using reliable function
+      // Use non-recursive check to avoid RLS issues
       const { data: hasTeamAccess, error: teamError } = await adminClient.rpc(
         'check_team_access_nonrecursive',
         {
@@ -86,11 +95,11 @@ serve(async (req) => {
       
       if (teamError) {
         console.error('Error checking team access:', teamError);
-        // Continue to next check rather than failing completely
+        // Continue to next check
       }
       
       if (hasTeamAccess) {
-        // If team member, check if they have edit permission
+        // Get team role to determine edit permissions
         const { data: teamRole } = await adminClient.rpc(
           'get_team_role_safe',
           {
@@ -100,6 +109,7 @@ serve(async (req) => {
         );
         
         const canEdit = teamRole && ['manager', 'owner', 'admin', 'creator'].includes(teamRole);
+        console.log(`User has team access via team ${equipment.team_id} with role: ${teamRole}`);
         
         return createSuccessResponse({
           has_access: true,
@@ -110,6 +120,7 @@ serve(async (req) => {
       }
     }
     
+    console.log('No access found for user');
     // No access found
     return createSuccessResponse({
       has_access: false,
@@ -118,6 +129,6 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('Unexpected error in check_equipment_access:', error);
-    return createErrorResponse(error.message);
+    return createErrorResponse(`Unexpected error: ${error.message}`);
   }
 });
