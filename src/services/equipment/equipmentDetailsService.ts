@@ -8,39 +8,34 @@ import { getEquipmentAttributes } from "./attributesService";
  */
 export async function getEquipmentById(id: string): Promise<Equipment> {
   try {
-    console.log(`Fetching equipment details for ID: ${id}`);
-    // First check session
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !sessionData?.session?.user) {
-      console.error('Authentication error:', sessionError);
+    // Get current user's auth ID
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
       throw new Error('User must be logged in to view equipment details');
     }
     
-    const userId = sessionData.session.user.id;
-    console.log(`User ${userId} requesting equipment ${id}`);
+    const authUserId = sessionData.session.user.id;
     
-    // Check access using edge function to avoid RLS recursion
-    const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_access', {
-      body: { 
+    // Verify access to this equipment using our non-recursive edge function
+    const { data: accessCheck, error: accessCheckError } = await supabase.functions.invoke('check_equipment_permission', {
+      body: {
+        user_id: authUserId,
         equipment_id: id,
-        user_id: userId
+        action: 'view'
       }
     });
     
-    if (accessError) {
-      console.error('Error checking equipment access:', accessError);
-      throw new Error(`Access check failed: ${accessError.message}`);
+    if (accessCheckError) {
+      console.error('Error checking equipment access:', accessCheckError);
+      throw new Error(`Access check failed: ${accessCheckError.message}`);
     }
     
-    console.log('Access check result:', accessCheck);
-    
-    if (!accessCheck?.has_access) {
-      const reason = accessCheck?.reason || 'unknown';
-      console.error('Access denied:', reason);
+    if (!accessCheck?.has_permission) {
+      console.error('User does not have access to this equipment:', accessCheck?.reason);
       throw new Error('You do not have permission to view this equipment');
     }
     
-    // Now fetch the equipment with RLS taking effect
+    // First fetch the equipment
     const { data: equipment, error } = await supabase
       .from('equipment')
       .select(`
@@ -57,15 +52,26 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       throw error;
     }
     
-    // Get user's org id to determine if this is external
+    // Get user's primary organization
     const { data: userProfile } = await supabase
       .from('user_profiles')
       .select('org_id')
-      .eq('id', userId)
+      .eq('id', authUserId)
       .single();
     
-    const isExternalOrg = equipment.team?.org_id && userProfile?.org_id && 
-                         equipment.team.org_id !== userProfile.org_id;
+    const userOrgId = userProfile?.org_id;
+    const isExternalOrg = equipment.team?.org_id && userOrgId && equipment.team.org_id !== userOrgId;
+    
+    // Check if user has edit permissions using the same edge function
+    const { data: editCheck } = await supabase.functions.invoke('check_equipment_permission', {
+      body: {
+        user_id: authUserId,
+        equipment_id: id,
+        action: 'edit'
+      }
+    });
+    
+    const canEdit = editCheck?.has_permission || false;
     
     // Then fetch the attributes
     const attributes = await getEquipmentAttributes(id);
@@ -76,7 +82,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       team_name: equipment.team?.name || null, 
       org_name: equipment.org?.name || 'Unknown Organization',
       is_external_org: isExternalOrg,
-      can_edit: accessCheck.role === 'editor',
+      can_edit: canEdit,
       attributes
     } as Equipment;
   } catch (error) {

@@ -15,10 +15,11 @@ export async function deleteEquipment(id: string): Promise<boolean> {
     const authUserId = sessionData.session.user.id;
     
     // Check access using edge function to avoid RLS recursion
-    const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_access', {
+    const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_permission', {
       body: { 
+        user_id: authUserId,
         equipment_id: id,
-        user_id: authUserId
+        action: 'edit'
       }
     });
     
@@ -27,13 +28,9 @@ export async function deleteEquipment(id: string): Promise<boolean> {
       throw new Error(`Access check failed: ${accessError.message}`);
     }
     
-    if (!accessCheck?.has_access) {
+    if (!accessCheck?.has_permission) {
       const reason = accessCheck?.reason || 'unknown';
       console.error('Access denied:', reason);
-      throw new Error('You do not have permission to access this equipment');
-    }
-    
-    if (accessCheck.role !== 'editor') {
       throw new Error('You do not have permission to delete this equipment');
     }
     
