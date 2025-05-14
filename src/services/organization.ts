@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { UserRole } from '@/types/supabase-enums';
 
 export interface OrganizationMember {
   id: string;
@@ -67,24 +68,21 @@ export async function updateOrganization(id: string, data: Partial<Organization>
     if (error) {
       console.error('Error updating organization:', error);
       toast({
+        description: `Failed to update organization: ${error.message}`,
         variant: "destructive",
-        title: "Failed to update organization",
-        description: error.message
       });
       return false;
     }
 
     toast({
-      title: "Organization updated",
-      description: "Organization details have been updated successfully"
+      description: "Organization details have been updated successfully",
     });
     return true;
   } catch (error) {
     console.error('Error in updateOrganization:', error);
     toast({
+      description: "An unexpected error occurred. Please try again later",
       variant: "destructive",
-      title: "An unexpected error occurred",
-      description: "Please try again later"
     });
     return false;
   }
@@ -113,7 +111,7 @@ export async function getOrganizationMembers(orgId: string): Promise<Organizatio
 /**
  * Update a member's role in the organization
  */
-export async function updateMemberRole(memberId: string, role: "owner" | "manager" | "technician" | "viewer"): Promise<boolean> {
+export async function updateMemberRole(memberId: string, role: UserRole): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('user_roles')
@@ -123,24 +121,21 @@ export async function updateMemberRole(memberId: string, role: "owner" | "manage
     if (error) {
       console.error('Error updating member role:', error);
       toast({
+        description: `Failed to update role: ${error.message}`,
         variant: "destructive",
-        title: "Failed to update role",
-        description: error.message
       });
       return false;
     }
 
     toast({
-      title: "Member role updated",
-      description: "The member's role has been updated successfully"
+      description: "The member's role has been updated successfully",
     });
     return true;
   } catch (error) {
     console.error('Error in updateMemberRole:', error);
     toast({
+      description: "An unexpected error occurred. Please try again later",
       variant: "destructive",
-      title: "An unexpected error occurred",
-      description: "Please try again later"
     });
     return false;
   }

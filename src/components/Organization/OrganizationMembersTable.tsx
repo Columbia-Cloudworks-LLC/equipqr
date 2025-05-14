@@ -17,9 +17,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Mail, User, ChevronDown } from 'lucide-react';
+import { MoreHorizontal, Mail, User } from 'lucide-react';
 import { getOrganizationMembers, OrganizationMember, updateMemberRole } from '@/services/organization';
 import { useAuth } from '@/contexts/AuthContext';
+import { UserRole } from '@/types/supabase-enums';
 
 interface OrganizationMembersTableProps {
   organizationId: string;
@@ -45,7 +46,7 @@ export function OrganizationMembersTable({ organizationId, isOwner }: Organizati
     fetchMembers();
   }, [organizationId]);
   
-  const handleRoleChange = async (memberId: string, role: string) => {
+  const handleRoleChange = async (memberId: string, role: UserRole) => {
     setUpdatingMemberId(memberId);
     const success = await updateMemberRole(memberId, role);
     
@@ -158,19 +159,19 @@ export function OrganizationMembersTable({ organizationId, isOwner }: Organizati
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => handleRoleChange(member.id, 'manager')}
+                            onClick={() => handleRoleChange(member.id, 'manager' as UserRole)}
                             disabled={member.role === 'manager'}
                           >
                             Make Manager
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleRoleChange(member.id, 'technician')}
+                            onClick={() => handleRoleChange(member.id, 'technician' as UserRole)}
                             disabled={member.role === 'technician'}
                           >
                             Make Technician
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleRoleChange(member.id, 'viewer')}
+                            onClick={() => handleRoleChange(member.id, 'viewer' as UserRole)}
                             disabled={member.role === 'viewer'}
                           >
                             Make Viewer
