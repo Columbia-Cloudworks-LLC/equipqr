@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMember, ApiTeamMember, mapApiTeamMemberToTeamMember } from "@/types";
 import { getAppUserId } from "@/utils/authUtils";
