@@ -11,7 +11,8 @@ import {
   Settings, 
   QrCode, 
   ChevronRight, 
-  ChevronLeft 
+  ChevronLeft,
+  Building // Added for organization icon
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,6 +38,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     { title: 'Equipment', href: '/equipment', icon: Package },
     { title: 'Team', href: '/team', icon: Users },
     { title: 'QR Scanner', href: '/scanner', icon: QrCode },
+    { title: 'Organization', href: '/settings/organization', icon: Building },
     { title: 'Settings', href: '/settings', icon: Settings },
   ];
 

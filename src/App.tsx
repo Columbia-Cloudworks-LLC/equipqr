@@ -25,6 +25,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
 import Profile from "./pages/Profile";
 import MyInvitations from "./pages/MyInvitations";
+import OrganizationSettings from "./pages/OrganizationSettings"; // New import
 
 // Component to handle hash fragments in root URL
 const RootRouteHandler = () => {
@@ -145,6 +146,16 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Profile />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Organization Settings route */}
+              <Route
+                path="/settings/organization"
+                element={
+                  <ProtectedRoute>
+                    <OrganizationSettings />
                   </ProtectedRoute>
                 }
               />

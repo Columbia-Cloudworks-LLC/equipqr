@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
@@ -8,6 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import {
   Menu,
@@ -15,6 +17,7 @@ import {
   Settings,
   User,
   LogOut,
+  Building,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -101,12 +104,22 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
                     <span>Profile</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </Link>
-                </DropdownMenuItem>
+                
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings/organization">
+                      <Building className="mr-2 h-4 w-4" />
+                      <span>Organization</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={handleSignOut}
