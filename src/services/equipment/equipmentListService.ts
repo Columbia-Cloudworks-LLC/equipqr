@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
+import { processEquipmentList } from "./utils/equipmentFormatting";
 
 /**
  * Get all equipment items including those from teams the user belongs to
@@ -77,16 +78,4 @@ async function getEquipmentDirectQuery(): Promise<Equipment[]> {
     console.error('Error in getEquipmentDirectQuery:', error);
     return []; 
   }
-}
-
-/**
- * Process equipment list to add team and org names
- */
-export function processEquipmentList(equipmentList: any[]): Equipment[] {
-  return equipmentList.map(item => ({
-    ...item,
-    team_name: item.team?.name || null,
-    org_name: item.org?.name || 'Unknown Organization',
-    is_external_org: false, // Default to false for org equipment
-  }));
 }

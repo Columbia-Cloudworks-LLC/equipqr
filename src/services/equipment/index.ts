@@ -11,3 +11,4 @@ export {
   saveEquipmentAttributes, 
   deleteEquipmentAttribute 
 } from './attributesService';
+export { processEquipmentList } from './utils/equipmentFormatting';
