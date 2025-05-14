@@ -16,40 +16,59 @@ export async function getEquipment() {
     
     const authUserId = sessionData.session.user.id;
 
-    // Use the edge function to fetch equipment, which bypasses RLS recursion issues
-    const { data, error } = await supabase.functions.invoke('list_user_equipment', {
-      body: { user_id: authUserId }
-    });
+    // Use RLS to fetch equipment the user has access to through policies
+    const { data, error } = await supabase
+      .from('equipment')
+      .select(`
+        *,
+        team:team_id (name, org_id),
+        org:org_id (name)
+      `)
+      .is('deleted_at', null)
+      .order('name');
     
     if (error) {
-      console.error('Error fetching equipment via edge function:', error);
+      console.error('Error fetching equipment:', error);
       return []; // Return empty array instead of throwing
     }
     
     // Ensure we always have a valid array to work with
     const equipmentArray = Array.isArray(data) ? data : [];
-    console.log(`Successfully fetched ${equipmentArray.length} equipment items via edge function`);
+    console.log(`Successfully fetched ${equipmentArray.length} equipment items`);
     
-    return equipmentArray;
+    // Get user's org ID for determining external equipment
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', authUserId)
+      .single();
+    
+    const userOrgId = userProfile?.org_id;
+    
+    // Process the equipment data to add required fields
+    const processedEquipment = equipmentArray.map(item => {
+      const isExternalOrg = item.team?.org_id && userOrgId && 
+                          item.team.org_id !== userOrgId;
+      
+      return {
+        ...item,
+        team_name: item.team?.name || null,
+        org_name: item.org?.name || 'Unknown Organization',
+        is_external_org: isExternalOrg,
+      };
+    });
+    
+    return processedEquipment;
   } catch (error) {
     console.error('Error in getEquipment:', error);
     return []; // Return empty array on error
   }
 }
 
-// Re-export equipment service functions
-export {
-  getEquipmentById,
-  createEquipment,
-  updateEquipment,
-  deleteEquipment,
-  getEquipmentAttributes,
-  saveEquipmentAttributes,
-  recordScan
-} from './equipmentDetailsService';
-export { getEquipmentAttributes, saveEquipmentAttributes } from './attributesService';
-export { recordScan } from './scanService';
+// Export equipment service functions properly
 export { getEquipmentById } from './equipmentDetailsService';
 export { createEquipment } from './equipmentCreateService';
 export { updateEquipment } from './equipmentUpdateService';
 export { deleteEquipment } from './equipmentDeleteService';
+export { getEquipmentAttributes, saveEquipmentAttributes } from '../equipmentAttributesService';
+export { recordScan } from './scanService';

@@ -19,7 +19,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const userId = sessionData.session.user.id;
     console.log(`User ${userId} requesting equipment ${id}`);
     
-    // Use the edge function to check access first
+    // Check access using edge function to avoid RLS recursion
     const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_access', {
       body: { 
         equipment_id: id,
@@ -40,7 +40,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       throw new Error('You do not have permission to view this equipment');
     }
     
-    // Fetch the equipment directly
+    // Now fetch the equipment with RLS taking effect
     const { data: equipment, error } = await supabase
       .from('equipment')
       .select(`

@@ -1,4 +1,3 @@
 
 // Re-export all invitation service functions
-export * from './invitation';
-
+export * from './invitation/index';

@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { processDateFields } from "@/utils/authUtils";
-import { saveEquipmentAttributes } from "./attributesService";
+import { saveEquipmentAttributes } from "../equipmentAttributesService";
 
 /**
  * Update existing equipment
@@ -17,23 +17,27 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     
     const authUserId = sessionData.session.user.id;
     
-    // Use the edge function to check if user has permission to edit this equipment
-    const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_edit_permission', {
-      body: {
-        user_id: authUserId,
-        equipment_id: id
+    // Check access using edge function to avoid RLS recursion
+    const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_access', {
+      body: { 
+        equipment_id: id,
+        user_id: authUserId
       }
     });
     
-    if (permissionError) {
-      console.error('Error checking equipment edit permission:', permissionError);
-      throw new Error('Failed to verify permissions: ' + permissionError.message);
+    if (accessError) {
+      console.error('Error checking equipment access:', accessError);
+      throw new Error(`Access check failed: ${accessError.message}`);
     }
     
-    if (!permissionCheck?.can_edit) {
-      const reason = permissionCheck?.reason || 'unknown';
-      console.error('Edit permission denied:', reason);
-      throw new Error(`You don't have permission to update this equipment (${reason})`);
+    if (!accessCheck?.has_access) {
+      const reason = accessCheck?.reason || 'unknown';
+      console.error('Access denied:', reason);
+      throw new Error('You do not have permission to view this equipment');
+    }
+    
+    if (accessCheck.role !== 'editor') {
+      throw new Error('You do not have permission to edit this equipment');
     }
     
     // Extract attributes before sending to database

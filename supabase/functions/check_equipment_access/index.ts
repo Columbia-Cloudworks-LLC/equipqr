@@ -2,6 +2,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { checkEquipmentAccess } from '../_shared/equipmentAccess.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,14 +17,7 @@ serve(async (req) => {
       return createErrorResponse("Missing required parameters: equipment_id and user_id must be provided");
     }
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(equipment_id)) {
-      console.error(`Invalid UUID format for equipment_id: ${equipment_id}`);
-      return createErrorResponse("Invalid equipment ID format");
-    }
-    
-    // Create service role client (bypasses RLS)
+    // Create service role client for admin operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
@@ -33,14 +27,10 @@ serve(async (req) => {
     
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Use direct query to fetch equipment details
+    // Get equipment details first
     const { data: equipment, error: equipmentError } = await adminClient
       .from('equipment')
-      .select(`
-        id, 
-        org_id,
-        team_id
-      `)
+      .select(`id, org_id, team_id`)
       .eq('id', equipment_id)
       .is('deleted_at', null)
       .single();
@@ -57,8 +47,6 @@ serve(async (req) => {
       });
     }
     
-    console.log(`Found equipment: ${JSON.stringify(equipment)}`);
-    
     // Get user's organization
     const { data: userProfile, error: profileError } = await adminClient
       .from('user_profiles')
@@ -68,60 +56,86 @@ serve(async (req) => {
     
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
-      // Continue checking other access methods
+      return createErrorResponse(`User profile fetch error: ${profileError.message}`);
     }
     
-    // Same organization check - immediate access
-    if (userProfile && userProfile.org_id === equipment.org_id) {
-      console.log(`User has same-org access: ${userProfile.org_id} = ${equipment.org_id}`);
+    // Check user's organization role
+    const { data: userRoles, error: rolesError } = await adminClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user_id)
+      .eq('org_id', equipment.org_id)
+      .maybeSingle();
+    
+    if (rolesError) {
+      console.error('Error fetching user roles:', rolesError);
+      // Continue checking other access paths
+    }
+    
+    // Same organization gives access
+    if (userProfile?.org_id === equipment.org_id) {
+      const role = userRoles?.role || 'member';
+      const canEdit = role === 'owner' || role === 'manager';
+      
       return createSuccessResponse({
         has_access: true,
         reason: 'same_organization',
-        role: 'editor',
-        team_id: equipment.team_id
+        role: canEdit ? 'editor' : 'viewer',
+        user_org_id: userProfile.org_id,
+        equipment_org_id: equipment.org_id
       });
     }
     
     // If not same org but has team_id, check team access
     if (equipment.team_id) {
-      // Use non-recursive check to avoid RLS issues
-      const { data: hasTeamAccess, error: teamError } = await adminClient.rpc(
-        'check_team_access_nonrecursive',
-        {
-          p_user_id: user_id,
-          p_team_id: equipment.team_id
-        }
-      );
-      
-      if (teamError) {
-        console.error('Error checking team access:', teamError);
-        // Continue to next check
-      }
-      
-      if (hasTeamAccess) {
-        // Get team role to determine edit permissions
-        const { data: teamRole } = await adminClient.rpc(
-          'get_team_role_safe',
-          {
-            _user_id: user_id,
-            _team_id: equipment.team_id
-          }
-        );
+      // Get the app_user.id that corresponds to the auth.users.id
+      const { data: appUser } = await adminClient
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', user_id)
+        .maybeSingle();
         
-        const canEdit = teamRole && ['manager', 'owner', 'admin', 'creator'].includes(teamRole);
-        console.log(`User has team access via team ${equipment.team_id} with role: ${teamRole}`);
-        
+      if (!appUser) {
         return createSuccessResponse({
-          has_access: true,
-          reason: 'team_membership',
-          role: canEdit ? 'editor' : 'viewer',
-          team_id: equipment.team_id
+          has_access: false,
+          reason: 'user_not_found'
         });
       }
+      
+      // Check if the user is a member of this team
+      const { data: teamMember } = await adminClient
+        .from('team_member')
+        .select('id')
+        .eq('user_id', appUser.id)
+        .eq('team_id', equipment.team_id)
+        .maybeSingle();
+        
+      if (!teamMember) {
+        return createSuccessResponse({
+          has_access: false,
+          reason: 'not_team_member'
+        });
+      }
+      
+      // Get the role
+      const { data: teamRole } = await adminClient
+        .from('team_roles')
+        .select('role')
+        .eq('team_member_id', teamMember.id)
+        .maybeSingle();
+        
+      const role = teamRole?.role;
+      const canEdit = role && ['manager', 'owner', 'admin', 'creator'].includes(role);
+      
+      return createSuccessResponse({
+        has_access: true,
+        reason: 'team_membership',
+        role: canEdit ? 'editor' : 'viewer',
+        team_role: role
+      });
     }
     
-    console.log('No access found for user');
-    // No access found
+    // No access
     return createSuccessResponse({
       has_access: false,
       reason: 'no_permission'
