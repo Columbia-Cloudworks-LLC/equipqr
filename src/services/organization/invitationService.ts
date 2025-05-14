@@ -341,8 +341,7 @@ export async function acceptOrganizationInvitation(token: string): Promise<{
       // Not critical, as the user is already added to the organization
     }
     
-    toast({
-      title: "Welcome!",
+    toast.success("Welcome!", {
       description: `You have successfully joined ${invitation.organization.name}`,
     });
     
@@ -439,10 +438,8 @@ export async function resendOrganizationInvite(invitationId: string): Promise<{
       role: invitation.role
     });
     
-    toast({
-      title: "Invitation Resent",
+    toast.success("Invitation Resent", {
       description: `The invitation to ${invitation.email} has been resent.`,
-      variant: "success"
     });
     
     return { success: true };
@@ -470,8 +467,7 @@ export async function cancelOrganizationInvite(invitationId: string): Promise<{
       return { success: false, error: `Failed to cancel invitation: ${error.message}` };
     }
     
-    toast({
-      title: "Invitation Cancelled",
+    toast.success("Invitation Cancelled", {
       description: "The invitation has been cancelled successfully.",
     });
     
