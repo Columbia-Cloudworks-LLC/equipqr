@@ -1,4 +1,7 @@
 
 import { useToast, toast, ToastType } from '@/hooks/use-toast';
 
-export { useToast, toast, ToastType };
+// Re-export with the proper TypeScript syntax for isolated modules
+export { useToast, toast };
+export type { ToastType };
+

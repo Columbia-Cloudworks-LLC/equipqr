@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -33,6 +33,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   const { user, signOut } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation(); // Add location to check current route
 
   const handleSignOut = async () => {
     try {
@@ -140,3 +141,4 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
     </header>
   );
 }
+
