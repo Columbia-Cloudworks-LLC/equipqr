@@ -188,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = {
-    supabaseClient,
+    supabaseClient: supabase,
     session,
     user,
     isLoading: authLoading,
