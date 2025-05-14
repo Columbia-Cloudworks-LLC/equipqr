@@ -4,7 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { validateOrganizationInvitation, acceptOrganizationInvitation } from '@/services/organization/invitationService';
-import { validateInvitation, acceptInvitation } from '@/services/team/invitation';
+import { validateInvitationToken, acceptInvitation } from '@/services/team/invitation';
 
 function InvitationPage() {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ function InvitationPage() {
           }
         } else {
           // Handle team invitation
-          const { valid, invitation, error } = await validateInvitation(token);
+          const { valid, invitation, error } = await validateInvitationToken(token);
           
           if (!valid) {
             setError(error || 'Invalid invitation');
@@ -66,10 +66,10 @@ function InvitationPage() {
       
       if (invitationType === 'organization') {
         // Handle organization invitation
-        const { success, error } = await acceptOrganizationInvitation(token!);
+        const { success, error: acceptError } = await acceptOrganizationInvitation(token!);
         
         if (!success) {
-          setError(error || 'Failed to accept invitation');
+          setError(acceptError || 'Failed to accept invitation');
           return;
         }
         
@@ -77,15 +77,19 @@ function InvitationPage() {
         navigate('/');
       } else {
         // Handle team invitation
-        const { success, error } = await acceptInvitation(token!);
-        
-        if (!success) {
-          setError(error || 'Failed to accept invitation');
-          return;
+        try {
+          const result = await acceptInvitation(token!);
+          
+          if (!result.success) {
+            setError('Failed to accept invitation');
+            return;
+          }
+          
+          // Navigate to team page after successful acceptance
+          navigate('/teams');
+        } catch (err: any) {
+          setError(err.message || 'Failed to accept invitation');
         }
-        
-        // Navigate to team page after successful acceptance
-        navigate('/teams');
       }
     } catch (error: any) {
       console.error('Error accepting invitation:', error);

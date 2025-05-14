@@ -1,15 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import OrganizationDetailsCard from '@/components/Organization/OrganizationDetailsCard';
+import { OrganizationDetailsCard } from '@/components/Organization/OrganizationDetailsCard';
 import OrganizationMembersManagement from '@/components/Organization/OrganizationMembersManagement';
-import OrganizationLoading from '@/components/Organization/OrganizationLoading';
-import OrganizationError from '@/components/Organization/OrganizationError';
+import { OrganizationLoading } from '@/components/Organization/OrganizationLoading';
+import { OrganizationError } from '@/components/Organization/OrganizationError';
 import { getCurrentOrganization } from '@/services/organization';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/supabase-enums';
-import AuthenticationRequired from '@/components/Organization/AuthenticationRequired';
+import { AuthenticationRequired } from '@/components/Organization/AuthenticationRequired';
 
 const OrganizationSettings = () => {
   const [organization, setOrganization] = useState<any>(null);
