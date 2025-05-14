@@ -42,9 +42,19 @@ const EquipmentFormPage = () => {
       navigate(`/equipment/${data.id}`);
     },
     onError: (error) => {
-      toast.error('Failed to add equipment', {
-        description: error instanceof Error ? error.message : 'Please try again later',
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Please try again later';
+      console.error('Error creating equipment:', error);
+      
+      // Handle edge function errors specially
+      if (errorMessage.includes('Edge Function')) {
+        toast.error('Failed to create equipment', {
+          description: 'There was an issue with the server. Please try again or contact support if the problem persists.',
+        });
+      } else {
+        toast.error('Failed to create equipment', {
+          description: errorMessage,
+        });
+      }
     }
   });
 
@@ -57,9 +67,19 @@ const EquipmentFormPage = () => {
       navigate(`/equipment/${data.id}`);
     },
     onError: (error) => {
-      toast.error('Failed to update equipment', {
-        description: error instanceof Error ? error.message : 'Please try again later',
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Please try again later';
+      console.error('Error updating equipment:', error);
+      
+      // Handle edge function errors specially
+      if (errorMessage.includes('Edge Function')) {
+        toast.error('Failed to update equipment', {
+          description: 'There was an issue with the server. Please try again or contact support if the problem persists.',
+        });
+      } else {
+        toast.error('Failed to update equipment', {
+          description: errorMessage,
+        });
+      }
     }
   });
 
