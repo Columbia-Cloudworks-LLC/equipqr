@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { UserRole } from '@/types/supabase-enums';
 
 export interface OrganizationMember {
@@ -68,6 +68,7 @@ export async function updateOrganization(id: string, data: Partial<Organization>
     if (error) {
       console.error('Error updating organization:', error);
       toast({
+        title: "Update Failed",
         description: `Failed to update organization: ${error.message}`,
         variant: "destructive",
       });
@@ -75,12 +76,14 @@ export async function updateOrganization(id: string, data: Partial<Organization>
     }
 
     toast({
+      title: "Success",
       description: "Organization details have been updated successfully",
     });
     return true;
   } catch (error) {
     console.error('Error in updateOrganization:', error);
     toast({
+      title: "Error",
       description: "An unexpected error occurred. Please try again later",
       variant: "destructive",
     });
@@ -121,6 +124,7 @@ export async function updateMemberRole(memberId: string, role: UserRole): Promis
     if (error) {
       console.error('Error updating member role:', error);
       toast({
+        title: "Update Failed",
         description: `Failed to update role: ${error.message}`,
         variant: "destructive",
       });
@@ -128,12 +132,14 @@ export async function updateMemberRole(memberId: string, role: UserRole): Promis
     }
 
     toast({
+      title: "Success",
       description: "The member's role has been updated successfully",
     });
     return true;
   } catch (error) {
     console.error('Error in updateMemberRole:', error);
     toast({
+      title: "Error",
       description: "An unexpected error occurred. Please try again later",
       variant: "destructive",
     });
