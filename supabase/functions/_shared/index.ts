@@ -4,3 +4,4 @@ export * from './cors.ts';
 export * from './adminClient.ts';
 export * from './teamAccess.ts';
 export * from './equipmentAccess.ts';
+export * from './organizationAccess.ts';

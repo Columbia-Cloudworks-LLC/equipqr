@@ -1,39 +1,124 @@
 
-import { toast as sonnerToast, type ToastT } from 'sonner';
+import { toast as sonnerToast } from 'sonner';
 
-// Define the toast props interface to match sonner's expected shape
-export type ToastProps = {
-  title?: string;
+type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading';
+
+type ToastProps = {
+  title: string;
   description?: string;
-  variant?: 'default' | 'destructive' | 'success';
+  variant?: ToastType;
   duration?: number;
-  action?: React.ReactNode;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 };
 
 export function useToast() {
-  return {
-    toast,
-    dismiss: sonnerToast.dismiss,
-  };
-}
-
-// Map our variants to sonner's options
-function getToastStyles(variant?: ToastProps['variant']) {
-  if (variant === 'destructive') {
-    return { style: { backgroundColor: 'hsl(var(--destructive))', color: 'hsl(var(--destructive-foreground))' } };
-  } else if (variant === 'success') {
-    return { style: { backgroundColor: 'hsl(var(--success))', color: 'hsl(var(--success-foreground))' } };
-  }
-  return {};
-}
-
-export function toast(props: ToastProps) {
-  const { title, description, variant, duration, action } = props;
-  
-  return sonnerToast(title, {
+  const toast = ({
+    title,
     description,
-    duration,
+    variant = 'default',
+    duration = 3000,
     action,
-    ...getToastStyles(variant),
-  });
+  }: ToastProps) => {
+    const options: any = {
+      duration,
+    };
+
+    if (action) {
+      options.action = {
+        label: action.label,
+        onClick: action.onClick,
+      };
+    }
+
+    switch (variant) {
+      case 'success':
+        return sonnerToast.success(title, {
+          description,
+          ...options,
+        });
+      case 'error':
+        return sonnerToast.error(title, {
+          description,
+          ...options,
+        });
+      case 'warning':
+        return sonnerToast.warning(title, {
+          description,
+          ...options,
+        });
+      case 'info':
+        return sonnerToast.info(title, {
+          description,
+          ...options,
+        });
+      case 'loading':
+        return sonnerToast.loading(title, {
+          description,
+          ...options,
+        });
+      default:
+        return sonnerToast(title, {
+          description,
+          ...options,
+        });
+    }
+  };
+
+  return { toast };
 }
+
+// Re-export toast function for direct imports
+export const toast = ({
+  title,
+  description,
+  variant = 'default',
+  duration = 3000,
+  action,
+}: ToastProps) => {
+  const options: any = {
+    duration,
+  };
+
+  if (action) {
+    options.action = {
+      label: action.label,
+      onClick: action.onClick,
+    };
+  }
+
+  switch (variant) {
+    case 'success':
+      return sonnerToast.success(title, {
+        description,
+        ...options,
+      });
+    case 'error':
+      return sonnerToast.error(title, {
+        description,
+        ...options,
+      });
+    case 'warning':
+      return sonnerToast.warning(title, {
+        description,
+        ...options,
+      });
+    case 'info':
+      return sonnerToast.info(title, {
+        description,
+        ...options,
+      });
+    case 'loading':
+      return sonnerToast.loading(title, {
+        description,
+        ...options,
+      });
+    default:
+      return sonnerToast(title, {
+        description,
+        ...options,
+      });
+  }
+};

@@ -1,31 +1,28 @@
 
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/use-toast';
 
-export function handleOrganizationError(error: unknown, customMessage?: string): void {
-  const errorMessage = error instanceof Error 
-    ? error.message 
-    : 'An unexpected error occurred';
-    
-  console.error(`Organization service error: ${errorMessage}`, error);
+/**
+ * Handle organization-related errors with appropriate toast messages
+ */
+export function handleOrganizationError(error: any, customMessage?: string): void {
+  console.error('Organization service error:', error);
+  
+  const message = customMessage || 'An error occurred while performing this operation';
   
   toast({
     title: "Error",
-    description: customMessage || "An unexpected error occurred. Please try again later",
+    description: message,
     variant: "destructive",
   });
 }
 
+/**
+ * Shows a success toast for organization operations
+ */
 export function showSuccessToast(message: string): void {
   toast({
     title: "Success",
     description: message,
-  });
-}
-
-export function showErrorToast(message: string): void {
-  toast({
-    title: "Error",
-    description: message,
-    variant: "destructive",
+    variant: "success",
   });
 }
