@@ -25,93 +25,34 @@ serve(async (req) => {
     // Use service role key to bypass RLS - this avoids recursion issues
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Check org-level permission first if org_id is provided
-    if (org_id) {
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user_id)
-        .eq('org_id', org_id)
-        .limit(1);
-        
-      if (userRoles && userRoles.length > 0) {
-        const role = userRoles[0].role;
-        if (role === 'owner' || role === 'manager') {
-          return createSuccessResponse({
-            can_create: true,
-            role: role,
-            org_id: org_id,
-            reason: 'org_role'
-          });
-        }
+    // Use our new database function that properly handles RLS recursion
+    const { data: permissionData, error: permissionError } = await supabase.rpc(
+      'check_equipment_create_permission',
+      { 
+        p_user_id: user_id,
+        p_team_id: team_id || null,
+        p_org_id: org_id || null
       }
+    );
+    
+    if (permissionError) {
+      console.error('Error checking permission:', permissionError);
+      return createErrorResponse(`Permission check error: ${permissionError.message}`);
     }
     
-    // Check team-level permission if team_id is provided
-    if (team_id) {
-      // First get the app_user.id for this auth user
-      const { data: appUser } = await supabase
-        .from('app_user')
-        .select('id')
-        .eq('auth_uid', user_id)
-        .single();
-        
-      if (!appUser) {
-        return createSuccessResponse({
-          can_create: false,
-          reason: 'user_not_found'
-        });
-      }
-      
-      // Get team member record directly
-      const { data: teamMember } = await supabase
-        .from('team_member')
-        .select('id')
-        .eq('user_id', appUser.id)
-        .eq('team_id', team_id)
-        .single();
-        
-      if (!teamMember) {
-        return createSuccessResponse({
-          can_create: false,
-          reason: 'not_team_member'
-        });
-      }
-      
-      // Get role from team_roles table
-      const { data: teamRole } = await supabase
-        .from('team_roles')
-        .select('role')
-        .eq('team_member_id', teamMember.id)
-        .single();
-        
-      const role = teamRole?.role;
-      const canCreate = role && ['owner', 'manager', 'admin', 'creator'].includes(role);
-      
-      if (canCreate) {
-        // Get the team's org_id
-        const { data: team } = await supabase
-          .from('team')
-          .select('org_id')
-          .eq('id', team_id)
-          .single();
-          
-        return createSuccessResponse({
-          can_create: true,
-          role: role,
-          team_id: team_id,
-          org_id: team?.org_id,
-          reason: 'team_role'
-        });
-      }
+    if (!permissionData || permissionData.length === 0) {
+      return createSuccessResponse({
+        can_create: false,
+        reason: 'unknown_error'
+      });
     }
     
-    // Default no permission
+    // Return a properly formatted response
     return createSuccessResponse({
-      can_create: false,
-      reason: 'no_permission'
+      can_create: permissionData[0].has_permission,
+      org_id: permissionData[0].org_id,
+      reason: permissionData[0].reason
     });
-    
   } catch (error) {
     console.error('Unexpected error:', error);
     return createErrorResponse(error.message);

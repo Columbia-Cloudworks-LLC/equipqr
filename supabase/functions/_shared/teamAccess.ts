@@ -2,8 +2,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 /**
- * Check if the user has access to the team with a specific role
- * Uses the updated can_access_team function that avoids recursion
+ * Check if the user has access to the team using our non-recursive function
  */
 export async function checkTeamAccess(
   userId: string, 
@@ -17,10 +16,10 @@ export async function checkTeamAccess(
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Call the updated function that gets the role safely
+    // Call our non-recursive function that avoids RLS issues
     const { data: hasAccess, error } = await client.rpc(
-      'can_access_team',
-      { p_uid: userId, p_team_id: teamId }
+      'check_team_access_nonrecursive',
+      { p_user_id: userId, p_team_id: teamId }
     );
 
     if (error) {
@@ -37,7 +36,7 @@ export async function checkTeamAccess(
 
 /**
  * Check if a user can perform manager-level operations on a team
- * Depends on roles like manager, owner, creator, or admin
+ * Uses our optimized get_team_role_safe function
  */
 export async function checkTeamManagerAccess(
   userId: string, 

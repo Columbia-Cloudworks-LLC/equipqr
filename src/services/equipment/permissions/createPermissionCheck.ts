@@ -10,7 +10,7 @@ import { getUserOrganizationId } from "@/utils/authUtils";
  */
 export async function checkCreatePermission(authUserId: string, teamId?: string | null) {
   try {
-    console.log('Checking permission via edge function');
+    console.log('Checking permission via optimized edge function');
     const checkPermissionPayload: {
       user_id: string;
       action: string;
@@ -53,38 +53,41 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
 
 /**
  * Fallback permission check if edge function fails
+ * Uses direct RPC calls to our optimized DB functions
  * @param authUserId - The auth user ID
  * @param teamId - Optional team ID if equipment is being assigned to a team
  * @returns Object containing permission check result
  */
 export async function fallbackPermissionCheck(authUserId: string, teamId?: string | null) {
   try {
-    let orgId: string;
+    console.log('Using fallback permission check with direct RPC');
     
-    if (teamId && teamId !== 'none') {
-      // For team equipment, get team's org ID
-      const { data: teamData, error: teamError } = await supabase
-        .from('team')
-        .select('org_id')
-        .eq('id', teamId)
-        .is('deleted_at', null)
-        .single();
-        
-      if (teamError) {
-        throw new Error(`Failed to retrieve team information: ${teamError.message}`);
+    // Use the non-recursive DB function via RPC
+    const { data: permissionData, error: permissionError } = await supabase.rpc(
+      'check_equipment_create_permission',
+      { 
+        p_user_id: authUserId,
+        p_team_id: teamId || null
       }
-      
-      orgId = teamData.org_id;
-      console.log(`Using team's org ID: ${orgId}`);
-    } else {
-      // Use user's organization for non-team equipment
-      orgId = await getUserOrganizationId(authUserId);
-      console.log(`Using user's org ID: ${orgId}`);
+    );
+    
+    if (permissionError) {
+      console.error('Error in fallback permission check:', permissionError);
+      throw new Error(`Permission check failed: ${permissionError.message}`);
     }
+    
+    if (!permissionData || permissionData.length === 0 || !permissionData[0].has_permission) {
+      const reason = permissionData?.[0]?.reason || 'unknown';
+      throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
+    }
+    
+    const orgId = permissionData[0].org_id;
     
     if (!orgId) {
       throw new Error('Failed to determine organization ID for equipment creation');
     }
+    
+    console.log(`Fallback permission check successful. Using org ID: ${orgId}`);
     
     return { 
       hasPermission: true, 

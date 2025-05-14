@@ -37,10 +37,30 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
     
     let orgId;
     
-    // First check permission using edge function
+    // First check permission using optimized edge function
     try {
-      const permissionResult = await checkCreatePermission(authUserId, equipment.team_id);
-      orgId = permissionResult.orgId;
+      const { data: permissionData, error: permissionError } = await supabase.functions.invoke(
+        'check_equipment_permission', 
+        { 
+          body: { 
+            user_id: authUserId,
+            team_id: equipment.team_id, 
+            action: 'create'
+          } 
+        }
+      );
+      
+      if (permissionError) {
+        throw new Error(`Permission check failed: ${permissionError.message}`);
+      }
+      
+      if (!permissionData?.has_permission) {
+        const reason = permissionData?.reason || 'unknown';
+        throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
+      }
+      
+      // Get org_id from the permission response
+      orgId = permissionData.org_id;
       console.log(`Permission check successful. Using org ID: ${orgId}`);
     } catch (edgeFnError) {
       // Fallback logic if edge function fails

@@ -1132,6 +1132,14 @@ export type Database = {
         Args: { p_user_id: string; p_org_id: string }
         Returns: boolean
       }
+      check_equipment_create_permission: {
+        Args: { p_user_id: string; p_team_id?: string; p_org_id?: string }
+        Returns: {
+          has_permission: boolean
+          org_id: string
+          reason: string
+        }[]
+      }
       check_team_access: {
         Args: { user_id: string; team_id: string }
         Returns: boolean
@@ -1262,6 +1270,15 @@ export type Database = {
       is_using_service_role: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      rpc_check_equipment_permission: {
+        Args: {
+          user_id: string
+          action: string
+          team_id?: string
+          equipment_id?: string
+        }
+        Returns: Json
       }
       user_belongs_to_org: {
         Args: { _user_id: string; _org_id: string }

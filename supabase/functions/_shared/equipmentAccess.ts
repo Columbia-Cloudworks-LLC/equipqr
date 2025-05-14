@@ -1,9 +1,10 @@
 
-// Equipment access helper functions can be added here
+// Equipment access helper functions using our optimized DB functions
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 /**
  * Check if a user has access to view an equipment record
+ * Uses our optimized can_access_equipment function
  */
 export async function checkEquipmentAccess(
   userId: string, 
@@ -17,7 +18,7 @@ export async function checkEquipmentAccess(
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Call our updated function that avoids recursion
+    // Call our optimized function that avoids recursion
     const { data, error } = await client.rpc(
       'can_access_equipment',
       { 
@@ -40,6 +41,7 @@ export async function checkEquipmentAccess(
 
 /**
  * Check if a user has permission to edit an equipment record
+ * Uses our optimized can_edit_equipment function
  */
 export async function checkEquipmentEditAccess(
   userId: string, 

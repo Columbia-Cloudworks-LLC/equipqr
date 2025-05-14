@@ -57,7 +57,7 @@ serve(async (req) => {
     
     // User has access, get additional details using service role to bypass RLS
     
-    // Get team role safely using our new function
+    // Get team role safely using our non-recursive function
     const { data: roleData } = await adminClient.rpc('get_team_role_safe', {
       _user_id: user_id,
       _team_id: team_id

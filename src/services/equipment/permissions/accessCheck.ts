@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Check if user has access to equipment
+ * Check if user has access to equipment using our optimized edge function
  * @param authUserId - The auth user ID
  * @param equipmentId - The equipment ID
  * @returns Object containing access check result
@@ -10,10 +10,11 @@ import { supabase } from "@/integrations/supabase/client";
 export async function checkEquipmentAccess(authUserId: string, equipmentId: string) {
   try {
     // Verify access to this equipment using edge function
-    const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_access', {
+    const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_permission', {
       body: {
+        user_id: authUserId,
         equipment_id: equipmentId,
-        user_id: authUserId
+        action: 'view'
       }
     });
     
@@ -22,7 +23,7 @@ export async function checkEquipmentAccess(authUserId: string, equipmentId: stri
       throw new Error(`Access check failed: ${accessError.message}`);
     }
     
-    if (!accessCheck?.has_access) {
+    if (!accessCheck?.has_permission) {
       console.error('User does not have access to this equipment');
       throw new Error('You do not have permission to view this equipment');
     }
@@ -31,6 +32,35 @@ export async function checkEquipmentAccess(authUserId: string, equipmentId: stri
   } catch (error) {
     console.error('Error in checkEquipmentAccess:', error);
     throw error;
+  }
+}
+
+/**
+ * Check if user can edit equipment using our optimized edge function
+ * @param authUserId - The auth user ID 
+ * @param equipmentId - The equipment ID
+ * @returns Boolean indicating whether user has edit permission
+ */
+export async function checkEquipmentEditPermission(authUserId: string, equipmentId: string) {
+  try {
+    // Check edit permission using optimized edge function
+    const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_permission', {
+      body: {
+        user_id: authUserId,
+        equipment_id: equipmentId,
+        action: 'edit'
+      }
+    });
+    
+    if (permissionError) {
+      console.error('Error checking equipment edit permission:', permissionError);
+      throw new Error(`Permission check failed: ${permissionError.message}`);
+    }
+    
+    return permissionCheck?.has_permission || false;
+  } catch (error) {
+    console.error('Error in checkEquipmentEditPermission:', error);
+    return false;
   }
 }
 
