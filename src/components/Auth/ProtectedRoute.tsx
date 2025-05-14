@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { resetAuthState } from "@/utils/authInterceptors";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -124,6 +125,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
             <button 
               className="w-full px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => {
+                resetAuthState();
                 sessionStorage.removeItem('authRedirectCount');
                 localStorage.removeItem('authReturnTo');
                 navigate('/auth', { replace: true });
@@ -141,18 +143,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         </div>
       </div>
     );
-  }
-
-  // Redirect to auth page if session is invalid
-  if (!isSessionValid) {
-    // When using Navigate, also pass the current path as state
-    const currentPath = location.pathname + location.search + location.hash;
-    console.log("ProtectedRoute: Using Navigate to redirect to /auth with returnTo:", currentPath);
-    
-    // Save to localStorage as well for persistence
-    localStorage.setItem("authReturnTo", currentPath);
-    
-    return <Navigate to="/auth" state={{ returnTo: currentPath }} replace />;
   }
 
   // If the session is valid, render the protected content

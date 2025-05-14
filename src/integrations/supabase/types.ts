@@ -1116,6 +1116,10 @@ export type Database = {
         Args: { p_uid: string; p_team_id: string }
         Returns: boolean
       }
+      can_create_equipment_safe: {
+        Args: { p_user_id: string; p_team_id?: string }
+        Returns: boolean
+      }
       can_edit_equipment: {
         Args: { p_uid: string; p_equipment_id: string }
         Returns: boolean
@@ -1179,6 +1183,10 @@ export type Database = {
           status: string
         }[]
       }
+      get_team_member_role_safe: {
+        Args: { p_user_id: string; p_team_id: string }
+        Returns: string
+      }
       get_team_members_with_roles: {
         Args: { _team_id: string }
         Returns: {
@@ -1193,6 +1201,10 @@ export type Database = {
         }[]
       }
       get_team_org: {
+        Args: { team_id_param: string }
+        Returns: string
+      }
+      get_team_org_safe: {
         Args: { team_id_param: string }
         Returns: string
       }

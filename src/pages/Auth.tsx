@@ -14,6 +14,8 @@ import { SignInForm } from "@/components/Auth/SignInForm";
 import { SignUpForm } from "@/components/Auth/SignUpForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { resetAuthState } from "@/utils/authInterceptors";
+import { setupAuthInterceptors } from "@/utils/authInterceptors";
 
 export default function Auth() {
   const { user, signInWithGoogle, isLoading, checkSession } = useAuth();
@@ -22,6 +24,14 @@ export default function Auth() {
   const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Set up global auth interceptors
+  useEffect(() => {
+    const subscription = setupAuthInterceptors();
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Get returnTo URL from state or query params
   const getReturnUrl = () => {
@@ -133,26 +143,7 @@ export default function Auth() {
 
   // Reset the auth system
   const handleResetAuth = () => {
-    sessionStorage.removeItem('authRedirectCount');
-    localStorage.removeItem('authReturnTo');
-    
-    // Clear Supabase auth tokens
-    const projectRef = "oxeheowbfsshpyldlskb";
-    const keys = [
-      `sb-${projectRef}-auth-token`,
-      `sb-${projectRef}-auth-token-code-verifier`,
-      "supabase.auth.token",
-      "supabase-auth-token"
-    ];
-    
-    keys.forEach(key => {
-      try {
-        localStorage.removeItem(key);
-      } catch (e) {
-        console.error(`Failed to remove ${key} from localStorage`, e);
-      }
-    });
-    
+    resetAuthState();
     // Reload the page to start fresh
     window.location.reload();
   };
