@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,9 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { 
   getPendingOrganizationInvitations, 
   resendOrganizationInvite, 
-  cancelOrganizationInvite,
-  OrganizationInvitation
+  cancelOrganizationInvite
 } from '@/services/organization/invitationService';
+import { OrganizationInvitation } from '@/services/organization/invitation/types';
 import { toast } from '@/hooks/use-toast';
 
 interface PendingOrganizationInvitationsProps {

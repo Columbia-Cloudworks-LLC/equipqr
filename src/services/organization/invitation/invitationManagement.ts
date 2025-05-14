@@ -15,9 +15,9 @@ export async function getPendingOrganizationInvitations(orgId: string): Promise<
       return [];
     }
     
-    const { data, error } = await supabase
+    const { data: invitationsData, error } = await supabase
       .from('organization_invitations')
-      .select('*')
+      .select('*, organization:org_id(name)')
       .eq('org_id', orgId)
       .eq('status', 'sent');
       
@@ -26,7 +26,19 @@ export async function getPendingOrganizationInvitations(orgId: string): Promise<
       return [];
     }
     
-    return data || [];
+    // Transform data to match OrganizationInvitation type
+    const invitations: OrganizationInvitation[] = invitationsData.map(item => ({
+      id: item.id,
+      email: item.email,
+      role: item.role,
+      status: item.status,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      org_id: item.org_id,
+      organization: item.organization
+    }));
+    
+    return invitations;
   } catch (error: any) {
     console.error('Error in getPendingOrganizationInvitations:', error);
     return [];
