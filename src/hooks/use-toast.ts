@@ -1,40 +1,39 @@
 
-import { toast as sonnerToast, ToastT, type ExternalToast } from 'sonner';
+import { toast as sonnerToast, type ToastT } from 'sonner';
 
-type ToastProps = Omit<ExternalToast, 'variant'> & {
-  variant?: 'default' | 'destructive' | 'success' | 'warning';
+// Define the toast props interface to match sonner's expected shape
+export type ToastProps = {
+  title?: string;
+  description?: string;
+  variant?: 'default' | 'destructive' | 'success';
+  duration?: number;
+  action?: React.ReactNode;
 };
 
 export function useToast() {
   return {
-    toast: ({ variant, ...props }: ToastProps) => {
-      // Implement how variant affects styling
-      const toastFn = sonnerToast;
-      
-      // Adjusting props for the sonner toast library
-      if (variant) {
-        const className = `toast-${variant}`;
-        return toastFn({ ...props, className });
-      }
-      
-      return toastFn(props);
-    },
+    toast,
     dismiss: sonnerToast.dismiss,
-    error: sonnerToast.error,
-    success: sonnerToast.success,
-    warning: sonnerToast.warning,
-    info: sonnerToast.info,
-    custom: sonnerToast.custom,
-    message: sonnerToast.message,
-    promise: sonnerToast.promise,
   };
 }
 
-// Simplified toast function that can be imported directly
-export const toast = ({ variant, ...props }: ToastProps) => {
-  if (variant) {
-    const className = `toast-${variant}`;
-    return sonnerToast({ ...props, className });
+// Map our variants to sonner's options
+function getToastStyles(variant?: ToastProps['variant']) {
+  if (variant === 'destructive') {
+    return { style: { backgroundColor: 'hsl(var(--destructive))', color: 'hsl(var(--destructive-foreground))' } };
+  } else if (variant === 'success') {
+    return { style: { backgroundColor: 'hsl(var(--success))', color: 'hsl(var(--success-foreground))' } };
   }
-  return sonnerToast(props);
-};
+  return {};
+}
+
+export function toast(props: ToastProps) {
+  const { title, description, variant, duration, action } = props;
+  
+  return sonnerToast(title, {
+    description,
+    duration,
+    action,
+    ...getToastStyles(variant),
+  });
+}
