@@ -55,13 +55,29 @@ serve(async (req) => {
     }
     
     // Get user's org ID for determining external equipment
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', user_id)
-      .single();
-      
-    const userOrgId = userProfile?.org_id;
+    // Explicitly handle the user_id as a UUID with proper error handling
+    let userOrgId = null;
+    try {
+      // Make sure user_id is a valid UUID format
+      const { data: userProfile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', user_id)
+        .maybeSingle();
+        
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        // Continue without user org ID - will mark all equipment as external
+      } else if (userProfile) {
+        userOrgId = userProfile.org_id;
+      } else {
+        console.log(`No user profile found for ID: ${user_id}`);
+        // Continue without user org ID
+      }
+    } catch (profileError) {
+      console.error('Unexpected error fetching user profile:', profileError);
+      // Continue without user org ID
+    }
     
     // Process the equipment data to add required fields
     const processedEquipment = equipment.map(item => {

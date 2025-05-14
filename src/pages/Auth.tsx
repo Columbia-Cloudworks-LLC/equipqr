@@ -12,10 +12,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { SignInForm } from "@/components/Auth/SignInForm";
 import { SignUpForm } from "@/components/Auth/SignUpForm";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function Auth() {
   const { user, signInWithGoogle, isLoading, checkSession } = useAuth();
   const [email, setEmail] = useState("");
+  const [redirectAttempts, setRedirectAttempts] = useState(0);
+  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -52,6 +56,20 @@ export default function Auth() {
 
   const returnTo = getReturnUrl();
 
+  // Get redirect count from session storage
+  useEffect(() => {
+    const storedCount = sessionStorage.getItem('authRedirectCount');
+    if (storedCount) {
+      const count = parseInt(storedCount, 10);
+      setRedirectAttempts(count);
+      
+      // If we've already redirected too many times, show an error
+      if (count >= 3) {
+        setAuthError("Login system is experiencing issues. This could be due to missing account data.");
+      }
+    }
+  }, []);
+
   useEffect(() => {
     // Save the return URL to localStorage to persist through redirects
     if (returnTo && returnTo !== "/") {
@@ -62,6 +80,12 @@ export default function Auth() {
 
   // Function to validate the session and redirect if needed
   const validateAndRedirect = async () => {
+    if (redirectAttempts >= 3) {
+      // Don't try to redirect anymore
+      console.log("Too many redirect attempts, not redirecting");
+      return;
+    }
+    
     try {
       // Check if the session is valid
       const isValid = await checkSession();
@@ -70,12 +94,15 @@ export default function Auth() {
         console.log("User session is valid, navigating to:", returnTo);
         // Clear the stored return URL as we're using it now
         localStorage.removeItem("authReturnTo");
+        // Reset redirect count
+        sessionStorage.removeItem('authRedirectCount');
         navigate(returnTo, { replace: true });
       } else {
         console.log("No valid session found, showing auth forms");
       }
     } catch (error) {
       console.error("Error validating session:", error);
+      setAuthError("Error validating your session. Please try again.");
     }
   };
 
@@ -104,8 +131,34 @@ export default function Auth() {
     }
   };
 
+  // Reset the auth system
+  const handleResetAuth = () => {
+    sessionStorage.removeItem('authRedirectCount');
+    localStorage.removeItem('authReturnTo');
+    
+    // Clear Supabase auth tokens
+    const projectRef = "oxeheowbfsshpyldlskb";
+    const keys = [
+      `sb-${projectRef}-auth-token`,
+      `sb-${projectRef}-auth-token-code-verifier`,
+      "supabase.auth.token",
+      "supabase-auth-token"
+    ];
+    
+    keys.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.error(`Failed to remove ${key} from localStorage`, e);
+      }
+    });
+    
+    // Reload the page to start fresh
+    window.location.reload();
+  };
+
   // Don't render a redirect since we're using useEffect to handle redirects
-  if (user && !isLoading) return null;
+  if (user && !isLoading && !authError) return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -116,6 +169,23 @@ export default function Auth() {
             Sign in to your account or create a new one
           </CardDescription>
         </CardHeader>
+        
+        {authError && (
+          <div className="px-6 pb-2">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertDescription>{authError}</AlertDescription>
+              
+              <button 
+                onClick={handleResetAuth}
+                className="w-full mt-2 px-4 py-2 rounded bg-destructive/10 hover:bg-destructive/20 text-destructive text-sm"
+              >
+                Reset Authentication
+              </button>
+            </Alert>
+          </div>
+        )}
+        
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="signin">Sign In</TabsTrigger>

@@ -1219,6 +1219,10 @@ export type Database = {
           email: string
         }[]
       }
+      get_user_org_id_safe: {
+        Args: { auth_uid: string }
+        Returns: string
+      }
       get_user_role: {
         Args: { _user_id: string; _org_id: string }
         Returns: Database["public"]["Enums"]["user_role"]

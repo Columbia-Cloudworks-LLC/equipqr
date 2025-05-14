@@ -22,68 +22,117 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [initializationError, setInitializationError] = useState<string | null>(null);
 
   useEffect(() => {
     console.log("AuthProvider: Setting up auth state listener");
     
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log("AuthProvider: Auth state changed", event);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (event === 'SIGNED_IN') {
-          toast.success("Signed in successfully", {
-            description: "Welcome back!"
-          });
-        } else if (event === 'SIGNED_OUT') {
-          toast.success("Signed out successfully", {
-            description: "You have been signed out"
-          });
+    try {
+      // Set up auth state listener FIRST
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, currentSession) => {
+          console.log("AuthProvider: Auth state changed", event);
           
-          // Clear any leftover session data for safety
+          // Update state synchronously first
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          
+          // Then handle side effects in setTimeout to avoid Supabase internal issues
           setTimeout(() => {
-            console.log("AuthProvider: Running post-signout cleanup");
-            clearStorageData();
+            if (event === 'SIGNED_IN') {
+              // Verify user profile exists
+              if (currentSession?.user) {
+                checkUserProfile(currentSession.user.id).catch(console.error);
+              }
+              
+              toast.success("Signed in successfully", {
+                description: "Welcome back!"
+              });
+            } else if (event === 'SIGNED_OUT') {
+              toast.success("Signed out successfully", {
+                description: "You have been signed out"
+              });
+              
+              // Clear any leftover session data for safety
+              clearStorageData();
+            }
           }, 0);
         }
-      }
-    );
+      );
 
-    // THEN check for existing session
-    console.log("AuthProvider: Checking for existing session");
-    supabase.auth.getSession().then(({ data: { session: existingSession }, error }) => {
-      console.log("AuthProvider: Session check complete", !!existingSession);
-      
-      if (error) {
-        console.error("AuthProvider: Session retrieval error", error);
-        toast.error("Session error", {
-          description: "There was an error retrieving your session. Please sign in again."
-        });
+      // THEN check for existing session
+      console.log("AuthProvider: Checking for existing session");
+      supabase.auth.getSession().then(({ data: { session: existingSession }, error }) => {
+        console.log("AuthProvider: Session check complete", !!existingSession);
         
-        // Attempt to clear corrupted session data
-        setTimeout(() => {
+        if (error) {
+          console.error("AuthProvider: Session retrieval error", error);
+          setInitializationError("There was an error retrieving your session.");
+          toast.error("Session error", {
+            description: "There was an error retrieving your session. Please sign in again."
+          });
+          
+          // Attempt to clear corrupted session data
           clearStorageData();
-        }, 0);
+        }
+        
+        setSession(existingSession);
+        setUser(existingSession?.user ?? null);
+        
+        // If we have a user, verify the profile exists
+        if (existingSession?.user) {
+          checkUserProfile(existingSession.user.id).catch(console.error);
+        }
+        
+        setIsLoading(false);
+        
+        // Log session diagnostics
+        getSessionInfo().then(sessionInfo => {
+          console.log("AuthProvider: Session diagnostics", sessionInfo);
+        }).catch(console.error);
+      }).catch(error => {
+        console.error("AuthProvider: Unexpected error during initialization", error);
+        setInitializationError("Unexpected error during initialization.");
+        setIsLoading(false);
+      });
+
+      return () => {
+        console.log("AuthProvider: Unsubscribing from auth state changes");
+        subscription.unsubscribe();
+      };
+    } catch (error) {
+      console.error("AuthProvider: Critical error during setup", error);
+      setInitializationError("Critical error during authentication setup.");
+      setIsLoading(false);
+      return () => {};
+    }
+  }, []);
+
+  // Check if the user profile exists in the user_profiles table
+  const checkUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, org_id')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (error) {
+        console.error("AuthProvider: Error checking user profile", error);
+        return false;
       }
       
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
-      setIsLoading(false);
+      if (!data || !data.org_id) {
+        console.warn("AuthProvider: User profile missing or incomplete for user", userId);
+        return false;
+      }
       
-      // Log session diagnostics
-      setTimeout(async () => {
-        const sessionInfo = await getSessionInfo();
-        console.log("AuthProvider: Session diagnostics", sessionInfo);
-      }, 0);
-    });
-
-    return () => {
-      console.log("AuthProvider: Unsubscribing from auth state changes");
-      subscription.unsubscribe();
-    };
-  }, []);
+      return true;
+    } catch (error) {
+      console.error("AuthProvider: Error in checkUserProfile", error);
+      return false;
+    }
+  };
 
   // Helper function to clear all storage data related to auth
   const clearStorageData = () => {
@@ -107,6 +156,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error(`AuthProvider: Failed to remove ${key} from localStorage`, e);
       }
     });
+    
+    // Also clear redirect counter to prevent loops
+    sessionStorage.removeItem('authRedirectCount');
     
     // Reset state
     setUser(null);
@@ -134,14 +186,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("AuthProvider: Session is valid");
           
           // Check if this user has the expected database entries
-          const { data } = await supabase
-            .from('user_profiles')
-            .select('id, org_id')
-            .eq('id', user.id)
-            .maybeSingle();
-            
-          if (!data || !data.org_id) {
+          const hasProfile = await checkUserProfile(user.id);
+          if (!hasProfile) {
             console.warn("AuthProvider: User profile or org_id missing");
+            return false;
           }
           
           return true;
@@ -164,6 +212,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (validSession && !session) {
         setSession(data.session);
         setUser(data.session?.user ?? null);
+        
+        // Also verify profile
+        if (data.session?.user) {
+          const hasProfile = await checkUserProfile(data.session.user.id);
+          if (!hasProfile) {
+            console.warn("AuthProvider: User profile missing after session check");
+            return false;
+          }
+        }
       }
       
       return validSession;
@@ -326,6 +383,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   };
+
+  // Display an error UI if we had a critical initialization error
+  if (initializationError && !isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center max-w-md mx-auto p-6 bg-card border rounded-lg shadow-lg">
+          <h2 className="text-2xl font-semibold mb-4 text-destructive">Authentication Error</h2>
+          <p className="mb-6">{initializationError}</p>
+          <button 
+            className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={() => {
+              clearStorageData();
+              window.location.href = "/auth";
+            }}
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider
