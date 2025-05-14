@@ -22,6 +22,8 @@ export async function getCurrentOrganization(): Promise<Organization | null> {
       return null;
     }
     
+    console.log('Fetching organization for auth user ID:', user.user.id);
+    
     // First approach: try to get org_id from user_profiles
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
@@ -73,9 +75,11 @@ export async function getCurrentOrganization(): Promise<Organization | null> {
 
     // No profile found or no org_id associated
     if (!profile?.org_id) {
-      console.error('User has no associated organization ID');
+      console.error('User has no associated organization ID:', user.user.id);
       return null;
     }
+
+    console.log('Found org_id in user profile:', profile.org_id);
 
     // Fetch the organization details
     const { data: organization, error: orgError } = await supabase
@@ -94,6 +98,7 @@ export async function getCurrentOrganization(): Promise<Organization | null> {
       return null;
     }
 
+    console.log('Successfully fetched organization:', organization.name);
     return organization;
   } catch (error) {
     console.error('Unexpected error in getCurrentOrganization:', error);
