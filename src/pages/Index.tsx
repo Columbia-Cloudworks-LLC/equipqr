@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
 import { MOCK_TEAM_MEMBERS } from '@/data/mockData';
 import { Layout } from '@/components/Layout/Layout';
 import { useQuery } from '@tanstack/react-query';
-import { getEquipment } from '@/services/equipmentService';
+import { getEquipment } from '@/services/equipment';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
