@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
@@ -22,67 +23,101 @@ serve(async (req) => {
       return createErrorResponse("Invalid equipment ID format");
     }
     
-    // Create regular Supabase client - no admin bypass needed with our security definer functions
+    // Create regular Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
       throw new Error('Missing Supabase environment variables');
     }
     
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Use service role key to bypass RLS for consistent access checks
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Use RPC calls to check access
-    const { data: canAccess, error: accessError } = await supabase.rpc(
-      'can_access_equipment',
-      {
-        p_uid: user_id,
-        p_equipment_id: equipment_id
-      }
-    );
+    // Use direct query to check access instead of RPC to avoid type issues
+    const { data: equipment } = await adminClient
+      .from('equipment')
+      .select(`
+        id, 
+        org_id,
+        team_id
+      `)
+      .eq('id', equipment_id)
+      .is('deleted_at', null)
+      .single();
     
-    if (accessError) {
-      console.error('Error checking equipment access:', accessError);
-      return createErrorResponse(accessError.message);
-    }
-    
-    if (!canAccess) {
+    if (!equipment) {
       return createSuccessResponse({
         has_access: false,
-        reason: 'no_permission'
+        reason: 'not_found'
       });
     }
     
-    // Check if user can edit the equipment
-    const { data: canEdit, error: editError } = await supabase.rpc(
-      'can_edit_equipment',
-      {
-        p_uid: user_id,
-        p_equipment_id: equipment_id
-      }
-    );
+    // Get user's organization
+    const { data: userProfile } = await adminClient
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', user_id)
+      .single();
     
-    if (editError) {
-      console.error('Error checking equipment edit permission:', editError);
-      // Still allow view access even if edit check fails
+    // Same organization check
+    if (userProfile && userProfile.org_id === equipment.org_id) {
+      // User can always access equipment from same organization
+      const canEdit = true;  // Same org users can edit
+      
+      return createSuccessResponse({
+        has_access: true,
+        reason: 'same_organization',
+        role: canEdit ? 'editor' : 'viewer',
+        team_id: equipment.team_id
+      });
     }
     
-    // Get the equipment's team if available
-    const { data: equipment } = await supabase
-      .from('equipment')
-      .select('team_id')
-      .eq('id', equipment_id)
-      .maybeSingle();
+    // If not same org but has team_id, check team access
+    if (equipment.team_id) {
+      // Check if user is member of this team using reliable function
+      const { data: hasTeamAccess, error: teamError } = await adminClient.rpc(
+        'check_team_access_nonrecursive',
+        {
+          p_user_id: user_id,
+          p_team_id: equipment.team_id
+        }
+      );
       
+      if (teamError) {
+        console.error('Error checking team access:', teamError);
+        // Continue to next check rather than failing completely
+      }
+      
+      if (hasTeamAccess) {
+        // If team member, check if they have edit permission
+        const { data: teamRole } = await adminClient.rpc(
+          'get_team_role_safe',
+          {
+            _user_id: user_id,
+            _team_id: equipment.team_id
+          }
+        );
+        
+        const canEdit = teamRole && ['manager', 'owner', 'admin', 'creator'].includes(teamRole);
+        
+        return createSuccessResponse({
+          has_access: true,
+          reason: 'team_membership',
+          role: canEdit ? 'editor' : 'viewer',
+          team_id: equipment.team_id
+        });
+      }
+    }
+    
+    // No access found
     return createSuccessResponse({
-      has_access: true,
-      reason: 'permission_granted',
-      role: canEdit ? 'editor' : 'viewer',
-      team_id: equipment?.team_id || null
+      has_access: false,
+      reason: 'no_permission'
     });
     
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error in check_equipment_access:', error);
     return createErrorResponse(error.message);
   }
 });

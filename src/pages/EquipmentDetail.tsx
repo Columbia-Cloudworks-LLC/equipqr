@@ -38,10 +38,12 @@ export default function EquipmentDetail() {
     queryKey: ['equipment', id],
     queryFn: () => getEquipmentById(id as string),
     enabled: !!id, // only run query if ID is available
+    retry: 1, // Only retry once to avoid too many error messages
   });
   
   useEffect(() => {
     if (error) {
+      console.error('Equipment detail error:', error);
       const errorMessage = (error as Error)?.message || 'Unknown error occurred';
       toast.error("Failed to load equipment details", {
         description: errorMessage,
@@ -74,7 +76,7 @@ export default function EquipmentDetail() {
     );
   }
 
-  if (!equipment) {
+  if (!equipment || error) {
     return (
       <Layout>
         <div className="flex-1 p-6 space-y-4">
