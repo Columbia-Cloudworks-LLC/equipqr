@@ -19,8 +19,7 @@ export function useInvitationAcceptance(token: string | undefined, user: any) {
       // Store the invitation route to redirect back after login
       sessionStorage.setItem('invitationPath', window.location.pathname);
       
-      toast({
-        title: "Please sign in to accept the invitation",
+      toast.default("Please sign in to accept the invitation", {
         description: "You'll be redirected back after signing in"
       });
       
@@ -37,8 +36,7 @@ export function useInvitationAcceptance(token: string | undefined, user: any) {
       const result = await acceptInvitation(token);
       console.log("Acceptance result:", result);
       
-      toast({
-        title: `Welcome to ${result.teamName || "the team"}!`,
+      toast.success(`Welcome to ${result.teamName || "the team"}!`, {
         description: `You have successfully joined as a ${result.role || "member"}`
       });
       
@@ -58,10 +56,8 @@ export function useInvitationAcceptance(token: string | undefined, user: any) {
     } catch (err: any) {
       console.error('Error accepting invitation:', err);
       setError(`Error accepting invitation: ${err.message}`);
-      toast({
-        title: "Error accepting invitation",
-        description: err.message,
-        variant: "destructive"
+      toast.error("Error accepting invitation", {
+        description: err.message
       });
     } finally {
       setIsAccepting(false);

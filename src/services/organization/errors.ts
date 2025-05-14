@@ -1,5 +1,5 @@
 
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 /**
  * Handle organization-related errors with appropriate toast messages
@@ -9,10 +9,8 @@ export function handleOrganizationError(error: any, customMessage?: string): voi
   
   const message = customMessage || 'An error occurred while performing this operation';
   
-  toast({
-    title: "Error",
-    description: message,
-    variant: "destructive",
+  toast.error("Error", {
+    description: message
   });
 }
 
@@ -20,9 +18,7 @@ export function handleOrganizationError(error: any, customMessage?: string): voi
  * Shows a success toast for organization operations
  */
 export function showSuccessToast(message: string): void {
-  toast({
-    title: "Success",
-    description: message,
-    variant: "success",
+  toast.success("Success", {
+    description: message
   });
 }

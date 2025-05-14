@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,10 +19,8 @@ const OrganizationInvitation: React.FC<OrganizationInvitationProps> = ({ organiz
 
   const handleInvite = async () => {
     if (!email) {
-      toast({
-        title: "Error",
-        description: "Please enter an email address",
-        variant: "destructive",
+      toast.error("Error", {
+        description: "Please enter an email address"
       });
       return;
     }
@@ -33,26 +30,20 @@ const OrganizationInvitation: React.FC<OrganizationInvitationProps> = ({ organiz
       const result = await inviteToOrganization(email, role, organizationId);
 
       if (!result.success) {
-        toast({
-          title: "Invitation Failed",
-          description: result.error || "Failed to send invitation",
-          variant: "destructive",
+        toast.error("Invitation Failed", {
+          description: result.error || "Failed to send invitation"
         });
         return;
       }
 
       if (result.error) {
         // Warning (e.g. email failed but invitation created)
-        toast({
-          title: "Invitation Created",
-          description: result.error,
-          variant: "default",
+        toast.default("Invitation Created", {
+          description: result.error
         });
       } else {
-        toast({
-          title: "Invitation Sent",
-          description: `An invitation has been sent to ${email}`,
-          variant: "success",
+        toast.success("Invitation Sent", {
+          description: `An invitation has been sent to ${email}`
         });
       }
 
@@ -65,10 +56,8 @@ const OrganizationInvitation: React.FC<OrganizationInvitationProps> = ({ organiz
       }
     } catch (error: any) {
       console.error('Error in handleInvite:', error);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
+      toast.error("Error", {
+        description: error.message || "An unexpected error occurred"
       });
     } finally {
       setIsSubmitting(false);

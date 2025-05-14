@@ -131,25 +131,20 @@ export async function updateOrganization(id: string, data: Partial<Organization>
 
     if (error) {
       console.error('Error updating organization:', error);
-      toast({
-        title: "Update Failed",
-        description: `Failed to update organization: ${error.message}`,
-        variant: "destructive",
+      toast.error("Update Failed", {
+        description: `Failed to update organization: ${error.message}`
       });
       return false;
     }
 
-    toast({
-      title: "Success",
-      description: "Organization details have been updated successfully",
+    toast.success("Success", {
+      description: "Organization details have been updated successfully"
     });
     return true;
   } catch (error) {
     console.error('Error in updateOrganization:', error);
-    toast({
-      title: "Error",
-      description: "An unexpected error occurred. Please try again later",
-      variant: "destructive",
+    toast.error("Error", {
+      description: "An unexpected error occurred. Please try again later"
     });
     return false;
   }
@@ -187,25 +182,20 @@ export async function updateMemberRole(memberId: string, role: UserRole): Promis
 
     if (error) {
       console.error('Error updating member role:', error);
-      toast({
-        title: "Update Failed",
-        description: `Failed to update role: ${error.message}`,
-        variant: "destructive",
+      toast.error("Update Failed", {
+        description: `Failed to update role: ${error.message}`
       });
       return false;
     }
 
-    toast({
-      title: "Success",
-      description: "The member's role has been updated successfully",
+    toast.success("Success", {
+      description: "The member's role has been updated successfully"
     });
     return true;
   } catch (error) {
     console.error('Error in updateMemberRole:', error);
-    toast({
-      title: "Error",
-      description: "An unexpected error occurred. Please try again later",
-      variant: "destructive",
+    toast.error("Error", {
+      description: "An unexpected error occurred. Please try again later"
     });
     return false;
   }

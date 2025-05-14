@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -58,10 +57,8 @@ const OrganizationMembersManagement: React.FC<OrganizationMembersManagementProps
       const success = await updateMemberRole(memberId, newRole);
       
       if (success) {
-        toast({
-          title: "Role Updated",
-          description: "The member's role has been updated successfully",
-          variant: "success",
+        toast.success("Role Updated", {
+          description: "The member's role has been updated successfully"
         });
         
         // Update local state for immediate UI update
@@ -73,10 +70,8 @@ const OrganizationMembersManagement: React.FC<OrganizationMembersManagementProps
       }
     } catch (error: any) {
       console.error('Error updating role:', error);
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update the member's role",
-        variant: "destructive",
+      toast.error("Update Failed", {
+        description: error.message || "Failed to update the member's role"
       });
     } finally {
       setUpdatingRole(prev => ({ ...prev, [memberId]: false }));

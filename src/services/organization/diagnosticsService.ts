@@ -25,10 +25,8 @@ export async function runOrganizationDiagnostics(userId: string) {
     };
   } catch (error) {
     console.error('Error running organization diagnostics:', error);
-    toast({
-      title: "Diagnostics Error",
-      description: "Failed to run organization diagnostics",
-      variant: "destructive",
+    toast.error("Diagnostics Error", {
+      description: "Failed to run organization diagnostics"
     });
     
     return {
@@ -101,26 +99,20 @@ export async function attemptOrganizationRepair(userId: string): Promise<boolean
     }
     
     if (repairAttempted) {
-      toast({
-        title: "Repair Attempted",
-        description: "Attempted to repair organization access. Please try refreshing.",
-        variant: "default",
+      toast.default("Repair Attempted", {
+        description: "Attempted to repair organization access. Please try refreshing."
       });
       return true;
     } else {
-      toast({
-        title: "No Repairs Made",
-        description: "Could not identify any fixable issues with organization access.",
-        variant: "destructive",
+      toast.error("No Repairs Made", {
+        description: "Could not identify any fixable issues with organization access."
       });
       return false;
     }
   } catch (error) {
     console.error('Error attempting organization repair:', error);
-    toast({
-      title: "Repair Error",
-      description: "Failed to repair organization access",
-      variant: "destructive",
+    toast.error("Repair Error", {
+      description: "Failed to repair organization access"
     });
     return false;
   }

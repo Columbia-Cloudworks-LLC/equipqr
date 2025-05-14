@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,10 +34,8 @@ const PendingOrganizationInvitations: React.FC<PendingOrganizationInvitationsPro
         setPendingInvitations(invitations);
       } catch (error) {
         console.error('Error fetching pending invitations:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch pending invitations",
-          variant: "destructive",
+        toast.error("Error", {
+          description: "Failed to fetch pending invitations"
         });
       } finally {
         setLoading(false);
@@ -53,18 +50,14 @@ const PendingOrganizationInvitations: React.FC<PendingOrganizationInvitationsPro
     try {
       const result = await resendOrganizationInvite(invitationId);
       if (!result.success) {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to resend invitation",
-          variant: "destructive",
+        toast.error("Error", {
+          description: result.error || "Failed to resend invitation"
         });
       }
     } catch (error: any) {
       console.error('Error resending invitation:', error);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
+      toast.error("Error", {
+        description: error.message || "An unexpected error occurred"
       });
     } finally {
       setProcessingIds(prev => ({ ...prev, [invitationId]: false }));
@@ -79,18 +72,14 @@ const PendingOrganizationInvitations: React.FC<PendingOrganizationInvitationsPro
         // Remove from local state for immediate UI update
         setPendingInvitations(prev => prev.filter(invitation => invitation.id !== invitationId));
       } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to cancel invitation",
-          variant: "destructive",
+        toast.error("Error", {
+          description: result.error || "Failed to cancel invitation"
         });
       }
     } catch (error: any) {
       console.error('Error cancelling invitation:', error);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
+      toast.error("Error", {
+        description: error.message || "An unexpected error occurred"
       });
     } finally {
       setProcessingIds(prev => ({ ...prev, [invitationId]: false }));
