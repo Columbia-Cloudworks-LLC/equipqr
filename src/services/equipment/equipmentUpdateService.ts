@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { processDateFields } from "@/utils/authUtils";
-import { saveEquipmentAttributes } from "../equipmentAttributesService";
+import { saveEquipmentAttributes } from "./attributesService";
 
 /**
  * Update existing equipment

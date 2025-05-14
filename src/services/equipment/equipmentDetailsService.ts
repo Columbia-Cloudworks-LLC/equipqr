@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
-import { getEquipmentAttributes } from "../equipmentAttributesService";
+import { getEquipmentAttributes } from "./attributesService";
 
 /**
  * Get a single equipment by ID with its attributes
