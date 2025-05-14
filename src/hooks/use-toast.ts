@@ -1,7 +1,7 @@
 
 import { toast as sonnerToast } from 'sonner';
 
-type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading';
+export type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading' | 'destructive';
 
 type ToastProps = {
   title: string;
@@ -40,6 +40,7 @@ export function useToast() {
           ...options,
         });
       case 'error':
+      case 'destructive':
         return sonnerToast.error(title, {
           description,
           ...options,
@@ -96,6 +97,7 @@ export const toast = ({
         ...options,
       });
     case 'error':
+    case 'destructive':
       return sonnerToast.error(title, {
         description,
         ...options,
