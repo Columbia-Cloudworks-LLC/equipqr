@@ -1,212 +1,103 @@
 
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Layout } from '@/components/Layout/Layout';
-import { Separator } from '@/components/ui/separator';
-import { RefreshCw, Users, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { OrganizationMembersTable } from '@/components/Organization/OrganizationMembersTable';
-import { OrganizationDetailsCard } from '@/components/Organization/OrganizationDetailsCard';
-import { OrganizationError } from '@/components/Organization/OrganizationError';
-import { OrganizationLoading } from '@/components/Organization/OrganizationLoading';
-import { AuthenticationRequired } from '@/components/Organization/AuthenticationRequired';
-import { getCurrentOrganization, Organization } from '@/services/organization';
-import { runOrganizationDiagnostics, attemptOrganizationRepair } from '@/services/organization/diagnosticsService';
-import { toast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import OrganizationDetailsCard from '@/components/Organization/OrganizationDetailsCard';
+import OrganizationMembersManagement from '@/components/Organization/OrganizationMembersManagement';
+import OrganizationLoading from '@/components/Organization/OrganizationLoading';
+import OrganizationError from '@/components/Organization/OrganizationError';
+import { getCurrentOrganization } from '@/services/organization';
+import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/supabase-enums';
+import AuthenticationRequired from '@/components/Organization/AuthenticationRequired';
 
-export default function OrganizationSettings() {
-  const { user, session, checkSession } = useAuth();
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
-  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
-  const [isRepairingAccess, setIsRepairingAccess] = useState(false);
-  
-  const loadOrganization = async () => {
-    if (!user) {
-      setLoadError("You must be signed in to access this page.");
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
-    setLoadError(null);
-    
-    try {
-      // First, ensure the session is valid
-      const isSessionValid = await checkSession();
-      if (!isSessionValid) {
-        console.error("Session check failed, might need to re-authenticate");
-        setLoadError("Your session appears to be invalid. Please try signing out and back in.");
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log("Loading organization data for user:", user.id);
-      const org = await getCurrentOrganization();
-      
-      console.log("Fetched organization result:", org);
-      
-      if (org) {
-        setOrganization(org);
-        
-        // Check if current user is the owner
-        setIsOwner(org.owner_user_id === user.id);
-        
-        // Clear any diagnostic details when org loads successfully
-        setDiagnosticDetails(null);
-      } else {
-        // Run diagnostics automatically if no organization found
-        const diagnostics = user ? await runOrganizationDiagnostics(user.id) : null;
-        setDiagnosticDetails(diagnostics?.diagnosis || null);
-        
-        setLoadError("Unable to find your organization. This might be due to a configuration issue with your account.");
-        console.error("No organization found for user:", user.id);
-      }
-    } catch (error) {
-      console.error("Error loading organization:", error);
-      setLoadError("There was a problem loading your organization data. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const OrganizationSettings = () => {
+  const [organization, setOrganization] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>('viewer');
 
   useEffect(() => {
-    if (user) {
-      console.log("User is logged in, fetching organization");
-      loadOrganization();
-    } else if (session === null && !isLoading) {
-      // Only show error if we're sure there's no session
-      setLoadError("You need to be logged in to view organization settings.");
-    }
-  }, [user]);
-  
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await loadOrganization();
-    setIsRefreshing(false);
-  };
+    const fetchOrganizationAndRole = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const handleRunDiagnostics = async () => {
-    if (!user) return;
-    
-    setIsRunningDiagnostics(true);
-    try {
-      const result = await runOrganizationDiagnostics(user.id);
-      setDiagnosticDetails(result.diagnosis);
-      
-      toast({
-        title: "Diagnostics Complete",
-        description: result.message,
-        variant: result.success ? "default" : "destructive",
-      });
-    } finally {
-      setIsRunningDiagnostics(false);
-    }
-  };
-  
-  const handleRepairAccess = async () => {
-    if (!user) return;
-    
-    setIsRepairingAccess(true);
-    try {
-      const success = await attemptOrganizationRepair(user.id);
-      
-      if (success) {
-        // Refresh the organization data after repair attempt
-        setTimeout(() => {
-          handleRefresh();
-        }, 500);
+        // Check if user is authenticated
+        const { data: session } = await supabase.auth.getSession();
+        if (!session?.session?.user) {
+          setError('Please log in to access organization settings');
+          setLoading(false);
+          return;
+        }
+
+        // Fetch organization
+        const org = await getCurrentOrganization();
+        if (!org) {
+          setError('Failed to load organization details');
+          setLoading(false);
+          return;
+        }
+
+        setOrganization(org);
+
+        // Get user's role in the organization
+        const { data, error: roleError } = await supabase.rpc('get_user_role', {
+          _user_id: session.session.user.id,
+          _org_id: org.id
+        });
+
+        if (roleError) {
+          console.error('Error fetching user role:', roleError);
+          // Default to viewer if role can't be determined
+          setUserRole('viewer');
+        } else {
+          setUserRole(data as UserRole);
+        }
+      } catch (err: any) {
+        console.error('Error in fetchOrganizationAndRole:', err);
+        setError(err.message || 'An unexpected error occurred');
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setIsRepairingAccess(false);
-    }
-  };
+    };
 
-  const showAuthenticationError = !user && !isLoading;
+    fetchOrganizationAndRole();
+  }, []);
+
+  if (loading) {
+    return <OrganizationLoading />;
+  }
+
+  // Check if user is authenticated
+  if (error === 'Please log in to access organization settings') {
+    return <AuthenticationRequired />;
+  }
+
+  if (error || !organization) {
+    return <OrganizationError message={error || 'Failed to load organization'} />;
+  }
 
   return (
-    <Layout>
-      <div className="container py-6 space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Organization Settings</h1>
-            <p className="text-muted-foreground">
-              Manage your organization's details and members
-            </p>
-          </div>
-          
-          <div className="flex space-x-2">
-            {loadError && (
-              <Button 
-                onClick={handleRunDiagnostics}
-                variant="outline" 
-                size="sm"
-                disabled={isRunningDiagnostics}
-              >
-                <AlertCircle className={`mr-2 h-4 w-4 ${isRunningDiagnostics ? 'text-primary' : 'text-amber-500'}`} />
-                {isRunningDiagnostics ? 'Running...' : 'Run Diagnostics'}
-              </Button>
-            )}
-            
-            <Button 
-              onClick={handleRefresh} 
-              variant="outline" 
-              size="sm"
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          </div>
-        </div>
+    <div className="container p-4 mx-auto space-y-6">
+      <h1 className="text-2xl font-bold tracking-tight">Organization Settings</h1>
+      
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="members">Members</TabsTrigger>
+        </TabsList>
         
-        <Separator />
+        <TabsContent value="details" className="mt-4">
+          <OrganizationDetailsCard organization={organization} userRole={userRole} />
+        </TabsContent>
         
-        {isLoading ? (
-          <OrganizationLoading />
-        ) : showAuthenticationError ? (
-          <AuthenticationRequired />
-        ) : loadError ? (
-          <OrganizationError 
-            errorMessage={loadError} 
-            diagnosticDetails={diagnosticDetails}
-            handleRefresh={handleRefresh}
-            handleRepairAccess={handleRepairAccess}
-            isRefreshing={isRefreshing}
-            isRepairing={isRepairingAccess}
-            userId={user?.id}
-          />
-        ) : !organization ? (
-          <OrganizationError
-            errorMessage="No Organization Found"
-            handleRefresh={handleRefresh}
-            isRefreshing={isRefreshing}
-          />
-        ) : (
-          <>
-            <OrganizationDetailsCard 
-              organization={organization}
-              isOwner={isOwner}
-            />
-            
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              <h2 className="text-xl font-semibold">Organization Members</h2>
-            </div>
-            
-            {organization && (
-              <OrganizationMembersTable 
-                organizationId={organization.id} 
-                isOwner={isOwner}
-              />
-            )}
-          </>
-        )}
-      </div>
-    </Layout>
+        <TabsContent value="members" className="mt-4">
+          <OrganizationMembersManagement organizationId={organization.id} userRole={userRole} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
-}
+};
+
+export default OrganizationSettings;

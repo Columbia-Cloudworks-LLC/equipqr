@@ -589,6 +589,59 @@ export type Database = {
           },
         ]
       }
+      organization_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by_email: string | null
+          org_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by_email?: string | null
+          org_id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_email?: string | null
+          org_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scan_history: {
         Row: {
           equipment_id: string
@@ -1071,6 +1124,10 @@ export type Database = {
         Args: { p_uid: string; p_org_id: string }
         Returns: boolean
       }
+      can_manage_org_members: {
+        Args: { p_user_id: string; p_org_id: string }
+        Returns: boolean
+      }
       check_team_access: {
         Args: { user_id: string; team_id: string }
         Returns: boolean
@@ -1153,6 +1210,13 @@ export type Database = {
           id: string
           email: string
           auth_uid: string
+        }[]
+      }
+      get_user_by_email_safe: {
+        Args: { email_param: string }
+        Returns: {
+          id: string
+          email: string
         }[]
       }
       get_user_role: {
