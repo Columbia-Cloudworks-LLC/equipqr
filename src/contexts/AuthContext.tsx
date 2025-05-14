@@ -132,7 +132,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isValid = await validateSession(session);
         if (isValid) {
           console.log("AuthProvider: Session is valid");
+          
+          // Check if this user has the expected database entries
+          const { data } = await supabase
+            .from('user_profiles')
+            .select('id, org_id')
+            .eq('id', user.id)
+            .maybeSingle();
+            
+          if (!data || !data.org_id) {
+            console.warn("AuthProvider: User profile or org_id missing");
+          }
+          
           return true;
+        } else {
+          console.warn("AuthProvider: Session validation failed");
         }
       }
       

@@ -9,20 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Edit2, Save, Users, AlertTriangle } from 'lucide-react';
+import { Edit2, Save, Users, AlertTriangle, RefreshCw } from 'lucide-react';
 import { OrganizationMembersTable } from '@/components/Organization/OrganizationMembersTable';
 import { getCurrentOrganization, Organization, updateOrganization } from '@/services/organization';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function OrganizationSettings() {
-  const { user } = useAuth();
+  const { user, session, checkSession } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const form = useForm({
     defaultValues: {
@@ -30,42 +31,60 @@ export default function OrganizationSettings() {
     },
   });
 
-  useEffect(() => {
-    const fetchOrganization = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
-      setLoadError(null);
-      
-      try {
-        const org = await getCurrentOrganization();
-        
-        console.log("Fetched organization:", org);
-        
-        if (org) {
-          setOrganization(org);
-          form.reset({
-            name: org.name,
-          });
-          
-          // Check if current user is the owner
-          setIsOwner(org.owner_user_id === user.id);
-        } else {
-          setLoadError("Unable to find your organization. Please try refreshing the page.");
-        }
-      } catch (error) {
-        console.error("Error loading organization:", error);
-        setLoadError("There was a problem loading your organization data.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const loadOrganization = async () => {
+    if (!user) {
+      setLoadError("You must be signed in to access this page.");
+      setIsLoading(false);
+      return;
+    }
     
+    setIsLoading(true);
+    setLoadError(null);
+    
+    try {
+      // First, ensure the session is valid
+      const isSessionValid = await checkSession();
+      if (!isSessionValid) {
+        console.error("Session check failed, might need to re-authenticate");
+        setLoadError("Your session appears to be invalid. Please try signing out and back in.");
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("Loading organization data for user:", user.id);
+      const org = await getCurrentOrganization();
+      
+      console.log("Fetched organization result:", org);
+      
+      if (org) {
+        setOrganization(org);
+        form.reset({
+          name: org.name,
+        });
+        
+        // Check if current user is the owner
+        setIsOwner(org.owner_user_id === user.id);
+      } else {
+        setLoadError("Unable to find your organization. This might be due to a configuration issue with your account.");
+        console.error("No organization found for user:", user.id);
+      }
+    } catch (error) {
+      console.error("Error loading organization:", error);
+      setLoadError("There was a problem loading your organization data. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (user) {
       console.log("User is logged in, fetching organization");
-      fetchOrganization();
+      loadOrganization();
+    } else if (session === null && !isLoading) {
+      // Only show error if we're sure there's no session
+      setLoadError("You need to be logged in to view organization settings.");
     }
-  }, [user, form]);
+  }, [user]);
   
   const handleSave = async (formData: { name: string }) => {
     if (!organization) return;
@@ -86,28 +105,13 @@ export default function OrganizationSettings() {
     setIsSaving(false);
   };
 
-  const retryLoad = () => {
-    if (user) {
-      setIsLoading(true);
-      setLoadError(null);
-      getCurrentOrganization().then(org => {
-        if (org) {
-          setOrganization(org);
-          form.reset({
-            name: org.name,
-          });
-          setIsOwner(org.owner_user_id === user.id);
-        } else {
-          setLoadError("Still unable to find your organization. Please check your account.");
-        }
-        setIsLoading(false);
-      }).catch(err => {
-        console.error("Retry error:", err);
-        setLoadError("There was a problem loading your organization data.");
-        setIsLoading(false);
-      });
-    }
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadOrganization();
+    setIsRefreshing(false);
   };
+
+  const showAuthenticationError = !user && !isLoading;
 
   return (
     <Layout>
@@ -119,6 +123,17 @@ export default function OrganizationSettings() {
               Manage your organization's details and members
             </p>
           </div>
+          {loadError && (
+            <Button 
+              onClick={handleRefresh} 
+              variant="outline" 
+              size="sm"
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          )}
         </div>
         
         <Separator />
@@ -132,6 +147,29 @@ export default function OrganizationSettings() {
             <CardContent className="space-y-4">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        ) : showAuthenticationError ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-amber-600">
+                <AlertTriangle className="h-5 w-5 mr-2" /> 
+                Authentication Required
+              </CardTitle>
+              <CardDescription>
+                You need to be logged in to view organization settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="destructive" className="mb-4">
+                <AlertTitle>Not Authenticated</AlertTitle>
+                <AlertDescription>
+                  Please sign in to access your organization settings.
+                </AlertDescription>
+              </Alert>
+              <Button onClick={() => window.location.href = "/auth"}>
+                Go to Login
+              </Button>
             </CardContent>
           </Card>
         ) : loadError ? (
@@ -149,21 +187,30 @@ export default function OrganizationSettings() {
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>Error Details</AlertTitle>
                 <AlertDescription>
-                  We couldn't find an organization associated with your account or there may be an issue with your permissions.
-                  <div className="mt-2">
+                  <div className="space-y-2">
+                    <p>We couldn't find an organization associated with your account or there may be an issue with your permissions.</p>
                     <p className="text-sm text-muted-foreground">Possible reasons:</p>
                     <ul className="text-sm list-disc pl-5 mt-1">
                       <li>Your account hasn't been properly set up with an organization</li>
                       <li>The organization data is missing or corrupted</li>
                       <li>You need to log out and log back in to refresh your session</li>
+                      <li>There might be a database configuration issue</li>
                     </ul>
+                    <p className="text-sm mt-2">User ID: {user?.id}</p>
                   </div>
                 </AlertDescription>
               </Alert>
-              <Button onClick={retryLoad} className="mr-2">Try Again</Button>
-              <Button variant="outline" onClick={() => window.location.href = "/profile"}>
-                Go to Profile
-              </Button>
+              <div className="flex space-x-2">
+                <Button onClick={handleRefresh} disabled={isRefreshing} className="mr-2">
+                  {isRefreshing ? 'Refreshing...' : 'Try Again'}
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = "/profile"}>
+                  Go to Profile
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = "/auth"} className="ml-auto">
+                  Sign Out and Back In
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : !organization ? (
@@ -175,7 +222,9 @@ export default function OrganizationSettings() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={retryLoad}>Retry</Button>
+              <Button onClick={handleRefresh} disabled={isRefreshing}>
+                {isRefreshing ? 'Refreshing...' : 'Retry'}
+              </Button>
             </CardContent>
           </Card>
         ) : (

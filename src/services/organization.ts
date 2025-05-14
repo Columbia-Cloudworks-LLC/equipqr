@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { UserRole } from '@/types/supabase-enums';
+import { getAppUserId } from '@/utils/authUtils';
 
 export interface OrganizationMember {
   id: string;
@@ -26,31 +27,94 @@ export interface Organization {
  */
 export async function getCurrentOrganization(): Promise<Organization | null> {
   try {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return null;
-
-    const { data: profile } = await supabase
+    // Get the current authenticated user
+    const { data: user, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error('Error getting current user:', userError);
+      return null;
+    }
+    
+    if (!user.user) {
+      console.log('No authenticated user found');
+      return null;
+    }
+    
+    // First approach: try to get org_id from user_profiles
+    const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('org_id')
       .eq('id', user.user.id)
       .single();
+      
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      
+      // Fallback approach: try to get app_user and resolve org through relationships
+      try {
+        const appUserId = await getAppUserId(user.user.id);
+        console.log('Successfully retrieved app_user ID:', appUserId);
+        
+        // Try to find any user_roles entries for this user
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('org_id')
+          .eq('user_id', user.user.id)
+          .maybeSingle();
+          
+        if (rolesError) {
+          console.error('Error fetching user roles:', rolesError);
+        } else if (userRoles && userRoles.org_id) {
+          // We found an organization through user_roles
+          const orgId = userRoles.org_id;
+          console.log('Found organization ID through user_roles:', orgId);
+          
+          const { data: organization, error: orgError } = await supabase
+            .from('organization')
+            .select('*')
+            .eq('id', orgId)
+            .maybeSingle();
+            
+          if (orgError) {
+            console.error('Error fetching organization from user_roles path:', orgError);
+          } else if (organization) {
+            return organization;
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Error in fallback organization lookup:', fallbackError);
+      }
+      
+      // If we've reached here, we couldn't find the organization
+      return null;
+    }
 
-    if (!profile?.org_id) return null;
+    // No profile found or no org_id associated
+    if (!profile?.org_id) {
+      console.error('User has no associated organization ID');
+      return null;
+    }
 
-    const { data: organization, error } = await supabase
+    // Fetch the organization details
+    const { data: organization, error: orgError } = await supabase
       .from('organization')
       .select('*')
       .eq('id', profile.org_id)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching organization:', error);
+    if (orgError) {
+      console.error('Error fetching organization:', orgError);
+      return null;
+    }
+
+    if (!organization) {
+      console.error('Organization not found for ID:', profile.org_id);
       return null;
     }
 
     return organization;
   } catch (error) {
-    console.error('Error in getCurrentOrganization:', error);
+    console.error('Unexpected error in getCurrentOrganization:', error);
     return null;
   }
 }
