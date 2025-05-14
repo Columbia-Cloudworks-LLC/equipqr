@@ -1,5 +1,5 @@
 
-import { toast as sonnerToast, type ToastT } from "sonner";
+import { toast as sonnerToast, type Toast as SonnerToast } from "sonner";
 import * as React from "react";
 
 type ToastProps = {
@@ -15,13 +15,13 @@ const toastArray: any[] = [];
 // This is a simple wrapper to use the sonner toast library
 // while maintaining compatibility with our existing code
 function toast({ title, description, variant }: ToastProps = {}) {
-  // Map our internal variant to sonner's variant
-  const sonnerVariant = variant === "destructive" ? "error" : "default";
+  // Map our internal variant to sonner's type
+  const sonnerType = variant === "destructive" ? "error" : "default";
   
   return sonnerToast(title as string, {
     description,
-    // Use properly typed variant for sonner
-    variant: sonnerVariant,
+    // Use properly typed properties for sonner
+    type: sonnerType,
   });
 }
 
