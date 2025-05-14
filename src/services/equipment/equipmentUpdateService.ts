@@ -2,13 +2,40 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { processDateFields } from "@/utils/authUtils";
-import { saveEquipmentAttributes } from "../equipmentAttributesService";
+import { saveEquipmentAttributes } from "./attributesService";
 
 /**
  * Update existing equipment
  */
 export async function updateEquipment(id: string, equipment: Partial<Equipment>): Promise<Equipment> {
   try {
+    // Get the current user's auth ID
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('User must be logged in to update equipment');
+    }
+    
+    const authUserId = sessionData.session.user.id;
+    
+    // Use the edge function to check if user has permission to edit this equipment
+    const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_edit_permission', {
+      body: {
+        user_id: authUserId,
+        equipment_id: id
+      }
+    });
+    
+    if (permissionError) {
+      console.error('Error checking equipment edit permission:', permissionError);
+      throw new Error('Failed to verify permissions: ' + permissionError.message);
+    }
+    
+    if (!permissionCheck?.can_edit) {
+      const reason = permissionCheck?.reason || 'unknown';
+      console.error('Edit permission denied:', reason);
+      throw new Error(`You don't have permission to update this equipment (${reason})`);
+    }
+    
     // Extract attributes before sending to database
     const attributes = equipment.attributes || [];
     const equipmentData = { ...equipment };

@@ -1,13 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Equipment } from "@/types";
-import { getUserOrganizationId, processDateFields } from "@/utils/authUtils";
-import { getEquipmentAttributes, saveEquipmentAttributes } from "./attributesService";
-import { recordScan } from "./scanService";
-import { getEquipmentById } from "./equipmentDetailsService";
-import { createEquipment } from "./equipmentCreateService";
-import { updateEquipment } from "./equipmentUpdateService";
-import { deleteEquipment } from "./equipmentDeleteService";
 
 /**
  * Get all equipment items that the current user has access to
@@ -54,4 +46,10 @@ export {
   getEquipmentAttributes,
   saveEquipmentAttributes,
   recordScan
-};
+} from './equipmentDetailsService';
+export { getEquipmentAttributes, saveEquipmentAttributes } from './attributesService';
+export { recordScan } from './scanService';
+export { getEquipmentById } from './equipmentDetailsService';
+export { createEquipment } from './equipmentCreateService';
+export { updateEquipment } from './equipmentUpdateService';
+export { deleteEquipment } from './equipmentDeleteService';
