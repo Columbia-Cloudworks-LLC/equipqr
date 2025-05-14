@@ -1,4 +1,10 @@
+
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  loadDismissedNotifications, 
+  saveDismissedNotifications,
+  clearLocalDismissedNotifications 
+} from './notificationStorage';
 
 /**
  * Get pending invitations for the current user's email
