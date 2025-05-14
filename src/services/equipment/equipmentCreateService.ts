@@ -34,140 +34,70 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
     
     let orgId;
     
+    // First check permission using edge function
     try {
-      // Try the permission check using the edge function first
+      console.log('Checking permission via edge function');
+      const checkPermissionPayload = {
+        user_id: authUserId,
+        action: 'create'
+      };
+      
+      // Add team_id to payload if provided
       if (equipment.team_id && equipment.team_id !== 'none') {
-        console.log(`Checking permission to create equipment for team ${equipment.team_id}`);
-        
-        // Use the permission check edge function
-        const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_permission', {
-          body: {
-            user_id: authUserId,
-            team_id: equipment.team_id, 
-            action: 'create'
-          }
-        });
-        
-        if (permissionError) {
-          console.error('Error from check_equipment_permission edge function:', permissionError);
-          throw new Error(`Permission check failed: ${permissionError.message}`);
-        }
-        
-        if (!permissionCheck?.has_permission) {
-          const reason = permissionCheck?.reason || 'unknown';
-          throw new Error(`You don't have permission to create equipment for this team. Reason: ${reason}`);
-        }
-        
-        // Get the org_id from the response
-        orgId = permissionCheck.org_id;
-        console.log(`Permission check successful. Using org ID: ${orgId}`);
-      } else {
-        // For organization-level equipment (no team)
-        console.log('Checking permission to create organization-level equipment');
-        
-        // Use the permission check edge function
-        const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_permission', {
-          body: {
-            user_id: authUserId,
-            action: 'create'
-          }
-        });
-        
-        if (permissionError) {
-          console.error('Error from check_equipment_permission edge function:', permissionError);
-          throw new Error(`Permission check failed: ${permissionError.message}`);
-        }
-        
-        if (!permissionCheck?.has_permission) {
-          const reason = permissionCheck?.reason || 'unknown';
-          throw new Error(`You don't have permission to create organization equipment. Reason: ${reason}`);
-        }
-        
-        // Get the org_id from the response
-        orgId = permissionCheck.org_id;
-        console.log(`Permission check successful. Using org ID: ${orgId}`);
+        Object.assign(checkPermissionPayload, { team_id: equipment.team_id });
       }
+      
+      const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke(
+        'check_equipment_permission', 
+        { body: checkPermissionPayload }
+      );
+      
+      if (permissionError) {
+        console.error('Error from check_equipment_permission edge function:', permissionError);
+        throw new Error(`Permission check failed: ${permissionError.message}`);
+      }
+      
+      if (!permissionCheck?.has_permission) {
+        const reason = permissionCheck?.reason || 'unknown';
+        throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
+      }
+      
+      // Get the org_id from the response
+      orgId = permissionCheck.org_id;
+      console.log(`Permission check successful. Using org ID: ${orgId}`);
     } catch (edgeFnError) {
-      // If the edge function fails, fall back to direct checks
+      // Fallback logic if edge function fails
       console.error('Edge function error, falling back to direct permission checks:', edgeFnError);
       
-      if (equipment.team_id && equipment.team_id !== 'none') {
-        // For team equipment, check team permissions directly
-        try {
-          // Get the team's org_id
-          const { data: teamData } = await supabase
+      try {
+        if (equipment.team_id && equipment.team_id !== 'none') {
+          // For team equipment, get team's org ID
+          const { data: teamData, error: teamError } = await supabase
             .from('team')
             .select('org_id')
             .eq('id', equipment.team_id)
             .is('deleted_at', null)
             .single();
-          
-          if (!teamData) {
-            throw new Error('Team not found');
+            
+          if (teamError) {
+            throw new Error(`Failed to retrieve team information: ${teamError.message}`);
           }
           
           orgId = teamData.org_id;
-          
-          // Check if user has direct permission in this organization
-          const { data: userRoles } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', authUserId)
-            .eq('org_id', orgId)
-            .maybeSingle();
-          
-          if (userRoles && (userRoles.role === 'owner' || userRoles.role === 'manager')) {
-            console.log(`User has ${userRoles.role} role in organization, permission granted`);
-          } else {
-            // Check if user is a team manager
-            const { data: canAccess } = await supabase.rpc('check_team_access_nonrecursive', {
-              p_user_id: authUserId,
-              p_team_id: equipment.team_id
-            });
-            
-            if (!canAccess) {
-              throw new Error('You do not have access to this team');
-            }
-            
-            // Get team role using our safe function
-            const { data: teamRole } = await supabase.rpc('get_team_role_safe', {
-              _user_id: authUserId,
-              _team_id: equipment.team_id
-            });
-            
-            if (teamRole !== 'manager' && teamRole !== 'owner') {
-              throw new Error('You need to be a team manager or owner to create equipment');
-            }
-          }
-        } catch (error) {
-          console.error('Team permission check failed:', error);
-          throw new Error(`Failed to verify team permissions: ${error.message}`);
-        }
-      } else {
-        // For organization-level equipment, check org permissions directly
-        try {
+          console.log(`Using team's org ID: ${orgId}`);
+        } else {
+          // Use user's organization for non-team equipment
           orgId = await getUserOrganizationId(authUserId);
-          
-          // Check if user is org manager or owner
-          const { data: userRoles } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', authUserId)
-            .eq('org_id', orgId)
-            .single();
-            
-          if (!userRoles || !['owner', 'manager'].includes(userRoles.role)) {
-            throw new Error('You need to be an organization manager or owner to create equipment');
-          }
-        } catch (error) {
-          console.error('Organization permission check failed:', error);
-          throw new Error(`Failed to verify organization permissions: ${error.message}`);
+          console.log(`Using user's org ID: ${orgId}`);
         }
+        
+        if (!orgId) {
+          throw new Error('Failed to determine organization ID for equipment creation');
+        }
+      } catch (fallbackError) {
+        console.error('Fallback permission check failed:', fallbackError);
+        throw new Error('Could not verify permissions to create equipment. Please try again.');
       }
-    }
-    
-    if (!orgId) {
-      throw new Error('Could not determine organization ID for equipment creation');
     }
     
     // Extract attributes before sending to database

@@ -1247,6 +1247,10 @@ export type Database = {
         Args: { _user_id: string; _team_id: string }
         Returns: boolean
       }
+      is_using_service_role: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       access_role: "owner" | "manager" | "technician" | "viewer"
