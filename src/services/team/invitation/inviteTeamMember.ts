@@ -50,13 +50,16 @@ export async function inviteMember(
     
     let isAlreadyMember = false;
     
-    if (existingUser) {
+    if (existingUser && existingUser[0]) {
+      // Fix: Access the first element of the array to get the user object
+      const user = existingUser[0];
+      
       // Check if already a member by querying team_member directly
       const { data: existingMember, error: memberCheckError } = await supabase
         .from('team_member')
         .select('id')
         .eq('team_id', teamId)
-        .eq('user_id', existingUser.id);
+        .eq('user_id', user.id);
         
       if (memberCheckError) {
         console.error('Error checking team membership:', memberCheckError);
@@ -115,6 +118,7 @@ export async function inviteMember(
     
     // Send invitation email
     try {
+      // Fix: Send invitation email with just the token
       await sendInvitationEmail(normalizedEmail, token);
       
       // Update invitation status to 'sent'
