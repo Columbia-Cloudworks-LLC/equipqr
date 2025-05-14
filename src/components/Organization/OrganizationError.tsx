@@ -8,9 +8,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
 
-interface OrganizationErrorProps {
+export interface OrganizationErrorProps {
   errorMessage: string;
-  handleRefresh: () => Promise<void>;
+  handleRefresh: () => Promise<void> | void;
   isRefreshing: boolean;
   diagnosticDetails?: any;
   handleRepairAccess?: () => Promise<void>;

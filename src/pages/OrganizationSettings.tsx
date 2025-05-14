@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -74,8 +75,15 @@ const OrganizationSettings = () => {
   }
 
   if (error || !organization) {
-    return <OrganizationError message={error || 'Failed to load organization'} />;
+    return <OrganizationError 
+      errorMessage={error || 'Failed to load organization'} 
+      handleRefresh={() => window.location.reload()} 
+      isRefreshing={false} 
+    />;
   }
+
+  // Convert userRole to boolean isOwner for OrganizationDetailsCard
+  const isOwner = userRole === 'owner';
 
   return (
     <div className="container p-4 mx-auto space-y-6">
@@ -88,7 +96,7 @@ const OrganizationSettings = () => {
         </TabsList>
         
         <TabsContent value="details" className="mt-4">
-          <OrganizationDetailsCard organization={organization} userRole={userRole} />
+          <OrganizationDetailsCard organization={organization} isOwner={isOwner} />
         </TabsContent>
         
         <TabsContent value="members" className="mt-4">
