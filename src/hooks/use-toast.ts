@@ -6,38 +6,24 @@ import { useCallback } from 'react';
 // Define our custom toast types
 export type ToastType = 'default' | 'success' | 'info' | 'warning' | 'destructive';
 
-// Extend the sonner toast options with our custom type
+// Extend the sonner toast options 
 export interface ToastOptions extends Omit<ExternalToast, 'type'> {
   title?: string;
   description?: string;
-  variant?: ToastType;
 }
-
-// Map our variant types to sonner's variant types
-const mapVariantToSonnerStyle = (variant?: ToastType): ExternalToast['style'] => {
-  switch (variant) {
-    case 'destructive':
-      return { backgroundColor: 'hsl(var(--destructive))', color: 'hsl(var(--destructive-foreground))' };
-    case 'success':
-      return { backgroundColor: 'hsl(var(--success))', color: 'hsl(var(--success-foreground))' };
-    case 'warning':
-      return { backgroundColor: 'hsl(var(--warning))', color: 'hsl(var(--warning-foreground))' };
-    case 'info':
-      return { backgroundColor: 'hsl(var(--info))', color: 'hsl(var(--info-foreground))' };
-    default:
-      return undefined;
-  }
-};
 
 // Function to display a toast notification
 const showToast = (options: ToastOptions) => {
-  const { title, description, variant, ...rest } = options;
+  const { title, description, ...rest } = options;
   
-  sonnerToast(title || '', {
-    description,
-    style: mapVariantToSonnerStyle(variant),
-    ...rest
-  });
+  if (title && description) {
+    sonnerToast(title, {
+      description,
+      ...rest
+    });
+  } else if (title) {
+    sonnerToast(title, rest);
+  }
 };
 
 // Convenience methods for different toast types
@@ -46,20 +32,20 @@ export const toast = {
   show: showToast,
   
   // Type-specific convenience methods
-  default: (title: string, options?: Omit<ToastOptions, 'title' | 'variant'>) => 
-    showToast({ title, variant: 'default', ...options }),
+  default: (title: string, options?: Omit<ToastOptions, 'title'>) => 
+    sonnerToast(title, options),
   
-  success: (title: string, options?: Omit<ToastOptions, 'title' | 'variant'>) => 
-    showToast({ title, variant: 'success', ...options }),
+  success: (title: string, options?: Omit<ToastOptions, 'title'>) => 
+    sonnerToast.success(title, options),
   
-  info: (title: string, options?: Omit<ToastOptions, 'title' | 'variant'>) => 
-    showToast({ title, variant: 'info', ...options }),
+  info: (title: string, options?: Omit<ToastOptions, 'title'>) => 
+    sonnerToast.info(title, options),
   
-  warning: (title: string, options?: Omit<ToastOptions, 'title' | 'variant'>) => 
-    showToast({ title, variant: 'warning', ...options }),
+  warning: (title: string, options?: Omit<ToastOptions, 'title'>) => 
+    sonnerToast.warning(title, options),
   
-  error: (title: string, options?: Omit<ToastOptions, 'title' | 'variant'>) => 
-    showToast({ title, variant: 'destructive', ...options }),
+  error: (title: string, options?: Omit<ToastOptions, 'title'>) => 
+    sonnerToast.error(title, options),
   
   // Re-export sonner's native methods
   dismiss: sonnerToast.dismiss,
