@@ -115,7 +115,7 @@ export async function inviteMember(
     
     // Send invitation email
     try {
-      await sendInvitationEmail(normalizedEmail, token, teamId);
+      await sendInvitationEmail(normalizedEmail, token);
       
       // Update invitation status to 'sent'
       await supabase
