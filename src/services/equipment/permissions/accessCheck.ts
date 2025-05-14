@@ -82,7 +82,7 @@ export function determineEditPermission(
   
   if (isExternalOrg && teamAccess) {
     // Can edit if manager or higher role
-    const editRoles = ['manager', 'creator', 'owner', 'admin'];
+    const editRoles = ['manager', 'owner', 'creator', 'admin'];
     canEdit = !!teamAccess.role && editRoles.includes(teamAccess.role);
   }
   
