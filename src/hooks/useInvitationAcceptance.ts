@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { acceptInvitation } from '@/services/team/invitationService';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 export function useInvitationAcceptance(token: string | undefined, user: any) {
   const [isAccepting, setIsAccepting] = useState(false);
@@ -19,7 +19,8 @@ export function useInvitationAcceptance(token: string | undefined, user: any) {
       // Store the invitation route to redirect back after login
       sessionStorage.setItem('invitationPath', window.location.pathname);
       
-      toast.info("Please sign in to accept the invitation", {
+      toast({
+        title: "Please sign in to accept the invitation",
         description: "You'll be redirected back after signing in"
       });
       
@@ -36,7 +37,8 @@ export function useInvitationAcceptance(token: string | undefined, user: any) {
       const result = await acceptInvitation(token);
       console.log("Acceptance result:", result);
       
-      toast.success(`Welcome to ${result.teamName || "the team"}!`, {
+      toast({
+        title: `Welcome to ${result.teamName || "the team"}!`,
         description: `You have successfully joined as a ${result.role || "member"}`
       });
       
@@ -56,8 +58,10 @@ export function useInvitationAcceptance(token: string | undefined, user: any) {
     } catch (err: any) {
       console.error('Error accepting invitation:', err);
       setError(`Error accepting invitation: ${err.message}`);
-      toast.error("Error accepting invitation", {
-        description: err.message
+      toast({
+        title: "Error accepting invitation",
+        description: err.message,
+        variant: "destructive"
       });
     } finally {
       setIsAccepting(false);
