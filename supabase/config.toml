@@ -159,4 +159,3 @@ secret = ""
 port = 54327
 # Include shared files using the correct path
 included_files = ["_shared/**/*"]
-
