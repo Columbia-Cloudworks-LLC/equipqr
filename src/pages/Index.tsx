@@ -1,59 +1,26 @@
 
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Package, Users, QrCode, Settings, Mail, X } from 'lucide-react';
-import { DashboardStat, Equipment, TeamMember } from '@/types';
+import { DashboardStat } from '@/types';
 import { DashboardStats } from '@/components/Dashboard/DashboardStats';
-import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
-import { MOCK_TEAM_MEMBERS } from '@/data/mockData';
 import { Layout } from '@/components/Layout/Layout';
-import { useQuery } from '@tanstack/react-query';
-import { getEquipment } from '@/services/equipment';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useNotifications } from '@/contexts/NotificationsContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Package, Users, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { InvitationAlert } from '@/components/Dashboard/InvitationAlert';
+import { RecentEquipmentSection } from '@/components/Dashboard/RecentEquipmentSection';
+import { QuickLinksCard } from '@/components/Dashboard/QuickLinksCard';
+import { useDashboardData } from '@/hooks/useDashboardData';
 
 const Index = () => {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [showInvitationAlert, setShowInvitationAlert] = useState(true);
-  const { invitations, refreshNotifications } = useNotifications();
-  
-  const { data: equipmentData = [], isLoading, isError } = useQuery({
-    queryKey: ['equipment'],
-    queryFn: getEquipment,
-    retry: 1,
-  });
-
-  // Safely ensure equipment is always an array
-  const equipment = Array.isArray(equipmentData) ? equipmentData : [];
-
-  // Refresh notifications when the dashboard loads
-  useEffect(() => {
-    try {
-      refreshNotifications().catch(error => {
-        console.error("Failed to refresh notifications:", error);
-        // Non-critical error, don't block the UI
-      });
-    } catch (error) {
-      console.error("Error refreshing notifications:", error);
-    }
-  }, [refreshNotifications]);
-
-  useEffect(() => {
-    // Still using mock data for team members for now
-    setTeamMembers(MOCK_TEAM_MEMBERS);
-  }, []);
-
-  // Safely calculate equipment counts with defensive checks
-  const activeCount = Array.isArray(equipment) 
-    ? equipment.filter(item => item?.status === 'active').length 
-    : 0;
-    
-  const maintenanceCount = Array.isArray(equipment)
-    ? equipment.filter(item => item?.status === 'maintenance').length
-    : 0;
+  const { 
+    teamMembers, 
+    activeCount,
+    maintenanceCount,
+    recentEquipment,
+    isLoading,
+    isError,
+    invitations,
+    equipment
+  } = useDashboardData();
 
   const stats: DashboardStat[] = [
     {
@@ -81,43 +48,10 @@ const Index = () => {
     },
   ];
 
-  // Get recently added equipment (last 4) with error handling
-  const recentEquipment = Array.isArray(equipment) 
-    ? [...equipment]
-        .sort((a, b) => {
-          // Safely handle missing dates or invalid format
-          const dateA = a?.updated_at ? new Date(a.updated_at).getTime() : 0;
-          const dateB = b?.updated_at ? new Date(b.updated_at).getTime() : 0;
-          return dateB - dateA;
-        })
-        .slice(0, 4)
-    : [];
-
   return (
     <Layout>
       <div className="flex-1 space-y-6 p-6">
-        {Array.isArray(invitations) && invitations.length > 0 && showInvitationAlert && (
-          <Alert className="bg-primary/5 border-primary/10 flex items-center justify-between">
-            <div className="flex items-center">
-              <Mail className="h-5 w-5 mr-2" />
-              <AlertDescription className="flex-1">
-                You have {invitations.length} pending team invitation{invitations.length > 1 ? 's' : ''}. 
-                <Button variant="link" asChild className="h-auto p-0 ml-1">
-                  <Link to="/my-invitations">View invitations</Link>
-                </Button>
-              </AlertDescription>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-6 w-6" 
-              onClick={() => setShowInvitationAlert(false)}
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Dismiss</span>
-            </Button>
-          </Alert>
-        )}
+        <InvitationAlert invitations={invitations} />
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
@@ -134,103 +68,13 @@ const Index = () => {
         <DashboardStats stats={stats} />
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          <Card className="md:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div className="space-y-0.5">
-                <CardTitle>Recent Equipment</CardTitle>
-                <CardDescription>
-                  Recently added or updated equipment.
-                </CardDescription>
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/equipment">View all</Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {Array(4).fill(0).map((_, i) => (
-                    <Card key={i}>
-                      <CardHeader className="pb-2">
-                        <Skeleton className="h-5 w-3/4" />
-                      </CardHeader>
-                      <CardContent className="text-sm">
-                        <div className="grid grid-cols-2 gap-2">
-                          {Array(4).fill(0).map((_, j) => (
-                            <div key={j}>
-                              <Skeleton className="h-3 w-16 mb-1" />
-                              <Skeleton className="h-4 w-20" />
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                      <CardFooter>
-                        <div className="flex justify-between w-full">
-                          {Array(3).fill(0).map((_, k) => (
-                            <Skeleton key={k} className="h-8 w-16" />
-                          ))}
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              ) : isError ? (
-                <div className="flex flex-col items-center justify-center h-40 border border-dashed rounded-lg">
-                  <Package className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">Could not load equipment data</p>
-                  <Button variant="link" onClick={() => window.location.reload()}>
-                    Try again
-                  </Button>
-                </div>
-              ) : recentEquipment.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {recentEquipment.map((item) => (
-                    <EquipmentCard key={item.id} equipment={item} />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-40 border border-dashed rounded-lg">
-                  <Package className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">No equipment added yet</p>
-                  <Button variant="link" asChild>
-                    <Link to="/equipment/new">Add your first equipment</Link>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <RecentEquipmentSection 
+            recentEquipment={recentEquipment}
+            isLoading={isLoading}
+            isError={isError}
+          />
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Links</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/equipment">
-                  <Package className="mr-2 h-4 w-4" />
-                  Equipment Inventory
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/team">
-                  <Users className="mr-2 h-4 w-4" />
-                  Team Management
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/scanner">
-                  <QrCode className="mr-2 h-4 w-4" />
-                  Scan QR Code
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/settings">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <QuickLinksCard />
         </div>
       </div>
     </Layout>
