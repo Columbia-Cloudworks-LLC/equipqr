@@ -1087,6 +1087,10 @@ export type Database = {
           team_role: string
         }[]
       }
+      check_team_access_nonrecursive: {
+        Args: { p_user_id: string; p_team_id: string }
+        Returns: boolean
+      }
       gen_invitation_token: {
         Args: Record<PropertyKey, never>
         Returns: string

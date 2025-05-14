@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { 
   corsHeaders,
@@ -26,19 +27,19 @@ serve(async (req) => {
       return createErrorResponse("Invalid team ID format");
     }
     
-    // Create regular Supabase client - no admin bypass needed with our security definer functions
+    // Create Supabase client with service role to bypass RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
       throw new Error('Missing Supabase environment variables');
     }
     
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Use RPC to check team access
-    const { data: canAccess, error: accessError } = await supabase.rpc('can_access_team', {
-      p_uid: user_id,
+    // Use our non-recursive function to check team access
+    const { data: canAccess, error: accessError } = await adminClient.rpc('check_team_access_nonrecursive', {
+      p_user_id: user_id,
       p_team_id: team_id
     });
     
@@ -54,16 +55,16 @@ serve(async (req) => {
       });
     }
     
-    // User has access, get additional details
+    // User has access, get additional details using service role to bypass RLS
     
-    // Get team role if applicable
-    const { data: roleData } = await supabase.rpc('get_team_role_safe', {
+    // Get team role safely using our new function
+    const { data: roleData } = await adminClient.rpc('get_team_role_safe', {
       _user_id: user_id,
       _team_id: team_id
     });
     
     // Get team information for display purposes
-    const { data: teamData } = await supabase
+    const { data: teamData } = await adminClient
       .from('team')
       .select('name, org_id')
       .eq('id', team_id)
@@ -72,7 +73,7 @@ serve(async (req) => {
     let orgName = null;
     if (teamData) {
       // Get organization name
-      const { data: orgData } = await supabase
+      const { data: orgData } = await adminClient
         .from('organization')
         .select('name')
         .eq('id', teamData.org_id)
@@ -88,7 +89,7 @@ serve(async (req) => {
     let hasCrossOrgAccess = false;
     
     if (teamData) {
-      const { data: userProfile } = await supabase
+      const { data: userProfile } = await adminClient
         .from('user_profiles')
         .select('org_id')
         .eq('id', user_id)
@@ -96,16 +97,14 @@ serve(async (req) => {
       
       if (userProfile && userProfile.org_id === teamData.org_id) {
         hasOrgAccess = true;
-      } else {
-        // Check if user is a team member with role
-        if (roleData) {
-          hasCrossOrgAccess = true;
-        }
+      } else if (roleData) {
+        // If user has a role but isn't in the same org, they have cross-org access
+        hasCrossOrgAccess = true;
       }
     }
     
     // Get app_user.id for team_member join
-    const { data: appUser } = await supabase
+    const { data: appUser } = await adminClient
       .from('app_user')
       .select('id')
       .eq('auth_uid', user_id)
@@ -114,7 +113,7 @@ serve(async (req) => {
     // Get team_member_id if exists
     let teamMemberId = null;
     if (appUser?.id) {
-      const { data: teamMember } = await supabase
+      const { data: teamMember } = await adminClient
         .from('team_member')
         .select('id')
         .eq('user_id', appUser.id)
@@ -124,12 +123,24 @@ serve(async (req) => {
       teamMemberId = teamMember?.id || null;
     }
     
+    // Determine the user's membership status and role
+    const isMember = roleData !== null || hasOrgAccess;
+    let accessReason = 'none';
+    
+    if (roleData) {
+      accessReason = 'team_member';
+    } else if (hasOrgAccess) {
+      accessReason = 'same_org';
+    } else if (hasCrossOrgAccess) {
+      accessReason = 'cross_org_access';
+    }
+    
     return createSuccessResponse({
-      is_member: true,
+      is_member: isMember,
       has_org_access: hasOrgAccess,
       has_cross_org_access: hasCrossOrgAccess,
       team_member_id: teamMemberId,
-      access_reason: roleData ? 'team_member' : (hasOrgAccess ? 'same_org' : 'cross_org_access'),
+      access_reason: accessReason,
       role: roleData || null,
       team: teamData ? {
         name: teamData.name,

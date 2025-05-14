@@ -32,11 +32,9 @@ serve(async (req) => {
     
     console.log(`Fetching team members for team: ${team_id}`);
     
-    // Create Supabase client
+    // Create Supabase admin client with service role to bypass RLS
     const supabaseClient = createClient(
-      // Supabase API URL - env var exposed by default when deployed
       Deno.env.get('SUPABASE_URL') ?? '',
-      // Supabase API SERVICE ROLE KEY - env var exposed by default when deployed
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
@@ -44,7 +42,7 @@ serve(async (req) => {
     const { data: team, error: teamError } = await supabaseClient
       .from('team')
       .select('id')
-      .eq('id', team_id) // team_id is already validated as UUID format
+      .eq('id', team_id)
       .is('deleted_at', null)
       .single();
     
@@ -59,46 +57,19 @@ serve(async (req) => {
       );
     }
     
-    // Get the user ID from the JWT
-    const authHeader = req.headers.get('authorization');
-    let userId = null;
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      try {
-        // Decode the token to get the user ID
-        const { data: { user }, error: tokenError } = await supabaseClient.auth.getUser(token);
-        
-        if (tokenError || !user) {
-          console.error('Error getting user from token:', tokenError);
-          return new Response(
-            JSON.stringify({ 
-              error: "Authentication error",
-              details: tokenError?.message || "Invalid token"
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
-          );
-        }
-        
-        userId = user.id;
-      } catch (tokenError) {
-        console.error('Error decoding token:', tokenError);
-      }
-    }
-    
     try {
-      // Call the database function with explicit casting of team_id to UUID in the query
+      // Call the get_team_members_with_roles database function using service role client
       const { data, error } = await supabaseClient.rpc(
         'get_team_members_with_roles', 
         { 
-          _team_id: team_id // When passed directly in a RPC, it needs to be the exact parameter name
+          _team_id: team_id
         }
       );
       
       if (error) {
         console.error('Error from get_team_members_with_roles function:', error);
         
-        // Try a direct query as a fallback if the function fails
+        // If the function fails, use direct query as fallback
         const { data: fallbackData, error: fallbackError } = await supabaseClient
           .from('team_member')
           .select(`
@@ -106,7 +77,7 @@ serve(async (req) => {
             team_id,
             user_id,
             joined_at,
-            app_user!inner (
+            app_user:user_id (
               id,
               display_name,
               email,
@@ -137,12 +108,12 @@ serve(async (req) => {
           team_id: member.team_id,
           user_id: member.user_id,
           joined_at: member.joined_at,
-          name: member.app_user.display_name || 'Unknown',
-          email: member.app_user.email,
+          name: member.app_user?.display_name || 'Unknown',
+          email: member.app_user?.email || 'unknown@email.com',
           role: member.team_roles && member.team_roles.length > 0 ? 
             member.team_roles[0].role : 'viewer',
-          status: 'Active', // We can't easily determine this in the fallback
-          auth_uid: member.app_user.auth_uid // Include auth_uid for easier identification
+          status: 'Active',
+          auth_uid: member.app_user?.auth_uid
         }));
         
         console.log('Used fallback query, found members:', transformedData.length);

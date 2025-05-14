@@ -1,65 +1,72 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 /**
- * Validate team membership for the current user
- * @param userId The user ID to check
- * @param teamId The team ID to check
- * @returns A boolean indicating whether the user is a member of the team
+ * Validate a user's membership in a team
+ * @param teamId The team ID to validate
+ * @param userId Optional user ID (defaults to current user)
+ * @returns Object with validation results 
  */
-export async function validateTeamMembership(userId: string, teamId: string): Promise<boolean> {
+export async function validateTeamMembership(teamId: string, userId?: string) {
   try {
-    if (!userId || !teamId) {
-      console.error('Missing required parameters for validateTeamMembership');
-      return false;
+    if (!teamId) {
+      throw new Error("Team ID is required");
     }
     
+    // Get current user if not provided
+    if (!userId) {
+      const { data } = await supabase.auth.getSession();
+      userId = data.session?.user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+    }
+    
+    // Use our validate_team_access edge function that now uses non-recursive checks
     const { data, error } = await supabase.functions.invoke('validate_team_access', {
-      body: { team_id: teamId, user_id: userId }
-    });
-    
-    if (error) {
-      console.error('Error validating team membership:', error);
-      return false;
-    }
-    
-    return data?.is_member || false;
-  } catch (error) {
-    console.error('Error in validateTeamMembership:', error);
-    return false;
-  }
-}
-
-/**
- * Repair team membership for the current user
- * @param teamId The ID of the team
- * @returns Response data from the repair operation
- */
-export async function repairTeamMembership(teamId: string) {
-  try {
-    // Get current authenticated user
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to repair team membership');
-    }
-    
-    const userId = sessionData.session.user.id;
-    
-    // Call the repair_team_membership edge function
-    const { data, error } = await supabase.functions.invoke('repair_team_membership', {
       body: { 
-        team_id: teamId, 
-        user_id: userId 
+        team_id: teamId,
+        user_id: userId
       }
     });
     
     if (error) {
-      console.error('Error repairing team membership:', error);
-      throw new Error(`Failed to repair team membership: ${error.message}`);
+      console.error('Team membership validation error:', error);
+      throw new Error(error.message);
     }
     
-    if (!data?.success) {
-      throw new Error(data?.error || 'Failed to repair team membership');
+    return {
+      isValid: data?.is_member === true,
+      result: data || null
+    };
+  } catch (error: any) {
+    console.error('Error in validateTeamMembership:', error);
+    throw error;
+  }
+}
+
+/**
+ * Repair team membership by adding the current user as a manager
+ * Use this when a team is created but the creator is not a member
+ * @param teamId The team ID to repair
+ * @returns Result of the repair operation
+ */
+export async function repairTeamMembership(teamId: string) {
+  try {
+    if (!teamId) {
+      throw new Error("Team ID is required");
+    }
+    
+    // Use dedicated edge function to repair team membership
+    const { data, error } = await supabase.functions.invoke('repair_team_membership', {
+      body: { team_id: teamId }
+    });
+    
+    if (error || (data && data.error)) {
+      console.error('Team repair error:', error || data.error);
+      throw new Error(error?.message || data?.error || "Failed to repair team membership");
     }
     
     return data;
@@ -70,51 +77,52 @@ export async function repairTeamMembership(teamId: string) {
 }
 
 /**
- * Get detailed team access information for current user
- * @param userId The user ID to check
- * @param teamId The team ID to check
+ * Get detailed team access information for a user
+ * @param userId User ID to check
+ * @param teamId Team ID to check
  * @returns Detailed access information
  */
 export async function getTeamAccessDetails(userId: string, teamId: string) {
   try {
     if (!userId || !teamId) {
-      console.error('Missing required parameters for getTeamAccessDetails');
-      return {
-        isMember: false,
-        accessReason: 'missing_params',
-        role: null,
-        hasCrossOrgAccess: false
-      };
+      throw new Error("User ID and Team ID are required");
     }
     
+    // Use validate_team_access edge function with our updated implementation
     const { data, error } = await supabase.functions.invoke('validate_team_access', {
-      body: { team_id: teamId, user_id: userId }
+      body: { 
+        team_id: teamId,
+        user_id: userId
+      }
     });
     
     if (error) {
       console.error('Error getting team access details:', error);
-      return {
-        isMember: false,
-        accessReason: 'error',
-        role: null,
-        hasCrossOrgAccess: false
-      };
+      throw new Error(error.message);
     }
     
     return {
-      isMember: data?.is_member || false,
-      accessReason: data?.access_reason || 'unknown',
-      role: data?.role || null,
-      hasCrossOrgAccess: data?.has_cross_org_access || false,
-      orgName: data?.org_name || null
+      isMember: data?.is_member === true,
+      hasOrgAccess: data?.has_org_access === true,
+      hasCrossOrgAccess: data?.has_cross_org_access === true,
+      teamMemberId: data?.team_member_id,
+      accessReason: data?.access_reason,
+      role: data?.role,
+      team: data?.team,
+      orgName: data?.org_name
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in getTeamAccessDetails:', error);
+    // Return default values if there's an error to avoid UI breakage
     return {
       isMember: false,
-      accessReason: 'exception',
+      hasOrgAccess: false,
+      hasCrossOrgAccess: false,
+      teamMemberId: null,
+      accessReason: 'error',
       role: null,
-      hasCrossOrgAccess: false
+      team: null,
+      orgName: null
     };
   }
 }

@@ -71,23 +71,22 @@ export async function resendInvite(invitationId: string) {
 }
 
 /**
- * Get pending invitations for a team
+ * Get pending invitations for a team using the edge function
+ * to avoid recursion issues with RLS policies
  */
 export async function getPendingInvitations(teamId: string) {
   try {
-    // Use edge function or direct query with admin role instead of RLS-protected queries
-    const { data, error } = await supabase
-      .from('team_invitations')
-      .select('*')
-      .eq('team_id', teamId)
-      .eq('status', 'pending');
+    // Use our new edge function instead of direct query to avoid recursion
+    const { data, error } = await supabase.functions.invoke('get_pending_invitations', {
+      body: { team_id: teamId }
+    });
       
     if (error) {
       console.error('Error fetching pending invitations:', error);
       throw new Error(`Failed to fetch pending invitations: ${error.message}`);
     }
     
-    return data || [];
+    return data?.invitations || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitations:', error);
     throw new Error(`Failed to get pending invitations: ${error.message}`);

@@ -3,8 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 /**
  * Check if the user has access to the team with a specific role
- * Relies on the improved get_user_role_in_team function 
- * that properly handles viewers and other roles
+ * Uses the updated can_access_team function that avoids recursion
  */
 export async function checkTeamAccess(
   userId: string, 
@@ -12,17 +11,16 @@ export async function checkTeamAccess(
   supabase?: ReturnType<typeof createClient>
 ) {
   try {
-    // Use provided supabase client or create a new one
+    // Use provided supabase client or create a new one with admin privileges
     const client = supabase || createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Call the security definer function that gets the role 
-    // (which now properly handles viewers)
-    const { data: role, error } = await client.rpc(
-      'get_user_role_in_team',
-      { p_user_uid: userId, p_team_id: teamId }
+    // Call the updated function that gets the role safely
+    const { data: hasAccess, error } = await client.rpc(
+      'can_access_team',
+      { p_uid: userId, p_team_id: teamId }
     );
 
     if (error) {
@@ -30,8 +28,7 @@ export async function checkTeamAccess(
       return false;
     }
 
-    // Any non-null role means the user has access
-    return role !== null;
+    return !!hasAccess;
   } catch (error) {
     console.error('Exception in checkTeamAccess:', error);
     return false;
@@ -48,16 +45,16 @@ export async function checkTeamManagerAccess(
   supabase?: ReturnType<typeof createClient>
 ) {
   try {
-    // Use provided supabase client or create a new one
+    // Use provided supabase client or create a new one with admin privileges
     const client = supabase || createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Get the role for this user in this team
+    // Get the role for this user in this team using the safe function
     const { data: role, error } = await client.rpc(
-      'get_user_role_in_team',
-      { p_user_uid: userId, p_team_id: teamId }
+      'get_team_role_safe',
+      { _user_id: userId, _team_id: teamId }
     );
 
     if (error) {

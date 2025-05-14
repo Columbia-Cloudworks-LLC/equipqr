@@ -1,78 +1,39 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  loadDismissedNotifications, 
-  saveDismissedNotifications,
-  clearLocalDismissedNotifications
-} from './notificationStorage';
 
-// Function to get pending invitations for the current user
-// Using edge function to avoid RLS recursion issues
+/**
+ * Get pending invitations for the current user's email
+ * This works across organizations
+ */
 export async function getPendingInvitationsForUser() {
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
-      console.error("Error retrieving session when checking for invitations:", sessionError);
+      console.error("Error retrieving session:", sessionError);
       return [];
     }
     
     if (!sessionData?.session?.user?.email) {
-      console.log("No authenticated user email found when checking for invitations");
+      console.error("No authenticated user email found");
       return [];
     }
-
+    
     const userEmail = sessionData.session.user.email.toLowerCase();
     
-    // Use a direct query without joins to avoid recursion issues
-    // We'll get team names in a separate query if needed
-    const { data, error } = await supabase
-      .from('team_invitations')
-      .select('id, email, token, team_id, role, created_at, expires_at, status')
-      .eq('email', userEmail)
-      .eq('status', 'pending');
-      
+    // Use the edge function to avoid recursion issues
+    const { data, error } = await supabase.functions.invoke('get_user_invitations', {
+      body: { email: userEmail }
+    });
+    
     if (error) {
       console.error('Error fetching pending invitations for user:', error);
-      throw error;
+      throw new Error(`Failed to fetch invitations: ${error.message}`);
     }
     
-    // No invitations found
-    if (!data || data.length === 0) {
-      console.log(`No pending invitations found for ${userEmail}`);
-      return [];
-    }
-    
-    // For each invitation, fetch the team name separately
-    const invitationsWithTeamNames = await Promise.all(
-      data.map(async (invitation) => {
-        try {
-          // Get team name in a separate query
-          const { data: teamData } = await supabase
-            .from('team')
-            .select('name')
-            .eq('id', invitation.team_id)
-            .single();
-            
-          return {
-            ...invitation,
-            team: teamData ? { name: teamData.name } : { name: 'Unknown Team' }
-          };
-        } catch (err) {
-          console.error(`Error fetching team name for invitation ${invitation.id}:`, err);
-          return {
-            ...invitation,
-            team: { name: 'Unknown Team' }
-          };
-        }
-      })
-    );
-    
-    console.log(`Found ${invitationsWithTeamNames.length} pending invitations for ${userEmail}`);
-    
-    return invitationsWithTeamNames || [];
+    console.log(`Found ${data?.invitations?.length || 0} pending invitations for ${userEmail}`);
+    return data?.invitations || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitationsForUser:', error);
-    throw new Error(`Failed to get pending invitations: ${error.message}`);
+    return [];
   }
 }
 

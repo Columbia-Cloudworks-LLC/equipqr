@@ -22,12 +22,19 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    const { email } = await req.json();
+    const { team_id } = await req.json();
     
-    if (!email) {
-      return createResponse({ error: 'Email is required' }, 400);
+    if (!team_id) {
+      return createResponse({ error: 'Team ID is required' }, 400);
+    }
+    
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(team_id)) {
+      console.error(`Invalid UUID format for team_id: ${team_id}`);
+      return createResponse({ error: 'Invalid team ID format' }, 400);
     }
     
     // Create Supabase admin client with service role to bypass RLS
@@ -36,47 +43,43 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
+    // Fetch team details to verify team exists
+    const { data: teamData, error: teamError } = await supabase
+      .from('team')
+      .select('id, name, org_id')
+      .eq('id', team_id)
+      .is('deleted_at', null)
+      .single();
+      
+    if (teamError) {
+      console.error('Error verifying team:', teamError);
+      return createResponse({
+        error: 'Team not found',
+        details: teamError.message
+      }, 404);
+    }
     
-    // Fetch pending invitations for this email directly using service role
+    // Fetch pending invitations for this team directly using service role
     const { data, error } = await supabase
       .from('team_invitations')
-      .select(`
-        *,
-        team:team_id (
-          id,
-          name,
-          org_id,
-          organization:org_id (
-            name
-          )
-        )
-      `)
-      .eq('email', normalizedEmail)
+      .select('*')
+      .eq('team_id', team_id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
       
     if (error) {
-      console.error('Error fetching user invitations:', error);
+      console.error('Error fetching team invitations:', error);
       return createResponse({
         error: 'Failed to fetch invitations',
         details: error.message
       }, 500);
     }
     
-    // Process invitations to include team and org information
-    const processedInvitations = data?.map(invite => ({
-      ...invite,
-      team_name: invite.team?.name || 'Unknown Team',
-      org_name: invite.team?.organization?.name || 'Unknown Organization',
-    })) || [];
-    
-    console.log(`Found ${processedInvitations.length} pending invitations for ${normalizedEmail}`);
-    return createResponse({ invitations: processedInvitations });
+    console.log(`Found ${data?.length || 0} pending invitations for team ${team_id}`);
+    return createResponse({ invitations: data || [] });
     
   } catch (error) {
-    console.error('Unexpected error in get_user_invitations:', error);
+    console.error('Unexpected error in get_pending_invitations:', error);
     return createResponse({
       error: 'Server error',
       details: error.message
