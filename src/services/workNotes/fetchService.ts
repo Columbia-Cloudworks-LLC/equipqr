@@ -3,90 +3,68 @@ import { supabase } from "@/integrations/supabase/client";
 import { WorkNote } from "./types";
 
 /**
- * Get work notes for a specific equipment
+ * Get work notes for specific equipment
  */
 export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
   try {
-    // Use the RPC function to get work notes
-    const { data, error } = await supabase
-      .rpc('get_equipment_work_notes', { equipment_id: equipmentId });
-      
-    if (error) {
-      console.error('Error fetching work notes:', error);
-      throw new Error(`Failed to fetch work notes: ${error.message}`);
-    }
-    
-    // Get user information for each note
-    const notes = data as WorkNote[];
-    const userIds = [...new Set(notes.map(note => note.created_by))];
-    
-    if (userIds.length > 0) {
-      // Fetch user display names for the notes' creators
-      const { data: appUsers, error: userError } = await supabase
-        .from('app_user')
-        .select('id, display_name')
-        .in('id', userIds);
-        
-      if (!userError && appUsers) {
-        // Create a map of user IDs to display names for quick lookup
-        const userMap = new Map();
-        appUsers.forEach(user => {
-          userMap.set(user.id, user.display_name);
-        });
-        
-        // Add creator name to each note
-        return notes.map(note => ({
-          ...note,
-          creator_name: userMap.get(note.created_by) || 'Unknown User'
-        }));
-      }
-    }
-    
-    return notes;
-  } catch (error) {
-    console.error('Exception in getWorkNotes:', error);
-    throw error;
-  }
-}
-
-/**
- * Get a single work note by ID
- */
-export async function getWorkNoteById(noteId: string): Promise<WorkNote | null> {
-  try {
+    // Query work notes through RLS policies
     const { data, error } = await supabase
       .from('equipment_work_notes')
-      .select('*')
-      .eq('id', noteId)
+      .select(`
+        *,
+        creator:created_by(
+          id,
+          display_name,
+          org:org_id(
+            id,
+            name
+          )
+        )
+      `)
+      .eq('equipment_id', equipmentId)
       .is('deleted_at', null)
-      .maybeSingle();
+      .order('created_at', { ascending: false });
       
     if (error) {
-      console.error('Error fetching work note by id:', error);
+      console.error("Error fetching work notes:", error);
       throw error;
     }
     
-    if (!data) {
-      return null;
-    }
+    // Get the user's organization for determining external orgs
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
     
-    // Get creator name
-    const { data: user, error: userError } = await supabase
-      .from('app_user')
-      .select('display_name')
-      .eq('id', data.created_by)
-      .maybeSingle();
+    let userOrgId = null;
+    if (userId) {
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', userId)
+        .single();
       
-    if (!userError && user) {
-      return {
-        ...data,
-        creator_name: user.display_name
-      } as WorkNote;
+      userOrgId = userProfile?.org_id;
     }
     
-    return data as WorkNote;
+    // Process and enhance work notes with additional information
+    const enhancedNotes = data.map(note => {
+      const creator = note.creator as any;
+      const creatorOrg = creator?.org as any;
+      
+      const processedNote: WorkNote = {
+        ...note,
+        user_name: creator?.display_name || 'Unknown User',
+        organization_name: creatorOrg?.name || 'Unknown Organization',
+        organization_id: creatorOrg?.id || null,
+        is_external_org: creatorOrg?.id !== userOrgId && !!creatorOrg?.id
+      };
+      
+      delete processedNote.creator;
+      return processedNote;
+    });
+    
+    return enhancedNotes;
   } catch (error) {
-    console.error('Exception in getWorkNoteById:', error);
+    console.error("Failed to fetch work notes:", error);
     throw error;
   }
 }

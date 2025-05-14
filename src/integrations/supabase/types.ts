@@ -1263,6 +1263,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      user_belongs_to_org: {
+        Args: { _user_id: string; _org_id: string }
+        Returns: boolean
+      }
+      user_belongs_to_team: {
+        Args: { _user_id: string; _team_id: string }
+        Returns: boolean
+      }
+      user_has_role_in_team: {
+        Args: { _user_id: string; _team_id: string; _roles: string[] }
+        Returns: boolean
+      }
+      user_has_technician_or_above_in_org: {
+        Args: { _user_id: string; _org_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       access_role: "owner" | "manager" | "technician" | "viewer"

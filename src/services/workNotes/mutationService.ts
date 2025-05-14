@@ -1,103 +1,126 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { WorkNote } from "./types";
-import { getAppUserId } from "@/utils/authUtils";
+import { processDateFields } from "@/utils/authUtils";
 
 /**
- * Create a new work note
+ * Create a new work note for equipment
  */
-export async function createWorkNote(equipmentId: string, note: string, hoursWorked?: number, isPublic: boolean = false): Promise<WorkNote> {
+export async function createWorkNote(
+  equipmentId: string, 
+  note: string, 
+  hoursWorked: number | null = null, 
+  isPublic: boolean = false
+): Promise<WorkNote> {
+  if (!note || !note.trim()) {
+    throw new Error("Note text cannot be empty");
+  }
+  
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData?.session?.user?.id;
+  
+  if (!userId) {
+    throw new Error("User must be logged in to create work notes");
+  }
+  
   try {
-    // Get current user's ID
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('User must be logged in to create work notes');
-    }
-    
-    const authUserId = sessionData.session.user.id;
-    
-    // Convert auth user ID to app_user ID
-    const appUserId = await getAppUserId(authUserId);
-    
-    // Create the work note
+    // Insert work note
     const { data, error } = await supabase
       .from('equipment_work_notes')
       .insert({
         equipment_id: equipmentId,
-        note,
-        hours_worked: hoursWorked,
+        note: note.trim(),
+        created_by: userId,
         is_public: isPublic,
-        created_by: appUserId
+        hours_worked: hoursWorked
       })
-      .select()
+      .select('*')
       .single();
-      
+    
     if (error) {
-      console.error('Error creating work note:', error);
-      throw new Error(`Failed to create work note: ${error.message}`);
+      console.error("Error creating work note:", error);
+      throw error;
     }
     
-    return data as WorkNote;
+    return data;
   } catch (error) {
-    console.error('Exception in createWorkNote:', error);
+    console.error("Failed to create work note:", error);
     throw error;
   }
 }
 
 /**
- * Update a work note
+ * Update an existing work note
  */
-export async function updateWorkNote(noteId: string, updates: Partial<WorkNote>): Promise<WorkNote> {
+export async function updateWorkNote(
+  noteId: string,
+  updates: Partial<WorkNote>
+): Promise<WorkNote> {
+  if (!noteId) {
+    throw new Error("Note ID is required");
+  }
+  
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData?.session?.user?.id;
+  
+  if (!userId) {
+    throw new Error("User must be logged in to update work notes");
+  }
+  
   try {
-    // Remove fields that shouldn't be directly updated
-    const { id, created_at, created_by, equipment_id, ...validUpdates } = updates;
-    
-    // Add updated timestamp
-    const noteUpdates = {
-      ...validUpdates,
-      updated_at: new Date().toISOString()
-    };
+    // Process any empty date fields to null
+    const processedUpdates = processDateFields(updates, ['created_at', 'updated_at']);
     
     // Update the work note
     const { data, error } = await supabase
       .from('equipment_work_notes')
-      .update(noteUpdates)
+      .update(processedUpdates)
       .eq('id', noteId)
-      .select()
+      .select('*')
       .single();
-      
+    
     if (error) {
-      console.error('Error updating work note:', error);
-      throw new Error(`Failed to update work note: ${error.message}`);
+      console.error("Error updating work note:", error);
+      throw error;
     }
     
-    return data as WorkNote;
+    return data;
   } catch (error) {
-    console.error('Exception in updateWorkNote:', error);
+    console.error("Failed to update work note:", error);
     throw error;
   }
 }
 
 /**
- * Soft delete a work note
+ * Delete a work note (soft delete)
  */
-export async function deleteWorkNote(noteId: string): Promise<void> {
+export async function deleteWorkNote(noteId: string): Promise<boolean> {
+  if (!noteId) {
+    throw new Error("Note ID is required");
+  }
+  
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData?.session?.user?.id;
+  
+  if (!userId) {
+    throw new Error("User must be logged in to delete work notes");
+  }
+  
   try {
-    // Soft delete by setting deleted_at
+    // Soft delete by updating the deleted_at timestamp
     const { error } = await supabase
       .from('equipment_work_notes')
-      .update({
-        deleted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', noteId);
-      
+    
     if (error) {
-      console.error('Error deleting work note:', error);
-      throw new Error(`Failed to delete work note: ${error.message}`);
+      console.error("Error deleting work note:", error);
+      throw error;
     }
+    
+    return true;
   } catch (error) {
-    console.error('Exception in deleteWorkNote:', error);
+    console.error("Failed to delete work note:", error);
     throw error;
   }
 }

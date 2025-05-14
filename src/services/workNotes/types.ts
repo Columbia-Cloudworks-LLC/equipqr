@@ -1,23 +1,42 @@
 
-// Define the WorkNote type
+import { UserRole } from '@/types/supabase-enums';
+
+/**
+ * Interface for work notes with extra information
+ */
 export interface WorkNote {
-  id?: string;
+  id: string;
   equipment_id: string;
-  created_by?: string;
   note: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
   is_public: boolean;
-  hours_worked?: number | null;
-  created_at?: string;
-  updated_at?: string;
-  deleted_at?: string | null;
-  creator?: {
-    display_name: string;
-    email: string;
-  };
-  // Cross-organization fields
-  organization_id?: string;
+  hours_worked: number | null;
   organization_name?: string;
-  team_id?: string;
-  team_name?: string;
+  organization_id?: string;
+  user_name?: string;
   is_external_org?: boolean;
+  deleted_at?: string | null;
+}
+
+/**
+ * User permission levels for work notes
+ */
+export interface WorkNotePermissions {
+  canCreate: boolean;
+  canManage: boolean;
+  canDelete: boolean;
+  reason?: string;
+  role?: UserRole;
+}
+
+/**
+ * Filter options for work notes
+ */
+export interface WorkNoteFilters {
+  isPublic?: boolean;
+  organizationId?: string;
+  startDate?: Date;
+  endDate?: Date;
 }

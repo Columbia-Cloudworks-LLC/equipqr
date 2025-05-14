@@ -1,14 +1,14 @@
 
-// Export individual equipment services
-export { getEquipment } from './equipmentListService';
-export { getEquipmentById } from './equipmentDetailsService';
-export { createEquipment } from './equipmentCreateService';
-export { updateEquipment } from './equipmentUpdateService';
-export { deleteEquipment } from './equipmentDeleteService';
-export { recordScan, getScanHistory } from './scanService';
-export { 
-  getEquipmentAttributes, 
-  saveEquipmentAttributes, 
-  deleteEquipmentAttribute 
-} from './attributesService';
-export { processEquipmentList } from './utils/equipmentFormatting';
+// Re-export all functions from the module files
+export * from './equipmentCreateService';
+export * from './equipmentDetailsService';
+export * from './equipmentListService';
+export * from './equipmentUpdateService';
+export * from './equipmentDeleteService';
+export * from './scanService';
+export * from './attributesService';
+export * from './utils/dataProcessing';
+export * from './utils/equipmentFormatting';
+export * from './permissions/accessCheck';
+export * from './permissions/createPermissionCheck';
+export * from './db/equipmentDbService';

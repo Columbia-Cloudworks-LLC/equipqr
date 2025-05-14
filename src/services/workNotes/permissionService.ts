@@ -1,194 +1,135 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { UserRole } from "@/types/supabase-enums";
+import { WorkNotePermissions } from "./types";
 
 /**
- * Check if the current user has permission to manage work notes
- * for a specific equipment
+ * Check if user can create work notes for specific equipment
  */
-export async function canManageWorkNotes(equipmentId: string): Promise<boolean> {
+export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> {
   try {
-    // Get current user's auth ID
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
+    const userId = sessionData?.session?.user?.id;
+    
+    if (!userId || !equipmentId) {
       return false;
     }
     
-    const userId = sessionData.session.user.id;
-    
-    // Get equipment details
-    const { data: equipment, error: equipmentError } = await supabase
+    // Get equipment details to check roles
+    const { data: equipment } = await supabase
       .from('equipment')
-      .select(`
-        team_id,
-        org_id,
-        team:team_id (org_id)
-      `)
+      .select('team_id, org_id')
       .eq('id', equipmentId)
-      .maybeSingle();
+      .is('deleted_at', null)
+      .single();
       
-    if (equipmentError || !equipment) {
-      console.error('Error fetching equipment:', equipmentError);
+    if (!equipment) {
       return false;
     }
     
-    // Get user's organization
-    const { data: userProfile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', userId)
-      .maybeSingle();
-      
-    if (profileError || !userProfile) {
-      console.error('Error fetching user profile:', profileError);
-      return false;
-    }
-    
-    // If user is from the same organization as the equipment
-    if (userProfile.org_id === equipment.org_id) {
-      // Users can manage notes for equipment in their own org
-      return true;
-    }
-    
-    // For team equipment, check if user has team access with manage permissions
-    if (equipment.team_id) {
-      // Get the team's organization ID
-      const teamOrgId = equipment.team?.org_id;
-      
-      // Check if the user has an org-level role
-      const { data: orgRole } = await supabase.rpc(
-        'get_user_role',
-        { _user_id: userId, _org_id: teamOrgId }
-      );
-      
-      // Organization owners can manage all notes
-      if (orgRole === 'owner') {
-        return true;
-      }
-      
-      // Check team role using RPC function
-      try {
-        const { data: teamRole } = await supabase.rpc(
-          'get_team_role',
-          { _user_id: userId, _team_id: equipment.team_id }
-        );
-        
-        // Team managers can manage work notes
-        if (teamRole === 'manager') {
-          return true;
+    // Check specific roles through edge function
+    try {
+      const { data, error } = await supabase.functions.invoke('check_equipment_permission', {
+        body: {
+          user_id: userId,
+          equipment_id: equipmentId,
+          action: 'create'
         }
-      } catch (error) {
-        console.error('Error checking team role:', error);
-      }
+      });
+      
+      if (error) throw error;
+      return data?.has_permission === true;
+    } catch (fnError) {
+      console.error("Error checking permissions:", fnError);
+      
+      // Fallback: Check if user's org matches equipment's org
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', userId)
+        .single();
+        
+      return userProfile?.org_id === equipment.org_id;
     }
-    
-    // By default, deny manage access
-    return false;
   } catch (error) {
-    console.error('Exception in canManageWorkNotes:', error);
+    console.error("Error checking create permissions:", error);
     return false;
   }
 }
 
 /**
- * Check if the current user has permission to create work notes
- * for a specific equipment
+ * Check if user can manage (edit) work notes for specific equipment
  */
-export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> {
+export async function canManageWorkNotes(equipmentId: string): Promise<boolean> {
   try {
-    // Get current user's auth ID
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
+    const userId = sessionData?.session?.user?.id;
+    
+    if (!userId || !equipmentId) {
       return false;
     }
     
-    const userId = sessionData.session.user.id;
-    
-    // Get equipment details
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select(`
-        team_id,
-        org_id,
-        team:team_id (org_id)
-      `)
-      .eq('id', equipmentId)
-      .maybeSingle();
-      
-    if (equipmentError || !equipment) {
-      console.error('Error fetching equipment:', equipmentError);
-      return false;
-    }
-    
-    // Get user's organization
-    const { data: userProfile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', userId)
-      .maybeSingle();
-      
-    if (profileError || !userProfile) {
-      console.error('Error fetching user profile:', profileError);
-      return false;
-    }
-    
-    // If user is from the same organization as the equipment
-    if (userProfile.org_id === equipment.org_id) {
-      // Users can create notes for equipment in their own org
-      return true;
-    }
-    
-    // For team equipment, check if user has team access
-    if (equipment.team_id) {
-      // Get the team's organization ID
-      const teamOrgId = equipment.team?.org_id;
-      
-      // Check if the user has an org-level role
-      const { data: orgRole } = await supabase.rpc(
-        'get_user_role',
-        { _user_id: userId, _org_id: teamOrgId }
-      );
-      
-      // Organization owners can create notes
-      if (orgRole === 'owner') {
-        return true;
-      }
-      
-      // Check team role using RPC function
-      try {
-        const { data: teamRole } = await supabase.rpc(
-          'get_team_role',
-          { _user_id: userId, _team_id: equipment.team_id }
-        );
-        
-        // Team managers and technicians can create work notes
-        if (teamRole === 'manager' || teamRole === 'technician') {
-          return true;
+    // Check through edge function
+    try {
+      const { data, error } = await supabase.functions.invoke('check_equipment_permission', {
+        body: {
+          user_id: userId,
+          equipment_id: equipmentId,
+          action: 'edit'
         }
-      } catch (error) {
-        console.error('Error checking team role:', error);
-      }
+      });
       
-      // Check for cross-organization access
-      const { data: crossOrgAccess } = await supabase
-        .from('organization_acl')
+      if (error) throw error;
+      return data?.has_permission === true;
+    } catch (fnError) {
+      console.error("Error checking management permissions:", fnError);
+      
+      // Fallback: Check if user is equipment org's owner/manager
+      const { data: equipment } = await supabase
+        .from('equipment')
+        .select('org_id')
+        .eq('id', equipmentId)
+        .single();
+        
+      if (!equipment) return false;
+      
+      const { data: roles } = await supabase
+        .from('user_roles')
         .select('role')
-        .eq('subject_id', userId)
-        .eq('subject_type', 'user')
-        .eq('org_id', teamOrgId)
-        .or('expires_at.gt.now,expires_at.is.null')
-        .maybeSingle();
-      
-      // Users with cross-org access as managers or technicians can create notes
-      if (crossOrgAccess && (crossOrgAccess.role === 'manager' || crossOrgAccess.role === 'technician')) {
-        return true;
-      }
+        .eq('user_id', userId)
+        .eq('org_id', equipment.org_id)
+        .in('role', ['owner', 'manager'])
+        .single();
+        
+      return !!roles;
     }
-    
-    // By default, deny create access
-    return false;
   } catch (error) {
-    console.error('Exception in canCreateWorkNotes:', error);
+    console.error("Error checking manage permissions:", error);
     return false;
+  }
+}
+
+/**
+ * Get detailed work note permissions for a user
+ */
+export async function getWorkNotePermissions(equipmentId: string): Promise<WorkNotePermissions> {
+  try {
+    const [canCreate, canManage] = await Promise.all([
+      canCreateWorkNotes(equipmentId),
+      canManageWorkNotes(equipmentId)
+    ]);
+    
+    return {
+      canCreate,
+      canManage,
+      canDelete: canManage
+    };
+  } catch (error) {
+    console.error("Error getting work note permissions:", error);
+    return {
+      canCreate: false,
+      canManage: false,
+      canDelete: false,
+      reason: 'error'
+    };
   }
 }
