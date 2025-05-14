@@ -2,10 +2,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { getAppUserId, getUserOrganizationId, processDateFields } from "@/utils/authUtils";
-import { saveEquipmentAttributes } from "../equipmentAttributesService";
+import { saveEquipmentAttributes } from "./attributesService";
 
 /**
- * Create new equipment
+ * Create new equipment - only for equipment owned by the current user's organization
+ * or for teams the user has manager access to
  */
 export async function createEquipment(equipment: Partial<Equipment>): Promise<Equipment> {
   try {

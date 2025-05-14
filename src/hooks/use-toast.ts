@@ -1,126 +1,67 @@
 
-import { toast as sonnerToast } from 'sonner';
+import { toast as sonnerToast, Toast, ToastOptions as SonnerToastOptions } from 'sonner';
+import { useCallback } from 'react';
 
-export type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading' | 'destructive';
+export type ToastType = 'default' | 'success' | 'info' | 'warning' | 'destructive';
 
-type ToastProps = {
-  title: string;
-  description?: string;
-  variant?: ToastType;
-  duration?: number;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-};
-
-export function useToast() {
-  const toast = ({
-    title,
-    description,
-    variant = 'default',
-    duration = 3000,
-    action,
-  }: ToastProps) => {
-    const options: any = {
-      duration,
-    };
-
-    if (action) {
-      options.action = {
-        label: action.label,
-        onClick: action.onClick,
-      };
-    }
-
-    switch (variant) {
-      case 'success':
-        return sonnerToast.success(title, {
-          description,
-          ...options,
-        });
-      case 'error':
-      case 'destructive':
-        return sonnerToast.error(title, {
-          description,
-          ...options,
-        });
-      case 'warning':
-        return sonnerToast.warning(title, {
-          description,
-          ...options,
-        });
-      case 'info':
-        return sonnerToast.info(title, {
-          description,
-          ...options,
-        });
-      case 'loading':
-        return sonnerToast.loading(title, {
-          description,
-          ...options,
-        });
-      default:
-        return sonnerToast(title, {
-          description,
-          ...options,
-        });
-    }
-  };
-
-  return { toast };
+export interface ToastOptions extends Omit<SonnerToastOptions, 'type'> {
+  type?: ToastType;
 }
 
-// Re-export toast function for direct imports
-export const toast = ({
-  title,
-  description,
-  variant = 'default',
-  duration = 3000,
-  action,
-}: ToastProps) => {
-  const options: any = {
-    duration,
-  };
-
-  if (action) {
-    options.action = {
-      label: action.label,
-      onClick: action.onClick,
-    };
-  }
-
-  switch (variant) {
-    case 'success':
-      return sonnerToast.success(title, {
-        description,
-        ...options,
-      });
-    case 'error':
+const mapTypeToVariant = (type?: ToastType): SonnerToastOptions['variant'] => {
+  switch (type) {
     case 'destructive':
-      return sonnerToast.error(title, {
-        description,
-        ...options,
-      });
+      return 'destructive';
+    case 'success':
+      return 'success';
     case 'warning':
-      return sonnerToast.warning(title, {
-        description,
-        ...options,
-      });
+      return 'warning';
     case 'info':
-      return sonnerToast.info(title, {
-        description,
-        ...options,
-      });
-    case 'loading':
-      return sonnerToast.loading(title, {
-        description,
-        ...options,
-      });
+      return 'default';
     default:
-      return sonnerToast(title, {
-        description,
-        ...options,
-      });
+      return 'default';
   }
+};
+
+const createToastWithType = (
+  message: string | React.ReactNode,
+  options?: ToastOptions
+) => {
+  const { type, ...restOptions } = options || {};
+  sonnerToast(message, {
+    ...restOptions,
+    variant: mapTypeToVariant(type)
+  });
+};
+
+export const toast = {
+  default: (message: string | React.ReactNode, options?: Omit<ToastOptions, 'type'>) =>
+    createToastWithType(message, { ...options, type: 'default' }),
+  success: (message: string | React.ReactNode, options?: Omit<ToastOptions, 'type'>) =>
+    createToastWithType(message, { ...options, type: 'success' }),
+  info: (message: string | React.ReactNode, options?: Omit<ToastOptions, 'type'>) =>
+    createToastWithType(message, { ...options, type: 'info' }),
+  warning: (message: string | React.ReactNode, options?: Omit<ToastOptions, 'type'>) =>
+    createToastWithType(message, { ...options, type: 'warning' }),
+  error: (message: string | React.ReactNode, options?: Omit<ToastOptions, 'type'>) =>
+    createToastWithType(message, { ...options, type: 'destructive' }),
+  dismiss: sonnerToast.dismiss,
+  promise: sonnerToast.promise,
+  custom: sonnerToast.custom,
+};
+
+export const useToast = () => {
+  const showToast = useCallback(
+    (message: string | React.ReactNode, options?: ToastOptions) => {
+      createToastWithType(message, options);
+    },
+    []
+  );
+
+  return {
+    toast: showToast,
+    dismiss: sonnerToast.dismiss,
+    promise: sonnerToast.promise,
+    custom: sonnerToast.custom,
+  };
 };
