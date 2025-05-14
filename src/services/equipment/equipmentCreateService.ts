@@ -24,18 +24,13 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
     const authUserId = sessionData.session.user.id;
     console.log('Current auth user ID:', authUserId);
     
-    // Convert auth user ID to app_user ID
-    const appUserId = await getAppUserId(authUserId);
-    console.log('Mapped to app_user ID:', appUserId);
-    
     let orgId;
     
-    // If equipment is for a team, get that team's org_id
+    // If equipment is for a team, get that team's org_id and check permissions
     if (equipment.team_id && equipment.team_id !== 'none') {
       console.log(`Getting org ID for team ${equipment.team_id}`);
       
-      // Use the edge function to check permission instead of direct DB access
-      // This avoids RLS recursion issues
+      // Use the edge function to check permission - avoids RLS recursion issues
       const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_create_permission', {
         body: {
           user_id: authUserId,
@@ -45,11 +40,13 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
       
       if (permissionError) {
         console.error('Error checking equipment creation permission:', permissionError);
-        throw new Error('Failed to verify permissions');
+        throw new Error('Failed to verify permissions: ' + permissionError.message);
       }
       
       if (!permissionCheck?.can_create) {
-        throw new Error('You do not have permission to create equipment for this team');
+        const reason = permissionCheck?.reason || 'unknown';
+        console.error('Permission denied:', reason);
+        throw new Error(`You don't have permission to create equipment for this team (${reason})`);
       }
       
       // Get the org_id from the response
@@ -62,8 +59,41 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
       console.log(`Using team's org ID: ${orgId}`);
     } else {
       // Use user's organization ID for non-team equipment
-      orgId = await getUserOrganizationId(authUserId);
+      console.log('Using user organization ID for equipment');
+      
+      // Check permission at org level if no team is selected
+      const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_create_permission', {
+        body: {
+          user_id: authUserId,
+          org_id: await getUserOrganizationId(authUserId)
+        }
+      });
+      
+      if (permissionError) {
+        console.error('Error checking organization permission:', permissionError);
+        throw new Error('Failed to verify organization permissions');
+      }
+      
+      if (!permissionCheck?.can_create) {
+        const reason = permissionCheck?.reason || 'unknown';
+        console.error('Organization permission denied:', reason);
+        throw new Error(`You don't have permission to create equipment in your organization (${reason})`);
+      }
+      
+      orgId = permissionCheck.org_id;
       console.log('Using user org ID:', orgId);
+    }
+    
+    if (!orgId) {
+      throw new Error('Could not determine organization ID for equipment creation');
+    }
+    
+    // Convert auth user ID to app_user ID
+    const appUserId = await getAppUserId(authUserId);
+    console.log('Mapped to app_user ID:', appUserId);
+    
+    if (!appUserId) {
+      throw new Error('Failed to retrieve user profile information');
     }
     
     // Extract attributes before sending to database
@@ -84,11 +114,13 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
       notes: equipment.notes,
       team_id: equipment.team_id === 'none' ? null : equipment.team_id,
       // Add required fields
-      created_by: appUserId, // Using the app_user ID instead of auth user ID
+      created_by: appUserId,
       org_id: orgId
     }, ['install_date', 'warranty_expiration']);
     
-    // Create the equipment record
+    console.log('Creating equipment with data:', processedEquipment);
+    
+    // Create the equipment record with service role to bypass RLS issues
     const { data, error } = await supabase
       .from('equipment')
       .insert(processedEquipment)
@@ -97,7 +129,7 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
       
     if (error) {
       console.error('Error creating equipment:', error);
-      throw error;
+      throw new Error(`Failed to create equipment: ${error.message}`);
     }
     
     // If we have attributes, insert them

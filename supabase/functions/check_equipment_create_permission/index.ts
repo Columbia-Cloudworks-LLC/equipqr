@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
@@ -15,13 +16,14 @@ serve(async (req) => {
     }
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
       throw new Error('Missing Supabase environment variables');
     }
     
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Use service role key to bypass RLS - this avoids recursion issues
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
     
     // Check org-level permission first if org_id is provided
     if (org_id) {
@@ -47,14 +49,43 @@ serve(async (req) => {
     
     // Check team-level permission if team_id is provided
     if (team_id) {
-      const { data: role } = await supabase.rpc(
-        'get_user_role_in_team',
-        {
-          p_user_uid: user_id,
-          p_team_id: team_id
-        }
-      );
+      // First get the app_user.id for this auth user
+      const { data: appUser } = await supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', user_id)
+        .single();
+        
+      if (!appUser) {
+        return createSuccessResponse({
+          can_create: false,
+          reason: 'user_not_found'
+        });
+      }
       
+      // Get team member record directly
+      const { data: teamMember } = await supabase
+        .from('team_member')
+        .select('id')
+        .eq('user_id', appUser.id)
+        .eq('team_id', team_id)
+        .single();
+        
+      if (!teamMember) {
+        return createSuccessResponse({
+          can_create: false,
+          reason: 'not_team_member'
+        });
+      }
+      
+      // Get role from team_roles table
+      const { data: teamRole } = await supabase
+        .from('team_roles')
+        .select('role')
+        .eq('team_member_id', teamMember.id)
+        .single();
+        
+      const role = teamRole?.role;
       const canCreate = role && ['owner', 'manager', 'admin', 'creator'].includes(role);
       
       if (canCreate) {
