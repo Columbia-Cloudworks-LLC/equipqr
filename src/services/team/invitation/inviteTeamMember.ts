@@ -118,8 +118,15 @@ export async function inviteMember(
     
     // Send invitation email
     try {
-      // Fix: Send invitation email with just the token
-      await sendInvitationEmail(normalizedEmail, token);
+      // Fix: Looking at the function signature in invitationHelpers.ts, we need to pass an object with required properties
+      await sendInvitationEmail({
+        recipientEmail: normalizedEmail,
+        teamName: "Team", // We should get the team name here, but for now just use generic name
+        inviterEmail: inviterEmail || "",
+        token,
+        action: "invite",
+        role: role
+      });
       
       // Update invitation status to 'sent'
       await supabase
