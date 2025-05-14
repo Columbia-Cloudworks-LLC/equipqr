@@ -1,36 +1,40 @@
 
-import { toast as sonnerToast, type ToastT } from "sonner";
-import * as React from "react";
+import { toast as sonnerToast, ToastT, type ExternalToast } from 'sonner';
 
-type ToastProps = {
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  variant?: "default" | "destructive";
-  duration?: number;
-  action?: React.ReactNode;
-  onClick?: () => void;
+type ToastProps = Omit<ExternalToast, 'variant'> & {
+  variant?: 'default' | 'destructive' | 'success' | 'warning';
 };
 
-const useToast = () => {
-  return {};
-};
-
-// This is a simple wrapper to use the sonner toast library
-// while maintaining compatibility with our existing code
-function toast({ title, description, variant }: ToastProps = {}) {
-  // Map our internal variant to sonner's options
-  const options: any = {
-    description
+export function useToast() {
+  return {
+    toast: ({ variant, ...props }: ToastProps) => {
+      // Implement how variant affects styling
+      const toastFn = sonnerToast;
+      
+      // Adjusting props for the sonner toast library
+      if (variant) {
+        const className = `toast-${variant}`;
+        return toastFn({ ...props, className });
+      }
+      
+      return toastFn(props);
+    },
+    dismiss: sonnerToast.dismiss,
+    error: sonnerToast.error,
+    success: sonnerToast.success,
+    warning: sonnerToast.warning,
+    info: sonnerToast.info,
+    custom: sonnerToast.custom,
+    message: sonnerToast.message,
+    promise: sonnerToast.promise,
   };
-  
-  // Set the correct type based on our variant
-  if (variant === "destructive") {
-    options.style = { backgroundColor: 'hsl(var(--destructive))' };
-    options.className = 'destructive';
-  }
-  
-  return sonnerToast(title as string, options);
 }
 
-// Re-export the hook for backwards compatibility
-export { useToast, toast };
+// Simplified toast function that can be imported directly
+export const toast = ({ variant, ...props }: ToastProps) => {
+  if (variant) {
+    const className = `toast-${variant}`;
+    return sonnerToast({ ...props, className });
+  }
+  return sonnerToast(props);
+};
