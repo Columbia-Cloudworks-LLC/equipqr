@@ -1,7 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
-import { createAdminClient } from '../_shared/adminClient.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,10 +16,30 @@ serve(async (req) => {
       return createErrorResponse("Missing required parameter: user_id");
     }
 
-    const supabase = createAdminClient();
+    // Get the authorization header from the request
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return createErrorResponse("Missing authorization header");
+    }
+
+    // Create Supabase client using the user's JWT token
+    // This ensures RLS policies are applied correctly
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabase = createClient(
+      supabaseUrl,
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
+    );
     
-    // Get all equipment accessible to the user
-    const { data: equipmentData, error } = await supabase
+    // Let RLS handle access control by using client with user's JWT
+    // This relies on the "Team or org members can read equipment" policy
+    const { data: equipment, error } = await supabase
       .from('equipment')
       .select(`
         *,
@@ -28,60 +48,35 @@ serve(async (req) => {
       `)
       .is('deleted_at', null)
       .order('name');
-      
+    
     if (error) {
       console.error('Error fetching equipment:', error);
       return createErrorResponse(`Failed to fetch equipment: ${error.message}`);
     }
     
-    // Filter equipment based on user's access rights using our new helper functions
-    const accessPromises = equipmentData.map(async (equipment) => {
-      // Check if user can access this equipment item
-      const { data: canAccess, error: accessError } = await supabase.rpc(
-        'can_access_equipment',
-        { p_uid: user_id, p_equipment_id: equipment.id }
-      );
+    // Get user's org ID for determining external equipment
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', user_id)
+      .single();
       
-      if (accessError) {
-        console.error(`Access check error for equipment ${equipment.id}:`, accessError);
-        return null;
-      }
-      
-      if (!canAccess) {
-        return null;
-      }
-      
-      // Check if user can edit this equipment item
-      const { data: canEdit } = await supabase.rpc(
-        'can_edit_equipment',
-        { p_uid: user_id, p_equipment_id: equipment.id }
-      );
-      
-      // Get user's org_id to determine if this is external
-      const { data: userProfile } = await supabase
-        .from('user_profiles')
-        .select('org_id')
-        .eq('id', user_id)
-        .single();
-      
-      const isExternalOrg = equipment.team?.org_id && userProfile?.org_id && 
-                          equipment.team.org_id !== userProfile.org_id;
+    const userOrgId = userProfile?.org_id;
+    
+    // Process the equipment data to add required fields
+    const processedEquipment = equipment.map(item => {
+      const isExternalOrg = item.team?.org_id && userOrgId && 
+                        item.team.org_id !== userOrgId;
       
       return {
-        ...equipment,
-        team_name: equipment.team?.name || null,
-        org_name: equipment.org?.name || 'Unknown Organization',
+        ...item,
+        team_name: item.team?.name || null,
+        org_name: item.org?.name || 'Unknown Organization',
         is_external_org: isExternalOrg,
-        can_edit: !!canEdit
       };
     });
     
-    const accessResults = await Promise.all(accessPromises);
-    const accessibleEquipment = accessResults.filter(item => item !== null);
-    
-    // Return the filtered equipment list directly (not wrapped in a data object)
-    return createSuccessResponse(accessibleEquipment);
-    
+    return createSuccessResponse(processedEquipment);
   } catch (error) {
     console.error('Unexpected error:', error);
     return createErrorResponse(`Unexpected error: ${error.message}`);
