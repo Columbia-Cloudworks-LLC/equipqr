@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Layout } from '@/components/Layout/Layout';
 import { Separator } from '@/components/ui/separator';
-import { RefreshCw, Users } from 'lucide-react';
+import { RefreshCw, Users, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OrganizationMembersTable } from '@/components/Organization/OrganizationMembersTable';
 import { OrganizationDetailsCard } from '@/components/Organization/OrganizationDetailsCard';
@@ -11,6 +11,8 @@ import { OrganizationError } from '@/components/Organization/OrganizationError';
 import { OrganizationLoading } from '@/components/Organization/OrganizationLoading';
 import { AuthenticationRequired } from '@/components/Organization/AuthenticationRequired';
 import { getCurrentOrganization, Organization } from '@/services/organization';
+import { runOrganizationDiagnostics, attemptOrganizationRepair } from '@/services/organization/diagnosticsService';
+import { toast } from '@/hooks/use-toast';
 
 export default function OrganizationSettings() {
   const { user, session, checkSession } = useAuth();
@@ -19,6 +21,9 @@ export default function OrganizationSettings() {
   const [isOwner, setIsOwner] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
+  const [isRepairingAccess, setIsRepairingAccess] = useState(false);
   
   const loadOrganization = async () => {
     if (!user) {
@@ -50,7 +55,14 @@ export default function OrganizationSettings() {
         
         // Check if current user is the owner
         setIsOwner(org.owner_user_id === user.id);
+        
+        // Clear any diagnostic details when org loads successfully
+        setDiagnosticDetails(null);
       } else {
+        // Run diagnostics automatically if no organization found
+        const diagnostics = user ? await runOrganizationDiagnostics(user.id) : null;
+        setDiagnosticDetails(diagnostics?.diagnosis || null);
+        
         setLoadError("Unable to find your organization. This might be due to a configuration issue with your account.");
         console.error("No organization found for user:", user.id);
       }
@@ -78,6 +90,42 @@ export default function OrganizationSettings() {
     setIsRefreshing(false);
   };
 
+  const handleRunDiagnostics = async () => {
+    if (!user) return;
+    
+    setIsRunningDiagnostics(true);
+    try {
+      const result = await runOrganizationDiagnostics(user.id);
+      setDiagnosticDetails(result.diagnosis);
+      
+      toast({
+        title: "Diagnostics Complete",
+        description: result.message,
+        variant: result.success ? "default" : "destructive",
+      });
+    } finally {
+      setIsRunningDiagnostics(false);
+    }
+  };
+  
+  const handleRepairAccess = async () => {
+    if (!user) return;
+    
+    setIsRepairingAccess(true);
+    try {
+      const success = await attemptOrganizationRepair(user.id);
+      
+      if (success) {
+        // Refresh the organization data after repair attempt
+        setTimeout(() => {
+          handleRefresh();
+        }, 500);
+      }
+    } finally {
+      setIsRepairingAccess(false);
+    }
+  };
+
   const showAuthenticationError = !user && !isLoading;
 
   return (
@@ -90,7 +138,20 @@ export default function OrganizationSettings() {
               Manage your organization's details and members
             </p>
           </div>
-          {loadError && (
+          
+          <div className="flex space-x-2">
+            {loadError && (
+              <Button 
+                onClick={handleRunDiagnostics}
+                variant="outline" 
+                size="sm"
+                disabled={isRunningDiagnostics}
+              >
+                <AlertCircle className={`mr-2 h-4 w-4 ${isRunningDiagnostics ? 'text-primary' : 'text-amber-500'}`} />
+                {isRunningDiagnostics ? 'Running...' : 'Run Diagnostics'}
+              </Button>
+            )}
+            
             <Button 
               onClick={handleRefresh} 
               variant="outline" 
@@ -100,7 +161,7 @@ export default function OrganizationSettings() {
               <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
-          )}
+          </div>
         </div>
         
         <Separator />
@@ -112,8 +173,12 @@ export default function OrganizationSettings() {
         ) : loadError ? (
           <OrganizationError 
             errorMessage={loadError} 
+            diagnosticDetails={diagnosticDetails}
             handleRefresh={handleRefresh}
+            handleRepairAccess={handleRepairAccess}
             isRefreshing={isRefreshing}
+            isRepairing={isRepairingAccess}
+            userId={user?.id}
           />
         ) : !organization ? (
           <OrganizationError
