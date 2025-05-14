@@ -1,11 +1,12 @@
+
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   Session,
   SupabaseClient,
-  useSessionContext,
-  useSupabaseClient,
-} from '@supabase/auth-helpers-react';
+} from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   supabaseClient: SupabaseClient<Database> | null;
@@ -15,6 +16,9 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   checkSession: () => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, userData?: any) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,22 +29,40 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => {},
   signOut: async () => {},
   checkSession: async () => false,
+  signIn: async () => {},
+  signUp: async () => {},
+  resetPassword: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { isLoading: authIsLoading, session, supabaseClient } = useSessionContext();
   const [user, setUser] = useState<Session['user'] | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    setUser(session?.user || null);
-    setAuthLoading(authIsLoading);
-  }, [session, authIsLoading]);
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setAuthLoading(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signInWithGoogle = async () => {
     try {
       setAuthLoading(true);
-      const { error } = await supabaseClient?.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth`,
@@ -49,11 +71,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Google sign-in error:', error);
-        // Handle error appropriately, e.g., show a toast notification
+        toast.error("Failed to sign in with Google", {
+          description: error.message
+        });
       }
     } catch (error) {
       console.error('Unexpected error during Google sign-in:', error);
-      // Handle unexpected errors
+      toast.error("An unexpected error occurred");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      setAuthLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.error('Sign-in error:', error);
+        toast.error("Failed to sign in", {
+          description: error.message
+        });
+        throw error;
+      }
+      
+      toast.success("Successfully signed in");
+    } catch (error) {
+      console.error('Unexpected error during sign-in:', error);
+      throw error;
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const signUp = async (email: string, password: string, userData?: any) => {
+    try {
+      setAuthLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: userData || {}
+        }
+      });
+
+      if (error) {
+        console.error('Sign-up error:', error);
+        toast.error("Failed to create account", {
+          description: error.message
+        });
+        throw error;
+      }
+      
+      toast.success("Account created successfully", {
+        description: "Please check your email for verification instructions"
+      });
+    } catch (error) {
+      console.error('Unexpected error during sign-up:', error);
+      throw error;
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      setAuthLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) {
+        console.error('Password reset error:', error);
+        toast.error("Failed to send password reset email", {
+          description: error.message
+        });
+        throw error;
+      }
+      
+      toast.success("Password reset email sent");
+    } catch (error) {
+      console.error('Unexpected error during password reset:', error);
+      throw error;
     } finally {
       setAuthLoading(false);
     }
@@ -62,20 +165,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       setAuthLoading(true);
-      await supabaseClient?.auth.signOut();
-      setUser(null); // Clear user state on sign out
+      await supabase.auth.signOut();
+      setUser(null);
     } catch (error) {
       console.error('Sign-out error:', error);
-      // Handle sign-out errors
+      toast.error("Failed to sign out");
     } finally {
       setAuthLoading(false);
     }
   };
 
-  // Update the checkSession function to use our new validator
   const checkSession = useCallback(async () => {
     try {
-      const { data } = await supabaseClient?.auth.getSession();
+      const { data } = await supabase.auth.getSession();
       const isValid = data?.session ? true : false;
       
       return isValid;
@@ -83,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Error checking session:", error);
       return false;
     }
-  }, [supabaseClient]);
+  }, []);
 
   const value = {
     supabaseClient,
@@ -91,6 +193,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     isLoading: authLoading,
     signInWithGoogle,
+    signIn,
+    signUp,
+    resetPassword,
     signOut,
     checkSession,
   };

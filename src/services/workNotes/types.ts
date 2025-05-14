@@ -18,6 +18,15 @@ export interface WorkNote {
   user_name?: string;
   is_external_org?: boolean;
   deleted_at?: string | null;
+  team_name?: string;
+  creator?: {
+    id?: string;
+    display_name?: string;
+    org?: {
+      id?: string;
+      name?: string;
+    };
+  };
 }
 
 /**

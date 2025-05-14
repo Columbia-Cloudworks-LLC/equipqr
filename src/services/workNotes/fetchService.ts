@@ -47,18 +47,27 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
     
     // Process and enhance work notes with additional information
     const enhancedNotes = data.map(note => {
-      const creator = note.creator as any;
-      const creatorOrg = creator?.org as any;
+      // Safely handle the creator object with proper typing
+      const creator = note.creator as {
+        id?: string;
+        display_name?: string;
+        org?: {
+          id?: string;
+          name?: string;
+        }
+      } | null;
+      
+      const creatorOrg = creator?.org;
       
       const processedNote: WorkNote = {
         ...note,
+        creator: creator || undefined,
         user_name: creator?.display_name || 'Unknown User',
         organization_name: creatorOrg?.name || 'Unknown Organization',
         organization_id: creatorOrg?.id || null,
         is_external_org: creatorOrg?.id !== userOrgId && !!creatorOrg?.id
       };
       
-      delete processedNote.creator;
       return processedNote;
     });
     

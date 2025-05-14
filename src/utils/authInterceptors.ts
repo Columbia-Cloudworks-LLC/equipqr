@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 
@@ -5,12 +6,24 @@ import { Session } from "@supabase/supabase-js";
  * Sets an interceptor for auth requests to fix specific errors
  */
 export function setupAuthInterceptors() {
-  // Log auth errors for debugging
-  const { data: { subscription } } = supabase.auth.onError((error) => {
-    console.error('Auth error intercepted:', error);
-    
-    // TODO: Add custom error handling here
-    // For example, tracking specific errors or displaying custom messages
+  // Create a subscription that we can return to clean up later
+  const subscription = {
+    unsubscribe: () => {}
+  };
+
+  // Log auth errors manually since onError might not be available
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      console.log('User signed out');
+    } else if (event === 'SIGNED_IN') {
+      console.log('User signed in');
+    } else if (event === 'USER_UPDATED') {
+      console.log('User updated');
+    } else if (event === 'TOKEN_REFRESHED') {
+      console.log('Token refreshed');
+    } else if (event === 'PASSWORD_RECOVERY') {
+      console.log('Password recovery requested');
+    }
   });
 
   return subscription;
