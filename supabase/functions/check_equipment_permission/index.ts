@@ -36,7 +36,7 @@ serve(async (req) => {
     // For creation permission check - this is either org-level or team-level
     if (action === 'create') {
       try {
-        // Get user's org ID and role
+        // Get user's org ID directly (no RLS involved)
         const { data: userProfile } = await adminClient
           .from('user_profiles')
           .select('org_id')
@@ -51,109 +51,21 @@ serve(async (req) => {
           });
         }
         
-        // Check if user has proper role in their organization
-        const { data: userRoles } = await adminClient
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user_id)
-          .eq('org_id', userProfile.org_id)
-          .maybeSingle();
-        
-        // If creating for a specific team
-        if (team_id) {
-          console.log(`Checking team-level create permission for team: ${team_id}`);
+        // If no team_id provided, check if user has proper role in their organization
+        if (!team_id) {
+          console.log('Checking org-level create permission');
           
-          // First, verify the team exists and get its org
-          const { data: teamData } = await adminClient
-            .from('team')
-            .select('org_id')
-            .eq('id', team_id)
-            .is('deleted_at', null)
-            .single();
-            
-          if (!teamData) {
-            console.error("Team not found or deleted");
-            return createSuccessResponse({
-              has_permission: false,
-              reason: 'team_not_found'
-            });
-          }
-          
-          // Check if user's org matches team's org (in which case, org role applies)
-          if (teamData.org_id === userProfile.org_id) {
-            // For users in same org as team
-            if (userRoles?.role === 'owner' || userRoles?.role === 'manager') {
-              return createSuccessResponse({
-                has_permission: true,
-                role: userRoles.role,
-                org_id: teamData.org_id,
-                reason: 'org_role'
-              });
-            }
-          }
-          
-          // If user is from a different org, check team role
-          // First get the app_user.id that corresponds to auth user
-          const { data: appUser } = await adminClient
-            .from('app_user')
-            .select('id')
-            .eq('auth_uid', user_id)
-            .maybeSingle();
-            
-          if (!appUser?.id) {
-            console.error("Could not find app_user record for auth user");
-            return createSuccessResponse({
-              has_permission: false,
-              reason: 'user_not_found'
-            });
-          }
-          
-          // Check team membership
-          const { data: teamMember } = await adminClient
-            .from('team_member')
-            .select('id')
-            .eq('user_id', appUser.id)
-            .eq('team_id', team_id)
-            .maybeSingle();
-            
-          if (!teamMember?.id) {
-            console.error("User is not a team member");
-            return createSuccessResponse({
-              has_permission: false,
-              reason: 'not_team_member'
-            });
-          }
-          
-          // Check team role - need manager role to create equipment
-          const { data: teamRole } = await adminClient
-            .from('team_roles')
+          // Check user's org role directly (no RLS)
+          const { data: userRoles } = await adminClient
+            .from('user_roles')
             .select('role')
-            .eq('team_member_id', teamMember.id)
+            .eq('user_id', user_id)
+            .eq('org_id', userProfile.org_id)
             .maybeSingle();
-            
-          if (teamRole?.role === 'manager' || teamRole?.role === 'owner') {
-            console.log(`User has ${teamRole.role} role in team`);
-            return createSuccessResponse({
-              has_permission: true,
-              role: teamRole.role,
-              org_id: teamData.org_id,
-              reason: 'team_role'
-            });
-          } else {
-            console.error(`User has insufficient team role: ${teamRole?.role || 'none'}`);
-            return createSuccessResponse({
-              has_permission: false,
-              role: teamRole?.role,
-              reason: 'insufficient_team_role'
-            });
-          }
-        } else {
-          // For org-level equipment (no team)
-          console.log(`Checking org-level create permission`);
           
           // Only owners and managers can create equipment
           if (userRoles?.role === 'owner' || userRoles?.role === 'manager') {
-            console.log(`User has ${userRoles.role} role in org`);
+            console.log(`User has ${userRoles.role} role in org, permission granted`);
             return createSuccessResponse({
               has_permission: true,
               role: userRoles.role,
@@ -168,16 +80,116 @@ serve(async (req) => {
             reason: 'insufficient_org_permissions'
           });
         }
+        
+        // Team-specific equipment creation
+        console.log(`Checking team-level create permission for team: ${team_id}`);
+        
+        // First, verify the team exists and get its org
+        const { data: teamData } = await adminClient
+          .from('team')
+          .select('org_id, name')
+          .eq('id', team_id)
+          .is('deleted_at', null)
+          .single();
+          
+        if (!teamData) {
+          console.error("Team not found or deleted");
+          return createSuccessResponse({
+            has_permission: false,
+            reason: 'team_not_found'
+          });
+        }
+        
+        // Get user's org roles
+        const { data: userRoles } = await adminClient
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user_id)
+          .eq('org_id', userProfile.org_id)
+          .maybeSingle();
+        
+        // Check if user's org matches team's org (in which case, org role applies)
+        if (teamData.org_id === userProfile.org_id) {
+          // For users in same org as team
+          if (userRoles?.role === 'owner' || userRoles?.role === 'manager') {
+            console.log(`User has ${userRoles.role} role in org, permission granted`);
+            return createSuccessResponse({
+              has_permission: true,
+              role: userRoles.role,
+              org_id: teamData.org_id,
+              reason: 'org_role',
+              team_name: teamData.name
+            });
+          }
+        }
+        
+        // If different org or insufficient org role, check team membership
+        
+        // First get the app_user.id from auth_uid - DIRECT query, no RLS
+        const { data: appUser } = await adminClient
+          .from('app_user')
+          .select('id')
+          .eq('auth_uid', user_id)
+          .maybeSingle();
+          
+        if (!appUser?.id) {
+          console.error("Could not find app_user record for auth user");
+          return createSuccessResponse({
+            has_permission: false,
+            reason: 'user_not_found'
+          });
+        }
+        
+        // Check team membership - DIRECT query, no RLS
+        const { data: teamMember } = await adminClient
+          .from('team_member')
+          .select('id')
+          .eq('user_id', appUser.id)
+          .eq('team_id', team_id)
+          .maybeSingle();
+          
+        if (!teamMember?.id) {
+          console.error("User is not a team member");
+          return createSuccessResponse({
+            has_permission: false,
+            reason: 'not_team_member'
+          });
+        }
+        
+        // Check team role - DIRECT query, no RLS
+        const { data: teamRole } = await adminClient
+          .from('team_roles')
+          .select('role')
+          .eq('team_member_id', teamMember.id)
+          .maybeSingle();
+          
+        if (teamRole?.role === 'manager' || teamRole?.role === 'owner') {
+          console.log(`User has ${teamRole.role} role in team, permission granted`);
+          return createSuccessResponse({
+            has_permission: true,
+            role: teamRole.role,
+            org_id: teamData.org_id,
+            reason: 'team_role',
+            team_name: teamData.name
+          });
+        } else {
+          console.error(`User has insufficient team role: ${teamRole?.role || 'none'}`);
+          return createSuccessResponse({
+            has_permission: false,
+            role: teamRole?.role || 'none',
+            reason: 'insufficient_team_role'
+          });
+        }
       } catch (error) {
         console.error('Error checking create permission:', error);
         return createErrorResponse(`Error checking permission: ${error.message}`);
       }
     }
     
-    // For edit/view permission check
+    // For edit/view/delete permission checks
     if (action === 'edit' || action === 'view' || action === 'delete') {
       try {
-        // Get equipment details
+        // Get equipment details - DIRECT query, no RLS
         const { data: equipment, error: equipmentError } = await adminClient
           .from('equipment')
           .select('team_id, org_id')
@@ -190,7 +202,7 @@ serve(async (req) => {
           return createErrorResponse("Equipment not found or already deleted");
         }
         
-        // Get user's org ID
+        // Get user's org ID - DIRECT query, no RLS
         const { data: userProfile } = await adminClient
           .from('user_profiles')
           .select('org_id')
@@ -237,7 +249,7 @@ serve(async (req) => {
         // If equipment is assigned to a team
         if (equipment.team_id) {
           try {
-            // First get the app_user.id that corresponds to the auth user ID
+            // Get app_user ID - DIRECT query, no RLS
             const { data: appUser } = await adminClient
               .from('app_user')
               .select('id')
@@ -252,7 +264,7 @@ serve(async (req) => {
               });
             }
             
-            // Check if user is a team member
+            // Check team membership - DIRECT query, no RLS
             const { data: teamMember } = await adminClient
               .from('team_member')
               .select('id')
@@ -268,7 +280,7 @@ serve(async (req) => {
               });
             }
             
-            // Get role from team_roles table
+            // Get role from team_roles table - DIRECT query, no RLS
             const { data: teamRole } = await adminClient
               .from('team_roles')
               .select('role')
@@ -313,6 +325,7 @@ serve(async (req) => {
       }
     }
     
+    // Invalid action
     console.error(`Invalid action specified: ${action}`);
     return createErrorResponse("Invalid action specified");
   } catch (error) {

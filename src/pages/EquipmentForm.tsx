@@ -45,9 +45,15 @@ const EquipmentFormPage = () => {
       const errorMessage = error instanceof Error ? error.message : 'Please try again later';
       console.error('Error creating equipment:', error);
       
-      // Handle edge function errors specially
-      if (errorMessage.includes('Edge Function')) {
-        toast.error('Failed to create equipment', {
+      if (errorMessage.includes('Permission denied') || 
+          errorMessage.includes('permission') || 
+          errorMessage.includes('need to be') ||
+          errorMessage.includes('access to this team')) {
+        toast.error('Permission Error', {
+          description: errorMessage,
+        });
+      } else if (errorMessage.includes('Edge Function')) {
+        toast.error('Server Error', {
           description: 'There was an issue with the server. Please try again or contact support if the problem persists.',
         });
       } else {
@@ -70,9 +76,14 @@ const EquipmentFormPage = () => {
       const errorMessage = error instanceof Error ? error.message : 'Please try again later';
       console.error('Error updating equipment:', error);
       
-      // Handle edge function errors specially
-      if (errorMessage.includes('Edge Function')) {
-        toast.error('Failed to update equipment', {
+      if (errorMessage.includes('Permission denied') || 
+          errorMessage.includes('permission') || 
+          errorMessage.includes('need to be')) {
+        toast.error('Permission Error', {
+          description: errorMessage,
+        });
+      } else if (errorMessage.includes('Edge Function')) {
+        toast.error('Server Error', {
           description: 'There was an issue with the server. Please try again or contact support if the problem persists.',
         });
       } else {
