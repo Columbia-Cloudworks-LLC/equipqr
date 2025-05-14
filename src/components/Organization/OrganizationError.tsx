@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, AlertCircle, RefreshCw, Tool, User } from 'lucide-react';
+import { AlertTriangle, AlertCircle, RefreshCw, Wrench, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
@@ -138,12 +138,12 @@ export function OrganizationError({
             >
               {isRepairing ? (
                 <>
-                  <Tool className="h-4 w-4 mr-2 animate-spin" />
+                  <Wrench className="h-4 w-4 mr-2 animate-spin" />
                   Repairing...
                 </>
               ) : (
                 <>
-                  <Tool className="h-4 w-4 mr-2" />
+                  <Wrench className="h-4 w-4 mr-2" />
                   Attempt Repair
                 </>
               )}
