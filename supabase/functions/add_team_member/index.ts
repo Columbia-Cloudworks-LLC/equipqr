@@ -1,32 +1,25 @@
-
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
+import { corsHeaders, createErrorResponse, createSuccessResponse, handleCorsPreflightRequest } from '../_shared/cors.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   try {
     const { _team_id, _user_id, _role, _added_by } = await req.json();
     
     if (!_team_id || !_user_id || !_role) {
-      return createErrorResponse(
-        "Missing required parameters",
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      return createErrorResponse("Missing required parameters", 400);
     }
     
     // Validate UUID format for team_id and user_id
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(_team_id)) {
       console.error(`Invalid UUID format for team_id: ${_team_id}`);
-      return createErrorResponse(
-        "Invalid team ID format",
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      return createErrorResponse("Invalid team ID format", 400);
     }
     
     // Create Supabase client
@@ -47,10 +40,7 @@ serve(async (req) => {
     
     if (teamError) {
       console.error('Error finding team:', teamError);
-      return createErrorResponse(
-        "Team not found",
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
+      return createErrorResponse("Team not found", 404);
     }
     
     console.log(`Getting app_user for auth_uid: ${_user_id}`);
@@ -63,18 +53,12 @@ serve(async (req) => {
     
     if (appUserError) {
       console.error('Error finding app_user record:', appUserError);
-      return createErrorResponse(
-        "Failed to find app_user record for the provided user ID",
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
+      return createErrorResponse("Failed to find app_user record for the provided user ID", 404);
     }
     
     if (!appUser) {
       console.error('App user not found for auth_uid:', _user_id);
-      return createErrorResponse(
-        "User record not found. The user might need to complete registration first.",
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
+      return createErrorResponse("User record not found. The user might need to complete registration first.", 404);
     }
     
     console.log(`Found app_user.id: ${appUser.id} for auth_uid: ${_user_id}`);
@@ -90,10 +74,7 @@ serve(async (req) => {
     
     if (checkError) {
       console.error('Error checking existing team member:', checkError);
-      return createErrorResponse(
-        checkError.message,
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      return createErrorResponse(checkError.message, 500);
     }
     
     let teamMemberId;
@@ -113,10 +94,7 @@ serve(async (req) => {
       
       if (insertError) {
         console.error('Error adding member to team:', insertError);
-        return createErrorResponse(
-          insertError.message,
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
+        return createErrorResponse(insertError.message, 500);
       }
       
       teamMemberId = newMember.id;
@@ -137,10 +115,7 @@ serve(async (req) => {
     
     if (roleCheckError) {
       console.error('Error checking existing role:', roleCheckError);
-      return createErrorResponse(
-        roleCheckError.message,
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      return createErrorResponse(roleCheckError.message, 500);
     }
     
     // IMPORTANT: We use _added_by directly as auth.uid, NOT app_user.id
@@ -160,10 +135,7 @@ serve(async (req) => {
       
       if (updateRoleError) {
         console.error('Error updating role:', updateRoleError);
-        return createErrorResponse(
-          updateRoleError.message,
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
+        return createErrorResponse(updateRoleError.message, 500);
       }
     } else {
       // Otherwise, insert a new role
@@ -179,10 +151,7 @@ serve(async (req) => {
       
       if (insertRoleError) {
         console.error('Error inserting role:', insertRoleError);
-        return createErrorResponse(
-          insertRoleError.message,
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
+        return createErrorResponse(insertRoleError.message, 500);
       }
     }
     
@@ -195,32 +164,22 @@ serve(async (req) => {
       
     if (verifyError || !verifyRole) {
       console.error('Error verifying role creation:', verifyError || 'No role found');
-      return createErrorResponse(
-        "Team member was created but role verification failed",
-        { 
-          warning: "Team member was created but role verification failed",
-          team_member_id: teamMemberId,
-          success: true
-        },
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
+      return createSuccessResponse({ 
+        warning: "Team member was created but role verification failed",
+        team_member_id: teamMemberId,
+        success: true
+      }, 200);
     }
     
-    return createSuccessResponse(
-      { 
-        success: true, 
-        team_member_id: teamMemberId,
-        role_id: verifyRole.id,
-        role: verifyRole.role
-      },
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
+    return createSuccessResponse({ 
+      success: true, 
+      team_member_id: teamMemberId,
+      role_id: verifyRole.id,
+      role: verifyRole.role
+    }, 200);
     
   } catch (error) {
     console.error('Unexpected error:', error);
-    return createErrorResponse(
-      error.message,
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-    );
+    return createErrorResponse(error.message, 400);
   }
 })
