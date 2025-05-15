@@ -2,14 +2,14 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Inlined CORS headers from _shared/cors.ts
+// Inlined CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Inlined success response function from _shared/cors.ts
+// Inlined success response function
 function createSuccessResponse(data: any) {
   return new Response(
     JSON.stringify(data),
@@ -23,7 +23,7 @@ function createSuccessResponse(data: any) {
   );
 }
 
-// Inlined error response function from _shared/cors.ts
+// Inlined error response function
 function createErrorResponse(message: string, status: number = 400) {
   return new Response(
     JSON.stringify({ error: message }),
@@ -56,67 +56,95 @@ serve(async (req) => {
       return createErrorResponse("Missing authorization header");
     }
 
-    // Create Supabase client using the user's JWT token
-    // This ensures RLS policies are applied correctly
+    // Create Supabase client using the service role key to bypass RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabase = createClient(
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    
+    const adminClient = createClient(
       supabaseUrl,
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      }
+      supabaseServiceKey
     );
     
-    // Let RLS handle access control by using client with user's JWT
-    // This relies on the "Team or org members can read equipment" policy
-    const { data: equipment, error } = await supabase
+    // Get user's organization for determining external equipment
+    let userOrgId = null;
+    try {
+      // Get user's organization ID
+      const { data: userProfile, error: profileError } = await adminClient
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', user_id)
+        .single();
+        
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+      } else if (userProfile) {
+        userOrgId = userProfile.org_id;
+      }
+    } catch (profileError) {
+      console.error('Unexpected error fetching user profile:', profileError);
+    }
+    
+    // Get list of teams the user belongs to, either directly or through their org
+    const appUserResult = await adminClient
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', user_id)
+      .single();
+      
+    const appUserId = appUserResult.data?.id;
+    
+    // We'll build a list of team IDs the user can access
+    const accessibleTeamIds: string[] = [];
+    
+    if (appUserId) {
+      // Get teams where user is a member
+      const { data: teamMemberships, error: teamError } = await adminClient
+        .from('team_member')
+        .select('team_id')
+        .eq('user_id', appUserId);
+        
+      if (!teamError && teamMemberships) {
+        accessibleTeamIds.push(...teamMemberships.map(tm => tm.team_id));
+      }
+    }
+    
+    // Get all equipment the user can access
+    // 1. From user's org
+    // 2. From teams where user is a member
+    const query = adminClient
       .from('equipment')
       .select(`
         *,
         team:team_id (name, org_id),
         org:org_id (name)
       `)
-      .is('deleted_at', null)
-      .order('name');
+      .is('deleted_at', null);
+      
+    if (userOrgId) {
+      // Add org ownership filter
+      query.eq('org_id', userOrgId);
+    }
+    
+    if (accessibleTeamIds.length > 0) {
+      // Add team membership filter if we found teams
+      query.or(`team_id.in.(${accessibleTeamIds.join(',')})`);
+    }
+    
+    const { data: equipment, error } = await query.order('name');
     
     if (error) {
       console.error('Error fetching equipment:', error);
       return createErrorResponse(`Failed to fetch equipment: ${error.message}`);
     }
     
-    // Get user's org ID for determining external equipment
-    // Explicitly handle the user_id as a UUID with proper error handling
-    let userOrgId = null;
-    try {
-      // Make sure user_id is a valid UUID format
-      const { data: userProfile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('org_id')
-        .eq('id', user_id)
-        .maybeSingle();
-        
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError);
-        // Continue without user org ID - will mark all equipment as external
-      } else if (userProfile) {
-        userOrgId = userProfile.org_id;
-      } else {
-        console.log(`No user profile found for ID: ${user_id}`);
-        // Continue without user org ID
-      }
-    } catch (profileError) {
-      console.error('Unexpected error fetching user profile:', profileError);
-      // Continue without user org ID
-    }
-    
     // Process the equipment data to add required fields
-    const processedEquipment = equipment.map(item => {
+    const processedEquipment = equipment?.map(item => {
       const isExternalOrg = item.team?.org_id && userOrgId && 
-                        item.team.org_id !== userOrgId;
+                      item.team.org_id !== userOrgId;
       
       return {
         ...item,
@@ -124,7 +152,7 @@ serve(async (req) => {
         org_name: item.org?.name || 'Unknown Organization',
         is_external_org: isExternalOrg,
       };
-    });
+    }) || [];
     
     return createSuccessResponse(processedEquipment);
   } catch (error) {
