@@ -1,7 +1,41 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+
+// Inlined CORS headers from _shared/cors.ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+};
+
+// Inlined success response function from _shared/cors.ts
+function createSuccessResponse(data: any) {
+  return new Response(
+    JSON.stringify(data),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      },
+      status: 200 
+    }
+  );
+}
+
+// Inlined error response function from _shared/cors.ts
+function createErrorResponse(message: string, status: number = 400) {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      }, 
+      status 
+    }
+  );
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {

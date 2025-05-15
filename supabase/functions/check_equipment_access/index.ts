@@ -1,8 +1,76 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-import { checkEquipmentAccess } from '../_shared/equipmentAccess.ts';
+
+// Inlined CORS headers from _shared/cors.ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+};
+
+// Inlined success response function from _shared/cors.ts
+function createSuccessResponse(data: any) {
+  return new Response(
+    JSON.stringify(data),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      },
+      status: 200 
+    }
+  );
+}
+
+// Inlined error response function from _shared/cors.ts
+function createErrorResponse(message: string, status: number = 400) {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      }, 
+      status 
+    }
+  );
+}
+
+// Inlined checkEquipmentAccess function from _shared/equipmentAccess.ts
+async function checkEquipmentAccess(
+  userId: string, 
+  equipmentId: string, 
+  supabase?: ReturnType<typeof createClient>
+) {
+  try {
+    // Use provided supabase client or create a new one
+    const client = supabase || createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    // Use our optimized RPC function
+    const { data, error } = await client.rpc(
+      'rpc_check_equipment_permission',
+      { 
+        user_id: userId, 
+        action: 'view',
+        equipment_id: equipmentId
+      }
+    );
+
+    if (error) {
+      console.error('Error checking equipment access:', error);
+      return false;
+    }
+
+    return data?.has_permission || false;
+  } catch (error) {
+    console.error('Exception in checkEquipmentAccess:', error);
+    return false;
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
