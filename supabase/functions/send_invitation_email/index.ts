@@ -1,11 +1,16 @@
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { corsHeaders } from '../_shared/cors.ts';
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 const resend = new Resend(resendApiKey);
 const appUrl = Deno.env.get("APP_URL") || "http://localhost:3000";
+
+// Inline cors headers from _shared/cors.ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 interface InvitationEmailRequest {
   recipientEmail: string;
@@ -17,6 +22,14 @@ interface InvitationEmailRequest {
   role: string;
 }
 
+// Alternative method: Use the invitation_id to fetch details
+interface InvitationDetailRequest {
+  invitation_id: string;
+  team_name?: string;
+  org_name?: string;
+  requester_name?: string;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -24,19 +37,124 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { recipientEmail, teamName, inviterEmail, inviterName, token, action, role } = 
-      await req.json() as InvitationEmailRequest;
+    const requestData = await req.json();
     
-    if (!recipientEmail || !teamName || !inviterEmail || !token) {
+    // Create Supabase admin client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "Missing Supabase credentials" }),
         { 
-          status: 400, 
+          status: 500, 
           headers: { "Content-Type": "application/json", ...corsHeaders } 
         }
       );
     }
 
+    // For backwards compatibility, handle both direct email params and invitation_id
+    if (requestData.invitation_id) {
+      // Admin client for fetching invitation details
+      const adminResponse = await fetch(`${supabaseUrl}/rest/v1/team_invitations?id=eq.${requestData.invitation_id}&select=*,team:team_id(id,name,org_id,organization:org_id(name))`, {
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": supabaseServiceKey,
+          "Authorization": `Bearer ${supabaseServiceKey}`
+        }
+      });
+      
+      if (!adminResponse.ok) {
+        console.error("Error fetching invitation details:", await adminResponse.text());
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch invitation details" }),
+          { 
+            status: 500, 
+            headers: { "Content-Type": "application/json", ...corsHeaders } 
+          }
+        );
+      }
+      
+      const invitationData = await adminResponse.json();
+      
+      if (!invitationData || invitationData.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Invitation not found" }),
+          { 
+            status: 404, 
+            headers: { "Content-Type": "application/json", ...corsHeaders } 
+          }
+        );
+      }
+      
+      const invitation = invitationData[0];
+      const teamName = requestData.team_name || invitation.team?.name || "Unknown Team";
+      const orgName = requestData.org_name || invitation.team?.organization?.name || "Unknown Organization";
+      const inviterName = requestData.requester_name || invitation.invited_by_email?.split('@')[0] || "A team manager";
+      
+      // Send the email with invitation details
+      return await sendInvitationEmail({
+        recipientEmail: invitation.email,
+        teamName: teamName,
+        orgName: orgName,
+        inviterName: inviterName,
+        inviterEmail: invitation.invited_by_email || "no-reply@equipqr.app",
+        token: invitation.token,
+        action: "resend",
+        role: invitation.role
+      });
+    } else {
+      // Original direct params approach
+      const { recipientEmail, teamName, inviterEmail, inviterName, token, action, role } = 
+        requestData as InvitationEmailRequest;
+      
+      if (!recipientEmail || !teamName || !token) {
+        return new Response(
+          JSON.stringify({ error: "Missing required fields" }),
+          { 
+            status: 400, 
+            headers: { "Content-Type": "application/json", ...corsHeaders } 
+          }
+        );
+      }
+      
+      return await sendInvitationEmail({
+        recipientEmail,
+        teamName,
+        inviterName: inviterName || inviterEmail.split('@')[0],
+        inviterEmail,
+        token,
+        action,
+        role,
+        orgName: undefined
+      });
+    }
+  } catch (error: any) {
+    console.error("Error in send_invitation_email function:", error);
+    
+    return new Response(
+      JSON.stringify({ error: error.message || "Unknown error occurred" }),
+      { 
+        status: 500, 
+        headers: { "Content-Type": "application/json", ...corsHeaders } 
+      }
+    );
+  }
+};
+
+async function sendInvitationEmail({
+  recipientEmail,
+  teamName,
+  inviterEmail,
+  inviterName,
+  token,
+  action,
+  role,
+  orgName
+}: InvitationEmailRequest & { orgName?: string }): Promise<Response> {
+  try {
+    console.log(`Sending ${action} invitation email to ${recipientEmail} for team ${teamName}`);
+    
     // Construct the invitation acceptance URL
     const invitationUrl = `${appUrl}/invitation/${token}`;
     const displayName = inviterName || inviterEmail.split('@')[0];
@@ -71,6 +189,8 @@ const handler = async (req: Request): Promise<Response> => {
               <p>Hello,</p>
               <p>${displayName} (${inviterEmail}) has invited you to join the team <strong>${teamName}</strong> as a <strong>${role}</strong>.</p>
               
+              ${orgName ? `<p>This team is part of the <strong>${orgName}</strong> organization.</p>` : ''}
+              
               <p>To accept this invitation, please click the button below:</p>
               
               <a href="${invitationUrl}" class="button">Accept Invitation</a>
@@ -80,7 +200,7 @@ const handler = async (req: Request): Promise<Response> => {
               
               <p>This invitation will expire in 7 days.</p>
               
-              <p>Thank you,<br>The Team Management System</p>
+              <p>Thank you,<br>The equipqr Team</p>
             </div>
             <div class="footer">
               <p>If you did not expect this invitation, you can safely ignore this email.</p>
@@ -92,7 +212,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send the email
     const { data, error } = await resend.emails.send({
-      from: "Team Management <onboarding@resend.dev>",
+      from: "equipqr <onboarding@resend.dev>",
       to: [recipientEmail],
       subject: subject,
       html: html,
@@ -112,10 +232,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", data);
     
-    // Log resend API key presence (not the actual key) for debugging
-    console.log("Resend API key available:", !!resendApiKey);
-    console.log("APP_URL:", appUrl);
-    
     return new Response(
       JSON.stringify({ success: true, data }),
       { 
@@ -124,16 +240,15 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in send_invitation_email function:", error);
-    
+    console.error("Error in sendInvitationEmail helper:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error occurred" }),
+      JSON.stringify({ error: error.message || "Failed to send email" }),
       { 
         status: 500, 
         headers: { "Content-Type": "application/json", ...corsHeaders } 
       }
     );
   }
-};
+}
 
 serve(handler);

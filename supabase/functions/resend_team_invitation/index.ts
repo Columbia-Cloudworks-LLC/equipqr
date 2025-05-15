@@ -1,7 +1,45 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
-import { createAdminClient } from '../_shared/adminClient.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+
+// Inline cors headers from _shared/cors.ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Helper functions previously from _shared/cors.ts
+function createErrorResponse(message: string, status = 400) {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { 
+      status, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    }
+  );
+}
+
+function createSuccessResponse(data: any, status = 200) {
+  return new Response(
+    JSON.stringify(data),
+    { 
+      status, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    }
+  );
+}
+
+// Helper function previously from _shared/adminClient.ts
+function createAdminClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing required environment variables for Supabase client');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests

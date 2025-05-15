@@ -1,20 +1,34 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Create a response with CORS headers
-function createResponse(body: any, status = 200) {
+// Inline cors headers from _shared/cors.ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Helper function to create responses
+function createJsonResponse(data: any, status = 200) {
   return new Response(
-    JSON.stringify(body),
+    JSON.stringify(data),
     { 
       status, 
-      headers: { 
-        ...corsHeaders, 
-        'Content-Type': 'application/json' 
-      } 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     }
   );
+}
+
+// Create a Supabase client with admin privileges
+function createAdminClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing required environment variables for Supabase client');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
 serve(async (req) => {
@@ -22,67 +36,64 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-  
+
   try {
-    const { team_id } = await req.json();
+    const { team_id, user_id } = await req.json();
     
     if (!team_id) {
-      return createResponse({ error: 'Team ID is required' }, 400);
+      return createJsonResponse({ 
+        error: 'Missing required parameter: team_id' 
+      }, 400);
     }
     
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(team_id)) {
-      console.error(`Invalid UUID format for team_id: ${team_id}`);
-      return createResponse({ error: 'Invalid team ID format' }, 400);
-    }
-    
-    // Create Supabase admin client with service role to bypass RLS
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-    
-    // Fetch team details to verify team exists
-    const { data: teamData, error: teamError } = await supabase
-      .from('team')
-      .select('id, name, org_id')
-      .eq('id', team_id)
-      .is('deleted_at', null)
-      .single();
+    // If user_id is provided, verify permissions
+    if (user_id) {
+      // Create admin client to bypass RLS
+      const supabase = createAdminClient();
       
-    if (teamError) {
-      console.error('Error verifying team:', teamError);
-      return createResponse({
-        error: 'Team not found',
-        details: teamError.message
-      }, 404);
+      // Check if user has access to this team
+      const { data: accessData, error: accessError } = await supabase.rpc('check_team_access_detailed', {
+        user_id: user_id,
+        team_id: team_id
+      });
+      
+      if (accessError || !accessData?.has_access) {
+        console.error('Error checking team access:', accessError);
+        return createJsonResponse({ 
+          error: 'You do not have permission to view invitations for this team' 
+        }, 403);
+      }
+      
+      // Only managers and org owners can see pending invitations
+      if (!accessData.is_org_owner && accessData.team_role !== 'manager') {
+        return createJsonResponse({ 
+          error: 'Only team managers and organization owners can view pending invitations' 
+        }, 403);
+      }
     }
     
-    // Fetch pending invitations for this team directly using service role
-    const { data, error } = await supabase
+    // Get all pending invitations for this team
+    const supabase = createAdminClient(); 
+    const { data: invitations, error: invitationsError } = await supabase
       .from('team_invitations')
       .select('*')
       .eq('team_id', team_id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
-      
-    if (error) {
-      console.error('Error fetching team invitations:', error);
-      return createResponse({
-        error: 'Failed to fetch invitations',
-        details: error.message
+    
+    if (invitationsError) {
+      console.error('Error fetching pending invitations:', invitationsError);
+      return createJsonResponse({ 
+        error: `Failed to fetch pending invitations: ${invitationsError.message}` 
       }, 500);
     }
     
-    console.log(`Found ${data?.length || 0} pending invitations for team ${team_id}`);
-    return createResponse({ invitations: data || [] });
+    return createJsonResponse({ invitations: invitations || [] });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Unexpected error in get_pending_invitations:', error);
-    return createResponse({
-      error: 'Server error',
-      details: error.message
+    return createJsonResponse({ 
+      error: `Server error: ${error.message}` 
     }, 500);
   }
 });
