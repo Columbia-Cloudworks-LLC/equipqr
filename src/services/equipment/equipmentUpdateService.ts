@@ -36,7 +36,7 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     
     if (accessError) {
       console.error('Error checking equipment access:', accessError);
-      throw new Error(`Access check failed: ${accessError.message}`);
+      throw new Error(`Permission check failed: ${accessError.message}`);
     }
     
     const response = accessCheck as PermissionResponse;

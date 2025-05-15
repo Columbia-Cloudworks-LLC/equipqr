@@ -107,6 +107,7 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
             <AttributesEditor 
               attributes={formData.attributes || []} 
               onChange={handleAttributesChange}
+              equipmentId={equipment?.id}
             />
           </div>
         </CardContent>

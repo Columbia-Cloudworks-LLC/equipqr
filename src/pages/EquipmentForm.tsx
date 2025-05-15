@@ -98,7 +98,7 @@ const EquipmentFormPage = () => {
     // Process team_id - ensure it's handled correctly (null vs empty string)
     const processedData = {
       ...formData,
-      team_id: formData.team_id || null  // Ensure team_id is null if empty
+      team_id: formData.team_id === 'none' ? null : formData.team_id  // Ensure team_id is null if 'none'
     };
 
     if (isEditMode && id) {

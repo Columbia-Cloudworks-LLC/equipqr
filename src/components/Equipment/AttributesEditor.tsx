@@ -8,36 +8,48 @@ import { EquipmentAttribute } from '@/types';
 import { cn } from '@/lib/utils';
 import { useAuthState } from '@/hooks/useAuthState';
 import { supabase } from '@/integrations/supabase/client';
+import { checkEquipmentEditPermission } from '@/services/equipment/permissions/accessCheck';
 
 interface AttributesEditorProps {
   attributes: EquipmentAttribute[];
   onChange: (attributes: EquipmentAttribute[]) => void;
   className?: string;
   readOnly?: boolean;
+  equipmentId?: string;
 }
 
 export function AttributesEditor({ 
   attributes = [], 
   onChange, 
   className, 
-  readOnly = false 
+  readOnly = false,
+  equipmentId
 }: AttributesEditorProps) {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const { user } = useAuthState();
   const [canEdit, setCanEdit] = useState(false);
+  const [isCheckingPermission, setIsCheckingPermission] = useState(false);
 
   // Check if user has permission to edit attributes based on role
   useEffect(() => {
     const checkPermission = async () => {
-      if (!user) {
+      if (!user || readOnly) {
         setCanEdit(false);
         return;
       }
+
+      setIsCheckingPermission(true);
       
       try {
-        // Get user roles or team roles - simplified check for now
-        // In a real app, you'd check team roles as well
+        // If we have an equipment ID, use the permission checker service
+        if (equipmentId) {
+          const hasPermission = await checkEquipmentEditPermission(user.id, equipmentId);
+          setCanEdit(hasPermission);
+          return;
+        }
+        
+        // Fallback to checking user roles directly (for new equipment)
         const { data } = await supabase
           .from('user_roles')
           .select('role')
@@ -47,17 +59,20 @@ export function AttributesEditor({
         if (data && ['owner', 'manager'].includes(data.role)) {
           setCanEdit(true);
         } else {
-          // Default to false - a more complete implementation would check team roles too
+          // Check team roles if applicable - this could be enhanced
+          // but for now we use a more restrictive approach
           setCanEdit(false);
         }
       } catch (error) {
         console.error('Error checking user roles:', error);
         setCanEdit(false);
+      } finally {
+        setIsCheckingPermission(false);
       }
     };
     
     checkPermission();
-  }, [user]);
+  }, [user, equipmentId, readOnly]);
 
   const handleAddAttribute = () => {
     if (!newKey.trim() || readOnly || !canEdit) return;
@@ -165,6 +180,7 @@ export function AttributesEditor({
             variant="outline" 
             onClick={handleAddAttribute} 
             className="flex-shrink-0"
+            disabled={isCheckingPermission}
           >
             <Plus className="h-4 w-4 mr-1" /> Add
           </Button>
