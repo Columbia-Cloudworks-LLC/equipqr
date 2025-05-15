@@ -48,10 +48,11 @@ export default function TeamManagement() {
       teamsCount: teams.length,
       selectedTeamId,
       isLoading,
-      error,
-      isMember
+      isMember,
+      currentUserRole,
+      canChangeRoles
     });
-  }, [teams.length, selectedTeamId, isLoading, error, isMember]);
+  }, [teams.length, selectedTeamId, isLoading, isMember, currentUserRole, canChangeRoles]);
 
   return (
     <Layout>

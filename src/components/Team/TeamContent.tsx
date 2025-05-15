@@ -72,12 +72,14 @@ export function TeamContent({
   const orgName = currentTeam?.org_name;
   
   // Determine if the user can manage members (manager role or higher)
-  const canManageMembers = !isExternalOrg && (
+  const canManageMembers = canChangeRoles || (
     currentUserRole === 'manager' || 
     currentUserRole === 'admin' || 
     currentUserRole === 'owner' ||
-    canChangeRoles
+    currentUserRole === 'creator'
   );
+  
+  console.log("Team Content render - user role:", currentUserRole, "canManageMembers:", canManageMembers);
   
   // If user is not a member and not repairing, show membership alert
   if (!isMember && !isRepairingTeam) {
@@ -121,6 +123,14 @@ export function TeamContent({
           />
         )}
       </div>
+
+      {/* Show viewer-only warning when appropriate */}
+      {currentUserRole === 'viewer' && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-3 flex items-start gap-2">
+          <div className="shrink-0 h-5 w-5 text-amber-500">⚠️</div>
+          <p className="text-sm">You are in view-only mode. You need a manager role to make changes.</p>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>

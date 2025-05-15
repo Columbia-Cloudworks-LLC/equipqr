@@ -13,7 +13,7 @@ export function useRoleManagement(members: TeamMember[], teamId: string | null) 
 
   // Determine the current user's role in the selected team
   useEffect(() => {
-    if (members?.length > 0) {
+    if (members?.length > 0 && teamId) {
       (async () => {
         const { data } = await supabase.auth.getSession();
         const authUserId = data.session?.user?.id;
@@ -21,31 +21,24 @@ export function useRoleManagement(members: TeamMember[], teamId: string | null) 
           // Find the member that corresponds to current user
           const currentMember = members.find(m => m.auth_uid === authUserId);
           if (currentMember) {
+            console.log('Current user role detected:', currentMember.role);
             setCurrentUserRole(currentMember.role);
-            console.log('Current user role:', currentMember.role);
+            
+            // Check if the role allows management (manager, owner, admin)
+            const managerRoles = ['manager', 'owner', 'admin', 'creator'];
+            setCanChangeRoles(managerRoles.includes(currentMember.role));
+          } else {
+            console.log('User not found in team members list');
+            setCurrentUserRole(undefined);
+            setCanChangeRoles(false);
           }
         }
       })();
+    } else {
+      // Reset role when team changes or members list is empty
+      setCurrentUserRole(undefined);
     }
-  }, [members]);
-
-  // Check if user has permission to manage roles
-  useEffect(() => {
-    const checkPermission = async () => {
-      if (teamId) {
-        try {
-          // Use the more robust role permission check
-          const hasPermission = await checkRoleChangePermission(teamId);
-          setCanChangeRoles(hasPermission);
-        } catch (error) {
-          console.error("Error checking role permission:", error);
-          setCanChangeRoles(false);
-        }
-      }
-    };
-    
-    checkPermission();
-  }, [teamId, currentUserRole]);
+  }, [members, teamId]);
 
   // Handle role upgrade request
   const handleRequestRoleUpgrade = async (teamId: string) => {
@@ -73,6 +66,7 @@ export function useRoleManagement(members: TeamMember[], teamId: string | null) 
         description: "You are now a team manager",
       });
       setCurrentUserRole('manager');
+      setCanChangeRoles(true);
     } catch (error: any) {
       toast.error("Error upgrading role", {
         description: error.message,
