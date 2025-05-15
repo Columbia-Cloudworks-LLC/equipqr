@@ -46,12 +46,16 @@ export async function saveEquipmentAttributes(
       return [];
     }
     
+    console.log('Saving attributes for equipment:', equipmentId);
+    console.log('Attributes to save:', attributes);
+    
     // Get existing attributes
     const existingAttrs = await getEquipmentAttributes(equipmentId);
     
     // Prepare arrays for operations
     const toUpdate: EquipmentAttribute[] = [];
     const toInsert: { equipment_id: string; key: string; value?: string }[] = [];
+    const existingIds = new Set();
     
     // Determine which attributes to update vs. insert
     attributes.forEach(attr => {
@@ -68,6 +72,7 @@ export async function saveEquipmentAttributes(
             updated_at: new Date().toISOString()
           });
         }
+        existingIds.add(existing.id);
       } else {
         // New attribute - ensuring required properties are present
         toInsert.push({
@@ -78,6 +83,16 @@ export async function saveEquipmentAttributes(
       }
     });
     
+    // IDs of attributes to delete (ones that existed but weren't included in the new attributes)
+    const toDeleteIds = existingAttrs
+      .filter(attr => !existingIds.has(attr.id) && 
+                      !attributes.some(a => a.key === attr.key))
+      .map(attr => attr.id);
+    
+    console.log('Attributes to update:', toUpdate);
+    console.log('Attributes to insert:', toInsert);
+    console.log('Attributes to delete:', toDeleteIds);
+    
     // Handle updates first
     if (toUpdate.length > 0) {
       const { error: updateError } = await supabase
@@ -86,6 +101,7 @@ export async function saveEquipmentAttributes(
         
       if (updateError) {
         console.error('Error updating equipment attributes:', updateError);
+        throw updateError;
       }
     }
     
@@ -97,6 +113,20 @@ export async function saveEquipmentAttributes(
         
       if (insertError) {
         console.error('Error inserting equipment attributes:', insertError);
+        throw insertError;
+      }
+    }
+    
+    // Finally handle deletes
+    if (toDeleteIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('equipment_attributes')
+        .delete()
+        .in('id', toDeleteIds);
+        
+      if (deleteError) {
+        console.error('Error deleting equipment attributes:', deleteError);
+        throw deleteError;
       }
     }
     

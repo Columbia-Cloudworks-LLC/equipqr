@@ -22,6 +22,9 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     
     const authUserId = sessionData.session.user.id;
     
+    console.log('Updating equipment with ID:', id);
+    console.log('Auth user ID:', authUserId);
+    
     // Check access using our non-recursive edge function
     const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_permission', {
       body: { 
@@ -37,6 +40,7 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     }
     
     const response = accessCheck as PermissionResponse;
+    console.log('Permission check result:', response);
     
     if (!response || !response.has_permission) {
       const reason = response?.reason || 'unknown';
@@ -60,6 +64,8 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
       updated_at: new Date().toISOString(),
     }, ['install_date', 'warranty_expiration']);
     
+    console.log('Processed equipment data:', processedEquipment);
+    
     // Update the equipment
     const { data, error } = await supabase
       .from('equipment')
@@ -75,8 +81,9 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     
     // Update attributes
     try {
-      console.log('Saving updated attributes:', attributes);
+      console.log('Saving equipment attributes:', attributes);
       const updatedAttributes = await saveEquipmentAttributes(id, attributes);
+      console.log('Updated attributes:', updatedAttributes);
       return { ...data, attributes: updatedAttributes } as Equipment;
     } catch (attrError) {
       console.error('Error updating equipment attributes:', attrError);

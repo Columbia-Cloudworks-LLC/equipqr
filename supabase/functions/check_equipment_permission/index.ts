@@ -2,7 +2,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Inlined from _shared/cors.ts
+// CORS headers for browser requests
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -49,6 +49,8 @@ serve(async (req) => {
     if (!user_id || (!equipment_id && action !== 'create')) {
       return createErrorResponse('Missing required parameters');
     }
+    
+    console.log(`Processing permission check: user_id=${user_id}, equipment_id=${equipment_id}, action=${action}, team_id=${team_id}`);
     
     // Set up Supabase client with service role to bypass RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -100,34 +102,41 @@ serve(async (req) => {
       });
     }
     
-    // For view/edit/delete actions, use our new improved function
+    // For view/edit/delete actions, handle parameters carefully
     if (['view', 'edit', 'delete'].includes(action)) {
-      const { data: hasPermission, error: permissionError } = await supabase.rpc(
-        'check_equipment_permissions',
-        {
-          _user_id: user_id,
-          _equipment_id: equipment_id,
-          _action: action
+      try {
+        // First, make sure we're using proper UUID objects for the database
+        // For permissions, use our non-recursive safe function
+        const { data: hasPermission, error: permissionError } = await supabase.rpc(
+          'check_equipment_permissions',
+          {
+            _user_id: user_id,
+            _equipment_id: equipment_id,
+            _action: action
+          }
+        );
+        
+        if (permissionError) {
+          console.error(`Error checking ${action} permission:`, permissionError);
+          return createErrorResponse(`Permission check error: ${permissionError.message}`);
         }
-      );
-      
-      if (permissionError) {
-        console.error(`Error checking ${action} permission:`, permissionError);
-        return createErrorResponse(`Permission check error: ${permissionError.message}`);
+        
+        // Get equipment details for additional info in the response
+        const { data: equipment } = await supabase
+          .from('equipment')
+          .select('org_id, team_id')
+          .eq('id', equipment_id)
+          .single();
+        
+        return createSuccessResponse({
+          has_permission: hasPermission,
+          equipment_details: hasPermission ? equipment : null,
+          reason: hasPermission ? 'permission_granted' : 'permission_denied'
+        });
+      } catch (err) {
+        console.error('Error during permission check:', err);
+        return createErrorResponse(`Error processing permission check: ${err.message}`);
       }
-      
-      // Get equipment details for additional info in the response
-      const { data: equipment } = await supabase
-        .from('equipment')
-        .select('org_id, team_id')
-        .eq('id', equipment_id)
-        .single();
-      
-      return createSuccessResponse({
-        has_permission: hasPermission,
-        equipment_details: hasPermission ? equipment : null,
-        reason: hasPermission ? 'permission_granted' : 'permission_denied'
-      });
     }
     
     // Invalid action
