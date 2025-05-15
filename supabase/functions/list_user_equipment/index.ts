@@ -80,7 +80,12 @@ serve(async (req) => {
       console.error('Unexpected error fetching user profile:', profileError);
     }
     
-    // Get list of teams the user belongs to, either directly or through their org
+    // If we can't determine user's org, we can't show any equipment
+    if (!userOrgId) {
+      return createSuccessResponse([]);
+    }
+    
+    // Get list of teams the user belongs to
     const appUserResult = await adminClient
       .from('app_user')
       .select('id')
@@ -104,8 +109,8 @@ serve(async (req) => {
       }
     }
     
-    // Get all equipment the user can access
-    const query = adminClient
+    // Build and execute query with correct filtering logic
+    let query = adminClient
       .from('equipment')
       .select(`
         *,
@@ -113,20 +118,14 @@ serve(async (req) => {
         org:org_id (name)
       `)
       .is('deleted_at', null);
-      
-    if (userOrgId) {
-      // If we have the user's org, we can add the org filter
-      query.eq('org_id', userOrgId);
-      
-      // If we have accessible teams, we need to add those too
-      if (accessibleTeamIds.length > 0) {
-        // Use 'or' to combine conditions
-        query.or(`team_id.in.(${accessibleTeamIds.join(',')}),org_id.eq.${userOrgId}`);
-      }
-    } else if (accessibleTeamIds.length > 0) {
-      // If we don't have the user's org but do have teams, just filter on teams
+    
+    // First filter condition: equipment belongs to user's organization
+    query = query.or(`org_id.eq.${userOrgId}`);
+    
+    // Second filter condition: equipment belongs to user's teams (if any)
+    if (accessibleTeamIds.length > 0) {
       const teamIdList = accessibleTeamIds.join(',');
-      query.or(`team_id.in.(${teamIdList})`);
+      query = query.or(`team_id.in.(${teamIdList})`);
     }
     
     const { data: equipment, error } = await query.order('name');
@@ -138,14 +137,14 @@ serve(async (req) => {
     
     // Process the equipment data to add required fields
     const processedEquipment = equipment?.map(item => {
-      const isExternalOrg = item.team?.org_id && userOrgId && 
-                      item.team.org_id !== userOrgId;
+      const isExternalOrg = item.org_id !== userOrgId;
       
       return {
         ...item,
         team_name: item.team?.name || null,
         org_name: item.org?.name || 'Unknown Organization',
         is_external_org: isExternalOrg,
+        can_edit: !isExternalOrg || (item.team?.org_id === userOrgId)
       };
     }) || [];
     
