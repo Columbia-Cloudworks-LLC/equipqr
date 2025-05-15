@@ -97,6 +97,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     
     // Then fetch the attributes
     const attributes = await getEquipmentAttributes(id);
+    console.log('Equipment attributes fetched:', attributes);
     
     // Return equipment with attributes and extra info
     return {

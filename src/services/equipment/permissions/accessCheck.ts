@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface PermissionResponse {
@@ -45,30 +44,27 @@ export async function checkEquipmentAccess(authUserId: string, equipmentId: stri
 }
 
 /**
- * Check if user can edit equipment using our improved permission function
- * @param authUserId - The auth user ID 
- * @param equipmentId - The equipment ID
- * @returns Boolean indicating whether user has edit permission
+ * Check if a user has edit permission for an equipment item
  */
-export async function checkEquipmentEditPermission(authUserId: string, equipmentId: string) {
+export async function checkEquipmentEditPermission(userId: string, equipmentId: string): Promise<boolean> {
   try {
-    // Check edit permission using improved function
-    const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_permission', {
+    console.log(`Checking edit permission for user ${userId} on equipment ${equipmentId}`);
+    
+    const { data, error } = await supabase.functions.invoke('check_equipment_permission', {
       body: {
-        user_id: authUserId,
+        user_id: userId,
         equipment_id: equipmentId,
         action: 'edit'
       }
     });
     
-    if (permissionError) {
-      console.error('Error checking equipment edit permission:', permissionError);
-      throw new Error(`Permission check failed: ${permissionError.message}`);
+    if (error) {
+      console.error('Error checking equipment edit permission:', error);
+      return false;
     }
     
-    const response = permissionCheck as PermissionResponse;
-    console.log('Edit permission check result:', response);
-    return response?.has_permission || false;
+    console.log('Edit permission check result:', data);
+    return data?.has_permission || false;
   } catch (error) {
     console.error('Error in checkEquipmentEditPermission:', error);
     return false;

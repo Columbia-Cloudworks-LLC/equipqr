@@ -28,6 +28,7 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
         // If we have an equipment ID, use the permission checker service
         if (equipmentId) {
           const hasPermission = await checkEquipmentEditPermission(user.id, equipmentId);
+          console.log(`Permission check for user ${user.id} to edit equipment ${equipmentId}: ${hasPermission}`);
           setCanEdit(hasPermission);
           return;
         }

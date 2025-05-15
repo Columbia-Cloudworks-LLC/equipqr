@@ -7,6 +7,8 @@ import { EquipmentAttribute } from "@/types";
  */
 export async function getEquipmentAttributes(equipmentId: string): Promise<EquipmentAttribute[]> {
   try {
+    console.log('Fetching attributes for equipment:', equipmentId);
+    
     const { data, error } = await supabase
       .from('equipment_attributes')
       .select('*')
@@ -17,6 +19,7 @@ export async function getEquipmentAttributes(equipmentId: string): Promise<Equip
       throw error;
     }
     
+    console.log(`Found ${data?.length || 0} attributes for equipment ${equipmentId}:`, data);
     return data || [];
   } catch (error) {
     console.error('Error in getEquipmentAttributes:', error);
@@ -49,34 +52,37 @@ export async function saveEquipmentAttributes(
     
     // Prepare maps for easy lookup
     const existingMap = new Map(
-      (existingAttributes || []).map(attr => [attr.key, attr])
-    );
-    
-    const newMap = new Map(
-      attributes.map(attr => [attr.key, attr])
+      (existingAttributes || []).map(attr => [attr.id, attr])
     );
     
     // Attributes to delete (exist in DB but not in new set)
     const toDelete = (existingAttributes || [])
-      .filter(attr => !newMap.has(attr.key))
+      .filter(attr => !attributes.some(newAttr => newAttr.id === attr.id))
       .map(attr => attr.id);
     
     // Attributes to update (exist in both DB and new set)
     const toUpdate = attributes
-      .filter(attr => existingMap.has(attr.key) && existingMap.get(attr.key)?.value !== attr.value)
+      .filter(attr => attr.id && existingMap.has(attr.id))
       .map(attr => ({
-        id: existingMap.get(attr.key)?.id,
+        id: attr.id,
+        key: attr.key,
         value: attr.value,
       }));
     
     // Attributes to insert (in new set but not in DB)
     const toInsert = attributes
-      .filter(attr => !existingMap.has(attr.key))
+      .filter(attr => !attr.id || !existingMap.has(attr.id))
       .map(attr => ({
         equipment_id: equipmentId,
         key: attr.key,
         value: attr.value,
       }));
+    
+    console.log('Attributes processing:', {
+      toDelete: toDelete.length,
+      toUpdate: toUpdate.length,
+      toInsert: toInsert.length
+    });
     
     // Perform delete operations if needed
     if (toDelete.length > 0) {
@@ -95,11 +101,11 @@ export async function saveEquipmentAttributes(
     for (const attr of toUpdate) {
       const { error: updateError } = await supabase
         .from('equipment_attributes')
-        .update({ value: attr.value })
+        .update({ key: attr.key, value: attr.value })
         .eq('id', attr.id);
         
       if (updateError) {
-        console.error('Error updating equipment attribute:', updateError);
+        console.error(`Error updating equipment attribute ${attr.id}:`, updateError);
         throw updateError;
       }
     }
@@ -127,6 +133,7 @@ export async function saveEquipmentAttributes(
       throw refetchError;
     }
     
+    console.log('Updated equipment attributes:', updatedAttributes);
     return updatedAttributes || [];
   } catch (error) {
     console.error('Error in saveEquipmentAttributes:', error);
