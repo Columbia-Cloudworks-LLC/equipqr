@@ -65,7 +65,7 @@ serve(async (req) => {
     
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Use our non-recursive function to check team access
+    // Use our improved non-recursive function to check team access
     const { data: canAccess, error: accessError } = await adminClient.rpc('check_team_access_nonrecursive', {
       p_user_id: user_id,
       p_team_id: team_id
@@ -85,7 +85,7 @@ serve(async (req) => {
     
     // User has access, get additional details using service role to bypass RLS
     
-    // Get team role safely using our non-recursive function
+    // Get team role safely using our improved function
     const { data: roleData } = await adminClient.rpc('get_team_role_safe', {
       _user_id: user_id,
       _team_id: team_id

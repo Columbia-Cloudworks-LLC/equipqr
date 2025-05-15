@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Validate a user's membership in a team
+ * Validate a user's membership in a team using our improved non-recursive function
  * @param teamId The team ID to validate
  * @param userId Optional user ID (defaults to current user)
  * @returns Object with validation results 
@@ -24,7 +24,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
       }
     }
     
-    // Use our validate_team_access edge function that now uses non-recursive checks
+    // Use our improved validate_team_access edge function
     const { data, error } = await supabase.functions.invoke('validate_team_access', {
       body: { 
         team_id: teamId,
@@ -49,7 +49,6 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
 
 /**
  * Repair team membership by adding the current user as a manager
- * Use this when a team is created but the creator is not a member
  * @param teamId The team ID to repair
  * @returns Result of the repair operation
  */
@@ -65,7 +64,7 @@ export async function repairTeamMembership(teamId: string) {
     });
     
     if (error || (data && data.error)) {
-      console.error('Team repair error:', error || data.error);
+      console.error('Team repair error:', error || data?.error);
       throw new Error(error?.message || data?.error || "Failed to repair team membership");
     }
     
@@ -77,7 +76,7 @@ export async function repairTeamMembership(teamId: string) {
 }
 
 /**
- * Get detailed team access information for a user
+ * Get detailed team access information for a user using our improved non-recursive function
  * @param userId User ID to check
  * @param teamId Team ID to check
  * @returns Detailed access information
@@ -88,7 +87,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       throw new Error("User ID and Team ID are required");
     }
     
-    // Use validate_team_access edge function with our updated implementation
+    // Use improved validate_team_access edge function
     const { data, error } = await supabase.functions.invoke('validate_team_access', {
       body: { 
         team_id: teamId,

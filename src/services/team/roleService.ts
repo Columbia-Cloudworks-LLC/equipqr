@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 /**
  * Check if the current user has permission to change roles in a team
+ * using our improved permission check function
  * @param teamId The ID of the team
  * @returns A boolean indicating whether the user has permission
  */
@@ -23,8 +24,7 @@ export async function checkRoleChangePermission(teamId: string): Promise<boolean
     
     const userId = sessionData.session.user.id;
     
-    // Use edge function to check if user has permission to change roles
-    // This avoids recursion issues with RLS policies
+    // Use our improved database function through edge function
     const { data, error } = await supabase.functions.invoke('check_team_role_permission', {
       body: { team_id: teamId, user_id: userId }
     });
@@ -90,56 +90,26 @@ export async function requestRoleUpgrade(teamId: string) {
       throw new Error('Team ID is required');
     }
     
-    // Get current user ID
+    // Get current user session
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
       throw new Error('You must be logged in to request a role upgrade');
     }
     
-    // Send request to edge function
+    const userId = sessionData.session.user.id;
+    
+    // Send role upgrade request via edge function
     const { data, error } = await supabase.functions.invoke('request_role_upgrade', {
-      body: { 
-        team_id: teamId, 
-        user_id: sessionData.session.user.id 
-      }
+      body: { team_id: teamId, user_id: userId }
     });
     
-    if (error || data?.error) {
-      throw new Error(error?.message || data?.error || 'Failed to request role upgrade');
+    if (error) {
+      throw new Error(error.message || 'Failed to request role upgrade');
     }
     
-    return data;
+    return data || { message: 'Role upgrade request submitted' };
   } catch (error: any) {
     console.error('Error requesting role upgrade:', error);
     throw error;
   }
-}
-
-/**
- * Get the valid roles for team members based on user's current role
- * @param currentRole The current user's role
- * @returns Array of available roles
- */
-export function getAvailableRoles(currentRole?: string): UserRole[] {
-  // Manager or higher can assign all roles
-  if (currentRole === 'manager' || currentRole === 'owner' || currentRole === 'admin') {
-    return ['manager', 'technician', 'viewer'];
-  }
-  
-  // Technicians can only assign viewer role
-  if (currentRole === 'technician') {
-    return ['viewer'];
-  }
-  
-  // Default - no roles can be assigned
-  return [];
-}
-
-/**
- * Validate if a role is valid in the system
- * @param role The role to check
- * @returns Boolean indicating if the role is valid
- */
-export function isValidRole(role: string): role is UserRole {
-  return ['owner', 'manager', 'technician', 'viewer'].includes(role);
 }

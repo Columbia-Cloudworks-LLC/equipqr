@@ -1140,6 +1140,10 @@ export type Database = {
           reason: string
         }[]
       }
+      check_equipment_permissions: {
+        Args: { _user_id: string; _equipment_id: string; _action: string }
+        Returns: boolean
+      }
       check_team_access: {
         Args: { user_id: string; team_id: string }
         Returns: boolean
@@ -1158,6 +1162,10 @@ export type Database = {
       }
       check_team_access_nonrecursive: {
         Args: { p_user_id: string; p_team_id: string }
+        Returns: boolean
+      }
+      check_user_team_permission: {
+        Args: { _user_id: string; _team_id: string; _required_roles: string[] }
         Returns: boolean
       }
       gen_invitation_token: {

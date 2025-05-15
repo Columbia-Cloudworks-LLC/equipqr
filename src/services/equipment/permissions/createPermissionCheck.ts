@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { getUserOrganizationId } from "@/utils/authUtils";
 import { Json } from "@/integrations/supabase/types";
@@ -11,6 +12,7 @@ interface PermissionResponse {
 
 /**
  * Check if the current user has permission to create equipment
+ * using our improved permission check function
  * @param authUserId - The auth user ID
  * @param teamId - Optional team ID if equipment is being assigned to a team
  * @returns Object containing permission check result
@@ -21,7 +23,7 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
     const checkPermissionPayload = {
       user_id: authUserId,
       action: 'create',
-      ...(teamId && teamId !== 'none' ? { team_id: teamId } : {})
+      team_id: teamId && teamId !== 'none' ? teamId : null
     };
     
     const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke(
@@ -78,60 +80,40 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
 }
 
 /**
- * Fallback permission check if edge function fails
- * Uses direct query to get user's organization ID as a simpler check
+ * Fallback permission check using our improved database function
  */
 export async function fallbackPermissionCheck(authUserId: string, teamId?: string | null) {
   try {
-    console.log('Using fallback permission check with direct queries');
+    console.log('Using fallback permission check with RPC');
     
-    // Get the user's organization directly
-    const { data: userProfile, error: userError } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', authUserId)
-      .single();
-      
-    if (userError) {
-      console.error('Error getting user profile:', userError);
-      throw new Error(`Failed to determine organization: ${userError.message}`);
-    }
-    
-    const userOrgId = userProfile?.org_id;
-    
-    if (!userOrgId) {
-      throw new Error('User has no assigned organization');
-    }
-    
-    // If creating for a specific team
-    if (teamId && teamId !== 'none') {
-      // Get the team's organization
-      const { data: team, error: teamError } = await supabase
-        .from('team')
-        .select('org_id')
-        .eq('id', teamId)
-        .single();
-        
-      if (teamError) {
-        console.error('Error getting team:', teamError);
-        throw new Error(`Failed to get team information: ${teamError.message}`);
+    // Use our improved database function through RPC
+    const { data: permissionData, error: permissionError } = await supabase.rpc(
+      'check_equipment_create_permission',
+      { 
+        p_user_id: authUserId,
+        p_team_id: teamId && teamId !== 'none' ? teamId : null
       }
-      
-      const teamOrgId = team?.org_id;
-      
-      // If same org, we're good
-      if (userOrgId === teamOrgId) {
-        return { hasPermission: true, orgId: teamOrgId };
-      }
-      
-      // Otherwise, need to check if user is a member of this team with the right role
-      // This is complex and prone to error with RLS, so for now we'll simplify:
-      console.log('Different orgs, using user org as fallback');
-      return { hasPermission: true, orgId: userOrgId };
+    );
+    
+    if (permissionError) {
+      console.error('Error checking permission:', permissionError);
+      throw new Error(`Permission check failed: ${permissionError.message}`);
     }
     
-    // Simplest case - user creates equipment in their own org
-    return { hasPermission: true, orgId: userOrgId };
+    if (!permissionData || permissionData.length === 0) {
+      console.error('Permission check returned no data');
+      throw new Error('Failed to determine permission');
+    }
+    
+    if (!permissionData[0].has_permission) {
+      const reason = permissionData[0].reason || 'unknown';
+      throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
+    }
+    
+    return { 
+      hasPermission: true, 
+      orgId: permissionData[0].org_id 
+    };
   } catch (error) {
     console.error('Fallback permission check failed:', error);
     throw error;

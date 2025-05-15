@@ -50,61 +50,44 @@ serve(async (req) => {
       return createErrorResponse("Missing required parameters: team_id and user_id must be provided");
     }
     
-    // Create regular Supabase client - no admin bypass needed with our security definer functions
+    // Create Supabase client with service role to bypass RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
       throw new Error('Missing Supabase environment variables');
     }
     
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // First get the team's org_id
-    const { data: teamOrgId } = await supabase.rpc('get_team_org', {
-      team_id_param: team_id
-    });
+    // Use our improved function to check user's permission for the team
+    const { data: hasPermission, error: permissionError } = await supabase.rpc(
+      'check_user_team_permission',
+      {
+        _user_id: user_id,
+        _team_id: team_id,
+        _required_roles: ['manager', 'owner', 'admin']
+      }
+    );
     
-    if (!teamOrgId) {
-      return createErrorResponse("Team not found");
+    if (permissionError) {
+      console.error('Error checking team role permission:', permissionError);
+      return createErrorResponse(`Permission check error: ${permissionError.message}`);
     }
     
-    // Check if user is an org owner
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user_id)
-      .eq('org_id', teamOrgId)
-      .eq('role', 'owner')
-      .maybeSingle();
+    // Get the user's role for additional information
+    const { data: userRole } = await supabase.rpc(
+      'get_team_role_safe',
+      {
+        _user_id: user_id,
+        _team_id: team_id
+      }
+    );
     
-    if (userRoles) {
-      return createSuccessResponse({ 
-        hasPermission: true, 
-        reason: 'org_role',
-        role: 'owner' 
-      });
-    }
-    
-    // Check if user is a team manager/owner
-    const { data: teamRole } = await supabase.rpc('get_team_role_safe', {
-      _user_id: user_id,
-      _team_id: team_id
-    });
-    
-    const managerRoles = ['manager', 'owner'];
-    if (teamRole && managerRoles.includes(teamRole)) {
-      return createSuccessResponse({ 
-        hasPermission: true, 
-        reason: 'team_role',
-        role: teamRole
-      });
-    }
-    
-    // User doesn't have permission
     return createSuccessResponse({ 
-      hasPermission: false, 
-      reason: 'insufficient_permissions' 
+      hasPermission: hasPermission === true,
+      role: userRole,
+      reason: hasPermission ? 'permission_granted' : 'insufficient_permissions'
     });
     
   } catch (error) {

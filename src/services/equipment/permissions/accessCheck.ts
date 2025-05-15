@@ -8,14 +8,14 @@ interface PermissionResponse {
 }
 
 /**
- * Check if user has access to equipment using our optimized edge function
+ * Check if user has access to equipment using our improved permission function
  * @param authUserId - The auth user ID
  * @param equipmentId - The equipment ID
  * @returns Object containing access check result
  */
 export async function checkEquipmentAccess(authUserId: string, equipmentId: string) {
   try {
-    // Verify access to this equipment using optimized edge function
+    // Verify access to this equipment using improved function
     const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_permission', {
       body: {
         user_id: authUserId,
@@ -44,14 +44,14 @@ export async function checkEquipmentAccess(authUserId: string, equipmentId: stri
 }
 
 /**
- * Check if user can edit equipment using our optimized edge function
+ * Check if user can edit equipment using our improved permission function
  * @param authUserId - The auth user ID 
  * @param equipmentId - The equipment ID
  * @returns Boolean indicating whether user has edit permission
  */
 export async function checkEquipmentEditPermission(authUserId: string, equipmentId: string) {
   try {
-    // Check edit permission using optimized edge function
+    // Check edit permission using improved function
     const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_permission', {
       body: {
         user_id: authUserId,
@@ -74,7 +74,7 @@ export async function checkEquipmentEditPermission(authUserId: string, equipment
 }
 
 /**
- * Determine if a user can edit an equipment
+ * Determine if a user can edit an equipment based on team and org info
  * @param equipmentData - The equipment data with team and org info
  * @param userOrgId - The user's organization ID
  * @param teamAccess - The team access information
