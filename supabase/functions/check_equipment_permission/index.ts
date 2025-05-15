@@ -1,7 +1,58 @@
 
+// Inlining shared code instead of using imports
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
-import { createAdminClient } from '../_shared/adminClient.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+
+// Inlined CORS headers from _shared/cors.ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+};
+
+// Inlined success response function from _shared/cors.ts
+function createSuccessResponse(data: any) {
+  return new Response(
+    JSON.stringify(data),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      },
+      status: 200 
+    }
+  );
+}
+
+// Inlined error response function from _shared/cors.ts
+function createErrorResponse(message: string, status: number = 400) {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      }, 
+      status 
+    }
+  );
+}
+
+// Inlined admin client function from _shared/adminClient.ts
+function createAdminClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing required environment variables for Supabase client');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      persistSession: false
+    }
+  });
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -47,8 +98,8 @@ serve(async (req) => {
     const { data: permissionData, error: permissionError } = await adminClient.rpc(
       'rpc_check_equipment_permission',
       { 
-        user_id,
-        action,
+        user_id: user_id,
+        action: action,
         team_id: team_id || null,
         equipment_id: equipment_id || null
       }

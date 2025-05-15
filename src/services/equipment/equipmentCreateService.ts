@@ -38,25 +38,15 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
     let orgId;
     let permissionResult;
     
-    // First try the optimized edge function
     try {
-      console.log('Attempting permission check via edge function...');
+      // Try the permission check with improved error handling
+      console.log('Checking equipment creation permission...');
       permissionResult = await checkCreatePermission(authUserId, equipment.team_id);
       orgId = permissionResult.orgId;
       console.log(`Permission check successful. Using org ID: ${orgId}`);
-    } catch (edgeFnError) {
-      // Fallback to direct RPC call if edge function fails
-      console.error('Edge function error, falling back to direct RPC:', edgeFnError);
-      
-      try {
-        console.log('Attempting fallback permission check...');
-        permissionResult = await fallbackPermissionCheck(authUserId, equipment.team_id);
-        orgId = permissionResult.orgId;
-        console.log(`Fallback permission check successful. Using org ID: ${orgId}`);
-      } catch (fallbackError) {
-        console.error('Fallback permission check failed:', fallbackError);
-        throw new Error('Could not verify permissions to create equipment. Please try again.');
-      }
+    } catch (permError) {
+      console.error('Permission check failed completely:', permError);
+      throw new Error(`Permission check failed: ${permError.message || 'Unknown error'}`);
     }
     
     if (!orgId) {

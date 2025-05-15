@@ -40,12 +40,13 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
     
     if (permissionError) {
       console.error('Error from check_equipment_permission edge function:', permissionError);
-      throw new Error(`Permission check failed: ${permissionError.message}`);
+      console.log('Falling back to direct RPC check...');
+      return fallbackPermissionCheck(authUserId, teamId);
     }
     
     if (!permissionCheck) {
-      console.error('Permission check returned no data');
-      throw new Error('Permission check failed: No response data received');
+      console.error('Permission check returned no data, falling back to direct RPC');
+      return fallbackPermissionCheck(authUserId, teamId);
     }
     
     // Log raw response for debugging
@@ -70,11 +71,18 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
       };
     } else {
       console.error('Invalid permission check response format:', permissionCheck);
-      throw new Error('Permission check failed: Invalid response format');
+      console.log('Falling back to direct RPC check...');
+      return fallbackPermissionCheck(authUserId, teamId);
     }
   } catch (error) {
-    console.error('Permission check error:', error);
-    throw error;
+    console.error('Permission check error, attempting fallback:', error);
+    // Always attempt fallback on any error
+    try {
+      return fallbackPermissionCheck(authUserId, teamId);
+    } catch (fallbackError) {
+      console.error('All permission checks failed:', fallbackError);
+      throw fallbackError; // If both methods fail, propagate the error
+    }
   }
 }
 

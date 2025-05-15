@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Equipment } from '@/types';
@@ -44,16 +45,16 @@ const EquipmentFormPage = () => {
       const errorMessage = error instanceof Error ? error.message : 'Please try again later';
       console.error('Error creating equipment:', error);
       
-      if (errorMessage.includes('Permission denied') || 
+      if (errorMessage.includes('Permission') || 
           errorMessage.includes('permission') || 
           errorMessage.includes('need to be') ||
           errorMessage.includes('access to this team')) {
         toast.error('Permission Error', {
           description: errorMessage,
         });
-      } else if (errorMessage.includes('Edge Function')) {
+      } else if (errorMessage.includes('Edge Function') || errorMessage.includes('function invoke error')) {
         toast.error('Server Error', {
-          description: 'There was an issue with the server. Please try again or contact support if the problem persists.',
+          description: 'There was an issue with the permission check service. Please try again or contact support if the problem persists.',
         });
       } else {
         toast.error('Failed to create equipment', {
@@ -75,15 +76,15 @@ const EquipmentFormPage = () => {
       const errorMessage = error instanceof Error ? error.message : 'Please try again later';
       console.error('Error updating equipment:', error);
       
-      if (errorMessage.includes('Permission denied') || 
+      if (errorMessage.includes('Permission') || 
           errorMessage.includes('permission') || 
           errorMessage.includes('need to be')) {
         toast.error('Permission Error', {
           description: errorMessage,
         });
-      } else if (errorMessage.includes('Edge Function')) {
+      } else if (errorMessage.includes('Edge Function') || errorMessage.includes('function invoke error')) {
         toast.error('Server Error', {
-          description: 'There was an issue with the server. Please try again or contact support if the problem persists.',
+          description: 'There was an issue with the permission check service. Please try again or contact support if the problem persists.',
         });
       } else {
         toast.error('Failed to update equipment', {
