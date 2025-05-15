@@ -1,6 +1,39 @@
+
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
+
+// Inline the CORS headers and functions from _shared/cors.ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+};
+
+function createSuccessResponse(data: any, status: number = 200) {
+  return new Response(
+    JSON.stringify(data),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      },
+      status 
+    }
+  );
+}
+
+function createErrorResponse(message: string, status: number = 400) {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      }, 
+      status 
+    }
+  );
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -170,7 +203,7 @@ serve(async (req) => {
         warning: "Team member was created but role verification failed",
         team_member_id: teamMemberId,
         success: true
-      }, 200);
+      });
     }
     
     return createSuccessResponse({ 
@@ -178,7 +211,7 @@ serve(async (req) => {
       team_member_id: teamMemberId,
       role_id: verifyRole.id,
       role: verifyRole.role
-    }, 200);
+    });
     
   } catch (error) {
     console.error('Unexpected error:', error);
