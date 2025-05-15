@@ -1,46 +1,49 @@
 
-import { Equipment, EquipmentAttribute } from "@/types";
-import { processDateFields } from "@/utils/authUtils";
+import { Equipment, EquipmentAttribute } from '@/types';
+import { processDateFields } from '@/utils/authUtils';
 
 /**
- * Process equipment data for database insertion
- * @param equipment - The equipment data from the form
- * @param appUserId - The app user ID
- * @param orgId - The organization ID
- * @returns Processed equipment data ready for database insertion
+ * Extract attributes from equipment data before sending to the database
+ * @param equipment - The equipment data containing attributes
+ * @returns The extracted attributes array
+ */
+export function extractAttributes(equipment: Partial<Equipment>): EquipmentAttribute[] {
+  // Extract attributes if they exist
+  const attributes = equipment.attributes || [];
+  return attributes;
+}
+
+/**
+ * Prepare equipment data for database insertion
+ * @param equipment - The equipment data
+ * @param appUserId - The app_user ID of the current user
+ * @param orgId - The organization ID for the equipment
+ * @returns The processed equipment data ready for database insertion
  */
 export function prepareEquipmentData(
   equipment: Partial<Equipment>, 
   appUserId: string, 
   orgId: string
-) {
-  // Extract attributes before sending to database
+): any {
+  // Make a clean copy without the attributes
   const equipmentData = { ...equipment };
   delete equipmentData.attributes;
   
-  // Process dates and prepare data
-  return processDateFields({
-    name: equipment.name,
-    model: equipment.model,
-    serial_number: equipment.serial_number,
-    manufacturer: equipment.manufacturer,
-    status: equipment.status || 'active',
-    location: equipment.location,
-    install_date: equipment.install_date,
-    warranty_expiration: equipment.warranty_expiration,
-    notes: equipment.notes,
-    team_id: equipment.team_id === 'none' ? null : equipment.team_id,
-    // Add required fields
+  // Handle special values
+  if (equipmentData.team_id === 'none' || equipmentData.team_id === '') {
+    equipmentData.team_id = null;
+  }
+  
+  // Add required fields
+  const nowTimestamp = new Date().toISOString();
+  const dataWithMetadata = {
+    ...equipmentData,
+    org_id: orgId,
     created_by: appUserId,
-    org_id: orgId
-  }, ['install_date', 'warranty_expiration']);
-}
-
-/**
- * Extract attributes from equipment data
- * @param equipment - The equipment data from the form
- * @returns Array of equipment attributes
- */
-export function extractAttributes(equipment: Partial<Equipment>): EquipmentAttribute[] {
-  return equipment.attributes || [];
+    created_at: nowTimestamp,
+    updated_at: nowTimestamp
+  };
+  
+  // Process date fields correctly
+  return processDateFields(dataWithMetadata, ['install_date', 'warranty_expiration']);
 }

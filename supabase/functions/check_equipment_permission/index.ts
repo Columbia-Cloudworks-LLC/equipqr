@@ -2,14 +2,13 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Inlined CORS headers from _shared/cors.ts
+// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Inlined success response function from _shared/cors.ts
 function createSuccessResponse(data: any) {
   return new Response(
     JSON.stringify(data),
@@ -23,7 +22,6 @@ function createSuccessResponse(data: any) {
   );
 }
 
-// Inlined error response function from _shared/cors.ts
 function createErrorResponse(message: string, status: number = 400) {
   return new Response(
     JSON.stringify({ error: message }),
@@ -37,13 +35,12 @@ function createErrorResponse(message: string, status: number = 400) {
   );
 }
 
-// Inlined admin client function from _shared/adminClient.ts
 function createAdminClient() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   
   if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing required environment variables for Supabase client');
+    throw new Error('Missing Supabase environment variables');
   }
   
   return createClient(supabaseUrl, supabaseServiceKey, {
@@ -63,7 +60,7 @@ serve(async (req) => {
     const body = await req.json();
     const { user_id, equipment_id, team_id, action } = body;
     
-    console.log(`Permission check request: ${JSON.stringify(body)}`);
+    console.log(`Permission check request:`, JSON.stringify(body));
     
     if (!user_id) {
       console.error("Missing user_id parameter");
@@ -82,23 +79,13 @@ serve(async (req) => {
     
     // Create Supabase client with service role to bypass RLS
     const adminClient = createAdminClient();
-    
-    // Check if request is using service role - if so, grant automatic permission
-    const authHeader = req.headers.get('authorization');
-    if (authHeader && authHeader.includes('service_role')) {
-      console.log("Service role detected, granting permission automatically");
-      return createSuccessResponse({
-        has_permission: true,
-        reason: 'service_role'
-      });
-    }
 
     // Direct DB queries without RPC functions to avoid type issues
     if (action === 'create') {
       // Check if user can create equipment
       let userOrgId, teamOrgId;
       
-      // Get user's organization ID - with proper type cast
+      // Get user's organization ID
       const { data: userProfile, error: userError } = await adminClient
         .from('user_profiles')
         .select('org_id')

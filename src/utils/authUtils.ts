@@ -2,81 +2,79 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Convert auth.users ID to app_user ID
+ * Process date fields to handle various formats
  */
-export async function getAppUserId(authUserId: string): Promise<string> {
+export function processDateFields(data: any, dateFields: string[]): any {
+  const processedData = { ...data };
+  
+  dateFields.forEach(field => {
+    if (processedData[field]) {
+      // If it's already an ISO string or date object, we're good
+      if (processedData[field] instanceof Date) {
+        processedData[field] = processedData[field].toISOString().split('T')[0];
+      } else if (typeof processedData[field] === 'string') {
+        // Make sure string dates are in YYYY-MM-DD format
+        const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+        if (!datePattern.test(processedData[field])) {
+          try {
+            // Parse the date and format it correctly
+            const date = new Date(processedData[field]);
+            processedData[field] = date.toISOString().split('T')[0];
+          } catch (e) {
+            console.error(`Error processing date field ${field}:`, e);
+            // In case of error, null out the field to avoid DB errors
+            processedData[field] = null;
+          }
+        }
+      }
+    }
+  });
+  
+  return processedData;
+}
+
+/**
+ * Get the current user's organization ID
+ */
+export async function getUserOrganizationId(userId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error getting user org ID:', error);
+      return null;
+    }
+    
+    return data?.org_id || null;
+  } catch (error) {
+    console.error('Error in getUserOrganizationId:', error);
+    return null;
+  }
+}
+
+/**
+ * Convert an auth user ID to an app_user ID
+ */
+export async function getAppUserId(authUserId: string): Promise<string | null> {
   try {
     const { data, error } = await supabase
       .from('app_user')
       .select('id')
       .eq('auth_uid', authUserId)
-      .maybeSingle();
-    
+      .single();
+      
     if (error) {
-      console.error('Error getting app_user ID:', error);
-      throw error;
+      console.error('Error getting app user ID:', error);
+      return null;
     }
     
-    if (!data || !data.id) {
-      console.error('No app_user found for auth_uid:', authUserId);
-      throw new Error('User profile not found');
-    }
-    
-    return data.id;
+    return data?.id || null;
   } catch (error) {
     console.error('Error in getAppUserId:', error);
-    throw error;
+    return null;
   }
-}
-
-/**
- * Get user's organization ID
- */
-export async function getUserOrganizationId(authUserId: string): Promise<string> {
-  try {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', authUserId)
-      .single();
-    
-    if (error) {
-      console.error('Error getting user organization ID:', error);
-      throw error;
-    }
-    
-    if (!data || !data.org_id) {
-      console.error('No organization found for user:', authUserId);
-      throw new Error('User organization not found');
-    }
-    
-    return data.org_id;
-  } catch (error) {
-    console.error('Error in getUserOrganizationId:', error);
-    throw error;
-  }
-}
-
-/**
- * Process input data to handle empty strings for date fields
- * @param data The data object to process
- * @param dateFields Array of field names to check for empty strings
- * @returns A new object with processed date fields
- */
-export function processDateFields<T extends Record<string, any>>(data: T, dateFields: string[]): T {
-  // Create a shallow copy of the input object
-  const processed = { ...data } as T;
-  
-  // Process each date field
-  dateFields.forEach(field => {
-    if (field in processed) {
-      const value = processed[field as keyof T];
-      if (value === '' || value === undefined) {
-        // Use type assertion to safely assign to the property
-        (processed as Record<string, any>)[field] = null;
-      }
-    }
-  });
-  
-  return processed;
 }

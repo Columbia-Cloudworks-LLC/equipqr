@@ -2,14 +2,13 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Inlined CORS headers
+// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Inlined success response function
 function createSuccessResponse(data: any) {
   return new Response(
     JSON.stringify(data),
@@ -23,7 +22,6 @@ function createSuccessResponse(data: any) {
   );
 }
 
-// Inlined error response function
 function createErrorResponse(message: string, status: number = 400) {
   return new Response(
     JSON.stringify({ error: message }),
@@ -44,14 +42,13 @@ serve(async (req) => {
   }
 
   try {
-    // Parse the request body for user_id
     const { user_id } = await req.json();
     
     if (!user_id) {
       return createErrorResponse("Missing required parameter: user_id");
     }
 
-    // Create Supabase admin client to bypass RLS
+    // Create admin client that bypasses RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     
@@ -64,140 +61,109 @@ serve(async (req) => {
       supabaseServiceKey
     );
 
-    // Get the user's organization ID for determining external teams
+    // Get user's organization
     const { data: userProfile, error: profileError } = await adminClient
       .from('user_profiles')
       .select('org_id')
       .eq('id', user_id)
       .single();
-      
+    
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
       return createErrorResponse(`Failed to fetch user profile: ${profileError.message}`);
     }
     
-    const userOrgId = userProfile?.org_id;
-    
-    // First get teams from user's organization
-    const { data: orgTeams, error: orgTeamsError } = await adminClient
-      .from('team')
-      .select(`
-        id, 
-        name,
-        org_id,
-        organization:org_id (name)
-      `)
-      .eq('org_id', userOrgId)
-      .is('deleted_at', null);
-      
-    if (orgTeamsError) {
-      console.error('Error fetching org teams:', orgTeamsError);
-      return createErrorResponse(`Failed to fetch organization teams: ${orgTeamsError.message}`);
-    }
-      
-    // Get app_user.id for this auth user
+    // Get user's app_user id (needed for team member queries)
     const { data: appUser, error: appUserError } = await adminClient
       .from('app_user')
       .select('id')
       .eq('auth_uid', user_id)
       .single();
-      
+    
     if (appUserError) {
-      console.error('Error fetching app user:', appUserError);
-      return createErrorResponse(`Failed to fetch app user: ${appUserError.message}`);
+      console.error('Error fetching app_user:', appUserError);
+      return createErrorResponse(`Failed to fetch user: ${appUserError.message}`);
     }
     
-    // Get teams where user is a member (might be from other organizations)
+    const userOrgId = userProfile?.org_id;
     const appUserId = appUser?.id;
-    let externalTeams: any[] = [];
     
-    if (appUserId) {
-      // Get team memberships
-      const { data: teamMemberships, error: membershipsError } = await adminClient
-        .from('team_member')
-        .select('team_id')
-        .eq('user_id', appUserId);
-        
-      if (membershipsError) {
-        console.error('Error fetching team memberships:', membershipsError);
-        return createErrorResponse(`Failed to fetch team memberships: ${membershipsError.message}`);
-      }
-      
-      if (teamMemberships && teamMemberships.length > 0) {
-        const teamIds = teamMemberships.map(tm => tm.team_id);
-        
-        // Get details for these teams
-        const { data: memberTeams, error: memberTeamsError } = await adminClient
-          .from('team')
-          .select(`
-            id,
-            name,
-            org_id,
-            organization:org_id (name)
-          `)
-          .in('id', teamIds)
-          .is('deleted_at', null);
-          
-        if (memberTeamsError) {
-          console.error('Error fetching member teams:', memberTeamsError);
-          return createErrorResponse(`Failed to fetch member teams: ${memberTeamsError.message}`);
-        }
-        
-        // Get team roles
-        const teamRolePromises = teamMemberships.map(async (tm) => {
-          const { data: teamMember } = await adminClient
-            .from('team_member')
-            .select('id')
-            .eq('user_id', appUserId)
-            .eq('team_id', tm.team_id)
-            .single();
-            
-          if (!teamMember) return { team_id: tm.team_id, role: null };
-          
-          const { data: teamRole } = await adminClient
-            .from('team_roles')
-            .select('role')
-            .eq('team_member_id', teamMember.id)
-            .single();
-            
-          return { team_id: tm.team_id, role: teamRole?.role };
-        });
-        
-        const teamRoles = await Promise.all(teamRolePromises);
-        
-        // Find teams from other organizations
-        externalTeams = (memberTeams || [])
-          .filter(team => team.org_id !== userOrgId)
-          .map(team => {
-            const roleInfo = teamRoles.find(tr => tr.team_id === team.id);
-            return {
-              id: team.id,
-              name: team.name,
-              org_id: team.org_id,
-              org_name: team.organization?.name,
-              is_external: true,
-              role: roleInfo?.role
-            };
-          });
-      }
+    if (!userOrgId || !appUserId) {
+      return createErrorResponse('User profile or app_user not found');
     }
     
-    // Format org teams
-    const formattedOrgTeams = (orgTeams || []).map(team => ({
-      id: team.id,
-      name: team.name,
-      org_id: team.org_id,
-      org_name: team.organization?.name,
-      is_external: false,
-      role: 'member' // Default role for org teams
-    }));
+    // Get teams where user is a member directly with their roles
+    const { data: userTeams, error: teamError } = await adminClient
+      .from('team_member')
+      .select(`
+        team:team_id (
+          id,
+          name,
+          org_id,
+          org:org_id (name)
+        ),
+        team_roles (role)
+      `)
+      .eq('user_id', appUserId);
     
-    // Combine all teams
-    const allTeams = [...formattedOrgTeams, ...externalTeams];
+    if (teamError) {
+      console.error('Error fetching user teams:', teamError);
+      return createErrorResponse(`Failed to fetch user teams: ${teamError.message}`);
+    }
     
-    return createSuccessResponse({ teams: allTeams });
+    // Get teams from user's organization
+    const { data: orgTeams, error: orgTeamError } = await adminClient
+      .from('team')
+      .select(`
+        id,
+        name,
+        org_id, 
+        org:org_id (name)
+      `)
+      .eq('org_id', userOrgId)
+      .is('deleted_at', null);
+    
+    if (orgTeamError) {
+      console.error('Error fetching org teams:', orgTeamError);
+      return createErrorResponse(`Failed to fetch organization teams: ${orgTeamError.message}`);
+    }
+    
+    // Process direct teams with roles
+    const processedUserTeams = userTeams?.map(tm => {
+      const team = tm.team;
+      const role = tm.team_roles?.[0]?.role || 'viewer';
+      
+      return {
+        id: team.id,
+        name: team.name,
+        org_id: team.org_id,
+        org_name: team.org?.name,
+        role: role,
+        is_external: team.org_id !== userOrgId
+      };
+    }) || [];
+    
+    // Process org teams (if not already in user teams)
+    const userTeamIds = new Set(processedUserTeams.map(t => t.id));
+    const processedOrgTeams = orgTeams
+      ?.filter(team => !userTeamIds.has(team.id))
+      ?.map(team => ({
+        id: team.id,
+        name: team.name,
+        org_id: team.org_id,
+        org_name: team.org?.name,
+        role: null,
+        is_external: false  // Org teams are never external
+      })) || [];
+    
+    // Combine both team lists
+    const allTeams = [...processedUserTeams, ...processedOrgTeams];
+    
+    return createSuccessResponse({
+      teams: allTeams
+    });
   } catch (error) {
-    console.error('Unexpected error in get_user_teams:', error);
+    console.error('Error in get_user_teams:', error);
     return createErrorResponse(`Unexpected error: ${error.message}`);
   }
 });

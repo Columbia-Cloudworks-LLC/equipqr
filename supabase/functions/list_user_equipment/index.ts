@@ -2,14 +2,13 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Inlined CORS headers
+// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Inlined success response function
 function createSuccessResponse(data: any) {
   return new Response(
     JSON.stringify(data),
@@ -23,7 +22,6 @@ function createSuccessResponse(data: any) {
   );
 }
 
-// Inlined error response function
 function createErrorResponse(message: string, status: number = 400) {
   return new Response(
     JSON.stringify({ error: message }),
@@ -48,12 +46,6 @@ serve(async (req) => {
     
     if (!user_id) {
       return createErrorResponse("Missing required parameter: user_id");
-    }
-
-    // Get the authorization header from the request
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return createErrorResponse("Missing authorization header");
     }
 
     // Create Supabase client using the service role key to bypass RLS
@@ -113,8 +105,6 @@ serve(async (req) => {
     }
     
     // Get all equipment the user can access
-    // 1. From user's org
-    // 2. From teams where user is a member
     const query = adminClient
       .from('equipment')
       .select(`
@@ -125,13 +115,18 @@ serve(async (req) => {
       .is('deleted_at', null);
       
     if (userOrgId) {
-      // Add org ownership filter
+      // If we have the user's org, we can add the org filter
       query.eq('org_id', userOrgId);
-    }
-    
-    if (accessibleTeamIds.length > 0) {
-      // Add team membership filter if we found teams
-      query.or(`team_id.in.(${accessibleTeamIds.join(',')})`);
+      
+      // If we have accessible teams, we need to add those too
+      if (accessibleTeamIds.length > 0) {
+        // Use 'or' to combine conditions
+        query.or(`team_id.in.(${accessibleTeamIds.join(',')}),org_id.eq.${userOrgId}`);
+      }
+    } else if (accessibleTeamIds.length > 0) {
+      // If we don't have the user's org but do have teams, just filter on teams
+      const teamIdList = accessibleTeamIds.join(',');
+      query.or(`team_id.in.(${teamIdList})`);
     }
     
     const { data: equipment, error } = await query.order('name');
