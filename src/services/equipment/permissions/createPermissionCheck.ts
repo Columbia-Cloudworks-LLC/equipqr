@@ -2,6 +2,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getUserOrganizationId } from "@/utils/authUtils";
 
+interface PermissionResponse {
+  has_permission: boolean;
+  reason?: string;
+  org_id?: string;
+}
+
 /**
  * Check if the current user has permission to create equipment
  * @param authUserId - The auth user ID
@@ -35,15 +41,17 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
       throw new Error(`Permission check failed: ${permissionError.message}`);
     }
     
-    if (!permissionCheck?.has_permission) {
-      const reason = permissionCheck?.reason || 'unknown';
+    const response = permissionCheck as PermissionResponse;
+    
+    if (!response || !response.has_permission) {
+      const reason = response?.reason || 'unknown';
       throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
     }
     
     // Return the org_id from the response
     return { 
       hasPermission: true, 
-      orgId: permissionCheck.org_id 
+      orgId: response.org_id 
     };
   } catch (error) {
     console.error('Permission check error:', error);
@@ -78,12 +86,14 @@ export async function fallbackPermissionCheck(authUserId: string, teamId?: strin
       throw new Error(`Permission check failed: ${permissionError.message}`);
     }
     
-    if (!permissionData?.has_permission) {
-      const reason = permissionData?.reason || 'unknown';
+    const response = permissionData as PermissionResponse;
+    
+    if (!response || !response.has_permission) {
+      const reason = response?.reason || 'unknown';
       throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
     }
     
-    const orgId = permissionData.org_id;
+    const orgId = response.org_id;
     
     if (!orgId) {
       throw new Error('Failed to determine organization ID for equipment creation');

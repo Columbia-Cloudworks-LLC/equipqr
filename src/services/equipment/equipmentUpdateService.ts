@@ -4,6 +4,11 @@ import { Equipment } from "@/types";
 import { processDateFields } from "@/utils/authUtils";
 import { saveEquipmentAttributes } from "./attributesService";
 
+interface PermissionResponse {
+  has_permission: boolean;
+  reason?: string;
+}
+
 /**
  * Update existing equipment
  */
@@ -31,8 +36,10 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
       throw new Error(`Access check failed: ${accessError.message}`);
     }
     
-    if (!accessCheck?.has_permission) {
-      const reason = accessCheck?.reason || 'unknown';
+    const response = accessCheck as PermissionResponse;
+    
+    if (!response || !response.has_permission) {
+      const reason = response?.reason || 'unknown';
       console.error('Access denied:', reason);
       throw new Error('You do not have permission to edit this equipment');
     }

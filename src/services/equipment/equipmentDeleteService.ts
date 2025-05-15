@@ -1,6 +1,11 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+interface PermissionResponse {
+  has_permission: boolean;
+  reason?: string;
+}
+
 /**
  * Soft delete equipment
  */
@@ -28,8 +33,10 @@ export async function deleteEquipment(id: string): Promise<boolean> {
       throw new Error(`Access check failed: ${accessError.message}`);
     }
     
-    if (!accessCheck?.has_permission) {
-      const reason = accessCheck?.reason || 'unknown';
+    const response = accessCheck as PermissionResponse;
+    
+    if (!response || !response.has_permission) {
+      const reason = response?.reason || 'unknown';
       console.error('Access denied:', reason);
       throw new Error('You do not have permission to delete this equipment');
     }

@@ -4,6 +4,11 @@ import { Equipment } from "@/types";
 import { getEquipmentAttributes } from "./attributesService";
 import { determineEditPermission } from "./permissions/accessCheck";
 
+interface PermissionResponse {
+  has_permission: boolean;
+  reason?: string;
+}
+
 /**
  * Get a single equipment by ID with its attributes
  */
@@ -31,8 +36,10 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       throw new Error(`Access check failed: ${accessCheckError.message}`);
     }
     
-    if (!accessCheck?.has_permission) {
-      console.error('User does not have access to this equipment:', accessCheck?.reason);
+    const response = accessCheck as PermissionResponse;
+    
+    if (!response || !response.has_permission) {
+      console.error('User does not have access to this equipment:', response?.reason);
       throw new Error('You do not have permission to view this equipment');
     }
     
@@ -72,7 +79,8 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       }
     });
     
-    const canEdit = editCheck?.has_permission || false;
+    const editResponse = editCheck as PermissionResponse;
+    const canEdit = editResponse?.has_permission || false;
     
     // Then fetch the attributes
     const attributes = await getEquipmentAttributes(id);

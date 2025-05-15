@@ -1,6 +1,12 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+interface PermissionResponse {
+  has_permission: boolean;
+  reason?: string;
+  org_id?: string;
+}
+
 /**
  * Check if user has access to equipment using our optimized edge function
  * @param authUserId - The auth user ID
@@ -23,12 +29,14 @@ export async function checkEquipmentAccess(authUserId: string, equipmentId: stri
       throw new Error(`Access check failed: ${accessError.message}`);
     }
     
-    if (!accessCheck?.has_permission) {
+    const response = accessCheck as PermissionResponse;
+    
+    if (!response || !response.has_permission) {
       console.error('User does not have access to this equipment');
       throw new Error('You do not have permission to view this equipment');
     }
     
-    return accessCheck;
+    return response;
   } catch (error) {
     console.error('Error in checkEquipmentAccess:', error);
     throw error;
@@ -57,7 +65,8 @@ export async function checkEquipmentEditPermission(authUserId: string, equipment
       throw new Error(`Permission check failed: ${permissionError.message}`);
     }
     
-    return permissionCheck?.has_permission || false;
+    const response = permissionCheck as PermissionResponse;
+    return response?.has_permission || false;
   } catch (error) {
     console.error('Error in checkEquipmentEditPermission:', error);
     return false;
