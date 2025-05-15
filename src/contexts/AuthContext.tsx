@@ -1,13 +1,13 @@
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext } from 'react';
 import {
   Session,
   SupabaseClient,
 } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { getSiteUrl, getAuthCallbackUrl } from '@/utils/authCallbackUtils';
+import { useAuthState } from '@/hooks/useAuthState';
+import { useAuthMethods } from '@/hooks/useAuthMethods';
 
 interface AuthContextType {
   supabaseClient: SupabaseClient<Database> | null;
@@ -36,178 +36,17 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<Session['user'] | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event) {
-          console.log("Auth state change event:", event);
-        }
-        setSession(session);
-        setUser(session?.user ?? null);
-        setAuthLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setAuthLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signInWithGoogle = async () => {
-    try {
-      setAuthLoading(true);
-      
-      // Get the correct site URL for redirects
-      const siteUrl = getSiteUrl();
-      const callbackUrl = getAuthCallbackUrl();
-      
-      console.log("Google sign-in using site URL:", siteUrl);
-      console.log("Google sign-in using callback URL:", callbackUrl);
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: callbackUrl,
-          queryParams: {
-            // Add prompt parameter for consistent login experience
-            prompt: 'select_account'
-          }
-        },
-      });
-
-      if (error) {
-        console.error('Google sign-in error:', error);
-        toast.error("Failed to sign in with Google", {
-          description: error.message
-        });
-      }
-    } catch (error) {
-      console.error('Unexpected error during Google sign-in:', error);
-      toast.error("An unexpected error occurred");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      setAuthLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        console.error('Sign-in error:', error);
-        toast.error("Failed to sign in", {
-          description: error.message
-        });
-        throw error;
-      }
-      
-      toast.success("Successfully signed in");
-    } catch (error) {
-      console.error('Unexpected error during sign-in:', error);
-      throw error;
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const signUp = async (email: string, password: string, userData?: any) => {
-    try {
-      setAuthLoading(true);
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: userData || {}
-        }
-      });
-
-      if (error) {
-        console.error('Sign-up error:', error);
-        toast.error("Failed to create account", {
-          description: error.message
-        });
-        throw error;
-      }
-      
-      toast.success("Account created successfully", {
-        description: "Please check your email for verification instructions"
-      });
-    } catch (error) {
-      console.error('Unexpected error during sign-up:', error);
-      throw error;
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    try {
-      setAuthLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getSiteUrl()}/auth/reset-password`,
-      });
-
-      if (error) {
-        console.error('Password reset error:', error);
-        toast.error("Failed to send password reset email", {
-          description: error.message
-        });
-        throw error;
-      }
-      
-      toast.success("Password reset email sent");
-    } catch (error) {
-      console.error('Unexpected error during password reset:', error);
-      throw error;
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      setAuthLoading(true);
-      await supabase.auth.signOut();
-      setUser(null);
-    } catch (error) {
-      console.error('Sign-out error:', error);
-      toast.error("Failed to sign out");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const checkSession = useCallback(async () => {
-    try {
-      const { data } = await supabase.auth.getSession();
-      const isValid = data?.session ? true : false;
-      
-      return isValid;
-    } catch (error) {
-      console.error("Error checking session:", error);
-      return false;
-    }
-  }, []);
+  // Get authentication state
+  const { user, session, isLoading, checkSession } = useAuthState();
+  
+  // Get authentication methods
+  const { signInWithGoogle, signIn, signUp, resetPassword, signOut } = useAuthMethods();
 
   const value = {
     supabaseClient: supabase,
     session,
     user,
-    isLoading: authLoading,
+    isLoading,
     signInWithGoogle,
     signIn,
     signUp,
