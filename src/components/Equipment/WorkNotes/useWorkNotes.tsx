@@ -35,8 +35,10 @@ export function useWorkNotes(equipmentId: string) {
   } = useQuery({
     queryKey: ['workNotes', equipmentId],
     queryFn: () => getWorkNotes(equipmentId),
-    onError: (err) => {
-      console.error('Error fetching work notes:', err);
+    meta: {
+      onError: (err: Error) => {
+        console.error('Error fetching work notes:', err);
+      }
     }
   });
   

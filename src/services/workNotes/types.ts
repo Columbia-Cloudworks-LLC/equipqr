@@ -12,6 +12,15 @@ export interface WorkNote {
   organization_id?: string;
   organization_name?: string;
   is_external_org?: boolean;
+  team_name?: string;
+  creator?: {
+    id: string;
+    display_name: string;
+    org?: {
+      id: string;
+      name: string;
+    }
+  };
 }
 
 export interface WorkNotePermissions {

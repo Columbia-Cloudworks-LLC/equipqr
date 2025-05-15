@@ -37,6 +37,9 @@ export function NoteItem({ note, canEdit, setEditingNote, onDeleteNote }: NoteIt
     setIsExpanded(prev => !prev);
   };
 
+  // Get author name from either the creator object or fallback to created_by field
+  const authorName = note.creator?.display_name || note.created_by;
+
   return (
     <div 
       className={`border rounded-md p-3 ${
@@ -52,9 +55,9 @@ export function NoteItem({ note, canEdit, setEditingNote, onDeleteNote }: NoteIt
               {note.is_public ? 'Public' : 'Private'}
             </Badge>
             
-            {note.creator?.display_name && (
+            {authorName && (
               <span className="text-sm text-muted-foreground">
-                {note.creator.display_name}
+                {authorName}
               </span>
             )}
             

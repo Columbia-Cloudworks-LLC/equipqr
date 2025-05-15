@@ -21,8 +21,8 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       throw error;
     }
     
-    // For each work note, try to fetch the creator's details if available
-    const notesWithUserInfo = await Promise.all(
+    // Process the work notes to match our interface
+    const processedNotes: WorkNote[] = await Promise.all(
       data.map(async (note) => {
         try {
           // Only try to get user info if we have a created_by value
@@ -45,20 +45,36 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
                 ...note,
                 organization_id: userData.org_id,
                 organization_name: orgData?.name || 'Unknown Organization',
-                is_external_org: false // Default to false
+                is_external_org: false, // Default to false
+                creator: {
+                  id: note.created_by,
+                  display_name: userData.display_name || 'Unknown User',
+                  org: orgData ? {
+                    id: userData.org_id,
+                    name: orgData.name
+                  } : undefined
+                }
               };
             }
           }
-          return note;
+          
+          // Return note without creator info if we couldn't get it
+          return {
+            ...note,
+            is_external_org: false
+          };
         } catch (err) {
           console.log('Error fetching user info for note:', err);
-          return note;
+          return {
+            ...note,
+            is_external_org: false
+          };
         }
       })
     );
     
-    console.log(`Found ${notesWithUserInfo.length} work notes`);
-    return notesWithUserInfo;
+    console.log(`Found ${processedNotes.length} work notes`);
+    return processedNotes;
   } catch (err) {
     console.error('Error in getWorkNotes:', err);
     throw new Error(`Failed to fetch work notes: ${err.message}`);
