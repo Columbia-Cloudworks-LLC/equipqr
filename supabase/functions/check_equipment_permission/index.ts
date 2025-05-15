@@ -105,7 +105,6 @@ serve(async (req) => {
     // For view/edit/delete actions, handle parameters carefully
     if (['view', 'edit', 'delete'].includes(action)) {
       try {
-        // First, make sure we're using proper UUID objects for the database
         // For permissions, use our non-recursive safe function
         const { data: hasPermission, error: permissionError } = await supabase.rpc(
           'check_equipment_permissions',

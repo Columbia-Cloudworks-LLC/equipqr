@@ -44,7 +44,7 @@ export function AttributesEditor({
           .eq('user_id', user.id)
           .single();
           
-        if (data && ['owner', 'manager', 'admin'].includes(data.role)) {
+        if (data && ['owner', 'manager'].includes(data.role)) {
           setCanEdit(true);
         } else {
           // Default to false - a more complete implementation would check team roles too
