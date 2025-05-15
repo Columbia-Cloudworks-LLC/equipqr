@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Equipment } from '@/types';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { AttributesEditor } from './AttributesEditor';
+import { AttributesEditor } from './Attributes';
 import {
   Card,
   CardContent,
