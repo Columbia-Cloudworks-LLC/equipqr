@@ -27,10 +27,20 @@ BEGIN
     RETURN TRUE;
   END IF;
   
-  -- Check team role using our safe function
-  v_team_role := get_team_role_safe(p_user_id, p_team_id);
+  -- Get app_user ID
+  SELECT id INTO v_app_user_id 
+  FROM public.app_user 
+  WHERE auth_uid = p_user_id;
   
-  -- If we got a role back, they can access the team
-  RETURN v_team_role IS NOT NULL;
+  IF v_app_user_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Check if user is a team member directly
+  RETURN EXISTS (
+    SELECT 1 
+    FROM public.team_member 
+    WHERE user_id = v_app_user_id AND team_id = p_team_id
+  );
 END;
 $$;
