@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, Edit, QrCode, Info, Users } from 'lucide-react';
+import { ArrowLeft, Edit, QrCode, Info, Users, Tags } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { WorkNotes } from '@/components/Equipment/WorkNotes';
 import {
@@ -23,11 +23,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AttributesList } from '@/components/Equipment/Attributes/AttributesList';
 
 export default function EquipmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [canEdit, setCanEdit] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("details");
   
   const {
     data: equipment,
@@ -109,6 +112,9 @@ export default function EquipmentDetail() {
       </Layout>
     );
   }
+
+  // Check if there are any attributes to display
+  const hasAttributes = equipment.attributes && equipment.attributes.length > 0;
 
   return (
     <Layout>
@@ -194,11 +200,47 @@ export default function EquipmentDetail() {
         )}
         
         <EquipmentCard equipment={equipment} showOrgInfo={false} />
-        
-        <Separator />
-        
-        {/* Work Notes Section */}
-        <WorkNotes equipmentId={id || ''} />
+
+        <Tabs defaultValue="details" className="w-full" onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            {hasAttributes && (
+              <TabsTrigger value="quick-hits" className="flex items-center">
+                <Tags className="mr-2 h-4 w-4" />
+                Quick Hits 
+                {hasAttributes && <Badge className="ml-2">{equipment.attributes?.length}</Badge>}
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="work-notes">Work Notes</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="details">
+            <EquipmentCard equipment={equipment} showOrgInfo={false} />
+          </TabsContent>
+          
+          {hasAttributes && (
+            <TabsContent value="quick-hits">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Tags className="mr-2 h-5 w-5" />
+                    Custom Attributes
+                  </CardTitle>
+                  <CardDescription>
+                    Quick reference information for this {equipment.name}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AttributesList attributes={equipment.attributes || []} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+          
+          <TabsContent value="work-notes">
+            <WorkNotes equipmentId={id || ''} />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
