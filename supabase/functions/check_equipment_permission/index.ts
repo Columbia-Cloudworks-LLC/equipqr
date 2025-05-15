@@ -61,7 +61,14 @@ serve(async (req) => {
     
     console.log('Permission check result:', permissionData);
     
-    return createSuccessResponse(permissionData);
+    // Explicitly structure the response to match the TypeScript interface
+    const formattedResponse = {
+      has_permission: permissionData?.has_permission || false,
+      org_id: permissionData?.org_id || null,
+      reason: permissionData?.reason || 'unknown'
+    };
+    
+    return createSuccessResponse(formattedResponse);
   } catch (error) {
     console.error('Unexpected error:', error);
     return createErrorResponse(`Unexpected error: ${error.message}`);

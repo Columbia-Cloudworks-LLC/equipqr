@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getUserOrganizationId } from "@/utils/authUtils";
 
+// Define a proper interface for permission check responses
 interface PermissionResponse {
   has_permission: boolean;
   reason?: string;
@@ -41,7 +42,14 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
       throw new Error(`Permission check failed: ${permissionError.message}`);
     }
     
+    if (!permissionCheck) {
+      console.error('Permission check returned no data');
+      throw new Error('Permission check failed: No response data received');
+    }
+    
+    // Safely handle the response as PermissionResponse
     const response = permissionCheck as PermissionResponse;
+    console.log('Permission check response:', response);
     
     if (!response || !response.has_permission) {
       const reason = response?.reason || 'unknown';
@@ -86,25 +94,48 @@ export async function fallbackPermissionCheck(authUserId: string, teamId?: strin
       throw new Error(`Permission check failed: ${permissionError.message}`);
     }
     
-    const response = permissionData as PermissionResponse;
-    
-    if (!response || !response.has_permission) {
-      const reason = response?.reason || 'unknown';
-      throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
+    if (!permissionData) {
+      console.error('Fallback permission check returned no data');
+      throw new Error('Permission check failed: No response data received');
     }
     
-    const orgId = response.org_id;
+    // Log the raw permission data for debugging
+    console.log('Raw permission check RPC result:', permissionData);
     
-    if (!orgId) {
-      throw new Error('Failed to determine organization ID for equipment creation');
+    // Safely handle the JSONB response
+    let response: PermissionResponse;
+    try {
+      // Handle both possible return types (direct JSONB object or string that needs parsing)
+      if (typeof permissionData === 'string') {
+        response = JSON.parse(permissionData) as PermissionResponse;
+      } else {
+        response = permissionData as PermissionResponse;
+      }
+      
+      console.log('Parsed permission check response:', response);
+      
+      if (!response?.has_permission) {
+        const reason = response?.reason || 'unknown';
+        throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
+      }
+      
+      const orgId = response.org_id;
+      
+      if (!orgId) {
+        throw new Error('Failed to determine organization ID for equipment creation');
+      }
+      
+      console.log(`Fallback permission check successful. Using org ID: ${orgId}`);
+      
+      return { 
+        hasPermission: true, 
+        orgId 
+      };
+    } catch (parseError) {
+      console.error('Error parsing permission response:', parseError);
+      console.error('Raw response was:', permissionData);
+      throw new Error('Failed to process permission check result');
     }
-    
-    console.log(`Fallback permission check successful. Using org ID: ${orgId}`);
-    
-    return { 
-      hasPermission: true, 
-      orgId 
-    };
   } catch (error) {
     console.error('Fallback permission check failed:', error);
     throw error;

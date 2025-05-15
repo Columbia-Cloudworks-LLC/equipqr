@@ -25,6 +25,8 @@ serve(async (req) => {
     // Use service role key to bypass RLS
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
     
+    console.log(`Permission check request: user_id=${user_id}, team_id=${team_id || 'null'}, org_id=${org_id || 'null'}`);
+    
     // Use our optimized database function
     const { data: permissionData, error: permissionError } = await supabase.rpc(
       'check_equipment_create_permission',
@@ -41,18 +43,23 @@ serve(async (req) => {
     }
     
     if (!permissionData || permissionData.length === 0) {
+      console.error('Permission check returned no data');
       return createSuccessResponse({
         can_create: false,
         reason: 'unknown_error'
       });
     }
     
+    console.log('Permission check result:', permissionData);
+    
     // Return a properly formatted response
-    return createSuccessResponse({
+    const response = {
       can_create: permissionData[0].has_permission,
       org_id: permissionData[0].org_id,
       reason: permissionData[0].reason
-    });
+    };
+    
+    return createSuccessResponse(response);
   } catch (error) {
     console.error('Unexpected error:', error);
     return createErrorResponse(error.message);

@@ -40,6 +40,7 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
     
     // First try the optimized edge function
     try {
+      console.log('Attempting permission check via edge function...');
       permissionResult = await checkCreatePermission(authUserId, equipment.team_id);
       orgId = permissionResult.orgId;
       console.log(`Permission check successful. Using org ID: ${orgId}`);
@@ -48,12 +49,19 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
       console.error('Edge function error, falling back to direct RPC:', edgeFnError);
       
       try {
+        console.log('Attempting fallback permission check...');
         permissionResult = await fallbackPermissionCheck(authUserId, equipment.team_id);
         orgId = permissionResult.orgId;
+        console.log(`Fallback permission check successful. Using org ID: ${orgId}`);
       } catch (fallbackError) {
         console.error('Fallback permission check failed:', fallbackError);
         throw new Error('Could not verify permissions to create equipment. Please try again.');
       }
+    }
+    
+    if (!orgId) {
+      console.error('No organization ID returned from permission check');
+      throw new Error('Failed to determine organization for equipment creation');
     }
     
     // Extract attributes before sending to database
@@ -61,9 +69,11 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
     
     // Process and prepare equipment data
     const processedEquipment = prepareEquipmentData(equipment, appUserId, orgId);
+    console.log('Processed equipment data:', processedEquipment);
     
     // Create the equipment record
     const data = await insertEquipment(processedEquipment);
+    console.log('Equipment created successfully:', data);
     
     // If we have attributes, insert them
     if (attributes.length > 0) {
