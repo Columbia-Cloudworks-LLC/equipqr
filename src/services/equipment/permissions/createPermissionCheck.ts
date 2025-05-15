@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getUserOrganizationId } from "@/utils/authUtils";
+import { Json } from "@/integrations/supabase/types";
 
 // Define a proper interface for permission check responses
 interface PermissionResponse {
@@ -121,10 +122,28 @@ export async function fallbackPermissionCheck(authUserId: string, teamId?: strin
       } else if (typeof permissionData === 'object' && permissionData !== null) {
         // If it's already an object, validate it has the required property
         if (!('has_permission' in permissionData)) {
-          console.error('Invalid permission response format:', permissionData);
-          throw new Error('Permission response does not have "has_permission" property');
+          // Use type assertion with a cast to unknown first to handle various JSONB shapes
+          // Check if it's a JSONB structure that could hold our permission data
+          const jsonObj = permissionData as {[key: string]: unknown};
+          
+          // Some Postgres functions might return the data nested inside a single key
+          // Try to find permission data inside the first object property
+          const firstValue = Object.values(jsonObj)[0];
+          
+          if (firstValue && 
+              typeof firstValue === 'object' && 
+              firstValue !== null &&
+              'has_permission' in firstValue) {
+            // Extract the nested permission response
+            response = firstValue as PermissionResponse;
+          } else {
+            console.error('Invalid permission response format:', permissionData);
+            throw new Error('Permission response does not have "has_permission" property');
+          }
+        } else {
+          // Direct cast is safe now that we've checked for has_permission
+          response = permissionData as unknown as PermissionResponse;
         }
-        response = permissionData as PermissionResponse;
       } else {
         console.error('Unexpected permission data type:', typeof permissionData);
         throw new Error(`Unexpected permission data type: ${typeof permissionData}`);
