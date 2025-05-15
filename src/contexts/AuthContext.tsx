@@ -6,6 +6,7 @@ import {
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getSiteUrl } from '@/utils/authCallbackUtils';
 
 interface AuthContextType {
   supabaseClient: SupabaseClient<Database> | null;
@@ -32,21 +33,6 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => {},
   resetPassword: async () => {},
 });
-
-// Get the site URL from Supabase config or environment
-const getSiteUrl = () => {
-  // For production, use the configured site URL from Supabase
-  // This matches what's set in supabase/config.toml
-  const SITE_URL = "https://equipqr-staging.vercel.app";
-  
-  // In development, we can use the local origin
-  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-    return window.location.origin;
-  }
-  
-  // Otherwise use the production URL
-  return SITE_URL;
-};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Session['user'] | null>(null);

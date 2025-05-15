@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -78,3 +77,22 @@ export async function getAppUserId(authUserId: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Returns the list of authorized domains for the application
+ */
+export const getAuthorizedDomains = (): string[] => {
+  return [
+    "localhost",
+    "127.0.0.1",
+    "equipqr-staging.vercel.app",
+    "equipqr.ai"
+  ];
+};
+
+/**
+ * Checks if the current hostname is an authorized domain
+ */
+export const isAuthorizedDomain = (hostname: string): boolean => {
+  return getAuthorizedDomains().some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
+};

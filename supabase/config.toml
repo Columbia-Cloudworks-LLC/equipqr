@@ -41,8 +41,13 @@ enabled = true
 
 [auth]
 enabled = true
-site_url = "https://equipqr-staging.vercel.app"
-additional_redirect_urls = ["https://equipqr-staging.vercel.app/auth/callback", "https://equipqr-staging.vercel.app/auth"]
+site_url = "https://equipqr.ai"
+additional_redirect_urls = [
+  "https://equipqr-staging.vercel.app/auth/callback", 
+  "https://equipqr-staging.vercel.app/auth", 
+  "https://equipqr.ai/auth/callback", 
+  "https://equipqr.ai/auth"
+]
 
 [analytics]
 enabled = false
