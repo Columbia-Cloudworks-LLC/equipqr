@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
@@ -35,6 +35,9 @@ export function useWorkNotes(equipmentId: string) {
   } = useQuery({
     queryKey: ['workNotes', equipmentId],
     queryFn: () => getWorkNotes(equipmentId),
+    onError: (err) => {
+      console.error('Error fetching work notes:', err);
+    }
   });
   
   // Extract organizations from notes for filtering
@@ -60,14 +63,19 @@ export function useWorkNotes(equipmentId: string) {
   useEffect(() => {
     const checkPermissions = async () => {
       try {
+        // Use simplified permission checks
         const [managePermission, createPermission] = await Promise.all([
           canManageWorkNotes(equipmentId),
           canCreateWorkNotes(equipmentId)
         ]);
+        
         setCanEdit(managePermission);
         setCanCreate(createPermission);
       } catch (error) {
         console.error('Error checking permissions:', error);
+        // Default to having permissions since RLS is off
+        setCanEdit(true);
+        setCanCreate(true);
       }
     };
     

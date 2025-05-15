@@ -1,79 +1,66 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { WorkNote } from "./types";
+import { supabase } from '@/integrations/supabase/client';
+import { WorkNote } from './types';
 
 /**
- * Get work notes for specific equipment
+ * Fetch work notes for a piece of equipment
  */
 export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
   try {
-    // Query work notes through RLS policies
+    console.log(`Fetching work notes for equipment: ${equipmentId}`);
+    
     const { data, error } = await supabase
       .from('equipment_work_notes')
-      .select(`
-        *,
-        creator:created_by(
-          id,
-          display_name,
-          org:org_id(
-            id,
-            name
-          )
-        )
-      `)
+      .select('*')
       .eq('equipment_id', equipmentId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
-      
+    
     if (error) {
-      console.error("Error fetching work notes:", error);
+      console.error('Error fetching work notes:', error);
       throw error;
     }
     
-    // Get the user's organization for determining external orgs
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    
-    let userOrgId = null;
-    if (userId) {
-      const { data: userProfile } = await supabase
-        .from('user_profiles')
-        .select('org_id')
-        .eq('id', userId)
-        .single();
-      
-      userOrgId = userProfile?.org_id;
-    }
-    
-    // Process and enhance work notes with additional information
-    const enhancedNotes = data.map(note => {
-      // Safely handle the creator object with proper typing
-      const creator = note.creator as {
-        id?: string;
-        display_name?: string;
-        org?: {
-          id?: string;
-          name?: string;
+    // For each work note, try to fetch the creator's details if available
+    const notesWithUserInfo = await Promise.all(
+      data.map(async (note) => {
+        try {
+          // Only try to get user info if we have a created_by value
+          if (note.created_by) {
+            const { data: userData } = await supabase
+              .from('user_profiles')
+              .select('display_name, org_id')
+              .eq('id', note.created_by)
+              .single();
+              
+            if (userData) {
+              // Try to get organization name
+              const { data: orgData } = await supabase
+                .from('organization')
+                .select('name')
+                .eq('id', userData.org_id)
+                .single();
+                
+              return {
+                ...note,
+                organization_id: userData.org_id,
+                organization_name: orgData?.name || 'Unknown Organization',
+                is_external_org: false // Default to false
+              };
+            }
+          }
+          return note;
+        } catch (err) {
+          console.log('Error fetching user info for note:', err);
+          return note;
         }
-      } | null;
-      
-      const creatorOrg = creator?.org;
-      
-      const processedNote: WorkNote = {
-        ...note,
-        creator: creator || undefined,
-        user_name: creator?.display_name || 'Unknown User',
-        organization_name: creatorOrg?.name || 'Unknown Organization',
-        organization_id: creatorOrg?.id || null,
-        is_external_org: creatorOrg?.id !== userOrgId && !!creatorOrg?.id
-      };
-      
-      return processedNote;
-    });
+      })
+    );
     
-    return enhancedNotes;
-  } catch (error) {
-    console.error("Failed to fetch work notes:", error);
-    throw error;
+    console.log(`Found ${notesWithUserInfo.length} work notes`);
+    return notesWithUserInfo;
+  } catch (err) {
+    console.error('Error in getWorkNotes:', err);
+    throw new Error(`Failed to fetch work notes: ${err.message}`);
   }
 }

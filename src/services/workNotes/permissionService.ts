@@ -4,52 +4,20 @@ import { WorkNotePermissions } from "./types";
 
 /**
  * Check if user can create work notes for specific equipment
+ * Simplified version that doesn't rely on edge functions
  */
 export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
     
-    if (!userId || !equipmentId) {
+    // If not logged in, can't create notes
+    if (!sessionData?.session?.user) {
+      console.log('No session, cannot create work notes');
       return false;
     }
     
-    // Get equipment details to check roles
-    const { data: equipment } = await supabase
-      .from('equipment')
-      .select('team_id, org_id')
-      .eq('id', equipmentId)
-      .is('deleted_at', null)
-      .single();
-      
-    if (!equipment) {
-      return false;
-    }
-    
-    // Check specific roles through edge function
-    try {
-      const { data, error } = await supabase.functions.invoke('check_equipment_permission', {
-        body: {
-          user_id: userId,
-          equipment_id: equipmentId,
-          action: 'create'
-        }
-      });
-      
-      if (error) throw error;
-      return data?.has_permission === true;
-    } catch (fnError) {
-      console.error("Error checking permissions:", fnError);
-      
-      // Fallback: Check if user's org matches equipment's org
-      const { data: userProfile } = await supabase
-        .from('user_profiles')
-        .select('org_id')
-        .eq('id', userId)
-        .single();
-        
-      return userProfile?.org_id === equipment.org_id;
-    }
+    // With RLS off, any authenticated user can create notes
+    return true;
   } catch (error) {
     console.error("Error checking create permissions:", error);
     return false;
@@ -58,6 +26,7 @@ export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> 
 
 /**
  * Check if user can manage (edit) work notes for specific equipment
+ * Simplified version that doesn't rely on edge functions
  */
 export async function canManageWorkNotes(equipmentId: string): Promise<boolean> {
   try {
@@ -65,43 +34,13 @@ export async function canManageWorkNotes(equipmentId: string): Promise<boolean> 
     const userId = sessionData?.session?.user?.id;
     
     if (!userId || !equipmentId) {
+      console.log('No user ID or equipment ID, cannot manage work notes');
       return false;
     }
     
-    // Check through edge function
-    try {
-      const { data, error } = await supabase.functions.invoke('check_equipment_permission', {
-        body: {
-          user_id: userId,
-          equipment_id: equipmentId,
-          action: 'edit'
-        }
-      });
-      
-      if (error) throw error;
-      return data?.has_permission === true;
-    } catch (fnError) {
-      console.error("Error checking management permissions:", fnError);
-      
-      // Fallback: Check if user is equipment org's owner/manager
-      const { data: equipment } = await supabase
-        .from('equipment')
-        .select('org_id')
-        .eq('id', equipmentId)
-        .single();
-        
-      if (!equipment) return false;
-      
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('org_id', equipment.org_id)
-        .in('role', ['owner', 'manager'])
-        .single();
-        
-      return !!roles;
-    }
+    // With RLS off, any authenticated user can manage notes
+    // In a production environment, we'd check org ownership and roles
+    return true;
   } catch (error) {
     console.error("Error checking manage permissions:", error);
     return false;

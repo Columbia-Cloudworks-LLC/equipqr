@@ -6,7 +6,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Info } from 'lucide-react';
 import { useWorkNotes } from './useWorkNotes';
-import { canCreateWorkNotes, canManageWorkNotes } from '@/services/workNotes/permissionService';
 import { toast } from 'sonner';
 
 interface WorkNotesProps {
@@ -14,8 +13,6 @@ interface WorkNotesProps {
 }
 
 export function WorkNotes({ equipmentId }: WorkNotesProps) {
-  const [canCreate, setCanCreate] = useState<boolean | null>(null);
-  const [canManage, setCanManage] = useState<boolean | null>(null);
   const [permissionLoading, setPermissionLoading] = useState<boolean>(true);
 
   const { 
@@ -26,35 +23,20 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
     editNote,
     deleteNote,
     refetchNotes,
-    createMutation
+    createMutation,
+    canEdit,
+    canCreate
   } = useWorkNotes(equipmentId);
 
-  // Check permissions when component mounts
+  // Setting loading state
   useEffect(() => {
-    const checkPermissions = async () => {
-      try {
-        setPermissionLoading(true);
-        const [createPermission, managePermission] = await Promise.all([
-          canCreateWorkNotes(equipmentId),
-          canManageWorkNotes(equipmentId)
-        ]);
-        setCanCreate(createPermission);
-        setCanManage(managePermission);
-      } catch (err) {
-        console.error('Error checking permissions:', err);
-        toast.error('Failed to check permissions');
-        // Default to no permissions on error
-        setCanCreate(false);
-        setCanManage(false);
-      } finally {
-        setPermissionLoading(false);
-      }
-    };
-
-    if (equipmentId) {
-      checkPermissions();
-    }
-  }, [equipmentId]);
+    // Short timeout to avoid quick flash of loading state
+    const timer = setTimeout(() => {
+      setPermissionLoading(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handle work notes data fetching error
   useEffect(() => {
@@ -101,7 +83,7 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
       <NotesList 
         notes={workNotes} 
         isLoading={isLoading} 
-        canManage={canManage || false} 
+        canManage={canEdit || false} 
         onEditNote={editNote}
         onDeleteNote={deleteNote}
       />
