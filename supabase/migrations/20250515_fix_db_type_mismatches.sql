@@ -86,3 +86,163 @@ SET search_path TO 'public'
 AS $$
   SELECT org_id FROM public.team WHERE id = team_id_param::UUID LIMIT 1;
 $$;
+
+-- Update the rpc_check_equipment_permission function to fix ambiguous column references
+CREATE OR REPLACE FUNCTION public.rpc_check_equipment_permission(user_id uuid, action text, team_id uuid DEFAULT NULL::uuid, equipment_id uuid DEFAULT NULL::uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  result JSONB;
+  permission_data RECORD;
+BEGIN
+  RAISE NOTICE 'rpc_check_equipment_permission called: user_id=%, action=%, team_id=%, equipment_id=%',
+    user_id, action, team_id, equipment_id;
+  
+  IF action = 'create' THEN
+    -- For equipment creation - direct call without circular reference
+    SELECT * INTO permission_data
+    FROM public.check_equipment_create_permission(user_id, team_id);
+    
+    -- Build result object with explicit keys
+    result := jsonb_build_object(
+      'has_permission', permission_data.has_permission, 
+      'org_id', permission_data.org_id,
+      'reason', permission_data.reason
+    );
+    
+    RAISE NOTICE 'Create permission result: %', result;
+  ELSIF action = 'edit' AND equipment_id IS NOT NULL THEN
+    -- For equipment editing - direct call without circular reference
+    result := jsonb_build_object(
+      'has_permission', public.can_edit_equipment(user_id, equipment_id)
+    );
+    
+    RAISE NOTICE 'Edit permission result: %', result;
+  ELSIF action = 'view' AND equipment_id IS NOT NULL THEN
+    -- For equipment viewing - direct call without circular reference
+    result := jsonb_build_object(
+      'has_permission', public.can_access_equipment(user_id, equipment_id)
+      
+    );
+    
+    RAISE NOTICE 'View permission result: %', result;
+  ELSE
+    -- Invalid action or missing parameters
+    result := jsonb_build_object('has_permission', false, 'reason', 'invalid_request');
+    RAISE NOTICE 'Invalid request: %', result;
+  END IF;
+  
+  RETURN result;
+END;
+$$;
+
+-- Fix the check_equipment_create_permission function to avoid ambiguous column references
+CREATE OR REPLACE FUNCTION public.check_equipment_create_permission(p_user_id uuid, p_team_id uuid DEFAULT NULL::uuid, p_org_id uuid DEFAULT NULL::uuid)
+RETURNS TABLE(has_permission boolean, org_id uuid, reason text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_user_org_id UUID;
+  v_team_org_id UUID;
+  v_app_user_id UUID;
+  v_role TEXT;
+  v_reason TEXT := 'unknown';
+BEGIN  
+  -- Get user's organization and app_user ID directly
+  SELECT up.org_id INTO v_user_org_id
+  FROM public.user_profiles up
+  WHERE up.id = p_user_id;
+  
+  SELECT au.id INTO v_app_user_id
+  FROM public.app_user au
+  WHERE au.auth_uid = p_user_id;
+  
+  -- If user doesn't have a profile, deny access
+  IF v_user_org_id IS NULL OR v_app_user_id IS NULL THEN
+    has_permission := FALSE;
+    reason := 'invalid_user';
+    RETURN NEXT;
+    RETURN;
+  END IF;
+  
+  -- Case 1: Using provided org_id
+  IF p_org_id IS NOT NULL THEN
+    -- Check if user is in this org
+    IF v_user_org_id = p_org_id THEN
+      -- Check if user has manager or owner role directly
+      IF EXISTS (
+        SELECT 1 FROM public.user_roles ur
+        WHERE ur.user_id = p_user_id
+        AND ur.org_id = p_org_id
+        AND ur.role IN ('owner', 'manager', 'admin')
+      ) THEN
+        has_permission := TRUE;
+        org_id := p_org_id;
+        reason := 'org_role';
+        RETURN NEXT;
+        RETURN;
+      END IF;
+    END IF;
+  END IF;
+  
+  -- Case 2: Using team_id
+  IF p_team_id IS NOT NULL THEN
+    -- Get team's organization directly
+    SELECT t.org_id INTO v_team_org_id
+    FROM public.team t
+    WHERE t.id = p_team_id;
+    
+    IF v_team_org_id IS NULL THEN
+      has_permission := FALSE;
+      reason := 'invalid_team';
+      RETURN NEXT;
+      RETURN;
+    END IF;
+    
+    -- If user belongs to same org as team
+    IF v_user_org_id = v_team_org_id THEN
+      has_permission := TRUE;
+      org_id := v_team_org_id;
+      reason := 'same_org';
+      RETURN NEXT;
+      RETURN;
+    END IF;
+    
+    -- Check team role directly without circular refs
+    SELECT tr.role INTO v_role
+    FROM public.team_member tm
+    JOIN public.team_roles tr ON tr.team_member_id = tm.id
+    WHERE tm.user_id = v_app_user_id
+    AND tm.team_id = p_team_id
+    LIMIT 1;
+    
+    -- Check if role allows equipment creation
+    IF v_role IN ('manager', 'owner', 'admin', 'creator') THEN
+      has_permission := TRUE;
+      org_id := v_team_org_id;
+      reason := 'team_role';
+      RETURN NEXT;
+      RETURN;
+    END IF;
+  END IF;
+  
+  -- Case 3: No team_id or org_id - use user's org
+  IF p_team_id IS NULL AND p_org_id IS NULL THEN
+    has_permission := TRUE;
+    org_id := v_user_org_id;
+    reason := 'default_org';
+    RETURN NEXT;
+    RETURN;
+  END IF;
+  
+  -- Default deny
+  has_permission := FALSE;
+  reason := 'no_permission';
+  RETURN NEXT;
+END;
+$$;

@@ -1,45 +1,34 @@
 
-// CORS headers for Edge Functions
+// CORS headers for edge functions
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
 };
 
-// Handle CORS preflight requests
-export function handleCorsPreflightRequest() {
-  return new Response(null, {
-    status: 204,
-    headers: corsHeaders
-  });
-}
-
-// Helper to create standardized error responses
-export function createErrorResponse(message: string, status = 400) {
+// Create a successful response with CORS headers
+export function createSuccessResponse(data: any) {
   return new Response(
-    JSON.stringify({ 
-      error: message 
-    }),
-    { 
-      status, 
-      headers: { 
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      } 
+    JSON.stringify(data),
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      },
+      status: 200,
     }
   );
 }
 
-// Helper to create standardized success responses
-export function createSuccessResponse(data: any, status = 200) {
+// Create an error response with CORS headers
+export function createErrorResponse(message: string, status = 400) {
   return new Response(
-    JSON.stringify(data),
-    { 
-      status, 
-      headers: { 
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      } 
+    JSON.stringify({ error: message }),
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      },
+      status,
     }
   );
 }

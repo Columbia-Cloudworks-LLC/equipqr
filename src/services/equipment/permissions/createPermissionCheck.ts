@@ -48,13 +48,15 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
       throw new Error('Permission check failed: No response data received');
     }
     
+    // Log raw response for debugging
+    console.log('Raw permission check response:', permissionCheck);
+    
     // Safely handle the response as PermissionResponse
-    // Type assertion with validation
     if (typeof permissionCheck === 'object' && 
         permissionCheck !== null && 
         'has_permission' in permissionCheck) {
       const response = permissionCheck as PermissionResponse;
-      console.log('Permission check response:', response);
+      console.log('Processed permission check response:', response);
       
       if (!response.has_permission) {
         const reason = response.reason || 'unknown';
@@ -111,14 +113,24 @@ export async function fallbackPermissionCheck(authUserId: string, teamId?: strin
     // Log the raw permission data for debugging
     console.log('Raw permission check RPC result:', permissionData);
     
-    // Safely handle the JSONB response with type validation
+    // Safely handle the response with extensive type validation
+    let response: PermissionResponse;
+    
     try {
-      // Handle both possible return types (direct JSONB object or string that needs parsing)
-      let response: PermissionResponse;
-      
+      // Handle various possible return types with careful type checking
       if (typeof permissionData === 'string') {
         // If it's a string, parse it
-        response = JSON.parse(permissionData) as PermissionResponse;
+        try {
+          const parsed = JSON.parse(permissionData);
+          if (typeof parsed === 'object' && parsed !== null && 'has_permission' in parsed) {
+            response = parsed as PermissionResponse;
+          } else {
+            throw new Error('Parsed string does not contain has_permission property');
+          }
+        } catch (parseError) {
+          console.error('Error parsing permission string:', parseError);
+          throw new Error('Failed to parse permission response string');
+        }
       } else if (typeof permissionData === 'object' && permissionData !== null) {
         // If it's already an object, validate it has the required property
         if (!('has_permission' in permissionData)) {
@@ -127,18 +139,43 @@ export async function fallbackPermissionCheck(authUserId: string, teamId?: strin
           const jsonObj = permissionData as {[key: string]: unknown};
           
           // Some Postgres functions might return the data nested inside a single key
-          // Try to find permission data inside the first object property
-          const firstValue = Object.values(jsonObj)[0];
+          // Log all keys to help with debugging
+          console.log('Keys in permission data:', Object.keys(jsonObj));
           
-          if (firstValue && 
-              typeof firstValue === 'object' && 
-              firstValue !== null &&
-              'has_permission' in firstValue) {
-            // Extract the nested permission response
-            response = firstValue as PermissionResponse;
+          if (Object.keys(jsonObj).length > 0) {
+            // Try to find permission data inside the first object property
+            const firstValue = Object.values(jsonObj)[0];
+            console.log('First value in permission data:', firstValue);
+            
+            if (firstValue && 
+                typeof firstValue === 'object' && 
+                firstValue !== null) {
+              
+              // Check if this is our permission object
+              if ('has_permission' in firstValue) {
+                // Extract the nested permission response
+                response = firstValue as unknown as PermissionResponse;
+                console.log('Found nested permission response:', response);
+              } else {
+                // Continue searching if there might be another level of nesting
+                const nestedValue = Object.values(firstValue as object)[0];
+                console.log('Nested value:', nestedValue);
+                
+                if (nestedValue && 
+                    typeof nestedValue === 'object' && 
+                    nestedValue !== null &&
+                    'has_permission' in nestedValue) {
+                  response = nestedValue as unknown as PermissionResponse;
+                  console.log('Found deeply nested permission response:', response);
+                } else {
+                  throw new Error('Could not find has_permission property in nested objects');
+                }
+              }
+            } else {
+              throw new Error('First value is not an object or is null');
+            }
           } else {
-            console.error('Invalid permission response format:', permissionData);
-            throw new Error('Permission response does not have "has_permission" property');
+            throw new Error('Permission data object has no properties');
           }
         } else {
           // Direct cast is safe now that we've checked for has_permission
@@ -149,7 +186,7 @@ export async function fallbackPermissionCheck(authUserId: string, teamId?: strin
         throw new Error(`Unexpected permission data type: ${typeof permissionData}`);
       }
       
-      console.log('Parsed permission check response:', response);
+      console.log('Processed permission check response:', response);
       
       if (!response.has_permission) {
         const reason = response.reason || 'unknown';
