@@ -26,6 +26,10 @@ no_public_access = false
 verify_jwt = true
 no_public_access = false
 
+[functions.check_equipment_create_permission]
+verify_jwt = true
+no_public_access = false
+
 [functions.check_team_role_permission]
 verify_jwt = true
 no_public_access = false

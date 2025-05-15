@@ -256,3 +256,4 @@ SET search_path TO 'public'
 AS $$
   SELECT org_id FROM public.team WHERE id = team_id_param::UUID LIMIT 1;
 $$;
+
