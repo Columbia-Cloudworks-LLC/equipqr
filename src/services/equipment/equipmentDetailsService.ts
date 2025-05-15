@@ -2,11 +2,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { getEquipmentAttributes } from "./attributesService";
-import { determineEditPermission } from "./permissions/accessCheck";
 
 interface PermissionResponse {
   has_permission: boolean;
   reason?: string;
+  role?: string;
 }
 
 /**
@@ -15,14 +15,21 @@ interface PermissionResponse {
 export async function getEquipmentById(id: string): Promise<Equipment> {
   try {
     // Get current user's auth ID
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      throw new Error('Authentication error: Please log in again');
+    }
+    
     if (!sessionData?.session?.user) {
+      console.error('No session user found');
       throw new Error('User must be logged in to view equipment details');
     }
     
     const authUserId = sessionData.session.user.id;
+    console.log('Getting equipment by ID. Auth user ID:', authUserId);
     
-    // Verify access to this equipment using our non-recursive edge function
+    // Verify access to this equipment using our edge function
     const { data: accessCheck, error: accessCheckError } = await supabase.functions.invoke('check_equipment_permission', {
       body: {
         user_id: authUserId,
@@ -37,9 +44,10 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     }
     
     const response = accessCheck as PermissionResponse;
+    console.log('Permission check response:', response);
     
     if (!response || !response.has_permission) {
-      console.error('User does not have access to this equipment:', response?.reason);
+      console.error('User does not have access to this equipment. Reason:', response?.reason);
       throw new Error('You do not have permission to view this equipment');
     }
     
@@ -70,8 +78,8 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const userOrgId = userProfile?.org_id;
     const isExternalOrg = equipment.team?.org_id && userOrgId && equipment.team.org_id !== userOrgId;
     
-    // Check if user has edit permissions using the same edge function
-    const { data: editCheck } = await supabase.functions.invoke('check_equipment_permission', {
+    // Check if user has edit permissions
+    const { data: editCheck, error: editError } = await supabase.functions.invoke('check_equipment_permission', {
       body: {
         user_id: authUserId,
         equipment_id: id,
@@ -79,8 +87,13 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       }
     });
     
+    if (editError) {
+      console.error('Error checking edit permission:', editError);
+    }
+    
     const editResponse = editCheck as PermissionResponse;
     const canEdit = editResponse?.has_permission || false;
+    console.log('Edit permission check result:', editResponse);
     
     // Then fetch the attributes
     const attributes = await getEquipmentAttributes(id);

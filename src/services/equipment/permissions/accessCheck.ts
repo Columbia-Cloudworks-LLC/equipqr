@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface PermissionResponse {
   has_permission: boolean;
   reason?: string;
+  role?: string;
   org_id?: string;
 }
 
@@ -32,7 +33,7 @@ export async function checkEquipmentAccess(authUserId: string, equipmentId: stri
     const response = accessCheck as PermissionResponse;
     
     if (!response || !response.has_permission) {
-      console.error('User does not have access to this equipment');
+      console.error('User does not have access to this equipment, reason:', response?.reason);
       throw new Error('You do not have permission to view this equipment');
     }
     
@@ -66,6 +67,7 @@ export async function checkEquipmentEditPermission(authUserId: string, equipment
     }
     
     const response = permissionCheck as PermissionResponse;
+    console.log('Edit permission check result:', response);
     return response?.has_permission || false;
   } catch (error) {
     console.error('Error in checkEquipmentEditPermission:', error);

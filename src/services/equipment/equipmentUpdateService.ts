@@ -7,6 +7,7 @@ import { saveEquipmentAttributes } from "./attributesService";
 interface PermissionResponse {
   has_permission: boolean;
   reason?: string;
+  role?: string;
 }
 
 /**
@@ -25,7 +26,7 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     console.log('Updating equipment with ID:', id);
     console.log('Auth user ID:', authUserId);
     
-    // Check access using our non-recursive edge function
+    // Check access using our updated edge function
     const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_permission', {
       body: { 
         user_id: authUserId,
@@ -45,7 +46,7 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     if (!response || !response.has_permission) {
       const reason = response?.reason || 'unknown';
       console.error('Access denied:', reason);
-      throw new Error('You do not have permission to edit this equipment');
+      throw new Error(`You do not have permission to edit this equipment. Reason: ${reason}`);
     }
     
     // Extract attributes before sending to database
@@ -76,6 +77,10 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
       
     if (error) {
       console.error('Error updating equipment:', error);
+      if (error.code === '42501') {
+        // Permission denied error code
+        throw new Error('Permission denied: You do not have sufficient privileges to update this equipment');
+      }
       throw error;
     }
     

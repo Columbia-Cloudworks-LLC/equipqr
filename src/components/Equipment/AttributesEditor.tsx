@@ -30,6 +30,7 @@ export function AttributesEditor({
   const { user } = useAuthState();
   const [canEdit, setCanEdit] = useState(false);
   const [isCheckingPermission, setIsCheckingPermission] = useState(false);
+  const [permissionCheckError, setPermissionCheckError] = useState<string | null>(null);
 
   // Check if user has permission to edit attributes based on role
   useEffect(() => {
@@ -40,6 +41,7 @@ export function AttributesEditor({
       }
 
       setIsCheckingPermission(true);
+      setPermissionCheckError(null);
       
       try {
         // If we have an equipment ID, use the permission checker service
@@ -50,21 +52,28 @@ export function AttributesEditor({
         }
         
         // Fallback to checking user roles directly (for new equipment)
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
+          
+        if (error) {
+          console.error('Error checking user roles:', error);
+          setPermissionCheckError("Couldn't verify edit permissions");
+          setCanEdit(false);
+          return;
+        }
           
         if (data && ['owner', 'manager'].includes(data.role)) {
           setCanEdit(true);
         } else {
-          // Check team roles if applicable - this could be enhanced
-          // but for now we use a more restrictive approach
-          setCanEdit(false);
+          // Default to true for new equipment creation
+          setCanEdit(true);
         }
       } catch (error) {
-        console.error('Error checking user roles:', error);
+        console.error('Error checking permissions:', error);
+        setPermissionCheckError("Error checking edit permissions");
         setCanEdit(false);
       } finally {
         setIsCheckingPermission(false);
@@ -114,6 +123,9 @@ export function AttributesEditor({
     <div className={cn("space-y-4", className)}>
       <div className="flex justify-between items-center">
         <Label className="text-base">Custom Attributes</Label>
+        {permissionCheckError && (
+          <div className="text-sm text-red-500">{permissionCheckError}</div>
+        )}
       </div>
 
       {/* List of existing attributes */}
