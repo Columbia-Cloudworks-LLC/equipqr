@@ -34,6 +34,10 @@ no_public_access = false
 verify_jwt = true
 no_public_access = false
 
+[functions.create_equipment_permission]
+verify_jwt = true
+no_public_access = false
+
 [inbucket]
 enabled = true
 port = 54324
