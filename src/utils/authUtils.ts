@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -7,8 +8,18 @@ export function processDateFields(data: any, dateFields: string[]): any {
   const processedData = { ...data };
   
   dateFields.forEach(field => {
+    // If the field exists but is null, undefined, or empty string, ensure it's null
+    if (field in processedData && 
+        (processedData[field] === null || 
+         processedData[field] === undefined || 
+         processedData[field] === '')) {
+      processedData[field] = null;
+      return;
+    }
+    
+    // Only process if the field has a value
     if (processedData[field]) {
-      // If it's already an ISO string or date object, we're good
+      // If it's already an ISO string or date object, format it properly
       if (processedData[field] instanceof Date) {
         processedData[field] = processedData[field].toISOString().split('T')[0];
       } else if (typeof processedData[field] === 'string') {
@@ -18,7 +29,12 @@ export function processDateFields(data: any, dateFields: string[]): any {
           try {
             // Parse the date and format it correctly
             const date = new Date(processedData[field]);
-            processedData[field] = date.toISOString().split('T')[0];
+            if (!isNaN(date.getTime())) {
+              processedData[field] = date.toISOString().split('T')[0];
+            } else {
+              // Invalid date, set to null
+              processedData[field] = null;
+            }
           } catch (e) {
             console.error(`Error processing date field ${field}:`, e);
             // In case of error, null out the field to avoid DB errors

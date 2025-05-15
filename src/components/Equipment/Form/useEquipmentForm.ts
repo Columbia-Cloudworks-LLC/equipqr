@@ -15,8 +15,8 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     manufacturer: initialEquipment?.manufacturer || '',
     status: initialEquipment?.status || 'active',
     location: initialEquipment?.location || '',
-    install_date: initialEquipment?.install_date || '',
-    warranty_expiration: initialEquipment?.warranty_expiration || '',
+    install_date: initialEquipment?.install_date || null,
+    warranty_expiration: initialEquipment?.warranty_expiration || null,
     notes: initialEquipment?.notes || '',
     team_id: initialEquipment?.team_id || '',
     attributes: initialEquipment?.attributes || []
@@ -48,6 +48,10 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
   };
 
+  const handleDateChange = (name: string, value: string | null) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleAttributesChange = (attributes: EquipmentAttribute[]) => {
     setFormData((prev) => ({ ...prev, attributes }));
   };
@@ -57,6 +61,10 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     if (!formData.name) {
       return 'Please enter equipment name';
     }
+    
+    // Date validation - already handled by the DatePicker component
+    // which provides null for empty dates, or valid date strings
+    
     return null;
   };
 
@@ -68,6 +76,7 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     selectedTeamIsExternal,
     handleChange,
     handleSelectChange,
+    handleDateChange,
     handleAttributesChange,
     validate
   };

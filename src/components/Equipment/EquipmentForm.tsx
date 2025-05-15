@@ -35,6 +35,7 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
     selectedTeamIsExternal,
     handleChange,
     handleSelectChange,
+    handleDateChange,
     handleAttributesChange,
     validate
   } = useEquipmentForm({ initialEquipment: equipment });
@@ -73,7 +74,7 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
             <DateFields
               installDate={formData.install_date || ''}
               warrantyExpiration={formData.warranty_expiration || ''}
-              onChange={handleChange}
+              onChange={handleDateChange}
             />
             
             {/* Status and Location Fields */}
