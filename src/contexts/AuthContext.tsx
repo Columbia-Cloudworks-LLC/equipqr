@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   Session,
@@ -6,7 +7,7 @@ import {
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { getSiteUrl } from '@/utils/authCallbackUtils';
+import { getSiteUrl, getAuthCallbackUrl } from '@/utils/authCallbackUtils';
 
 interface AuthContextType {
   supabaseClient: SupabaseClient<Database> | null;
@@ -43,6 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (event) {
+          console.log("Auth state change event:", event);
+        }
         setSession(session);
         setUser(session?.user ?? null);
         setAuthLoading(false);
@@ -65,12 +69,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Get the correct site URL for redirects
       const siteUrl = getSiteUrl();
-      console.log("Google sign-in using redirect URL:", `${siteUrl}/auth`);
+      const callbackUrl = getAuthCallbackUrl();
+      
+      console.log("Google sign-in using site URL:", siteUrl);
+      console.log("Google sign-in using callback URL:", callbackUrl);
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${siteUrl}/auth`,
+          redirectTo: callbackUrl,
+          queryParams: {
+            // Add prompt parameter for consistent login experience
+            prompt: 'select_account'
+          }
         },
       });
 
@@ -147,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setAuthLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${getSiteUrl()}/auth/reset-password`,
       });
 
       if (error) {

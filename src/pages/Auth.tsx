@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { resetAuthState } from "@/utils/authInterceptors";
 import { setupAuthInterceptors } from "@/utils/authInterceptors";
+import { getAuthorizedDomains, isAuthorizedDomain } from "@/utils/authUtils";
 
 export default function Auth() {
   const { user, signInWithGoogle, isLoading, checkSession } = useAuth();
@@ -31,6 +32,17 @@ export default function Auth() {
     return () => {
       subscription.unsubscribe();
     };
+  }, []);
+
+  // Verify current domain is authorized
+  useEffect(() => {
+    const currentDomain = window.location.hostname;
+    if (!isAuthorizedDomain(currentDomain)) {
+      console.error("Current domain is not in the authorized list:", currentDomain);
+      setAuthError(`Authentication error: Unauthorized domain (${currentDomain})`);
+    } else {
+      console.log("Current domain is authorized:", currentDomain);
+    }
   }, []);
 
   // Get returnTo URL from state or query params
@@ -130,6 +142,10 @@ export default function Auth() {
 
   const handleGoogleSignIn = async () => {
     try {
+      // Log the current hostname and domains list for debugging
+      console.log("Current hostname:", window.location.hostname);
+      console.log("Authorized domains:", getAuthorizedDomains());
+      
       // Save the return URL in localStorage before redirecting to Google
       if (returnTo && returnTo !== "/") {
         localStorage.setItem("authReturnTo", returnTo);
