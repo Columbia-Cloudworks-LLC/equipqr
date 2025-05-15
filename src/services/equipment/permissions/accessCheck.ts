@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export async function checkEquipmentAccess(authUserId: string, equipmentId: string) {
   try {
-    // Verify access to this equipment using edge function
+    // Verify access to this equipment using optimized edge function
     const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_permission', {
       body: {
         user_id: authUserId,

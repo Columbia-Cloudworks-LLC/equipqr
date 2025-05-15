@@ -1280,6 +1280,10 @@ export type Database = {
         }
         Returns: Json
       }
+      test_equipment_permission_flow: {
+        Args: { auth_user_id: string; team_id?: string }
+        Returns: Json
+      }
       user_belongs_to_org: {
         Args: { _user_id: string; _org_id: string }
         Returns: boolean

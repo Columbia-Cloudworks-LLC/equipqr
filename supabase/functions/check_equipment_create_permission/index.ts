@@ -22,10 +22,10 @@ serve(async (req) => {
       throw new Error('Missing Supabase environment variables');
     }
     
-    // Use service role key to bypass RLS - this avoids recursion issues
+    // Use service role key to bypass RLS
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Use our new database function that properly handles RLS recursion
+    // Use our optimized database function
     const { data: permissionData, error: permissionError } = await supabase.rpc(
       'check_equipment_create_permission',
       { 

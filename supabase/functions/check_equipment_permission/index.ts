@@ -43,7 +43,7 @@ serve(async (req) => {
       });
     }
 
-    // Use our new RPC function that avoids recursion
+    // Use our optimized RPC function that avoids recursion
     const { data: permissionData, error: permissionError } = await adminClient.rpc(
       'rpc_check_equipment_permission',
       { 

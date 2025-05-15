@@ -16,7 +16,7 @@ export async function checkTeamAccess(
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Call our non-recursive function that avoids RLS issues
+    // Call our non-recursive function
     const { data: hasAccess, error } = await client.rpc(
       'check_team_access_nonrecursive',
       { p_user_id: userId, p_team_id: teamId }
@@ -50,7 +50,7 @@ export async function checkTeamManagerAccess(
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Get the role for this user in this team using the safe function
+    // Get the role for this user in this team using our safe function
     const { data: role, error } = await client.rpc(
       'get_team_role_safe',
       { _user_id: userId, _team_id: teamId }
