@@ -9,9 +9,15 @@ import { processEquipmentList } from "./utils/equipmentFormatting";
 export async function getEquipment(): Promise<Equipment[]> {
   try {
     console.log('Fetching all equipment for current user');
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Error getting auth session:', sessionError);
+      throw new Error('Failed to authenticate user');
+    }
+    
     if (!sessionData?.session?.user) {
-      console.error('User must be logged in to view equipment');
+      console.error('User is not authenticated, cannot fetch equipment');
       throw new Error('User must be logged in to view equipment');
     }
 
@@ -42,6 +48,12 @@ export async function getEquipment(): Promise<Equipment[]> {
     return processEquipmentList(data);
   } catch (error) {
     console.error('Error in getEquipment:', error);
+    
+    // Show more context about the error
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     
     // Fallback to direct query if there's an exception
     try {

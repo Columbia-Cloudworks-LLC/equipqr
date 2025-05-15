@@ -62,9 +62,9 @@ serve(async (req) => {
     );
     
     // Get user's organization for determining external equipment
-    let userOrgId = null;
+    let userOrgIds: string[] = [];
     try {
-      // Get user's organization ID
+      // First get the user's primary organization
       const { data: userProfile, error: profileError } = await adminClient
         .from('user_profiles')
         .select('org_id')
@@ -74,16 +74,34 @@ serve(async (req) => {
       if (profileError) {
         console.error('Error fetching user profile:', profileError);
       } else if (userProfile) {
-        userOrgId = userProfile.org_id;
+        userOrgIds.push(userProfile.org_id);
+      }
+      
+      // Then get all organizations where user has a role
+      const { data: userRoles, error: rolesError } = await adminClient
+        .from('user_roles')
+        .select('org_id')
+        .eq('user_id', user_id);
+        
+      if (!rolesError && userRoles && userRoles.length > 0) {
+        // Add all org IDs where the user has roles (avoiding duplicates)
+        userRoles.forEach(role => {
+          if (!userOrgIds.includes(role.org_id)) {
+            userOrgIds.push(role.org_id);
+          }
+        });
       }
     } catch (profileError) {
-      console.error('Unexpected error fetching user profile:', profileError);
+      console.error('Unexpected error fetching user organizations:', profileError);
     }
     
-    // If we can't determine user's org, we can't show any equipment
-    if (!userOrgId) {
+    // If we can't determine user's orgs, we can't show any equipment
+    if (userOrgIds.length === 0) {
+      console.log('No organizations found for user:', user_id);
       return createSuccessResponse([]);
     }
+
+    console.log(`User ${user_id} belongs to organizations: ${userOrgIds.join(', ')}`);
     
     // Get list of teams the user belongs to
     const appUserResult = await adminClient
@@ -106,10 +124,11 @@ serve(async (req) => {
         
       if (!teamError && teamMemberships) {
         accessibleTeamIds.push(...teamMemberships.map(tm => tm.team_id));
+        console.log(`User is a member of teams: ${accessibleTeamIds.join(', ')}`);
       }
     }
     
-    // Build and execute query with correct filtering logic
+    // Query equipment from all user's organizations + user's teams
     let query = adminClient
       .from('equipment')
       .select(`
@@ -119,13 +138,26 @@ serve(async (req) => {
       `)
       .is('deleted_at', null);
     
-    // First filter condition: equipment belongs to user's organization
-    query = query.or(`org_id.eq.${userOrgId}`);
+    // Build a better filter clause that includes:
+    // 1. Equipment from user's organizations
+    // 2. Equipment from teams user is a member of
+    let filterConditions: string[] = [];
     
-    // Second filter condition: equipment belongs to user's teams (if any)
+    // Equipment from user's organizations
+    if (userOrgIds.length > 0) {
+      const orgIdList = userOrgIds.join(',');
+      filterConditions.push(`org_id.in.(${orgIdList})`);
+    }
+    
+    // Equipment from user's teams
     if (accessibleTeamIds.length > 0) {
       const teamIdList = accessibleTeamIds.join(',');
-      query = query.or(`team_id.in.(${teamIdList})`);
+      filterConditions.push(`team_id.in.(${teamIdList})`);
+    }
+    
+    // Apply the filters using OR logic
+    if (filterConditions.length > 0) {
+      query = query.or(filterConditions.join(','));
     }
     
     const { data: equipment, error } = await query.order('name');
@@ -137,7 +169,7 @@ serve(async (req) => {
     
     // Process the equipment data to add required fields
     const processedEquipment = equipment?.map(item => {
-      const isExternalOrg = item.org_id !== userOrgId;
+      const isExternalOrg = !userOrgIds.includes(item.org_id);
       const hasNoTeam = item.team_id === null;
       
       return {
@@ -145,7 +177,7 @@ serve(async (req) => {
         team_name: item.team?.name || null,
         org_name: item.org?.name || 'Unknown Organization',
         is_external_org: isExternalOrg,
-        can_edit: !isExternalOrg || (item.team?.org_id === userOrgId),
+        can_edit: !isExternalOrg || (item.team?.org_id && userOrgIds.includes(item.team.org_id)),
         has_no_team: hasNoTeam // Explicitly set has_no_team based on team_id being null
       };
     }) || [];

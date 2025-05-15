@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Package } from 'lucide-react';
@@ -16,7 +16,21 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const EquipmentPage = () => {
   const [view, setView] = useState<string>('list');
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, checkSession } = useAuth();
+  const navigate = useNavigate();
+  
+  // Check authentication on component mount
+  useEffect(() => {
+    const validateAuth = async () => {
+      const isAuthenticated = await checkSession();
+      if (!isAuthenticated && !authLoading) {
+        console.log('No authenticated user detected, redirecting to auth page');
+        navigate('/auth');
+      }
+    };
+    
+    validateAuth();
+  }, [authLoading, checkSession, navigate]);
   
   const { 
     data: equipment = [], 
@@ -38,6 +52,13 @@ const EquipmentPage = () => {
       console.log('No user authenticated');
     }
   }, [user, authLoading, refetch]);
+
+  // Log equipment data for debugging
+  useEffect(() => {
+    if (Array.isArray(equipment)) {
+      console.log(`EquipmentPage received ${equipment.length} equipment records`);
+    }
+  }, [equipment]);
 
   // Handle error state
   useEffect(() => {

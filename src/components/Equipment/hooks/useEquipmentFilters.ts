@@ -8,21 +8,47 @@ export function useEquipmentFilters(equipment: Equipment[]) {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Log equipment data for debugging
-  console.log('Equipment data in filters:', equipment);
+  console.log('useEquipmentFilters received equipment count:', equipment?.length || 0);
 
   // Extract unique teams for filtering with error handling
   const teams = useMemo(() => {
+    if (!Array.isArray(equipment)) {
+      console.warn('useEquipmentFilters received invalid equipment data:', equipment);
+      return [];
+    }
+    
     return [...new Set(equipment
       .filter(item => item?.team_name)
       .map(item => item?.team_name)
     )];
   }, [equipment]);
 
-  // Apply filters with defensive programming
+  // Count items by team status for debugging
+  const itemCounts = useMemo(() => {
+    if (!Array.isArray(equipment)) return { total: 0, withTeam: 0, noTeam: 0 };
+    
+    const withTeam = equipment.filter(item => item?.team_id !== null).length;
+    const noTeam = equipment.filter(item => item?.team_id === null).length;
+    
+    console.log(`Equipment counts - Total: ${equipment.length}, With Team: ${withTeam}, No Team: ${noTeam}`);
+    return { total: equipment.length, withTeam, noTeam };
+  }, [equipment]);
+
+  // Apply filters with enhanced debugging and robustness
   const filteredEquipment = useMemo(() => {
     console.log('Applying filters - Status:', filterStatus, 'Team:', filterTeam, 'Search:', searchQuery);
     
+    if (!Array.isArray(equipment)) {
+      console.warn('Cannot filter equipment: equipment data is not an array');
+      return [];
+    }
+    
     return equipment.filter((item) => {
+      if (!item) {
+        console.warn('Encountered null item while filtering equipment');
+        return false;
+      }
+      
       // Safe string comparisons - protect against undefined values
       const itemName = (item?.name || '').toLowerCase();
       const itemModel = (item?.model || '').toLowerCase();
@@ -38,25 +64,22 @@ export function useEquipmentFilters(equipment: Equipment[]) {
       
       let matchesTeam = true;
       
-      // Special handling for No Team filter with more detailed logging
+      // Enhanced logic for "No Team" filter
       if (filterTeam === 'no-team') {
+        // Consider an item to be "no team" if either has_no_team is true OR team_id is null
         const hasNoTeamFlag = Boolean(item?.has_no_team);
         const nullTeamId = item?.team_id === null;
         
-        console.log(`Item "${item.name}" - has_no_team: ${hasNoTeamFlag}, team_id: ${item.team_id}, nullTeamId: ${nullTeamId}`);
+        // Log details for debugging when filtering for "No Team" items
+        console.log(`"No Team" filter - Item "${item.name}" - has_no_team: ${hasNoTeamFlag}, team_id: ${item.team_id === null ? 'null' : item.team_id}`);
         
-        // Match if either has_no_team is true OR team_id is null
         matchesTeam = hasNoTeamFlag || nullTeamId;
       } else if (filterTeam !== 'all') {
+        // For specific team filtering
         matchesTeam = item?.team_name === filterTeam;
       }
       
       const matches = matchesSearch && matchesStatus && matchesTeam;
-      
-      // Log matching status for debugging
-      if (filterTeam === 'no-team' || filterStatus !== 'all') {
-        console.log(`Item "${item.name}" matching status: ${matches} (search: ${matchesSearch}, status: ${matchesStatus}, team: ${matchesTeam})`);
-      }
       
       return matches;
     });
@@ -70,6 +93,7 @@ export function useEquipmentFilters(equipment: Equipment[]) {
     searchQuery,
     setSearchQuery,
     teams,
-    filteredEquipment
+    filteredEquipment,
+    equipmentCounts: itemCounts
   };
 }
