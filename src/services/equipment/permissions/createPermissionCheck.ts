@@ -50,24 +50,26 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
 }
 
 /**
- * Fallback is now also using the simplified database function
- * to avoid the complex permission chain that was causing errors
+ * Fallback is now also using the edge function
+ * to avoid the database function type issues
  */
 export async function fallbackPermissionCheck(authUserId: string, teamId?: string | null) {
   try {
-    console.log('Using simplified fallback permission check with RPC');
+    console.log('Using fallback permission check with edge function');
     
-    // Use our simplified database function directly
-    const { data, error } = await supabase.rpc(
-      'simplified_equipment_create_permission',
-      { 
-        p_user_id: authUserId,
-        p_team_id: teamId && teamId !== 'none' ? teamId : null
+    // Use our edge function directly again as a fallback
+    const { data, error } = await supabase.functions.invoke(
+      'create_equipment_permission',
+      {
+        body: {
+          user_id: authUserId,
+          team_id: teamId && teamId !== 'none' ? teamId : null
+        }
       }
     );
     
     if (error) {
-      console.error('RPC permission check error:', error);
+      console.error('Fallback permission check error:', error);
       throw new Error(`Permission check failed: ${error.message}`);
     }
     
