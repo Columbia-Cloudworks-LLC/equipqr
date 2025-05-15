@@ -11,10 +11,12 @@ export async function getEquipment(): Promise<Equipment[]> {
     console.log('Fetching all equipment for current user');
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
+      console.error('User must be logged in to view equipment');
       throw new Error('User must be logged in to view equipment');
     }
 
     const userId = sessionData.session.user.id;
+    console.log('Authenticated user ID:', userId);
     
     // Use the edge function to get equipment
     const { data, error } = await supabase.functions.invoke('list_user_equipment', {
@@ -35,7 +37,9 @@ export async function getEquipment(): Promise<Equipment[]> {
     }
     
     console.log(`Successfully fetched ${data.length} equipment items via edge function`);
-    return data;
+    
+    // Process the data to ensure all properties are set correctly
+    return processEquipmentList(data);
   } catch (error) {
     console.error('Error in getEquipment:', error);
     

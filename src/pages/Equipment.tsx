@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package } from 'lucide-react';
+import { AlertCircle, Package } from 'lucide-react';
 import { Equipment } from '@/types';
 import { EquipmentList } from '@/components/Equipment/EquipmentList';
 import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
@@ -11,14 +11,33 @@ import { Layout } from '@/components/Layout/Layout';
 import { useQuery } from '@tanstack/react-query';
 import { getEquipment } from '@/services/equipment/equipmentListService';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const EquipmentPage = () => {
   const [view, setView] = useState<string>('list');
+  const { user, isLoading: authLoading } = useAuth();
   
-  const { data: equipment = [], isLoading, error } = useQuery({
+  const { 
+    data: equipment = [], 
+    isLoading, 
+    error,
+    refetch
+  } = useQuery({
     queryKey: ['equipment'],
     queryFn: getEquipment,
+    enabled: !!user, // Only run the query if the user is authenticated
   });
+
+  // Handle auth state changes
+  useEffect(() => {
+    if (user) {
+      console.log('User authenticated, fetching equipment');
+      refetch();
+    } else if (!authLoading) {
+      console.log('No user authenticated');
+    }
+  }, [user, authLoading, refetch]);
 
   // Handle error state
   useEffect(() => {
@@ -29,6 +48,35 @@ const EquipmentPage = () => {
     }
   }, [error]);
 
+  // If still loading auth, show loading state
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="flex-1 space-y-6 p-6 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // If not authenticated, show login message
+  if (!user) {
+    return (
+      <Layout>
+        <div className="flex-1 space-y-6 p-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Authentication Required</AlertTitle>
+            <AlertDescription>
+              You must be logged in to view equipment. Please <Link to="/auth" className="underline font-medium">sign in</Link> to continue.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Main content for authenticated users
   return (
     <Layout>
       <div className="flex-1 space-y-6 p-6">

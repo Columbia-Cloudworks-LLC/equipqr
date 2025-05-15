@@ -138,16 +138,19 @@ serve(async (req) => {
     // Process the equipment data to add required fields
     const processedEquipment = equipment?.map(item => {
       const isExternalOrg = item.org_id !== userOrgId;
+      const hasNoTeam = item.team_id === null;
       
       return {
         ...item,
         team_name: item.team?.name || null,
         org_name: item.org?.name || 'Unknown Organization',
         is_external_org: isExternalOrg,
-        can_edit: !isExternalOrg || (item.team?.org_id === userOrgId)
+        can_edit: !isExternalOrg || (item.team?.org_id === userOrgId),
+        has_no_team: hasNoTeam // Explicitly set has_no_team based on team_id being null
       };
     }) || [];
     
+    console.log(`Successfully fetched ${processedEquipment.length} equipment items`);
     return createSuccessResponse(processedEquipment);
   } catch (error) {
     console.error('Unexpected error:', error);
