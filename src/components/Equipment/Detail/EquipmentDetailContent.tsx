@@ -69,8 +69,6 @@ export function EquipmentDetailContent({
       
       <AccessInformationCard equipment={equipment} canEdit={canEdit} />
       
-      <EquipmentCard equipment={equipment} showOrgInfo={false} />
-
       <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
