@@ -33,8 +33,8 @@ export function useEquipmentFilters(equipment: Equipment[]) {
       
       let matchesTeam = true;
       if (filterTeam === 'no-team') {
-        // Special case for no team filter
-        matchesTeam = item?.has_no_team || item?.team_id === null;
+        // Special case for no team filter - use has_no_team property or check if team_id is null
+        matchesTeam = Boolean(item?.has_no_team) || item?.team_id === null;
       } else if (filterTeam !== 'all') {
         matchesTeam = item?.team_name === filterTeam;
       }

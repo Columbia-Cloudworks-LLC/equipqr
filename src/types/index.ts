@@ -38,6 +38,7 @@ export interface Equipment {
   org_name?: string;
   is_external_org?: boolean;
   can_edit?: boolean;
+  has_no_team?: boolean;
 }
 
 export interface EquipmentAttribute {
