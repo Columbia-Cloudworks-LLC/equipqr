@@ -1,11 +1,13 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { corsHeaders, createErrorResponse, createSuccessResponse, handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { corsHeaders, createErrorResponse, createSuccessResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return new Response(null, { 
+      headers: corsHeaders 
+    });
   }
 
   try {

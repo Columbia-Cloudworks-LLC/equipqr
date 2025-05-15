@@ -48,19 +48,27 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
     }
     
     // Safely handle the response as PermissionResponse
-    const response = permissionCheck as PermissionResponse;
-    console.log('Permission check response:', response);
-    
-    if (!response || !response.has_permission) {
-      const reason = response?.reason || 'unknown';
-      throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
+    // Type assertion with validation
+    if (typeof permissionCheck === 'object' && 
+        permissionCheck !== null && 
+        'has_permission' in permissionCheck) {
+      const response = permissionCheck as PermissionResponse;
+      console.log('Permission check response:', response);
+      
+      if (!response.has_permission) {
+        const reason = response.reason || 'unknown';
+        throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
+      }
+      
+      // Return the org_id from the response
+      return { 
+        hasPermission: true, 
+        orgId: response.org_id 
+      };
+    } else {
+      console.error('Invalid permission check response format:', permissionCheck);
+      throw new Error('Permission check failed: Invalid response format');
     }
-    
-    // Return the org_id from the response
-    return { 
-      hasPermission: true, 
-      orgId: response.org_id 
-    };
   } catch (error) {
     console.error('Permission check error:', error);
     throw error;
@@ -102,20 +110,30 @@ export async function fallbackPermissionCheck(authUserId: string, teamId?: strin
     // Log the raw permission data for debugging
     console.log('Raw permission check RPC result:', permissionData);
     
-    // Safely handle the JSONB response
-    let response: PermissionResponse;
+    // Safely handle the JSONB response with type validation
     try {
       // Handle both possible return types (direct JSONB object or string that needs parsing)
+      let response: PermissionResponse;
+      
       if (typeof permissionData === 'string') {
+        // If it's a string, parse it
         response = JSON.parse(permissionData) as PermissionResponse;
-      } else {
+      } else if (typeof permissionData === 'object' && permissionData !== null) {
+        // If it's already an object, validate it has the required property
+        if (!('has_permission' in permissionData)) {
+          console.error('Invalid permission response format:', permissionData);
+          throw new Error('Permission response does not have "has_permission" property');
+        }
         response = permissionData as PermissionResponse;
+      } else {
+        console.error('Unexpected permission data type:', typeof permissionData);
+        throw new Error(`Unexpected permission data type: ${typeof permissionData}`);
       }
       
       console.log('Parsed permission check response:', response);
       
-      if (!response?.has_permission) {
-        const reason = response?.reason || 'unknown';
+      if (!response.has_permission) {
+        const reason = response.reason || 'unknown';
         throw new Error(`You don't have permission to create equipment. Reason: ${reason}`);
       }
       
@@ -132,7 +150,7 @@ export async function fallbackPermissionCheck(authUserId: string, teamId?: strin
         orgId 
       };
     } catch (parseError) {
-      console.error('Error parsing permission response:', parseError);
+      console.error('Error processing permission response:', parseError);
       console.error('Raw response was:', permissionData);
       throw new Error('Failed to process permission check result');
     }

@@ -6,6 +6,14 @@ export const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
 };
 
+// Handle CORS preflight requests
+export function handleCorsPreflightRequest() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders
+  });
+}
+
 // Helper to create standardized error responses
 export function createErrorResponse(message: string, status = 400) {
   return new Response(
