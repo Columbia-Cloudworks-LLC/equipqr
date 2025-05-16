@@ -81,10 +81,10 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       
-      <SidebarContent>
+      <SidebarContent className="py-3">
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400">Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-slate-400 mb-1">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
@@ -95,11 +95,13 @@ export function AppSidebar() {
                     active={isActive(item.href)}
                     className="text-white hover:text-white hover:bg-slate-700"
                   >
-                    <Link to={item.href} className="flex items-center">
+                    <Link to={item.href}>
                       <SidebarMenuIcon>
                         <item.icon className="h-5 w-5" />
                       </SidebarMenuIcon>
-                      <SidebarMenuText>{item.title}</SidebarMenuText>
+                      <SidebarMenuText className="text-white">
+                        {item.title}
+                      </SidebarMenuText>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -109,8 +111,8 @@ export function AppSidebar() {
         </SidebarGroup>
         
         {/* Settings Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400">Settings</SidebarGroupLabel>
+        <SidebarGroup className="mt-2">
+          <SidebarGroupLabel className="text-slate-400 mb-1">Settings</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsNavItems.map((item) => (
@@ -121,11 +123,13 @@ export function AppSidebar() {
                     active={isActive(item.href)}
                     className="text-white hover:text-white hover:bg-slate-700"
                   >
-                    <Link to={item.href} className="flex items-center">
+                    <Link to={item.href}>
                       <SidebarMenuIcon>
                         <item.icon className="h-5 w-5" />
                       </SidebarMenuIcon>
-                      <SidebarMenuText>{item.title}</SidebarMenuText>
+                      <SidebarMenuText className="text-white">
+                        {item.title}
+                      </SidebarMenuText>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -136,7 +140,7 @@ export function AppSidebar() {
       </SidebarContent>
       
       <SidebarFooter className="border-t border-slate-700 p-3">
-        <div className="text-xs text-slate-400 transition-opacity duration-300 pl-2">
+        <div className="text-xs text-slate-400 pl-2">
           <p>EquipQR v1.1</p>
         </div>
       </SidebarFooter>

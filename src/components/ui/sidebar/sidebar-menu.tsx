@@ -58,7 +58,7 @@ export const SidebarMenuButton = React.forwardRef<
     const isCollapsed = state === "collapsed"
     
     const commonClassName = cn(
-      "group relative flex h-9 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      "group relative flex h-8 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
       active && "bg-sidebar-accent text-sidebar-accent-foreground",
       className
     )
@@ -78,7 +78,7 @@ export const SidebarMenuButton = React.forwardRef<
     }
     
     if (asChild) {
-      // For div elements
+      // For div elements when using asChild
       return (
         <div
           ref={ref as React.Ref<HTMLDivElement>}
@@ -92,7 +92,7 @@ export const SidebarMenuButton = React.forwardRef<
       )
     }
     
-    // For button elements
+    // For button elements (default)
     return (
       <button
         ref={ref as React.Ref<HTMLButtonElement>}
@@ -142,12 +142,12 @@ export const SidebarMenuText = React.forwardRef<
       data-sidebar="menu-text"
       className={cn(
         "transition-opacity duration-300 whitespace-nowrap",
-        state === "collapsed" && "opacity-0 invisible",
+        state === "collapsed" ? "opacity-0 invisible" : "opacity-100 visible",
         className
       )}
       {...(!asChild && props)}
     >
-      {asChild && props.children}
+      {asChild ? props.children : props.children}
     </Component>
   )
 })
