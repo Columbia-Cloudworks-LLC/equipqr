@@ -60,7 +60,7 @@ export const SidebarMenuButton = React.forwardRef<
             active && "bg-sidebar-accent text-sidebar-accent-foreground",
             className
           )}
-          {...props}
+          {...props as React.HTMLAttributes<HTMLDivElement>}
         >
           {isCollapsed && tooltip && showTooltipOnCollapsed ? (
             <Tooltip>
