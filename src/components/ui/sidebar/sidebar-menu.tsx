@@ -35,8 +35,8 @@ export const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 export const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement,
-  React.ComponentProps<"button"> & {
+  HTMLButtonElement | HTMLDivElement,
+  React.ComponentPropsWithoutRef<"button"> & {
     asChild?: boolean
     tooltip?: string
     active?: boolean
@@ -49,39 +49,57 @@ export const SidebarMenuButton = React.forwardRef<
   ) => {
     const { state } = useSidebar()
     const isCollapsed = state === "collapsed"
-    const Component = asChild ? "div" : "button"
-    const isLinkElement = asChild ? true : false
-
-    const buttonContent = (
-      <Component
-        ref={ref as any}
+    
+    if (asChild) {
+      return (
+        <div
+          data-sidebar="menu-button"
+          data-active={active}
+          className={cn(
+            "group relative flex h-10 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+            active && "bg-sidebar-accent text-sidebar-accent-foreground",
+            className
+          )}
+          {...props}
+        >
+          {isCollapsed && tooltip && showTooltipOnCollapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>{children}</TooltipTrigger>
+              <TooltipContent side="right" sideOffset={10} className="min-w-[120px]">
+                {tooltip}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            children
+          )}
+        </div>
+      )
+    }
+    
+    return (
+      <button
+        ref={ref as React.RefObject<HTMLButtonElement>}
         data-sidebar="menu-button"
         data-active={active}
         className={cn(
           "group relative flex h-10 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-          isLinkElement && "cursor-pointer",
           active && "bg-sidebar-accent text-sidebar-accent-foreground",
           className
         )}
         {...props}
       >
-        {children}
-      </Component>
+        {isCollapsed && tooltip && showTooltipOnCollapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{children}</TooltipTrigger>
+            <TooltipContent side="right" sideOffset={10} className="min-w-[120px]">
+              {tooltip}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          children
+        )}
+      </button>
     )
-
-    // If collapsed and tooltip is provided, wrap with Tooltip
-    if (isCollapsed && tooltip && showTooltipOnCollapsed) {
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>{buttonContent}</TooltipTrigger>
-          <TooltipContent side="right" sideOffset={10} className="min-w-[120px]">
-            {tooltip}
-          </TooltipContent>
-        </Tooltip>
-      )
-    }
-
-    return buttonContent
   }
 )
 SidebarMenuButton.displayName = "SidebarMenuButton"
