@@ -15,7 +15,8 @@ export function Layout({ children }: LayoutProps) {
   
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className="flex h-screen w-full overflow-hidden bg-background">
+      <div className="flex h-screen w-full bg-background">
+        {/* AppSidebar will now be part of the flex layout on desktop */}
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Navbar />

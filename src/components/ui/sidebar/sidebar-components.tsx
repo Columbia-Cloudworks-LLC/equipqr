@@ -19,7 +19,7 @@ export const Sidebar = React.forwardRef<
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       const isSidebarOrChild = target.closest("[data-sidebar]")
-      if (openMobile && !isMobile && !isSidebarOrChild) {
+      if (openMobile && isMobile && !isSidebarOrChild) {
         setOpenMobile(false)
       }
     }
@@ -33,7 +33,7 @@ export const Sidebar = React.forwardRef<
   return (
     <>
       {/* Mobile overlay */}
-      {openMobile && (
+      {isMobile && openMobile && (
         <div 
           className="fixed inset-0 z-40 bg-black/40 lg:hidden" 
           onClick={() => setOpenMobile(false)}
@@ -48,7 +48,9 @@ export const Sidebar = React.forwardRef<
           data-state={state}
           data-mobile-open={openMobile}
           className={cn(
-            "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out overflow-hidden",
+            "flex h-full flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out overflow-hidden",
+            // Only use fixed positioning for mobile
+            isMobile ? "fixed inset-y-0 left-0 z-50" : "relative",
             state === "expanded" ? "w-64" : "w-14",
             isMobile && !openMobile && "translate-x-[-100%]",
             isMobile && openMobile && "translate-x-0 w-64", // Always expanded when mobile and open

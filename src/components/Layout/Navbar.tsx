@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationDropdown } from "@/components/Notifications/NotificationDropdown";
+import { useSidebar } from "@/components/ui/sidebar/sidebar-context";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
+  const { isMobile } = useSidebar();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -18,7 +20,8 @@ export function Navbar() {
     <header className="sticky top-0 z-40 flex h-16 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex items-center justify-between">
         <div className="flex items-center gap-2 md:gap-4">
-          <SidebarTrigger className="lg:hidden" />
+          {/* Only show the sidebar trigger on mobile */}
+          {isMobile && <SidebarTrigger className="lg:hidden" />}
         </div>
 
         <div className="flex items-center gap-2">
