@@ -1,91 +1,130 @@
 
-import { NavLink, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Settings, Package, Users, Home, QrCode } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarHeader,
+} from "@/components/ui/sidebar";
+
+import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader, // Added the missing SidebarHeader import
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar
-} from '@/components/ui/sidebar';
-import {
-  LayoutDashboard,
-  Package,
-  Users,
-  Settings,
-  QrCode,
-  ChevronRight,
-  ChevronLeft,
-  Building
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/sidebar/sidebar-group";
 
-interface SidebarItem {
-  title: string;
-  href: string;
-  icon: React.ElementType;
-  exact?: boolean;
-}
+import {
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenuIcon,
+  SidebarMenuText,
+} from "@/components/ui/sidebar/sidebar-menu";
+
+// Navigation items for the sidebar
+const mainNavItems = [
+  {
+    title: "Dashboard",
+    href: "/",
+    icon: Home,
+  },
+  {
+    title: "Equipment",
+    href: "/equipment",
+    icon: Package,
+  },
+  {
+    title: "Teams",
+    href: "/team",
+    icon: Users,
+  },
+  {
+    title: "Scanner",
+    href: "/scanner",
+    icon: QrCode,
+  },
+];
+
+const settingsNavItems = [
+  {
+    title: "Organization",
+    href: "/settings/organization",
+    icon: Settings,
+  },
+  {
+    title: "Profile",
+    href: "/profile",
+    icon: Users,
+  },
+];
 
 export function AppSidebar() {
   const location = useLocation();
-  const { state: sidebarState, toggleSidebar } = useSidebar();
-  const collapsed = sidebarState === 'collapsed';
+  const currentPath = location.pathname;
   
-  const items: SidebarItem[] = [
-    { title: 'Dashboard', href: '/', icon: LayoutDashboard, exact: true },
-    { title: 'Equipment', href: '/equipment', icon: Package },
-    { title: 'Team', href: '/team', icon: Users },
-    { title: 'QR Scanner', href: '/scanner', icon: QrCode },
-    { title: 'Organization', href: '/settings/organization', icon: Building, exact: true },
-    { title: 'Settings', href: '/settings', icon: Settings, exact: true },
-  ];
-
-  // Custom isActive function to handle exact path matching
-  const isItemActive = (item: SidebarItem): boolean => {
-    if (item.exact) {
-      return location.pathname === item.href;
+  // Check if a path is active (exact match or starts with for nested routes)
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return currentPath === '/';
     }
-    // For non-exact items, check if the path starts with the href
-    // but make sure it's not matching organization when on settings and vice versa
-    if (item.href === '/settings' && location.pathname.startsWith('/settings/organization')) {
-      return false;
-    }
-    return location.pathname.startsWith(item.href);
+    return currentPath.startsWith(path);
   };
 
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex h-16 items-center px-4">
-          {!collapsed && (
-            <NavLink to="/" className="flex items-center">
-              <span className="text-xl font-bold text-primary">EquipQR</span>
-            </NavLink>
-          )}
+        <div className="flex items-center gap-2">
+          <Package className="h-6 w-6 text-primary" />
+          <h1 className="text-lg font-semibold">equipqr</h1>
         </div>
       </SidebarHeader>
+      
       <SidebarContent>
+        {/* Main Navigation */}
         <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    isActive={isItemActive(item)}
-                    tooltip={collapsed ? item.title : undefined}
-                    asChild
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={item.title}
+                    active={isActive(item.href)}
                   >
-                    <NavLink to={item.href}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </NavLink>
+                    <Link to={item.href} className="flex items-center">
+                      <SidebarMenuIcon>
+                        <item.icon className="h-5 w-5" />
+                      </SidebarMenuIcon>
+                      <SidebarMenuText>{item.title}</SidebarMenuText>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        {/* Settings Navigation */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {settingsNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={item.title}
+                    active={isActive(item.href)}
+                  >
+                    <Link to={item.href} className="flex items-center">
+                      <SidebarMenuIcon>
+                        <item.icon className="h-5 w-5" />
+                      </SidebarMenuIcon>
+                      <SidebarMenuText>{item.title}</SidebarMenuText>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -93,16 +132,11 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="w-full justify-center text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          onClick={toggleSidebar}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          {!collapsed && <span className="ml-2">Collapse</span>}
-        </Button>
+      
+      <SidebarFooter className="p-4">
+        <div className="text-xs text-muted-foreground transition-opacity duration-300">
+          <p>EquipQR v1.1</p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

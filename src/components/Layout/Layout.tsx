@@ -1,14 +1,7 @@
 
-import { useEffect, useState } from 'react';
-import { Navbar } from './Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarProvider,
-  SidebarTrigger
+  SidebarProvider
 } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 
@@ -24,7 +17,6 @@ export function Layout({ children }: LayoutProps) {
       <div className="flex h-screen w-full overflow-hidden bg-background">
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <Navbar />
           <main className="flex-1 overflow-auto">
             {children}
           </main>
