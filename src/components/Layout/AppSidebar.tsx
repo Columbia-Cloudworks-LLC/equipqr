@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Settings, Package, Users, Home, QrCode } from "lucide-react";
+import { Settings, Package, Users, Home, QrCode, Building } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -51,12 +51,12 @@ const settingsNavItems = [
   {
     title: "Organization",
     href: "/settings/organization",
-    icon: Settings,
+    icon: Building,
   },
   {
     title: "Profile",
     href: "/profile",
-    icon: Users,
+    icon: Settings,
   },
 ];
 
@@ -73,8 +73,8 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
-      <SidebarHeader>
+    <Sidebar className="bg-slate-800 text-white border-r-slate-700">
+      <SidebarHeader className="border-b-slate-700">
         <div className="flex items-center gap-2">
           <Package className="h-6 w-6 text-primary" />
           <h1 className="text-lg font-semibold">equipqr</h1>
@@ -84,7 +84,7 @@ export function AppSidebar() {
       <SidebarContent>
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-slate-400">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
@@ -109,7 +109,7 @@ export function AppSidebar() {
         
         {/* Settings Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-slate-400">Settings</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsNavItems.map((item) => (
@@ -133,8 +133,8 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="p-4">
-        <div className="text-xs text-muted-foreground transition-opacity duration-300">
+      <SidebarFooter className="border-t-slate-700 p-4">
+        <div className="text-xs text-slate-400 transition-opacity duration-300">
           <p>EquipQR v1.1</p>
         </div>
       </SidebarFooter>

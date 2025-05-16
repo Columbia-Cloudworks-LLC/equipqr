@@ -34,14 +34,21 @@ export const SidebarMenuItem = React.forwardRef<
 })
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
+type SidebarMenuButtonProps = {
+  asChild?: boolean
+  tooltip?: string
+  active?: boolean
+  showTooltipOnCollapsed?: boolean
+  className?: string
+  children: React.ReactNode
+}
+
 export const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement | HTMLDivElement,
-  React.ComponentPropsWithoutRef<"button"> & {
-    asChild?: boolean
-    tooltip?: string
-    active?: boolean
-    showTooltipOnCollapsed?: boolean
-  }
+  SidebarMenuButtonProps & (
+    | React.ButtonHTMLAttributes<HTMLButtonElement>
+    | React.HTMLAttributes<HTMLDivElement>
+  )
 >(
   (
     { className, asChild, children, tooltip, active, showTooltipOnCollapsed = true, ...props },
@@ -74,10 +81,11 @@ export const SidebarMenuButton = React.forwardRef<
       // For div elements
       return (
         <div
+          ref={ref as React.Ref<HTMLDivElement>}
           data-sidebar="menu-button"
           data-active={active}
           className={commonClassName}
-          {...(props as unknown as React.HTMLAttributes<HTMLDivElement>)}
+          {...(props as React.HTMLAttributes<HTMLDivElement>)}
         >
           {renderContent()}
         </div>
@@ -87,11 +95,11 @@ export const SidebarMenuButton = React.forwardRef<
     // For button elements
     return (
       <button
-        ref={ref as React.RefObject<HTMLButtonElement>}
+        ref={ref as React.Ref<HTMLButtonElement>}
         data-sidebar="menu-button"
         data-active={active}
         className={commonClassName}
-        {...props}
+        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
       >
         {renderContent()}
       </button>

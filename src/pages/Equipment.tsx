@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -52,13 +53,6 @@ const EquipmentPage = () => {
     }
   }, [user, authLoading, refetch]);
 
-  // Log equipment data for debugging
-  useEffect(() => {
-    if (Array.isArray(equipment)) {
-      console.log(`EquipmentPage received ${equipment.length} equipment records`);
-    }
-  }, [equipment]);
-
   // Handle error state
   useEffect(() => {
     if (error) {
@@ -102,7 +96,7 @@ const EquipmentPage = () => {
       <div className="flex-1 space-y-6 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
           <h1 className="text-2xl font-bold tracking-tight">Equipment</h1>
-          <Button asChild>
+          <Button asChild className="sm:self-end">
             <Link to="/equipment/new">
               <Package className="mr-2 h-4 w-4" />
               Add Equipment
@@ -112,10 +106,20 @@ const EquipmentPage = () => {
 
         <Tabs defaultValue="list" value={view} onValueChange={setView}>
           <div className="flex justify-between items-center">
-            <TabsList>
+            <TabsList className="hidden sm:flex">
               <TabsTrigger value="list">List View</TabsTrigger>
               <TabsTrigger value="grid">Grid View</TabsTrigger>
             </TabsList>
+            <div className="sm:hidden w-full">
+              <select 
+                className="w-full p-2 border rounded-md bg-background"
+                value={view}
+                onChange={(e) => setView(e.target.value)}
+              >
+                <option value="list">List View</option>
+                <option value="grid">Grid View</option>
+              </select>
+            </div>
           </div>
           
           <TabsContent value="list" className="mt-4">
@@ -128,7 +132,7 @@ const EquipmentPage = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : equipment.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {equipment.map((item) => (
                   <EquipmentCard key={item.id} equipment={item} />
                 ))}
