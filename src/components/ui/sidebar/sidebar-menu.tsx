@@ -50,54 +50,50 @@ export const SidebarMenuButton = React.forwardRef<
     const { state } = useSidebar()
     const isCollapsed = state === "collapsed"
     
-    if (asChild) {
-      return (
-        <div
-          data-sidebar="menu-button"
-          data-active={active}
-          className={cn(
-            "group relative flex h-10 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-            active && "bg-sidebar-accent text-sidebar-accent-foreground",
-            className
-          )}
-          {...props as React.HTMLAttributes<HTMLDivElement>}
-        >
-          {isCollapsed && tooltip && showTooltipOnCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>{children}</TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10} className="min-w-[120px]">
-                {tooltip}
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            children
-          )}
-        </div>
-      )
-    }
-    
-    return (
-      <button
-        ref={ref as React.RefObject<HTMLButtonElement>}
-        data-sidebar="menu-button"
-        data-active={active}
-        className={cn(
-          "group relative flex h-10 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-          active && "bg-sidebar-accent text-sidebar-accent-foreground",
-          className
-        )}
-        {...props}
-      >
-        {isCollapsed && tooltip && showTooltipOnCollapsed ? (
+    const commonClassName = cn(
+      "group relative flex h-10 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      active && "bg-sidebar-accent text-sidebar-accent-foreground",
+      className
+    )
+
+    const renderContent = () => {
+      if (isCollapsed && tooltip && showTooltipOnCollapsed) {
+        return (
           <Tooltip>
             <TooltipTrigger asChild>{children}</TooltipTrigger>
             <TooltipContent side="right" sideOffset={10} className="min-w-[120px]">
               {tooltip}
             </TooltipContent>
           </Tooltip>
-        ) : (
-          children
-        )}
+        )
+      }
+      return children
+    }
+    
+    if (asChild) {
+      // For div elements
+      return (
+        <div
+          data-sidebar="menu-button"
+          data-active={active}
+          className={commonClassName}
+          {...(props as unknown as React.HTMLAttributes<HTMLDivElement>)}
+        >
+          {renderContent()}
+        </div>
+      )
+    }
+    
+    // For button elements
+    return (
+      <button
+        ref={ref as React.RefObject<HTMLButtonElement>}
+        data-sidebar="menu-button"
+        data-active={active}
+        className={commonClassName}
+        {...props}
+      >
+        {renderContent()}
       </button>
     )
   }
