@@ -49,19 +49,12 @@ export const Sidebar = React.forwardRef<
           data-state={state}
           data-mobile-open={openMobile}
           className={cn(
-            "fixed inset-y-0 left-0 z-50 flex h-full flex-col overflow-hidden border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out",
-            state === "expanded" ? "w-64" : "w-12",
+            "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out",
+            state === "expanded" ? "w-64" : "w-14",
             isMobile && !openMobile && "translate-x-[-100%]",
             isMobile && openMobile && "translate-x-0",
             className
           )}
-          style={{
-            width: state === "expanded" 
-              ? isMobile 
-                ? SIDEBAR_WIDTH_MOBILE 
-                : SIDEBAR_WIDTH 
-              : SIDEBAR_WIDTH_ICON,
-          }}
           {...props}
         />
       </TooltipProvider>
@@ -95,7 +88,7 @@ export const SidebarHeader = React.forwardRef<
         <button
           type="button"
           onClick={toggleSidebar}
-          className="ml-auto flex h-7 w-7 items-center justify-center rounded-md hover:bg-slate-700 text-white"
+          className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-slate-700 text-white"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -120,7 +113,7 @@ export const SidebarContent = React.forwardRef<
   <div
     ref={ref}
     data-sidebar="content"
-    className={cn("flex flex-1 flex-col overflow-auto py-2", className)}
+    className={cn("flex flex-1 flex-col py-2 overflow-hidden", className)}
     {...props}
   />
 ))
@@ -140,7 +133,7 @@ export const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("mt-auto flex shrink-0 flex-col border-t border-slate-700", className)}
+      className={cn("mt-auto shrink-0 flex flex-col border-t border-slate-700", className)}
       {...props}
     >
       {/* Add collapse/expand button in footer when collapsed */}

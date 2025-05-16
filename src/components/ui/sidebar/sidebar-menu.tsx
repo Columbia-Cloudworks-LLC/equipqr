@@ -59,6 +59,7 @@ export const SidebarMenuButton = React.forwardRef<
     
     const commonClassName = cn(
       "group relative flex h-9 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      isCollapsed ? "justify-center px-1" : "justify-start",
       active && "bg-slate-700",
       className
     )
@@ -112,13 +113,17 @@ export const SidebarMenuIcon = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & { asChild?: boolean }
 >(({ className, asChild, ...props }, ref) => {
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
   const Component = asChild ? React.Fragment : "div"
+  
   return (
     <Component
       ref={!asChild ? ref : undefined}
       data-sidebar="menu-icon"
       className={cn(
-        "mr-2 flex h-5 w-5 shrink-0 items-center justify-center text-white",
+        "flex shrink-0 items-center justify-center text-white",
+        isCollapsed ? "w-6 h-6" : "h-5 w-5 mr-2",
         className
       )}
       {...(!asChild && props)}
@@ -142,7 +147,7 @@ export const SidebarMenuText = React.forwardRef<
       data-sidebar="menu-text"
       className={cn(
         "truncate transition-all duration-300",
-        state === "collapsed" ? "opacity-0 invisible w-0" : "opacity-100 visible w-auto",
+        state === "collapsed" ? "w-0 opacity-0 invisible" : "w-auto opacity-100 visible",
         className
       )}
       {...(!asChild && props)}

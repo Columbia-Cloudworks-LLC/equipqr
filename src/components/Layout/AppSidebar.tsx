@@ -96,10 +96,12 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       
-      <SidebarContent className="py-2">
+      <SidebarContent className="py-2 px-1">
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400 mb-1">Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className={cn("text-slate-400 mb-1", isCollapsed ? "px-1 text-center" : "px-3")}>
+            {!isCollapsed && "Navigation"}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
@@ -127,7 +129,9 @@ export function AppSidebar() {
         
         {/* Settings Navigation */}
         <SidebarGroup className="mt-1">
-          <SidebarGroupLabel className="text-slate-400 mb-1">Settings</SidebarGroupLabel>
+          <SidebarGroupLabel className={cn("text-slate-400 mb-1", isCollapsed ? "px-1 text-center" : "px-3")}>
+            {!isCollapsed && "Settings"}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsNavItems.map((item) => (
@@ -154,11 +158,14 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="p-3">
-        <div className="text-xs text-slate-400 pl-2">
+      <SidebarFooter className={cn("p-3", isCollapsed ? "text-center" : "")}>
+        <div className={cn("text-xs text-slate-400", isCollapsed ? "text-center" : "pl-2")}>
           <p>EquipQR v1.1</p>
         </div>
       </SidebarFooter>
     </Sidebar>
   );
 }
+
+// Add the import for cn at the top
+import { cn } from "@/lib/utils";
