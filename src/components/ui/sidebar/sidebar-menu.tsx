@@ -54,8 +54,8 @@ export const SidebarMenuButton = React.forwardRef<
     { className, asChild, children, tooltip, active, showTooltipOnCollapsed = true, ...props },
     ref
   ) => {
-    const { state } = useSidebar()
-    const isCollapsed = state === "collapsed"
+    const { state, isMobile } = useSidebar()
+    const isCollapsed = state === "collapsed" && !isMobile
     
     const commonClassName = cn(
       "group relative flex h-9 w-full cursor-pointer items-center rounded-md px-3 text-sm font-medium transition-all hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
@@ -113,8 +113,8 @@ export const SidebarMenuIcon = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & { asChild?: boolean }
 >(({ className, asChild, ...props }, ref) => {
-  const { state } = useSidebar()
-  const isCollapsed = state === "collapsed"
+  const { state, isMobile } = useSidebar()
+  const isCollapsed = state === "collapsed" && !isMobile
   const Component = asChild ? React.Fragment : "div"
   
   return (
@@ -138,7 +138,8 @@ export const SidebarMenuText = React.forwardRef<
   HTMLSpanElement,
   React.ComponentProps<"span"> & { asChild?: boolean }
 >(({ className, asChild, ...props }, ref) => {
-  const { state } = useSidebar()
+  const { state, isMobile } = useSidebar()
+  const isCollapsed = state === "collapsed" && !isMobile
   const Component = asChild ? React.Fragment : "span"
   
   return (
@@ -147,7 +148,7 @@ export const SidebarMenuText = React.forwardRef<
       data-sidebar="menu-text"
       className={cn(
         "truncate transition-opacity duration-200",
-        state === "collapsed" ? "w-0 opacity-0 absolute invisible" : "w-auto opacity-100 visible",
+        isCollapsed ? "w-0 opacity-0 absolute invisible" : "w-auto opacity-100 visible",
         className
       )}
       {...(!asChild && props)}

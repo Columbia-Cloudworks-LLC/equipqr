@@ -19,7 +19,7 @@ export const Sidebar = React.forwardRef<
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       const isSidebarOrChild = target.closest("[data-sidebar]")
-      if (openMobile && !isSidebarOrChild) {
+      if (openMobile && !isMobile && !isSidebarOrChild) {
         setOpenMobile(false)
       }
     }
@@ -28,7 +28,7 @@ export const Sidebar = React.forwardRef<
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [openMobile, setOpenMobile])
+  }, [openMobile, setOpenMobile, isMobile])
 
   return (
     <>
@@ -51,7 +51,7 @@ export const Sidebar = React.forwardRef<
             "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out overflow-hidden",
             state === "expanded" ? "w-64" : "w-14",
             isMobile && !openMobile && "translate-x-[-100%]",
-            isMobile && openMobile && "translate-x-0",
+            isMobile && openMobile && "translate-x-0 w-64", // Always expanded when mobile and open
             className
           )}
           {...props}
@@ -70,7 +70,6 @@ export const SidebarHeader = React.forwardRef<
   React.ComponentProps<"div"> & { showTrigger?: boolean }
 >(({ className, children, showTrigger = false, ...props }, ref) => {
   const { state, toggleSidebar, isMobile } = useSidebar()
-  const isCollapsed = state === "collapsed"
   
   return (
     <div
@@ -83,20 +82,7 @@ export const SidebarHeader = React.forwardRef<
       {...props}
     >
       {children}
-      {showTrigger && !isMobile && (
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-slate-700 text-white"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-          <span className="sr-only">Toggle Sidebar</span>
-        </button>
-      )}
+      {/* We've removed the toggle from header and will add it to footer instead */}
     </div>
   )
 })
@@ -125,27 +111,35 @@ export const SidebarFooter = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
-  const { state, toggleSidebar } = useSidebar()
-  const isCollapsed = state === "collapsed"
+  const { state, toggleSidebar, isMobile } = useSidebar()
+  const isCollapsed = state === "collapsed" && !isMobile
   
   return (
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("mt-auto shrink-0 flex flex-col border-t border-slate-700", className)}
+      className={cn(
+        "mt-auto shrink-0 flex flex-col border-t border-slate-700 relative",
+        className
+      )}
       {...props}
     >
-      {/* Add collapse/expand button in footer when collapsed */}
-      {isCollapsed && (
-        <button
-          onClick={toggleSidebar}
-          className="flex h-10 w-full items-center justify-center text-white hover:bg-slate-700 transition-colors"
-          aria-label="Expand sidebar"
-        >
+      {/* Add collapse/expand button in the bottom right corner */}
+      <button
+        onClick={toggleSidebar}
+        className={cn(
+          "absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center text-white rounded-md hover:bg-slate-700 transition-colors",
+          isCollapsed && "bottom-2 right-[calc(50%-12px)]" // Center when collapsed
+        )}
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isCollapsed ? (
           <ChevronRight className="h-4 w-4" />
-          <span className="sr-only">Expand Sidebar</span>
-        </button>
-      )}
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
+      </button>
+      
       {/* User content in footer */}
       {props.children}
     </div>

@@ -3,16 +3,24 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Slot } from "@radix-ui/react-slot"
 import { useSidebar } from "./sidebar-context"
+import { Separator } from "@/components/ui/separator"
 
 export const SidebarGroup = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div">
->(({ className, ...props }, ref) => {
+  React.ComponentProps<"div"> & { hasDivider?: boolean }
+>(({ className, hasDivider = false, ...props }, ref) => {
+  const { state, isMobile } = useSidebar()
+  const isCollapsed = state === "collapsed" && !isMobile
+  
   return (
     <div
       ref={ref}
       data-sidebar="group"
-      className={cn("relative flex w-full min-w-0 flex-col p-1", className)}
+      className={cn(
+        "relative flex w-full min-w-0 flex-col p-1",
+        isCollapsed && hasDivider && "border-t border-slate-700 pt-2",
+        className
+      )}
       {...props}
     />
   )
@@ -23,17 +31,22 @@ export const SidebarGroupLabel = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & { asChild?: boolean }
 >(({ className, asChild = false, ...props }, ref) => {
-  const { state } = useSidebar()
-  const isCollapsed = state === "collapsed"
+  const { state, isMobile } = useSidebar()
+  const isCollapsed = state === "collapsed" && !isMobile
   const Comp = asChild ? Slot : "div"
+
+  // Don't render if collapsed, unless on mobile
+  if (isCollapsed) {
+    return null
+  }
 
   return (
     <Comp
       ref={ref}
       data-sidebar="group-label"
       className={cn(
-        "flex h-8 shrink-0 items-center rounded-md text-xs font-medium outline-none transition-opacity duration-200",
-        isCollapsed ? "justify-center opacity-50" : "justify-start",
+        "flex h-8 shrink-0 items-center text-xs font-medium outline-none transition-opacity duration-200",
+        "justify-start px-3",
         className
       )}
       {...props}

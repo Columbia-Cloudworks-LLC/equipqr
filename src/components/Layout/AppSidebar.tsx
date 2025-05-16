@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Settings, Package, Users, Home, QrCode, Building, ChevronLeft } from "lucide-react";
+import { Settings, Package, Users, Home, QrCode, Building } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -66,8 +66,8 @@ const settingsNavItems = [
 export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { state, toggleSidebar } = useSidebar();
-  const isCollapsed = state === "collapsed";
+  const { state, isMobile } = useSidebar();
+  const isCollapsed = state === "collapsed" && !isMobile;
   
   // Check if a path is active (exact match or starts with for nested routes)
   const isActive = (path: string) => {
@@ -80,28 +80,17 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r-slate-700">
       <SidebarHeader className="border-b-slate-700">
-        <div className="flex items-center gap-2 px-2 justify-between w-full">
-          <div className="flex items-center gap-2">
-            <Package className="h-6 w-6 text-primary shrink-0" />
-            {!isCollapsed && <h1 className="text-lg font-semibold text-white truncate">equipqr</h1>}
-          </div>
-          {!isCollapsed && (
-            <button
-              onClick={toggleSidebar}
-              className="p-1 rounded-md hover:bg-slate-700 text-white shrink-0"
-              aria-label="Collapse sidebar"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          )}
+        <div className="flex items-center gap-2 px-2 w-full">
+          <Package className="h-6 w-6 text-primary shrink-0" />
+          {!isCollapsed && <h1 className="text-lg font-semibold text-white truncate">equipqr</h1>}
         </div>
       </SidebarHeader>
       
       <SidebarContent className="py-2 px-1">
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className={cn("text-slate-400 mb-1", isCollapsed ? "px-1 text-center" : "px-3")}>
-            {!isCollapsed && "Navigation"}
+          <SidebarGroupLabel className="text-slate-400 mb-1">
+            Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -128,10 +117,10 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         
-        {/* Settings Navigation */}
-        <SidebarGroup className="mt-1">
-          <SidebarGroupLabel className={cn("text-slate-400 mb-1", isCollapsed ? "px-1 text-center" : "px-3")}>
-            {!isCollapsed && "Settings"}
+        {/* Settings Navigation - added the hasDivider prop */}
+        <SidebarGroup hasDivider={true} className="mt-1">
+          <SidebarGroupLabel className="text-slate-400 mb-1">
+            Settings
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -159,8 +148,8 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className={cn("p-3", isCollapsed ? "text-center" : "")}>
-        <div className={cn("text-xs text-slate-400", isCollapsed ? "text-center" : "")}>
+      <SidebarFooter className="p-3">
+        <div className={cn("text-xs text-slate-400 mb-6", isCollapsed ? "text-center" : "")}>
           {isCollapsed ? (
             <p className="truncate">v1.1</p>
           ) : (
