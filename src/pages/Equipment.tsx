@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, Package } from 'lucide-react';
+import { AlertCircle, Package, Settings } from 'lucide-react';
 import { Equipment } from '@/types';
 import { EquipmentList } from '@/components/Equipment/EquipmentList';
 import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
@@ -100,7 +99,7 @@ const EquipmentPage = () => {
   // Main content for authenticated users
   return (
     <Layout>
-      <div className="flex-1 space-y-6 p-6">
+      <div className="flex-1 space-y-6 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
           <h1 className="text-2xl font-bold tracking-tight">Equipment</h1>
           <Button asChild>

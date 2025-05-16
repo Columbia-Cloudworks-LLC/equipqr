@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -13,27 +13,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Menu,
-  Search,
-  Settings,
   User,
   LogOut,
   Building,
+  Settings,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { NotificationDropdown } from "../Notifications/NotificationDropdown";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
-interface NavbarProps {
-  onToggleSidebar: () => void;
-}
-
-export function Navbar({ onToggleSidebar }: NavbarProps) {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const { user, signOut } = useAuth();
+export function Navbar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation(); // Add location to check current route
 
   const handleSignOut = async () => {
     try {
@@ -64,17 +58,12 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-background px-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
-        {!isSearchOpen && (
-          <div className="hidden md:flex">
-            <Link to="/" className="font-semibold text-xl">
-              EquipQR
-            </Link>
-          </div>
-        )}
+        <SidebarTrigger className="h-10 w-10 md:h-8 md:w-8" />
+        <div className="hidden md:flex">
+          <Link to="/" className="font-semibold text-xl">
+            EquipQR
+          </Link>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
@@ -141,4 +130,3 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
     </header>
   );
 }
-
