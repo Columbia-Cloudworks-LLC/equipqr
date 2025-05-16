@@ -8,6 +8,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader, // Added the missing SidebarHeader import
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
