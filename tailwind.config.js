@@ -1,3 +1,4 @@
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
@@ -50,13 +51,13 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Add sidebar colors
+        // Add sidebar colors - using direct color values to avoid CSS variable issues
         sidebar: {
-          DEFAULT: "hsl(var(--sidebar, var(--background)))",
-          foreground: "hsl(var(--sidebar-foreground, var(--foreground)))",
-          accent: "hsl(var(--sidebar-accent, var(--muted)))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground, var(--muted-foreground)))",
-          ring: "hsl(var(--sidebar-ring, var(--ring)))",
+          DEFAULT: "#1e293b", // bg-slate-800
+          foreground: "#ffffff",
+          accent: "#334155", // bg-slate-700
+          "accent-foreground": "#ffffff",
+          ring: "hsl(var(--ring))",
         },
       },
       borderRadius: {

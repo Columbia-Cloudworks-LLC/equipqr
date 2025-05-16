@@ -2,7 +2,7 @@ import * as React from "react"
 import { useIsMobile } from "@/hooks/use-mobile"
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
+const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 export type SidebarContext = {
@@ -49,9 +49,27 @@ export const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
+    // Try to get saved state from cookie
+    const [initialState, setInitialState] = React.useState<boolean>(defaultOpen)
+    
+    React.useEffect(() => {
+      // Only run this on the client
+      if (typeof window !== 'undefined') {
+        const cookies = document.cookie.split(';')
+        const sidebarCookie = cookies.find(cookie => 
+          cookie.trim().startsWith(`${SIDEBAR_COOKIE_NAME}=`)
+        )
+        
+        if (sidebarCookie) {
+          const value = sidebarCookie.split('=')[1]
+          setInitialState(value === 'true')
+        }
+      }
+    }, [])
+
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    const [_open, _setOpen] = React.useState(initialState)
     const open = openProp ?? _open
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -111,13 +129,9 @@ export const SidebarProvider = React.forwardRef<
     return (
       <SidebarContext.Provider value={contextValue}>
         <div
-          style={
-            {
-              "--sidebar-width": "16rem",
-              "--sidebar-width-icon": "3rem",
-              ...style,
-            } as React.CSSProperties
-          }
+          style={{
+            ...style
+          }}
           className={className}
           ref={ref}
           {...props}

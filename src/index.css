@@ -25,13 +25,6 @@
     --input: 220 13% 91%;
     --ring: 262.1 83.3% 57.8%;
     --radius: 0.5rem;
-
-    /* Sidebar variables */
-    --sidebar: 215 32% 27%; /* Match bg-slate-800 */
-    --sidebar-foreground: 0 0% 100%; /* White text */
-    --sidebar-accent: 217 33% 17%; /* Slightly darker for hover */
-    --sidebar-accent-foreground: 0 0% 100%; /* White text on hover */
-    --sidebar-ring: 262.1 83.3% 57.8%;
   }
 
   .dark {
@@ -54,13 +47,6 @@
     --border: 215 27.9% 16.9%;
     --input: 215 27.9% 16.9%;
     --ring: 263.4 70% 50.4%;
-
-    /* Sidebar variables for dark mode */
-    --sidebar: 215 32% 27%; /* Match bg-slate-800 */
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-ring: 263.4 70% 50.4%;
   }
 }
 

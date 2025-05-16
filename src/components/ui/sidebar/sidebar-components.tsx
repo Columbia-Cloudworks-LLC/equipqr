@@ -11,10 +11,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
  */
 export const Sidebar = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> & { className?: string; open?: boolean }
->(({ className, open, ...props }, ref) => {
+  React.ComponentProps<"div"> & { className?: string }
+>(({ className, ...props }, ref) => {
   const { state, openMobile, setOpenMobile, isMobile } = useSidebar()
-  const isOpen = state === "expanded" || openMobile
 
   // Close mobile sidebar when clicking outside
   React.useEffect(() => {
@@ -50,21 +49,17 @@ export const Sidebar = React.forwardRef<
           data-state={state}
           data-mobile-open={openMobile}
           className={cn(
-            "fixed inset-y-0 left-0 z-50 flex h-full flex-col overflow-hidden border-r text-white shadow-sm transition-all duration-300 ease-in-out",
-            isOpen
-              ? isMobile
-                ? `w-[${SIDEBAR_WIDTH_MOBILE}]`
-                : `w-[${SIDEBAR_WIDTH}]`
-              : `w-[${SIDEBAR_WIDTH_ICON}]`,
+            "fixed inset-y-0 left-0 z-50 flex h-full flex-col overflow-hidden border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out",
+            state === "expanded" ? "w-64" : "w-12",
             isMobile && !openMobile && "translate-x-[-100%]",
             isMobile && openMobile && "translate-x-0",
             className
           )}
           style={{
-            width: isOpen
-              ? isMobile
-                ? SIDEBAR_WIDTH_MOBILE
-                : SIDEBAR_WIDTH
+            width: state === "expanded" 
+              ? isMobile 
+                ? SIDEBAR_WIDTH_MOBILE 
+                : SIDEBAR_WIDTH 
               : SIDEBAR_WIDTH_ICON,
           }}
           {...props}
@@ -90,7 +85,7 @@ export const SidebarHeader = React.forwardRef<
       ref={ref}
       data-sidebar="header"
       className={cn(
-        "flex h-14 shrink-0 items-center justify-between border-b px-3",
+        "flex h-14 shrink-0 items-center justify-between border-b border-slate-700 px-3",
         className
       )}
       {...props}
@@ -100,7 +95,7 @@ export const SidebarHeader = React.forwardRef<
         <button
           type="button"
           onClick={toggleSidebar}
-          className="ml-auto flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent/50 text-white"
+          className="ml-auto flex h-7 w-7 items-center justify-center rounded-md hover:bg-slate-700 text-white"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -145,7 +140,7 @@ export const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("mt-auto flex shrink-0 flex-col border-t", className)}
+      className={cn("mt-auto flex shrink-0 flex-col border-t border-slate-700", className)}
       {...props}
     >
       {/* Add collapse/expand button in footer when collapsed */}
@@ -153,7 +148,7 @@ export const SidebarFooter = React.forwardRef<
         <button
           onClick={toggleSidebar}
           className="flex h-10 w-full items-center justify-center text-white hover:bg-slate-700 transition-colors"
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label="Expand sidebar"
         >
           <ChevronRight className="h-4 w-4" />
           <span className="sr-only">Expand Sidebar</span>

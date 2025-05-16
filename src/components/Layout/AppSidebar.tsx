@@ -77,7 +77,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="bg-slate-800 border-r-slate-700">
+    <Sidebar className="border-r-slate-700">
       <SidebarHeader className="border-b-slate-700">
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="border-t border-slate-700 p-3">
+      <SidebarFooter className="p-3">
         <div className="text-xs text-slate-400 pl-2">
           <p>EquipQR v1.1</p>
         </div>
