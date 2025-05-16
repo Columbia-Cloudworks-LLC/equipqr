@@ -73,11 +73,11 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="bg-slate-800 text-white border-r-slate-700">
+    <Sidebar className="bg-slate-800 border-r-slate-700">
       <SidebarHeader className="border-b-slate-700">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 px-2">
           <Package className="h-6 w-6 text-primary" />
-          <h1 className="text-lg font-semibold">equipqr</h1>
+          <h1 className="text-lg font-semibold text-white">equipqr</h1>
         </div>
       </SidebarHeader>
       
@@ -93,6 +93,7 @@ export function AppSidebar() {
                     asChild 
                     tooltip={item.title}
                     active={isActive(item.href)}
+                    className="text-white hover:text-white hover:bg-slate-700"
                   >
                     <Link to={item.href} className="flex items-center">
                       <SidebarMenuIcon>
@@ -118,6 +119,7 @@ export function AppSidebar() {
                     asChild 
                     tooltip={item.title}
                     active={isActive(item.href)}
+                    className="text-white hover:text-white hover:bg-slate-700"
                   >
                     <Link to={item.href} className="flex items-center">
                       <SidebarMenuIcon>
@@ -133,8 +135,8 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="border-t-slate-700 p-4">
-        <div className="text-xs text-slate-400 transition-opacity duration-300">
+      <SidebarFooter className="border-t border-slate-700 p-3">
+        <div className="text-xs text-slate-400 transition-opacity duration-300 pl-2">
           <p>EquipQR v1.1</p>
         </div>
       </SidebarFooter>

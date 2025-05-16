@@ -58,7 +58,7 @@ export const SidebarMenuButton = React.forwardRef<
     const isCollapsed = state === "collapsed"
     
     const commonClassName = cn(
-      "group relative flex h-10 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      "group relative flex h-9 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
       active && "bg-sidebar-accent text-sidebar-accent-foreground",
       className
     )
@@ -85,7 +85,7 @@ export const SidebarMenuButton = React.forwardRef<
           data-sidebar="menu-button"
           data-active={active}
           className={commonClassName}
-          {...(props as React.HTMLAttributes<HTMLDivElement>)}
+          {...props as React.HTMLAttributes<HTMLDivElement>}
         >
           {renderContent()}
         </div>
@@ -99,7 +99,7 @@ export const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-active={active}
         className={commonClassName}
-        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+        {...props as React.ButtonHTMLAttributes<HTMLButtonElement>}
       >
         {renderContent()}
       </button>
@@ -141,7 +141,7 @@ export const SidebarMenuText = React.forwardRef<
       ref={!asChild ? ref : undefined}
       data-sidebar="menu-text"
       className={cn(
-        "transition-opacity duration-300",
+        "transition-opacity duration-300 whitespace-nowrap",
         state === "collapsed" && "opacity-0 invisible",
         className
       )}

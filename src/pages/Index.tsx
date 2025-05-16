@@ -50,7 +50,7 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="flex-1 space-y-6 p-6">
+      <div className="flex-1 space-y-4">
         <InvitationAlert invitations={invitations} />
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
@@ -67,7 +67,7 @@ const Index = () => {
 
         <DashboardStats stats={stats} />
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <RecentEquipmentSection 
             recentEquipment={recentEquipment}
             isLoading={isLoading}

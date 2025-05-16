@@ -49,7 +49,7 @@ export const Sidebar = React.forwardRef<
           data-state={state}
           data-mobile-open={openMobile}
           className={cn(
-            "fixed inset-y-0 left-0 z-50 flex h-full flex-col overflow-hidden border-r bg-sidebar shadow-sm transition-all duration-300 ease-in-out",
+            "fixed inset-y-0 left-0 z-50 flex h-full flex-col overflow-hidden border-r text-white shadow-sm transition-all duration-300 ease-in-out",
             isOpen
               ? isMobile
                 ? `w-[${SIDEBAR_WIDTH_MOBILE}]`
@@ -81,7 +81,7 @@ export const SidebarHeader = React.forwardRef<
       ref={ref}
       data-sidebar="header"
       className={cn(
-        "flex h-16 shrink-0 items-center justify-between border-b px-4",
+        "flex h-14 shrink-0 items-center justify-between border-b px-3",
         className
       )}
       {...props}
@@ -91,12 +91,12 @@ export const SidebarHeader = React.forwardRef<
         <button
           type="button"
           onClick={toggleSidebar}
-          className="ml-auto flex h-8 w-8 items-center justify-center rounded-md hover:bg-sidebar-accent"
+          className="ml-auto flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent/50 text-white"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -128,7 +128,7 @@ export const SidebarContent = React.forwardRef<
   <div
     ref={ref}
     data-sidebar="content"
-    className={cn("flex flex-1 flex-col overflow-auto", className)}
+    className={cn("flex flex-1 flex-col overflow-auto py-2", className)}
     {...props}
   />
 ))
