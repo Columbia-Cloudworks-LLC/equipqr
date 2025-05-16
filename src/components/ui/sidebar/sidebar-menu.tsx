@@ -58,8 +58,8 @@ export const SidebarMenuButton = React.forwardRef<
     const isCollapsed = state === "collapsed"
     
     const commonClassName = cn(
-      "group relative flex h-9 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-      isCollapsed ? "justify-center px-1" : "justify-start",
+      "group relative flex h-9 w-full cursor-pointer items-center rounded-md px-3 text-sm font-medium transition-all hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      isCollapsed ? "justify-center px-2" : "justify-start",
       active && "bg-slate-700",
       className
     )
@@ -123,12 +123,12 @@ export const SidebarMenuIcon = React.forwardRef<
       data-sidebar="menu-icon"
       className={cn(
         "flex shrink-0 items-center justify-center text-white",
-        isCollapsed ? "w-6 h-6" : "h-5 w-5 mr-2",
+        isCollapsed ? "w-5 h-5" : "h-5 w-5 mr-2",
         className
       )}
       {...(!asChild && props)}
     >
-      {asChild && props.children}
+      {asChild ? props.children : props.children}
     </Component>
   )
 })
@@ -146,8 +146,8 @@ export const SidebarMenuText = React.forwardRef<
       ref={!asChild ? ref : undefined}
       data-sidebar="menu-text"
       className={cn(
-        "truncate transition-all duration-300",
-        state === "collapsed" ? "w-0 opacity-0 invisible" : "w-auto opacity-100 visible",
+        "truncate transition-opacity duration-200",
+        state === "collapsed" ? "w-0 opacity-0 absolute invisible" : "w-auto opacity-100 visible",
         className
       )}
       {...(!asChild && props)}

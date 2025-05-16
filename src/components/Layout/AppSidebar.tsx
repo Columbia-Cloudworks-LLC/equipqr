@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sidebar/sidebar-menu";
 
 import { useSidebar } from "@/components/ui/sidebar/sidebar-context";
+import { cn } from "@/lib/utils";
 
 // Navigation items for the sidebar
 const mainNavItems = [
@@ -79,15 +80,15 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r-slate-700">
       <SidebarHeader className="border-b-slate-700">
-        <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-2 px-2 justify-between w-full">
           <div className="flex items-center gap-2">
-            <Package className="h-6 w-6 text-primary" />
-            {!isCollapsed && <h1 className="text-lg font-semibold text-white">equipqr</h1>}
+            <Package className="h-6 w-6 text-primary shrink-0" />
+            {!isCollapsed && <h1 className="text-lg font-semibold text-white truncate">equipqr</h1>}
           </div>
           {!isCollapsed && (
             <button
               onClick={toggleSidebar}
-              className="p-1 rounded-md hover:bg-slate-700 text-white"
+              className="p-1 rounded-md hover:bg-slate-700 text-white shrink-0"
               aria-label="Collapse sidebar"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -110,13 +111,13 @@ export function AppSidebar() {
                     asChild 
                     tooltip={item.title}
                     active={isActive(item.href)}
-                    className="text-white hover:text-white hover:bg-slate-700 h-9"
+                    className="text-white hover:text-white hover:bg-slate-700"
                   >
                     <Link to={item.href} className="flex items-center w-full">
-                      <SidebarMenuIcon className="text-white">
+                      <SidebarMenuIcon>
                         <item.icon className="h-5 w-5" />
                       </SidebarMenuIcon>
-                      <SidebarMenuText className="text-white whitespace-nowrap">
+                      <SidebarMenuText>
                         {item.title}
                       </SidebarMenuText>
                     </Link>
@@ -140,13 +141,13 @@ export function AppSidebar() {
                     asChild 
                     tooltip={item.title}
                     active={isActive(item.href)}
-                    className="text-white hover:text-white hover:bg-slate-700 h-9"
+                    className="text-white hover:text-white hover:bg-slate-700"
                   >
                     <Link to={item.href} className="flex items-center w-full">
-                      <SidebarMenuIcon className="text-white">
+                      <SidebarMenuIcon>
                         <item.icon className="h-5 w-5" />
                       </SidebarMenuIcon>
-                      <SidebarMenuText className="text-white whitespace-nowrap">
+                      <SidebarMenuText>
                         {item.title}
                       </SidebarMenuText>
                     </Link>
@@ -159,13 +160,14 @@ export function AppSidebar() {
       </SidebarContent>
       
       <SidebarFooter className={cn("p-3", isCollapsed ? "text-center" : "")}>
-        <div className={cn("text-xs text-slate-400", isCollapsed ? "text-center" : "pl-2")}>
-          <p>EquipQR v1.1</p>
+        <div className={cn("text-xs text-slate-400", isCollapsed ? "text-center" : "")}>
+          {isCollapsed ? (
+            <p className="truncate">v1.1</p>
+          ) : (
+            <p>EquipQR v1.1</p>
+          )}
         </div>
       </SidebarFooter>
     </Sidebar>
   );
 }
-
-// Add the import for cn at the top
-import { cn } from "@/lib/utils";

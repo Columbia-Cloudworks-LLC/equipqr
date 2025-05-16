@@ -59,6 +59,18 @@
   }
 }
 
+/* Hide scrollbars but allow scrolling */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 /* Additional custom styles for smooth loading transitions */
 .animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;

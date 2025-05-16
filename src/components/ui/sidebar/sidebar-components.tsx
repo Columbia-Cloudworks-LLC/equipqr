@@ -2,7 +2,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { useSidebar } from "./sidebar-context"
-import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON, SIDEBAR_WIDTH_MOBILE } from "./sidebar-constants"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -49,7 +48,7 @@ export const Sidebar = React.forwardRef<
           data-state={state}
           data-mobile-open={openMobile}
           className={cn(
-            "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out",
+            "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out overflow-hidden",
             state === "expanded" ? "w-64" : "w-14",
             isMobile && !openMobile && "translate-x-[-100%]",
             isMobile && openMobile && "translate-x-0",
@@ -113,7 +112,7 @@ export const SidebarContent = React.forwardRef<
   <div
     ref={ref}
     data-sidebar="content"
-    className={cn("flex flex-1 flex-col py-2 overflow-hidden", className)}
+    className={cn("flex flex-1 flex-col py-2 overflow-y-auto no-scrollbar", className)}
     {...props}
   />
 ))

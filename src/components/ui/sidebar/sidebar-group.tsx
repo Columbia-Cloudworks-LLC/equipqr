@@ -32,8 +32,8 @@ export const SidebarGroupLabel = React.forwardRef<
       ref={ref}
       data-sidebar="group-label"
       className={cn(
-        "duration-200 flex h-8 shrink-0 items-center rounded-md text-xs font-medium outline-none transition-all ease-linear",
-        isCollapsed ? "justify-center" : "",
+        "flex h-8 shrink-0 items-center rounded-md text-xs font-medium outline-none transition-opacity duration-200",
+        isCollapsed ? "justify-center opacity-50" : "justify-start",
         className
       )}
       {...props}
