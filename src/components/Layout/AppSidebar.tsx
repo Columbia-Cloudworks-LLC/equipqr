@@ -7,7 +7,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 import {
@@ -85,15 +84,15 @@ export function AppSidebar() {
             <Package className="h-6 w-6 text-primary" />
             {!isCollapsed && <h1 className="text-lg font-semibold text-white">equipqr</h1>}
           </div>
-          <button
-            onClick={toggleSidebar}
-            className="p-1 rounded-md hover:bg-slate-700 text-white"
-            aria-label="Toggle sidebar"
-          >
-            <ChevronLeft 
-              className={`h-4 w-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
-            />
-          </button>
+          {!isCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              className="p-1 rounded-md hover:bg-slate-700 text-white"
+              aria-label="Collapse sidebar"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </SidebarHeader>
       

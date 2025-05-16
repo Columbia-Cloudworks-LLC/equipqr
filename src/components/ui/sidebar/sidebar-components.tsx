@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { useSidebar } from "./sidebar-context"
 import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON, SIDEBAR_WIDTH_MOBILE } from "./sidebar-constants"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 /**
  * Main Sidebar container component
@@ -82,6 +83,7 @@ export const SidebarHeader = React.forwardRef<
   React.ComponentProps<"div"> & { showTrigger?: boolean }
 >(({ className, children, showTrigger = false, ...props }, ref) => {
   const { state, toggleSidebar, isMobile } = useSidebar()
+  const isCollapsed = state === "collapsed"
   
   return (
     <div
@@ -100,23 +102,11 @@ export const SidebarHeader = React.forwardRef<
           onClick={toggleSidebar}
           className="ml-auto flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent/50 text-white"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={cn(
-              "transition-transform duration-200",
-              state === "collapsed" ? "rotate-180" : "rotate-0"
-            )}
-          >
-            <path d="m15 6-6 6 6 6" />
-          </svg>
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
           <span className="sr-only">Toggle Sidebar</span>
         </button>
       )}
@@ -147,12 +137,31 @@ SidebarContent.displayName = "SidebarContent"
 export const SidebarFooter = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    data-sidebar="footer"
-    className={cn("mt-auto flex shrink-0 flex-col border-t", className)}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const { state, toggleSidebar } = useSidebar()
+  const isCollapsed = state === "collapsed"
+  
+  return (
+    <div
+      ref={ref}
+      data-sidebar="footer"
+      className={cn("mt-auto flex shrink-0 flex-col border-t", className)}
+      {...props}
+    >
+      {/* Add collapse/expand button in footer when collapsed */}
+      {isCollapsed && (
+        <button
+          onClick={toggleSidebar}
+          className="flex h-10 w-full items-center justify-center text-white hover:bg-slate-700 transition-colors"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <ChevronRight className="h-4 w-4" />
+          <span className="sr-only">Expand Sidebar</span>
+        </button>
+      )}
+      {/* User content in footer */}
+      {props.children}
+    </div>
+  )
+})
 SidebarFooter.displayName = "SidebarFooter"
