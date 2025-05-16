@@ -81,7 +81,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       
-      <SidebarContent className="py-3">
+      <SidebarContent className="py-2">
         {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-slate-400 mb-1">Navigation</SidebarGroupLabel>
@@ -93,10 +93,10 @@ export function AppSidebar() {
                     asChild 
                     tooltip={item.title}
                     active={isActive(item.href)}
-                    className="text-white hover:text-white hover:bg-slate-700"
+                    className="text-white hover:text-white hover:bg-slate-700 h-9"
                   >
-                    <Link to={item.href}>
-                      <SidebarMenuIcon>
+                    <Link to={item.href} className="flex items-center">
+                      <SidebarMenuIcon className="text-white">
                         <item.icon className="h-5 w-5" />
                       </SidebarMenuIcon>
                       <SidebarMenuText className="text-white">
@@ -111,7 +111,7 @@ export function AppSidebar() {
         </SidebarGroup>
         
         {/* Settings Navigation */}
-        <SidebarGroup className="mt-2">
+        <SidebarGroup className="mt-1">
           <SidebarGroupLabel className="text-slate-400 mb-1">Settings</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -121,10 +121,10 @@ export function AppSidebar() {
                     asChild 
                     tooltip={item.title}
                     active={isActive(item.href)}
-                    className="text-white hover:text-white hover:bg-slate-700"
+                    className="text-white hover:text-white hover:bg-slate-700 h-9"
                   >
-                    <Link to={item.href}>
-                      <SidebarMenuIcon>
+                    <Link to={item.href} className="flex items-center">
+                      <SidebarMenuIcon className="text-white">
                         <item.icon className="h-5 w-5" />
                       </SidebarMenuIcon>
                       <SidebarMenuText className="text-white">

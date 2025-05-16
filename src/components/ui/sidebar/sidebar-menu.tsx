@@ -12,7 +12,7 @@ export const SidebarMenu = React.forwardRef<
     <ul
       ref={ref}
       data-sidebar="menu"
-      className={cn("grid gap-1", className)}
+      className={cn("grid gap-0.5", className)}
       {...props}
     />
   )
@@ -58,7 +58,7 @@ export const SidebarMenuButton = React.forwardRef<
     const isCollapsed = state === "collapsed"
     
     const commonClassName = cn(
-      "group relative flex h-8 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      "group relative flex h-9 w-full cursor-pointer items-center rounded-md px-2 text-sm font-medium ring-offset-background transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
       active && "bg-sidebar-accent text-sidebar-accent-foreground",
       className
     )
