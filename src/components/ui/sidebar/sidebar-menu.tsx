@@ -141,7 +141,7 @@ export const SidebarMenuText = React.forwardRef<
       ref={!asChild ? ref : undefined}
       data-sidebar="menu-text"
       className={cn(
-        "transition-opacity duration-300 whitespace-nowrap",
+        "transition-opacity duration-300",
         state === "collapsed" ? "opacity-0 invisible" : "opacity-100 visible",
         className
       )}

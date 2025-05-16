@@ -59,6 +59,13 @@ export const Sidebar = React.forwardRef<
             isMobile && openMobile && "translate-x-0",
             className
           )}
+          style={{
+            width: isOpen
+              ? isMobile
+                ? SIDEBAR_WIDTH_MOBILE
+                : SIDEBAR_WIDTH
+              : SIDEBAR_WIDTH_ICON,
+          }}
           {...props}
         />
       </TooltipProvider>
@@ -73,7 +80,7 @@ Sidebar.displayName = "Sidebar"
 export const SidebarHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & { showTrigger?: boolean }
->(({ className, children, showTrigger = true, ...props }, ref) => {
+>(({ className, children, showTrigger = false, ...props }, ref) => {
   const { state, toggleSidebar, isMobile } = useSidebar()
   
   return (

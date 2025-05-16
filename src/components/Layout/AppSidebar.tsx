@@ -1,12 +1,13 @@
 
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Settings, Package, Users, Home, QrCode, Building } from "lucide-react";
+import { Settings, Package, Users, Home, QrCode, Building, ChevronLeft } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 import {
@@ -22,6 +23,8 @@ import {
   SidebarMenuIcon,
   SidebarMenuText,
 } from "@/components/ui/sidebar/sidebar-menu";
+
+import { useSidebar } from "@/components/ui/sidebar/sidebar-context";
 
 // Navigation items for the sidebar
 const mainNavItems = [
@@ -63,6 +66,8 @@ const settingsNavItems = [
 export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { state, toggleSidebar } = useSidebar();
+  const isCollapsed = state === "collapsed";
   
   // Check if a path is active (exact match or starts with for nested routes)
   const isActive = (path: string) => {
@@ -75,9 +80,20 @@ export function AppSidebar() {
   return (
     <Sidebar className="bg-slate-800 border-r-slate-700">
       <SidebarHeader className="border-b-slate-700">
-        <div className="flex items-center gap-2 px-2">
-          <Package className="h-6 w-6 text-primary" />
-          <h1 className="text-lg font-semibold text-white">equipqr</h1>
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2">
+            <Package className="h-6 w-6 text-primary" />
+            {!isCollapsed && <h1 className="text-lg font-semibold text-white">equipqr</h1>}
+          </div>
+          <button
+            onClick={toggleSidebar}
+            className="p-1 rounded-md hover:bg-slate-700 text-white"
+            aria-label="Toggle sidebar"
+          >
+            <ChevronLeft 
+              className={`h-4 w-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
+            />
+          </button>
         </div>
       </SidebarHeader>
       
@@ -95,11 +111,11 @@ export function AppSidebar() {
                     active={isActive(item.href)}
                     className="text-white hover:text-white hover:bg-slate-700 h-9"
                   >
-                    <Link to={item.href} className="flex items-center">
+                    <Link to={item.href} className="flex items-center w-full">
                       <SidebarMenuIcon className="text-white">
                         <item.icon className="h-5 w-5" />
                       </SidebarMenuIcon>
-                      <SidebarMenuText className="text-white">
+                      <SidebarMenuText className="text-white whitespace-nowrap">
                         {item.title}
                       </SidebarMenuText>
                     </Link>
@@ -123,11 +139,11 @@ export function AppSidebar() {
                     active={isActive(item.href)}
                     className="text-white hover:text-white hover:bg-slate-700 h-9"
                   >
-                    <Link to={item.href} className="flex items-center">
+                    <Link to={item.href} className="flex items-center w-full">
                       <SidebarMenuIcon className="text-white">
                         <item.icon className="h-5 w-5" />
                       </SidebarMenuIcon>
-                      <SidebarMenuText className="text-white">
+                      <SidebarMenuText className="text-white whitespace-nowrap">
                         {item.title}
                       </SidebarMenuText>
                     </Link>
