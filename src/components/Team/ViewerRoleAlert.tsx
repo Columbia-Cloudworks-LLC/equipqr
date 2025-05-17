@@ -17,6 +17,7 @@ interface ViewerRoleAlertProps {
   onCreateTeam: (name: string) => void;
   isCreatingTeam: boolean;
   members: TeamMember[];
+  currentUserRole?: string | null;
 }
 
 export function ViewerRoleAlert({
@@ -28,8 +29,15 @@ export function ViewerRoleAlert({
   onRequestRoleUpgrade,
   onCreateTeam,
   isCreatingTeam,
-  members
+  members,
+  currentUserRole
 }: ViewerRoleAlertProps) {
+  // Only show this component if the user actually has a viewer role
+  // This prevents the misleading warning when a user is actually a manager
+  if (currentUserRole && currentUserRole !== 'viewer') {
+    return null;
+  }
+  
   const handleRoleAction = () => {
     if (canChangeRoles && onUpgradeRole) {
       onUpgradeRole(selectedTeamId);

@@ -17,7 +17,7 @@ export function ErrorDisplay({
   error, 
   onRetry, 
   onUpgradeRole, 
-  isViewer, 
+  isViewer = false, 
   canDirectlyUpgrade = false,
   isRequestingUpgrade = false,
   crossOrgPermissionError = false

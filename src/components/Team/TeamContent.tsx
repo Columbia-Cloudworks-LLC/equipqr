@@ -72,13 +72,10 @@ export function TeamContent({
   const orgName = currentTeam?.org_name;
   
   // Determine if the user can manage members (manager role or higher)
-  const canManageMembers = canChangeRoles || (
-    currentUserRole === 'manager' || 
-    currentUserRole === 'admin' || 
-    currentUserRole === 'owner' ||
-    currentUserRole === 'creator'
-  );
+  const managerRoles = ['manager', 'admin', 'owner', 'creator'];
+  const canManageMembers = currentUserRole ? managerRoles.includes(currentUserRole) : canChangeRoles;
   
+  // For logging purposes
   console.log("Team Content render - user role:", currentUserRole, "canManageMembers:", canManageMembers);
   
   // If user is not a member and not repairing, show membership alert
@@ -97,6 +94,9 @@ export function TeamContent({
       />
     );
   }
+
+  // Only show viewer warning if the role is actually 'viewer'
+  const isViewOnly = currentUserRole === 'viewer';
 
   return (
     <div className="space-y-6">
@@ -124,8 +124,8 @@ export function TeamContent({
         )}
       </div>
 
-      {/* Show viewer-only warning when appropriate */}
-      {currentUserRole === 'viewer' && (
+      {/* Only show viewer warning if the role is actually 'viewer' */}
+      {isViewOnly && (
         <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-3 flex items-start gap-2">
           <div className="shrink-0 h-5 w-5 text-amber-500">⚠️</div>
           <p className="text-sm">You are in view-only mode. You need a manager role to make changes.</p>

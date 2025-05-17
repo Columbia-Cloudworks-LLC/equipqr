@@ -39,7 +39,7 @@ export default function TeamManagement() {
     fetchTeams
   } = useTeamManagement();
 
-  // Determine if the user has viewer role only
+  // Determine if the user has viewer role only - check if it's 'viewer' specifically
   const isViewerOnly = isMember && currentUserRole === 'viewer';
   
   // Log state for debugging
@@ -50,9 +50,10 @@ export default function TeamManagement() {
       isLoading,
       isMember,
       currentUserRole,
-      canChangeRoles
+      canChangeRoles,
+      isViewerOnly
     });
-  }, [teams.length, selectedTeamId, isLoading, isMember, currentUserRole, canChangeRoles]);
+  }, [teams.length, selectedTeamId, isLoading, isMember, currentUserRole, canChangeRoles, isViewerOnly]);
 
   return (
     <Layout>

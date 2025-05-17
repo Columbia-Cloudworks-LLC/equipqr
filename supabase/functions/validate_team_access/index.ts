@@ -35,6 +35,21 @@ function createErrorResponse(message: string, status: number = 400) {
   );
 }
 
+// Helper to determine the higher role based on permission level
+function getHigherRole(role1: string | null, role2: string | null): string | null {
+  if (!role1) return role2;
+  if (!role2) return role1;
+  
+  // Define role hierarchy from highest to lowest permission level
+  const roleHierarchy = ['owner', 'admin', 'manager', 'creator', 'technician', 'viewer'];
+  
+  const role1Index = roleHierarchy.indexOf(role1);
+  const role2Index = roleHierarchy.indexOf(role2);
+  
+  // Lower index = higher permission
+  return role1Index < role2Index ? role1 : role2;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -85,12 +100,6 @@ serve(async (req) => {
     
     // User has access, get additional details using service role to bypass RLS
     
-    // Get team role safely using our improved function
-    const { data: roleData } = await adminClient.rpc('get_team_role_safe', {
-      _user_id: user_id,
-      _team_id: team_id
-    });
-    
     // Get team information for display purposes
     const { data: teamData } = await adminClient
       .from('team')
@@ -98,49 +107,22 @@ serve(async (req) => {
       .eq('id', team_id)
       .single();
     
-    let orgName = null;
-    if (teamData) {
-      // Get organization name
-      const { data: orgData } = await adminClient
-        .from('organization')
-        .select('name')
-        .eq('id', teamData.org_id)
-        .single();
-        
-      if (orgData) {
-        orgName = orgData.name;
-      }
+    if (!teamData) {
+      return createErrorResponse("Team not found");
     }
     
-    // Check if user is in same org
-    let hasOrgAccess = false;
-    let hasCrossOrgAccess = false;
-    
-    if (teamData) {
-      const { data: userProfile } = await adminClient
-        .from('user_profiles')
-        .select('org_id')
-        .eq('id', user_id)
-        .single();
-      
-      if (userProfile && userProfile.org_id === teamData.org_id) {
-        hasOrgAccess = true;
-      } else if (roleData) {
-        // If user has a role but isn't in the same org, they have cross-org access
-        hasCrossOrgAccess = true;
-      }
-    }
-    
-    // Get app_user.id for team_member join
+    // Get team role from team_member and team_roles tables (direct membership)
     const { data: appUser } = await adminClient
       .from('app_user')
       .select('id')
       .eq('auth_uid', user_id)
       .maybeSingle();
     
-    // Get team_member_id if exists
+    let teamRole = null;
     let teamMemberId = null;
+    
     if (appUser?.id) {
+      // First get team_member_id
       const { data: teamMember } = await adminClient
         .from('team_member')
         .select('id')
@@ -149,31 +131,92 @@ serve(async (req) => {
         .maybeSingle();
       
       teamMemberId = teamMember?.id || null;
+      
+      // Then get role if team_member exists
+      if (teamMember?.id) {
+        const { data: roleData } = await adminClient
+          .from('team_roles')
+          .select('role')
+          .eq('team_member_id', teamMember.id)
+          .maybeSingle();
+        
+        teamRole = roleData?.role || null;
+      }
     }
     
-    // Determine the user's membership status and role
-    const isMember = roleData !== null || hasOrgAccess;
-    let accessReason = 'none';
+    // Check org-level role that might give higher permissions
+    const { data: orgRoleData } = await adminClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user_id)
+      .eq('org_id', teamData.org_id)
+      .maybeSingle();
     
-    if (roleData) {
+    const orgRole = orgRoleData?.role || null;
+    
+    // Get the effective role (higher permission between team and org roles)
+    const effectiveRole = getHigherRole(teamRole, orgRole);
+    
+    // Determine organization context
+    let orgName = null;
+    const { data: orgData } = await adminClient
+      .from('organization')
+      .select('name')
+      .eq('id', teamData.org_id)
+      .single();
+      
+    if (orgData) {
+      orgName = orgData.name;
+    }
+    
+    // Check if user is in same org
+    let hasOrgAccess = false;
+    let hasCrossOrgAccess = false;
+    
+    const { data: userProfile } = await adminClient
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', user_id)
+      .single();
+    
+    if (userProfile && userProfile.org_id === teamData.org_id) {
+      hasOrgAccess = true;
+    } else if (teamRole) {
+      // If user has a role but isn't in the same org, they have cross-org access
+      hasCrossOrgAccess = true;
+    }
+    
+    // Determine the access reason
+    let accessReason = 'none';
+    if (teamRole) {
       accessReason = 'team_member';
+    } else if (orgRole && hasOrgAccess) {
+      accessReason = 'org_role';
     } else if (hasOrgAccess) {
       accessReason = 'same_org';
     } else if (hasCrossOrgAccess) {
       accessReason = 'cross_org_access';
     }
     
+    // Log for debugging
+    console.log('Role determination:', {
+      teamRole,
+      orgRole,
+      effectiveRole,
+      accessReason
+    });
+    
     return createSuccessResponse({
-      is_member: isMember,
+      is_member: true,
       has_org_access: hasOrgAccess,
       has_cross_org_access: hasCrossOrgAccess,
       team_member_id: teamMemberId,
       access_reason: accessReason,
-      role: roleData || null,
-      team: teamData ? {
+      role: effectiveRole || 'viewer', // Default to viewer only if no role found
+      team: {
         name: teamData.name,
         org_id: teamData.org_id
-      } : null,
+      },
       org_name: orgName
     });
     
