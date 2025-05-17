@@ -22,7 +22,11 @@ export { updateTeam } from './updateTeam';
 export { deleteTeam } from './deleteTeam';
 
 // Export team member management functions
-export { getTeamMembers, changeRole, removeMember } from './memberService';
+export { 
+  getTeamMembers, 
+  changeRole, 
+  removeMember 
+} from './memberService';
 
 // Export team invitation functions
 export { 

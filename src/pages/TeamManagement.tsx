@@ -7,6 +7,7 @@ import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
 import { EmptyTeamState } from '@/components/Team/EmptyTeamState';
 import { Layout } from '@/components/Layout/Layout';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CreateTeamButton } from '@/components/Team/CreateTeamButton';
 
 export default function TeamManagement() {
   const {
@@ -85,14 +86,24 @@ export default function TeamManagement() {
           </div>
         ) : teams.length > 0 ? (
           <>
-            <div className="max-w-xs">
-              <TeamSelector 
-                teams={teams}
-                value={selectedTeamId}
-                onChange={setSelectedTeamId}
-                placeholder="Select a team to manage"
-                hideNoTeamOption={true}
-              />
+            <div className="flex items-center">
+              <div className="max-w-xs flex-1">
+                <TeamSelector 
+                  teams={teams}
+                  value={selectedTeamId}
+                  onChange={setSelectedTeamId}
+                  placeholder="Select a team to manage"
+                  hideNoTeamOption={true}
+                />
+              </div>
+              
+              {/* Add Create Team Button - only shown for users who can manage teams */}
+              {(currentUserRole === 'owner' || currentUserRole === 'manager' || canChangeRoles) && (
+                <CreateTeamButton 
+                  onCreateTeam={handleCreateTeam}
+                  isCreating={isCreatingTeam}
+                />
+              )}
             </div>
             
             <TeamContent

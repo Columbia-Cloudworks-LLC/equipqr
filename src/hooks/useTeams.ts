@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { getTeams, createTeam, updateTeam, deleteTeam } from '@/services/team';
@@ -29,13 +30,8 @@ export function useTeams() {
       
       console.log('Fetched teams:', fetchedTeams);
       
-      if (!fetchedTeams || fetchedTeams.length === 0) {
-        console.log('No teams found');
-        setTeams([]);
-        return;
-      }
-      
-      setTeams(fetchedTeams);
+      // Setting teams array even if empty
+      setTeams(fetchedTeams || []);
       
     } catch (error: any) {
       console.error('Error in fetchTeams:', error);
@@ -95,6 +91,8 @@ export function useTeams() {
     try {
       setIsDeletingTeam(true);
       setError(null);
+      
+      console.log('Deleting team with ID:', teamId);
       const result: DeleteTeamResult = await deleteTeam(teamId);
       
       toast.success("Team deleted successfully", {
@@ -103,6 +101,7 @@ export function useTeams() {
           : "No equipment needed to be reassigned",
       });
       
+      // Refresh the teams list after deletion
       await fetchTeams();
     } catch (error: any) {
       console.error('Error in handleDeleteTeam:', error);

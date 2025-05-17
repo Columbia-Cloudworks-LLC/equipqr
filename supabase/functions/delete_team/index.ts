@@ -39,6 +39,7 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Processing delete request for team: ${teamId} by user: ${userId}`);
     const supabase = createAdminClient();
     
     // Step 1: Check if user has permission to delete the team
@@ -48,8 +49,22 @@ serve(async (req) => {
       team_id: teamId
     });
     
-    if (accessError || !accessData?.has_access) {
+    console.log('Access data:', accessData);
+    
+    if (accessError) {
       console.error('Error checking team access:', accessError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Error checking team access',
+          error: accessError.message 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+    
+    if (!accessData?.has_access) {
+      console.log('User has no access to this team');
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -59,7 +74,9 @@ serve(async (req) => {
       );
     }
     
+    // Allow both org owners and team managers to delete the team
     if (!accessData.is_org_owner && accessData.team_role !== 'manager') {
+      console.log(`User role is not sufficient: team_role=${accessData.team_role}, is_org_owner=${accessData.is_org_owner}`);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -69,9 +86,24 @@ serve(async (req) => {
       );
     }
     
-    // Begin a transaction to update equipment and then delete the team
+    console.log('User has permission to delete the team');
+    
+    // Get the count of equipment records that will be affected
+    const { count: equipmentCount, error: countError } = await supabase
+      .from('equipment')
+      .select('*', { count: 'exact', head: true })
+      .eq('team_id', teamId)
+      .is('deleted_at', null);
+      
+    if (countError) {
+      console.error('Error getting equipment count:', countError);
+      // Non-critical error, continue with deletion
+    }
+    
+    console.log(`Found ${equipmentCount || 0} equipment records to update`);
+    
     // Step 2: Update all equipment records assigned to this team
-    const { data: equipmentUpdate, error: equipmentError } = await supabase
+    const { error: equipmentError } = await supabase
       .from('equipment')
       .update({ team_id: null })
       .eq('team_id', teamId)
@@ -89,14 +121,9 @@ serve(async (req) => {
       );
     }
     
-    // Get the count of updated equipment records
-    const { count: equipmentCount, error: countError } = await supabase
-      .from('equipment')
-      .select('*', { count: 'exact', head: true })
-      .eq('team_id', teamId)
-      .is('deleted_at', null);
-      
-    // Step 3: Soft delete all team_member records
+    console.log('Equipment records updated successfully');
+    
+    // Step 3: Delete team_member records
     const { error: memberError } = await supabase
       .from('team_member')
       .delete()
@@ -114,6 +141,8 @@ serve(async (req) => {
       );
     }
     
+    console.log('Team members removed successfully');
+    
     // Step 4: Delete all team_roles for this team
     const { error: rolesError } = await supabase
       .from('team_roles')
@@ -122,14 +151,10 @@ serve(async (req) => {
       
     if (rolesError) {
       console.error('Error removing team roles:', rolesError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Failed to remove team roles',
-          error: rolesError.message
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      // We'll attempt to continue even if this fails as roles without members are orphaned anyway
+      console.log('Continuing despite error removing team roles');
+    } else {
+      console.log('Team roles removed successfully');
     }
     
     // Step 5: Cancel all pending invitations for this team
@@ -142,9 +167,12 @@ serve(async (req) => {
     if (inviteError) {
       console.error('Error cancelling team invitations:', inviteError);
       // Non-critical error, continue with deletion
+      console.log('Continuing despite error cancelling invitations');
+    } else {
+      console.log('Team invitations cancelled successfully');
     }
     
-    // Step 6: Finally, delete the team
+    // Step 6: Finally, soft delete the team
     const { error: teamError } = await supabase
       .from('team')
       .update({ deleted_at: new Date().toISOString() })
@@ -161,6 +189,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
+    
+    console.log('Team deleted successfully');
     
     return new Response(
       JSON.stringify({
