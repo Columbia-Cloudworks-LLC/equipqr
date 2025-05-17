@@ -35,8 +35,17 @@ export function ViewerRoleAlert({
   // Only show this component if the user actually has a viewer role
   // This prevents the misleading warning when a user is actually a manager
   if (currentUserRole && currentUserRole !== 'viewer') {
+    console.log(`ViewerRoleAlert: Not showing alert because user has role ${currentUserRole}, not viewer`);
     return null;
   }
+  
+  // Extra safety check - even without a specific role assigned, if they can change roles, don't show viewer warning
+  if (canChangeRoles) {
+    console.log('ViewerRoleAlert: Not showing alert because canChangeRoles is true');
+    return null;
+  }
+  
+  console.log(`ViewerRoleAlert: Showing alert for role ${currentUserRole}, canChangeRoles: ${canChangeRoles}`);
   
   const handleRoleAction = () => {
     if (canChangeRoles && onUpgradeRole) {

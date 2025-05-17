@@ -39,6 +39,7 @@ export function useTeamManagement() {
     isMember,
     isRepairingTeam,
     currentUserId,
+    accessRole,
     error: membershipError,
     handleRepairTeam
   } = useTeamMembership(selectedTeamId);
@@ -50,7 +51,7 @@ export function useTeamManagement() {
     isRequestingRole,
     handleRequestRoleUpgrade,
     handleUpgradeRole
-  } = useRoleManagement(members, selectedTeamId);
+  } = useRoleManagement(members, selectedTeamId, accessRole);
 
   // Refresh teams when component mounts
   useEffect(() => {
@@ -111,9 +112,11 @@ export function useTeamManagement() {
       selectedTeamId,
       isLoading,
       isMember,
-      members: members.length
+      members: members.length,
+      currentUserRole,
+      accessRole
     });
-  }, [teams.length, selectedTeamId, isLoading, isMember, members.length]);
+  }, [teams.length, selectedTeamId, isLoading, isMember, members.length, currentUserRole, accessRole]);
 
   return {
     members,

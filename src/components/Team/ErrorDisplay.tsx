@@ -22,6 +22,7 @@ export function ErrorDisplay({
   isRequestingUpgrade = false,
   crossOrgPermissionError = false
 }: ErrorDisplayProps) {
+  // If isViewer is true but there's already an error, prioritize showing the error
   if (!error && !isViewer && !crossOrgPermissionError) return null;
   
   // Define specific helpful messages for common errors
@@ -92,6 +93,7 @@ export function ErrorDisplay({
     );
   }
   
+  // For regular errors
   return (
     <Alert variant="destructive" className="mb-6">
       <AlertCircle className="h-4 w-4" />

@@ -5,7 +5,7 @@ import { TeamMember } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { checkRoleChangePermission, upgradeToManagerRole, requestRoleUpgrade } from '@/services/team/roleService';
 
-export function useRoleManagement(members: TeamMember[], teamId: string | null) {
+export function useRoleManagement(members: TeamMember[], teamId: string | null, accessRole?: string | null) {
   const [currentUserRole, setCurrentUserRole] = useState<string | undefined>(undefined);
   const [canChangeRoles, setCanChangeRoles] = useState(false);
   const [isUpgradingRole, setIsUpgradingRole] = useState(false);
@@ -13,32 +13,49 @@ export function useRoleManagement(members: TeamMember[], teamId: string | null) 
 
   // Determine the current user's role in the selected team
   useEffect(() => {
-    if (members?.length > 0 && teamId) {
+    if (teamId) {
       (async () => {
         const { data } = await supabase.auth.getSession();
         const authUserId = data.session?.user?.id;
         if (authUserId) {
-          // Find the member that corresponds to current user
-          const currentMember = members.find(m => m.auth_uid === authUserId);
-          if (currentMember) {
-            console.log('Current user role detected:', currentMember.role);
-            setCurrentUserRole(currentMember.role);
+          let determinedRole: string | null | undefined = undefined;
+          
+          // First check if we have a role from members list
+          if (members?.length > 0) {
+            // Find the member that corresponds to current user
+            const currentMember = members.find(m => m.auth_uid === authUserId);
+            if (currentMember) {
+              determinedRole = currentMember.role;
+              console.log('Current user role from members list:', currentMember.role);
+            }
+          }
+          
+          // If we have an accessRole from team membership check
+          if (!determinedRole && accessRole) {
+            determinedRole = accessRole;
+            console.log('Current user role from accessRole:', accessRole);
+          }
+          
+          if (determinedRole) {
+            console.log('Final determined role:', determinedRole);
+            setCurrentUserRole(determinedRole);
             
             // Check if the role allows management (manager, owner, admin)
             const managerRoles = ['manager', 'owner', 'admin', 'creator'];
-            setCanChangeRoles(managerRoles.includes(currentMember.role));
+            setCanChangeRoles(managerRoles.includes(determinedRole));
           } else {
-            console.log('User not found in team members list');
+            console.log('No role could be determined for user');
             setCurrentUserRole(undefined);
             setCanChangeRoles(false);
           }
         }
       })();
     } else {
-      // Reset role when team changes or members list is empty
+      // Reset role when team changes
       setCurrentUserRole(undefined);
+      setCanChangeRoles(false);
     }
-  }, [members, teamId]);
+  }, [members, teamId, accessRole]);
 
   // Handle role upgrade request
   const handleRequestRoleUpgrade = async (teamId: string) => {

@@ -46,6 +46,10 @@ function getHigherRole(role1: string | null, role2: string | null): string | nul
   const role1Index = roleHierarchy.indexOf(role1);
   const role2Index = roleHierarchy.indexOf(role2);
   
+  // If role isn't in our hierarchy, default to the other role
+  if (role1Index === -1) return role2;
+  if (role2Index === -1) return role1;
+  
   // Lower index = higher permission
   return role1Index < role2Index ? role1 : role2;
 }
@@ -122,6 +126,8 @@ serve(async (req) => {
     let teamMemberId = null;
     
     if (appUser?.id) {
+      console.log(`Found app_user.id: ${appUser.id} for auth_uid: ${user_id}`);
+      
       // First get team_member_id
       const { data: teamMember } = await adminClient
         .from('team_member')
@@ -134,6 +140,8 @@ serve(async (req) => {
       
       // Then get role if team_member exists
       if (teamMember?.id) {
+        console.log(`Found team_member.id: ${teamMember.id} for user_id: ${appUser.id} and team_id: ${team_id}`);
+        
         const { data: roleData } = await adminClient
           .from('team_roles')
           .select('role')
@@ -141,6 +149,7 @@ serve(async (req) => {
           .maybeSingle();
         
         teamRole = roleData?.role || null;
+        console.log(`Found team_role: ${teamRole} for team_member_id: ${teamMember.id}`);
       }
     }
     
@@ -153,9 +162,25 @@ serve(async (req) => {
       .maybeSingle();
     
     const orgRole = orgRoleData?.role || null;
+    console.log(`Found organization role: ${orgRole} for user_id: ${user_id} in org_id: ${teamData.org_id}`);
     
     // Get the effective role (higher permission between team and org roles)
     const effectiveRole = getHigherRole(teamRole, orgRole);
+    console.log(`Determined effective role: ${effectiveRole} (team role: ${teamRole}, org role: ${orgRole})`);
+    
+    // Get the creator of the team to see if they're the creator
+    const { data: teamCreator } = await adminClient
+      .from('team')
+      .select('created_by')
+      .eq('id', team_id)
+      .single();
+    
+    // If the user is the team creator and they don't have a role, assign manager
+    let finalRole = effectiveRole;
+    if (teamCreator && teamCreator.created_by === user_id && !finalRole) {
+      finalRole = 'manager';
+      console.log(`User ${user_id} is the team creator, assigning manager role`);
+    }
     
     // Determine organization context
     let orgName = null;
@@ -199,11 +224,12 @@ serve(async (req) => {
     }
     
     // Log for debugging
-    console.log('Role determination:', {
+    console.log('Final role determination:', {
       teamRole,
       orgRole,
-      effectiveRole,
-      accessReason
+      effectiveRole: finalRole,
+      accessReason,
+      isCreator: teamCreator?.created_by === user_id
     });
     
     return createSuccessResponse({
@@ -212,7 +238,7 @@ serve(async (req) => {
       has_cross_org_access: hasCrossOrgAccess,
       team_member_id: teamMemberId,
       access_reason: accessReason,
-      role: effectiveRole || 'viewer', // Default to viewer only if no role found
+      role: finalRole || null, // Don't default to viewer anymore, use null if no role found
       team: {
         name: teamData.name,
         org_id: teamData.org_id

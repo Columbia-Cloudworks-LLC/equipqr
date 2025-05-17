@@ -53,9 +53,13 @@ export function useTeamMembership(teamId: string | null) {
       
       setIsMember(accessDetails.isMember);
       setAccessReason(accessDetails.accessReason);
-      setAccessRole(accessDetails.role);
       setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess);
       setTeamOrgName(accessDetails.orgName || null);
+      
+      // Only set access role if it's not null to prevent overriding with null
+      if (accessDetails.role !== null) {
+        setAccessRole(accessDetails.role);
+      }
       
       if (!accessDetails.isMember) {
         setError('You are not a member of this team. This may be due to an issue during team creation.');
