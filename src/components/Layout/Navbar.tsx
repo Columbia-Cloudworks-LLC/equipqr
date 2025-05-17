@@ -18,7 +18,8 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex items-center justify-between">
+      {/* Replace container class with custom padding for better alignment */}
+      <div className="flex w-full items-center justify-between px-4 md:pl-8 md:pr-6 lg:pl-8 lg:pr-4">
         <div className="flex items-center gap-2 md:gap-4">
           {/* Only show the sidebar trigger on mobile */}
           {isMobile && <SidebarTrigger className="lg:hidden" />}
