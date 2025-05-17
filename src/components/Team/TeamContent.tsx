@@ -1,9 +1,11 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TeamMembersList } from './TeamMembersList';
 import { TeamInvitationsList } from './TeamInvitationsList';
 import { InviteMemberButton } from './InviteMemberButton';
 import { MembershipAlert } from './MembershipAlert';
+import { EditTeamButton } from './EditTeamButton';
+import { DeleteTeamButton } from './DeleteTeamButton';
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building, Users, Mail } from 'lucide-react';
@@ -16,6 +18,8 @@ interface TeamContentProps {
   isLoading: boolean;
   isLoadingInvitations: boolean;
   isCreatingTeam: boolean;
+  isUpdatingTeam?: boolean;
+  isDeletingTeam?: boolean;
   isRepairingTeam: boolean;
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
@@ -28,10 +32,13 @@ interface TeamContentProps {
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvitation: (id: string) => Promise<void>;
   onCreateTeam: (name: string) => void;
+  onUpdateTeam: (teamId: string, name: string) => Promise<void>;
+  onDeleteTeam: (teamId: string) => Promise<void>;
   onRepairTeam: (teamId: string) => void;
   onUpgradeRole: (teamId: string) => void;
   onRequestRoleUpgrade: (teamId: string) => void;
   onFetchPendingInvitations: () => void;
+  getTeamEquipmentCount?: (teamId: string) => Promise<number>;
 }
 
 export function TeamContent({
@@ -42,6 +49,8 @@ export function TeamContent({
   isLoading,
   isLoadingInvitations,
   isCreatingTeam,
+  isUpdatingTeam = false,
+  isDeletingTeam = false,
   isRepairingTeam,
   isUpgradingRole,
   isRequestingRole,
@@ -54,12 +63,28 @@ export function TeamContent({
   onResendInvite,
   onCancelInvitation,
   onCreateTeam,
+  onUpdateTeam,
+  onDeleteTeam,
   onRepairTeam,
   onUpgradeRole,
   onRequestRoleUpgrade,
-  onFetchPendingInvitations
+  onFetchPendingInvitations,
+  getTeamEquipmentCount
 }: TeamContentProps) {
   const [activeTab, setActiveTab] = useState('members');
+  const [equipmentCount, setEquipmentCount] = useState<number | null>(null);
+  
+  // Get equipment count when team is selected
+  useEffect(() => {
+    const fetchEquipmentCount = async () => {
+      if (selectedTeamId && getTeamEquipmentCount) {
+        const count = await getTeamEquipmentCount(selectedTeamId);
+        setEquipmentCount(count);
+      }
+    };
+    
+    fetchEquipmentCount();
+  }, [selectedTeamId, getTeamEquipmentCount]);
 
   // Only show content if a team is selected
   if (!selectedTeamId) {
@@ -116,12 +141,32 @@ export function TeamContent({
           )}
         </div>
         
-        {canManageMembers && (
-          <InviteMemberButton
-            onInvite={(email, role) => onInviteMember(email, role, selectedTeamId)}
-            teams={teams}
-          />
-        )}
+        <div className="flex gap-2">
+          {canManageMembers && (
+            <>
+              <EditTeamButton 
+                teamId={selectedTeamId}
+                teamName={currentTeam?.name || ''}
+                onUpdateTeam={onUpdateTeam}
+                isLoading={isUpdatingTeam}
+              />
+              
+              <DeleteTeamButton 
+                teamId={selectedTeamId}
+                teamName={currentTeam?.name || ''}
+                onDeleteTeam={onDeleteTeam}
+                isDeleting={isDeletingTeam}
+                hasEquipment={!!equipmentCount && equipmentCount > 0}
+                equipmentCount={equipmentCount || 0}
+              />
+              
+              <InviteMemberButton
+                onInvite={(email, role) => onInviteMember(email, role, selectedTeamId)}
+                teams={teams}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Only show viewer warning if the role is actually 'viewer' */}

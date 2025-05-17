@@ -17,6 +17,8 @@ export default function TeamManagement() {
     isLoading,
     isLoadingInvitations,
     isCreatingTeam,
+    isUpdatingTeam,
+    isDeletingTeam,
     isRepairingTeam,
     isMember,
     isUpgradingRole,
@@ -26,6 +28,8 @@ export default function TeamManagement() {
     error,
     setSelectedTeamId,
     handleCreateTeam,
+    handleUpdateTeam,
+    handleDeleteTeam,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
@@ -36,7 +40,8 @@ export default function TeamManagement() {
     handleRequestRoleUpgrade,
     refetchTeamMembers,
     refetchPendingInvitations,
-    fetchTeams
+    fetchTeams,
+    getTeamEquipmentCount
   } = useTeamManagement();
 
   // Determine if the user has viewer role only - check if it's 'viewer' specifically
@@ -86,6 +91,7 @@ export default function TeamManagement() {
                 value={selectedTeamId}
                 onChange={setSelectedTeamId}
                 placeholder="Select a team to manage"
+                hideNoTeamOption={true}
               />
             </div>
             
@@ -97,6 +103,8 @@ export default function TeamManagement() {
               isLoading={isLoading}
               isLoadingInvitations={isLoadingInvitations}
               isCreatingTeam={isCreatingTeam}
+              isUpdatingTeam={isUpdatingTeam}
+              isDeletingTeam={isDeletingTeam}
               isRepairingTeam={isRepairingTeam}
               isUpgradingRole={isUpgradingRole}
               isRequestingRole={isRequestingRole}
@@ -109,10 +117,13 @@ export default function TeamManagement() {
               onResendInvite={handleResendInvite}
               onCancelInvitation={handleCancelInvitation}
               onCreateTeam={handleCreateTeam}
+              onUpdateTeam={handleUpdateTeam}
+              onDeleteTeam={handleDeleteTeam}
               onRepairTeam={handleRepairTeam}
               onUpgradeRole={handleUpgradeRole}
               onRequestRoleUpgrade={handleRequestRoleUpgrade}
               onFetchPendingInvitations={refetchPendingInvitations}
+              getTeamEquipmentCount={getTeamEquipmentCount}
             />
           </>
         ) : (

@@ -1,64 +1,7 @@
 
 project_id = "oxeheowbfsshpyldlskb"
-
 [api]
-enabled = true
-port = 54321
-schemas = ["public", "storage"]
-extra_search_path = ["public", "extensions"]
-max_rows = 1000
-
-[db]
-port = 54322
-shadow_port = 54320
-major_version = 15
-
-[studio]
-enabled = true
-port = 54323
-api_url = "http://localhost"
-
-[functions.validate_team_access]
-verify_jwt = true
-no_public_access = false
-
-[functions.check_equipment_permission]
-verify_jwt = true
-no_public_access = false
-
-[functions.check_equipment_create_permission]
-verify_jwt = true
-no_public_access = false
-
-[functions.check_team_role_permission]
-verify_jwt = true
-no_public_access = false
-
-[functions.create_equipment_permission]
-verify_jwt = true
-no_public_access = false
-
-[inbucket]
-enabled = true
-port = 54324
-smtp_port = 54325
-pop3_port = 54326
-
-[storage]
-enabled = true
-
+[functions]
+[realtime]
 [auth]
-enabled = true
-site_url = "https://equipqr.ai"
-additional_redirect_urls = [
-  "https://equipqr-staging.vercel.app/auth/callback", 
-  "https://equipqr-staging.vercel.app/auth", 
-  "https://equipqr.ai/auth/callback", 
-  "https://equipqr.ai/auth"
-]
-
-[analytics]
-enabled = false
-port = 54327
-vector_port = 54328
-backend = "postgres"
+[storage]

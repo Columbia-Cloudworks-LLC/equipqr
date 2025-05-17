@@ -1,30 +1,22 @@
+/**
+ * Re-export all team service functions from their respective modules
+ */
 
-// Re-export from team service files
-export * from './teamService';
+// Re-export team retrieval functions
+export { getTeams, getTeamById } from './retrieval/getTeamDetails';
 
-// For memberService, we'll export everything except resendInvite to avoid conflicts
-export { 
-  getTeamMembers,
-  getOrganizationMembers,
-  changeRole,
-  removeMember
-} from './memberService';
+// Re-export team creation functions
+export { createTeam } from './creation/createTeam';
 
-// Export all invitation-related functions from invitationService
-export * from './invitationService';
-
-// Export invitation member function
-export { inviteMember } from './invitation/inviteTeamMember';
-
-// Export notification-related functions
-export * from './notificationService';
-
-// Export all role-related functions (including roleService's checkRoleChangePermission)
-export * from './roleService';
-
-// Export from teamValidationService but exclude the conflicting function
+// Re-export team validation functions
+// Don't re-export checkRoleChangePermission to avoid conflict with roleService
 export { 
   validateTeamMembership,
   repairTeamMembership,
   getTeamAccessDetails
 } from './teamValidationService';
+
+
+// Export team update and deletion functions
+export { updateTeam } from './updateTeam';
+export { deleteTeam } from './deleteTeam';

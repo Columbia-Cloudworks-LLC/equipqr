@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -15,9 +14,14 @@ export function useTeamManagement() {
     teams,
     isLoading: isTeamsLoading,
     isCreatingTeam,
+    isUpdatingTeam,
+    isDeletingTeam,
     error: teamsError,
     fetchTeams,
-    handleCreateTeam 
+    handleCreateTeam,
+    handleUpdateTeam,
+    handleDeleteTeam,
+    getTeamEquipmentCount
   } = useTeams();
   
   const {
@@ -126,6 +130,8 @@ export function useTeamManagement() {
     isLoading,
     isLoadingInvitations,
     isCreatingTeam,
+    isUpdatingTeam,
+    isDeletingTeam,
     isRepairingTeam,
     isUpgradingRole,
     isRequestingRole,
@@ -135,6 +141,8 @@ export function useTeamManagement() {
     error,
     setSelectedTeamId,
     handleCreateTeam: handleCreateAndSelectTeam,
+    handleUpdateTeam,
+    handleDeleteTeam,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
@@ -145,6 +153,7 @@ export function useTeamManagement() {
     handleRequestRoleUpgrade,
     refetchTeamMembers,
     refetchPendingInvitations,
-    fetchTeams
+    fetchTeams,
+    getTeamEquipmentCount
   };
 }

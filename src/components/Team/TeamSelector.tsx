@@ -24,9 +24,16 @@ interface TeamSelectorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  hideNoTeamOption?: boolean;
 }
 
-export function TeamSelector({ teams, value, onChange, placeholder = "Select a team" }: TeamSelectorProps) {
+export function TeamSelector({ 
+  teams, 
+  value, 
+  onChange, 
+  placeholder = "Select a team",
+  hideNoTeamOption = false
+}: TeamSelectorProps) {
   // Group teams by organization if org_name is present
   const hasOrgInfo = teams.some(team => team.org_name);
   const groupedTeams = hasOrgInfo ? 
@@ -47,7 +54,9 @@ export function TeamSelector({ teams, value, onChange, placeholder = "Select a t
       </SelectTrigger>
       
       <SelectContent>
-        <SelectItem value="none">No team</SelectItem>
+        {!hideNoTeamOption && (
+          <SelectItem value="none">No team</SelectItem>
+        )}
         
         {hasOrgInfo ? (
           Object.entries(groupedTeams).map(([orgName, orgTeams]) => (
