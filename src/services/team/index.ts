@@ -1,3 +1,4 @@
+
 /**
  * Re-export all team service functions from their respective modules
  */
@@ -16,7 +17,17 @@ export {
   getTeamAccessDetails
 } from './teamValidationService';
 
-
 // Export team update and deletion functions
 export { updateTeam } from './updateTeam';
 export { deleteTeam } from './deleteTeam';
+
+// Export team member management functions
+export { getTeamMembers, changeRole, removeMember } from './memberService';
+
+// Export team invitation functions
+export { 
+  inviteMember,
+  resendInvite,
+  getPendingInvitations,
+  cancelInvitation
+} from './invitation';

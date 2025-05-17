@@ -1,174 +1,184 @@
 
+import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-import { corsHeaders } from '../_shared/index.ts';
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+// Inline the required functionality from _shared/cors.ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
-interface RequestBody {
-  teamId: string;
-  userId: string;
+// Create a Supabase client with the service role key (admin privileges)
+function createAdminClient() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        persistSession: false
-      }
+    const { teamId, userId } = await req.json();
+    
+    if (!teamId) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'Team ID is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'User ID is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const supabase = createAdminClient();
+    
+    // Step 1: Check if user has permission to delete the team
+    // User must be a team manager or the organization owner
+    const { data: accessData, error: accessError } = await supabase.rpc('check_team_access_detailed', {
+      user_id: userId,
+      team_id: teamId
     });
     
-    // Parse request body
-    const { teamId, userId } = await req.json() as RequestBody;
-    
-    if (!teamId || !userId) {
+    if (accessError || !accessData?.has_access) {
+      console.error('Error checking team access:', accessError);
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: teamId and userId' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 400 
-        }
+        JSON.stringify({ 
+          success: false, 
+          message: 'You do not have permission to delete this team' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
       );
     }
     
-    console.log(`Delete team request for teamId: ${teamId} by userId: ${userId}`);
-    
-    // 1. Get team details to check ownership
-    const { data: team, error: teamError } = await supabase
-      .from('team')
-      .select('*, organization:org_id(id, name)')
-      .eq('id', teamId)
-      .is('deleted_at', null)
-      .single();
-    
-    if (teamError || !team) {
-      console.error('Error fetching team:', teamError);
+    if (!accessData.is_org_owner && accessData.team_role !== 'manager') {
       return new Response(
-        JSON.stringify({ error: teamError?.message || 'Team not found' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 404
-        }
+        JSON.stringify({ 
+          success: false, 
+          message: 'Only team managers and organization owners can delete teams' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
       );
     }
     
-    // 2. Check if user is authorized to delete the team
-    // First get the app_user.id from auth.users.id
-    const { data: appUser } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', userId)
-      .single();
-      
-    if (!appUser) {
-      return new Response(
-        JSON.stringify({ error: 'User not found' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 403
-        }
-      );
-    }
-    
-    // Check if user is the team creator/manager
-    const { data: teamRole } = await supabase
-      .from('team_roles')
-      .select('role')
-      .eq('team_member_id', (q) => 
-        q.select('id')
-          .from('team_member')
-          .eq('team_id', teamId)
-          .eq('user_id', appUser.id)
-          .single()
-      )
-      .single();
-    
-    // Also check org-level permissions
-    const { data: orgRole } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('org_id', team.org_id)
-      .single();
-    
-    const userRole = teamRole?.role || orgRole?.role;
-    const canDelete = ['manager', 'owner', 'admin', 'creator'].includes(userRole || '');
-    
-    if (!canDelete) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized: You do not have permission to delete this team' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 403
-        }
-      );
-    }
-    
-    // Begin transaction to:
-    // 1. Unassign equipment from the team
-    // 2. Mark the team as deleted
-    
-    // Start with equipment reassignment
-    const { data: updatedEquipment, error: equipmentError } = await supabase
+    // Begin a transaction to update equipment and then delete the team
+    // Step 2: Update all equipment records assigned to this team
+    const { data: equipmentUpdate, error: equipmentError } = await supabase
       .from('equipment')
-      .update({ team_id: null, updated_at: new Date().toISOString() })
+      .update({ team_id: null })
       .eq('team_id', teamId)
-      .select('id');
-    
+      .is('deleted_at', null);
+      
     if (equipmentError) {
-      console.error('Error updating equipment:', equipmentError);
+      console.error('Error updating equipment records:', equipmentError);
       return new Response(
-        JSON.stringify({ error: 'Failed to update equipment: ' + equipmentError.message }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500
-        }
+        JSON.stringify({ 
+          success: false, 
+          message: 'Failed to update equipment records',
+          error: equipmentError.message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     
-    // Then mark the team as deleted (soft delete)
-    const { error: deleteError } = await supabase
+    // Get the count of updated equipment records
+    const { count: equipmentCount, error: countError } = await supabase
+      .from('equipment')
+      .select('*', { count: 'exact', head: true })
+      .eq('team_id', teamId)
+      .is('deleted_at', null);
+      
+    // Step 3: Soft delete all team_member records
+    const { error: memberError } = await supabase
+      .from('team_member')
+      .delete()
+      .eq('team_id', teamId);
+      
+    if (memberError) {
+      console.error('Error removing team members:', memberError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Failed to remove team members',
+          error: memberError.message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+    
+    // Step 4: Delete all team_roles for this team
+    const { error: rolesError } = await supabase
+      .from('team_roles')
+      .delete()
+      .eq('team_id', teamId);
+      
+    if (rolesError) {
+      console.error('Error removing team roles:', rolesError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Failed to remove team roles',
+          error: rolesError.message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+    
+    // Step 5: Cancel all pending invitations for this team
+    const { error: inviteError } = await supabase
+      .from('team_invitations')
+      .update({ status: 'cancelled' })
+      .eq('team_id', teamId)
+      .eq('status', 'pending');
+      
+    if (inviteError) {
+      console.error('Error cancelling team invitations:', inviteError);
+      // Non-critical error, continue with deletion
+    }
+    
+    // Step 6: Finally, delete the team
+    const { error: teamError } = await supabase
       .from('team')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', teamId);
-    
-    if (deleteError) {
-      console.error('Error deleting team:', deleteError);
+      
+    if (teamError) {
+      console.error('Error deleting team:', teamError);
       return new Response(
-        JSON.stringify({ error: 'Failed to delete team: ' + deleteError.message }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500
-        }
+        JSON.stringify({ 
+          success: false, 
+          message: 'Failed to delete team',
+          error: teamError.message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     
-    // Return success with details on equipment affected
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Team deleted successfully',
-        equipmentUpdated: updatedEquipment?.length || 0
+        equipmentUpdated: equipmentCount || 0
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
     
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error in delete_team function:', error);
     return new Response(
-      JSON.stringify({ error: 'An unexpected error occurred' }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 500 
-      }
+      JSON.stringify({ 
+        success: false, 
+        message: `Server error: ${error.message}` 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
