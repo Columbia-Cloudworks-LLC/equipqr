@@ -1,13 +1,5 @@
 
-import { UserRole } from '@/types/supabase-enums';
-
-export interface EmailInvitationOptions {
-  recipientEmail: string;
-  organizationName: string;
-  inviterEmail: string;
-  token: string;
-  role: string;
-}
+import { UserRole } from "@/types/supabase-enums";
 
 export interface OrganizationInvitation {
   id: string;
@@ -20,16 +12,4 @@ export interface OrganizationInvitation {
   organization?: {
     name: string;
   };
-}
-
-export interface InvitationResult {
-  success: boolean;
-  data?: any;
-  error?: string;
-}
-
-export interface ValidationResult {
-  valid: boolean;
-  invitation?: any;
-  error?: string;
 }

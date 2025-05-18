@@ -13,6 +13,7 @@ export function useTeamMembership(teamId: string | null) {
   const [accessRole, setAccessRole] = useState<string | null>(null);
   const [hasCrossOrgAccess, setHasCrossOrgAccess] = useState<boolean>(false);
   const [teamOrgName, setTeamOrgName] = useState<string | null>(null);
+  const [teamDetails, setTeamDetails] = useState<any>(null);
   
   // Get the current user's ID
   useEffect(() => {
@@ -38,6 +39,7 @@ export function useTeamMembership(teamId: string | null) {
       setAccessRole(null);
       setHasCrossOrgAccess(false);
       setTeamOrgName(null);
+      setTeamDetails(null);
       setError(null);
     }
   }, [teamId, currentUserId]);
@@ -55,6 +57,7 @@ export function useTeamMembership(teamId: string | null) {
       setAccessReason(accessDetails.accessReason);
       setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess);
       setTeamOrgName(accessDetails.orgName || null);
+      setTeamDetails(accessDetails.team || null);
       
       // Only set access role if it's not null to prevent overriding with null
       if (accessDetails.role !== null) {
@@ -74,7 +77,8 @@ export function useTeamMembership(teamId: string | null) {
         reason: accessDetails.accessReason,
         role: accessDetails.role,
         hasCrossOrgAccess: accessDetails.hasCrossOrgAccess,
-        orgName: accessDetails.orgName
+        orgName: accessDetails.orgName,
+        team: accessDetails.team
       });
     } catch (error: any) {
       console.error('Error checking team access:', error);
@@ -90,14 +94,21 @@ export function useTeamMembership(teamId: string | null) {
     try {
       setIsRepairingTeam(true);
       setError(null);
-      await repairTeamMembership(teamId);
-      toast.success("Team membership repaired", {
-        description: "You have been added as a team manager",
-      });
       
-      // Re-check team membership
-      if (currentUserId) {
-        await checkDetailedTeamAccess(teamId, currentUserId);
+      // Call the repair function
+      const result = await repairTeamMembership(teamId);
+      
+      if (result && result.success) {
+        toast.success("Team membership repaired", {
+          description: "You have been added as a team manager",
+        });
+        
+        // Re-check team membership
+        if (currentUserId) {
+          await checkDetailedTeamAccess(teamId, currentUserId);
+        }
+      } else {
+        throw new Error(result?.error || "Repair failed with unknown error");
       }
     } catch (error: any) {
       console.error('Error in handleRepairTeam:', error);
@@ -119,6 +130,7 @@ export function useTeamMembership(teamId: string | null) {
     accessRole,
     hasCrossOrgAccess,
     teamOrgName,
+    teamDetails,
     handleRepairTeam,
     checkTeamMembership: checkDetailedTeamAccess
   };

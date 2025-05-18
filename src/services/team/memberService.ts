@@ -106,25 +106,33 @@ export async function removeMember(memberId: string, teamId: string): Promise<bo
     
     // For safety, check if this is the last manager in the team
     if (rolesData?.role === 'manager') {
-      const { data: managers, error: managersError } = await supabase
-        .from('team_roles')
+      // First get team members with team_id
+      const { data: teamMembers, error: teamMembersError } = await supabase
+        .from('team_member')
         .select('id')
-        .eq('role', 'manager')
-        .filter('team_member_id', 'in', 
-          // Fix: Create a subquery that returns an array of ids
-          supabase
-            .from('team_member')
-            .select('id')
-            .eq('team_id', teamId)
-            .then(result => result.data?.map(item => item.id) || [])
-        );
+        .eq('team_id', teamId);
       
-      if (managersError) {
-        throw new Error(`Failed to check team managers: ${managersError.message}`);
+      if (teamMembersError) {
+        throw new Error(`Failed to get team members: ${teamMembersError.message}`);
       }
       
-      if (managers && managers.length <= 1) {
-        throw new Error("Cannot remove the last manager from a team");
+      // Then check how many managers exist for this team
+      if (teamMembers && teamMembers.length > 0) {
+        const teamMemberIds = teamMembers.map(item => item.id);
+        
+        const { data: managers, error: managersError } = await supabase
+          .from('team_roles')
+          .select('id')
+          .eq('role', 'manager')
+          .in('team_member_id', teamMemberIds);
+        
+        if (managersError) {
+          throw new Error(`Failed to check team managers: ${managersError.message}`);
+        }
+        
+        if (managers && managers.length <= 1) {
+          throw new Error("Cannot remove the last manager from a team");
+        }
       }
     }
     

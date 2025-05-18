@@ -1,14 +1,13 @@
 
-import { useState, useEffect } from 'react';
-import { TeamMembersList } from './TeamMembersList';
-import { TeamInvitationsList } from './TeamInvitationsList';
-import { InviteMemberButton } from './InviteMemberButton';
+import { useState } from 'react';
+import { TeamMembers } from './TeamMembers';
+import { TeamSettings } from './TeamSettings';
+import { RepairTeamAccess } from './RepairTeamAccess';
 import { MembershipAlert } from './MembershipAlert';
-import { EditTeamButton } from './EditTeamButton';
-import { DeleteTeamButton } from './DeleteTeamButton';
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building, Users, Mail } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
+import { UserPlus } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface TeamContentProps {
   selectedTeamId: string;
@@ -18,22 +17,22 @@ interface TeamContentProps {
   isLoading: boolean;
   isLoadingInvitations: boolean;
   isCreatingTeam: boolean;
-  isUpdatingTeam?: boolean;
-  isDeletingTeam?: boolean;
+  isUpdatingTeam: boolean;
+  isDeletingTeam: boolean;
   isRepairingTeam: boolean;
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
   isMember: boolean;
-  currentUserRole: string | null;
+  currentUserRole?: string;
   canChangeRoles: boolean;
   onInviteMember: (email: string, role: string, teamId: string) => void;
   onChangeRole: (id: string, role: string, teamId: string) => void;
   onRemoveMember: (id: string, teamId: string) => void;
-  onResendInvite: (id: string) => Promise<void>;
-  onCancelInvitation: (id: string) => Promise<void>;
+  onResendInvite: (id: string) => void;
+  onCancelInvitation: (id: string) => void;
   onCreateTeam: (name: string) => void;
-  onUpdateTeam: (teamId: string, name: string) => Promise<void>;
-  onDeleteTeam: (teamId: string) => Promise<void>;
+  onUpdateTeam: (id: string, name: string) => void;
+  onDeleteTeam: (id: string) => void;
   onRepairTeam: (teamId: string) => void;
   onUpgradeRole: (teamId: string) => void;
   onRequestRoleUpgrade: (teamId: string) => void;
@@ -49,8 +48,8 @@ export function TeamContent({
   isLoading,
   isLoadingInvitations,
   isCreatingTeam,
-  isUpdatingTeam = false,
-  isDeletingTeam = false,
+  isUpdatingTeam,
+  isDeletingTeam,
   isRepairingTeam,
   isUpgradingRole,
   isRequestingRole,
@@ -72,146 +71,115 @@ export function TeamContent({
   getTeamEquipmentCount
 }: TeamContentProps) {
   const [activeTab, setActiveTab] = useState('members');
-  const [equipmentCount, setEquipmentCount] = useState<number | null>(null);
   
-  // Get equipment count when team is selected
-  useEffect(() => {
-    const fetchEquipmentCount = async () => {
-      if (selectedTeamId && getTeamEquipmentCount) {
-        const count = await getTeamEquipmentCount(selectedTeamId);
-        setEquipmentCount(count);
-      }
-    };
-    
-    fetchEquipmentCount();
-  }, [selectedTeamId, getTeamEquipmentCount]);
-
-  // Only show content if a team is selected
   if (!selectedTeamId) {
     return null;
   }
-  
-  // Get current selected team details
-  const currentTeam = teams.find(team => team.id === selectedTeamId);
-  const isExternalOrg = currentTeam?.is_external_org;
-  const orgName = currentTeam?.org_name;
-  
-  // Determine if the user can manage members (manager role or higher)
-  const managerRoles = ['manager', 'admin', 'owner', 'creator'];
-  const canManageMembers = currentUserRole ? managerRoles.includes(currentUserRole) : canChangeRoles;
-  
-  // For logging purposes
-  console.log("Team Content render - user role:", currentUserRole, "canManageMembers:", canManageMembers);
-  
-  // If user is not a member and not repairing, show membership alert
-  if (!isMember && !isRepairingTeam) {
+
+  // Find selected team for more details
+  const selectedTeam = teams.find(team => team.id === selectedTeamId);
+
+  if (isLoading) {
     return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-52" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  // Step 1: Show repair option if user is not a team member
+  if (!isMember) {
+    return (
+      <RepairTeamAccess 
+        selectedTeamId={selectedTeamId} 
+        onRepairTeam={onRepairTeam} 
+        isRepairingTeam={isRepairingTeam} 
+        teamDetails={selectedTeam}
+      />
+    );
+  }
+
+  // Step 2: Show appropriate content based on membership status and role
+  return (
+    <div className="space-y-4">
+      {/* Membership alerts for special cases */}
       <MembershipAlert
-        team={teams.find(t => t.id === selectedTeamId)}
+        team={selectedTeam}
         onRepair={() => onRepairTeam(selectedTeamId)}
         isRepairing={isRepairingTeam}
-        role={currentUserRole}
+        role={currentUserRole || null}
         onUpgrade={() => onUpgradeRole(selectedTeamId)}
         onRequestUpgrade={() => onRequestRoleUpgrade(selectedTeamId)}
         isUpgrading={isUpgradingRole}
         isRequesting={isRequestingRole}
         canUpgrade={canChangeRoles}
       />
-    );
-  }
 
-  // Only show viewer warning if the role is actually 'viewer'
-  const isViewOnly = currentUserRole === 'viewer';
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">{currentTeam?.name || 'Team'}</h2>
-          {orgName && (
-            <div className="flex items-center mt-1 text-sm text-muted-foreground">
-              <Building className="h-3.5 w-3.5 mr-1" />
-              {orgName}
-              {isExternalOrg && (
-                <Badge variant="outline" className="ml-2 text-xs">
-                  External Organization
-                </Badge>
-              )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div>
+              {selectedTeam?.name || "Team Details"} 
+              {selectedTeam?.is_external_org && " (External)"}
             </div>
-          )}
-        </div>
-        
-        <div className="flex gap-2">
-          {canManageMembers && (
-            <>
-              <EditTeamButton 
+          </CardTitle>
+          <CardDescription>
+            {selectedTeam?.is_external_org 
+              ? `This team belongs to ${selectedTeam?.org_name || 'another organization'}`
+              : "Manage team members and settings"
+            }
+          </CardDescription>
+        </CardHeader>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <CardContent className="pb-0">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="members" className="flex items-center">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Team Members
+              </TabsTrigger>
+              <TabsTrigger value="settings">
+                Team Settings
+              </TabsTrigger>
+            </TabsList>
+          </CardContent>
+
+          <TabsContent value="members" className="mt-0">
+            <CardContent>
+              <TeamMembers 
+                members={members}
+                pendingInvitations={pendingInvitations}
+                isLoading={isLoading}
+                isLoadingInvitations={isLoadingInvitations}
                 teamId={selectedTeamId}
-                teamName={currentTeam?.name || ''}
+                onInviteMember={onInviteMember}
+                onChangeRole={onChangeRole}
+                onRemoveMember={onRemoveMember}
+                onResendInvite={onResendInvite}
+                onCancelInvitation={onCancelInvitation}
+                onFetchPendingInvitations={onFetchPendingInvitations}
+                currentUserRole={currentUserRole}
+                canChangeRoles={canChangeRoles}
+              />
+            </CardContent>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-0">
+            <CardContent>
+              <TeamSettings
+                team={selectedTeam}
                 onUpdateTeam={onUpdateTeam}
-                isLoading={isUpdatingTeam}
-              />
-              
-              <DeleteTeamButton 
-                teamId={selectedTeamId}
-                teamName={currentTeam?.name || ''}
                 onDeleteTeam={onDeleteTeam}
+                isUpdating={isUpdatingTeam}
                 isDeleting={isDeletingTeam}
-                hasEquipment={!!equipmentCount && equipmentCount > 0}
-                equipmentCount={equipmentCount || 0}
+                currentUserRole={currentUserRole || 'viewer'}
+                getTeamEquipmentCount={getTeamEquipmentCount}
               />
-              
-              <InviteMemberButton
-                onInvite={(email, role) => onInviteMember(email, role, selectedTeamId)}
-                teams={teams}
-              />
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Only show viewer warning if the role is actually 'viewer' */}
-      {isViewOnly && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-3 flex items-start gap-2">
-          <div className="shrink-0 h-5 w-5 text-amber-500">⚠️</div>
-          <p className="text-sm">You are in view-only mode. You need a manager role to make changes.</p>
-        </div>
-      )}
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="members" className="flex items-center">
-            <Users className="h-4 w-4 mr-2" />
-            Members
-          </TabsTrigger>
-          <TabsTrigger 
-            value="invitations" 
-            className="flex items-center"
-            onClick={onFetchPendingInvitations}
-          >
-            <Mail className="h-4 w-4 mr-2" />
-            Invitations
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="members" className="mt-4">
-          <TeamMembersList
-            members={members}
-            onRemoveMember={(id) => onRemoveMember(id, selectedTeamId)}
-            onChangeRole={(id, role) => onChangeRole(id, role, selectedTeamId)}
-            onResendInvite={onResendInvite}
-            teamId={selectedTeamId}
-            isViewOnly={!canManageMembers}
-          />
-        </TabsContent>
-        <TabsContent value="invitations" className="mt-4">
-          <TeamInvitationsList
-            invitations={pendingInvitations}
-            onResendInvite={onResendInvite}
-            onCancelInvite={onCancelInvitation}
-            isLoading={isLoadingInvitations}
-            isViewOnly={!canManageMembers}
-          />
-        </TabsContent>
-      </Tabs>
+            </CardContent>
+          </TabsContent>
+        </Tabs>
+      </Card>
     </div>
   );
 }
