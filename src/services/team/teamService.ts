@@ -13,11 +13,20 @@ export { createTeam } from './creation/createTeam';
 export { updateTeam } from './update/updateTeam';
 
 // Re-export team deletion functions
-export { deleteTeam, DeleteTeamResult, getTeamEquipmentCount } from './deleteTeam';
+export { deleteTeam } from './deleteTeam';
+export type { DeleteTeamResult } from './deleteTeam';
+export { getTeamEquipmentCount } from './deleteTeam';
 
 // Re-export team membership functions
-export { getTeamMembers, inviteMember, changeRole, removeMember, 
-  resendInvite, cancelInvitation, getPendingInvitations } from './members';
+export { 
+  getTeamMembers, 
+  inviteMember, 
+  changeRole, 
+  removeMember, 
+  resendInvite, 
+  cancelInvitation, 
+  getPendingInvitations 
+} from './members';
 
 // Re-export team validation functions
 export {
