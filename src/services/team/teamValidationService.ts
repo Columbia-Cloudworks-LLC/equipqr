@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team';
 
 /**
  * Validate a user's membership in a team using our improved non-recursive function
