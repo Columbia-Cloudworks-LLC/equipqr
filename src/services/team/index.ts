@@ -15,7 +15,7 @@ export {
   repairTeamMembership,
   getTeamAccessDetails,
   canAssignTeamRole
-} from './teamValidationService';
+} from './validation';
 
 // Re-export team role functions
 export {

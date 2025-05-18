@@ -34,4 +34,4 @@ export {
   repairTeamMembership,
   getTeamAccessDetails,
   canAssignTeamRole
-} from './teamValidationService';
+} from './validation';
