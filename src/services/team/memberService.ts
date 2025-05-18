@@ -1,164 +1,183 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { TeamMember, ApiTeamMember, mapApiTeamMemberToTeamMember } from "@/types";
-import { getAppUserId } from "@/utils/authUtils";
-import { validateTeamMembership } from "./teamValidationService";
+import { TeamMember } from "@/types";
+import { UserRole } from "@/types/supabase-enums";
+import { toast } from "sonner";
+import { canAssignTeamRole } from "./teamValidationService";
 
-export async function getTeamMembers(teamId: string) {
+/**
+ * Get team members with their roles
+ * @param teamId The ID of the team
+ * @returns Array of team members with their roles and details
+ */
+export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
   try {
-    console.log(`Fetching team members for team: ${teamId}`);
-    
     if (!teamId) {
-      console.warn('No teamId provided to getTeamMembers');
-      return [];
+      throw new Error("Team ID is required");
     }
     
-    // Validate UUID format before sending to the API
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(teamId)) {
-      console.error(`Invalid UUID format for teamId: ${teamId}`);
-      throw new Error("Invalid team ID format. Please select a valid team.");
-    }
-    
-    // Check if the current user is authenticated
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      console.error('User is not authenticated');
-      throw new Error('Authentication required. Please sign in to view team members.');
-    }
-    
-    // Get team members using our edge function - pass the teamId directly
-    const { data, error } = await supabase.functions.invoke<ApiTeamMember[]>('get_team_members', { 
+    // Fetch team members using the edge function to avoid RLS issues
+    const { data, error } = await supabase.functions.invoke('get_team_members', {
       body: { team_id: teamId }
     });
     
     if (error) {
-      console.error('Error fetching team members:', error);
-      
-      // Provide more specific error messages based on the error
-      if (error.message?.includes('Invalid UUID') || error.message?.includes('invalid format')) {
-        throw new Error(`Team ID format is invalid. Please try selecting a different team.`);
-      } else if (error.message?.includes('Authentication')) {
-        throw new Error(`Authentication error: ${error.message}. Please sign in again.`);
-      } else {
-        throw new Error(`Failed to fetch team members: ${error.message || 'Unknown error'}`);
-      }
+      console.error('Error in getTeamMembers:', error);
+      throw new Error(error.message);
     }
     
-    if (!data) {
-      console.warn('No team members found or data is null');
-      return [];
-    }
-    
-    // Map the API response to our TeamMember type
-    return data.map(member => mapApiTeamMemberToTeamMember(member));
+    console.log("Team members fetched:", data?.members?.length || 0);
+    return data?.members || [];
   } catch (error: any) {
     console.error('Error in getTeamMembers:', error);
-    throw new Error(`Team members fetch failed: ${error.message || 'Unknown error'}`);
+    throw error;
   }
 }
 
-export async function getOrganizationMembers() {
+/**
+ * Change the role of a team member
+ * @param memberId The ID of the team member
+ * @param role The new role to assign
+ * @param teamId The ID of the team (for permission check)
+ * @returns True if successful, throws error otherwise
+ */
+export async function changeRole(memberId: string, role: UserRole, teamId: string): Promise<boolean> {
   try {
-    // First get the organization ID for the current user
-    const { data: userProfile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .maybeSingle();
-      
-    if (profileError) {
-      console.error('Error fetching user profile:', profileError);
-      throw new Error('Failed to find your user profile. Please ensure your profile is set up correctly.');
+    if (!memberId || !role || !teamId) {
+      throw new Error("Member ID, role, and team ID are required");
     }
     
-    if (!userProfile || !userProfile.org_id) {
-      console.error('User profile or org_id is missing');
-      throw new Error('User organization not found');
+    // Check if user has permission to change roles in this team
+    const hasPermission = await canAssignTeamRole(teamId, role);
+    if (!hasPermission) {
+      throw new Error("You don't have permission to change roles in this team");
     }
     
-    const orgId = userProfile.org_id;
+    // Get team roles ID for this member
+    const { data: teamRolesData, error: teamRolesError } = await supabase
+      .from('team_roles')
+      .select('id')
+      .eq('team_member_id', memberId)
+      .single();
     
-    // Now get all users in this organization with their roles using our custom function
-    const { data, error } = await supabase
-      .rpc('get_organization_members', { org_id: orgId });
-      
-    if (error) {
-      console.error('Error fetching organization members:', error);
-      throw new Error(`Failed to fetch organization members: ${error.message}`);
+    if (teamRolesError) {
+      throw new Error(`Failed to find role for member: ${teamRolesError.message}`);
     }
     
-    return data as TeamMember[] || [];
-  } catch (error: any) {
-    console.error('Error in getOrganizationMembers:', error);
-    throw new Error(`Organization members fetch failed: ${error.message}`);
-  }
-}
-
-export async function changeRole(userId: string, newRole: string, teamId: string) {
-  try {
-    console.log(`Changing role for user ${userId} to ${newRole} in team ${teamId}`);
+    // Update the role
+    const { error: updateError } = await supabase
+      .from('team_roles')
+      .update({ role })
+      .eq('id', teamRolesData.id);
     
-    // Validate that the current user is authorized to change roles
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to change team roles');
+    if (updateError) {
+      throw new Error(`Failed to update role: ${updateError.message}`);
     }
     
-    const currentUserId = sessionData.session.user.id;
-    
-    // Call our custom edge function to change a user's role
-    const { data, error } = await supabase.functions.invoke('change_user_role', {
-      body: {
-        user_id: userId,
-        team_id: teamId,
-        new_role: newRole,
-        requester_id: currentUserId
-      }
-    });
-    
-    if (error) {
-      console.error('Error changing role:', error);
-      throw new Error(`Failed to change role: ${error.message}`);
-    }
-    
-    console.log('Role updated successfully:', data);
-    return { success: true, data };
+    return true;
   } catch (error: any) {
     console.error('Error in changeRole:', error);
-    throw new Error(`Role change failed: ${error.message}`);
+    throw error;
   }
 }
 
-export async function removeMember(userId: string, teamId: string) {
+/**
+ * Remove a member from a team
+ * @param memberId The ID of the team member to remove
+ * @param teamId The ID of the team (for permission check)
+ * @returns True if successful, throws error otherwise
+ */
+export async function removeMember(memberId: string, teamId: string): Promise<boolean> {
   try {
-    console.log(`Removing user ${userId} from team ${teamId}`);
-    
-    // First verify the current user has permission to remove members
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to remove team members');
+    if (!memberId || !teamId) {
+      throw new Error("Member ID and team ID are required");
     }
     
-    const currentUserId = sessionData.session.user.id;
+    // Fetch the member's current role to see if we can remove them
+    const { data: rolesData, error: rolesError } = await supabase
+      .from('team_roles')
+      .select('role, team_member_id')
+      .eq('team_member_id', memberId)
+      .single();
     
-    // Call our custom edge function to remove a team member
-    const { data, error } = await supabase.functions.invoke('remove_team_member', {
-      body: {
-        user_to_remove: userId,
-        team_id: teamId,
-        requester_id: currentUserId
+    if (rolesError && rolesError.code !== 'PGRST116') {
+      throw new Error(`Failed to check member role: ${rolesError.message}`);
+    }
+    
+    // For safety, check if this is the last manager in the team
+    if (rolesData?.role === 'manager') {
+      const { data: managers, error: managersError } = await supabase
+        .from('team_roles')
+        .select('id')
+        .eq('role', 'manager')
+        .in('team_member_id', supabase
+          .from('team_member')
+          .select('id')
+          .eq('team_id', teamId)
+        );
+      
+      if (managersError) {
+        throw new Error(`Failed to check team managers: ${managersError.message}`);
       }
-    });
-    
-    if (error) {
-      console.error('Error removing team member:', error);
-      throw new Error(`Failed to remove team member: ${error.message}`);
+      
+      if (managers && managers.length <= 1) {
+        throw new Error("Cannot remove the last manager from a team");
+      }
     }
     
-    console.log('Team member removed successfully:', data);
-    return { success: true, data };
+    // Check if current user is trying to remove themselves
+    const { data: sessionData } = await supabase.auth.getSession();
+    const currentUserId = sessionData.session?.user?.id;
+    
+    if (!currentUserId) {
+      throw new Error("Not authenticated");
+    }
+    
+    // Check if user has permission to remove this member
+    const { data: authUserApp } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', currentUserId)
+      .single();
+    
+    const { data: memberToRemove } = await supabase
+      .from('team_member')
+      .select('user_id')
+      .eq('id', memberId)
+      .single();
+    
+    // If user is removing themselves, or has permission to change roles, allow the removal
+    const hasPermission = 
+      (authUserApp?.id === memberToRemove?.user_id) || 
+      (await canAssignTeamRole(teamId, 'viewer'));
+    
+    if (!hasPermission) {
+      throw new Error("You don't have permission to remove this team member");
+    }
+    
+    // Delete the team_roles first (foreign key constraint)
+    const { error: deleteRoleError } = await supabase
+      .from('team_roles')
+      .delete()
+      .eq('team_member_id', memberId);
+    
+    if (deleteRoleError) {
+      throw new Error(`Failed to delete team role: ${deleteRoleError.message}`);
+    }
+    
+    // Then delete the team_member
+    const { error: deleteMemberError } = await supabase
+      .from('team_member')
+      .delete()
+      .eq('id', memberId);
+    
+    if (deleteMemberError) {
+      throw new Error(`Failed to delete team member: ${deleteMemberError.message}`);
+    }
+    
+    return true;
   } catch (error: any) {
     console.error('Error in removeMember:', error);
-    throw new Error(`Member removal failed: ${error.message}`);
+    throw error;
   }
 }

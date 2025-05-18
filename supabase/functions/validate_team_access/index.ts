@@ -41,7 +41,7 @@ function getHigherRole(role1: string | null, role2: string | null): string | nul
   if (!role2) return role1;
   
   // Define role hierarchy from highest to lowest permission level
-  const roleHierarchy = ['owner', 'admin', 'manager', 'creator', 'technician', 'viewer'];
+  const roleHierarchy = ['owner', 'admin', 'manager', 'creator', 'technician', 'viewer', 'member'];
   
   const role1Index = roleHierarchy.indexOf(role1);
   const role2Index = roleHierarchy.indexOf(role2);
@@ -84,8 +84,8 @@ serve(async (req) => {
     
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Use our improved non-recursive function to check team access
-    const { data: canAccess, error: accessError } = await adminClient.rpc('check_team_access_nonrecursive', {
+    // Use our improved non-recursive function to check team access that accounts for organization roles
+    const { data: accessResult, error: accessError } = await adminClient.rpc('validate_team_access_with_org', {
       p_user_id: user_id,
       p_team_id: team_id
     });
@@ -95,7 +95,25 @@ serve(async (req) => {
       return createErrorResponse(accessError.message);
     }
     
-    if (!canAccess) {
+    // If no access information returned, fall back to check_team_access_nonrecursive
+    if (!accessResult) {
+      const { data: canAccess, error: simpleAccessError } = await adminClient.rpc('check_team_access_nonrecursive', {
+        p_user_id: user_id,
+        p_team_id: team_id
+      });
+      
+      if (simpleAccessError) {
+        console.error('Error in fallback team access check:', simpleAccessError);
+        return createErrorResponse(simpleAccessError.message);
+      }
+      
+      if (!canAccess) {
+        return createSuccessResponse({
+          is_member: false,
+          access_reason: 'no_permission'
+        });
+      }
+    } else if (!accessResult.is_member && !accessResult.has_org_access) {
       return createSuccessResponse({
         is_member: false,
         access_reason: 'no_permission'
@@ -212,15 +230,17 @@ serve(async (req) => {
     }
     
     // Determine the access reason
-    let accessReason = 'none';
-    if (teamRole) {
-      accessReason = 'team_member';
-    } else if (orgRole && hasOrgAccess) {
-      accessReason = 'org_role';
-    } else if (hasOrgAccess) {
-      accessReason = 'same_org';
-    } else if (hasCrossOrgAccess) {
-      accessReason = 'cross_org_access';
+    let accessReason = accessResult?.access_reason || 'none';
+    if (!accessReason || accessReason === 'none') {
+      if (teamRole) {
+        accessReason = 'team_member';
+      } else if (orgRole && hasOrgAccess) {
+        accessReason = 'org_role';
+      } else if (hasOrgAccess) {
+        accessReason = 'same_org';
+      } else if (hasCrossOrgAccess) {
+        accessReason = 'cross_org_access';
+      }
     }
     
     // Log for debugging
@@ -238,7 +258,7 @@ serve(async (req) => {
       has_cross_org_access: hasCrossOrgAccess,
       team_member_id: teamMemberId,
       access_reason: accessReason,
-      role: finalRole || null, // Don't default to viewer anymore, use null if no role found
+      role: finalRole || null, // Don't default to viewer, use null if no role found
       team: {
         name: teamData.name,
         org_id: teamData.org_id

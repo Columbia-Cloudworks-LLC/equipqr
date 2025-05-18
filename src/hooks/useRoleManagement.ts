@@ -3,13 +3,19 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { checkRoleChangePermission, upgradeToManagerRole, requestRoleUpgrade } from '@/services/team/roleService';
+import { 
+  checkRoleChangePermission, 
+  upgradeToManagerRole, 
+  requestRoleUpgrade,
+  getEffectiveRole
+} from '@/services/team/roleService';
 
 export function useRoleManagement(members: TeamMember[], teamId: string | null, accessRole?: string | null) {
   const [currentUserRole, setCurrentUserRole] = useState<string | undefined>(undefined);
   const [canChangeRoles, setCanChangeRoles] = useState(false);
   const [isUpgradingRole, setIsUpgradingRole] = useState(false);
   const [isRequestingRole, setIsRequestingRole] = useState(false);
+  const [organizationRole, setOrganizationRole] = useState<string | null>(null);
 
   // Determine the current user's role in the selected team
   useEffect(() => {
@@ -34,6 +40,32 @@ export function useRoleManagement(members: TeamMember[], teamId: string | null, 
           if (!determinedRole && accessRole) {
             determinedRole = accessRole;
             console.log('Current user role from accessRole:', accessRole);
+          }
+          
+          // Get organization role
+          try {
+            if (teamId && teamId !== 'none') {
+              const { data: teamData } = await supabase
+                .from('team')
+                .select('org_id')
+                .eq('id', teamId)
+                .single();
+                
+              if (teamData?.org_id) {
+                const { data: orgRole } = await supabase.rpc('get_org_role', {
+                  p_auth_user_id: authUserId,
+                  p_org_id: teamData.org_id
+                });
+                
+                setOrganizationRole(orgRole);
+                
+                // Get effective role (combining team and org roles)
+                const effectiveRole = getEffectiveRole(determinedRole, orgRole);
+                determinedRole = effectiveRole;
+              }
+            }
+          } catch (error) {
+            console.error('Error getting organization role:', error);
           }
           
           if (determinedRole) {
@@ -95,6 +127,7 @@ export function useRoleManagement(members: TeamMember[], teamId: string | null, 
 
   return {
     currentUserRole,
+    organizationRole,
     canChangeRoles,
     isUpgradingRole,
     isRequestingRole,

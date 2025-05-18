@@ -1116,6 +1116,10 @@ export type Database = {
         Args: { p_uid: string; p_team_id: string }
         Returns: boolean
       }
+      can_assign_team_role: {
+        Args: { p_auth_user_id: string; p_team_id: string; p_role: string }
+        Returns: boolean
+      }
       can_create_equipment_safe: {
         Args: { p_user_id: string; p_team_id?: string }
         Returns: boolean
@@ -1185,6 +1189,10 @@ export type Database = {
           note: string
           updated_at: string
         }[]
+      }
+      get_org_role: {
+        Args: { p_auth_user_id: string; p_org_id: string }
+        Returns: string
       }
       get_organization_members: {
         Args: { org_id: string }
@@ -1271,6 +1279,10 @@ export type Database = {
         Args: { _user_id: string; _team_id: string; _role: string }
         Returns: boolean
       }
+      is_org_member: {
+        Args: { p_auth_user_id: string; p_org_id: string }
+        Returns: boolean
+      }
       is_team_member: {
         Args: { _user_id: string; _team_id: string }
         Returns: boolean
@@ -1308,6 +1320,15 @@ export type Database = {
         Args: { _user_id: string; _org_id: string }
         Returns: boolean
       }
+      validate_team_access_with_org: {
+        Args: { p_user_id: string; p_team_id: string }
+        Returns: {
+          is_member: boolean
+          has_org_access: boolean
+          role: string
+          team_org_id: string
+        }[]
+      }
     }
     Enums: {
       access_role: "owner" | "manager" | "technician" | "viewer"
@@ -1318,7 +1339,7 @@ export type Database = {
         | "ISO"
       equipment_status: "active" | "inactive" | "maintenance"
       image_status: "processing" | "ready" | "failed"
-      user_role: "owner" | "manager" | "technician" | "viewer"
+      user_role: "owner" | "manager" | "technician" | "viewer" | "member"
       work_order_status:
         | "open"
         | "in_progress"
@@ -1449,7 +1470,7 @@ export const Constants = {
       ],
       equipment_status: ["active", "inactive", "maintenance"],
       image_status: ["processing", "ready", "failed"],
-      user_role: ["owner", "manager", "technician", "viewer"],
+      user_role: ["owner", "manager", "technician", "viewer", "member"],
       work_order_status: [
         "open",
         "in_progress",

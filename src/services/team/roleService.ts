@@ -42,6 +42,31 @@ export async function checkRoleChangePermission(teamId: string): Promise<boolean
 }
 
 /**
+ * Get the highest role between team and organization roles
+ * @param teamRole Team role if any
+ * @param orgRole Organization role if any
+ * @returns The highest priority role
+ */
+export function getEffectiveRole(teamRole?: string | null, orgRole?: string | null): string | null {
+  if (!teamRole && !orgRole) return null;
+  if (!teamRole) return orgRole;
+  if (!orgRole) return teamRole;
+  
+  // Define role hierarchy from highest to lowest permission level
+  const roleHierarchy = ['owner', 'manager', 'creator', 'technician', 'viewer', 'member'];
+  
+  const teamRoleIndex = roleHierarchy.indexOf(teamRole);
+  const orgRoleIndex = roleHierarchy.indexOf(orgRole);
+  
+  // Lower index = higher permission
+  // If role isn't in our hierarchy, default to the other role
+  if (teamRoleIndex === -1) return orgRole;
+  if (orgRoleIndex === -1) return teamRole;
+  
+  return teamRoleIndex < orgRoleIndex ? teamRole : orgRole;
+}
+
+/**
  * Upgrades the current user to a manager role
  * @param teamId The ID of the team
  * @returns A promise that resolves when the role has been upgraded
@@ -112,4 +137,28 @@ export async function requestRoleUpgrade(teamId: string) {
     console.error('Error requesting role upgrade:', error);
     throw error;
   }
+}
+
+/**
+ * Check if a user has permission to perform an action based on their role
+ * @param role The user's role
+ * @param requiredRole The minimum required role for the action
+ * @returns Boolean indicating if the user has permission
+ */
+export function hasRolePermission(role: string | null, requiredRole: UserRole): boolean {
+  if (!role) return false;
+  
+  const roleHierarchy: Record<string, number> = {
+    'owner': 100,
+    'manager': 80,
+    'creator': 60,
+    'technician': 40,
+    'viewer': 20,
+    'member': 10
+  };
+  
+  const userRoleWeight = roleHierarchy[role] || 0;
+  const requiredRoleWeight = roleHierarchy[requiredRole] || 0;
+  
+  return userRoleWeight >= requiredRoleWeight;
 }
