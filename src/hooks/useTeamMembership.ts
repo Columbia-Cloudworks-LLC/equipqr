@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team/validation/teamValidationService';
+import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team/validation';
 
 export function useTeamMembership(teamId: string | null) {
   const [isMember, setIsMember] = useState<boolean>(true); // Optimistic initial state
