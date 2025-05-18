@@ -51,33 +51,44 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       );
       
-      // OPTIMIZATION: Use a more direct approach with fewer queries
-      // Get user's organization and app_user ID in a single query
-      const { data: userData, error: userError } = await supabaseClient
+      // Get user's organization and app_user ID using the correct relationship
+      // FIX: Use explicit query to get the app_user via auth_uid instead of trying to use the nested select
+      const { data: userProfile, error: profileError } = await supabaseClient
         .from('user_profiles')
-        .select(`
-          id,
-          org_id,
-          app_user:id (
-            id
-          )
-        `)
+        .select('org_id')
         .eq('id', user_id)
         .single();
 
-      if (userError || !userData) {
-        console.error('Error getting user data:', userError);
+      if (profileError) {
+        console.error('Error getting user profile:', profileError);
+        return new Response(
+          JSON.stringify({ error: "Failed to retrieve user profile" }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      // FIX: Separate query to get app_user correctly using auth_uid
+      const { data: appUser, error: appUserError } = await supabaseClient
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', user_id)
+        .single();
+
+      if (appUserError) {
+        console.error('Error getting app_user:', appUserError);
         return new Response(
           JSON.stringify({ 
-            error: "Failed to retrieve user information", 
-            details: userError ? userError.message : "User not found" 
+            error: "Failed to retrieve app user information", 
+            details: appUserError.message
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
 
-      const userOrgId = userData?.org_id;
-      const appUserId = userData?.app_user?.id;
+      const userOrgId = userProfile?.org_id;
+      const appUserId = appUser?.id;
+      
+      console.log(`User org ID: ${userOrgId}, App user ID: ${appUserId}`);
       
       // Array to store all teams the user has access to
       const allTeams = [];
@@ -118,6 +129,7 @@ serve(async (req) => {
       
       // Second query: Get teams user is a member of (if we have app_user_id)
       if (appUserId) {
+        // FIX: Use the proper app_user_id in the query to find team memberships
         const { data: memberTeams, error: memberTeamsError } = await supabaseClient
           .from('team_member')
           .select(`
@@ -128,33 +140,45 @@ serve(async (req) => {
               organization:org_id (
                 name
               )
-            )
+            ),
+            role:team_roles(role)
           `)
           .eq('user_id', appUserId);
           
         if (memberTeamsError) {
           console.error('Error fetching member teams:', memberTeamsError);
         } else if (memberTeams) {
-          const externalTeams = memberTeams
-            .filter(item => item.team !== null && item.team.org_id !== userOrgId)
-            .map(item => ({
-              id: item.team.id,
-              name: item.team.name,
-              org_id: item.team.org_id,
-              org_name: item.team.organization?.name,
-              is_external_org: true
-            }));
-            
-          if (externalTeams.length > 0) {
-            // Only add external teams that aren't already in the list
-            externalTeams.forEach(extTeam => {
-              if (!allTeams.some(team => team.id === extTeam.id)) {
-                allTeams.push(extTeam);
-              }
+          // Transform the data to extract role information
+          const membershipTeams = memberTeams
+            .filter(item => item.team !== null)
+            .map(item => {
+              // Extract role from the team_roles relationship
+              const role = item.role && item.role.length > 0 ? item.role[0]?.role : null;
+              
+              return {
+                id: item.team.id,
+                name: item.team.name,
+                org_id: item.team.org_id,
+                org_name: item.team.organization?.name,
+                is_external_org: userOrgId !== item.team.org_id,
+                role: role
+              };
             });
             
-            console.log(`Found ${externalTeams.length} teams through team membership`);
-          }
+          // Add teams that aren't already in the list
+          membershipTeams.forEach(memberTeam => {
+            if (!allTeams.some(team => team.id === memberTeam.id)) {
+              allTeams.push(memberTeam);
+            } else {
+              // Update existing team with role information if it exists
+              const existingTeam = allTeams.find(team => team.id === memberTeam.id);
+              if (existingTeam) {
+                existingTeam.role = memberTeam.role;
+              }
+            }
+          });
+          
+          console.log(`Found ${membershipTeams.length} teams through team membership`);
         }
       }
       

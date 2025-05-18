@@ -43,6 +43,10 @@ export async function getTeams() {
     
     // Try the edge function first with a short timeout
     try {
+      // Clear any cached data before making the new request to ensure fresh data
+      clearCache();
+      
+      console.log('Calling get_user_teams edge function...');
       const data = await invokeEdgeFunction('get_user_teams', { user_id: authUserId }, 8000);
       
       // Check if data is properly structured
@@ -113,7 +117,7 @@ async function getTeamsFallback(userId: string) {
       return [];
     }
     
-    // 3. Get user's app_user ID
+    // 3. Get user's app_user ID - FIXED: Use auth_uid to correctly fetch app_user
     const { data: appUser } = await supabase
       .from('app_user')
       .select('id')
@@ -139,7 +143,8 @@ async function getTeamsFallback(userId: string) {
           name,
           org_id,
           organization:org_id (name)
-        )
+        ),
+        team_roles!team_member_id(role)
       `)
       .eq('user_id', appUser.id);
       
@@ -156,13 +161,20 @@ async function getTeamsFallback(userId: string) {
     // Process member teams
     const externalTeams = memberTeams
       ?.filter(item => item.team?.org_id !== userProfile.org_id && item.team !== null)
-      .map(item => ({
-        id: item.team.id,
-        name: item.team.name,
-        org_id: item.team.org_id,
-        org_name: item.team.organization?.name,
-        is_external_org: true
-      })) || [];
+      .map(item => {
+        // Extract role from team_roles relationship
+        const role = item.team_roles && item.team_roles.length > 0 ? 
+          item.team_roles[0]?.role : null;
+          
+        return {
+          id: item.team.id,
+          name: item.team.name,
+          org_id: item.team.org_id,
+          org_name: item.team.organization?.name,
+          is_external_org: true,
+          role
+        };
+      }) || [];
       
     // Process org teams
     const internalTeams = orgTeams?.map(team => ({
@@ -180,6 +192,12 @@ async function getTeamsFallback(userId: string) {
     externalTeams.forEach(extTeam => {
       if (!allTeams.some(team => team.id === extTeam.id)) {
         allTeams.push(extTeam);
+      } else {
+        // Update existing team with role information
+        const existingTeam = allTeams.find(team => team.id === extTeam.id);
+        if (existingTeam) {
+          existingTeam.role = extTeam.role;
+        }
       }
     });
     
@@ -230,5 +248,16 @@ function checkCache(): any[] | null {
   } catch (error) {
     console.warn('Failed to read cached teams:', error);
     return null;
+  }
+}
+
+/**
+ * Clear the team cache
+ */
+function clearCache(): void {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch (error) {
+    console.warn('Failed to clear team cache:', error);
   }
 }
