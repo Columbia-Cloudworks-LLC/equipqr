@@ -19,6 +19,7 @@ export function useTeams() {
   const [isUpdatingTeam, setIsUpdatingTeam] = useState(false);
   const [isDeletingTeam, setIsDeletingTeam] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const fetchTeams = async () => {
     try {
@@ -113,11 +114,15 @@ export function useTeams() {
       setIsDeletingTeam(false);
     }
   };
+  
+  const retryFetchTeams = () => {
+    setRetryCount(prev => prev + 1);
+  };
 
   useEffect(() => {
     console.log('useTeams hook initialized, fetching teams');
     fetchTeams();
-  }, []);
+  }, [retryCount]);
 
   return {
     teams,
@@ -127,6 +132,7 @@ export function useTeams() {
     isDeletingTeam,
     error,
     fetchTeams,
+    retryFetchTeams,
     handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam,

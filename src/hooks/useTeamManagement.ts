@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -18,6 +19,7 @@ export function useTeamManagement() {
     isDeletingTeam,
     error: teamsError,
     fetchTeams,
+    retryFetchTeams,
     handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam,
@@ -45,11 +47,13 @@ export function useTeamManagement() {
     currentUserId,
     accessRole,
     error: membershipError,
-    handleRepairTeam
+    handleRepairTeam,
+    retryAccessCheck
   } = useTeamMembership(selectedTeamId);
   
   const {
     currentUserRole,
+    organizationRole,
     canChangeRoles,
     isUpgradingRole,
     isRequestingRole,
@@ -75,12 +79,26 @@ export function useTeamManagement() {
   useEffect(() => {
     if (selectedTeamId && selectedTeamId !== 'none') {
       console.log(`Selected team changed to: ${selectedTeamId}, isMember: ${isMember}`);
-      if (isMember) {
-        fetchTeamMembers();
-        fetchPendingInvitations();
-      }
+      
+      // Even if not a member yet, try to fetch data
+      // This handles race conditions where isMember hasn't updated yet
+      fetchTeamMembers();
+      fetchPendingInvitations();
     }
-  }, [selectedTeamId, isMember]);
+  }, [selectedTeamId]);
+
+  // Retry logic for empty teams list
+  useEffect(() => {
+    if (teams.length === 0 && !isTeamsLoading) {
+      // Wait a bit and retry once
+      const timer = setTimeout(() => {
+        console.log('No teams found, retrying fetch...');
+        retryFetchTeams();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [teams.length, isTeamsLoading]);
 
   // Combine errors from all sources
   const error = teamsError || membersError || membershipError;
@@ -90,16 +108,16 @@ export function useTeamManagement() {
 
   // Memoize functions to prevent unnecessary re-renders
   const refetchTeamMembers = useCallback(() => {
-    if (selectedTeamId && selectedTeamId !== 'none' && isMember) {
+    if (selectedTeamId && selectedTeamId !== 'none') {
       fetchTeamMembers();
     }
-  }, [selectedTeamId, isMember, fetchTeamMembers]);
+  }, [selectedTeamId, fetchTeamMembers]);
   
   const refetchPendingInvitations = useCallback(() => {
-    if (selectedTeamId && selectedTeamId !== 'none' && isMember) {
+    if (selectedTeamId && selectedTeamId !== 'none') {
       fetchPendingInvitations();
     }
-  }, [selectedTeamId, isMember, fetchPendingInvitations]);
+  }, [selectedTeamId, fetchPendingInvitations]);
 
   const handleCreateAndSelectTeam = useCallback(async (name: string) => {
     const team = await handleCreateTeam(name);
@@ -118,9 +136,10 @@ export function useTeamManagement() {
       isMember,
       members: members.length,
       currentUserRole,
-      accessRole
+      accessRole,
+      organizationRole
     });
-  }, [teams.length, selectedTeamId, isLoading, isMember, members.length, currentUserRole, accessRole]);
+  }, [teams.length, selectedTeamId, isLoading, isMember, members.length, currentUserRole, accessRole, organizationRole]);
 
   return {
     members,

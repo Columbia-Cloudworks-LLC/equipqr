@@ -8,6 +8,8 @@ import { EmptyTeamState } from '@/components/Team/EmptyTeamState';
 import { Layout } from '@/components/Layout/Layout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateTeamButton } from '@/components/Team/CreateTeamButton';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 export default function TeamManagement() {
   const {
@@ -64,7 +66,15 @@ export default function TeamManagement() {
   return (
     <Layout>
       <div className="p-6 space-y-6">
-        <h1 className="text-2xl font-bold">Team Management</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Team Management</h1>
+          {isLoading && (
+            <Button variant="outline" size="sm" onClick={fetchTeams} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Loading...' : 'Refresh'}
+            </Button>
+          )}
+        </div>
         
         <ErrorDisplay 
           error={error} 

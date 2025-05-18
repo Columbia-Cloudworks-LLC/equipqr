@@ -34,9 +34,15 @@ export async function getTeams() {
       throw error;
     }
     
-    console.log(`Successfully fetched ${data?.teams?.length || 0} teams in total`);
+    // Check if data is properly structured
+    if (!data || !Array.isArray(data.teams)) {
+      console.error('Invalid response structure from get_user_teams:', data);
+      throw new Error('Invalid response from server');
+    }
     
-    return data?.teams || [];
+    console.log(`Successfully fetched ${data.teams.length || 0} teams in total`);
+    
+    return data.teams || [];
   } catch (error) {
     console.error('Error in getTeams:', error);
     throw error;
