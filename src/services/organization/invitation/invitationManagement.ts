@@ -26,11 +26,11 @@ export async function getPendingOrganizationInvitations(orgId: string): Promise<
       return [];
     }
     
-    // Transform data to match OrganizationInvitation type
+    // Transform data to match OrganizationInvitation type, ensuring role is cast correctly
     const invitations: OrganizationInvitation[] = invitationsData.map(item => ({
       id: item.id,
       email: item.email,
-      role: item.role,
+      role: item.role as OrganizationInvitation['role'],
       status: item.status,
       created_at: item.created_at,
       updated_at: item.updated_at,

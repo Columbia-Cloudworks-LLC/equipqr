@@ -110,10 +110,13 @@ export async function removeMember(memberId: string, teamId: string): Promise<bo
         .from('team_roles')
         .select('id')
         .eq('role', 'manager')
-        .in('team_member_id', supabase
-          .from('team_member')
-          .select('id')
-          .eq('team_id', teamId)
+        .filter('team_member_id', 'in', 
+          // Fix: Create a subquery that returns an array of ids
+          supabase
+            .from('team_member')
+            .select('id')
+            .eq('team_id', teamId)
+            .then(result => result.data?.map(item => item.id) || [])
         );
       
       if (managersError) {
