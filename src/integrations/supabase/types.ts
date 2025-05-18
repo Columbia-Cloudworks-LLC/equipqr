@@ -1327,6 +1327,7 @@ export type Database = {
           has_org_access: boolean
           role: string
           team_org_id: string
+          access_reason: string
         }[]
       }
     }

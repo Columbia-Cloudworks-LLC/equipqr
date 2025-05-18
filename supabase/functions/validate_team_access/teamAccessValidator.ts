@@ -26,31 +26,39 @@ export class TeamAccessValidator {
    * Main method to validate user's access to a team
    */
   async validateAccess(userId: string, teamId: string): Promise<TeamAccessResult> {
-    // Use our improved non-recursive function to check team access that accounts for organization roles
-    const { data: accessResult, error: accessError } = await this.supabase.rpc('validate_team_access_with_org', {
-      p_user_id: userId,
-      p_team_id: teamId
-    });
-    
-    if (accessError) {
-      console.error('Error checking team access:', accessError);
-      throw new Error(accessError.message);
+    try {
+      // Use our improved validate_team_access_with_org function that now includes explicit column references
+      const { data: accessResult, error: accessError } = await this.supabase.rpc('validate_team_access_with_org', {
+        p_user_id: userId,
+        p_team_id: teamId
+      });
+      
+      if (accessError) {
+        console.error('Error checking team access with validate_team_access_with_org:', accessError);
+        // Try the fallback method
+        return await this.fallbackValidator.handleFallbackAccessCheck(userId, teamId);
+      }
+      
+      // If no access information returned, fall back to check_team_access_nonrecursive
+      if (!accessResult) {
+        console.log('No access result from validate_team_access_with_org, using fallback');
+        return await this.fallbackValidator.handleFallbackAccessCheck(userId, teamId);
+      } 
+      
+      if (!accessResult.is_member && !accessResult.has_org_access) {
+        return {
+          is_member: false,
+          access_reason: accessResult.access_reason || 'no_permission'
+        };
+      }
+      
+      // User has access, get additional details
+      return await this.getDetailedAccessInfo(userId, teamId, accessResult);
+    } catch (error) {
+      console.error('Exception in validateAccess:', error);
+      // Final fallback - use the simple non-recursive function
+      return await this.fallbackValidator.handleFallbackAccessCheck(userId, teamId);
     }
-    
-    // If no access information returned, fall back to check_team_access_nonrecursive
-    if (!accessResult) {
-      return this.fallbackValidator.handleFallbackAccessCheck(userId, teamId);
-    } 
-    
-    if (!accessResult.is_member && !accessResult.has_org_access) {
-      return {
-        is_member: false,
-        access_reason: 'no_permission'
-      };
-    }
-    
-    // User has access, get additional details
-    return this.getDetailedAccessInfo(userId, teamId, accessResult);
   }
 
   /**
@@ -61,62 +69,74 @@ export class TeamAccessValidator {
     teamId: string, 
     initialAccess: InitialAccessResult
   ): Promise<TeamAccessResult> {
-    // Get team information
-    const teamData = await this.teamDataService.getTeamData(teamId);
-    if (!teamData) {
-      throw new Error("Team not found");
+    try {
+      // Get team information
+      const teamData = await this.teamDataService.getTeamData(teamId);
+      if (!teamData) {
+        throw new Error("Team not found");
+      }
+      
+      // Get team member role and ID
+      const { teamRole, teamMemberId } = await this.membershipService.getTeamMemberRole(userId, teamId);
+      
+      // Get org role
+      const orgRole = await this.membershipService.getOrgRole(userId, teamData.org_id);
+      
+      // Get effective role
+      const effectiveRole = getHigherRole(teamRole, orgRole);
+      
+      // Check if user is team creator
+      const isCreator = await this.teamDataService.isTeamCreator(userId, teamId);
+      
+      // Determine final role
+      let finalRole = effectiveRole;
+      if (isCreator && !finalRole) {
+        finalRole = 'manager';
+        console.log(`User ${userId} is the team creator, assigning manager role`);
+      }
+      
+      // Get organization information
+      const orgName = await this.teamDataService.getOrgName(teamData.org_id);
+      
+      // Check organization access
+      const { hasOrgAccess, hasCrossOrgAccess } = await this.membershipService.checkOrgAccess(
+        userId, 
+        teamData.org_id, 
+        teamRole !== null
+      );
+      
+      // Determine access reason, prioritizing the one from the DB function
+      const accessReason = initialAccess.access_reason ? 
+        initialAccess.access_reason :
+        determineAccessReason(
+          initialAccess.access_reason,
+          teamRole,
+          orgRole,
+          hasOrgAccess,
+          hasCrossOrgAccess
+        );
+      
+      return {
+        is_member: true,
+        has_org_access: hasOrgAccess,
+        has_cross_org_access: hasCrossOrgAccess,
+        team_member_id: teamMemberId,
+        access_reason: accessReason,
+        role: finalRole || null,
+        team: {
+          name: teamData.name,
+          org_id: teamData.org_id
+        },
+        org_name: orgName
+      };
+    } catch (error) {
+      console.error('Error in getDetailedAccessInfo:', error);
+      // Return basic access information if detailed info fails
+      return {
+        is_member: initialAccess.is_member,
+        access_reason: initialAccess.access_reason || 'error_in_details',
+        role: initialAccess.role || null
+      };
     }
-    
-    // Get team member role and ID
-    const { teamRole, teamMemberId } = await this.membershipService.getTeamMemberRole(userId, teamId);
-    
-    // Get org role
-    const orgRole = await this.membershipService.getOrgRole(userId, teamData.org_id);
-    
-    // Get effective role
-    const effectiveRole = getHigherRole(teamRole, orgRole);
-    
-    // Check if user is team creator
-    const isCreator = await this.teamDataService.isTeamCreator(userId, teamId);
-    
-    // Determine final role
-    let finalRole = effectiveRole;
-    if (isCreator && !finalRole) {
-      finalRole = 'manager';
-      console.log(`User ${userId} is the team creator, assigning manager role`);
-    }
-    
-    // Get organization information
-    const orgName = await this.teamDataService.getOrgName(teamData.org_id);
-    
-    // Check organization access
-    const { hasOrgAccess, hasCrossOrgAccess } = await this.membershipService.checkOrgAccess(
-      userId, 
-      teamData.org_id, 
-      teamRole !== null
-    );
-    
-    // Determine access reason
-    const accessReason = determineAccessReason(
-      initialAccess.access_reason,
-      teamRole,
-      orgRole,
-      hasOrgAccess,
-      hasCrossOrgAccess
-    );
-    
-    return {
-      is_member: true,
-      has_org_access: hasOrgAccess,
-      has_cross_org_access: hasCrossOrgAccess,
-      team_member_id: teamMemberId,
-      access_reason: accessReason,
-      role: finalRole || null,
-      team: {
-        name: teamData.name,
-        org_id: teamData.org_id
-      },
-      org_name: orgName
-    };
   }
 }

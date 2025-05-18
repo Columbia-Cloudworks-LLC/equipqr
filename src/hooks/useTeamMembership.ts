@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team';
@@ -7,8 +7,10 @@ import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } fr
 export function useTeamMembership(teamId: string | null) {
   const [isMember, setIsMember] = useState<boolean>(true);
   const [isRepairingTeam, setIsRepairingTeam] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [accessReason, setAccessReason] = useState<string | null>(null);
   const [accessRole, setAccessRole] = useState<string | null>(null);
   const [hasCrossOrgAccess, setHasCrossOrgAccess] = useState<boolean>(false);
@@ -42,15 +44,17 @@ export function useTeamMembership(teamId: string | null) {
       setTeamDetails(null);
       setError(null);
     }
-  }, [teamId, currentUserId]);
+  }, [teamId, currentUserId, retryCount]);
 
   const checkDetailedTeamAccess = async (teamId: string, userId: string) => {
+    if (isCheckingAccess) return; // Prevent concurrent checks
+    
     try {
+      setIsCheckingAccess(true);
       // Clear previous state
       setError(null);
       
-      // Use the enhanced team access details function
-      // This calls an edge function that bypasses RLS recursion issues
+      // Use the enhanced team access details function with retry logic
       const accessDetails = await getTeamAccessDetails(userId, teamId);
       
       setIsMember(accessDetails.isMember);
@@ -80,11 +84,18 @@ export function useTeamMembership(teamId: string | null) {
         orgName: accessDetails.orgName,
         team: accessDetails.team
       });
+      
+      // If the access reason indicates an error or fallback was used, show a warning
+      if (accessDetails.accessReason?.includes('error') || accessDetails.accessReason?.includes('fallback')) {
+        console.warn(`Using fallback access mechanism: ${accessDetails.accessReason}`);
+      }
     } catch (error: any) {
       console.error('Error checking team access:', error);
       setError('Failed to verify team membership. We will assume you are a member for now.');
       // Even on error, assume membership to avoid blocking user interaction
       setIsMember(true);
+    } finally {
+      setIsCheckingAccess(false);
     }
   };
 
@@ -103,10 +114,12 @@ export function useTeamMembership(teamId: string | null) {
           description: "You have been added as a team manager",
         });
         
-        // Re-check team membership
-        if (currentUserId) {
-          await checkDetailedTeamAccess(teamId, currentUserId);
-        }
+        // Re-check team membership after a short delay to allow DB to update
+        setTimeout(() => {
+          if (currentUserId) {
+            setRetryCount(count => count + 1); // This will trigger re-check through useEffect
+          }
+        }, 1000);
       } else {
         throw new Error(result?.error || "Repair failed with unknown error");
       }
@@ -121,9 +134,17 @@ export function useTeamMembership(teamId: string | null) {
     }
   };
 
+  const retryAccessCheck = useCallback(() => {
+    if (teamId && currentUserId) {
+      setRetryCount(count => count + 1);
+      toast.info("Retrying team access check...");
+    }
+  }, [teamId, currentUserId]);
+
   return {
     isMember,
     isRepairingTeam,
+    isCheckingAccess,
     currentUserId,
     error,
     accessReason,
@@ -132,6 +153,7 @@ export function useTeamMembership(teamId: string | null) {
     teamOrgName,
     teamDetails,
     handleRepairTeam,
-    checkTeamMembership: checkDetailedTeamAccess
+    checkTeamMembership: checkDetailedTeamAccess,
+    retryAccessCheck
   };
 }

@@ -23,6 +23,8 @@ export interface InitialAccessResult {
   is_member: boolean;
   has_org_access?: boolean;
   access_reason?: string;
+  role?: string;
+  team_org_id?: string;
 }
 
 /**

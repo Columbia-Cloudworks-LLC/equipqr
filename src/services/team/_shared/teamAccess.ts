@@ -66,7 +66,7 @@ export async function checkTeamManagerAccess(
 
 /**
  * Get detailed access information for a team
- * Uses our validate_team_access edge function
+ * Uses our validate_team_access edge function with retry logic
  */
 export async function getDetailedTeamAccess(
   userId: string, 
@@ -77,24 +77,48 @@ export async function getDetailedTeamAccess(
     // Use provided supabase client or the default one
     const client = customClient || supabase;
     
-    // Call the validate_team_access edge function
-    const { data, error } = await client.functions.invoke('validate_team_access', {
-      body: { 
-        user_id: userId,
-        team_id: teamId
+    // Try up to 3 times with exponential backoff
+    let attempts = 0;
+    const maxAttempts = 3;
+    let delay = 100; // Start with 100ms delay
+    
+    while (attempts < maxAttempts) {
+      try {
+        // Call the validate_team_access edge function
+        const { data, error } = await client.functions.invoke('validate_team_access', {
+          body: { 
+            user_id: userId,
+            team_id: teamId
+          }
+        });
+
+        if (error) {
+          console.error(`Error getting detailed team access (attempt ${attempts + 1}):`, error);
+          // Only throw if it's the last attempt
+          if (attempts === maxAttempts - 1) {
+            throw error;
+          }
+        } else {
+          // Success - return the data
+          return data;
+        }
+      } catch (retryError) {
+        console.error(`Retry error (attempt ${attempts + 1}):`, retryError);
+        // Only throw if it's the last attempt
+        if (attempts === maxAttempts - 1) {
+          throw retryError;
+        }
       }
-    });
-
-    if (error) {
-      console.error('Error getting detailed team access:', error);
-      return {
-        is_member: false,
-        has_org_access: false,
-        access_reason: 'error'
-      };
+      
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Increase delay and attempts for next iteration
+      delay *= 2;
+      attempts++;
     }
-
-    return data;
+    
+    throw new Error("Exceeded maximum retry attempts");
   } catch (error) {
     console.error('Exception in getDetailedTeamAccess:', error);
     return {

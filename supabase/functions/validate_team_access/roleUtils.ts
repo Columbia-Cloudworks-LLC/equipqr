@@ -1,4 +1,3 @@
-
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 /**
@@ -32,19 +31,21 @@ export function determineAccessReason(
   hasOrgAccess: boolean,
   hasCrossOrgAccess: boolean
 ): string {
-  let accessReason = initialReason || 'none';
-  
-  if (accessReason === 'none') {
-    if (teamRole) {
-      accessReason = 'team_member';
-    } else if (orgRole && hasOrgAccess) {
-      accessReason = 'org_role';
-    } else if (hasOrgAccess) {
-      accessReason = 'same_org';
-    } else if (hasCrossOrgAccess) {
-      accessReason = 'cross_org_access';
-    }
+  // If we have an initial reason from the database function, use that
+  if (initialReason && initialReason !== 'none') {
+    return initialReason;
   }
   
-  return accessReason;
+  // Otherwise determine based on available data
+  if (teamRole) {
+    return 'team_member';
+  } else if (orgRole && hasOrgAccess) {
+    return 'org_role';
+  } else if (hasOrgAccess) {
+    return 'same_org';
+  } else if (hasCrossOrgAccess) {
+    return 'cross_org_access';
+  }
+  
+  return 'unknown';
 }
