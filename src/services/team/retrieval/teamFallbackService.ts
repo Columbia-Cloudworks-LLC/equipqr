@@ -95,7 +95,7 @@ export async function getTeamsFallback(userId: string): Promise<any[]> {
           org_id: item.team.org_id,
           org_name: item.team.organization?.name,
           is_external_org: true,
-          role
+          role: role // Include the role property here
         };
       }) || [];
       
@@ -105,7 +105,8 @@ export async function getTeamsFallback(userId: string): Promise<any[]> {
       name: team.name,
       org_id: team.org_id,
       org_name: team.organization?.name,
-      is_external_org: false
+      is_external_org: false,
+      role: null // Add the role property with a default value of null
     })) || [];
     
     // Combine and deduplicate
@@ -117,9 +118,9 @@ export async function getTeamsFallback(userId: string): Promise<any[]> {
         allTeams.push(extTeam);
       } else {
         // Update existing team with role information
-        const existingTeam = allTeams.find(team => team.id === extTeam.id);
-        if (existingTeam) {
-          existingTeam.role = extTeam.role;
+        const existingTeamIndex = allTeams.findIndex(team => team.id === extTeam.id);
+        if (existingTeamIndex !== -1 && extTeam.role) {
+          allTeams[existingTeamIndex].role = extTeam.role;
         }
       }
     });
