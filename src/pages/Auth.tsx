@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { Layout } from '@/components/Layout/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoginForm } from '@/components/Auth/LoginForm';
@@ -27,11 +26,20 @@ export default function Auth() {
   };
 
   return (
-    <Layout>
+    <div className="bg-background min-h-screen">
       {/* Add the AuthRedirect component to handle redirects */}
       <AuthRedirect />
+      
+      {/* Simple header with logo */}
+      <header className="border-b bg-background/95 backdrop-blur p-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold">equipqr</h1>
+        </div>
+        
+        <div className="text-sm text-muted-foreground">v1.1</div>
+      </header>
 
-      <div className="flex items-center justify-center min-h-[80vh] px-4">
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] px-4 py-8">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl">Welcome to EquipQR</CardTitle>
@@ -67,6 +75,6 @@ export default function Auth() {
           </CardFooter>
         </Card>
       </div>
-    </Layout>
+    </div>
   );
 }
