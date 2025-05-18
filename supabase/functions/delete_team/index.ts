@@ -1,7 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { createAdminClient } from '../_shared/adminClient.ts';
-import { corsHeaders, createSuccessResponse, createErrorResponse } from '../_shared/cors.ts';
+import { createAdminClient } from './adminClient.ts';
+import { corsHeaders, createSuccessResponse, createErrorResponse } from './cors.ts';
 import { TeamDeletionValidator } from './teamDeletionValidator.ts';
 import { TeamDeletionService } from './teamDeletionService.ts';
 
