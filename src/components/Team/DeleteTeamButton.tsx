@@ -1,9 +1,8 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface DeleteTeamButtonProps {
   teamId: string;
@@ -23,10 +22,19 @@ export function DeleteTeamButton({
   equipmentCount = 0
 }: DeleteTeamButtonProps) {
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const handleDelete = async () => {
-    await onDeleteTeam(teamId);
-    setOpen(false);
+    try {
+      setError(null);
+      await onDeleteTeam(teamId);
+      setOpen(false);
+      toast.success(`Team "${teamName}" successfully deleted`);
+    } catch (err: any) {
+      console.error('Delete team error:', err);
+      setError(err.message || 'Failed to delete team');
+      // Keep dialog open so user can see the error
+    }
   };
   
   return (
@@ -50,6 +58,15 @@ export function DeleteTeamButton({
                 </p>
                 <p className="text-amber-700 text-sm mt-1">
                   When you delete this team, these equipment records will be unassigned from the team but will remain in your organization's inventory.
+                </p>
+              </div>
+            )}
+            
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded p-3 my-2">
+                <p className="font-medium text-red-800">Error: {error}</p>
+                <p className="text-red-700 text-sm mt-1">
+                  Please try again or contact support if the problem persists.
                 </p>
               </div>
             )}

@@ -25,12 +25,16 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
       }
     }
     
+    console.log(`Validating team membership: userId=${userId}, teamId=${teamId}`);
+    
     // Use our improved validate_team_access edge function
     try {
       const data = await invokeEdgeFunction('validate_team_access', {
         team_id: teamId,
         user_id: userId
-      }, 8000);
+      }, 8000); // Increased timeout for reliability
+      
+      console.log('Team access validation result:', data);
       
       return {
         isValid: data?.is_member === true,
@@ -40,6 +44,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
       console.error('Team membership validation error:', error);
       
       // Fallback to simpler function if edge function fails
+      console.log('Trying fallback validation method...');
       const { data: fallbackResult, error: fallbackError } = await supabase.rpc(
         'check_team_access_nonrecursive',
         { p_user_id: userId, p_team_id: teamId }
@@ -49,6 +54,8 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
         console.error('Fallback validation error:', fallbackError);
         throw new Error(fallbackError.message);
       }
+      
+      console.log('Fallback validation result:', fallbackResult);
       
       return {
         isValid: fallbackResult === true,
@@ -62,7 +69,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
     console.error('Error in validateTeamMembership:', error);
     // Return a safe default to prevent breaking the UI
     return {
-      isValid: false, // Changed to false to properly show access errors
+      isValid: false,
       result: {
         is_member: false,
         access_reason: 'error_validation_failed'
@@ -84,12 +91,16 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       throw new Error("User ID and Team ID are required");
     }
     
+    console.log(`Getting team access details: userId=${userId}, teamId=${teamId}`);
+    
     // Try the edge function with proper error handling
     try {
       const data = await invokeEdgeFunction('validate_team_access', {
         team_id: teamId,
         user_id: userId
-      }, 8000);
+      }, 8000); // Increased timeout for reliability
+      
+      console.log('Team access details from edge function:', data);
       
       const typedData = data as TeamAccessResult;
       
@@ -102,12 +113,13 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         role: typedData?.role,
         team: typedData?.team,
         orgName: typedData?.org_name,
-        error: null // Add error property with null default
+        error: null
       };
     } catch (error) {
       console.error('Error using edge function for team access details:', error);
       
       // Fallback to direct database query
+      console.log('Trying fallback access details method...');
       const { data: fallbackData, error: fallbackError } = await supabase.rpc(
         'check_team_access_detailed',
         { user_id: userId, team_id: teamId }
@@ -117,6 +129,8 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         console.error('Error in fallback team access details:', fallbackError);
         throw new Error('Failed to check team access');
       }
+      
+      console.log('Fallback access details result:', fallbackData);
       
       // Extract first row from the result array since RPC returns an array
       const resultRow = fallbackData && fallbackData.length > 0 ? fallbackData[0] : null;
@@ -137,7 +151,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         role: typedRow.team_role || null,
         team: null,
         orgName: null,
-        error: null // Add error property with null default
+        error: null
       };
     }
   } catch (error: any) {
@@ -152,7 +166,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       role: null,
       team: null,
       orgName: null,
-      error: error.message // Include the error message
+      error: error.message
     };
   }
 }

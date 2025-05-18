@@ -41,6 +41,8 @@ export const deleteTeam = async (teamId: string): Promise<DeleteTeamResult> => {
     }
     
     const userId = session.session.user.id;
+    
+    console.log(`Attempting to delete team ${teamId} by user ${userId}`);
 
     // Call the edge function to handle delete operation
     const { data, error } = await supabase.functions.invoke('delete_team', {
@@ -52,8 +54,15 @@ export const deleteTeam = async (teamId: string): Promise<DeleteTeamResult> => {
 
     if (error) {
       console.error('Error deleting team:', error);
-      throw new Error(error.message);
+      throw new Error(error.message || 'Failed to delete team');
     }
+    
+    if (!data || typeof data !== 'object') {
+      console.error('Invalid response from delete_team function:', data);
+      throw new Error('Invalid response from server');
+    }
+
+    console.log('Team deletion successful:', data);
     
     return data as DeleteTeamResult;
   } catch (error: any) {

@@ -23,13 +23,15 @@ export class TeamDeletionValidator {
     message?: string;
   }> {
     try {
+      console.log(`Validating delete permission: userId=${userId}, teamId=${teamId}`);
+      
       // Check team access using the detailed function
       const { data: accessData, error: accessError } = await this.supabase.rpc('check_team_access_detailed', {
         user_id: userId,
         team_id: teamId
       });
       
-      console.log('Access data:', accessData);
+      console.log('Access check result:', accessData);
       
       if (accessError) {
         console.error('Error checking team access:', accessError);
@@ -38,7 +40,7 @@ export class TeamDeletionValidator {
           isOrgOwner: false,
           isTeamManager: false,
           accessData: null,
-          message: `Error checking team access: ${accessError.message}`
+          message: `Access check error: ${accessError.message}`
         };
       }
       
