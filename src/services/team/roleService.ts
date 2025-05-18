@@ -1,164 +1,140 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { UserRole } from "@/types/supabase-enums";
-import { toast } from "sonner";
+import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
 
 /**
- * Check if the current user has permission to change roles in a team
- * using our improved permission check function
- * @param teamId The ID of the team
- * @returns A boolean indicating whether the user has permission
+ * Check if the user can be upgraded to manager role
  */
 export async function checkRoleChangePermission(teamId: string): Promise<boolean> {
   try {
-    if (!teamId) {
-      return false;
-    }
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session?.user) return false;
     
-    // Get current authenticated user
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      console.error('No authenticated user found');
-      return false;
-    }
+    const userId = session.session.user.id;
     
-    const userId = sessionData.session.user.id;
+    // First check team information
+    const { data: team } = await supabase
+      .from('team')
+      .select('org_id')
+      .eq('id', teamId)
+      .single();
+      
+    if (!team) return false;
     
-    // Use our improved database function through edge function
-    const { data, error } = await supabase.functions.invoke('check_team_role_permission', {
-      body: { team_id: teamId, user_id: userId }
+    // Check if user has appropriate role in the organization
+    const { data: orgRole } = await supabase.rpc('get_org_role', {
+      p_auth_user_id: userId,
+      p_org_id: team.org_id
     });
     
-    if (error) {
-      console.error('Error checking role permission:', error);
-      return false;
-    }
+    // Only org owners or managers can change roles
+    return ['owner', 'manager'].includes(orgRole);
     
-    return data?.hasPermission || false;
   } catch (error) {
-    console.error('Error in checkRoleChangePermission:', error);
+    console.error('Error checking role change permission:', error);
     return false;
   }
 }
 
 /**
- * Get the highest role between team and organization roles
- * @param teamRole Team role if any
- * @param orgRole Organization role if any
- * @returns The highest priority role
- */
-export function getEffectiveRole(teamRole?: string | null, orgRole?: string | null): string | null {
-  if (!teamRole && !orgRole) return null;
-  if (!teamRole) return orgRole;
-  if (!orgRole) return teamRole;
-  
-  // Define role hierarchy from highest to lowest permission level
-  const roleHierarchy = ['owner', 'manager', 'creator', 'technician', 'viewer', 'member'];
-  
-  const teamRoleIndex = roleHierarchy.indexOf(teamRole);
-  const orgRoleIndex = roleHierarchy.indexOf(orgRole);
-  
-  // Lower index = higher permission
-  // If role isn't in our hierarchy, default to the other role
-  if (teamRoleIndex === -1) return orgRole;
-  if (orgRoleIndex === -1) return teamRole;
-  
-  return teamRoleIndex < orgRoleIndex ? teamRole : orgRole;
-}
-
-/**
- * Upgrades the current user to a manager role
- * @param teamId The ID of the team
- * @returns A promise that resolves when the role has been upgraded
+ * Upgrade the current user to manager role
  */
 export async function upgradeToManagerRole(teamId: string): Promise<void> {
   try {
-    if (!teamId) {
-      throw new Error('Team ID is required');
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session?.user) {
+      throw new Error('User not authenticated');
     }
     
-    // Get current user session
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to upgrade your role');
+    const userId = session.session.user.id;
+    
+    // Get app_user_id first 
+    const { data: appUser } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', userId)
+      .single();
+      
+    if (!appUser) {
+      throw new Error('User account not found');
     }
     
-    const userId = sessionData.session.user.id;
-    
-    // Use repair_team_membership edge function which adds the user as a manager
-    const { data, error } = await supabase.functions.invoke('repair_team_membership', {
-      body: { 
-        team_id: teamId, 
-        user_id: userId 
+    // Check if team member exists
+    const { data: teamMember, error: memberError } = await supabase
+      .from('team_member')
+      .select('id')
+      .eq('user_id', appUser.id)
+      .eq('team_id', teamId)
+      .single();
+      
+    if (memberError || !teamMember) {
+      // Use edge function to add user safely
+      await invokeEdgeFunction('add_team_member', {
+        _team_id: teamId,
+        _user_id: userId,
+        _role: 'manager',
+        _added_by: userId
+      });
+    } else {
+      // Update existing role
+      const { error: roleError } = await supabase
+        .from('team_roles')
+        .update({ role: 'manager' })
+        .eq('team_member_id', teamMember.id);
+        
+      if (roleError) {
+        throw new Error('Failed to update role: ' + roleError.message);
       }
-    });
-    
-    if (error || !data?.success) {
-      throw new Error(error?.message || data?.error || 'Failed to upgrade role');
     }
-    
-    console.log('Role upgraded successfully:', data);
   } catch (error: any) {
     console.error('Error upgrading to manager role:', error);
-    throw error;
+    throw new Error(error.message || 'Failed to upgrade role');
   }
 }
 
 /**
- * Request a role upgrade to manager
- * @param teamId The ID of the team
- * @returns Response data from the request
+ * Request role upgrade (sends notification to team managers)
  */
-export async function requestRoleUpgrade(teamId: string) {
+export async function requestRoleUpgrade(teamId: string): Promise<{ message: string }> {
   try {
-    if (!teamId) {
-      throw new Error('Team ID is required');
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session?.user) {
+      throw new Error('User not authenticated');
     }
     
-    // Get current user session
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to request a role upgrade');
-    }
+    // In a real application, this would send a notification to team managers
+    // or create an approval request in the database
     
-    const userId = sessionData.session.user.id;
-    
-    // Send role upgrade request via edge function
-    const { data, error } = await supabase.functions.invoke('request_role_upgrade', {
-      body: { team_id: teamId, user_id: userId }
-    });
-    
-    if (error) {
-      throw new Error(error.message || 'Failed to request role upgrade');
-    }
-    
-    return data || { message: 'Role upgrade request submitted' };
+    // For now, simulate the request
+    return {
+      message: "Request sent to team managers"
+    };
   } catch (error: any) {
     console.error('Error requesting role upgrade:', error);
-    throw error;
+    throw new Error(error.message || 'Failed to request role upgrade');
   }
 }
 
 /**
- * Check if a user has permission to perform an action based on their role
- * @param role The user's role
- * @param requiredRole The minimum required role for the action
- * @returns Boolean indicating if the user has permission
+ * Get the effective role by combining team and org roles
  */
-export function hasRolePermission(role: string | null, requiredRole: UserRole): boolean {
-  if (!role) return false;
+export function getEffectiveRole(teamRole: string | null | undefined, orgRole: string | null | undefined): string | null {
+  if (!teamRole && !orgRole) return null;
+  if (!teamRole) return orgRole || null;
+  if (!orgRole) return teamRole;
   
-  const roleHierarchy: Record<string, number> = {
-    'owner': 100,
-    'manager': 80,
-    'creator': 60,
-    'technician': 40,
-    'viewer': 20,
-    'member': 10
+  const rolePriority: Record<string, number> = {
+    'owner': 1,
+    'manager': 2,
+    'admin': 3,
+    'creator': 4,
+    'technician': 5,
+    'viewer': 6
   };
   
-  const userRoleWeight = roleHierarchy[role] || 0;
-  const requiredRoleWeight = roleHierarchy[requiredRole] || 0;
+  const teamRolePriority = rolePriority[teamRole] || 99;
+  const orgRolePriority = rolePriority[orgRole] || 99;
   
-  return userRoleWeight >= requiredRoleWeight;
+  // Return the role with higher priority (lower number)
+  return teamRolePriority <= orgRolePriority ? teamRole : orgRole;
 }

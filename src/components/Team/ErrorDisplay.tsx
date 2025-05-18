@@ -1,16 +1,16 @@
 
+import { AlertCircle, RefreshCw, Tool } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, ArrowUpToLine, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ErrorDisplayProps {
   error: string | null;
-  onRetry?: () => void;
-  onUpgradeRole?: () => void; 
-  isViewer?: boolean; 
+  onRetry: () => void;
+  onUpgradeRole?: () => void;
+  isViewer?: boolean;
   canDirectlyUpgrade?: boolean;
   isRequestingUpgrade?: boolean;
-  crossOrgPermissionError?: boolean;
 }
 
 export function ErrorDisplay({ 
@@ -19,113 +19,91 @@ export function ErrorDisplay({
   onUpgradeRole, 
   isViewer = false, 
   canDirectlyUpgrade = false,
-  isRequestingUpgrade = false,
-  crossOrgPermissionError = false
+  isRequestingUpgrade = false
 }: ErrorDisplayProps) {
-  // If isViewer is true but there's already an error, prioritize showing the error
-  if (!error && !isViewer && !crossOrgPermissionError) return null;
-  
-  // Define specific helpful messages for common errors
-  const getHelpfulMessage = () => {
-    if (crossOrgPermissionError) {
-      return "You don't have sufficient permissions to perform this action on resources from another organization.";
-    } else if (error?.includes('team members')) {
-      return "Please try refreshing the page, or check if you have the necessary permissions.";
-    } else if (error?.includes('Team ID')) {
-      return "There may be an issue with your team selection. Try selecting a different team or returning to the dashboard.";
-    } else if (error?.includes('format is invalid')) {
-      return "The team identifier appears to be in an invalid format. Try selecting a team from the dropdown.";
-    } else if (error?.includes('Repair failed')) {
-      return "The team repair process encountered an error. This might be due to permission issues or database constraints. Try signing out and signing back in, or contact your organization administrator.";
-    } else if (error?.includes('not a member')) {
-      return "You don't have access to this team. Use the 'Repair Team Membership' option to fix this issue.";
-    } else if (error?.includes('different organization') || error?.includes('cross-organization')) {
-      return "This resource belongs to another organization. You may have limited access based on your permissions.";
-    }
-    return null;
-  };
-  
-  const helpfulMessage = getHelpfulMessage();
-  
-  // Special case for cross-organization permission errors
-  if (crossOrgPermissionError) {
+  // No error to display
+  if (!error) return null;
+
+  // Special handling for viewer-only permissions
+  if (isViewer && onUpgradeRole) {
     return (
-      <Alert variant="warning" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Cross-Organization Access Limited</AlertTitle>
-        <AlertDescription>
-          You have limited permissions for this resource because it belongs to another organization.
-          Some actions may not be available.
-          <div className="mt-2 text-sm">
-            If you need additional access, please contact the resource owner or your administrator.
-          </div>
-        </AlertDescription>
-      </Alert>
+      <Card className="border-amber-300 bg-amber-50 shadow-sm mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-amber-700">
+            <AlertCircle className="h-5 w-5" />
+            Limited Access
+          </CardTitle>
+          <CardDescription className="text-amber-700">
+            You currently have view-only access to this team
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-amber-700">
+            As a viewer, your actions are limited. You can view team members and settings, 
+            but cannot make changes to the team.
+          </p>
+        </CardContent>
+        <CardFooter className="flex justify-end gap-2">
+          <Button 
+            variant="outline" 
+            onClick={onRetry}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button 
+            variant={canDirectlyUpgrade ? "default" : "secondary"} 
+            onClick={onUpgradeRole}
+            disabled={isRequestingUpgrade}
+          >
+            <Tool className="mr-2 h-4 w-4" />
+            {isRequestingUpgrade ? "Requesting..." : canDirectlyUpgrade ? 
+              "Upgrade to Manager" : "Request Manager Access"}
+          </Button>
+        </CardFooter>
+      </Card>
     );
   }
+
+  // Detect specific error types
+  const isConnectionError = error.toLowerCase().includes('network') || 
+                          error.toLowerCase().includes('timeout') || 
+                          error.toLowerCase().includes('failed to fetch');
   
-  // If the user is a viewer but has no other errors, show a special message
-  if (isViewer && !error) {
-    return (
-      <Alert variant="warning" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Limited Access</AlertTitle>
-        <AlertDescription>
-          You currently have a viewer role for this team. Some management actions may be restricted.
-          {onUpgradeRole && (
-            <div className="mt-3">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onUpgradeRole} 
-                disabled={isRequestingUpgrade}
-                className="flex items-center gap-2"
-              >
-                <ArrowUpToLine className="h-4 w-4" />
-                {isRequestingUpgrade ? 'Processing...' : canDirectlyUpgrade 
-                  ? 'Upgrade to Manager Role' 
-                  : 'Request Manager Role'}
-              </Button>
-            </div>
-          )}
-        </AlertDescription>
-      </Alert>
-    );
+  const isAuthError = error.toLowerCase().includes('auth') || 
+                    error.toLowerCase().includes('permission') || 
+                    error.toLowerCase().includes('not authorized');
+                    
+  const isAccessError = error.toLowerCase().includes('member') || 
+                      error.toLowerCase().includes('access');
+
+  // Determine alert variant based on error type
+  let variant: "destructive" | "default" = "destructive";
+  
+  if (isConnectionError) {
+    variant = "default";  // Less alarming for connection issues
   }
-  
-  // For regular errors
+
   return (
-    <Alert variant="destructive" className="mb-6">
+    <Alert variant={variant} className="mb-6">
       <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Error</AlertTitle>
-      <AlertDescription>
-        {error}
-        {helpfulMessage && (
-          <div className="mt-2 text-sm">
-            {helpfulMessage}
-          </div>
-        )}
-        <div className="mt-3 space-x-2">
-          {onRetry && (
-            <Button variant="outline" size="sm" onClick={onRetry} className="flex items-center gap-1">
-              <RefreshCw className="h-3.5 w-3.5" />
-              Try Again
-            </Button>
-          )}
-          {onUpgradeRole && isViewer && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onUpgradeRole}
-              disabled={isRequestingUpgrade}
-              className="flex items-center gap-2"
-            >
-              <ArrowUpToLine className="h-4 w-4" />
-              {isRequestingUpgrade ? 'Processing...' : canDirectlyUpgrade 
-                ? 'Upgrade to Manager Role' 
-                : 'Request Manager Role'}
-            </Button>
-          )}
+      <AlertTitle>
+        {isConnectionError ? "Connection Issue" : 
+          isAuthError ? "Authorization Error" :
+          isAccessError ? "Access Error" : "Error"}
+      </AlertTitle>
+      <AlertDescription className="flex flex-col space-y-4">
+        <p>{error}</p>
+        
+        <div className="flex justify-end space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onRetry}
+          >
+            <RefreshCw className="mr-2 h-3 w-3" />
+            Retry
+          </Button>
         </div>
       </AlertDescription>
     </Alert>

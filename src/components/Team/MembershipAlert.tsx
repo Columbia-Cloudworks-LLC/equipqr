@@ -1,18 +1,22 @@
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { ExternalLink, ShieldAlert, UserPlus, ArrowUpRight } from "lucide-react";
+import { ExternalLink, Info, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 interface MembershipAlertProps {
-  team: any;
+  team?: {
+    name?: string;
+    is_external_org?: boolean;
+    org_name?: string;
+  } | null;
   onRepair: () => void;
   isRepairing: boolean;
   role: string | null;
-  onUpgrade: () => void;
-  onRequestUpgrade: () => void;
-  isUpgrading: boolean;
-  isRequesting: boolean;
-  canUpgrade: boolean;
+  onUpgrade?: () => void;
+  onRequestUpgrade?: () => void;
+  isUpgrading?: boolean;
+  isRequesting?: boolean;
+  canUpgrade?: boolean;
 }
 
 export function MembershipAlert({
@@ -22,93 +26,64 @@ export function MembershipAlert({
   role,
   onUpgrade,
   onRequestUpgrade,
-  isUpgrading,
-  isRequesting,
-  canUpgrade
+  isUpgrading = false,
+  isRequesting = false,
+  canUpgrade = false
 }: MembershipAlertProps) {
-  // Handle viewers that need role upgrade
-  if (role === 'viewer') {
+  if (!team) return null;
+  
+  // Check if viewer role
+  const isViewerRole = role === 'viewer';
+  
+  // Check if external organization
+  const isExternalOrg = team.is_external_org;
+  
+  // If viewer role, show limited access alert
+  if (isViewerRole && (onUpgrade || onRequestUpgrade)) {
     return (
-      <Alert className="border-amber-200 bg-amber-50">
-        <ShieldAlert className="h-5 w-5 text-amber-500" />
-        <AlertTitle>Viewer Access Only</AlertTitle>
-        <AlertDescription className="flex flex-col gap-3">
-          <p>
-            You currently have view-only access to this team. To manage members,
-            you need at least a manager role.
-          </p>
-          <div>
+      <Alert variant="warning" className="bg-amber-50 mb-4">
+        <AlertTriangle className="h-4 w-4 text-amber-500" />
+        <AlertTitle className="text-amber-700">Limited Access</AlertTitle>
+        <AlertDescription className="text-amber-700 flex items-center justify-between">
+          <span>You have view-only access to this team. Some actions will be restricted.</span>
+          {canUpgrade && onUpgrade ? (
             <Button 
-              variant="outline" 
-              className="border-amber-200 text-amber-700 hover:text-amber-800 hover:bg-amber-100"
-              disabled={isUpgrading || isRequesting}
-              onClick={canUpgrade ? onUpgrade : onRequestUpgrade}
+              variant="secondary" 
+              size="sm"
+              onClick={onUpgrade}
+              disabled={isUpgrading}
             >
-              {isUpgrading || isRequesting ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  {canUpgrade ? "Upgrading role..." : "Requesting upgrade..."}
-                </span>
-              ) : (
-                <>
-                  <ArrowUpRight className="h-4 w-4 mr-2" />
-                  {canUpgrade ? "Upgrade to manager" : "Request role upgrade"}
-                </>
-              )}
+              {isUpgrading ? "Upgrading..." : "Upgrade to Manager"}
             </Button>
-          </div>
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // For external organizations
-  if (team?.is_external_org) {
-    return (
-      <Alert className="border-blue-200 bg-blue-50">
-        <ExternalLink className="h-5 w-5 text-blue-500" />
-        <AlertTitle>External Organization Team</AlertTitle>
-        <AlertDescription>
-          <p>
-            This team belongs to {team?.org_name || 'another organization'}.
-            You have access through cross-organization permissions.
-          </p>
+          ) : onRequestUpgrade ? (
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={onRequestUpgrade}
+              disabled={isRequesting}
+            >
+              {isRequesting ? "Requesting..." : "Request Manager Access"}
+            </Button>
+          ) : null}
         </AlertDescription>
       </Alert>
     );
   }
   
-  // Default case: user has no access
-  return (
-    <Alert variant="destructive">
-      <ShieldAlert className="h-5 w-5" />
-      <AlertTitle>Access Required</AlertTitle>
-      <AlertDescription className="flex flex-col gap-3">
-        <p>
-          You don't appear to be a member of this team. This could happen if
-          there was an issue during team creation or if your membership was removed.
-        </p>
-        <div>
-          <Button 
-            variant="outline" 
-            className="bg-white text-destructive hover:bg-destructive/10"
-            disabled={isRepairing}
-            onClick={onRepair}
-          >
-            {isRepairing ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Repairing...
-              </span>
-            ) : (
-              <>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Repair team access
-              </>
-            )}
-          </Button>
-        </div>
-      </AlertDescription>
-    </Alert>
-  );
+  // If external org, show info alert
+  if (isExternalOrg) {
+    return (
+      <Alert variant="default" className="bg-blue-50 border-blue-200 mb-4">
+        <ExternalLink className="h-4 w-4 text-blue-500" />
+        <AlertTitle className="text-blue-700">External Team</AlertTitle>
+        <AlertDescription className="text-blue-700">
+          This team belongs to {team.org_name || 'another organization'}.
+          {role ? ` You have ${role} access to this team.` : ''}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  // No alert needed
+  return null;
 }

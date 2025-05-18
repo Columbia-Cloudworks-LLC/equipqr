@@ -2,10 +2,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team/teamValidationService';
+import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team/validation/teamValidationService';
 
 export function useTeamMembership(teamId: string | null) {
-  const [isMember, setIsMember] = useState<boolean>(true);
+  const [isMember, setIsMember] = useState<boolean>(true); // Optimistic initial state
   const [isRepairingTeam, setIsRepairingTeam] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -20,11 +20,25 @@ export function useTeamMembership(teamId: string | null) {
   // Get the current user's ID
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        setCurrentUserId(data.session.user.id);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Auth session error:", error);
+          return;
+        }
+        
+        if (data.session?.user) {
+          setCurrentUserId(data.session.user.id);
+        } else {
+          console.warn("No authenticated user found");
+          // Redirect to login if needed
+        }
+      } catch (err) {
+        console.error("Error getting auth session:", err);
       }
     };
+    
     getCurrentUser();
   }, []);
 
@@ -92,6 +106,11 @@ export function useTeamMembership(teamId: string | null) {
       // If the access reason indicates an error or fallback was used, show a warning
       if (accessDetails.accessReason?.includes('error') || accessDetails.accessReason?.includes('fallback')) {
         console.warn(`Using fallback access mechanism: ${accessDetails.accessReason}`);
+      }
+      
+      // If there's an explicit error in the response, set it
+      if (accessDetails.error) {
+        setError(accessDetails.error);
       }
     } catch (error: any) {
       console.error('Error checking team access:', error);

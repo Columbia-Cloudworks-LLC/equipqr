@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CreateTeamButton } from '@/components/Team/CreateTeamButton';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TeamManagement() {
   const {
@@ -47,6 +49,22 @@ export default function TeamManagement() {
     getTeamEquipmentCount
   } = useTeamManagement();
 
+  const navigate = useNavigate();
+  const { user, session, isLoading: isAuthLoading } = useAuth();
+
+  // Authentication check
+  useEffect(() => {
+    // Only check after auth loading is complete
+    if (!isAuthLoading && !session) {
+      navigate('/auth', { 
+        state: { 
+          returnTo: '/teams',
+          message: 'You need to sign in to access Team Management'
+        } 
+      });
+    }
+  }, [session, isAuthLoading, navigate]);
+
   // Determine if the user has viewer role only - check if it's 'viewer' specifically
   const isViewerOnly = isMember && currentUserRole === 'viewer';
   
@@ -63,17 +81,35 @@ export default function TeamManagement() {
     });
   }, [teams.length, selectedTeamId, isLoading, isMember, currentUserRole, canChangeRoles, isViewerOnly]);
 
+  // Show loading state during auth check
+  if (isAuthLoading) {
+    return (
+      <Layout>
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // If not authenticated, return empty - navigation will handle redirect
+  if (!session) {
+    return null;
+  }
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Team Management</h1>
-          {isLoading && (
-            <Button variant="outline" size="sm" onClick={fetchTeams} disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? 'Loading...' : 'Refresh'}
-            </Button>
-          )}
+          <Button variant="outline" size="sm" onClick={fetchTeams} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Loading...' : 'Refresh'}
+          </Button>
         </div>
         
         <ErrorDisplay 
