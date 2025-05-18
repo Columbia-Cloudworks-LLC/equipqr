@@ -172,7 +172,7 @@ async function getTeamsFallback(userId: string) {
           org_id: item.team.org_id,
           org_name: item.team.organization?.name,
           is_external_org: true,
-          role
+          role // Fixed: Include role in the team object
         };
       }) || [];
       
@@ -196,7 +196,7 @@ async function getTeamsFallback(userId: string) {
         // Update existing team with role information
         const existingTeam = allTeams.find(team => team.id === extTeam.id);
         if (existingTeam) {
-          existingTeam.role = extTeam.role;
+          (existingTeam as any).role = extTeam.role; // Fixed: Use type assertion to add role property
         }
       }
     });
