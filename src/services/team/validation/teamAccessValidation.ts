@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
 
 interface TeamAccessResult {
   is_member: boolean;
@@ -48,14 +49,17 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
     }
     
     // Use our improved validate_team_access edge function
-    const { data, error } = await supabase.functions.invoke('validate_team_access', {
-      body: { 
+    try {
+      const data = await invokeEdgeFunction('validate_team_access', {
         team_id: teamId,
         user_id: userId
-      }
-    });
-    
-    if (error) {
+      }, 8000);
+      
+      return {
+        isValid: data?.is_member === true,
+        result: data || null
+      };
+    } catch (error) {
       console.error('Team membership validation error:', error);
       
       // Fallback to simpler function if edge function fails
@@ -77,11 +81,6 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
         }
       };
     }
-    
-    return {
-      isValid: data?.is_member === true,
-      result: data || null
-    };
   } catch (error: any) {
     console.error('Error in validateTeamMembership:', error);
     // Return a safe default to prevent breaking the UI
@@ -108,18 +107,29 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       throw new Error("User ID and Team ID are required");
     }
     
-    // Use improved validate_team_access edge function that considers organization roles
-    const { data, error } = await supabase.functions.invoke('validate_team_access', {
-      body: { 
+    // Try the edge function with proper error handling
+    try {
+      const data = await invokeEdgeFunction('validate_team_access', {
         team_id: teamId,
         user_id: userId
-      }
-    });
-    
-    if (error) {
-      console.error('Error getting team access details:', error);
+      }, 8000);
       
-      // Fallback to less detailed access check
+      const typedData = data as TeamAccessResult;
+      
+      return {
+        isMember: typedData?.is_member === true,
+        hasOrgAccess: typedData?.has_org_access === true,
+        hasCrossOrgAccess: typedData?.has_cross_org_access === true,
+        teamMemberId: typedData?.team_member_id,
+        accessReason: typedData?.access_reason,
+        role: typedData?.role,
+        team: typedData?.team,
+        orgName: typedData?.org_name
+      };
+    } catch (error) {
+      console.error('Error using edge function for team access details:', error);
+      
+      // Fallback to direct database query
       const { data: fallbackData, error: fallbackError } = await supabase.rpc(
         'check_team_access_detailed',
         { user_id: userId, team_id: teamId }
@@ -127,7 +137,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       
       if (fallbackError) {
         console.error('Error in fallback team access details:', fallbackError);
-        throw new Error(error.message);
+        throw new Error('Failed to check team access');
       }
       
       // Extract first row from the result array since RPC returns an array
@@ -151,22 +161,9 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         orgName: null
       };
     }
-    
-    const typedData = data as TeamAccessResult;
-    
-    return {
-      isMember: typedData?.is_member === true,
-      hasOrgAccess: typedData?.has_org_access === true,
-      hasCrossOrgAccess: typedData?.has_cross_org_access === true,
-      teamMemberId: typedData?.team_member_id,
-      accessReason: typedData?.access_reason,
-      role: typedData?.role,
-      team: typedData?.team,
-      orgName: typedData?.org_name
-    };
   } catch (error: any) {
     console.error('Error in getTeamAccessDetails:', error);
-    // Return default values - changed to show proper access failures
+    // Return default values with proper error flag
     return {
       isMember: false,
       hasOrgAccess: false,

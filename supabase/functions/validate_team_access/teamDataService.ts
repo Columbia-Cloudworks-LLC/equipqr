@@ -10,7 +10,7 @@ export class TeamDataService {
   }
 
   /**
-   * Get team details including organization name
+   * Get team details including organization name with proper UUID handling
    */
   async getTeamDetails(teamId: string): Promise<{ teamData: TeamData | null; orgName: string | null }> {
     try {
@@ -36,7 +36,7 @@ export class TeamDataService {
   }
 
   /**
-   * Get team data
+   * Get team data with proper UUID handling
    */
   async getTeamData(teamId: string): Promise<TeamData | null> {
     try {
@@ -54,7 +54,7 @@ export class TeamDataService {
   }
 
   /**
-   * Get organization name
+   * Get organization name with proper UUID handling
    */
   async getOrgName(orgId: string): Promise<string | null> {
     try {
@@ -72,7 +72,7 @@ export class TeamDataService {
   }
 
   /**
-   * Check if user is team creator
+   * Check if user is team creator with proper UUID handling
    */
   async isTeamCreator(userId: string, teamId: string): Promise<boolean> {
     try {

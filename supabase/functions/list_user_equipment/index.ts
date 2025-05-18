@@ -55,6 +55,13 @@ serve(async (req) => {
         return createErrorResponse("Missing required parameter: user_id");
       }
 
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(user_id)) {
+        console.error(`Invalid UUID format for user_id: ${user_id}`);
+        return createErrorResponse("Invalid user ID format");
+      }
+
       // Create Supabase client using the service role key to bypass RLS
       const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -183,8 +190,8 @@ serve(async (req) => {
     
     return createSuccessResponse(responseData);
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return createErrorResponse(`Unexpected error: ${error.message}`);
+    console.error('Unexpected error:', error instanceof Error ? error.message : error);
+    return createErrorResponse(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 });
 

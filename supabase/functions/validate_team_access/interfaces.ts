@@ -1,7 +1,4 @@
 
-/**
- * Interface for team access results
- */
 export interface TeamAccessResult {
   is_member: boolean;
   has_org_access?: boolean;
@@ -16,21 +13,17 @@ export interface TeamAccessResult {
   org_name?: string | null;
 }
 
-/**
- * Interface for initial access check result
- */
-export interface InitialAccessResult {
-  is_member: boolean;
-  has_org_access?: boolean;
-  access_reason?: string;
-  role?: string;
-  team_org_id?: string;
+export interface MembershipDetails {
+  teamMemberId: string | null;
+  hasCrossOrgAccess: boolean;
 }
 
-/**
- * Interface for team data
- */
 export interface TeamData {
   name: string;
   org_id: string;
+}
+
+export interface TeamDetails {
+  teamData: TeamData | null;
+  orgName: string | null;
 }

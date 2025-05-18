@@ -1,51 +1,53 @@
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 /**
- * Get the higher role based on permission level
+ * Get the higher priority role between team role and organization role
  */
-export function getHigherRole(role1: string | null, role2: string | null): string | null {
-  if (!role1) return role2;
-  if (!role2) return role1;
+export function getHigherRole(teamRole: string | null | undefined, orgRole: string | null | undefined): string | null {
+  if (!teamRole && !orgRole) return null;
+  if (!teamRole) return orgRole || null;
+  if (!orgRole) return teamRole;
   
-  // Define role hierarchy from highest to lowest permission level
-  const roleHierarchy = ['owner', 'admin', 'manager', 'creator', 'technician', 'viewer', 'member'];
+  const rolePriority: Record<string, number> = {
+    'owner': 1,
+    'manager': 2,
+    'admin': 3,
+    'creator': 4,
+    'technician': 5,
+    'viewer': 6
+  };
   
-  const role1Index = roleHierarchy.indexOf(role1);
-  const role2Index = roleHierarchy.indexOf(role2);
+  const teamRolePriority = rolePriority[teamRole] || 99;
+  const orgRolePriority = rolePriority[orgRole] || 99;
   
-  // If role isn't in our hierarchy, default to the other role
-  if (role1Index === -1) return role2;
-  if (role2Index === -1) return role1;
-  
-  // Lower index = higher permission
-  return role1Index < role2Index ? role1 : role2;
+  // Return the role with higher priority (lower number)
+  return teamRolePriority <= orgRolePriority ? teamRole : orgRole;
 }
 
 /**
- * Determine the access reason
+ * Determine the final access reason based on all factors
  */
 export function determineAccessReason(
   initialReason: string | undefined,
-  teamRole: string | null,
-  orgRole: string | null,
-  hasOrgAccess: boolean,
-  hasCrossOrgAccess: boolean
+  teamRole: string | null | undefined,
+  orgRole: string | null | undefined,
+  hasSameOrg: boolean,
+  hasCrossOrg: boolean
 ): string {
-  // If we have an initial reason from the database function, use that
-  if (initialReason && initialReason !== 'none') {
+  if (initialReason === 'error' || initialReason?.includes('error')) {
     return initialReason;
   }
   
-  // Otherwise determine based on available data
-  if (teamRole) {
-    return 'team_member';
-  } else if (orgRole && hasOrgAccess) {
-    return 'org_role';
-  } else if (hasOrgAccess) {
-    return 'same_org';
-  } else if (hasCrossOrgAccess) {
-    return 'cross_org_access';
+  if (initialReason === 'team_member' && teamRole) {
+    return hasCrossOrg ? 'cross_org_team_member' : 'team_member';
   }
   
-  return 'unknown';
+  if (hasSameOrg && orgRole) {
+    return `org_${orgRole}`;
+  }
+  
+  if (hasSameOrg) {
+    return 'same_org';
+  }
+  
+  return initialReason || 'unknown';
 }

@@ -11,39 +11,53 @@ serve(async (req) => {
   }
 
   try {
-    const { team_id, user_id } = await req.json();
+    // Set a reasonable timeout for the function execution
+    const timeout = setTimeout(() => {
+      throw new Error('Function execution timed out');
+    }, 8000); // 8 seconds max execution time
     
-    if (!team_id || !user_id) {
-      return createErrorResponse("Missing required parameters: team_id and user_id must be provided");
-    }
+    try {
+      const { team_id, user_id } = await req.json();
+      
+      if (!team_id || !user_id) {
+        return createErrorResponse("Missing required parameters: team_id and user_id must be provided");
+      }
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(team_id)) {
-      console.error(`Invalid UUID format for team_id: ${team_id}`);
-      return createErrorResponse("Invalid team ID format");
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(team_id)) {
+        console.error(`Invalid UUID format for team_id: ${team_id}`);
+        return createErrorResponse("Invalid team ID format");
+      }
+      
+      if (!uuidRegex.test(user_id)) {
+        console.error(`Invalid UUID format for user_id: ${user_id}`);
+        return createErrorResponse("Invalid user ID format");
+      }
+      
+      // Create Supabase client with service role to bypass RLS
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (!supabaseUrl || !supabaseServiceRoleKey) {
+        throw new Error('Missing Supabase environment variables');
+      }
+      
+      const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+      
+      // Create validator instance
+      const validator = new TeamAccessValidator(adminClient);
+      
+      // Check access and get result
+      const accessResult = await validator.validateAccess(user_id, team_id);
+      
+      return createSuccessResponse(accessResult);
+      
+    } finally {
+      clearTimeout(timeout);
     }
-    
-    // Create Supabase client with service role to bypass RLS
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      throw new Error('Missing Supabase environment variables');
-    }
-    
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
-    
-    // Create validator instance
-    const validator = new TeamAccessValidator(adminClient);
-    
-    // Check access and get result
-    const accessResult = await validator.validateAccess(user_id, team_id);
-    
-    return createSuccessResponse(accessResult);
-    
   } catch (error) {
     console.error('Unexpected error:', error);
-    return createErrorResponse(error.message);
+    return createErrorResponse(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 });

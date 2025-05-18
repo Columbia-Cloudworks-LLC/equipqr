@@ -65,12 +65,12 @@ serve(async (req) => {
         .eq('id', user_id)
         .single();
 
-      if (userError) {
+      if (userError || !userData) {
         console.error('Error getting user data:', userError);
         return new Response(
           JSON.stringify({ 
             error: "Failed to retrieve user information", 
-            details: userError.message 
+            details: userError ? userError.message : "User not found" 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
@@ -174,7 +174,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: "Server error",
-        details: error.message
+        details: error instanceof Error ? error.message : "Unknown error occurred" 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );

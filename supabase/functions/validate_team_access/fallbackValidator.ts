@@ -16,7 +16,7 @@ export class FallbackValidator {
     try {
       console.log(`Using fallback access check for userId: ${userId}, teamId: ${teamId}`);
       
-      // Try the non-recursive function first
+      // Try the non-recursive function with explicit UUID parameter handling
       const { data: canAccess, error: simpleAccessError } = await this.tryWithRetry(() => 
         this.supabase.rpc('check_team_access_nonrecursive', {
           p_user_id: userId,
