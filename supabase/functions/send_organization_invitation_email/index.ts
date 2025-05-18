@@ -84,7 +84,7 @@ serve(async (req: Request) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: 'equipqr <no-reply@equipqr.app>',
+        from: 'equipqr <no-reply@equipqr.ai>',
         to: email,
         subject: `You've been invited to join ${organization_name} on equipqr`,
         html: htmlContent,

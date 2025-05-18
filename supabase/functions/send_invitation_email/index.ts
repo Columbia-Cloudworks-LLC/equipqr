@@ -98,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
         teamName: teamName,
         orgName: orgName,
         inviterName: inviterName,
-        inviterEmail: invitation.invited_by_email || "no-reply@equipqr.app",
+        inviterEmail: invitation.invited_by_email || "no-reply@equipqr.ai",
         token: invitation.token,
         action: "resend",
         role: invitation.role
@@ -210,9 +210,9 @@ async function sendInvitationEmail({
       </html>
     `;
 
-    // Send the email
+    // Send the email with the updated "from" address using the verified domain
     const { data, error } = await resend.emails.send({
-      from: "equipqr <onboarding@resend.dev>",
+      from: "equipqr <no-reply@equipqr.ai>",
       to: [recipientEmail],
       subject: subject,
       html: html,
