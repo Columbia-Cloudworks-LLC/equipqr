@@ -2,9 +2,6 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { TeamAccessResult } from './interfaces.ts';
 
-/**
- * Fallback validators when primary methods fail
- */
 export class FallbackValidator {
   private supabase: SupabaseClient;
 
@@ -111,7 +108,7 @@ export class FallbackValidator {
   /**
    * Helper method to retry a function with exponential backoff
    */
-  private async tryWithRetry<T>(
+  async tryWithRetry<T>(
     fn: () => Promise<T>, 
     maxRetries: number = 3, 
     initialDelayMs: number = 100

@@ -1,14 +1,67 @@
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-/**
- * Service for team membership operations
- */
 export class MembershipService {
   private supabase: SupabaseClient;
 
   constructor(supabaseClient: SupabaseClient) {
     this.supabase = supabaseClient;
+  }
+
+  /**
+   * Get detailed team membership information
+   */
+  async getTeamMembershipDetails(
+    userId: string, 
+    teamId: string
+  ): Promise<{ teamMemberId: string | null; hasCrossOrgAccess: boolean }> {
+    try {
+      // First get app_user.id
+      const { data: appUserData } = await this.supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', userId)
+        .single();
+      
+      if (!appUserData) {
+        return { teamMemberId: null, hasCrossOrgAccess: false };
+      }
+      
+      // Get team_member record
+      const { data: memberData } = await this.supabase
+        .from('team_member')
+        .select(`
+          id,
+          user_id,
+          team:team_id (
+            org_id
+          ),
+          user:user_id (
+            auth_uid,
+            user_profiles:auth_uid (
+              org_id
+            )
+          )
+        `)
+        .eq('user_id', appUserData.id)
+        .eq('team_id', teamId)
+        .single();
+      
+      if (!memberData) {
+        return { teamMemberId: null, hasCrossOrgAccess: false };
+      }
+      
+      const teamOrgId = memberData.team?.org_id;
+      const userOrgId = memberData.user?.user_profiles?.org_id;
+      
+      return {
+        teamMemberId: memberData.id,
+        hasCrossOrgAccess: teamOrgId && userOrgId && teamOrgId !== userOrgId
+      };
+    } catch (error) {
+      console.error('Error getting team membership details:', error);
+      return { teamMemberId: null, hasCrossOrgAccess: false };
+    }
   }
 
   /**
