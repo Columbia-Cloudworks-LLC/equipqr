@@ -10,7 +10,7 @@ export { getTeams, getTeamById } from './retrieval/getTeamDetails';
 export { createTeam } from './creation/createTeam';
 
 // Re-export team update functions
-export { updateTeam } from './update/updateTeam';
+export { updateTeam } from './updateTeam';
 
 // Re-export team deletion functions
 export { deleteTeam } from './deleteTeam';

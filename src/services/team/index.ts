@@ -35,7 +35,7 @@ export {
   getTeamMembers, 
   changeRole, 
   removeMember 
-} from './memberService';
+} from './members';
 
 // Export team invitation functions
 export { 

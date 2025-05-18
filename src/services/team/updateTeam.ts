@@ -1,28 +1,38 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-export const updateTeam = async (teamId: string, name: string) => {
+/**
+ * Update an existing team
+ * @param id The ID of the team to update
+ * @param name The new name for the team
+ * @returns The updated team object
+ */
+export async function updateTeam(id: string, name: string) {
   try {
-    if (!teamId || !name.trim()) {
-      throw new Error('Team ID and name are required');
+    if (!id) {
+      throw new Error("Team ID is required");
     }
-
+    
+    if (!name || name.trim().length === 0) {
+      throw new Error("Team name cannot be empty");
+    }
+    
     const { data, error } = await supabase
       .from('team')
       .update({ name })
-      .eq('id', teamId)
+      .eq('id', id)
       .select()
       .single();
-      
+    
     if (error) {
       console.error('Error updating team:', error);
-      throw new Error(error.message);
+      throw new Error(`Failed to update team: ${error.message}`);
     }
     
     return data;
   } catch (error: any) {
     console.error('Error in updateTeam:', error);
-    throw new Error(error.message || 'Failed to update team');
+    throw error;
   }
-};
+}
