@@ -53,7 +53,7 @@ export const deleteTeam = async (teamId: string): Promise<DeleteTeamResult> => {
     });
 
     if (error) {
-      console.error('Error deleting team:', error);
+      console.error('Error from delete_team edge function:', error);
       throw new Error(error.message || 'Failed to delete team');
     }
     
@@ -67,6 +67,12 @@ export const deleteTeam = async (teamId: string): Promise<DeleteTeamResult> => {
     return data as DeleteTeamResult;
   } catch (error: any) {
     console.error('Error in deleteTeam:', error);
-    throw new Error(error.message || 'Failed to delete team');
+    
+    // Provide more context for debugging
+    const contextMessage = error.message || 'Unknown error';
+    const errorWithContext = new Error(`Failed to delete team: ${contextMessage}`);
+    
+    // Re-throw with additional context
+    throw errorWithContext;
   }
 };

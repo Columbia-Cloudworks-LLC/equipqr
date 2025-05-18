@@ -25,52 +25,101 @@ export class TeamDeletionValidator {
     try {
       console.log(`Validating delete permission: userId=${userId}, teamId=${teamId}`);
       
-      // Check team access using the detailed function
-      const { data: accessData, error: accessError } = await this.supabase.rpc('check_team_access_detailed', {
-        user_id: userId,
-        team_id: teamId
-      });
-      
-      console.log('Access check result:', accessData);
-      
-      if (accessError) {
-        console.error('Error checking team access:', accessError);
+      // Get the team's organization first for fallback validation
+      const { data: teamData, error: teamError } = await this.supabase
+        .from('team')
+        .select('org_id')
+        .eq('id', teamId)
+        .single();
+        
+      if (teamError) {
+        console.error('Error getting team details:', teamError);
         return {
           hasPermission: false,
           isOrgOwner: false,
           isTeamManager: false,
           accessData: null,
-          message: `Access check error: ${accessError.message}`
+          message: `Team not found: ${teamError.message}`
         };
       }
       
-      if (!accessData?.has_access) {
-        console.log('User has no access to this team');
-        return {
-          hasPermission: false,
-          isOrgOwner: false,
-          isTeamManager: false,
-          accessData,
-          message: 'You do not have permission to delete this team'
-        };
+      const teamOrgId = teamData?.org_id;
+      
+      // Check user's org role directly
+      const { data: userRole, error: roleError } = await this.supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('org_id', teamOrgId)
+        .single();
+        
+      const isOrgOwner = !roleError && userRole?.role === 'owner';
+      
+      // Check if user is a team manager using direct queries instead of check_team_access_detailed
+      // This avoids the type mismatch issues
+      
+      // First get the app_user ID for this auth user
+      const { data: appUser, error: appUserError } = await this.supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', userId)
+        .single();
+        
+      if (appUserError) {
+        console.log('App user not found:', appUserError);
       }
       
-      const isOrgOwner = accessData.is_org_owner;
-      const isTeamManager = accessData.team_role === 'manager';
+      const appUserId = appUser?.id;
+      let isTeamManager = false;
+      let accessData: any = null;
       
-      // Allow both org owners and team managers to delete the team
-      if (!isOrgOwner && !isTeamManager) {
-        console.log(`User role is not sufficient: team_role=${accessData.team_role}, is_org_owner=${accessData.is_org_owner}`);
+      if (appUserId) {
+        // Check if user is a team member with manager role
+        const { data: teamRole, error: teamRoleError } = await this.supabase
+          .from('team_member')
+          .select(`
+            id,
+            team_roles (
+              role
+            )
+          `)
+          .eq('user_id', appUserId)
+          .eq('team_id', teamId)
+          .single();
+          
+        if (!teamRoleError && teamRole) {
+          const role = teamRole.team_roles?.role;
+          isTeamManager = role === 'manager';
+          accessData = {
+            team_role: role,
+            is_team_member: true
+          };
+        }
+      }
+      
+      const hasPermission = isOrgOwner || isTeamManager;
+      
+      // Log the results for debugging
+      console.log('Access check result:', { 
+        hasPermission, 
+        isOrgOwner, 
+        isTeamManager, 
+        appUserId,
+        teamOrgId 
+      });
+      
+      if (!hasPermission) {
         return {
           hasPermission: false,
           isOrgOwner,
           isTeamManager,
           accessData,
-          message: 'Only team managers and organization owners can delete teams'
+          message: isOrgOwner === null && isTeamManager === null
+            ? 'Error checking permissions'
+            : 'You do not have permission to delete this team'
         };
       }
       
-      console.log('User has permission to delete the team');
       return {
         hasPermission: true,
         isOrgOwner,

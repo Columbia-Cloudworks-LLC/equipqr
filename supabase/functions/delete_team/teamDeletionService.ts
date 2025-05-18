@@ -39,7 +39,9 @@ export class TeamDeletionService {
    */
   async updateEquipmentRecords(teamId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase
+      console.log(`Updating equipment records for team ${teamId}`);
+      
+      const { error, count } = await this.supabase
         .from('equipment')
         .update({ team_id: null })
         .eq('team_id', teamId)
@@ -50,7 +52,7 @@ export class TeamDeletionService {
         return false;
       }
       
-      console.log('Equipment records updated successfully');
+      console.log(`${count} equipment records updated successfully`);
       return true;
     } catch (error) {
       console.error('Error in updateEquipmentRecords:', error);
@@ -63,7 +65,22 @@ export class TeamDeletionService {
    */
   async deleteTeamMembers(teamId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase
+      console.log(`Deleting team members for team ${teamId}`);
+      
+      // First get team members for logging
+      const { data: members, error: fetchError } = await this.supabase
+        .from('team_member')
+        .select('id')
+        .eq('team_id', teamId);
+        
+      if (fetchError) {
+        console.error('Error fetching team members:', fetchError);
+      } else {
+        console.log(`Found ${members?.length || 0} team members to delete`);
+      }
+      
+      // Then delete them
+      const { error, count } = await this.supabase
         .from('team_member')
         .delete()
         .eq('team_id', teamId);
@@ -73,7 +90,7 @@ export class TeamDeletionService {
         return false;
       }
       
-      console.log('Team members removed successfully');
+      console.log(`${count} team members removed successfully`);
       return true;
     } catch (error) {
       console.error('Error in deleteTeamMembers:', error);
@@ -86,17 +103,34 @@ export class TeamDeletionService {
    */
   async deleteTeamRoles(teamId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase
+      console.log(`Cleaning up team roles associated with team ${teamId}`);
+      
+      // Get the roles via team_members for this team
+      const { data: members } = await this.supabase
+        .from('team_member')
+        .select('id')
+        .eq('team_id', teamId);
+        
+      if (!members || members.length === 0) {
+        console.log('No team members found, no roles to delete');
+        return true;
+      }
+      
+      // Get the member IDs
+      const memberIds = members.map(m => m.id);
+      
+      // Delete the roles
+      const { error, count } = await this.supabase
         .from('team_roles')
         .delete()
-        .eq('team_id', teamId);
+        .in('team_member_id', memberIds);
         
       if (error) {
         console.error('Error removing team roles:', error);
         return false;
       }
       
-      console.log('Team roles removed successfully');
+      console.log(`${count} team roles removed successfully`);
       return true;
     } catch (error) {
       console.error('Error in deleteTeamRoles:', error);
@@ -109,7 +143,9 @@ export class TeamDeletionService {
    */
   async cancelTeamInvitations(teamId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase
+      console.log(`Cancelling pending invitations for team ${teamId}`);
+      
+      const { error, count } = await this.supabase
         .from('team_invitations')
         .update({ status: 'cancelled' })
         .eq('team_id', teamId)
@@ -120,7 +156,7 @@ export class TeamDeletionService {
         return false;
       }
       
-      console.log('Team invitations cancelled successfully');
+      console.log(`${count} team invitations cancelled successfully`);
       return true;
     } catch (error) {
       console.error('Error in cancelTeamInvitations:', error);
@@ -133,6 +169,8 @@ export class TeamDeletionService {
    */
   async deleteTeam(teamId: string): Promise<boolean> {
     try {
+      console.log(`Soft deleting team record ${teamId}`);
+      
       const { error } = await this.supabase
         .from('team')
         .update({ deleted_at: new Date().toISOString() })

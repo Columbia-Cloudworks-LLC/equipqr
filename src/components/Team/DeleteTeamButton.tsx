@@ -23,17 +23,39 @@ export function DeleteTeamButton({
 }: DeleteTeamButtonProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [localDeleting, setLocalDeleting] = useState(false);
+  
+  // Combined deleting state for better UX
+  const isInProgress = isDeleting || localDeleting;
   
   const handleDelete = async () => {
     try {
       setError(null);
+      setLocalDeleting(true);
+      
       await onDeleteTeam(teamId);
-      setOpen(false);
       toast.success(`Team "${teamName}" successfully deleted`);
+      setOpen(false);
     } catch (err: any) {
       console.error('Delete team error:', err);
-      setError(err.message || 'Failed to delete team');
+      
+      // Handle specific known errors
+      if (err.message && err.message.includes('permission')) {
+        setError('You do not have permission to delete this team. You need to be a team manager or organization owner.');
+      } else if (err.message && err.message.includes('not found')) {
+        setError('Team not found or has already been deleted.');
+      } else {
+        setError(err.message || 'Failed to delete team. Please try again.');
+      }
+      
+      // Show toast for immediate feedback
+      toast.error('Delete team failed', {
+        description: err.message || 'An error occurred while deleting the team'
+      });
+      
       // Keep dialog open so user can see the error
+    } finally {
+      setLocalDeleting(false);
     }
   };
   
@@ -78,15 +100,16 @@ export function DeleteTeamButton({
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
+            disabled={isInProgress}
           >
             Cancel
           </Button>
           <Button 
             variant="destructive" 
             onClick={handleDelete}
-            disabled={isDeleting}
+            disabled={isInProgress}
           >
-            {isDeleting ? 'Deleting...' : 'Delete Team'}
+            {isInProgress ? 'Deleting...' : 'Delete Team'}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
