@@ -52,7 +52,7 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
         user_id: sessionData.session.user.id,
         org_id: invitation.org_id,
         role: invitation.role,
-        assigned_by: invitation.created_by
+        assigned_by: invitation.created_at // Using created_at as fallback since created_by may not exist
       });
       
     if (roleError) {

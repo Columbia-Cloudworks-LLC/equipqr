@@ -28,11 +28,11 @@ interface TeamContentProps {
   onInviteMember: (email: string, role: string, teamId: string) => void;
   onChangeRole: (id: string, role: string, teamId: string) => void;
   onRemoveMember: (id: string, teamId: string) => void;
-  onResendInvite: (id: string) => void;
-  onCancelInvitation: (id: string) => void;
+  onResendInvite: (id: string) => Promise<void>;
+  onCancelInvitation: (id: string) => Promise<void>;
   onCreateTeam: (name: string) => void;
-  onUpdateTeam: (id: string, name: string) => void;
-  onDeleteTeam: (id: string) => void;
+  onUpdateTeam: (id: string, name: string) => Promise<void>;
+  onDeleteTeam: (id: string) => Promise<void>;
   onRepairTeam: (teamId: string) => void;
   onUpgradeRole: (teamId: string) => void;
   onRequestRoleUpgrade: (teamId: string) => void;
@@ -93,7 +93,7 @@ export function TeamContent({
     return (
       <RepairTeamAccess 
         selectedTeamId={selectedTeamId} 
-        onRepairTeam={onRepairTeam} 
+        onRepairTeam={(id) => onRepairTeam(id)} 
         isRepairingTeam={isRepairingTeam} 
         teamDetails={selectedTeam}
       />

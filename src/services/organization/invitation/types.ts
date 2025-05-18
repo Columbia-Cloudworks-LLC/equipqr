@@ -32,4 +32,5 @@ export interface EmailInvitationOptions {
   inviterEmail: string;
   token: string;
   role: UserRole;
+  action?: string;
 }

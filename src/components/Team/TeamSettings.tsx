@@ -11,8 +11,8 @@ import { Badge } from '../ui/badge';
 
 interface TeamSettingsProps {
   team: any;
-  onUpdateTeam: (id: string, name: string) => void;
-  onDeleteTeam: (id: string) => void;
+  onUpdateTeam: (id: string, name: string) => Promise<void>;
+  onDeleteTeam: (id: string) => Promise<void>;
   isUpdating: boolean;
   isDeleting: boolean;
   currentUserRole: string;
@@ -81,9 +81,10 @@ export function TeamSettings({
                 />
                 {canEditTeam && !team?.is_external_org && (
                   <EditTeamButton 
-                    team={team} 
+                    teamId={team?.id}
+                    teamName={team?.name || ''}
                     onUpdateTeam={onUpdateTeam}
-                    isUpdating={isUpdating}
+                    isLoading={isUpdating}
                   />
                 )}
               </div>
@@ -120,11 +121,12 @@ export function TeamSettings({
               </AlertDialogTrigger>
               
               <DeleteTeamButton
-                team={team}
+                teamId={team?.id}
+                teamName={team?.name || ''}
                 onDeleteTeam={onDeleteTeam}
                 isDeleting={isDeleting}
-                equipmentCount={equipmentCount}
-                isLoadingCount={isLoadingCount}
+                hasEquipment={!!equipmentCount && equipmentCount > 0}
+                equipmentCount={equipmentCount || 0}
               />
             </AlertDialog>
           </div>

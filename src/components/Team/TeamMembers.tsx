@@ -5,6 +5,7 @@ import { TeamMembersList } from './TeamMembersList';
 import { InviteForm } from './InviteForm';
 import { PendingInvitationsList } from './PendingInvitationsList';
 import { UserPlus, RefreshCw, Users } from 'lucide-react';
+import { UserRole } from '@/types/supabase-enums';
 
 interface TeamMembersProps {
   members: any[];
@@ -83,6 +84,7 @@ export function TeamMembers({
             setShowInviteForm(false);
           }}
           onCancel={() => setShowInviteForm(false)}
+          teams={[{ id: teamId, name: "Current Team" }]}
         />
       )}
       
@@ -105,7 +107,7 @@ export function TeamMembers({
             <PendingInvitationsList
               invitations={pendingInvitations}
               onResendInvite={onResendInvite}
-              onCancelInvitation={onCancelInvitation}
+              onCancelInvite={onCancelInvitation}
               isLoading={isLoadingInvitations}
               isViewOnly={!canManageMembers}
             />
