@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { getTeams, createTeam, updateTeam, deleteTeam } from '@/services/team';
 import { DeleteTeamResult, getTeamEquipmentCount } from '@/services/team/deleteTeam';
@@ -21,29 +21,53 @@ export function useTeams() {
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
       console.log('Fetching teams from useTeams hook');
-      const fetchedTeams = await getTeams();
       
-      console.log('Fetched teams:', fetchedTeams);
+      // Use AbortController to handle timeouts
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15 second timeout
       
-      // Setting teams array even if empty
-      setTeams(fetchedTeams || []);
-      
+      try {
+        const fetchedTeams = await getTeams();
+        
+        console.log('Fetched teams:', fetchedTeams);
+        
+        // Setting teams array even if empty
+        setTeams(fetchedTeams || []);
+        
+        clearTimeout(timeoutId);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          console.error('Team fetch request timed out');
+          throw new Error('Request timed out. Please try again.');
+        }
+        
+        throw fetchError;
+      }
     } catch (error: any) {
       console.error('Error in fetchTeams:', error);
       setError('Failed to load your teams. Please try again.');
-      toast.error("Error fetching teams", {
-        description: error.message || "Unknown error occurred",
-      });
+      
+      // Only show toast for non-authentication errors
+      if (!error.message?.includes('must be logged in')) {
+        toast.error("Error fetching teams", {
+          description: error.message || "Unknown error occurred",
+        });
+      }
+      
+      // Set empty array to prevent infinite loading state
+      setTeams([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const handleCreateTeam = async (name: string) => {
     try {
@@ -115,14 +139,29 @@ export function useTeams() {
     }
   };
   
-  const retryFetchTeams = () => {
+  const retryFetchTeams = useCallback(() => {
+    console.log('Manually retrying teams fetch');
     setRetryCount(prev => prev + 1);
-  };
+    toast.info("Retrying team fetch...");
+  }, []);
 
   useEffect(() => {
     console.log('useTeams hook initialized, fetching teams');
     fetchTeams();
-  }, [retryCount]);
+  }, [fetchTeams, retryCount]);
+
+  // Add retry logic for empty teams
+  useEffect(() => {
+    if (teams.length === 0 && !isLoading && !error && retryCount === 0) {
+      // Try once more after a delay
+      const timer = setTimeout(() => {
+        console.log('No teams found on initial fetch, retrying once');
+        retryFetchTeams();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [teams.length, isLoading, error, retryCount, retryFetchTeams]);
 
   return {
     teams,

@@ -42,150 +42,167 @@ serve(async (req) => {
   }
 
   try {
-    const { user_id } = await req.json();
+    // Set a reasonable timeout for the function execution
+    const timeout = setTimeout(() => {
+      throw new Error('Function execution timed out');
+    }, 8000); // 8 seconds max execution time
     
-    if (!user_id) {
-      return createErrorResponse("Missing required parameter: user_id");
-    }
-
-    // Create Supabase client using the service role key to bypass RLS
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase environment variables');
-    }
-    
-    const adminClient = createClient(
-      supabaseUrl,
-      supabaseServiceKey
-    );
-    
-    // Get user's organization for determining external equipment
-    let userOrgIds: string[] = [];
+    let responseData;
     try {
-      // First get the user's primary organization
-      const { data: userProfile, error: profileError } = await adminClient
+      const { user_id } = await req.json();
+      
+      if (!user_id) {
+        return createErrorResponse("Missing required parameter: user_id");
+      }
+
+      // Create Supabase client using the service role key to bypass RLS
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+      
+      if (!supabaseUrl || !supabaseServiceKey) {
+        throw new Error('Missing Supabase environment variables');
+      }
+      
+      const adminClient = createClient(
+        supabaseUrl,
+        supabaseServiceKey
+      );
+      
+      // OPTIMIZATION: Get user and organization info in a single query
+      const { data: userData, error: userDataError } = await adminClient
         .from('user_profiles')
-        .select('org_id')
+        .select(`
+          org_id,
+          app_user:id (
+            id
+          )
+        `)
         .eq('id', user_id)
         .single();
         
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError);
-      } else if (userProfile) {
-        userOrgIds.push(userProfile.org_id);
+      if (userDataError || !userData) {
+        console.error('Error fetching user data:', userDataError);
+        return createErrorResponse(`Failed to fetch user data: ${userDataError?.message || 'User not found'}`);
       }
       
-      // Then get all organizations where user has a role
-      const { data: userRoles, error: rolesError } = await adminClient
-        .from('user_roles')
-        .select('org_id')
-        .eq('user_id', user_id);
+      const userOrgId = userData.org_id;
+      const appUserId = userData.app_user?.id;
+      
+      if (!userOrgId) {
+        console.log('No organization found for user:', user_id);
+        return createSuccessResponse([]);
+      }
+      
+      if (!appUserId) {
+        console.log('No app_user record found for user:', user_id);
         
-      if (!rolesError && userRoles && userRoles.length > 0) {
-        // Add all org IDs where the user has roles (avoiding duplicates)
-        userRoles.forEach(role => {
-          if (!userOrgIds.includes(role.org_id)) {
-            userOrgIds.push(role.org_id);
+        // Just get equipment from user's organization
+        const { data: orgEquipment, error: orgEquipError } = await adminClient
+          .from('equipment')
+          .select(`
+            *,
+            team:team_id (name, org_id),
+            org:org_id (name)
+          `)
+          .eq('org_id', userOrgId)
+          .is('deleted_at', null)
+          .order('name');
+          
+        if (orgEquipError) {
+          console.error('Error fetching organization equipment:', orgEquipError);
+          return createErrorResponse(`Failed to fetch equipment: ${orgEquipError.message}`);
+        }
+        
+        return createSuccessResponse(processEquipmentData(orgEquipment || [], [userOrgId]));
+      }
+      
+      // Get teams the user is a member of
+      const { data: teamMemberships, error: teamError } = await adminClient
+        .from('team_member')
+        .select('team_id, team:team_id (org_id)')
+        .eq('user_id', appUserId);
+        
+      let teamIds: string[] = [];
+      let teamOrgIds: string[] = [];
+      
+      if (!teamError && teamMemberships && teamMemberships.length > 0) {
+        teamIds = teamMemberships.map(tm => tm.team_id);
+        
+        // Collect unique org IDs from teams
+        teamMemberships.forEach(tm => {
+          if (tm.team?.org_id && !teamOrgIds.includes(tm.team.org_id)) {
+            teamOrgIds.push(tm.team.org_id);
           }
         });
       }
-    } catch (profileError) {
-      console.error('Unexpected error fetching user organizations:', profileError);
-    }
-    
-    // If we can't determine user's orgs, we can't show any equipment
-    if (userOrgIds.length === 0) {
-      console.log('No organizations found for user:', user_id);
-      return createSuccessResponse([]);
-    }
-
-    console.log(`User ${user_id} belongs to organizations: ${userOrgIds.join(', ')}`);
-    
-    // Get list of teams the user belongs to
-    const appUserResult = await adminClient
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', user_id)
-      .single();
       
-    const appUserId = appUserResult.data?.id;
-    
-    // We'll build a list of team IDs the user can access
-    const accessibleTeamIds: string[] = [];
-    
-    if (appUserId) {
-      // Get teams where user is a member
-      const { data: teamMemberships, error: teamError } = await adminClient
-        .from('team_member')
-        .select('team_id')
-        .eq('user_id', appUserId);
+      // OPTIMIZATION: Use a single query with OR condition for both org and team-based access
+      let query = adminClient
+        .from('equipment')
+        .select(`
+          *,
+          team:team_id (name, org_id),
+          org:org_id (name)
+        `)
+        .is('deleted_at', null)
+        .order('name');
         
-      if (!teamError && teamMemberships) {
-        accessibleTeamIds.push(...teamMemberships.map(tm => tm.team_id));
-        console.log(`User is a member of teams: ${accessibleTeamIds.join(', ')}`);
-      }
-    }
-    
-    // Query equipment from all user's organizations + user's teams
-    let query = adminClient
-      .from('equipment')
-      .select(`
-        *,
-        team:team_id (name, org_id),
-        org:org_id (name)
-      `)
-      .is('deleted_at', null);
-    
-    // Build a better filter clause that includes:
-    // 1. Equipment from user's organizations
-    // 2. Equipment from teams user is a member of
-    let filterConditions: string[] = [];
-    
-    // Equipment from user's organizations
-    if (userOrgIds.length > 0) {
-      const orgIdList = userOrgIds.join(',');
-      filterConditions.push(`org_id.in.(${orgIdList})`);
-    }
-    
-    // Equipment from user's teams
-    if (accessibleTeamIds.length > 0) {
-      const teamIdList = accessibleTeamIds.join(',');
-      filterConditions.push(`team_id.in.(${teamIdList})`);
-    }
-    
-    // Apply the filters using OR logic
-    if (filterConditions.length > 0) {
-      query = query.or(filterConditions.join(','));
-    }
-    
-    const { data: equipment, error } = await query.order('name');
-    
-    if (error) {
-      console.error('Error fetching equipment:', error);
-      return createErrorResponse(`Failed to fetch equipment: ${error.message}`);
-    }
-    
-    // Process the equipment data to add required fields
-    const processedEquipment = equipment?.map(item => {
-      const isExternalOrg = !userOrgIds.includes(item.org_id);
-      const hasNoTeam = item.team_id === null;
+      // Build filter conditions based on what we found
+      const filterParts = [];
       
-      return {
-        ...item,
-        team_name: item.team?.name || null,
-        org_name: item.org?.name || 'Unknown Organization',
-        is_external_org: isExternalOrg,
-        can_edit: !isExternalOrg || (item.team?.org_id && userOrgIds.includes(item.team.org_id)),
-        has_no_team: hasNoTeam // Explicitly set has_no_team based on team_id being null
-      };
-    }) || [];
+      // Add user's org condition
+      filterParts.push(`org_id.eq.${userOrgId}`);
+      
+      // Add team condition if we have team IDs
+      if (teamIds.length > 0) {
+        filterParts.push(`team_id.in.(${teamIds.join(',')})`);
+      }
+      
+      // Apply combined filter conditions
+      if (filterParts.length > 0) {
+        query = query.or(filterParts.join(','));
+      }
+      
+      // Execute final query
+      const { data: equipment, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching equipment:', error);
+        return createErrorResponse(`Failed to fetch equipment: ${error.message}`);
+      }
+      
+      // Process equipment data based on the user's organizations
+      const allUserOrgIds = [userOrgId, ...teamOrgIds];
+      responseData = processEquipmentData(equipment || [], allUserOrgIds);
+      
+      console.log(`Successfully fetched ${responseData.length} equipment items`);
+      
+    } finally {
+      clearTimeout(timeout);
+    }
     
-    console.log(`Successfully fetched ${processedEquipment.length} equipment items`);
-    return createSuccessResponse(processedEquipment);
+    return createSuccessResponse(responseData);
   } catch (error) {
     console.error('Unexpected error:', error);
     return createErrorResponse(`Unexpected error: ${error.message}`);
   }
 });
+
+/**
+ * Process equipment data to add required fields
+ */
+function processEquipmentData(equipment: any[], userOrgIds: string[]) {
+  return equipment.map(item => {
+    const isExternalOrg = !userOrgIds.includes(item.org_id);
+    const hasNoTeam = item.team_id === null;
+    
+    return {
+      ...item,
+      team_name: item.team?.name || null,
+      org_name: item.org?.name || 'Unknown Organization',
+      is_external_org: isExternalOrg,
+      can_edit: !isExternalOrg || (item.team?.org_id && userOrgIds.includes(item.team.org_id)),
+      has_no_team: hasNoTeam
+    };
+  });
+}

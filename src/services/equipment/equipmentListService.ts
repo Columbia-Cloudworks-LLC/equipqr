@@ -2,6 +2,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { processEquipmentList } from "./utils/equipmentFormatting";
+import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
+
+const CACHE_KEY = 'cached_user_equipment';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+interface CachedData {
+  data: Equipment[];
+  timestamp: number;
+}
 
 /**
  * Get all equipment items including those from teams the user belongs to
@@ -24,28 +33,38 @@ export async function getEquipment(): Promise<Equipment[]> {
     const userId = sessionData.session.user.id;
     console.log('Authenticated user ID:', userId);
     
-    // Use the edge function to get equipment
-    const { data, error } = await supabase.functions.invoke('list_user_equipment', {
-      body: { user_id: userId }
-    });
+    // Check cache first
+    const cachedEquipment = checkCache();
+    if (cachedEquipment) {
+      console.log(`Using ${cachedEquipment.length} cached equipment items`);
+      return cachedEquipment;
+    }
     
-    if (error) {
-      console.error('Error fetching equipment via edge function:', error);
+    // Try the edge function first
+    try {
+      const data = await invokeEdgeFunction('list_user_equipment', { user_id: userId }, 8000);
       
-      // Fallback to direct query if the edge function fails
-      return getEquipmentDirectQuery(userId);
+      // Validate that we received an array
+      if (!Array.isArray(data)) {
+        console.error('Invalid response from list_user_equipment function:', data);
+        throw new Error('Invalid response format');
+      }
+      
+      console.log(`Successfully fetched ${data.length} equipment items via edge function`);
+      
+      // Process the data to ensure all properties are set correctly
+      const processedData = processEquipmentList(data);
+      
+      // Cache the results
+      cacheResults(processedData);
+      
+      return processedData;
+    } catch (edgeFunctionError) {
+      console.warn('Edge function failed, falling back to direct query:', edgeFunctionError);
+      
+      // Fall back to direct query
+      return await getEquipmentDirectQuery(userId);
     }
-    
-    // Validate that we received an array
-    if (!Array.isArray(data)) {
-      console.error('Invalid response from list_user_equipment function:', data);
-      return [];
-    }
-    
-    console.log(`Successfully fetched ${data.length} equipment items via edge function`);
-    
-    // Process the data to ensure all properties are set correctly
-    return processEquipmentList(data);
   } catch (error) {
     console.error('Error in getEquipment:', error);
     
@@ -118,7 +137,9 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
         return [];
       }
       
-      return processEquipmentList(orgEquipment || []);
+      const processedData = processEquipmentList(orgEquipment || []);
+      cacheResults(processedData);
+      return processedData;
     }
     
     // Get teams the user is a member of
@@ -127,28 +148,6 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
       .select('team_id')
       .eq('user_id', appUser.id);
       
-    if (teamError) {
-      console.error('Error fetching team memberships:', teamError);
-      // Just return organization equipment if we can't get team memberships
-      const { data: orgEquipment, error: orgEquipmentError } = await supabase
-        .from('equipment')
-        .select(`
-          *,
-          team:team_id (name, org_id),
-          org:org_id (name)
-        `)
-        .eq('org_id', userOrgId)
-        .is('deleted_at', null)
-        .order('name');
-        
-      if (orgEquipmentError) {
-        console.error('Error fetching organization equipment:', orgEquipmentError);
-        return [];
-      }
-      
-      return processEquipmentList(orgEquipment || []);
-    }
-    
     // Build query with proper filtering
     let query = supabase
       .from('equipment')
@@ -159,14 +158,11 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
       `)
       .is('deleted_at', null);
     
-    // Filter by organization first
-    query = query.eq('org_id', userOrgId);
-    
     // If user belongs to teams, also include those teams' equipment
     if (teamMemberships && teamMemberships.length > 0) {
       const teamIds = teamMemberships.map(tm => tm.team_id);
       
-      // Create a new query that combines both filters with OR
+      // Create a query that combines both filters with OR
       query = supabase
         .from('equipment')
         .select(`
@@ -175,11 +171,15 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
           org:org_id (name)
         `)
         .is('deleted_at', null)
-        .or(`org_id.eq.${userOrgId},team_id.in.(${teamIds.join(',')})`);
+        .or(`org_id.eq.${userOrgId},team_id.in.(${teamIds.join(',')})`)
+        .order('name');
+    } else {
+      // Just filter by organization
+      query = query.eq('org_id', userOrgId).order('name');
     }
     
     // Execute query
-    const { data: equipment, error } = await query.order('name');
+    const { data: equipment, error } = await query;
     
     if (error) {
       console.error('Error in direct equipment query:', error);
@@ -187,10 +187,50 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
     }
     
     console.log(`Successfully fetched ${equipment?.length || 0} equipment items via direct query`);
-    return processEquipmentList(equipment || []);
+    const processedData = processEquipmentList(equipment || []);
+    cacheResults(processedData);
+    return processedData;
   } catch (error) {
     console.error('Error in getEquipmentDirectQuery:', error);
     return []; 
+  }
+}
+
+/**
+ * Cache equipment results in localStorage
+ */
+function cacheResults(equipment: Equipment[]) {
+  try {
+    const cacheData: CachedData = {
+      data: equipment,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+  } catch (error) {
+    console.warn('Failed to cache equipment:', error);
+  }
+}
+
+/**
+ * Check for valid cached equipment data
+ */
+function checkCache(): Equipment[] | null {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    
+    const parsedCache = JSON.parse(cached) as CachedData;
+    const now = Date.now();
+    
+    // Return cached data if it's still within TTL
+    if (now - parsedCache.timestamp < CACHE_TTL) {
+      return parsedCache.data;
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn('Failed to read cached equipment:', error);
+    return null;
   }
 }
 
