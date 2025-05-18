@@ -3,6 +3,30 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+interface TeamAccessResult {
+  is_member: boolean;
+  has_org_access?: boolean;
+  has_cross_org_access?: boolean;
+  team_member_id?: string | null;
+  access_reason?: string;
+  role?: string | null;
+  team?: {
+    name: string;
+    org_id: string;
+  } | null;
+  org_name?: string | null;
+}
+
+interface TeamAccessDetailedResult {
+  has_access: boolean;
+  access_reason: string;
+  user_org_id: string;
+  team_org_id: string;
+  is_team_member: boolean;
+  is_org_owner: boolean;
+  team_role: string;
+}
+
 /**
  * Validate a user's membership in a team using our improved non-recursive function
  * @param teamId The team ID to validate
@@ -43,6 +67,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
       );
       
       if (fallbackError) {
+        console.error('Fallback validation error:', fallbackError);
         throw new Error(fallbackError.message);
       }
       
@@ -63,10 +88,10 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
     console.error('Error in validateTeamMembership:', error);
     // Return a safe default to prevent breaking the UI
     return {
-      isValid: true, // Assume valid to prevent blocking - will be checked again later
+      isValid: false, // Changed to false to properly show access errors
       result: {
-        is_member: true,
-        access_reason: 'error_assumed_access'
+        is_member: false,
+        access_reason: 'error_validation_failed'
       },
       error: error.message
     };
@@ -84,9 +109,22 @@ export async function repairTeamMembership(teamId: string) {
       throw new Error("Team ID is required");
     }
     
+    // Get current user ID
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+    
+    console.log(`Attempting to repair team membership for user ${userId} on team ${teamId}`);
+    
     // Use dedicated edge function to repair team membership
     const { data, error } = await supabase.functions.invoke('repair_team_membership', {
-      body: { team_id: teamId }
+      body: { 
+        team_id: teamId,
+        user_id: userId
+      }
     });
     
     if (error || (data && data.error)) {
@@ -94,6 +132,7 @@ export async function repairTeamMembership(teamId: string) {
       throw new Error(error?.message || data?.error || "Failed to repair team membership");
     }
     
+    console.log('Team repair successful:', data);
     return data;
   } catch (error: any) {
     console.error('Error in repairTeamMembership:', error);
@@ -139,36 +178,41 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       const resultRow = fallbackData && fallbackData.length > 0 ? fallbackData[0] : null;
       
       if (!resultRow) {
+        console.error('No access details returned from fallback');
         throw new Error('No access details returned');
       }
       
+      const typedRow = resultRow as TeamAccessDetailedResult;
+      
       return {
-        isMember: resultRow.has_access === true,
-        hasOrgAccess: resultRow.user_org_id === resultRow.team_org_id,
+        isMember: typedRow.has_access === true,
+        hasOrgAccess: typedRow.user_org_id === typedRow.team_org_id,
         hasCrossOrgAccess: false,
         teamMemberId: null,
-        accessReason: 'fallback_detailed_check',
-        role: resultRow.team_role,
+        accessReason: typedRow.access_reason || 'fallback_detailed_check',
+        role: typedRow.team_role || null,
         team: null,
         orgName: null
       };
     }
     
+    const typedData = data as TeamAccessResult;
+    
     return {
-      isMember: data?.is_member === true,
-      hasOrgAccess: data?.has_org_access === true,
-      hasCrossOrgAccess: data?.has_cross_org_access === true,
-      teamMemberId: data?.team_member_id,
-      accessReason: data?.access_reason,
-      role: data?.role,
-      team: data?.team,
-      orgName: data?.org_name
+      isMember: typedData?.is_member === true,
+      hasOrgAccess: typedData?.has_org_access === true,
+      hasCrossOrgAccess: typedData?.has_cross_org_access === true,
+      teamMemberId: typedData?.team_member_id,
+      accessReason: typedData?.access_reason,
+      role: typedData?.role,
+      team: typedData?.team,
+      orgName: typedData?.org_name
     };
   } catch (error: any) {
     console.error('Error in getTeamAccessDetails:', error);
-    // Return default values if there's an error to avoid UI breakage
+    // Return default values - changed to show proper access failures
     return {
-      isMember: true, // Assume membership to prevent complete UI failure
+      isMember: false,
       hasOrgAccess: false,
       hasCrossOrgAccess: false,
       teamMemberId: null,

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team';
+import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team/teamValidationService';
 
 export function useTeamMembership(teamId: string | null) {
   const [isMember, setIsMember] = useState<boolean>(true);
@@ -54,8 +54,12 @@ export function useTeamMembership(teamId: string | null) {
       // Clear previous state
       setError(null);
       
+      console.log(`Checking detailed team access for user ${userId} on team ${teamId}`);
+      
       // Use the enhanced team access details function with retry logic
       const accessDetails = await getTeamAccessDetails(userId, teamId);
+      
+      console.log('Team access details result:', accessDetails);
       
       setIsMember(accessDetails.isMember);
       setAccessReason(accessDetails.accessReason);
@@ -75,7 +79,7 @@ export function useTeamMembership(teamId: string | null) {
       }
       
       // Log detailed access information for debugging
-      console.log('Team access details:', {
+      console.log('Team access details summary:', {
         teamId,
         isMember: accessDetails.isMember,
         reason: accessDetails.accessReason,
@@ -91,9 +95,9 @@ export function useTeamMembership(teamId: string | null) {
       }
     } catch (error: any) {
       console.error('Error checking team access:', error);
-      setError('Failed to verify team membership. We will assume you are a member for now.');
-      // Even on error, assume membership to avoid blocking user interaction
-      setIsMember(true);
+      setError('Failed to verify team membership. Please try again.');
+      // On error, assume no membership to show the repair option
+      setIsMember(false);
     } finally {
       setIsCheckingAccess(false);
     }
@@ -106,6 +110,8 @@ export function useTeamMembership(teamId: string | null) {
       setIsRepairingTeam(true);
       setError(null);
       
+      console.log(`Attempting to repair team membership for team ${teamId}`);
+      
       // Call the repair function
       const result = await repairTeamMembership(teamId);
       
@@ -117,6 +123,7 @@ export function useTeamMembership(teamId: string | null) {
         // Re-check team membership after a short delay to allow DB to update
         setTimeout(() => {
           if (currentUserId) {
+            console.log("Re-checking team membership after repair");
             setRetryCount(count => count + 1); // This will trigger re-check through useEffect
           }
         }, 1000);
@@ -136,6 +143,7 @@ export function useTeamMembership(teamId: string | null) {
 
   const retryAccessCheck = useCallback(() => {
     if (teamId && currentUserId) {
+      console.log("Manually retrying team access check");
       setRetryCount(count => count + 1);
       toast.info("Retrying team access check...");
     }
