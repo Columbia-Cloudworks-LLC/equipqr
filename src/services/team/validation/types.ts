@@ -1,7 +1,8 @@
 
 /**
- * Interface for team access results from the API
+ * Team access validation response types
  */
+
 export interface TeamAccessResult {
   is_member: boolean;
   has_org_access?: boolean;
@@ -14,11 +15,9 @@ export interface TeamAccessResult {
     org_id: string;
   } | null;
   org_name?: string | null;
+  error?: string | null;
 }
 
-/**
- * Interface for detailed team access results
- */
 export interface TeamAccessDetailedResult {
   has_access: boolean;
   access_reason: string;
@@ -27,11 +26,9 @@ export interface TeamAccessDetailedResult {
   is_team_member: boolean;
   is_org_owner: boolean;
   team_role: string;
+  error?: string | null;
 }
 
-/**
- * Interface for team validation results
- */
 export interface TeamValidationResult {
   isValid: boolean;
   result: TeamAccessResult | null;

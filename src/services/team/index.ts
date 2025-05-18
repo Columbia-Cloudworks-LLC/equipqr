@@ -4,7 +4,7 @@
  */
 
 // Re-export team retrieval functions
-export { getTeams, getTeamById } from './retrieval/getTeamDetails';
+export { getTeams, getTeamById } from './retrieval';
 
 // Re-export team creation functions
 export { createTeam } from './creation/createTeam';

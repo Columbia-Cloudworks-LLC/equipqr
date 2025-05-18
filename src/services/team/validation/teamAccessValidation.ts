@@ -101,7 +101,8 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         accessReason: typedData?.access_reason,
         role: typedData?.role,
         team: typedData?.team,
-        orgName: typedData?.org_name
+        orgName: typedData?.org_name,
+        error: null // Add error property with null default
       };
     } catch (error) {
       console.error('Error using edge function for team access details:', error);
@@ -135,7 +136,8 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         accessReason: typedRow.access_reason || 'fallback_detailed_check',
         role: typedRow.team_role || null,
         team: null,
-        orgName: null
+        orgName: null,
+        error: null // Add error property with null default
       };
     }
   } catch (error: any) {
@@ -149,7 +151,8 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       accessReason: 'error',
       role: null,
       team: null,
-      orgName: null
+      orgName: null,
+      error: error.message // Include the error message
     };
   }
 }
