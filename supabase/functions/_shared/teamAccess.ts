@@ -69,3 +69,47 @@ export async function checkTeamManagerAccess(
     return false;
   }
 }
+
+/**
+ * Get detailed access information for a team
+ * Uses our validate_team_access edge function
+ */
+export async function getDetailedTeamAccess(
+  userId: string, 
+  teamId: string,
+  supabase?: ReturnType<typeof createClient>
+) {
+  try {
+    // Use provided supabase client or create a new one with admin privileges
+    const client = supabase || createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    // Call the validate_team_access edge function
+    const { data, error } = await client.functions.invoke('validate_team_access', {
+      body: { 
+        user_id: userId,
+        team_id: teamId
+      }
+    });
+
+    if (error) {
+      console.error('Error getting detailed team access:', error);
+      return {
+        is_member: false,
+        has_org_access: false,
+        access_reason: 'error'
+      };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Exception in getDetailedTeamAccess:', error);
+    return {
+      is_member: false,
+      has_org_access: false,
+      access_reason: 'error'
+    };
+  }
+}
