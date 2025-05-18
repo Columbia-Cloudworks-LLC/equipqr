@@ -1,6 +1,8 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team';
 
 /**
  * Validate a user's membership in a team using our improved non-recursive function
@@ -134,13 +136,20 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         throw new Error(error.message);
       }
       
+      // Extract first row from the result array since RPC returns an array
+      const resultRow = fallbackData && fallbackData.length > 0 ? fallbackData[0] : null;
+      
+      if (!resultRow) {
+        throw new Error('No access details returned');
+      }
+      
       return {
-        isMember: fallbackData?.has_access === true,
-        hasOrgAccess: fallbackData?.user_org_id === fallbackData?.team_org_id,
+        isMember: resultRow.has_access === true,
+        hasOrgAccess: resultRow.user_org_id === resultRow.team_org_id,
         hasCrossOrgAccess: false,
         teamMemberId: null,
         accessReason: 'fallback_detailed_check',
-        role: fallbackData?.team_role,
+        role: resultRow.team_role,
         team: null,
         orgName: null
       };
