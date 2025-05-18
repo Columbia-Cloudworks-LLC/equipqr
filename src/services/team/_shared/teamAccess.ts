@@ -1,5 +1,5 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Check if the user has access to the team using our non-recursive function
@@ -7,14 +7,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 export async function checkTeamAccess(
   userId: string, 
   teamId: string, 
-  supabase?: ReturnType<typeof createClient>
+  customClient?: typeof supabase
 ) {
   try {
-    // Use provided supabase client or create a new one with admin privileges
-    const client = supabase || createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Use provided supabase client or the default one
+    const client = customClient || supabase;
     
     // Call our non-recursive function
     const { data: hasAccess, error } = await client.rpc(
@@ -41,14 +38,11 @@ export async function checkTeamAccess(
 export async function checkTeamManagerAccess(
   userId: string, 
   teamId: string,
-  supabase?: ReturnType<typeof createClient>
+  customClient?: typeof supabase
 ) {
   try {
-    // Use provided supabase client or create a new one with admin privileges
-    const client = supabase || createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Use provided supabase client or the default one
+    const client = customClient || supabase;
     
     // Get the role for this user in this team using our safe function
     const { data: role, error } = await client.rpc(
@@ -77,14 +71,11 @@ export async function checkTeamManagerAccess(
 export async function getDetailedTeamAccess(
   userId: string, 
   teamId: string,
-  supabase?: ReturnType<typeof createClient>
+  customClient?: typeof supabase
 ) {
   try {
-    // Use provided supabase client or create a new one with admin privileges
-    const client = supabase || createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Use provided supabase client or the default one
+    const client = customClient || supabase;
     
     // Call the validate_team_access edge function
     const { data, error } = await client.functions.invoke('validate_team_access', {
