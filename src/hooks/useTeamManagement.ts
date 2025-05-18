@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -67,11 +66,19 @@ export function useTeamManagement() {
     fetchTeams();
   }, []);
 
-  // Set the first team as selected if available and none is selected
+  // Select first team if available and none is selected
   useEffect(() => {
     if (teams.length > 0 && !selectedTeamId) {
       console.log('Setting selected team to:', teams[0].id);
       setSelectedTeamId(teams[0].id);
+    } else if (teams.length > 0 && selectedTeamId && !teams.find(team => team.id === selectedTeamId)) {
+      // If currently selected team no longer exists (e.g., after deletion),
+      // select the first available team instead
+      console.log('Previously selected team not found, selecting first available team');
+      setSelectedTeamId(teams[0].id);
+    } else if (teams.length === 0) {
+      // Clear selection if there are no teams
+      setSelectedTeamId('');
     }
   }, [teams, selectedTeamId]);
 
@@ -127,6 +134,20 @@ export function useTeamManagement() {
     return team;
   }, [handleCreateTeam]);
   
+  // Enhanced delete team handler that updates selection if needed
+  const handleDeleteAndUpdateSelection = useCallback(async (teamId: string) => {
+    try {
+      // Try to delete the team
+      await handleDeleteTeam(teamId);
+      
+      // If we just deleted the currently selected team, this will be handled
+      // in the useEffect that monitors teams and selectedTeamId
+    } catch (error) {
+      // Let the error propagate up for UI handling
+      throw error;
+    }
+  }, [handleDeleteTeam]);
+  
   // Log for debugging
   useEffect(() => {
     console.log('useTeamManagement state:', {
@@ -161,7 +182,7 @@ export function useTeamManagement() {
     setSelectedTeamId,
     handleCreateTeam: handleCreateAndSelectTeam,
     handleUpdateTeam,
-    handleDeleteTeam,
+    handleDeleteTeam: handleDeleteAndUpdateSelection,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,

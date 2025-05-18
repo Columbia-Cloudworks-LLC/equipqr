@@ -14,6 +14,10 @@ interface CreateTeamButtonProps {
 export function CreateTeamButton({ onCreateTeam, isCreating = false }: CreateTeamButtonProps) {
   const [open, setOpen] = useState(false);
   const [teamName, setTeamName] = useState('');
+  const [localCreating, setLocalCreating] = useState(false);
+  
+  // Combined creating state for better UX
+  const isInProgress = isCreating || localCreating;
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,12 +25,19 @@ export function CreateTeamButton({ onCreateTeam, isCreating = false }: CreateTea
     if (!teamName.trim()) return;
     
     try {
-      await onCreateTeam(teamName);
-      setOpen(false);
-      setTeamName('');
+      setLocalCreating(true);
+      const newTeam = await onCreateTeam(teamName);
+      
+      if (newTeam) {
+        // Close dialog only on success
+        setOpen(false);
+        setTeamName('');
+      }
     } catch (error) {
       console.error('Error creating team:', error);
       // Error is handled by the parent component
+    } finally {
+      setLocalCreating(false);
     }
   };
   
@@ -37,6 +48,7 @@ export function CreateTeamButton({ onCreateTeam, isCreating = false }: CreateTea
         variant="outline" 
         size="sm" 
         className="ml-2 flex items-center gap-1"
+        disabled={isInProgress}
       >
         <Plus className="h-4 w-4" />
         New Team
@@ -58,6 +70,7 @@ export function CreateTeamButton({ onCreateTeam, isCreating = false }: CreateTea
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   required
+                  disabled={isInProgress}
                 />
               </div>
             </div>
@@ -67,14 +80,15 @@ export function CreateTeamButton({ onCreateTeam, isCreating = false }: CreateTea
                 type="button" 
                 variant="outline" 
                 onClick={() => setOpen(false)}
+                disabled={isInProgress}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                disabled={isCreating || !teamName.trim()}
+                disabled={isInProgress || !teamName.trim()}
               >
-                {isCreating ? 'Creating...' : 'Create Team'}
+                {isInProgress ? 'Creating...' : 'Create Team'}
               </Button>
             </DialogFooter>
           </form>

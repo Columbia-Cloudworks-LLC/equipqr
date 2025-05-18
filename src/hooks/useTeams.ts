@@ -74,10 +74,15 @@ export function useTeams() {
       setIsCreatingTeam(true);
       setError(null);
       const team = await createTeam(name);
+      
+      // Immediately update local state with the new team
+      if (team) {
+        setTeams(prevTeams => [...prevTeams, team]);
+      }
+      
       toast.success("Team created successfully", {
         description: `Team "${name}" has been created`,
       });
-      await fetchTeams();
       
       return team;
     } catch (error: any) {
@@ -97,10 +102,17 @@ export function useTeams() {
       setIsUpdatingTeam(true);
       setError(null);
       await updateTeam(teamId, name);
+      
+      // Update local state immediately
+      setTeams(prevTeams => 
+        prevTeams.map(team => 
+          team.id === teamId ? { ...team, name } : team
+        )
+      );
+      
       toast.success("Team updated successfully", {
         description: `Team name updated to "${name}"`,
       });
-      await fetchTeams();
     } catch (error: any) {
       console.error('Error in handleUpdateTeam:', error);
       setError('Failed to update team. Please try again.');
@@ -120,20 +132,21 @@ export function useTeams() {
       console.log('Deleting team with ID:', teamId);
       const result: DeleteTeamResult = await deleteTeam(teamId);
       
+      // Immediately update local state by removing the deleted team
+      setTeams(prevTeams => prevTeams.filter(team => team.id !== teamId));
+      
       toast.success("Team deleted successfully", {
         description: result.equipmentUpdated > 0 
           ? `${result.equipmentUpdated} equipment items were unassigned` 
           : "No equipment needed to be reassigned",
       });
-      
-      // Refresh the teams list after deletion
-      await fetchTeams();
     } catch (error: any) {
       console.error('Error in handleDeleteTeam:', error);
       setError('Failed to delete team. Please try again.');
       toast.error("Error deleting team", {
         description: error.message,
       });
+      throw error; // Rethrow to allow proper handling in the UI
     } finally {
       setIsDeletingTeam(false);
     }

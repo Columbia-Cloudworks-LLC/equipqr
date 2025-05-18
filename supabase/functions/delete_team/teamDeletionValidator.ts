@@ -28,9 +28,9 @@ export class TeamDeletionValidator {
       // Get the team's organization first for fallback validation
       const { data: teamData, error: teamError } = await this.supabase
         .from('team')
-        .select('org_id')
+        .select('org_id, name')
         .eq('id', teamId)
-        .single();
+        .maybeSingle();
         
       if (teamError) {
         console.error('Error getting team details:', teamError);
@@ -42,8 +42,20 @@ export class TeamDeletionValidator {
           message: `Team not found: ${teamError.message}`
         };
       }
+
+      if (!teamData) {
+        console.error('Team not found with ID:', teamId);
+        return {
+          hasPermission: false,
+          isOrgOwner: false,
+          isTeamManager: false,
+          accessData: null,
+          message: 'Team not found or has already been deleted'
+        };
+      }
       
       const teamOrgId = teamData?.org_id;
+      console.log(`Team belongs to org: ${teamOrgId}, name: ${teamData.name}`);
       
       // Check user's org role directly
       const { data: userRole, error: roleError } = await this.supabase
@@ -51,9 +63,17 @@ export class TeamDeletionValidator {
         .select('role')
         .eq('user_id', userId)
         .eq('org_id', teamOrgId)
-        .single();
+        .maybeSingle();
         
+      if (roleError) {
+        console.log('Error checking user org role:', roleError);
+      }
+      
       const isOrgOwner = !roleError && userRole?.role === 'owner';
+      
+      if (isOrgOwner) {
+        console.log(`User ${userId} is owner of org ${teamOrgId}, permission granted`);
+      }
       
       // Check if user is a team manager using direct queries instead of check_team_access_detailed
       // This avoids the type mismatch issues
@@ -63,10 +83,10 @@ export class TeamDeletionValidator {
         .from('app_user')
         .select('id')
         .eq('auth_uid', userId)
-        .single();
+        .maybeSingle();
         
       if (appUserError) {
-        console.log('App user not found:', appUserError);
+        console.error('App user not found:', appUserError);
       }
       
       const appUserId = appUser?.id;
@@ -74,6 +94,7 @@ export class TeamDeletionValidator {
       let accessData: any = null;
       
       if (appUserId) {
+        console.log(`Auth user ${userId} maps to app_user ${appUserId}`);
         // Check if user is a team member with manager role
         const { data: teamRole, error: teamRoleError } = await this.supabase
           .from('team_member')
@@ -85,16 +106,26 @@ export class TeamDeletionValidator {
           `)
           .eq('user_id', appUserId)
           .eq('team_id', teamId)
-          .single();
+          .maybeSingle();
           
-        if (!teamRoleError && teamRole) {
+        if (teamRoleError) {
+          console.error('Error checking team role:', teamRoleError);
+        }
+        
+        if (teamRole) {
           const role = teamRole.team_roles?.role;
           isTeamManager = role === 'manager';
           accessData = {
             team_role: role,
             is_team_member: true
           };
+          
+          console.log(`User has role "${role}" in team ${teamId}`);
+        } else {
+          console.log(`User is not a member of team ${teamId}`);
         }
+      } else {
+        console.log(`Could not find app_user for auth_uid ${userId}`);
       }
       
       const hasPermission = isOrgOwner || isTeamManager;
