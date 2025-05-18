@@ -21,34 +21,43 @@ export async function invokeEdgeFunction<T = any>(
   payload: any = {}, 
   timeout: number = DEFAULT_TIMEOUT
 ): Promise<T> {
-  // Create an AbortController with the specified timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  // Create a promise that rejects after the specified timeout
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`Edge function ${functionName} timed out after ${timeout}ms`));
+    }, timeout);
+    // Clear the timeout if the promise is cancelled
+    return () => clearTimeout(timeoutId);
+  });
   
-  try {
-    // Call the Supabase function with the abort signal
-    const { data, error } = await supabase.functions.invoke(functionName, {
-      body: payload,
-      signal: controller.signal,
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (error) {
-      console.error(`Edge function ${functionName} error:`, error);
+  // Create the actual function call promise
+  const functionPromise = async (): Promise<T> => {
+    try {
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: payload
+      });
+      
+      if (error) {
+        console.error(`Edge function ${functionName} error:`, error);
+        throw error;
+      }
+      
+      return data as T;
+    } catch (error: any) {
+      console.error(`Edge function ${functionName} failed:`, error);
       throw error;
     }
-    
-    return data as T;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    
-    if (error.name === 'AbortError' || error.code === 20) {
+  };
+  
+  // Race the function call against the timeout
+  try {
+    return await Promise.race([functionPromise(), timeoutPromise]);
+  } catch (error: any) {
+    if (error.message?.includes('timed out')) {
       console.error(`Edge function ${functionName} timed out after ${timeout}ms`);
       throw new Error(`Request to ${functionName} timed out. Please try again.`);
     }
     
-    console.error(`Edge function ${functionName} failed:`, error);
     throw error;
   }
 }
