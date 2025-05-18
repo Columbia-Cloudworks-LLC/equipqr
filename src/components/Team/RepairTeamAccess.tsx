@@ -1,5 +1,5 @@
 
-import { AlertCircle, Tool } from 'lucide-react';
+import { AlertCircle, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -63,7 +63,7 @@ export function RepairTeamAccess({
               disabled={isRepairingTeam}
               className="w-full"
             >
-              <Tool className="mr-2 h-4 w-4" />
+              <Wrench className="mr-2 h-4 w-4" />
               {isRepairingTeam ? "Repairing Team Access..." : "Repair Team Access"}
             </Button>
           </div>

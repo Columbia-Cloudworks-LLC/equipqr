@@ -6,9 +6,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoginForm } from '@/components/Auth/LoginForm';
 import { SignUpForm } from '@/components/Auth/SignUpForm';
 import { AuthRedirect } from '@/components/Auth/AuthRedirect';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  const [email, setEmail] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { signInWithGoogle } = useAuth();
+  
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+      // AuthRedirect will handle navigation once authenticated
+    } catch (error) {
+      // Error handled in auth context
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Layout>
@@ -35,7 +51,12 @@ export default function Auth() {
                 <LoginForm />
               </TabsContent>
               <TabsContent value="signup">
-                <SignUpForm />
+                <SignUpForm 
+                  email={email}
+                  setEmail={setEmail}
+                  handleGoogleSignIn={handleGoogleSignIn}
+                  isLoading={isLoading}
+                />
               </TabsContent>
             </Tabs>
           </CardContent>

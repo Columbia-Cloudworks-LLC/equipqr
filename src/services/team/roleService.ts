@@ -138,3 +138,25 @@ export function getEffectiveRole(teamRole: string | null | undefined, orgRole: s
   // Return the role with higher priority (lower number)
   return teamRolePriority <= orgRolePriority ? teamRole : orgRole;
 }
+
+/**
+ * Check if the current role has specific permissions
+ */
+export function hasRolePermission(role: string | null | undefined, requiredRole: string): boolean {
+  if (!role) return false;
+  
+  const rolePriority: Record<string, number> = {
+    'owner': 1,
+    'manager': 2,
+    'admin': 3,
+    'creator': 4,
+    'technician': 5,
+    'viewer': 6
+  };
+  
+  const userRolePriority = rolePriority[role] || 99;
+  const requiredRolePriority = rolePriority[requiredRole] || 99;
+  
+  // Lower priority number means higher permissions
+  return userRolePriority <= requiredRolePriority;
+}

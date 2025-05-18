@@ -1,5 +1,5 @@
 
-import { AlertCircle, RefreshCw, Tool } from 'lucide-react';
+import { AlertCircle, RefreshCw, Wrench } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,7 +56,7 @@ export function ErrorDisplay({
             onClick={onUpgradeRole}
             disabled={isRequestingUpgrade}
           >
-            <Tool className="mr-2 h-4 w-4" />
+            <Wrench className="mr-2 h-4 w-4" />
             {isRequestingUpgrade ? "Requesting..." : canDirectlyUpgrade ? 
               "Upgrade to Manager" : "Request Manager Access"}
           </Button>
