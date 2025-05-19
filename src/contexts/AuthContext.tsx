@@ -10,7 +10,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthMethods } from '@/hooks/useAuthMethods';
 
 interface AuthContextType {
-  supabaseClient: SupabaseClient<Database>;
+  supabaseClient: typeof supabase;
   session: Session | null;
   user: Session['user'] | null;
   isLoading: boolean;

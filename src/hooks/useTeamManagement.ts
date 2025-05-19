@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -5,9 +6,12 @@ import { useTeams } from './useTeams';
 import { useTeamMembers } from './useTeamMembers';
 import { useTeamMembership } from './useTeamMembership';
 import { useRoleManagement } from './useRoleManagement';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useTeamManagement() {
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   
   // Use the smaller, focused hooks
   const { 
@@ -19,7 +23,7 @@ export function useTeamManagement() {
     error: teamsError,
     fetchTeams,
     retryFetchTeams,
-    handleCreateTeam,
+    handleCreateTeam: handleCreateTeamBase,
     handleUpdateTeam,
     handleDeleteTeam,
     getTeamEquipmentCount
@@ -64,7 +68,7 @@ export function useTeamManagement() {
   useEffect(() => {
     console.log('useTeamManagement: Initial teams fetch');
     fetchTeams();
-  }, []);
+  }, [fetchTeams]);
 
   // Select first team if available and none is selected
   useEffect(() => {
@@ -92,7 +96,7 @@ export function useTeamManagement() {
       fetchTeamMembers();
       fetchPendingInvitations();
     }
-  }, [selectedTeamId]);
+  }, [selectedTeamId, fetchTeamMembers, fetchPendingInvitations, isMember]);
 
   // Retry logic for empty teams list
   useEffect(() => {
@@ -105,13 +109,22 @@ export function useTeamManagement() {
       
       return () => clearTimeout(timer);
     }
-  }, [teams.length, isTeamsLoading]);
+  }, [teams.length, isTeamsLoading, retryFetchTeams]);
 
   // Combine errors from all sources
-  const error = teamsError || membersError || membershipError;
+  useEffect(() => {
+    const combinedError = teamsError || membersError || membershipError;
+    if (combinedError) {
+      setError(combinedError);
+    } else {
+      setError(null);
+    }
+  }, [teamsError, membersError, membershipError]);
   
   // Combined loading state
-  const isLoading = isTeamsLoading || isMembersLoading;
+  useEffect(() => {
+    setIsLoading(isTeamsLoading || isMembersLoading);
+  }, [isTeamsLoading, isMembersLoading]);
 
   // Memoize functions to prevent unnecessary re-renders
   const refetchTeamMembers = useCallback(() => {
@@ -124,113 +137,26 @@ export function useTeamManagement() {
     if (selectedTeamId && selectedTeamId !== 'none') {
       fetchPendingInvitations();
     }
+    return Promise.resolve(); // Return a promise for compatibility
   }, [selectedTeamId, fetchPendingInvitations]);
 
-  const createTeam = async (name: string) => {
-    if (!name || name.trim() === '') {
-      setError('Team name is required');
-      return { success: false, error: 'Team name is required' };
-    }
-
-    setIsLoading(true);
-    setError(null);
-
+  // Enhanced create team handler that sets the selection afterwards
+  const handleCreateTeam = useCallback(async (name: string) => {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const userId = session?.session?.user?.id;
+      const result = await handleCreateTeamBase(name);
       
-      if (!userId) {
-        throw new Error('Authentication required');
+      if (result.success && result.team) {
+        setSelectedTeamId(result.team.id);
+        return result;
       }
-
-      const { data: userData, error: userError } = await supabase
-        .from('user_profiles')
-        .select('org_id')
-        .eq('id', userId as any)
-        .single();
-
-      if (userError || !userData) {
-        throw new Error('Failed to get user organization');
-      }
-
-      const { data: teamData, error: createError } = await supabase
-        .from('team')
-        .insert({
-          name, 
-          org_id: userData.org_id,
-          created_by: userId
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        throw createError;
-      }
-
-      if (!teamData) {
-        throw new Error('Failed to create team');
-      }
-
-      // Fix the app_user query 
-      const { data: appUserData, error: appUserError } = await supabase
-        .from('app_user')
-        .select('id')
-        .eq('auth_uid', userId as any)
-        .single();
-
-      if (appUserError || !appUserData) {
-        throw new Error('Failed to get user data');
-      }
-
-      const appUserId = appUserData.id;
-
-      // Add creator as a team member with manager role
-      const { data: memberData, error: memberError } = await supabase
-        .from('team_member')
-        .insert({
-          team_id: teamData.id,
-          user_id: appUserId
-        })
-        .select()
-        .single();
-
-      if (memberError || !memberData) {
-        throw new Error('Failed to add member to team');
-      }
-
-      const { error: roleError } = await supabase
-        .from('team_roles')
-        .insert({
-          team_member_id: memberData.id,
-          role: 'manager',
-          assigned_by: userId
-        });
-
-      if (roleError) {
-        throw new Error('Failed to assign team role');
-      }
-
-      setTeams(prevTeams => prevTeams ? [...prevTeams, teamData as any] : [teamData as any]);
       
-      return { success: true, team: teamData };
-
+      return result;
     } catch (error) {
-      console.error('Failed to create team:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setError(errorMessage);
+      console.error('Error creating team:', errorMessage);
       return { success: false, error: errorMessage };
-    } finally {
-      setIsLoading(false);
     }
-  };
-
-  const handleCreateAndSelectTeam = useCallback(async (name: string) => {
-    const team = await createTeam(name);
-    if (team?.id) {
-      setSelectedTeamId(team.id);
-    }
-    return team;
-  }, [createTeam]);
+  }, [handleCreateTeamBase]);
   
   // Enhanced delete team handler that updates selection if needed
   const handleDeleteAndUpdateSelection = useCallback(async (teamId: string) => {
@@ -278,7 +204,7 @@ export function useTeamManagement() {
     canChangeRoles,
     error,
     setSelectedTeamId,
-    handleCreateTeam: handleCreateAndSelectTeam,
+    handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam: handleDeleteAndUpdateSelection,
     handleInviteMember,

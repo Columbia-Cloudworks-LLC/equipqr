@@ -34,7 +34,7 @@ export function useTeamsData() {
         const { data: userProfile, error: profileError } = await supabase
           .from('user_profiles')
           .select('org_id')
-          .eq('id', authUserId as any) // Type casting for compatibility
+          .eq('id', authUserId)
           .single();
           
         if (profileError) {
