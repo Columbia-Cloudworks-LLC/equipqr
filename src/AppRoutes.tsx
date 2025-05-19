@@ -48,6 +48,7 @@ const AppRoutes = () => {
       <Route path="/teams" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/organization" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
+      <Route path="/settings/organization" element={<Navigate to="/organization" replace />} />
       <Route path="/invitations" element={<ProtectedRoute><MyInvitations /></ProtectedRoute>} />
       
       {/* Fallback routes */}

@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Settings, Package, Users, Home, QrCode, Building } from "lucide-react";
+import { Package, Users, Home, QrCode } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -40,26 +40,13 @@ const mainNavItems = [
   },
   {
     title: "Teams",
-    href: "/teams", // Fixed: changed from "/team" to "/teams" to match the route
+    href: "/teams",
     icon: Users,
   },
   {
     title: "Scanner",
     href: "/scanner",
     icon: QrCode,
-  },
-];
-
-const settingsNavItems = [
-  {
-    title: "Organization",
-    href: "/settings/organization",
-    icon: Building,
-  },
-  {
-    title: "Profile",
-    href: "/profile",
-    icon: Settings,
   },
 ];
 
@@ -95,36 +82,6 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    tooltip={item.title}
-                    active={isActive(item.href)}
-                    className="text-white hover:text-white hover:bg-slate-700"
-                  >
-                    <Link to={item.href} className="flex items-center w-full">
-                      <SidebarMenuIcon>
-                        <item.icon className="h-5 w-5" />
-                      </SidebarMenuIcon>
-                      <SidebarMenuText>
-                        {item.title}
-                      </SidebarMenuText>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        
-        {/* Settings Navigation - added the hasDivider prop */}
-        <SidebarGroup hasDivider={true} className="mt-1">
-          <SidebarGroupLabel className="text-slate-400 mb-1">
-            Settings
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settingsNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 
