@@ -1,6 +1,6 @@
 
 import { Equipment } from '@/types';
-import { QRCodeGenerator } from '../QRCodeGenerator';
+import QRCodeGenerator from '../QRCodeGenerator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -118,8 +118,6 @@ export function EquipmentDetailContent({
                   <CardContent>
                     <AttributesList 
                       attributes={equipment.attributes}
-                      equipmentId={id}
-                      canEdit={canEdit}
                     />
                   </CardContent>
                 </Card>
@@ -133,9 +131,8 @@ export function EquipmentDetailContent({
                 </CardHeader>
                 <CardContent className="flex justify-center">
                   <QRCodeGenerator
-                    equipmentId={id}
-                    size={150}
-                    showInstructions={false}
+                    value={`${window.location.origin}/equipment/${id}`}
+                    equipmentName={equipment.name}
                   />
                 </CardContent>
               </Card>
