@@ -65,12 +65,14 @@ serve(async (req) => {
     const deletionService = new TeamDeletionService(supabase);
     const result = await deletionService.deleteTeam(teamId);
 
-    console.log('Team deleted successfully');
+    console.log('Team deleted successfully with results:', result);
 
     return createSuccessResponse({
       success: true,
       message: 'Team deleted successfully',
       equipmentUpdated: result.equipmentUpdated,
+      membersDeleted: result.membersDeleted,
+      invitationsCancelled: result.invitationsCancelled,
       teamId
     });
     

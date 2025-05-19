@@ -19,6 +19,7 @@ export function useTeamMembers(teamId: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTeamDeleted, setIsTeamDeleted] = useState(false);
 
   const fetchTeamMembers = useCallback(async () => {
     if (!teamId) {
@@ -26,23 +27,39 @@ export function useTeamMembers(teamId: string) {
       setError('No team selected. Please select a team to view members.');
       setMembers([]);
       setIsLoading(false);
+      setIsTeamDeleted(false);
       return;
     }
     
     try {
       setIsLoading(true);
       setError(null);
+      setIsTeamDeleted(false);
       console.log(`Fetching members for team ${teamId}`);
       const data = await getTeamMembers(teamId);
       console.log('Fetched team members:', data);
       setMembers(data || []);
     } catch (error: any) {
       console.error('Error in fetchTeamMembers:', error);
-      setError(`Failed to load team members: ${error.message || 'Unknown error'}`);
-      toast.error("Error fetching team members", {
-        description: error.message || "Unknown error occurred",
-      });
-      setMembers([]);
+      
+      // Check if this is a team not found/deleted error
+      if (error.message?.includes('not found') || 
+          error.message?.includes('been deleted') || 
+          (error.code === "TEAM_NOT_FOUND")) {
+        console.log('Team appears to be deleted, marking as such');
+        setIsTeamDeleted(true);
+        setError('This team has been deleted. Please select another team.');
+        setMembers([]);
+        toast.error("Team not found", {
+          description: "This team may have been deleted. Please select another team.",
+        });
+      } else {
+        setError(`Failed to load team members: ${error.message || 'Unknown error'}`);
+        toast.error("Error fetching team members", {
+          description: error.message || "Unknown error occurred",
+        });
+        setMembers([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -55,6 +72,13 @@ export function useTeamMembers(teamId: string) {
       return;
     }
     
+    // Don't try to fetch invitations for deleted teams
+    if (isTeamDeleted) {
+      setPendingInvitations([]);
+      setIsLoadingInvitations(false);
+      return;
+    }
+    
     try {
       setIsLoadingInvitations(true);
       console.log(`Fetching pending invitations for team ${teamId}`);
@@ -63,6 +87,15 @@ export function useTeamMembers(teamId: string) {
       setPendingInvitations(data || []);
     } catch (error: any) {
       console.error('Error in fetchPendingInvitations:', error);
+      
+      // Check if this is a team not found/deleted error
+      if (error.message?.includes('not found') || 
+          error.message?.includes('been deleted') || 
+          (error.code === "TEAM_NOT_FOUND")) {
+        console.log('Team appears to be deleted when fetching invitations');
+        setIsTeamDeleted(true);
+      }
+      
       toast.error("Error fetching pending invitations", {
         description: error.message || "Unknown error occurred",
       });
@@ -70,10 +103,14 @@ export function useTeamMembers(teamId: string) {
     } finally {
       setIsLoadingInvitations(false);
     }
-  }, [teamId]);
+  }, [teamId, isTeamDeleted]);
 
   const handleInviteMember = useCallback(async (email: string, role: UserRole, teamId: string) => {
     try {
+      if (isTeamDeleted) {
+        throw new Error('Cannot invite members to a deleted team');
+      }
+      
       setIsLoading(true);
       setError(null);
       const result = await inviteMember(email, role, teamId);
@@ -107,10 +144,14 @@ export function useTeamMembers(teamId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchTeamMembers, fetchPendingInvitations]);
+  }, [fetchTeamMembers, fetchPendingInvitations, isTeamDeleted]);
 
   const handleChangeRole = useCallback(async (id: string, role: UserRole, teamId: string) => {
     try {
+      if (isTeamDeleted) {
+        throw new Error('Cannot change roles in a deleted team');
+      }
+      
       setError(null);
       await changeRole(id, role, teamId);
       toast.success("Role updated", {
@@ -124,10 +165,14 @@ export function useTeamMembers(teamId: string) {
         description: error.message,
       });
     }
-  }, [fetchTeamMembers]);
+  }, [fetchTeamMembers, isTeamDeleted]);
 
   const handleRemoveMember = useCallback(async (id: string, teamId: string) => {
     try {
+      if (isTeamDeleted) {
+        throw new Error('Cannot remove members from a deleted team');
+      }
+      
       setError(null);
       await removeMember(id, teamId);
       toast.success("Member removed", {
@@ -141,10 +186,14 @@ export function useTeamMembers(teamId: string) {
         description: error.message,
       });
     }
-  }, [fetchTeamMembers]);
+  }, [fetchTeamMembers, isTeamDeleted]);
 
   const handleResendInvite = useCallback(async (id: string): Promise<void> => {
     try {
+      if (isTeamDeleted) {
+        throw new Error('Cannot resend invitations for a deleted team');
+      }
+      
       setError(null);
       await resendInvite(id);
       toast.success("Invitation resent", {
@@ -158,10 +207,14 @@ export function useTeamMembers(teamId: string) {
         description: error.message,
       });
     }
-  }, [fetchPendingInvitations]);
+  }, [fetchPendingInvitations, isTeamDeleted]);
   
   const handleCancelInvitation = useCallback(async (id: string): Promise<void> => {
     try {
+      if (isTeamDeleted) {
+        throw new Error('Cannot cancel invitations for a deleted team');
+      }
+      
       setError(null);
       await cancelInvitation(id);
       toast.success("Invitation cancelled", {
@@ -175,7 +228,7 @@ export function useTeamMembers(teamId: string) {
         description: error.message,
       });
     }
-  }, [fetchPendingInvitations]);
+  }, [fetchPendingInvitations, isTeamDeleted]);
 
   return {
     members,
@@ -183,6 +236,7 @@ export function useTeamMembers(teamId: string) {
     isLoading,
     isLoadingInvitations,
     error,
+    isTeamDeleted,
     fetchTeamMembers,
     fetchPendingInvitations,
     handleInviteMember,

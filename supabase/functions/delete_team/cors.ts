@@ -1,42 +1,34 @@
 
-// Define CORS headers for cross-origin requests
+// CORS headers for all responses
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-/**
- * Creates a standardized success response
- */
-export function createSuccessResponse(data: any, status = 200) {
+// Helper for creating consistent success responses
+export function createSuccessResponse(data: any) {
   return new Response(
     JSON.stringify(data),
-    {
-      status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+    { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+      status: 200 
     }
   );
 }
 
-/**
- * Creates a standardized error response
- */
-export function createErrorResponse(message: string, status = 400) {
+// Helper for creating consistent error responses
+export function createErrorResponse(message: string, status: number = 400) {
   return new Response(
     JSON.stringify({
+      success: false,
+      message,
       error: message,
-      success: false
+      code: message.includes('not found') ? 'TEAM_NOT_FOUND' : undefined
     }),
-    {
-      status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+    { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+      status 
     }
   );
 }

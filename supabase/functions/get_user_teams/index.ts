@@ -109,7 +109,7 @@ serve(async (req) => {
             created_by
           `)
           .eq('org_id', userOrgId)
-          .is('deleted_at', null);
+          .is('deleted_at', null); // Only include non-deleted teams
           
         if (orgTeamsError) {
           console.error('Error fetching organization teams:', orgTeamsError);
@@ -129,7 +129,7 @@ serve(async (req) => {
       
       // Second query: Get teams user is a member of (if we have app_user_id)
       if (appUserId) {
-        // FIX: Use the proper app_user_id in the query to find team memberships
+        // Join with team table to filter out deleted teams
         const { data: memberTeams, error: memberTeamsError } = await supabaseClient
           .from('team_member')
           .select(`
@@ -137,6 +137,7 @@ serve(async (req) => {
               id,
               name,
               org_id,
+              deleted_at,
               organization:org_id (
                 name
               )
@@ -150,7 +151,7 @@ serve(async (req) => {
         } else if (memberTeams) {
           // Transform the data to extract role information
           const membershipTeams = memberTeams
-            .filter(item => item.team !== null)
+            .filter(item => item.team !== null && item.team.deleted_at === null) // Filter out deleted teams
             .map(item => {
               // Extract role from the team_roles relationship
               const role = item.role && item.role.length > 0 ? item.role[0]?.role : null;

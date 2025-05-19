@@ -46,6 +46,8 @@ export function DeleteTeamButton({
         setError('You do not have permission to delete this team. You need to be a team manager or organization owner.');
       } else if (err.message && err.message.includes('not found')) {
         setError('Team not found or has already been deleted.');
+        // Close dialog after a short delay since it's already deleted
+        setTimeout(() => setOpen(false), 2000);
       } else {
         setError(err.message || 'Failed to delete team. Please try again.');
       }

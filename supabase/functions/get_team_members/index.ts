@@ -44,7 +44,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // First, check if the team exists
+    // First, check if the team exists and is not deleted
     const { data: team, error: teamError } = await supabaseClient
       .from('team')
       .select('id')
@@ -54,12 +54,25 @@ serve(async (req) => {
     
     if (teamError) {
       console.error('Error fetching team:', teamError);
+      
+      // Check if it's a "not found" error specifically
+      if (teamError.code === 'PGRST116') {
+        return new Response(
+          JSON.stringify({ 
+            error: "Team not found or has been deleted", 
+            code: "TEAM_NOT_FOUND",
+            details: teamError.message 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: "Team not found", 
+          error: "Failed to verify team status", 
           details: teamError.message 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     

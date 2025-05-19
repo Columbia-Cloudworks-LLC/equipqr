@@ -6,10 +6,16 @@ export interface DeleteTeamResult {
   success: boolean;
   message: string;
   equipmentUpdated: number;
+  membersDeleted?: number;
+  invitationsCancelled?: number;
 }
 
 export const getTeamEquipmentCount = async (teamId: string): Promise<number> => {
   try {
+    if (!teamId) {
+      return 0;
+    }
+    
     const { count, error } = await supabase
       .from('equipment')
       .select('id', { count: 'exact', head: true })

@@ -36,8 +36,9 @@ export class TeamDeletionService {
 
   /**
    * Update equipment records to unassign them from the team
+   * @returns {Promise<number>} Number of equipment records updated
    */
-  async updateEquipmentRecords(teamId: string): Promise<boolean> {
+  async updateEquipmentRecords(teamId: string): Promise<number> {
     try {
       console.log(`Updating equipment records for team ${teamId}`);
       
@@ -49,37 +50,58 @@ export class TeamDeletionService {
         
       if (error) {
         console.error('Error updating equipment records:', error);
-        return false;
+        return 0;
       }
       
       console.log(`${count} equipment records updated successfully`);
-      return true;
+      return count || 0;
     } catch (error) {
       console.error('Error in updateEquipmentRecords:', error);
-      return false;
+      return 0;
     }
   }
 
   /**
    * Delete all team members
+   * @returns {Promise<number>} Number of team members deleted
    */
-  async deleteTeamMembers(teamId: string): Promise<boolean> {
+  async deleteTeamMembers(teamId: string): Promise<number> {
     try {
       console.log(`Deleting team members for team ${teamId}`);
       
       // First get team members for logging
       const { data: members, error: fetchError } = await this.supabase
         .from('team_member')
-        .select('id')
+        .select('id, user_id')
         .eq('team_id', teamId);
         
       if (fetchError) {
         console.error('Error fetching team members:', fetchError);
-      } else {
-        console.log(`Found ${members?.length || 0} team members to delete`);
+        return 0;
       }
       
-      // Then delete them
+      if (!members || members.length === 0) {
+        console.log('No team members found to delete');
+        return 0;
+      }
+      
+      console.log(`Found ${members.length} team members to delete`);
+      
+      // Delete team roles first (foreign key constraint)
+      const memberIds = members.map(m => m.id);
+      
+      const { error: rolesError, count: rolesCount } = await this.supabase
+        .from('team_roles')
+        .delete()
+        .in('team_member_id', memberIds);
+        
+      if (rolesError) {
+        console.error('Error deleting team roles:', rolesError);
+      } else {
+        console.log(`${rolesCount} team roles deleted`);
+      }
+      
+      // Then delete the team members
       const { error, count } = await this.supabase
         .from('team_member')
         .delete()
@@ -87,61 +109,22 @@ export class TeamDeletionService {
         
       if (error) {
         console.error('Error removing team members:', error);
-        return false;
+        return 0;
       }
       
       console.log(`${count} team members removed successfully`);
-      return true;
+      return count || 0;
     } catch (error) {
       console.error('Error in deleteTeamMembers:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Delete team roles
-   */
-  async deleteTeamRoles(teamId: string): Promise<boolean> {
-    try {
-      console.log(`Cleaning up team roles associated with team ${teamId}`);
-      
-      // Get the roles via team_members for this team
-      const { data: members } = await this.supabase
-        .from('team_member')
-        .select('id')
-        .eq('team_id', teamId);
-        
-      if (!members || members.length === 0) {
-        console.log('No team members found, no roles to delete');
-        return true;
-      }
-      
-      // Get the member IDs
-      const memberIds = members.map(m => m.id);
-      
-      // Delete the roles
-      const { error, count } = await this.supabase
-        .from('team_roles')
-        .delete()
-        .in('team_member_id', memberIds);
-        
-      if (error) {
-        console.error('Error removing team roles:', error);
-        return false;
-      }
-      
-      console.log(`${count} team roles removed successfully`);
-      return true;
-    } catch (error) {
-      console.error('Error in deleteTeamRoles:', error);
-      return false;
+      return 0;
     }
   }
 
   /**
    * Cancel pending invitations
+   * @returns {Promise<number>} Number of invitations cancelled
    */
-  async cancelTeamInvitations(teamId: string): Promise<boolean> {
+  async cancelTeamInvitations(teamId: string): Promise<number> {
     try {
       console.log(`Cancelling pending invitations for team ${teamId}`);
       
@@ -153,39 +136,61 @@ export class TeamDeletionService {
         
       if (error) {
         console.error('Error cancelling team invitations:', error);
-        return false;
+        return 0;
       }
       
       console.log(`${count} team invitations cancelled successfully`);
-      return true;
+      return count || 0;
     } catch (error) {
       console.error('Error in cancelTeamInvitations:', error);
-      return false;
+      return 0;
     }
   }
 
   /**
-   * Soft delete the team record
+   * Perform complete team deletion including all related records
+   * @returns Object with results of the deletion operation
    */
-  async deleteTeam(teamId: string): Promise<boolean> {
+  async deleteTeam(teamId: string): Promise<{
+    success: boolean;
+    equipmentUpdated: number;
+    membersDeleted: number;
+    invitationsCancelled: number;
+  }> {
     try {
-      console.log(`Soft deleting team record ${teamId}`);
+      console.log(`Starting complete deletion process for team ${teamId}`);
       
+      // Step 1: Update equipment records (unassign from team)
+      const equipmentUpdated = await this.updateEquipmentRecords(teamId);
+      
+      // Step 2: Delete team members and their roles
+      const membersDeleted = await this.deleteTeamMembers(teamId);
+      
+      // Step 3: Cancel pending invitations
+      const invitationsCancelled = await this.cancelTeamInvitations(teamId);
+      
+      // Step 4: Soft delete the team record
       const { error } = await this.supabase
         .from('team')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', teamId);
         
       if (error) {
-        console.error('Error deleting team:', error);
-        return false;
+        console.error('Error soft-deleting team:', error);
+        throw error;
       }
       
-      console.log('Team deleted successfully');
-      return true;
+      console.log('Team deletion completed successfully');
+      
+      return {
+        success: true,
+        equipmentUpdated,
+        membersDeleted,
+        invitationsCancelled
+      };
     } catch (error) {
-      console.error('Error in deleteTeam:', error);
-      return false;
+      console.error('Error in complete team deletion process:', error);
+      throw error;
     }
   }
 }

@@ -1,19 +1,20 @@
 
-import { useState } from 'react';
-import { TeamMembers } from './TeamMembers';
-import { TeamSettings } from './TeamSettings';
-import { RepairTeamAccess } from './RepairTeamAccess';
-import { MembershipAlert } from './MembershipAlert';
-import { Skeleton } from '../ui/skeleton';
-import { UserPlus } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { TeamMember } from "@/types";
+import { UserRole } from "@/types/supabase-enums";
+import { TeamSettings } from "./TeamSettings";
+import { TeamMembers } from "./TeamMembers";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { EmptyTeamState } from "./EmptyTeamState";
+import { TeamMembersList } from "./TeamMembersList";
+import { TeamInvitationsList } from "./TeamInvitationsList";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TeamContentProps {
   selectedTeamId: string;
-  members: any[];
-  pendingInvitations: any[];
   teams: any[];
+  members: TeamMember[];
+  pendingInvitations: any[];
   isLoading: boolean;
   isLoadingInvitations: boolean;
   isCreatingTeam: boolean;
@@ -23,28 +24,28 @@ interface TeamContentProps {
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
   isMember: boolean;
-  currentUserRole?: string;
+  currentUserRole: string | null;
   canChangeRoles: boolean;
-  onInviteMember: (email: string, role: string, teamId: string) => void;
-  onChangeRole: (id: string, role: string, teamId: string) => void;
-  onRemoveMember: (id: string, teamId: string) => void;
+  onInviteMember: (email: string, role: UserRole, teamId: string) => Promise<void>;
+  onChangeRole: (userId: string, role: UserRole, teamId: string) => Promise<void>;
+  onRemoveMember: (userId: string, teamId: string) => Promise<void>;
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvitation: (id: string) => Promise<void>;
-  onCreateTeam: (name: string) => void;
+  onCreateTeam: (name: string) => Promise<any>;
   onUpdateTeam: (id: string, name: string) => Promise<void>;
   onDeleteTeam: (id: string) => Promise<void>;
-  onRepairTeam: (teamId: string) => void;
-  onUpgradeRole: (teamId: string) => void;
-  onRequestRoleUpgrade: (teamId: string) => void;
-  onFetchPendingInvitations: () => void;
-  getTeamEquipmentCount?: (teamId: string) => Promise<number>;
+  onRepairTeam: (teamId: string) => Promise<void>;
+  onUpgradeRole: (teamId: string) => Promise<void>;
+  onRequestRoleUpgrade: (teamId: string) => Promise<void>;
+  onFetchPendingInvitations: () => Promise<void>;
+  getTeamEquipmentCount: (teamId: string) => Promise<number>;
 }
 
-export function TeamContent({
+export function TeamContent({ 
   selectedTeamId,
+  teams,
   members,
   pendingInvitations,
-  teams,
   isLoading,
   isLoadingInvitations,
   isCreatingTeam,
@@ -70,116 +71,101 @@ export function TeamContent({
   onFetchPendingInvitations,
   getTeamEquipmentCount
 }: TeamContentProps) {
-  const [activeTab, setActiveTab] = useState('members');
-  
-  if (!selectedTeamId) {
-    return null;
-  }
 
-  // Find selected team for more details
+  // Find the current team in the teams list
   const selectedTeam = teams.find(team => team.id === selectedTeamId);
-
-  if (isLoading) {
+  const isTeamDeleted = !selectedTeam && selectedTeamId;
+  
+  // If team is deleted but still in URL, show an alert
+  if (isTeamDeleted && !isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-52" />
-        <Skeleton className="h-64 w-full" />
-      </div>
+      <Alert variant="destructive" className="mt-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          The selected team no longer exists. It may have been deleted.
+          Please select another team from the dropdown.
+        </AlertDescription>
+      </Alert>
     );
   }
-
-  // Step 1: Show repair option if user is not a team member
-  if (!isMember) {
+  
+  // Handle no teams case
+  if (!selectedTeamId || teams.length === 0) {
     return (
-      <RepairTeamAccess 
-        selectedTeamId={selectedTeamId} 
-        onRepairTeam={(id) => onRepairTeam(id)} 
-        isRepairingTeam={isRepairingTeam} 
-        teamDetails={selectedTeam}
+      <EmptyTeamState 
+        onCreateTeam={onCreateTeam}
+        isCreatingTeam={isCreatingTeam}
       />
     );
   }
-
-  // Step 2: Show appropriate content based on membership status and role
+  
+  const hasInvitations = pendingInvitations && pendingInvitations.length > 0;
+  
+  const canManageTeam = currentUserRole === 'manager' || currentUserRole === 'owner';
+  
   return (
-    <div className="space-y-4">
-      {/* Membership alerts for special cases */}
-      <MembershipAlert
-        team={selectedTeam}
-        onRepair={() => onRepairTeam(selectedTeamId)}
-        isRepairing={isRepairingTeam}
-        role={currentUserRole || null}
-        onUpgrade={() => onUpgradeRole(selectedTeamId)}
-        onRequestUpgrade={() => onRequestRoleUpgrade(selectedTeamId)}
-        isUpgrading={isUpgradingRole}
-        isRequesting={isRequestingRole}
-        canUpgrade={canChangeRoles}
-      />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div>
-              {selectedTeam?.name || "Team Details"} 
-              {selectedTeam?.is_external_org && " (External)"}
-            </div>
-          </CardTitle>
-          <CardDescription>
-            {selectedTeam?.is_external_org 
-              ? `This team belongs to ${selectedTeam?.org_name || 'another organization'}`
-              : "Manage team members and settings"
-            }
-          </CardDescription>
-        </CardHeader>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <CardContent className="pb-0">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="members" className="flex items-center">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Team Members
-              </TabsTrigger>
-              <TabsTrigger value="settings">
-                Team Settings
-              </TabsTrigger>
-            </TabsList>
-          </CardContent>
-
-          <TabsContent value="members" className="mt-0">
-            <CardContent>
-              <TeamMembers 
-                members={members}
-                pendingInvitations={pendingInvitations}
-                isLoading={isLoading}
-                isLoadingInvitations={isLoadingInvitations}
-                teamId={selectedTeamId}
-                onInviteMember={onInviteMember}
-                onChangeRole={onChangeRole}
-                onRemoveMember={onRemoveMember}
-                onResendInvite={onResendInvite}
-                onCancelInvitation={onCancelInvitation}
-                onFetchPendingInvitations={onFetchPendingInvitations}
-                currentUserRole={currentUserRole}
-                canChangeRoles={canChangeRoles}
-              />
-            </CardContent>
-          </TabsContent>
-
-          <TabsContent value="settings" className="mt-0">
-            <CardContent>
-              <TeamSettings
-                team={selectedTeam}
-                onUpdateTeam={onUpdateTeam}
-                onDeleteTeam={onDeleteTeam}
-                isUpdating={isUpdatingTeam}
-                isDeleting={isDeletingTeam}
-                currentUserRole={currentUserRole || 'viewer'}
-                getTeamEquipmentCount={getTeamEquipmentCount}
-              />
-            </CardContent>
-          </TabsContent>
-        </Tabs>
-      </Card>
+    <div className="mt-4">
+      <Tabs defaultValue="members">
+        <TabsList>
+          <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsTrigger value="invitations" disabled={!canManageTeam}>
+            Invitations {hasInvitations ? `(${pendingInvitations.length})` : ''}
+          </TabsTrigger>
+          <TabsTrigger value="settings" disabled={!canManageTeam}>Settings</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="members">
+          <TeamMembers
+            teamId={selectedTeamId}
+            teamName={selectedTeam?.name || 'Unknown Team'}
+            members={members}
+            isLoading={isLoading}
+            currentUserRole={currentUserRole}
+            isMember={isMember}
+            canChangeRoles={canChangeRoles}
+            isUpgradingRole={isUpgradingRole}
+            isRequestingRole={isRequestingRole}
+            onInviteMember={onInviteMember}
+            onChangeRole={onChangeRole}
+            onRemoveMember={onRemoveMember}
+            onUpgradeRole={onUpgradeRole}
+            onRequestRoleUpgrade={onRequestRoleUpgrade}
+            isRepairingTeam={isRepairingTeam}
+            onRepairTeam={onRepairTeam}
+          >
+            <TeamMembersList 
+              members={members}
+              teamId={selectedTeamId}
+              isLoading={isLoading}
+              currentUserRole={currentUserRole}
+              onChangeRole={onChangeRole}
+              onRemoveMember={onRemoveMember}
+            />
+          </TeamMembers>
+        </TabsContent>
+        
+        <TabsContent value="invitations">
+          <TeamInvitationsList 
+            invitations={pendingInvitations}
+            teamId={selectedTeamId}
+            isLoading={isLoadingInvitations}
+            onResend={onResendInvite}
+            onCancel={onCancelInvitation}
+            onRefresh={onFetchPendingInvitations}
+          />
+        </TabsContent>
+        
+        <TabsContent value="settings">
+          <TeamSettings 
+            team={selectedTeam}
+            isUpdating={isUpdatingTeam}
+            isDeleting={isDeletingTeam}
+            onUpdate={onUpdateTeam}
+            onDelete={onDeleteTeam}
+            getTeamEquipmentCount={getTeamEquipmentCount}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
