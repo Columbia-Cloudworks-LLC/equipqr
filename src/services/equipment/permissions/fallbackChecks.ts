@@ -36,18 +36,43 @@ export const fallbackPermissionCheck = async (
       
       console.log('Test permission flow result:', data);
       
-      // Extract data from test function response
+      // Ensure data is of the expected type
       const typedData = data as DirectDBPermissionResult;
+      
+      // Check if data and permission_check exist and have expected structure
+      if (!typedData || !typedData.permission_check) {
+        throw new Error('Invalid response format from permission check');
+      }
+      
       const permResult = typedData.permission_check;
       
-      if (!permResult || !permResult.has_permission) {
+      // Safely check the has_permission property
+      const hasPermission = typeof permResult === 'object' && 
+                            permResult !== null && 
+                            'has_permission' in permResult && 
+                            !!permResult.has_permission;
+      
+      if (!hasPermission) {
         throw new Error('Permission denied by fallback check');
       }
       
+      // Safely extract org_id and reason
+      const orgId = typeof permResult === 'object' && 
+                    permResult !== null && 
+                    'org_id' in permResult ? 
+                    permResult.org_id as string : 
+                    (typedData.user_info?.user_org_id || null);
+      
+      const reason = typeof permResult === 'object' && 
+                     permResult !== null && 
+                     'reason' in permResult ? 
+                     permResult.reason as string : 
+                     'fallback_success';
+      
       return {
         canCreate: true,
-        orgId: permResult.org_id || typedData.user_info?.user_org_id || null,
-        reason: 'fallback_success'
+        orgId: orgId,
+        reason: reason
       };
     }
   } catch (error: any) {
@@ -78,13 +103,27 @@ export const directDatabasePermissionCheck = async (
     throw error;
   }
   
-  if (!data || !data.has_permission) {
+  // Validate the response structure
+  if (!data) {
+    throw new Error('Empty response from permission check');
+  }
+  
+  // Type assertion with runtime validation
+  const typedData = data as { has_permission?: boolean; org_id?: string; reason?: string };
+  
+  // Validate required properties exist
+  if (typeof typedData !== 'object' || !('has_permission' in typedData)) {
+    throw new Error('Invalid response format: missing has_permission property');
+  }
+  
+  // Check if permission is granted
+  if (!typedData.has_permission) {
     throw new Error('Permission denied by database check');
   }
   
   return {
-    canCreate: data.has_permission === true,
-    orgId: data.org_id || null,
-    reason: data.reason || 'direct_db_check'
+    canCreate: !!typedData.has_permission,
+    orgId: (typedData.org_id as string) || null,
+    reason: (typedData.reason as string) || 'direct_db_check'
   };
 };
