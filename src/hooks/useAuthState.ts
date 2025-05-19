@@ -15,8 +15,8 @@ export function useAuthState() {
   useEffect(() => {
     console.log('AuthState: Initializing auth state management');
     
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    // Set up auth state listener
+    const { data } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("AuthState: Auth state change event:", event, session ? `Session ID: ${session.access_token.substring(0, 8)}...` : 'No session');
         
@@ -42,7 +42,7 @@ export function useAuthState() {
 
     return () => {
       console.log('AuthState: Unsubscribing from auth state changes');
-      subscription.unsubscribe();
+      data.subscription.unsubscribe();
     };
   }, []);
 

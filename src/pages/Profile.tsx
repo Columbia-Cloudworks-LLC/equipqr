@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,65 +36,88 @@ export default function Profile() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchUserProfile = async () => {
       if (!user) return;
-
+      
+      setIsLoading(true);
       try {
-        setIsLoading(true);
         const { data, error } = await supabase
-          .from("user_profiles")
-          .select("*")
-          .eq("id", user.id)
+          .from('user_profiles')
+          .select('*')
+          .eq('id', user.id as any)
           .single();
-
-        if (error) throw error;
-
-        setProfile(data as UserProfile);
-      } catch (error: any) {
-        toast.error("Error loading profile: " + error.message);
+          
+        if (error) {
+          console.error('Error fetching profile:', error);
+          toast.error('Failed to load your profile information');
+          return;
+        }
+        
+        if (data) {
+          setUserProfile({
+            id: data.id,
+            display_name: data.display_name || '',
+            job_title: data.job_title || '',
+            timezone: data.timezone || 'UTC',
+            datetime_format_preference: data.datetime_format_preference || 'MM/DD/YYYY h:mm A',
+            phone_number: data.phone_number || '',
+          });
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        toast.error('An unexpected error occurred');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchProfile();
-  }, [user]);
+    fetchUserProfile();
+  }, [user, supabase]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !profile) return;
-
+  const handleUpdateProfile = async (values: any) => {
+    if (!user) return;
+    
+    setIsSaving(true);
     try {
-      setIsSaving(true);
+      const updates = {
+        display_name: values.display_name,
+        job_title: values.job_title,
+        timezone: values.timezone,
+        datetime_format_preference: values.datetime_format_preference,
+        phone_number: values.phone_number,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
-        .from("user_profiles")
-        .update({
-          display_name: profile.display_name,
-          job_title: profile.job_title,
-          timezone: profile.timezone,
-          datetime_format_preference: profile.datetime_format_preference,
-          phone_number: profile.phone_number,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+        .from('user_profiles')
+        .update(updates as any)
+        .eq('id', user.id as any);
 
-      if (error) throw error;
-
-      toast.success("Profile updated successfully");
-    } catch (error: any) {
-      toast.error("Error updating profile: " + error.message);
+      if (error) {
+        throw error;
+      }
+      
+      setUserProfile({
+        ...userProfile as any,
+        ...updates
+      });
+      
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleChange = (field: keyof UserProfile, value: string) => {
-    if (!profile) return;
-    setProfile({
-      ...profile,
+    if (!userProfile) return;
+    setUserProfile({
+      ...userProfile,
       [field]: field === 'datetime_format_preference' 
         ? value as DateTimeFormat 
         : value,
@@ -120,8 +142,8 @@ export default function Profile() {
       <div className="flex flex-col p-6 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Profile Settings</h1>
 
-        {profile && (
-          <form onSubmit={handleSave}>
+        {userProfile && (
+          <form onSubmit={(e) => handleUpdateProfile(e.target)}>
             <Card>
               <CardHeader>
                 <CardTitle>Personal Information</CardTitle>
@@ -147,7 +169,7 @@ export default function Profile() {
                   <Label htmlFor="display_name">Display Name</Label>
                   <Input
                     id="display_name"
-                    value={profile.display_name || ""}
+                    value={userProfile.display_name || ""}
                     onChange={(e) =>
                       handleChange("display_name", e.target.value)
                     }
@@ -158,7 +180,7 @@ export default function Profile() {
                   <Label htmlFor="job_title">Job Title</Label>
                   <Input
                     id="job_title"
-                    value={profile.job_title || ""}
+                    value={userProfile.job_title || ""}
                     onChange={(e) => handleChange("job_title", e.target.value)}
                   />
                 </div>
@@ -167,7 +189,7 @@ export default function Profile() {
                   <Label htmlFor="phone_number">Phone Number</Label>
                   <Input
                     id="phone_number"
-                    value={profile.phone_number || ""}
+                    value={userProfile.phone_number || ""}
                     onChange={(e) => handleChange("phone_number", e.target.value)}
                   />
                 </div>
@@ -175,7 +197,7 @@ export default function Profile() {
                 <div className="space-y-2">
                   <Label htmlFor="timezone">Time Zone</Label>
                   <Select
-                    value={profile.timezone}
+                    value={userProfile.timezone}
                     onValueChange={(value) => handleChange("timezone", value)}
                   >
                     <SelectTrigger id="timezone">
@@ -202,7 +224,7 @@ export default function Profile() {
                 <div className="space-y-2">
                   <Label htmlFor="datetime_format">Date/Time Format</Label>
                   <Select
-                    value={profile.datetime_format_preference}
+                    value={userProfile.datetime_format_preference}
                     onValueChange={(value) =>
                       handleChange("datetime_format_preference", value)
                     }

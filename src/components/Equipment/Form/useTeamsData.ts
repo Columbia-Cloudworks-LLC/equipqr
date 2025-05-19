@@ -31,12 +31,19 @@ export function useTeamsData() {
         const authUserId = sessionData.session.user.id;
         
         // Get user's organization for determining external teams
-        const { data: userProfile } = await supabase
+        const { data: userProfile, error: profileError } = await supabase
           .from('user_profiles')
           .select('org_id')
-          .eq('id', authUserId)
+          .eq('id', authUserId as any) // Type casting for compatibility
           .single();
           
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+          setError(profileError.message);
+          setTeams([]);
+          return;
+        }
+        
         const userOrgId = userProfile?.org_id;
         
         // Get user's teams including external ones
@@ -49,7 +56,7 @@ export function useTeamsData() {
         }
         
         if (userTeams?.teams) {
-          const processedTeams = userTeams.teams.map(team => ({
+          const processedTeams = userTeams.teams.map((team: any) => ({
             id: team.id,
             name: team.name,
             org_name: team.org_name || 'Your Organization',

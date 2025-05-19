@@ -37,7 +37,7 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', user.id)
+          .eq('user_id', user.id as any) // Type casting for compatibility
           .maybeSingle();
           
         if (error) {
@@ -47,7 +47,7 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
           return;
         }
           
-        if (data && ['owner', 'manager'].includes(data.role)) {
+        if (data && data.role && ['owner', 'manager'].includes(data.role)) {
           setCanEdit(true);
         } else {
           // Default to true for new equipment creation

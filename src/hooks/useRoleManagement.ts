@@ -1,137 +1,79 @@
-
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { TeamMember } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  checkRoleChangePermission, 
-  upgradeToManagerRole, 
-  requestRoleUpgrade,
-  getEffectiveRole
-} from '@/services/team/roleService';
 
-export function useRoleManagement(members: TeamMember[], teamId: string | null, accessRole?: string | null) {
-  const [currentUserRole, setCurrentUserRole] = useState<string | undefined>(undefined);
-  const [canChangeRoles, setCanChangeRoles] = useState(false);
-  const [isUpgradingRole, setIsUpgradingRole] = useState(false);
-  const [isRequestingRole, setIsRequestingRole] = useState(false);
-  const [organizationRole, setOrganizationRole] = useState<string | null>(null);
+export function useRoleManagement(userId?: string, teamId?: string) {
+  const [orgRole, setOrgRole] = useState<string>('');
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [canAssignRoles, setCanAssignRoles] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Determine the current user's role in the selected team
   useEffect(() => {
-    if (teamId) {
-      (async () => {
-        const { data } = await supabase.auth.getSession();
-        const authUserId = data.session?.user?.id;
-        if (authUserId) {
-          let determinedRole: string | null | undefined = undefined;
+    const loadRoleData = async () => {
+      if (!userId) {
+        return;
+      }
+      
+      setIsLoading(true);
+      
+      try {
+        // Get team organization to check permissions
+        if (teamId) {
+          const { data: teamData, error: teamError } = await supabase
+            .from('team')
+            .select('org_id')
+            .eq('id', teamId as any)
+            .single();
           
-          // First check if we have a role from members list
-          if (members?.length > 0) {
-            // Find the member that corresponds to current user
-            const currentMember = members.find(m => m.auth_uid === authUserId);
-            if (currentMember) {
-              determinedRole = currentMember.role;
-              console.log('Current user role from members list:', currentMember.role);
-            }
+          if (teamError) {
+            console.error('Error fetching team:', teamError);
+            setError('Failed to load team data');
+            return;
           }
           
-          // If we have an accessRole from team membership check
-          if (!determinedRole && accessRole) {
-            determinedRole = accessRole;
-            console.log('Current user role from accessRole:', accessRole);
-          }
+          const teamOrgId = teamData?.org_id;
           
-          // Get organization role
-          try {
-            if (teamId && teamId !== 'none') {
-              const { data: teamData } = await supabase
-                .from('team')
-                .select('org_id')
-                .eq('id', teamId)
-                .single();
-                
-              if (teamData?.org_id) {
-                const { data: orgRole } = await supabase.rpc('get_org_role', {
-                  p_auth_user_id: authUserId,
-                  p_org_id: teamData.org_id
-                });
-                
-                setOrganizationRole(orgRole);
-                
-                // Get effective role (combining team and org roles)
-                const effectiveRole = getEffectiveRole(determinedRole, orgRole);
-                determinedRole = effectiveRole;
-              }
-            }
-          } catch (error) {
-            console.error('Error getting organization role:', error);
-          }
+          // Get user's current role in organization
+          const { data: orgRoleData, error: orgRoleError } = await supabase
+            .rpc('get_org_role', { 
+              p_auth_user_id: userId as any, 
+              p_org_id: teamOrgId as any 
+            });
           
-          if (determinedRole) {
-            console.log('Final determined role:', determinedRole);
-            setCurrentUserRole(determinedRole);
-            
-            // Check if the role allows management (manager, owner, admin)
-            const managerRoles = ['manager', 'owner', 'admin', 'creator'];
-            setCanChangeRoles(managerRoles.includes(determinedRole));
+          if (orgRoleError) {
+            console.error('Error fetching user org role:', orgRoleError);
           } else {
-            console.log('No role could be determined for user');
-            setCurrentUserRole(undefined);
-            setCanChangeRoles(false);
+            setOrgRole(String(orgRoleData || ''));
+            setCanAssignRoles(['owner', 'manager'].includes(String(orgRoleData)));
+          }
+          
+          // Get team members
+          const { data: membersData, error: membersError } = await supabase
+            .rpc('get_team_members_with_roles', { _team_id: teamId as any });
+          
+          if (membersError) {
+            setError('Failed to load team members');
+            console.error('Error fetching team members:', membersError);
+          } else {
+            setTeamMembers(membersData || []);
           }
         }
-      })();
-    } else {
-      // Reset role when team changes
-      setCurrentUserRole(undefined);
-      setCanChangeRoles(false);
-    }
-  }, [members, teamId, accessRole]);
-
-  // Handle role upgrade request
-  const handleRequestRoleUpgrade = async (teamId: string) => {
-    try {
-      setIsRequestingRole(true);
-      const result = await requestRoleUpgrade(teamId);
-      toast.success("Role upgrade requested", {
-        description: result.message,
-      });
-    } catch (error: any) {
-      toast.error("Error requesting role upgrade", {
-        description: error.message,
-      });
-    } finally {
-      setIsRequestingRole(false);
-    }
-  };
-
-  // Handle direct role upgrade (for users with permission)
-  const handleUpgradeRole = async (teamId: string) => {
-    try {
-      setIsUpgradingRole(true);
-      await upgradeToManagerRole(teamId);
-      toast.success("Role upgraded successfully", {
-        description: "You are now a team manager",
-      });
-      setCurrentUserRole('manager');
-      setCanChangeRoles(true);
-    } catch (error: any) {
-      toast.error("Error upgrading role", {
-        description: error.message,
-      });
-    } finally {
-      setIsUpgradingRole(false);
-    }
-  };
+      } catch (err) {
+        console.error('Error loading role data:', err);
+        setError('Failed to load role data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadRoleData();
+  }, [userId, teamId]);
 
   return {
-    currentUserRole,
-    organizationRole,
-    canChangeRoles,
-    isUpgradingRole,
-    isRequestingRole,
-    handleRequestRoleUpgrade,
-    handleUpgradeRole
+    orgRole,
+    teamMembers,
+    canAssignRoles,
+    isLoading,
+    error
   };
 }

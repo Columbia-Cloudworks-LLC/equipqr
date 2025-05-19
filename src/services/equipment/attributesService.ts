@@ -12,7 +12,7 @@ export async function getEquipmentAttributes(equipmentId: string): Promise<Equip
     const { data, error } = await supabase
       .from('equipment_attributes')
       .select('*')
-      .eq('equipment_id', equipmentId);
+      .eq('equipment_id', equipmentId as any);
       
     if (error) {
       console.error('Error fetching equipment attributes:', error);
@@ -20,7 +20,7 @@ export async function getEquipmentAttributes(equipmentId: string): Promise<Equip
     }
     
     console.log(`Found ${data?.length || 0} attributes for equipment ${equipmentId}:`, data);
-    return data || [];
+    return (data || []) as EquipmentAttribute[];
   } catch (error) {
     console.error('Error in getEquipmentAttributes:', error);
     return [];
@@ -43,7 +43,7 @@ export async function saveEquipmentAttributes(
     const { data: existingAttributes, error: fetchError } = await supabase
       .from('equipment_attributes')
       .select('*')
-      .eq('equipment_id', equipmentId);
+      .eq('equipment_id', equipmentId as any);
       
     if (fetchError) {
       console.error('Error fetching existing equipment attributes:', fetchError);
@@ -89,7 +89,7 @@ export async function saveEquipmentAttributes(
       const { error: deleteError } = await supabase
         .from('equipment_attributes')
         .delete()
-        .in('id', toDelete);
+        .in('id', toDelete as any);
         
       if (deleteError) {
         console.error('Error deleting equipment attributes:', deleteError);
@@ -102,7 +102,7 @@ export async function saveEquipmentAttributes(
       const { error: updateError } = await supabase
         .from('equipment_attributes')
         .update({ key: attr.key, value: attr.value })
-        .eq('id', attr.id);
+        .eq('id', attr.id as any);
         
       if (updateError) {
         console.error(`Error updating equipment attribute ${attr.id}:`, updateError);
@@ -114,7 +114,7 @@ export async function saveEquipmentAttributes(
     if (toInsert.length > 0) {
       const { error: insertError } = await supabase
         .from('equipment_attributes')
-        .insert(toInsert);
+        .insert(toInsert as any);
         
       if (insertError) {
         console.error('Error inserting equipment attributes:', insertError);
@@ -126,7 +126,7 @@ export async function saveEquipmentAttributes(
     const { data: updatedAttributes, error: refetchError } = await supabase
       .from('equipment_attributes')
       .select('*')
-      .eq('equipment_id', equipmentId);
+      .eq('equipment_id', equipmentId as any);
       
     if (refetchError) {
       console.error('Error refetching equipment attributes:', refetchError);
@@ -134,7 +134,7 @@ export async function saveEquipmentAttributes(
     }
     
     console.log('Updated equipment attributes:', updatedAttributes);
-    return updatedAttributes || [];
+    return (updatedAttributes || []) as EquipmentAttribute[];
   } catch (error) {
     console.error('Error in saveEquipmentAttributes:', error);
     throw error;

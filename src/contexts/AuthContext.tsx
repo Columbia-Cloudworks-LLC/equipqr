@@ -10,7 +10,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthMethods } from '@/hooks/useAuthMethods';
 
 interface AuthContextType {
-  supabaseClient: SupabaseClient<Database> | null;
+  supabaseClient: SupabaseClient<Database>;
   session: Session | null;
   user: Session['user'] | null;
   isLoading: boolean;
@@ -23,7 +23,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({
-  supabaseClient: null,
+  supabaseClient: null as any,
   session: null,
   user: null,
   isLoading: true,
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Get authentication methods
   const { signInWithGoogle, signIn, signUp, resetPassword, signOut } = useAuthMethods();
 
-  const value = {
+  const value: AuthContextType = {
     supabaseClient: supabase,
     session,
     user,

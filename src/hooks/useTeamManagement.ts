@@ -126,13 +126,111 @@ export function useTeamManagement() {
     }
   }, [selectedTeamId, fetchPendingInvitations]);
 
+  const createTeam = async (name: string) => {
+    if (!name || name.trim() === '') {
+      setError('Team name is required');
+      return { success: false, error: 'Team name is required' };
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
+      
+      if (!userId) {
+        throw new Error('Authentication required');
+      }
+
+      const { data: userData, error: userError } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', userId as any)
+        .single();
+
+      if (userError || !userData) {
+        throw new Error('Failed to get user organization');
+      }
+
+      const { data: teamData, error: createError } = await supabase
+        .from('team')
+        .insert({
+          name, 
+          org_id: userData.org_id,
+          created_by: userId
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        throw createError;
+      }
+
+      if (!teamData) {
+        throw new Error('Failed to create team');
+      }
+
+      // Fix the app_user query 
+      const { data: appUserData, error: appUserError } = await supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', userId as any)
+        .single();
+
+      if (appUserError || !appUserData) {
+        throw new Error('Failed to get user data');
+      }
+
+      const appUserId = appUserData.id;
+
+      // Add creator as a team member with manager role
+      const { data: memberData, error: memberError } = await supabase
+        .from('team_member')
+        .insert({
+          team_id: teamData.id,
+          user_id: appUserId
+        })
+        .select()
+        .single();
+
+      if (memberError || !memberData) {
+        throw new Error('Failed to add member to team');
+      }
+
+      const { error: roleError } = await supabase
+        .from('team_roles')
+        .insert({
+          team_member_id: memberData.id,
+          role: 'manager',
+          assigned_by: userId
+        });
+
+      if (roleError) {
+        throw new Error('Failed to assign team role');
+      }
+
+      setTeams(prevTeams => prevTeams ? [...prevTeams, teamData as any] : [teamData as any]);
+      
+      return { success: true, team: teamData };
+
+    } catch (error) {
+      console.error('Failed to create team:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCreateAndSelectTeam = useCallback(async (name: string) => {
-    const team = await handleCreateTeam(name);
+    const team = await createTeam(name);
     if (team?.id) {
       setSelectedTeamId(team.id);
     }
     return team;
-  }, [handleCreateTeam]);
+  }, [createTeam]);
   
   // Enhanced delete team handler that updates selection if needed
   const handleDeleteAndUpdateSelection = useCallback(async (teamId: string) => {

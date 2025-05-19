@@ -23,13 +23,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
-      debug: true, // Enable debug mode for better logging
-      onAuthStateChange: (event, session) => {
-        console.log('Client: Auth state change detected:', event);
-        if (event === 'SIGNED_OUT') {
-          console.log('Client: User signed out, clearing local storage');
-        }
-      }
+      debug: true // Enable debug mode for better logging
     },
     global: {
       headers: {
@@ -38,3 +32,11 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Set up auth event listener outside the client creation
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Client: Auth state change detected:', event);
+  if (event === 'SIGNED_OUT') {
+    console.log('Client: User signed out, clearing local storage');
+  }
+});

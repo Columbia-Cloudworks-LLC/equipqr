@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { createSupabaseStorage } from "@/utils/storageAdapter";
@@ -11,7 +12,7 @@ export function setupAuthInterceptors() {
     unsubscribe: () => {}
   };
 
-  // Log auth errors manually since onError might not be available
+  // Log auth events manually
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
       console.log('User signed out');
