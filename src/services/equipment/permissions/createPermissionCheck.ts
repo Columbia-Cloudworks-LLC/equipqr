@@ -170,13 +170,31 @@ export async function directDatabasePermissionCheck(authUserId: string, teamId?:
     
     console.log('Direct DB permission check result:', data);
     
-    if (!data?.permission_check?.has_permission) {
+    // Type guard to ensure we're working with a proper object structure
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response format from database');
+    }
+    
+    // Explicitly define and check the shape of the returned data
+    interface PermissionCheckResult {
+      permission_check?: { 
+        has_permission: boolean;
+        org_id?: string;
+      };
+      user_info?: {
+        user_org_id?: string;
+      };
+    }
+    
+    const typedData = data as PermissionCheckResult;
+    
+    if (!typedData.permission_check?.has_permission) {
       throw new Error('You do not have permission to create equipment');
     }
     
     return {
       hasPermission: true,
-      orgId: data.user_info?.user_org_id || data.permission_check?.org_id
+      orgId: typedData.permission_check?.org_id || typedData.user_info?.user_org_id
     };
   } catch (error) {
     console.error('Direct database permission check failed:', error);
