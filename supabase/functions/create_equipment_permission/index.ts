@@ -35,6 +35,69 @@ function createErrorResponse(message: string, status: number = 400) {
   );
 }
 
+/**
+ * Try multiple approaches to check equipment creation permission
+ */
+async function tryPermissionCheck(supabase: any, user_id: string, team_id: string | null) {
+  // Attempt #1: Try the check_equipment_create_permission function with explicit parameters
+  try {
+    console.log('Attempt #1: Using check_equipment_create_permission with explicit parameters');
+    const { data, error } = await supabase.rpc(
+      'check_equipment_create_permission',
+      { 
+        p_user_id: user_id,
+        p_team_id: team_id
+      }
+    );
+
+    if (error) throw error;
+    console.log('Attempt #1 successful:', data);
+    return data;
+  } catch (error1) {
+    console.error('Attempt #1 failed:', error1);
+    
+    // Attempt #2: Try the simplified_equipment_create_permission function
+    try {
+      console.log('Attempt #2: Using simplified_equipment_create_permission');
+      const { data: simplifiedData, error: simplifiedError } = await supabase.rpc(
+        'simplified_equipment_create_permission',
+        { 
+          p_user_id: user_id,
+          p_team_id: team_id
+        }
+      );
+
+      if (simplifiedError) throw simplifiedError;
+      console.log('Attempt #2 successful:', simplifiedData);
+      return simplifiedData;
+    } catch (error2) {
+      console.error('Attempt #2 failed:', error2);
+      
+      // Attempt #3: Try a direct database query approach with RPC function
+      try {
+        console.log('Attempt #3: Using rpc_check_equipment_permission function');
+        const { data: rpcData, error: rpcError } = await supabase.rpc(
+          'rpc_check_equipment_permission',
+          { 
+            user_id: user_id,
+            action: 'create',
+            team_id: team_id
+          }
+        );
+
+        if (rpcError) throw rpcError;
+        console.log('Attempt #3 successful:', rpcData);
+        return rpcData;
+      } catch (error3) {
+        console.error('Attempt #3 failed:', error3);
+        
+        // All attempts failed
+        throw new Error('All permission check methods failed');
+      }
+    }
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -56,7 +119,7 @@ serve(async (req) => {
       return createErrorResponse(`Invalid JSON in request body: ${parseError.message}`);
     }
     
-    const { user_id, team_id } = body;
+    let { user_id, team_id } = body;
     
     // Validate parameters
     if (!user_id) {
@@ -64,7 +127,7 @@ serve(async (req) => {
       return createErrorResponse("Missing required parameter: user_id");
     }
     
-    // Log parameters for debugging
+    // Log parameters with types for debugging
     console.log(`Parameters received: user_id=${user_id} (${typeof user_id}), team_id=${team_id || 'null'} (${typeof team_id})`);
     
     // Validate UUID format for user_id
@@ -74,8 +137,11 @@ serve(async (req) => {
       return createErrorResponse("Invalid UUID format for user_id");
     }
     
-    // If team_id is provided, validate it as well
-    if (team_id && team_id !== 'null' && team_id !== 'none' && !uuidRegex.test(team_id)) {
+    // Handle team_id nulls and validate format if provided
+    if (team_id === 'null' || team_id === 'none' || team_id === '') {
+      team_id = null;
+      console.log('Normalized team_id to null');
+    } else if (team_id !== null && !uuidRegex.test(team_id)) {
       console.error(`Invalid UUID format for team_id: ${team_id}`);
       return createErrorResponse("Invalid UUID format for team_id");
     }
@@ -92,51 +158,34 @@ serve(async (req) => {
     console.log(`Initializing Supabase client with URL: ${supabaseUrl.substring(0, 20)}...`);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Prepare parameters for the database function call
-    const functionParams: Record<string, any> = {
-      p_user_id: user_id,
-      // Handle different null/none values that might be passed from frontend
-      p_team_id: (team_id && team_id !== 'none' && team_id !== 'null') ? team_id : null
-    };
-    
-    console.log('Calling DB function check_equipment_create_permission with params:', functionParams);
-    
-    // Call the database function with explicit parameters
-    const { data, error } = await supabase.rpc(
-      'check_equipment_create_permission',
-      functionParams
-    );
-    
-    // Log the result or error
-    if (error) {
-      console.error('Database function error details:', error);
+    // Try multiple permission check approaches
+    try {
+      const permissionData = await tryPermissionCheck(supabase, user_id, team_id);
       
-      // Check for specific type mismatch errors
-      if (error.message && error.message.includes('operator does not exist')) {
-        console.error('Type mismatch error detected. This is often caused by UUID vs string comparison issues.');
-        return createErrorResponse(`Permission check failed due to type mismatch: ${error.message}`);
+      // Format the response consistently regardless of the method used
+      const formattedResponse = {
+        can_create: permissionData.has_permission || permissionData.can_create || false,
+        org_id: permissionData.org_id,
+        reason: permissionData.reason || 'unknown'
+      };
+      
+      console.log('Final permission check result:', formattedResponse);
+      return createSuccessResponse(formattedResponse);
+      
+    } catch (error) {
+      console.error('All permission check attempts failed:', error);
+      
+      // Provide a more specific error message based on the error
+      if (error.message?.includes('operator does not exist')) {
+        return createErrorResponse('Database type mismatch error. Please report this to support.');
       }
       
-      return createErrorResponse(`Permission check failed: ${error.message}`);
+      if (error.message?.includes('function') && error.message?.includes('does not exist')) {
+        return createErrorResponse('Required database functions are missing. Please contact support.');
+      }
+      
+      return createErrorResponse(`Permission check failed: ${error.message || 'Unknown error'}`);
     }
-    
-    if (!data || data.length === 0) {
-      console.error('Permission check returned no data');
-      return createErrorResponse('Invalid response from permission check');
-    }
-    
-    console.log('Permission check result:', data);
-    
-    // The check_equipment_create_permission function returns rows, so take the first one
-    const permissionData = data[0];
-    
-    // Return a simplified response with the expected format
-    return createSuccessResponse({
-      can_create: permissionData.has_permission,
-      org_id: permissionData.org_id,
-      reason: permissionData.reason
-    });
-    
   } catch (error) {
     console.error('Unexpected error:', error);
     return createErrorResponse(error.message || 'Unknown error');
