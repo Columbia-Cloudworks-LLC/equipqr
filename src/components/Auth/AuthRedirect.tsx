@@ -24,30 +24,40 @@ export function AuthRedirect() {
     const handleAuthenticated = async () => {
       console.log(`User is authenticated, redirecting to ${returnPath}`);
       
-      // Validate session before redirecting
-      const isValidSession = await checkSession();
-      
-      if (!isValidSession) {
-        console.error('Session validation failed in AuthRedirect');
-        toast.error('Session Error', {
-          description: 'There was an issue with your authentication. Please try signing in again.'
+      try {
+        // Validate session before redirecting
+        const isValidSession = await checkSession();
+        
+        if (!isValidSession) {
+          console.error('Session validation failed in AuthRedirect');
+          toast.error('Session Error', {
+            description: 'There was an issue with your authentication. Please try signing in again.'
+          });
+          return;
+        }
+        
+        // Clear stored return path
+        localStorage.removeItem('authReturnTo');
+        
+        // Show success message
+        toast.success('Authenticated', {
+          description: message || 'You are now signed in'
         });
-        return;
+        
+        // Include state to indicate coming from auth (useful for equipment form)
+        navigate(returnPath, { 
+          replace: true,
+          state: { 
+            fromAuth: true,
+            refreshSession: true // Add flag to indicate session should be refreshed
+          }
+        });
+      } catch (error) {
+        console.error('Error handling authentication redirect:', error);
+        toast.error('Authentication Error', {
+          description: 'Failed to complete sign-in process. Please try again.'
+        });
       }
-      
-      // Clear stored return path
-      localStorage.removeItem('authReturnTo');
-      
-      // Show success message
-      toast.success('Authenticated', {
-        description: message || 'You are now signed in'
-      });
-      
-      // Include state to indicate coming from auth (useful for equipment form)
-      navigate(returnPath, { 
-        replace: true,
-        state: { fromAuth: true }
-      });
     };
     
     // Only proceed after auth state is determined

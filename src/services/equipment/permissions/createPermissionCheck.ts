@@ -73,6 +73,8 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
     // Check if this is a session/authentication error
     if (error.message?.includes('Authentication required') || 
         error.message?.includes('sign in')) {
+      // Store the current location so we can redirect back after login
+      localStorage.setItem('authReturnTo', window.location.pathname);
       throw error; // Re-throw authentication errors to trigger proper redirect
     }
     
@@ -82,6 +84,13 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
       return await fallbackPermissionCheck(authUserId, teamId);
     } catch (fallbackError: any) {
       console.error('Fallback permission check failed:', fallbackError);
+      
+      // Check again for auth errors in fallback
+      if (fallbackError.message?.includes('Authentication required') || 
+          fallbackError.message?.includes('sign in')) {
+        localStorage.setItem('authReturnTo', window.location.pathname);
+        throw fallbackError;
+      }
       
       // Enhance error information with type diagnosis
       if (fallbackError.message?.includes('type mismatch')) {
@@ -189,6 +198,13 @@ export async function directDatabasePermissionCheck(authUserId: string, teamId?:
   try {
     console.log('Using direct database permission check as last resort');
     
+    // Check session here as well
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session) {
+      console.error('No valid session found in direct database permission check');
+      throw new Error('Authentication required. Please sign in to continue.');
+    }
+    
     // Normalize teamId value for consistency
     const normalizedTeamId = teamId && teamId !== 'none' ? teamId : null;
     
@@ -237,26 +253,30 @@ export async function directDatabasePermissionCheck(authUserId: string, teamId?:
   } catch (error: any) {
     console.error('Direct database permission check failed:', error);
     
+    // Check for auth errors here too
+    if (error.message?.includes('Authentication required') || 
+        error.message?.includes('sign in')) {
+      throw error;
+    }
+    
     // If database check also fails, try one last approach - get user org only
-    if (!error.message?.includes('Authentication required')) {
-      try {
-        console.log('Attempting simplified org-only permission check');
-        const { data: userProfile } = await supabase
-          .from('user_profiles')
-          .select('org_id')
-          .eq('id', authUserId)
-          .single();
+    try {
+      console.log('Attempting simplified org-only permission check');
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', authUserId)
+        .single();
           
-        if (userProfile?.org_id) {
-          console.log('Retrieved user org_id as fallback:', userProfile.org_id);
-          return {
-            hasPermission: true,
-            orgId: userProfile.org_id
-          };
-        }
-      } catch (profileError) {
-        console.error('Profile fallback failed:', profileError);
+      if (userProfile?.org_id) {
+        console.log('Retrieved user org_id as fallback:', userProfile.org_id);
+        return {
+          hasPermission: true,
+          orgId: userProfile.org_id
+        };
       }
+    } catch (profileError) {
+      console.error('Profile fallback failed:', profileError);
     }
     
     throw error;

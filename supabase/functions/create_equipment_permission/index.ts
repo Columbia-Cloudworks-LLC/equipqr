@@ -36,10 +36,27 @@ function createErrorResponse(message: string, status: number = 400) {
 }
 
 /**
+ * Check if a string is a valid UUID
+ */
+function isValidUuid(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
+/**
  * Try multiple approaches to check equipment creation permission
  * with improved type handling and debugging
  */
 async function tryPermissionCheck(supabase: any, user_id: string, team_id: string | null) {
+  // Validate input parameters again for safety
+  if (!isValidUuid(user_id)) {
+    throw new Error('Invalid UUID format for user_id');
+  }
+  
+  if (team_id !== null && team_id !== undefined && !isValidUuid(team_id)) {
+    throw new Error('Invalid UUID format for team_id');
+  }
+
   // Attempt #1: Try the simplified_equipment_create_permission function first (new optimized function)
   try {
     console.log('Attempt #1: Using simplified_equipment_create_permission');
@@ -51,7 +68,11 @@ async function tryPermissionCheck(supabase: any, user_id: string, team_id: strin
       }
     );
 
-    if (simplifiedError) throw simplifiedError;
+    if (simplifiedError) {
+      console.error('Simplified permission check error:', simplifiedError);
+      throw simplifiedError;
+    }
+    
     console.log('Attempt #1 successful:', simplifiedData);
     return simplifiedData;
   } catch (error1) {
@@ -68,7 +89,11 @@ async function tryPermissionCheck(supabase: any, user_id: string, team_id: strin
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error('check_equipment_create_permission error:', error);
+        throw error;
+      }
+      
       console.log('Attempt #2 successful:', data);
       
       // Process and normalize the result to ensure consistent format
@@ -95,7 +120,11 @@ async function tryPermissionCheck(supabase: any, user_id: string, team_id: strin
           }
         );
 
-        if (rpcError) throw rpcError;
+        if (rpcError) {
+          console.error('rpc_check_equipment_permission error:', rpcError);
+          throw rpcError;
+        }
+        
         console.log('Attempt #3 successful:', rpcData);
         return rpcData;
       } catch (error3) {
@@ -112,7 +141,11 @@ async function tryPermissionCheck(supabase: any, user_id: string, team_id: strin
             }
           );
 
-          if (safeError) throw safeError;
+          if (safeError) {
+            console.error('can_create_equipment_safe error:', safeError);
+            throw safeError;
+          }
+          
           console.log('Attempt #4 successful:', safeData);
           
           // Format response consistently
@@ -137,6 +170,14 @@ serve(async (req) => {
   }
 
   try {
+    // Check for authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      console.warn('No authorization header provided');
+    } else {
+      console.log('Authorization header is present');
+    }
+
     // Log the raw request body for debugging
     const rawBody = await req.text();
     console.log(`Raw request body: ${rawBody}`);
@@ -188,7 +229,11 @@ serve(async (req) => {
     }
     
     console.log(`Initializing Supabase client with URL: ${supabaseUrl.substring(0, 20)}...`);
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false
+      }
+    });
     
     // Try multiple permission check approaches
     try {
@@ -211,6 +256,11 @@ serve(async (req) => {
       
     } catch (error) {
       console.error('All permission check attempts failed:', error);
+      
+      // Handle authorization errors specially
+      if (authHeader === null || authHeader === undefined) {
+        return createErrorResponse('Authentication required. Please sign in to continue.', 401);
+      }
       
       // Provide a more specific error message based on the error
       if (error.message?.includes('operator does not exist')) {
