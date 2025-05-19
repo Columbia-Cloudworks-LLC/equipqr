@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isValidUuid } from "@/utils/validationUtils";
+import { invokeEdgeFunctionWithRetry } from "@/utils/edgeFunctionUtils";
 
 interface PermissionResult {
   canCreate: boolean;
