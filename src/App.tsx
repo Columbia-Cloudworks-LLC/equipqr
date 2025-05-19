@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AppRoutes from './AppRoutes';
 import { AuthProvider } from './contexts/AuthContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
-import { NotificationsProvider } from './contexts/NotificationsContext';
 
 import './App.css';
 
@@ -23,9 +22,7 @@ function App() {
       <Router>
         <AuthProvider>
           <OrganizationProvider>
-            <NotificationsProvider>
-              <AppRoutes />
-            </NotificationsProvider>
+            <AppRoutes />
           </OrganizationProvider>
         </AuthProvider>
       </Router>
