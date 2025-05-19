@@ -1,8 +1,42 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { createSuccessResponse, createErrorResponse, corsHeaders } from '../_shared/cors.ts';
 import { validateEquipmentPermissionPayload } from '../_shared/validation.ts';
 import { tryPermissionCheck, initSupabaseClient } from './permissionCheck.ts';
+
+// Inline the cors headers and functions instead of importing them
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+};
+
+// Inline the success response function
+function createSuccessResponse(data: any, status: number = 200) {
+  return new Response(
+    JSON.stringify(data),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      },
+      status 
+    }
+  );
+}
+
+// Inline the error response function
+function createErrorResponse(message: string, status: number = 400) {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      }, 
+      status 
+    }
+  );
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
