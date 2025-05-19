@@ -1,7 +1,4 @@
 
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Package } from 'lucide-react';
 import { SearchField } from './SearchField';
 import { StatusFilter } from './StatusFilter';
 import { TeamFilter } from './TeamFilter';
@@ -61,13 +58,6 @@ export function EquipmentFilters({
           onChange={onTeamChange} 
           teams={teams} 
         />
-        
-        <Button asChild>
-          <Link to="/equipment/new">
-            <Package className="mr-2 h-4 w-4" />
-            Add Equipment
-          </Link>
-        </Button>
       </div>
     </div>
   );

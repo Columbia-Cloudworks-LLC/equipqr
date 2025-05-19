@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { AlertDialog, AlertDialogTrigger } from '../ui/alert-dialog';
-import { Settings, Trash, ExternalLink, AlertTriangle } from 'lucide-react';
+import { ExternalLink, AlertTriangle, Settings } from 'lucide-react';
 import { DeleteTeamButton } from './DeleteTeamButton';
 import { EditTeamButton } from './EditTeamButton';
 import { Badge } from '../ui/badge';
@@ -108,27 +107,17 @@ export function TeamSettings({
               <AlertTriangle className="h-4 w-4" /> Danger Zone
             </h4>
             
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  onClick={checkEquipmentCount}
-                >
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete Team
-                </Button>
-              </AlertDialogTrigger>
-              
-              <DeleteTeamButton
-                teamId={team?.id}
+            {team?.id && (
+              <DeleteTeamButton 
+                teamId={team.id}
                 teamName={team?.name || ''}
                 onDeleteTeam={onDelete}
                 isDeleting={isDeleting}
                 hasEquipment={!!equipmentCount && equipmentCount > 0}
                 equipmentCount={equipmentCount || 0}
+                onBeforeDelete={checkEquipmentCount}
               />
-            </AlertDialog>
+            )}
           </div>
         )}
       </div>

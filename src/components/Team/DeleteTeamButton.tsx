@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,6 +12,7 @@ interface DeleteTeamButtonProps {
   isDeleting?: boolean;
   hasEquipment?: boolean;
   equipmentCount?: number;
+  onBeforeDelete?: () => Promise<void>;
 }
 
 export function DeleteTeamButton({ 
@@ -20,7 +21,8 @@ export function DeleteTeamButton({
   onDeleteTeam, 
   isDeleting = false,
   hasEquipment = false,
-  equipmentCount = 0
+  equipmentCount = 0,
+  onBeforeDelete
 }: DeleteTeamButtonProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,17 @@ export function DeleteTeamButton({
   
   // Combined deleting state for better UX
   const isInProgress = isDeleting || localDeleting;
+  
+  const handleOpenChange = async (isOpen: boolean) => {
+    if (isOpen && onBeforeDelete) {
+      try {
+        await onBeforeDelete();
+      } catch (err) {
+        console.error('Error in onBeforeDelete:', err);
+      }
+    }
+    setOpen(isOpen);
+  };
   
   const handleDelete = async () => {
     try {
@@ -64,13 +77,17 @@ export function DeleteTeamButton({
   };
   
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="sm" className="flex items-center gap-2">
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </Button>
-      </AlertDialogTrigger>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
+      <Button 
+        variant="destructive" 
+        size="sm"
+        className="flex items-center gap-2"
+        onClick={() => handleOpenChange(true)}
+      >
+        <Trash2 className="h-4 w-4" />
+        Delete Team
+      </Button>
+      
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Team</AlertDialogTitle>

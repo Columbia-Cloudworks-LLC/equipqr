@@ -40,7 +40,7 @@ export function EquipmentDetailContent({
         <div className="flex gap-2">
           {canEdit && (
             <>
-              <Button asChild>
+              <Button asChild size="sm">
                 <Link to={`/equipment/${id}/edit`}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
@@ -53,7 +53,7 @@ export function EquipmentDetailContent({
               />
             </>
           )}
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" size="sm">
             <Link to={`/equipment/${id}/qr`}>
               View QR Code
             </Link>
