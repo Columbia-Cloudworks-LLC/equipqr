@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Organization } from './types';
 import { handleOrganizationError } from './errors';
@@ -12,7 +11,7 @@ export interface UserOrganization extends Organization {
  * Fetch all organizations the current user has access to
  * Includes organizations they are a member of or have a role in
  */
-export async function getAllUserOrganizations(): Promise<UserOrganization[]> {
+export async function getAllUserOrganizations(forceRefresh: boolean = false): Promise<UserOrganization[]> {
   try {
     // Get current user
     const { data: session, error: sessionError } = await supabase.auth.getSession();
