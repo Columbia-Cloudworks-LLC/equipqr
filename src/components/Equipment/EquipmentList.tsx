@@ -3,18 +3,12 @@ import { Equipment } from '@/types';
 import { EquipmentFilters } from './Filters/EquipmentFilters';
 import { EquipmentTable } from './Table/EquipmentTable';
 import { useEquipmentFilters } from './hooks/useEquipmentFilters';
-
-interface Organization {
-  id: string;
-  name: string;
-  role?: string;
-  is_primary?: boolean;
-}
+import { UserOrganization } from '@/services/organization/userOrganizations';
 
 interface EquipmentListProps {
   equipment: Equipment[];
   isLoading?: boolean;
-  organizations?: Organization[];
+  organizations?: UserOrganization[];
   selectedOrgId?: string;
   onOrganizationChange?: (orgId: string) => void;
   showOrgSelector?: boolean;

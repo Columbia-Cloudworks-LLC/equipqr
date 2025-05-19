@@ -1,60 +1,29 @@
 
-import { Building } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { UserOrganization } from '@/services/organization/userOrganizations';
+import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 
 interface OrganizationFilterProps {
   organizations: UserOrganization[];
   selectedOrgId?: string;
   onChange: (orgId: string) => void;
-  placeholder?: string;
-  className?: string;
 }
 
-export function OrganizationFilter({ 
-  organizations, 
-  selectedOrgId, 
-  onChange,
-  placeholder = "All organizations",
-  className = "w-[200px]"
+export function OrganizationFilter({
+  organizations,
+  selectedOrgId,
+  onChange
 }: OrganizationFilterProps) {
   if (organizations.length <= 1) {
-    return null; // Don't render if there's only one or no organizations
+    return null; // Don't show filter if there's only one or no organization
   }
-
+  
   return (
-    <Select value={selectedOrgId} onValueChange={onChange}>
-      <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">All organizations</SelectItem>
-        {organizations.map((org) => (
-          <SelectItem key={org.id} value={org.id}>
-            <div className="flex items-center">
-              <Building className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              {org.name}
-              {org.is_primary && (
-                <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-blue-50">
-                  Primary
-                </Badge>
-              )}
-              {!org.is_primary && org.role && (
-                <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-gray-50">
-                  {org.role}
-                </Badge>
-              )}
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <OrganizationSelector
+      organizations={organizations}
+      selectedOrgId={selectedOrgId}
+      onChange={onChange}
+      placeholder="All Organizations"
+      className="min-w-[200px] max-w-xs"
+    />
   );
 }
