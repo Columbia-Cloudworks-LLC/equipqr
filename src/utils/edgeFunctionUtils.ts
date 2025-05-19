@@ -5,15 +5,15 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-// Default timeout for edge function calls in milliseconds (10 seconds)
-const DEFAULT_TIMEOUT = 10000;
+// Default timeout for edge function calls in milliseconds (8 seconds)
+const DEFAULT_TIMEOUT = 8000;
 
 /**
  * Invoke a Supabase edge function with timeout handling
  * 
  * @param functionName The edge function name to call
  * @param payload The payload to send to the function
- * @param timeout Optional timeout in milliseconds (defaults to 10 seconds)
+ * @param timeout Optional timeout in milliseconds (defaults to 8 seconds)
  * @returns The function response data or throws an error
  */
 export async function invokeEdgeFunction<T = any>(
@@ -34,6 +34,13 @@ export async function invokeEdgeFunction<T = any>(
   const functionPromise = async (): Promise<T> => {
     try {
       console.log(`Calling edge function ${functionName} with payload:`, JSON.stringify(payload));
+      
+      // Check session validity before making call
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        console.error(`Edge function ${functionName} called without valid session`);
+        throw new Error('Authentication required. Please sign in to continue.');
+      }
       
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: payload
@@ -57,12 +64,25 @@ export async function invokeEdgeFunction<T = any>(
     } catch (error: any) {
       console.error(`Edge function ${functionName} failed:`, error);
       
+      // Check if this is an auth error
+      if (error.message?.includes('Authentication required')) {
+        throw error; // Re-throw auth errors as is
+      }
+      
       // Enhanced error detail reporting
       if (error.message?.includes('status code:')) {
         const statusMatch = error.message.match(/status code: (\d+)/);
         if (statusMatch) {
           const statusCode = statusMatch[1];
           console.error(`HTTP status ${statusCode} received from edge function`);
+          
+          if (statusCode === '401' || statusCode === '403') {
+            throw new Error('Authentication required. Please sign in to continue.');
+          } else if (statusCode === '404') {
+            throw new Error(`Edge function ${functionName} not found. Please contact support.`);
+          } else if (statusCode === '500') {
+            throw new Error(`Server error in ${functionName}. Please try again later.`);
+          }
         }
       }
       
@@ -112,10 +132,16 @@ export async function invokeEdgeFunctionWithRetry<T = any>(
       lastError = error;
       console.warn(`Attempt ${attempt + 1}/${retries + 1} failed for ${functionName}:`, error);
       
+      // If this is an auth error, don't retry
+      if (error.message?.includes('Authentication required') || 
+          error.message?.includes('sign in')) {
+        throw error;
+      }
+      
       // Provide detailed failure information
       const isNetworkError = error.message?.includes('network') || 
-                             error.message?.includes('fetch') ||
-                             error.message?.includes('connection');
+                           error.message?.includes('fetch') ||
+                           error.message?.includes('connection');
       
       const isTimeoutError = error.message?.includes('timed out');
       

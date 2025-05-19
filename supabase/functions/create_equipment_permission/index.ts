@@ -37,39 +37,49 @@ function createErrorResponse(message: string, status: number = 400) {
 
 /**
  * Try multiple approaches to check equipment creation permission
+ * with improved type handling and debugging
  */
 async function tryPermissionCheck(supabase: any, user_id: string, team_id: string | null) {
-  // Attempt #1: Try the check_equipment_create_permission function with explicit parameters
+  // Attempt #1: Try the simplified_equipment_create_permission function first (new optimized function)
   try {
-    console.log('Attempt #1: Using check_equipment_create_permission with explicit parameters');
-    const { data, error } = await supabase.rpc(
-      'check_equipment_create_permission',
+    console.log('Attempt #1: Using simplified_equipment_create_permission');
+    const { data: simplifiedData, error: simplifiedError } = await supabase.rpc(
+      'simplified_equipment_create_permission',
       { 
         p_user_id: user_id,
         p_team_id: team_id
       }
     );
 
-    if (error) throw error;
-    console.log('Attempt #1 successful:', data);
-    return data;
+    if (simplifiedError) throw simplifiedError;
+    console.log('Attempt #1 successful:', simplifiedData);
+    return simplifiedData;
   } catch (error1) {
     console.error('Attempt #1 failed:', error1);
     
-    // Attempt #2: Try the simplified_equipment_create_permission function
+    // Attempt #2: Try the check_equipment_create_permission function with explicit parameters
     try {
-      console.log('Attempt #2: Using simplified_equipment_create_permission');
-      const { data: simplifiedData, error: simplifiedError } = await supabase.rpc(
-        'simplified_equipment_create_permission',
+      console.log('Attempt #2: Using check_equipment_create_permission with explicit parameters');
+      const { data, error } = await supabase.rpc(
+        'check_equipment_create_permission',
         { 
           p_user_id: user_id,
           p_team_id: team_id
         }
       );
 
-      if (simplifiedError) throw simplifiedError;
-      console.log('Attempt #2 successful:', simplifiedData);
-      return simplifiedData;
+      if (error) throw error;
+      console.log('Attempt #2 successful:', data);
+      
+      // Process and normalize the result to ensure consistent format
+      if (Array.isArray(data) && data.length > 0) {
+        return {
+          can_create: data[0].has_permission,
+          org_id: data[0].org_id,
+          reason: data[0].reason || 'unknown'
+        };
+      }
+      return data;
     } catch (error2) {
       console.error('Attempt #2 failed:', error2);
       
@@ -91,8 +101,30 @@ async function tryPermissionCheck(supabase: any, user_id: string, team_id: strin
       } catch (error3) {
         console.error('Attempt #3 failed:', error3);
         
-        // All attempts failed
-        throw new Error('All permission check methods failed');
+        // Final attempt: Try with direct access to can_create_equipment_safe function
+        try {
+          console.log('Attempt #4: Using can_create_equipment_safe');
+          const { data: safeData, error: safeError } = await supabase.rpc(
+            'can_create_equipment_safe',
+            { 
+              p_user_id: user_id,
+              p_team_id: team_id
+            }
+          );
+
+          if (safeError) throw safeError;
+          console.log('Attempt #4 successful:', safeData);
+          
+          // Format response consistently
+          return {
+            can_create: safeData === true,
+            org_id: null, // This function doesn't return org_id
+            reason: safeData ? 'safe_check' : 'denied_by_safe_check'
+          };
+        } catch (error4) {
+          console.error('Attempt #4 failed:', error4);
+          throw new Error('All permission check methods failed');
+        }
       }
     }
   }
@@ -162,6 +194,11 @@ serve(async (req) => {
     try {
       const permissionData = await tryPermissionCheck(supabase, user_id, team_id);
       
+      if (!permissionData) {
+        console.error('Permission check returned no data');
+        return createErrorResponse('Permission check failed: No data returned');
+      }
+      
       // Format the response consistently regardless of the method used
       const formattedResponse = {
         can_create: permissionData.has_permission || permissionData.can_create || false,
@@ -177,17 +214,21 @@ serve(async (req) => {
       
       // Provide a more specific error message based on the error
       if (error.message?.includes('operator does not exist')) {
-        return createErrorResponse('Database type mismatch error. Please report this to support.');
+        return createErrorResponse('Database type mismatch error. Please report this to support.', 500);
       }
       
       if (error.message?.includes('function') && error.message?.includes('does not exist')) {
-        return createErrorResponse('Required database functions are missing. Please contact support.');
+        return createErrorResponse('Required database function is missing. The system administrator has been notified.', 500);
       }
       
-      return createErrorResponse(`Permission check failed: ${error.message || 'Unknown error'}`);
+      if (error.message?.includes('type mismatch') || error.message?.includes('convert')) {
+        return createErrorResponse('Data type conversion error. Please try again or contact support.', 500);
+      }
+      
+      return createErrorResponse(`Permission check failed: ${error.message || 'Unknown error'}`, 500);
     }
   } catch (error) {
     console.error('Unexpected error:', error);
-    return createErrorResponse(error.message || 'Unknown error');
+    return createErrorResponse(error.message || 'Unknown error', 500);
   }
 });

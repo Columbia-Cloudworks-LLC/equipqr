@@ -1300,6 +1300,10 @@ export type Database = {
         }
         Returns: Json
       }
+      simplified_equipment_create_permission: {
+        Args: { p_user_id: string; p_team_id?: string }
+        Returns: Json
+      }
       test_equipment_permission_flow: {
         Args: { auth_user_id: string; team_id?: string }
         Returns: Json
