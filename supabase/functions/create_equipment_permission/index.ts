@@ -62,9 +62,9 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Call the simplified permission check function
+    // Use check_equipment_create_permission instead of simplified_equipment_create_permission
     const { data, error } = await supabase.rpc(
-      'simplified_equipment_create_permission',
+      'check_equipment_create_permission',
       { 
         p_user_id: user_id,
         p_team_id: team_id || null
@@ -76,17 +76,21 @@ serve(async (req) => {
       return createErrorResponse(`Permission check failed: ${error.message}`);
     }
     
-    if (!data) {
+    if (!data || data.length === 0) {
+      console.error('Permission check returned no data');
       return createErrorResponse('Invalid response from permission check');
     }
     
     console.log('Permission check result:', data);
     
+    // The check_equipment_create_permission function returns rows, so take the first one
+    const permissionData = data[0];
+    
     // Return a simplified response with the expected format
     return createSuccessResponse({
-      can_create: data.can_create,
-      org_id: data.org_id,
-      reason: data.reason
+      can_create: permissionData.has_permission,
+      org_id: permissionData.org_id,
+      reason: permissionData.reason
     });
     
   } catch (error) {

@@ -1,30 +1,25 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunctionWithRetry } from "@/utils/edgeFunctionUtils";
 
 /**
- * Simplified permission check for equipment creation
- * Using a direct edge function that avoids UUID comparison issues
+ * Enhanced permission check for equipment creation
+ * Using an edge function that avoids UUID comparison issues
  */
 export async function checkCreatePermission(authUserId: string, teamId?: string | null) {
   try {
-    console.log('Using simplified permission check for equipment creation');
+    console.log('Using enhanced permission check for equipment creation');
     console.log(`Parameters: authUserId=${authUserId}, teamId=${teamId || 'none'}`);
     
-    // Call our dedicated edge function for equipment creation permission
-    const { data, error } = await supabase.functions.invoke(
+    // Use the utility function for more reliable edge function calling
+    const data = await invokeEdgeFunctionWithRetry(
       'create_equipment_permission',
       {
-        body: {
-          user_id: authUserId,
-          team_id: teamId && teamId !== 'none' ? teamId : null
-        }
-      }
+        user_id: authUserId,
+        team_id: teamId && teamId !== 'none' ? teamId : null
+      },
+      { retries: 2, timeout: 8000 }
     );
-    
-    if (error) {
-      console.error('Edge function error:', error);
-      throw new Error(`Permission check failed: ${error.message}`);
-    }
     
     if (!data) {
       console.error('No data returned from permission check');
@@ -50,36 +45,32 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
 }
 
 /**
- * Fallback is now also using the edge function
- * to avoid the database function type issues
+ * Fallback permission check that uses the check_equipment_permission edge function
+ * as a backup if the primary permission check fails
  */
 export async function fallbackPermissionCheck(authUserId: string, teamId?: string | null) {
   try {
-    console.log('Using fallback permission check with edge function');
+    console.log('Using fallback permission check with check_equipment_permission');
     
-    // Use our edge function directly again as a fallback
-    const { data, error } = await supabase.functions.invoke(
-      'create_equipment_permission',
+    // Use the check_equipment_permission edge function which may be more reliable
+    const data = await invokeEdgeFunctionWithRetry(
+      'check_equipment_permission',
       {
-        body: {
-          user_id: authUserId,
-          team_id: teamId && teamId !== 'none' ? teamId : null
-        }
-      }
+        user_id: authUserId,
+        equipment_id: null,
+        action: 'create',
+        team_id: teamId && teamId !== 'none' ? teamId : null
+      },
+      { timeout: 10000, retries: 1 }
     );
     
-    if (error) {
-      console.error('Fallback permission check error:', error);
-      throw new Error(`Permission check failed: ${error.message}`);
-    }
-    
     if (!data || typeof data !== 'object') {
-      console.error('Invalid response format:', data);
+      console.error('Invalid response format from fallback:', data);
       throw new Error('Failed to determine permission');
     }
     
-    if (!data.can_create) {
-      throw new Error(`You don't have permission to create equipment. Reason: ${data.reason}`);
+    if (!data.has_permission) {
+      throw new Error(`You don't have permission to create equipment. Reason: ${data.reason || 'Access denied'}`);
     }
     
     return { 

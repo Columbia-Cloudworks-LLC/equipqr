@@ -44,8 +44,16 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
       permissionResult = await checkCreatePermission(authUserId, equipment.team_id);
       orgId = permissionResult.orgId;
       console.log(`Permission check successful. Using org ID: ${orgId}`);
-    } catch (permError) {
+    } catch (permError: any) {
       console.error('Primary permission check failed:', permError);
+      
+      // Check for specific database function error and provide clearer messaging
+      if (permError.message?.includes('function') && 
+          permError.message?.includes('not found in the schema cache')) {
+        console.warn('Database function issue detected. Trying fallback method...');
+      } else {
+        console.warn('Permission check error. Trying fallback method...');
+      }
       
       try {
         // Try fallback method
@@ -53,9 +61,19 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
         const fallbackResult = await fallbackPermissionCheck(authUserId, equipment.team_id);
         orgId = fallbackResult.orgId;
         console.log(`Fallback successful. Using org ID: ${orgId}`);
-      } catch (fallbackError) {
+      } catch (fallbackError: any) {
         console.error('Fallback permission check failed:', fallbackError);
-        throw new Error(`Permission check failed: ${fallbackError.message || 'Access denied'}`);
+        
+        // Provide more helpful error messages based on the error type
+        if (fallbackError.message?.includes('Edge function') || 
+            fallbackError.message?.includes('timed out')) {
+          throw new Error('Server permission service is temporarily unavailable. Please try again in a few moments.');
+        } else if (fallbackError.message?.includes('permission') ||
+                  fallbackError.message?.includes('access')) {
+          throw new Error(fallbackError.message || 'You do not have permission to create equipment');
+        } else {
+          throw new Error(`Permission check failed: ${fallbackError.message || 'Access denied'}`);
+        }
       }
     }
     

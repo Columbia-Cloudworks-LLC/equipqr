@@ -10,7 +10,7 @@ import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
 import { createEquipment } from '@/services/equipment/equipmentCreateService';
 import { updateEquipment } from '@/services/equipment/equipmentUpdateService';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const EquipmentFormPage = () => {
@@ -32,7 +32,14 @@ const EquipmentFormPage = () => {
           toast.error('Authentication Required', {
             description: 'You must be logged in to access this page',
           });
-          navigate('/auth');
+          // Save current path to return after login
+          const currentPath = window.location.pathname;
+          navigate('/auth', { 
+            state: { 
+              returnTo: currentPath,
+              message: 'You need to sign in to manage equipment'
+            } 
+          });
         }
       } catch (error) {
         console.error('Auth check error:', error);
@@ -88,6 +95,10 @@ const EquipmentFormPage = () => {
         toast.error('Permission Error', {
           description: errorMessage,
         });
+      } else if (errorMessage.includes('Server permission service')) {
+        toast.error('Service Temporarily Unavailable', {
+          description: errorMessage,
+        });
       } else if (errorMessage.includes('Edge Function') || errorMessage.includes('function invoke error')) {
         toast.error('Server Error', {
           description: 'There was an issue with the permission check service. Please try again or contact support if the problem persists.',
@@ -131,6 +142,17 @@ const EquipmentFormPage = () => {
   });
 
   const handleSave = (formData: Partial<Equipment>) => {
+    // Ensure user is authenticated before proceeding
+    if (authStatus !== 'authenticated') {
+      toast.error('Authentication Required', {
+        description: 'Please log in to save equipment data',
+      });
+      navigate('/auth', { 
+        state: { returnTo: window.location.pathname }
+      });
+      return;
+    }
+    
     // Process team_id - ensure it's handled correctly (null vs empty string)
     const processedData = {
       ...formData,
@@ -152,6 +174,9 @@ const EquipmentFormPage = () => {
       <Layout>
         <div className="flex-1 p-6">
           <h1 className="text-2xl font-bold mb-6">Loading...</h1>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
         </div>
       </Layout>
     );
@@ -163,7 +188,7 @@ const EquipmentFormPage = () => {
       <Layout>
         <div className="flex-1 p-6">
           <Alert variant="destructive">
-            <Info className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4" />
             <AlertTitle>Authentication Required</AlertTitle>
             <AlertDescription>
               You must be logged in to view this page.
