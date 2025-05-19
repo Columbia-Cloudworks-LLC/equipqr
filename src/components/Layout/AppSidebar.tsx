@@ -40,7 +40,7 @@ const mainNavItems = [
   },
   {
     title: "Teams",
-    href: "/team",
+    href: "/teams", // Fixed: changed from "/team" to "/teams" to match the route
     icon: Users,
   },
   {

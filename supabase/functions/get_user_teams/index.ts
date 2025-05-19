@@ -113,6 +113,7 @@ serve(async (req) => {
     
     if (include_all_orgs) {
       // Get all organizations where user has a role of manager or higher
+      // Fixed: Using only valid role values from the enum ('owner', 'manager')
       const { data: userOrgs, error: userOrgsError } = await supabase
         .from('user_roles')
         .select(`
@@ -121,7 +122,7 @@ serve(async (req) => {
           org:org_id (name)
         `)
         .eq('user_id', user_id)
-        .in('role', ['owner', 'manager', 'admin']);
+        .in('role', ['owner', 'manager']); // Fixed: Removed 'admin' which is an invalid enum value
       
       if (userOrgsError) {
         console.error('Error getting user organizations:', userOrgsError);
@@ -162,7 +163,8 @@ serve(async (req) => {
                   org: team.org
                 },
                 team_roles: [{
-                  role: userOrg?.role || 'manager' // Default to manager if role not found
+                  // Fixed: Using valid role value from the existing role or defaulting to 'manager'
+                  role: userOrg?.role || 'manager' 
                 }],
                 is_from_org_role: true
               };
