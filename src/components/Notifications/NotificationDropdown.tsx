@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Bell, ExternalLink, AlertCircle, RotateCcw } from 'lucide-react';
 import { InvitationNotification } from "./InvitationNotification";
-import { useNotifications } from "@/contexts/NotificationsContext";
+import { useNotificationsSafe } from "@/hooks/useNotificationsSafe";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function NotificationDropdown() {
@@ -24,7 +24,7 @@ export function NotificationDropdown() {
     refreshNotifications, 
     dismissInvitation,
     resetDismissedNotifications
-  } = useNotifications();
+  } = useNotificationsSafe();
   const { user } = useAuth();
   const [localLoading, setLocalLoading] = useState(false);
 

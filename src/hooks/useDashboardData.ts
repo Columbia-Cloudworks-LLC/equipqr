@@ -4,10 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { getEquipment } from '@/services/equipment';
 import { Equipment, TeamMember } from '@/types';
 import { MOCK_TEAM_MEMBERS } from '@/data/mockData';
-import { useNotifications } from '@/contexts/NotificationsContext';
+import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 
 export function useDashboardData() {
-  const { invitations, refreshNotifications } = useNotifications();
+  const { invitations, refreshNotifications } = useNotificationsSafe();
   
   const { data: equipmentData = [], isLoading, isError } = useQuery({
     queryKey: ['equipment'],
