@@ -24,15 +24,25 @@ serve(async (req) => {
   }
 
   try {
-    // Get the Authorization header from the request
+    console.log('Processing organization invitation acceptance request');
+    
+    // Extract authorization header - this contains the user's JWT token
     const authHeader = req.headers.get('Authorization');
+    
     if (!authHeader) {
+      console.error('Missing Authorization header');
       return new Response(
-        JSON.stringify({ error: 'Missing Authorization header' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Authentication required' 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
-
+    
+    console.log('Authorization header present, creating authenticated client');
+    
+    // Create authenticated client using the user's token
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
@@ -46,21 +56,40 @@ serve(async (req) => {
 
     // Get the current user's session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
+    
+    if (sessionError) {
+      console.error('Error getting session:', sessionError);
       return new Response(
-        JSON.stringify({ error: 'Not authenticated', details: sessionError?.message || 'No session found' }),
+        JSON.stringify({ 
+          success: false,
+          error: 'Authentication error', 
+          details: sessionError.message 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+    
+    if (!session) {
+      console.error('No session found in getSession() response');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'No authenticated session found' 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
     const currentUser = session.user;
+    console.log(`User authenticated: ${currentUser.id} (${currentUser.email})`);
     
     // Parse request body
-    const { token } = await req.json() as RequestBody;
+    const requestData = await req.json();
+    const { token } = requestData as RequestBody;
     
     if (!token) {
       return new Response(
-        JSON.stringify({ error: 'Missing invitation token' }),
+        JSON.stringify({ success: false, error: 'Missing invitation token' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -78,15 +107,23 @@ serve(async (req) => {
     if (inviteError || !invitation) {
       console.error('Error fetching invitation:', inviteError);
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired invitation', details: inviteError?.message }),
+        JSON.stringify({ 
+          success: false,
+          error: 'Invalid or expired invitation', 
+          details: inviteError?.message 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
 
+    console.log(`Found invitation for ${invitation.email} to join ${invitation.organization.name}`);
+
     // Validate the invitation is for the current user
     if (currentUser.email?.toLowerCase() !== invitation.email.toLowerCase()) {
+      console.error(`Email mismatch: invitation for ${invitation.email}, but user is ${currentUser.email}`);
       return new Response(
         JSON.stringify({ 
+          success: false,
           error: `This invitation was sent to ${invitation.email}. Please log in with that email to accept.` 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
@@ -95,21 +132,28 @@ serve(async (req) => {
 
     // Check if the invitation has expired
     if (new Date(invitation.expires_at) < new Date()) {
+      console.error('Invitation has expired:', invitation.expires_at);
       return new Response(
-        JSON.stringify({ error: 'This invitation has expired' }),
+        JSON.stringify({ success: false, error: 'This invitation has expired' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 410 }
       );
     }
 
     // Check if user is already a member of this organization
-    const { data: existingRole } = await adminClient
+    const { data: existingRole, error: existingRoleError } = await adminClient
       .from('user_roles')
-      .select('id')
+      .select('id, role')
       .eq('org_id', invitation.org_id)
       .eq('user_id', currentUser.id)
       .single();
       
+    if (existingRoleError && !existingRoleError.message.includes('No rows found')) {
+      console.error('Error checking existing role:', existingRoleError);
+    }
+      
     if (existingRole) {
+      console.log(`User is already a member of this organization with role: ${existingRole.role}`);
+      
       // Update the invitation status even if already a member
       await adminClient
         .from('organization_invitations')
@@ -132,6 +176,8 @@ serve(async (req) => {
       );
     }
 
+    console.log('Adding user to organization with role:', invitation.role);
+    
     // Begin a transaction to add the user to the organization
     // 1. Add the user to user_roles
     const { error: roleError } = await adminClient
@@ -146,23 +192,34 @@ serve(async (req) => {
     if (roleError) {
       console.error('Error assigning role:', roleError);
       return new Response(
-        JSON.stringify({ error: `Failed to assign role: ${roleError.message}` }),
+        JSON.stringify({ 
+          success: false,
+          error: `Failed to assign role: ${roleError.message}` 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
     // 2. Update user_profiles if they don't have an org_id set
-    const { data: profile } = await adminClient
+    const { data: profile, error: profileError } = await adminClient
       .from('user_profiles')
       .select('org_id')
       .eq('id', currentUser.id)
       .single();
     
+    if (profileError && !profileError.message.includes('No rows found')) {
+      console.error('Error checking user profile:', profileError);
+    }
+    
     if (profile && !profile.org_id) {
-      await adminClient
+      const { error: updateProfileError } = await adminClient
         .from('user_profiles')
         .update({ org_id: invitation.org_id })
         .eq('id', currentUser.id);
+        
+      if (updateProfileError) {
+        console.error('Error updating user profile:', updateProfileError);
+      }
     }
 
     // 3. Mark the invitation as accepted
@@ -179,6 +236,8 @@ serve(async (req) => {
       // Not critical as the user is already added to the organization
     }
 
+    console.log('Successfully added user to organization');
+    
     // Return success
     return new Response(
       JSON.stringify({ 
@@ -192,10 +251,13 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in accept_organization_invitation:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'An unexpected error occurred' }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message || 'An unexpected error occurred' 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

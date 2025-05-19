@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { acceptInvitation } from "@/services/team/invitationService";
 import { Check, X, Loader2 } from 'lucide-react';
 import { Invitation } from '@/types/notifications';
 import { useInvitationAcceptance } from '@/hooks/useInvitationAcceptance';
@@ -21,7 +20,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const [isDeclined, setIsDeclined] = useState(false);
   const navigate = useNavigate();
   const { refreshNotifications } = useNotifications();
-  const { acceptInvitation: acceptInvite } = useInvitationAcceptance();
+  const { acceptInvitation } = useInvitationAcceptance();
   
   // Determine if this is a team or organization invitation
   const isTeamInvitation = invitation.invitationType === 'team' || invitation.team !== null;
@@ -42,11 +41,17 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
     try {
       setIsAccepting(true);
       
+      // Log what we're doing
+      console.log(`Accepting invitation: ${invitation.token.substring(0, 8)}... (Type: ${isOrgInvitation ? 'organization' : 'team'})`);
+      
       // Use the updated acceptInvitation hook that handles both invitation types
-      await acceptInvite(invitation.token, isOrgInvitation ? 'organization' : 'team');
+      await acceptInvitation(invitation.token, isOrgInvitation ? 'organization' : 'team');
       
       // Call the onAccept callback to update the parent component
       onAccept();
+      
+      // Update the local state to remove the notification
+      setIsDeclined(true);
       
       // Refresh the notifications list
       setTimeout(() => {
@@ -54,8 +59,8 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
       }, 500);
       
     } catch (error: any) {
-      toast.error(`Failed to accept invitation: ${error.message}`);
       console.error("Invitation acceptance error:", error);
+      toast.error(`Failed to accept invitation: ${error.message}`);
     } finally {
       setIsAccepting(false);
     }

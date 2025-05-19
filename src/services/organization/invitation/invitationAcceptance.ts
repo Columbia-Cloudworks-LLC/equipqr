@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { validateOrganizationInvitation } from './invitationValidation';
 import { InvitationResult } from './types';
+import { invokeEdgeFunctionWithRetry } from '@/utils/edgeFunctionUtils';
 
 /**
  * Accept an organization invitation
@@ -25,15 +26,11 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
       return { success: false, error: 'You must be logged in to accept an invitation' };
     }
     
-    // Call the edge function to accept the invitation
-    const { data, error } = await supabase.functions.invoke('accept_organization_invitation', {
-      body: { token }
+    // Call the edge function to accept the invitation using our retry utility
+    const data = await invokeEdgeFunctionWithRetry('accept_organization_invitation', { token }, {
+      maxRetries: 2,
+      timeoutMs: 10000
     });
-    
-    if (error) {
-      console.error('Error accepting organization invitation:', error);
-      return { success: false, error: error.message || 'Failed to accept invitation' };
-    }
     
     if (!data?.success) {
       console.error('Error in accept_organization_invitation:', data?.error);
