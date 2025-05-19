@@ -36,48 +36,46 @@ export const fallbackPermissionCheck = async (
       
       console.log('Test permission flow result:', data);
       
-      // Ensure data is of the expected type
-      const typedData = data as DirectDBPermissionResult;
-      
-      // Check if data and permission_check exist and have expected structure
-      if (!typedData || !typedData.permission_check) {
+      // More defensive type checking for the fallback flow
+      if (!data || typeof data !== 'object') {
         throw new Error('Invalid response format from permission check');
       }
       
-      const permResult = typedData.permission_check;
+      // Safe type assertion
+      const typedData = data as DirectDBPermissionResult;
       
-      // Safely check the has_permission property
-      const hasPermission = typeof permResult === 'object' && 
-                            permResult !== null && 
-                            'has_permission' in permResult && 
-                            !!permResult.has_permission;
+      // Verify the expected structure exists
+      const permissionCheck = typedData.permission_check;
+      if (!permissionCheck || typeof permissionCheck !== 'object') {
+        throw new Error('Missing permission_check in response');
+      }
+      
+      // Safely determine permission result
+      const hasPermission = 'has_permission' in permissionCheck && Boolean(permissionCheck.has_permission);
       
       if (!hasPermission) {
         throw new Error('Permission denied by fallback check');
       }
       
-      // Safely extract org_id and reason
-      const orgId = typeof permResult === 'object' && 
-                    permResult !== null && 
-                    'org_id' in permResult ? 
-                    permResult.org_id as string : 
-                    (typedData.user_info?.user_org_id || null);
+      // Safely extract org_id and reason with fallbacks
+      let orgId: string | null = null;
+      if (permissionCheck && typeof permissionCheck === 'object' && 'org_id' in permissionCheck) {
+        orgId = permissionCheck.org_id as string || null;
+      } else if (typedData.user_info && typeof typedData.user_info === 'object' && 'user_org_id' in typedData.user_info) {
+        orgId = typedData.user_info.user_org_id as string || null;
+      }
       
-      const reason = typeof permResult === 'object' && 
-                     permResult !== null && 
-                     'reason' in permResult ? 
-                     permResult.reason as string : 
-                     'fallback_success';
+      const reason = permissionCheck && typeof permissionCheck === 'object' && 'reason' in permissionCheck ? 
+                    permissionCheck.reason as string : 'fallback_success';
       
       return {
         canCreate: true,
-        orgId: orgId,
-        reason: reason
+        orgId,
+        reason
       };
     }
   } catch (error: any) {
     console.error('All fallback methods failed:', error);
-    
     throw new Error(`Permission check failed after all fallbacks: ${error.message}`);
   }
 };
@@ -103,27 +101,30 @@ export const directDatabasePermissionCheck = async (
     throw error;
   }
   
-  // Validate the response structure
+  // Validate the response exists
   if (!data) {
     throw new Error('Empty response from permission check');
+  }
+  
+  // Safely work with the response object
+  if (typeof data !== 'object') {
+    throw new Error('Invalid response type from permission check');
   }
   
   // Type assertion with runtime validation
   const typedData = data as { has_permission?: boolean; org_id?: string; reason?: string };
   
-  // Validate required properties exist
-  if (typeof typedData !== 'object' || !('has_permission' in typedData)) {
-    throw new Error('Invalid response format: missing has_permission property');
-  }
+  // Check if key properties exist
+  const hasPermission = 'has_permission' in typedData && Boolean(typedData.has_permission);
   
-  // Check if permission is granted
-  if (!typedData.has_permission) {
+  if (!hasPermission) {
     throw new Error('Permission denied by database check');
   }
   
+  // Safe extraction of properties with fallbacks
   return {
-    canCreate: !!typedData.has_permission,
-    orgId: (typedData.org_id as string) || null,
-    reason: (typedData.reason as string) || 'direct_db_check'
+    canCreate: hasPermission,
+    orgId: 'org_id' in typedData ? (typedData.org_id as string) || null : null,
+    reason: 'reason' in typedData ? (typedData.reason as string) || 'direct_db_check' : 'direct_db_check'
   };
 };

@@ -19,8 +19,14 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
     }
     
     // Get the current user's auth ID
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      throw new Error('Authentication error: Please log in again');
+    }
+    
     if (!sessionData?.session?.user) {
+      console.error('No session user found');
       throw new Error('User must be logged in to create equipment');
     }
     
@@ -47,16 +53,15 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
     } catch (permError: any) {
       console.error('Primary permission check failed:', permError);
       
-      // Check for specific database function error and provide clearer messaging
-      if (permError.message?.includes('function') && 
-          permError.message?.includes('not found in the schema cache')) {
-        console.warn('Database function issue detected. Trying fallback method...');
-      } else {
-        console.warn('Permission check error. Trying fallback method...');
-      }
+      // More detailed diagnostic logging
+      console.log('Permission check error details:', { 
+        message: permError.message, 
+        stack: permError.stack,
+        name: permError.name
+      });
       
       try {
-        // Try fallback method
+        // Try fallback method with more robustness
         console.log('Attempting fallback permission check...');
         const fallbackResult = await fallbackPermissionCheck(authUserId, equipment.team_id);
         orgId = fallbackResult.orgId;

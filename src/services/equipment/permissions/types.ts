@@ -14,6 +14,8 @@ export interface EdgePermissionResponse {
   has_permission?: boolean;
   org_id?: string;
   reason?: string;
+  error?: string;
+  status?: number;
 }
 
 export interface DirectDBPermissionResult {

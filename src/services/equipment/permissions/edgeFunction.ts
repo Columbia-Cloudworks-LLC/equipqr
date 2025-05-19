@@ -44,6 +44,7 @@ export const checkCreatePermission = async (
       }
     );
 
+    // Enhanced error handling
     if (error) {
       console.error('Edge function error:', error);
       throw new Error(`Permission check failed: ${error.message}`);
@@ -56,10 +57,16 @@ export const checkCreatePermission = async (
 
     console.log('Edge function response:', data);
 
+    // Safely parse the response
+    const response = data as EdgePermissionResponse;
+    
+    // Look for both can_create and has_permission properties
+    const hasPermission = response.can_create === true || response.has_permission === true;
+    
     return {
-      canCreate: data.can_create === true,
-      orgId: data.org_id,
-      reason: data.reason
+      canCreate: hasPermission,
+      orgId: response.org_id || null,
+      reason: response.reason || 'edge_function'
     };
   } catch (error: any) {
     console.error('Error checking permission:', error);

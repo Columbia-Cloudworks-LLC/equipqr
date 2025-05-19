@@ -86,35 +86,60 @@ serve(async (req) => {
       try {
         console.log('Checking creation permission...');
         
-        // Prepare parameters
-        const functionParams: Record<string, any> = {
-          p_user_id: user_id,
-          p_team_id: (team_id && team_id !== 'none' && team_id !== 'null') ? team_id : null
-        };
+        // Convert team_id to proper format for the database function
+        let formattedTeamId = team_id;
+        if (team_id === 'null' || team_id === 'none' || team_id === '') {
+          formattedTeamId = null;
+        }
         
-        console.log('Calling check_equipment_create_permission with params:', functionParams);
+        console.log('Using formatted team ID:', formattedTeamId);
         
+        // Call the database function with explicit parameter naming and typing
         const { data: permData, error: permError } = await supabase.rpc(
-          'check_equipment_create_permission', 
-          functionParams
+          'simplified_equipment_create_permission', 
+          { 
+            p_user_id: user_id,
+            p_team_id: formattedTeamId
+          }
         );
         
         if (permError) {
           console.error('Error checking creation permission:', permError);
-          return createErrorResponse(`Permission check failed: ${permError.message}`);
-        }
-        
-        if (!permData || permData.length === 0) {
-          console.error('No permission data returned');
-          return createErrorResponse('Invalid response from permission check');
+          
+          // Try an alternate function if the first one fails
+          const { data: altData, error: altError } = await supabase.rpc(
+            'check_equipment_create_permission', 
+            { 
+              p_user_id: user_id,
+              p_team_id: formattedTeamId
+            }
+          );
+          
+          if (altError) {
+            console.error('Alternate permission check also failed:', altError);
+            return createErrorResponse(`Permission check failed: ${altError.message}`);
+          }
+          
+          console.log('Alternate permission check result:', altData);
+          
+          if (Array.isArray(altData) && altData.length > 0) {
+            return createSuccessResponse({
+              has_permission: altData[0].has_permission,
+              org_id: altData[0].org_id,
+              reason: altData[0].reason
+            });
+          } else {
+            return createErrorResponse('Invalid response from permission check');
+          }
         }
         
         console.log('Permission result:', permData);
         
+        // For the simplified function that returns JSON
         return createSuccessResponse({
-          has_permission: permData[0].has_permission,
-          org_id: permData[0].org_id,
-          reason: permData[0].reason
+          has_permission: permData.can_create || false,
+          org_id: permData.org_id,
+          reason: permData.reason
         });
       } catch (error) {
         console.error('Error in creation permission check:', error);
@@ -131,33 +156,69 @@ serve(async (req) => {
       // For view action
       if (action === 'view') {
         console.log(`Checking view permission for equipment ${equipment_id}`);
-        const { data, error } = await supabase.rpc('can_access_equipment', { 
-          p_uid: user_id,
-          p_equipment_id: equipment_id
-        });
         
-        if (error) {
-          console.error('Access check error:', error);
-          return createErrorResponse(`Access check failed: ${error.message}`);
+        try {
+          const { data, error } = await supabase.rpc('can_access_equipment', { 
+            p_uid: user_id,
+            p_equipment_id: equipment_id
+          });
+          
+          if (error) {
+            console.error('Access check error:', error);
+            
+            // Try direct query as fallback
+            const { data: equipment } = await supabase
+              .from('equipment')
+              .select('id, org_id, team_id')
+              .eq('id', equipment_id)
+              .is('deleted_at', null)
+              .single();
+              
+            if (!equipment) {
+              return createErrorResponse('Equipment not found');
+            }
+            
+            const { data: userProfile } = await supabase
+              .from('user_profiles')
+              .select('org_id')
+              .eq('id', user_id)
+              .single();
+              
+            // Allow access if same organization
+            if (userProfile && equipment && userProfile.org_id === equipment.org_id) {
+              return createSuccessResponse({ has_permission: true, reason: 'same_org' });
+            }
+            
+            return createErrorResponse('Access denied - not in same organization', 403);
+          }
+          
+          return createSuccessResponse({ has_permission: !!data });
+        } catch (viewError) {
+          console.error('View permission check error:', viewError);
+          return createErrorResponse(`View permission error: ${viewError.message}`);
         }
-        
-        return createSuccessResponse({ has_permission: data });
       }
       
       // For edit action
       if (action === 'edit') {
         console.log(`Checking edit permission for equipment ${equipment_id}`);
-        const { data, error } = await supabase.rpc('can_edit_equipment', { 
-          p_uid: user_id,
-          p_equipment_id: equipment_id
-        });
         
-        if (error) {
-          console.error('Edit permission check error:', error);
-          return createErrorResponse(`Edit permission check failed: ${error.message}`);
+        try {
+          const { data, error } = await supabase.rpc('can_edit_equipment', { 
+            p_uid: user_id,
+            p_equipment_id: equipment_id
+          });
+          
+          if (error) {
+            console.error('Edit permission check error:', error);
+            return createErrorResponse(`Edit permission check failed: ${error.message}`);
+          }
+          
+          return createSuccessResponse({ has_permission: !!data });
+        } catch (editError) {
+          console.error('Edit permission check error:', editError);
+          return createErrorResponse(`Edit permission error: ${editError.message}`);
         }
-        
-        return createSuccessResponse({ has_permission: data });
       }
     }
     

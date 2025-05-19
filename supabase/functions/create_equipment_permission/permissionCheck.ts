@@ -13,18 +13,25 @@ export async function tryPermissionCheck(supabase: any, user_id: string, team_id
     throw new Error('Invalid UUID format for user_id');
   }
   
-  if (team_id !== null && team_id !== undefined && !uuidRegex.test(team_id)) {
+  if (team_id !== null && team_id !== undefined && typeof team_id === 'string' && !uuidRegex.test(team_id)) {
     throw new Error('Invalid UUID format for team_id');
   }
 
+  // Normalize team_id 
+  const normalizedTeamId = team_id === 'none' || team_id === 'null' || team_id === '' ? null : team_id;
+
   // Attempt #1: Try the simplified_equipment_create_permission function first (new optimized function)
   try {
-    console.log('Attempt #1: Using simplified_equipment_create_permission');
+    console.log('Attempt #1: Using simplified_equipment_create_permission with params:', { 
+      p_user_id: user_id, 
+      p_team_id: normalizedTeamId 
+    });
+    
     const { data: simplifiedData, error: simplifiedError } = await supabase.rpc(
       'simplified_equipment_create_permission',
       { 
         p_user_id: user_id,
-        p_team_id: team_id
+        p_team_id: normalizedTeamId
       }
     );
 
@@ -40,12 +47,16 @@ export async function tryPermissionCheck(supabase: any, user_id: string, team_id
     
     // Attempt #2: Try the check_equipment_create_permission function with explicit parameters
     try {
-      console.log('Attempt #2: Using check_equipment_create_permission with explicit parameters');
+      console.log('Attempt #2: Using check_equipment_create_permission with explicit parameters:', {
+        p_user_id: user_id,
+        p_team_id: normalizedTeamId
+      });
+      
       const { data, error } = await supabase.rpc(
         'check_equipment_create_permission',
         { 
           p_user_id: user_id,
-          p_team_id: team_id
+          p_team_id: normalizedTeamId
         }
       );
 
@@ -76,7 +87,7 @@ export async function tryPermissionCheck(supabase: any, user_id: string, team_id
           { 
             user_id: user_id,
             action: 'create',
-            team_id: team_id
+            team_id: normalizedTeamId
           }
         );
 
@@ -97,7 +108,7 @@ export async function tryPermissionCheck(supabase: any, user_id: string, team_id
             'can_create_equipment_safe',
             { 
               p_user_id: user_id,
-              p_team_id: team_id
+              p_team_id: normalizedTeamId
             }
           );
 
