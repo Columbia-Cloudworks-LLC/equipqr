@@ -1,10 +1,13 @@
+
+/* Remove constraining styles from #root element */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  /* max-width, margin and padding removed to allow full-width layout */
+  width: 100%;
+  height: 100%;
+  text-align: left; /* Changed from center to left for better alignment */
 }
 
+/* Keep animation styles that may still be needed */
 .logo {
   height: 6em;
   padding: 1.5em;
