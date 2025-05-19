@@ -1,24 +1,19 @@
 
 import React from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { useInvitationValidation } from '@/hooks/useInvitationValidation';
-import { useInvitationAcceptance } from '@/hooks/useInvitationAcceptance';
-import { InvitationLoading } from '@/components/Invitation/InvitationLoading';
-import { InvitationError } from '@/components/Invitation/InvitationError';
-import { InvalidInvitation } from '@/components/Invitation/InvalidInvitation';
-import { InvitationContent } from '@/components/Invitation/InvitationContent';
+import { useParams } from 'react-router-dom';
+import { useInvitationValidation } from '../hooks/useInvitationValidation';
+import { useInvitationAcceptance } from '../hooks/useInvitationAcceptance';
+import InvalidInvitation from '../components/Invitation/InvalidInvitation';
+import InvitationContent from '../components/Invitation/InvitationContent';
+import InvitationLoading from '../components/Invitation/InvitationLoading';
+import InvitationError from '../components/Invitation/InvitationError';
 
-function InvitationPage() {
-  const { token } = useParams();
-  const [searchParams] = useSearchParams();
-  const invitationType = searchParams.get('type') || 'team';
-  
-  // Custom hooks for validation and acceptance
-  const { isValidating, error, invitation } = useInvitationValidation(token);
-  const { acceptInvitationHandler } = useInvitationAcceptance();
+const InvitationPage: React.FC = () => {
+  const { token } = useParams<{ token: string }>();
+  const { isValidating, isValid, error, invitation, user, isAuthLoading } = useInvitationValidation(token || '');
+  const { acceptInvitation, isAccepting, acceptError } = useInvitationAcceptance();
 
-  // Render appropriate UI based on state
-  if (isValidating) {
+  if (isValidating || isAuthLoading) {
     return <InvitationLoading />;
   }
 
@@ -26,18 +21,19 @@ function InvitationPage() {
     return <InvitationError error={error} />;
   }
 
-  if (!invitation) {
+  if (!isValid || !invitation) {
     return <InvalidInvitation />;
   }
 
   return (
-    <InvitationContent
-      invitationType={invitationType as 'team' | 'organization'}
-      invitationDetails={invitation}
-      onAccept={acceptInvitationHandler}
-      token={token!}
+    <InvitationContent 
+      invitation={invitation} 
+      user={user} 
+      onAccept={(data) => acceptInvitation(data, invitation)}
+      isAccepting={isAccepting}
+      acceptError={acceptError}
     />
   );
-}
+};
 
 export default InvitationPage;

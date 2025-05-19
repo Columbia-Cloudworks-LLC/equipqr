@@ -1,54 +1,67 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { acceptInvitation } from '@/services/team/invitation';
-import { acceptOrganizationInvitation } from '@/services/organization/invitationService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+
+interface AcceptanceData {
+  token: string;
+  type: 'team' | 'organization';
+}
 
 export function useInvitationAcceptance() {
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
   const navigate = useNavigate();
-  
-  const acceptInvitationHandler = async (token: string, invitationType?: string) => {
+
+  const acceptInvitation = async (data: AcceptanceData, invitationDetails?: any) => {
+    setIsAccepting(true);
+    setAcceptError(null);
+
     try {
-      setProcessing(true);
-      setError(null);
+      let result;
       
-      if (invitationType === 'organization') {
-        // Handle organization invitation
-        const response = await acceptOrganizationInvitation(token);
+      if (data.type === 'team') {
+        const { data: acceptData, error } = await supabase.functions.invoke('accept_team_invitation', {
+          body: { token: data.token }
+        });
         
-        if (response.success) {
-          navigate('/settings/organization');
-        } else {
-          setError(response.error || 'Failed to accept invitation');
-        }
+        if (error) throw new Error(error.message);
+        result = acceptData;
       } else {
-        // Handle team invitation
-        const result = await acceptInvitation(token);
+        const { data: acceptData, error } = await supabase.functions.invoke('accept_organization_invitation', {
+          body: { token: data.token }
+        });
         
-        if (result.success) {
-          navigate('/team');
-        } else {
-          setError('Failed to accept invitation');
-        }
+        if (error) throw new Error(error.message);
+        result = acceptData;
       }
+
+      toast.success(`Successfully accepted the ${data.type} invitation`);
+      
+      // Navigate based on invitation type
+      if (data.type === 'team') {
+        navigate('/teams');
+      } else {
+        navigate('/organization');
+      }
+      
+      return result;
     } catch (error: any) {
       console.error('Error accepting invitation:', error);
-      setError(error.message || 'An unexpected error occurred');
-      toast.error('Error accepting invitation', {
-        description: error.message || 'An unexpected error occurred'
-      });
+      setAcceptError(error.message || 'Failed to accept invitation');
+      toast.error(`Failed to accept invitation: ${error.message}`);
+      return null;
     } finally {
-      setProcessing(false);
+      setIsAccepting(false);
     }
   };
-  
+
   return {
-    processing,
-    error,
-    acceptInvitationHandler,
-    setError
+    acceptInvitation,
+    isAccepting,
+    acceptError
   };
 }
+
+export default useInvitationAcceptance;
