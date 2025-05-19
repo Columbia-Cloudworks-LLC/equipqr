@@ -1,6 +1,6 @@
 
 /**
- * Team access validation response types
+ * Type definitions for team validation functionality
  */
 
 export interface TeamAccessResult {
@@ -15,7 +15,6 @@ export interface TeamAccessResult {
     org_id: string;
   } | null;
   org_name?: string | null;
-  error?: string | null;
 }
 
 export interface TeamAccessDetailedResult {
@@ -26,11 +25,28 @@ export interface TeamAccessDetailedResult {
   is_team_member: boolean;
   is_org_owner: boolean;
   team_role: string;
-  error?: string | null;
 }
 
-export interface TeamValidationResult {
-  isValid: boolean;
-  result: TeamAccessResult | null;
+export interface TeamRepairResult {
+  success: boolean;
+  team_member_id?: string;
   error?: string;
+}
+
+export interface TeamMembershipResponse {
+  isValid: boolean;
+  result: any;
+  error?: string;
+}
+
+export interface TeamAccessDetailsResponse {
+  isMember: boolean;
+  hasOrgAccess: boolean;
+  hasCrossOrgAccess: boolean;
+  teamMemberId: string | null;
+  accessReason: string | null;
+  role: string | null;
+  team: any | null;
+  orgName: string | null;
+  error?: string | null;
 }

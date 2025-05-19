@@ -1,159 +1,90 @@
-
-/**
- * Utilities for working with Supabase edge functions
- */
-
 import { supabase } from "@/integrations/supabase/client";
 
-// Default timeout for edge function calls in milliseconds (8 seconds)
-const DEFAULT_TIMEOUT = 8000;
-
 /**
- * Invoke a Supabase edge function with timeout handling
- * 
- * @param functionName The edge function name to call
- * @param payload The payload to send to the function
- * @param timeout Optional timeout in milliseconds (defaults to 8 seconds)
- * @returns The function response data or throws an error
+ * Invoke a Supabase Edge Function with timeout handling
+ * @param functionName Name of the edge function to invoke
+ * @param payload JSON payload to send to the function
+ * @param timeoutMs Optional timeout in milliseconds (default: 5000ms)
+ * @returns Function response data
  */
 export async function invokeEdgeFunction<T = any>(
   functionName: string, 
-  payload: any = {}, 
-  timeout: number = DEFAULT_TIMEOUT
+  payload: Record<string, any>,
+  timeoutMs: number = 5000
 ): Promise<T> {
-  // Create a promise that rejects after the specified timeout
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(new Error(`Edge function ${functionName} timed out after ${timeout}ms`));
-    }, timeout);
-    // Clear the timeout if the promise is cancelled
-    return () => clearTimeout(timeoutId);
+  // Create a promise for the edge function call
+  const functionPromise = supabase.functions.invoke(functionName, {
+    body: payload
   });
   
-  // Create the actual function call promise
-  const functionPromise = async (): Promise<T> => {
-    try {
-      console.log(`Calling edge function ${functionName} with payload:`, JSON.stringify(payload));
-      
-      // Check session validity before making call
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) {
-        console.error(`Edge function ${functionName} called without valid session`);
-        throw new Error('Authentication required. Please sign in to continue.');
-      }
-      
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: payload
-      });
-      
-      if (error) {
-        console.error(`Edge function ${functionName} error:`, error);
-        
-        // Check for specific response status codes
-        if (error.message?.includes('status code: 400')) {
-          console.error('Bad request error (400). This often indicates parameter validation failure.');
-        } else if (error.message?.includes('status code: 500')) {
-          console.error('Server error (500). This often indicates an unhandled exception in the edge function.');
-        }
-        
-        throw new Error(`Edge function error: ${error.message || error}`);
-      }
-      
-      console.log(`Edge function ${functionName} returned:`, data);
-      return data as T;
-    } catch (error: any) {
-      console.error(`Edge function ${functionName} failed:`, error);
-      
-      // Check if this is an auth error
-      if (error.message?.includes('Authentication required')) {
-        throw error; // Re-throw auth errors as is
-      }
-      
-      // Enhanced error detail reporting
-      if (error.message?.includes('status code:')) {
-        const statusMatch = error.message.match(/status code: (\d+)/);
-        if (statusMatch) {
-          const statusCode = statusMatch[1];
-          console.error(`HTTP status ${statusCode} received from edge function`);
-          
-          if (statusCode === '401' || statusCode === '403') {
-            throw new Error('Authentication required. Please sign in to continue.');
-          } else if (statusCode === '404') {
-            throw new Error(`Edge function ${functionName} not found. Please contact support.`);
-          } else if (statusCode === '500') {
-            throw new Error(`Server error in ${functionName}. Please try again later.`);
-          }
-        }
-      }
-      
-      throw error;
-    }
-  };
+  // Create a timeout promise
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(`Edge function ${functionName} timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
   
-  // Race the function call against the timeout
   try {
-    return await Promise.race([functionPromise(), timeoutPromise]);
-  } catch (error: any) {
-    if (error.message?.includes('timed out')) {
-      console.error(`Edge function ${functionName} timed out after ${timeout}ms`);
-      throw new Error(`Request to ${functionName} timed out. Please try again.`);
+    // Race the function call against the timeout
+    const result = await Promise.race([functionPromise, timeoutPromise]) as any;
+    
+    if (result.error) {
+      console.error(`Error invoking edge function ${functionName}:`, result.error);
+      throw new Error(result.error.message || `${functionName} failed`);
     }
     
+    return result.data as T;
+  } catch (error) {
+    console.error(`Failed to invoke edge function ${functionName}:`, error);
     throw error;
   }
 }
 
 /**
- * Helper to invoke edge functions with automatic retries
+ * Invoke a Supabase Edge Function with retry logic
+ * @param functionName Name of the edge function to invoke
+ * @param payload JSON payload to send to the function
+ * @param config Retry configuration
+ * @returns Function response data
  */
 export async function invokeEdgeFunctionWithRetry<T = any>(
   functionName: string,
-  payload: any = {},
-  options: {
-    timeout?: number;
-    retries?: number;
-    retryDelay?: number;
+  payload: Record<string, any>,
+  config: {
+    maxRetries?: number;
+    initialDelayMs?: number;
+    timeoutMs?: number;
   } = {}
 ): Promise<T> {
-  const { timeout = DEFAULT_TIMEOUT, retries = 2, retryDelay = 1000 } = options;
+  const { maxRetries = 3, initialDelayMs = 500, timeoutMs = 5000 } = config;
   
-  let lastError: Error | null = null;
+  let lastError: any = null;
   
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      // Wait before retry attempts, but not before the first attempt
+      // Exponential backoff delay after the first attempt
       if (attempt > 0) {
-        await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
-        console.log(`Retry attempt ${attempt} for ${functionName}...`);
+        const delayMs = initialDelayMs * Math.pow(2, attempt - 1);
+        console.log(`Retry attempt ${attempt + 1}/${maxRetries} for ${functionName} after ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
       }
       
-      return await invokeEdgeFunction<T>(functionName, payload, timeout);
-    } catch (error: any) {
+      return await invokeEdgeFunction<T>(functionName, payload, timeoutMs);
+    } catch (error) {
+      console.warn(`Attempt ${attempt + 1}/${maxRetries} failed for ${functionName}:`, error);
       lastError = error;
-      console.warn(`Attempt ${attempt + 1}/${retries + 1} failed for ${functionName}:`, error);
       
-      // If this is an auth error, don't retry
-      if (error.message?.includes('Authentication required') || 
-          error.message?.includes('sign in')) {
-        throw error;
-      }
-      
-      // Provide detailed failure information
-      const isNetworkError = error.message?.includes('network') || 
-                           error.message?.includes('fetch') ||
-                           error.message?.includes('connection');
-      
-      const isTimeoutError = error.message?.includes('timed out');
-      
-      console.log(`Error type: ${isNetworkError ? 'Network' : isTimeoutError ? 'Timeout' : 'Other'}`);
-      
-      // Don't retry if it's not a timeout or network error, unless it's specifically a 500 error
-      if (!isTimeoutError && !isNetworkError && !error.message?.includes('status code: 500')) {
+      // If this is a connection error or timeout, continue retrying
+      // Otherwise, throw immediately
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (!(
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('network') ||
+        errorMessage.includes('connection')
+      ) && attempt > 0) {
         throw error;
       }
     }
   }
   
-  // If we reach here, all retries failed
-  throw lastError || new Error(`All ${retries} retries failed for ${functionName}`);
+  // If we got here, all attempts failed
+  throw lastError || new Error(`All ${maxRetries} attempts failed for ${functionName}`);
 }
