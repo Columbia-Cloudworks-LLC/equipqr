@@ -3,7 +3,8 @@ import React, { createContext, useContext } from 'react';
 import { useNotificationsState } from '@/hooks/useNotificationsState';
 import { NotificationsContextType } from '@/types/notifications';
 
-const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
+// Export the context so it can be imported in useNotificationsSafe
+export const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
   const notificationsState = useNotificationsState();

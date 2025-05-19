@@ -11,12 +11,11 @@ export function useNotificationsSafe(): NotificationsContextType {
   const context = useContext(NotificationsContext);
   
   if (context === undefined) {
-    // Return default values that won't cause errors
+    // Return default values that match the NotificationsContextType
     return {
       invitations: [],
       isLoading: false,
       hasNewNotifications: false,
-      hasError: false,
       refreshNotifications: async () => { /* no-op */ },
       dismissInvitation: () => { /* no-op */ },
       resetDismissedNotifications: () => { /* no-op */ }
