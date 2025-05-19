@@ -120,7 +120,7 @@ export function TeamContent({
             teamName={selectedTeam?.name || 'Unknown Team'}
             members={members}
             isLoading={isLoading}
-            currentUserRole={currentUserRole}
+            currentUserRole={currentUserRole || undefined}
             isMember={isMember}
             canChangeRoles={canChangeRoles}
             isUpgradingRole={isUpgradingRole}
@@ -137,9 +137,10 @@ export function TeamContent({
               members={members}
               teamId={selectedTeamId}
               isLoading={isLoading}
-              currentUserRole={currentUserRole}
+              currentUserRole={currentUserRole || undefined}
               onChangeRole={onChangeRole}
               onRemoveMember={onRemoveMember}
+              onResendInvite={onResendInvite}
             />
           </TeamMembers>
         </TabsContent>
@@ -160,8 +161,9 @@ export function TeamContent({
             team={selectedTeam}
             isUpdating={isUpdatingTeam}
             isDeleting={isDeletingTeam}
-            onUpdate={onUpdateTeam}
+            onUpdateTeam={onUpdateTeam}
             onDelete={onDeleteTeam}
+            currentUserRole={currentUserRole || undefined}
             getTeamEquipmentCount={getTeamEquipmentCount}
           />
         </TabsContent>

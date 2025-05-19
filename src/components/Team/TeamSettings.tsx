@@ -11,21 +11,21 @@ import { Badge } from '../ui/badge';
 
 interface TeamSettingsProps {
   team: any;
-  onUpdateTeam: (id: string, name: string) => Promise<void>;
-  onDeleteTeam: (id: string) => Promise<void>;
+  onUpdateTeam?: (id: string, name: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
   isUpdating: boolean;
   isDeleting: boolean;
-  currentUserRole: string;
+  currentUserRole?: string;
   getTeamEquipmentCount?: (teamId: string) => Promise<number>;
 }
 
 export function TeamSettings({
   team,
   onUpdateTeam,
-  onDeleteTeam,
+  onDelete,
   isUpdating,
   isDeleting,
-  currentUserRole,
+  currentUserRole = 'viewer',
   getTeamEquipmentCount
 }: TeamSettingsProps) {
   const [equipmentCount, setEquipmentCount] = useState<number | null>(null);
@@ -79,7 +79,7 @@ export function TeamSettings({
                   disabled={true} 
                   className="flex-1"
                 />
-                {canEditTeam && !team?.is_external_org && (
+                {canEditTeam && !team?.is_external_org && onUpdateTeam && (
                   <EditTeamButton 
                     teamId={team?.id}
                     teamName={team?.name || ''}
@@ -123,7 +123,7 @@ export function TeamSettings({
               <DeleteTeamButton
                 teamId={team?.id}
                 teamName={team?.name || ''}
-                onDeleteTeam={onDeleteTeam}
+                onDeleteTeam={onDelete}
                 isDeleting={isDeleting}
                 hasEquipment={!!equipmentCount && equipmentCount > 0}
                 equipmentCount={equipmentCount || 0}

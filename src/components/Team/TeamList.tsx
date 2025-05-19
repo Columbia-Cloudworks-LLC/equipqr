@@ -20,6 +20,7 @@ interface TeamListProps {
   onResendInvite: (id: string) => void;
   teamId: string;
   isViewOnly?: boolean;
+  currentUserRole?: string;
 }
 
 export function TeamList({ 
@@ -28,7 +29,8 @@ export function TeamList({
   onChangeRole, 
   onResendInvite,
   teamId,
-  isViewOnly = false
+  isViewOnly = false,
+  currentUserRole
 }: TeamListProps) {
   const [changingRoleFor, setChangingRoleFor] = useState<string | null>(null);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
@@ -67,6 +69,7 @@ export function TeamList({
               setChangingRoleFor={setChangingRoleFor}
               setRemovingMember={setRemovingMember}
               setResendingInvite={setResendingInvite}
+              currentUserRole={currentUserRole}
             />
           ))}
         </TableBody>

@@ -6,29 +6,40 @@ import { InviteForm } from './InviteForm';
 import { PendingInvitationsList } from './PendingInvitationsList';
 import { UserPlus, RefreshCw, Users } from 'lucide-react';
 import { UserRole } from '@/types/supabase-enums';
+import { ReactNode } from 'react';
 
 interface TeamMembersProps {
   members: any[];
-  pendingInvitations: any[];
+  pendingInvitations?: any[];
   isLoading: boolean;
-  isLoadingInvitations: boolean;
+  isLoadingInvitations?: boolean;
   teamId: string;
-  onInviteMember: (email: string, role: string, teamId: string) => void;
-  onChangeRole: (id: string, role: string, teamId: string) => void;
-  onRemoveMember: (id: string, teamId: string) => void;
-  onResendInvite: (id: string) => Promise<void>;
-  onCancelInvitation: (id: string) => Promise<void>;
-  onFetchPendingInvitations: () => void;
+  teamName?: string;
+  onInviteMember?: (email: string, role: string, teamId: string) => void;
+  onChangeRole?: (id: string, role: string, teamId: string) => void;
+  onRemoveMember?: (id: string, teamId: string) => void;
+  onResendInvite?: (id: string) => Promise<void>;
+  onCancelInvitation?: (id: string) => Promise<void>;
+  onFetchPendingInvitations?: () => void;
   currentUserRole?: string;
-  canChangeRoles: boolean;
+  canChangeRoles?: boolean;
+  isMember?: boolean;
+  isUpgradingRole?: boolean;
+  isRequestingRole?: boolean;
+  onUpgradeRole?: (teamId: string) => Promise<void>;
+  onRequestRoleUpgrade?: (teamId: string) => Promise<void>;
+  isRepairingTeam?: boolean;
+  onRepairTeam?: (teamId: string) => Promise<void>;
+  children?: ReactNode;
 }
 
 export function TeamMembers({
   members,
-  pendingInvitations,
+  pendingInvitations = [],
   isLoading,
-  isLoadingInvitations,
+  isLoadingInvitations = false,
   teamId,
+  teamName,
   onInviteMember,
   onChangeRole,
   onRemoveMember,
@@ -36,7 +47,15 @@ export function TeamMembers({
   onCancelInvitation,
   onFetchPendingInvitations,
   currentUserRole,
-  canChangeRoles,
+  canChangeRoles = false,
+  isMember = true,
+  isUpgradingRole = false,
+  isRequestingRole = false,
+  onUpgradeRole,
+  onRequestRoleUpgrade,
+  isRepairingTeam = false,
+  onRepairTeam,
+  children,
 }: TeamMembersProps) {
   const [showInviteForm, setShowInviteForm] = useState(false);
   
@@ -54,7 +73,7 @@ export function TeamMembers({
         </div>
         
         <div className="flex items-center gap-2">
-          {canManageMembers && (
+          {canManageMembers && onInviteMember && (
             <Button
               variant="outline"
               size="sm"
@@ -65,43 +84,35 @@ export function TeamMembers({
             </Button>
           )}
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onFetchPendingInvitations}
-            disabled={isLoadingInvitations}
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoadingInvitations ? 'animate-spin' : ''}`} />
-            <span className="sr-only">Refresh</span>
-          </Button>
+          {onFetchPendingInvitations && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onFetchPendingInvitations}
+              disabled={isLoadingInvitations}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoadingInvitations ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Refresh</span>
+            </Button>
+          )}
         </div>
       </div>
       
-      {showInviteForm && canManageMembers && (
+      {showInviteForm && canManageMembers && onInviteMember && (
         <InviteForm
           onInvite={(email, role) => {
             onInviteMember(email, role, teamId);
             setShowInviteForm(false);
           }}
           onCancel={() => setShowInviteForm(false)}
-          teams={[{ id: teamId, name: "Current Team" }]}
+          teams={[{ id: teamId, name: teamName || "Current Team" }]}
         />
       )}
       
       <div className="space-y-4">
-        <div>
-          <h4 className="text-sm font-medium text-muted-foreground mb-2">Current Members</h4>
-          <TeamMembersList
-            members={members}
-            onRemoveMember={onRemoveMember}
-            onChangeRole={onChangeRole}
-            onResendInvite={onResendInvite}
-            teamId={teamId}
-            isViewOnly={!canManageMembers}
-          />
-        </div>
+        {children}
         
-        {pendingInvitations && pendingInvitations.length > 0 && (
+        {pendingInvitations && pendingInvitations.length > 0 && onCancelInvitation && onResendInvite && (
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-2">Pending Invitations</h4>
             <PendingInvitationsList

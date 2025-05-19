@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { TeamSelector } from '@/components/Team/TeamSelector';
@@ -80,6 +79,11 @@ export default function TeamManagement() {
       isViewerOnly
     });
   }, [teams.length, selectedTeamId, isLoading, isMember, currentUserRole, canChangeRoles, isViewerOnly]);
+
+  // Fix the Promise return type for the onFetchPendingInvitations handler
+  const handleFetchPendingInvitations = async () => {
+    return await refetchPendingInvitations();
+  };
 
   // Show loading state during auth check
   if (isAuthLoading) {
@@ -179,7 +183,7 @@ export default function TeamManagement() {
               onRepairTeam={handleRepairTeam}
               onUpgradeRole={handleUpgradeRole}
               onRequestRoleUpgrade={handleRequestRoleUpgrade}
-              onFetchPendingInvitations={refetchPendingInvitations}
+              onFetchPendingInvitations={handleFetchPendingInvitations}
               getTeamEquipmentCount={getTeamEquipmentCount}
             />
           </>
