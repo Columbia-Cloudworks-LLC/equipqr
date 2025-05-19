@@ -1,9 +1,32 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { validateEquipmentPermissionPayload } from '../_shared/validation.ts';
 import { tryPermissionCheck, initSupabaseClient } from './permissionCheck.ts';
 
-// Inline the cors headers and functions instead of importing them
+// Inline the validation function instead of importing from _shared
+function validateEquipmentPermissionPayload(userId: string, teamId?: string | null): string | null {
+  // Check if user_id is present
+  if (!userId) {
+    return "Missing required parameter: user_id";
+  }
+  
+  // Validate UUID format for user_id (simplified regex check)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(userId)) {
+    return "Invalid UUID format for user_id";
+  }
+  
+  // If team_id is provided, validate it too (but it can be null/undefined)
+  if (teamId && teamId !== 'none' && teamId !== 'null' && teamId !== '') {
+    if (!uuidRegex.test(teamId)) {
+      return "Invalid UUID format for team_id";
+    }
+  }
+  
+  // All checks passed
+  return null;
+}
+
+// Inline the CORS headers and response functions instead of importing them
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
