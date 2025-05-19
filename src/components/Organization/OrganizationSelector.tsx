@@ -27,8 +27,9 @@ export function OrganizationSelector({
   placeholder = "Select organization",
   className = "w-[200px]"
 }: OrganizationSelectorProps) {
-  if (organizations.length <= 0) {
-    return null; // Don't render if there are no organizations
+  // Always show the selector if there are organizations, even if just one
+  if (organizations.length === 0) {
+    return null;
   }
 
   return (

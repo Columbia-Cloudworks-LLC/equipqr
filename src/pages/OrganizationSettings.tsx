@@ -160,14 +160,13 @@ const OrganizationSettings = () => {
             </Button>
           </div>
           
-          {organizations.length > 1 && (
-            <OrganizationSelector
-              organizations={organizations}
-              selectedOrgId={organization.id}
-              onChange={handleOrganizationChange}
-              className="w-full md:w-[250px]"
-            />
-          )}
+          {/* Always show organization selector if multiple organizations are available */}
+          <OrganizationSelector
+            organizations={organizations}
+            selectedOrgId={organization?.id}
+            onChange={handleOrganizationChange}
+            className="w-full md:w-[250px]"
+          />
         </div>
         
         {!organization.is_primary && (

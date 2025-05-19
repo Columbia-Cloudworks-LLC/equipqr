@@ -27,7 +27,7 @@ export function useInvitationAcceptance() {
         if (error) throw new Error(error.message);
         result = acceptData;
         
-        // Refresh organizations in context
+        // Refresh organizations in context with force refresh
         await refreshOrganizations();
         
         toast.success('Successfully accepted the organization invitation');
@@ -40,6 +40,9 @@ export function useInvitationAcceptance() {
         
         if (error) throw new Error(error.message);
         result = acceptData;
+        
+        // Also refresh organizations since team membership can affect org access
+        await refreshOrganizations();
         
         toast.success('Successfully accepted the team invitation');
         navigate('/teams');
