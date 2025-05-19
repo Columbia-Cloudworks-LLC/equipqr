@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { validateOrganizationInvitation, acceptOrganizationInvitation } from '@/services/organization/invitationService';
 import { validateInvitationToken, acceptInvitation } from '@/services/team/invitation';
+import { Loader2 } from 'lucide-react';
 
 function InvitationPage() {
   const navigate = useNavigate();
@@ -66,29 +67,21 @@ function InvitationPage() {
       
       if (invitationType === 'organization') {
         // Handle organization invitation
-        const { success, error: acceptError } = await acceptOrganizationInvitation(token!);
+        const response = await acceptOrganizationInvitation(token!);
         
-        if (!success) {
-          setError(acceptError || 'Failed to accept invitation');
-          return;
+        if (response.success) {
+          navigate('/organization-settings');
+        } else {
+          setError(response.error || 'Failed to accept invitation');
         }
-        
-        // Navigate to dashboard or home page after successful acceptance
-        navigate('/');
       } else {
         // Handle team invitation
-        try {
-          const result = await acceptInvitation(token!);
-          
-          if (!result.success) {
-            setError('Failed to accept invitation');
-            return;
-          }
-          
-          // Navigate to team page after successful acceptance
-          navigate('/teams');
-        } catch (err: any) {
-          setError(err.message || 'Failed to accept invitation');
+        const result = await acceptInvitation(token!);
+        
+        if (result.success) {
+          navigate('/team');
+        } else {
+          setError('Failed to accept invitation');
         }
       }
     } catch (error: any) {
@@ -107,6 +100,11 @@ function InvitationPage() {
             <CardTitle>Loading Invitation</CardTitle>
             <CardDescription>Please wait while we validate your invitation...</CardDescription>
           </CardHeader>
+          <CardContent>
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
@@ -157,15 +155,15 @@ function InvitationPage() {
           </CardTitle>
           <CardDescription>
             {invitationType === 'organization' 
-              ? `You've been invited to join ${invitationDetails.organization?.name} as a ${invitationDetails.role}.`
-              : `You've been invited to join ${invitationDetails.team?.name} as a ${invitationDetails.role}.`}
+              ? `You've been invited to join ${invitationDetails.organization?.name || invitationDetails.org_name || 'an organization'} as a ${invitationDetails.role}.`
+              : `You've been invited to join ${invitationDetails.team?.name || invitationDetails.team_name || 'a team'} as a ${invitationDetails.role}.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="text-sm">
               <div className="font-medium">Invited by:</div>
-              <div>{invitationDetails.invited_by_email}</div>
+              <div>{invitationDetails.invited_by_email || 'A member'}</div>
             </div>
             <div className="text-sm">
               <div className="font-medium">Role:</div>
@@ -174,13 +172,19 @@ function InvitationPage() {
             {invitationType === 'organization' && (
               <div className="text-sm">
                 <div className="font-medium">Organization:</div>
-                <div>{invitationDetails.organization?.name}</div>
+                <div>{invitationDetails.organization?.name || invitationDetails.org_name || 'Unknown'}</div>
               </div>
             )}
             {invitationType === 'team' && (
               <div className="text-sm">
                 <div className="font-medium">Team:</div>
-                <div>{invitationDetails.team?.name}</div>
+                <div>{invitationDetails.team?.name || invitationDetails.team_name || 'Unknown'}</div>
+              </div>
+            )}
+            {invitationType === 'team' && invitationDetails.org_name && (
+              <div className="text-sm">
+                <div className="font-medium">Organization:</div>
+                <div>{invitationDetails.org_name}</div>
               </div>
             )}
           </div>
@@ -191,7 +195,12 @@ function InvitationPage() {
             disabled={processing}
             className="w-full"
           >
-            {processing ? "Processing..." : "Accept Invitation"}
+            {processing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : "Accept Invitation"}
           </Button>
           <Button 
             variant="outline" 

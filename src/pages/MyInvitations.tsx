@@ -54,6 +54,10 @@ export default function MyInvitations() {
   const displayInvitations = invitations.length > 0 ? invitations : directInvitations;
   const loading = isLoading || isDirectLoading;
   
+  // Count team and org invitations
+  const teamInvitations = displayInvitations.filter(inv => inv.invitationType === 'team' || inv.team);
+  const orgInvitations = displayInvitations.filter(inv => inv.invitationType === 'organization' || inv.organization);
+  
   const handleResetAndRefresh = () => {
     setLoadError(null);
     resetDismissedNotifications();
@@ -94,37 +98,66 @@ export default function MyInvitations() {
               <div className="space-y-4">
                 <Alert className="bg-primary/5 border-primary/10">
                   <Mail className="h-5 w-5" />
-                  <AlertTitle>You have pending team invitations</AlertTitle>
+                  <AlertTitle>You have pending invitations</AlertTitle>
                   <AlertDescription>
-                    Review and accept invitations to join teams below.
+                    {teamInvitations.length > 0 && orgInvitations.length > 0 ? (
+                      `You have ${teamInvitations.length} team and ${orgInvitations.length} organization invitations pending.`
+                    ) : teamInvitations.length > 0 ? (
+                      `You have ${teamInvitations.length} team invitation${teamInvitations.length > 1 ? 's' : ''} pending.`
+                    ) : (
+                      `You have ${orgInvitations.length} organization invitation${orgInvitations.length > 1 ? 's' : ''} pending.`
+                    )}
                   </AlertDescription>
                 </Alert>
                 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Pending Team Invitations</CardTitle>
-                    <CardDescription>
-                      These teams have invited you to join them.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="divide-y">
-                    {displayInvitations.map((invitation) => (
-                      <InvitationNotification
-                        key={invitation.id}
-                        invitation={invitation}
-                        onAccept={() => refreshNotifications()}
-                        onDecline={() => refreshNotifications()}
-                      />
-                    ))}
-                  </CardContent>
-                </Card>
+                {orgInvitations.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Organization Invitations</CardTitle>
+                      <CardDescription>
+                        These organizations have invited you to join them.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="divide-y">
+                      {orgInvitations.map((invitation) => (
+                        <InvitationNotification
+                          key={invitation.id}
+                          invitation={invitation}
+                          onAccept={() => refreshNotifications()}
+                          onDecline={() => refreshNotifications()}
+                        />
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {teamInvitations.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Team Invitations</CardTitle>
+                      <CardDescription>
+                        These teams have invited you to join them.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="divide-y">
+                      {teamInvitations.map((invitation) => (
+                        <InvitationNotification
+                          key={invitation.id}
+                          invitation={invitation}
+                          onAccept={() => refreshNotifications()}
+                          onDecline={() => refreshNotifications()}
+                        />
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-64 bg-muted/20 rounded-lg border border-dashed">
                 <Check className="h-10 w-10 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium">No pending invitations</h3>
                 <p className="text-muted-foreground mt-2">
-                  You don't have any pending team invitations at the moment.
+                  You don't have any pending team or organization invitations at the moment.
                 </p>
                 <Button 
                   variant="outline" 

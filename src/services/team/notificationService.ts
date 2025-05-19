@@ -25,7 +25,7 @@ export async function getPendingInvitationsForUser() {
     
     const userEmail = sessionData.session.user.email.toLowerCase();
     
-    // Use the edge function to avoid recursion issues
+    // Use the edge function to get both team and organization invitations
     const { data, error } = await supabase.functions.invoke('get_user_invitations', {
       body: { email: userEmail }
     });
@@ -35,7 +35,7 @@ export async function getPendingInvitationsForUser() {
       throw new Error(`Failed to fetch invitations: ${error.message}`);
     }
     
-    console.log(`Found ${data?.invitations?.length || 0} pending invitations for ${userEmail}`);
+    console.log(`Found ${data?.invitations?.length || 0} total pending invitations for ${userEmail}`);
     return data?.invitations || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitationsForUser:', error);

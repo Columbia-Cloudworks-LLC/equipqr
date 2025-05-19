@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { acceptInvitation } from "@/services/team/invitationService";
+import { acceptOrganizationInvitation } from "@/services/organization/invitationService";
 import { Check, X, Loader2 } from 'lucide-react';
 
 interface InvitationNotificationProps {
@@ -15,10 +16,15 @@ interface InvitationNotificationProps {
       name?: string;
       org_id?: string;
     };
+    organization?: {
+      name?: string;
+      id?: string;
+    };
     org_name?: string;
     role: string;
     token: string;
     created_at: string;
+    invitationType?: 'team' | 'organization';
   };
   onAccept: () => void;
   onDecline?: () => void;
@@ -29,23 +35,50 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const [isDeclined, setIsDeclined] = useState(false);
   const navigate = useNavigate();
   
-  // Safely get team name with fallback to prevent errors
-  const teamName = invitation?.team?.name || 'Team';
-  const orgName = invitation?.org_name;
+  // Determine if this is a team or organization invitation
+  const isTeamInvitation = invitation.invitationType === 'team' || invitation.team !== null;
+  const isOrgInvitation = invitation.invitationType === 'organization' || invitation.organization !== null;
+  
+  // Safely get the name of the entity the user is being invited to join
+  let entityName = 'Unknown';
+  let orgName = invitation?.org_name;
+  
+  if (isTeamInvitation) {
+    entityName = invitation?.team?.name || invitation?.team_name || 'Team';
+  } else if (isOrgInvitation) {
+    entityName = invitation?.organization?.name || invitation?.org_name || 'Organization';
+    orgName = null; // Don't show org name separately for org invitations
+  }
   
   const handleAccept = async () => {
     try {
       setIsAccepting(true);
       
-      // Call the acceptInvitation function which will handle the proper role assignment
-      const result = await acceptInvitation(invitation.token);
+      let result;
       
-      toast.success(`You've joined ${result.teamName || teamName}!`, {
-        description: `You have successfully joined as a ${result.role || invitation.role}`
-      });
-      
-      onAccept();
-      navigate('/team');
+      if (isOrgInvitation) {
+        // Handle organization invitation
+        result = await acceptOrganizationInvitation(invitation.token);
+        
+        toast.success(`You've joined ${entityName}!`, {
+          description: `You have successfully joined as a ${invitation.role}`
+        });
+        
+        // For organization invitations, redirect to the organization settings
+        onAccept();
+        navigate('/organization-settings');
+      } else {
+        // Handle team invitation
+        result = await acceptInvitation(invitation.token);
+        
+        toast.success(`You've joined ${entityName}!`, {
+          description: `You have successfully joined as a ${result.role || invitation.role}`
+        });
+        
+        // For team invitations, redirect to the team page
+        onAccept();
+        navigate('/team');
+      }
     } catch (error: any) {
       toast.error(`Failed to accept invitation: ${error.message}`);
       console.error("Invitation acceptance error:", error);
@@ -55,7 +88,8 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   };
   
   const handleViewDetails = () => {
-    navigate(`/invitation/${invitation.token}`);
+    const queryParam = isOrgInvitation ? '?type=organization' : '';
+    navigate(`/invitation/${invitation.token}${queryParam}`);
   };
   
   if (isDeclined) {
@@ -66,7 +100,9 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
     <div className="p-4 border-b last:border-b-0">
       <div className="flex flex-col space-y-2">
         <div className="flex justify-between">
-          <span className="font-medium">Team Invitation</span>
+          <span className="font-medium">
+            {isOrgInvitation ? 'Organization Invitation' : 'Team Invitation'}
+          </span>
           {onDecline && (
             <Button 
               variant="ghost" 
@@ -83,7 +119,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          You've been invited to join <span className="font-medium">{teamName}</span> as a <span className="font-medium">{invitation.role}</span>
+          You've been invited to join <span className="font-medium">{entityName}</span> as a <span className="font-medium">{invitation.role}</span>
         </p>
         
         {orgName && (

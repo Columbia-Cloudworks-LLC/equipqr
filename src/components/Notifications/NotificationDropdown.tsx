@@ -69,8 +69,7 @@ export function NotificationDropdown() {
     }
   };
 
-  // Filter out any accepted invitations (belt and suspenders approach since the backend should already filter these)
-  // Using optional chaining to safely access status property since we added it as optional
+  // Filter out any accepted invitations 
   const pendingInvitations = invitations.filter(inv => 
     inv.status === undefined || inv.status === 'pending'
   );

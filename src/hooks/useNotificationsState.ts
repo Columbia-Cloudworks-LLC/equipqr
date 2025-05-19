@@ -42,6 +42,8 @@ export function useNotificationsState() {
       // Ensure we always have a valid array
       const notificationArray = Array.isArray(data) ? data : [];
       
+      console.log('Received notifications:', notificationArray);
+      
       setInvitations(notificationArray);
       setHasNewNotifications(notificationArray.length > 0);
     } catch (error) {
