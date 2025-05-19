@@ -7,25 +7,10 @@ import { toast } from "sonner";
 import { acceptInvitation } from "@/services/team/invitationService";
 import { acceptOrganizationInvitation } from "@/services/organization/invitationService";
 import { Check, X, Loader2 } from 'lucide-react';
+import { Invitation } from '@/types/notifications';
 
 interface InvitationNotificationProps {
-  invitation: {
-    id: string;
-    email: string;
-    team?: {
-      name?: string;
-      org_id?: string;
-    };
-    organization?: {
-      name?: string;
-      id?: string;
-    };
-    org_name?: string;
-    role: string;
-    token: string;
-    created_at: string;
-    invitationType?: 'team' | 'organization';
-  };
+  invitation: Invitation;
   onAccept: () => void;
   onDecline?: () => void;
 }
@@ -44,7 +29,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   let orgName = invitation?.org_name;
   
   if (isTeamInvitation) {
-    entityName = invitation?.team?.name || invitation?.team_name || 'Team';
+    entityName = invitation?.team?.name || invitation?.org_name || 'Team';
   } else if (isOrgInvitation) {
     entityName = invitation?.organization?.name || invitation?.org_name || 'Organization';
     orgName = null; // Don't show org name separately for org invitations

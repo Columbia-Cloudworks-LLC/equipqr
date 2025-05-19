@@ -3,16 +3,18 @@ export interface Invitation {
   id: string;
   email: string;
   team?: {
-    name: string;
+    name?: string;
+    org_id?: string;
   };
   organization?: {
-    name: string;
+    name?: string;
+    id?: string;
   };
   role: string;
   token: string;
   created_at: string;
   status?: string;
-  invitationType?: 'team' | 'organization'; // New field to distinguish invitation types
+  invitationType?: 'team' | 'organization';
   org_name?: string;
   team_name?: string;
 }
