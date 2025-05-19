@@ -21,7 +21,20 @@ export const supabase = createClient<Database>(
       storage: customStorage,
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
       debug: true, // Enable debug mode for better logging
+      onAuthStateChange: (event, session) => {
+        console.log('Client: Auth state change detected:', event);
+        if (event === 'SIGNED_OUT') {
+          console.log('Client: User signed out, clearing local storage');
+        }
+      }
+    },
+    global: {
+      headers: {
+        'x-client-info': `equipqr-web@${new Date().toISOString().split('T')[0]}`
+      }
     }
   }
 );

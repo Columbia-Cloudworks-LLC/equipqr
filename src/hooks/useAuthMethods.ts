@@ -1,7 +1,7 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getSiteUrl, getAuthCallbackUrl } from '@/utils/authCallbackUtils';
+import { resetAuthState } from '@/utils/authInterceptors';
 
 /**
  * Custom hook providing authentication methods
@@ -124,14 +124,42 @@ export function useAuthMethods() {
   };
 
   /**
-   * Sign out the current user
+   * Sign out the current user with enhanced error handling and token cleanup
    */
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('Logout: Starting signOut process');
+      
+      // Check session validity before attempting logout
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('Logout: Current session before signOut:', 
+        sessionData?.session ? { 
+          id: sessionData.session.access_token.substring(0, 8) + '...',
+          expires_at: new Date(sessionData.session.expires_at * 1000).toISOString(),
+          valid: !!sessionData.session 
+        } : 'No session');
+      
+      // Use signOut with global scope to ensure complete signout
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Force manual cleanup of tokens to ensure clean state
+      resetAuthState();
+      
+      console.log('Logout: signOut completed successfully');
+      
+      // Re-check session state after logout
+      const { data: checkData } = await supabase.auth.getSession();
+      console.log('Logout: Session after signOut:', 
+        checkData?.session ? 'Still has session (error)' : 'No session (success)');
+      
     } catch (error) {
-      console.error('Sign-out error:', error);
-      toast.error("Failed to sign out");
+      console.error('Logout: Error during signOut:', error);
+      
+      // Even if server-side logout fails, ensure client-side tokens are removed
+      resetAuthState();
+      toast.error("There was an issue during sign out, but local tokens have been cleared.");
+      
+      // Throw the error for upstream handling if needed
       throw error;
     }
   };

@@ -1,3 +1,4 @@
+
 /**
  * Cross-platform storage adapter that works reliably across web and mobile
  * Uses IndexedDB with localStorage fallback
@@ -138,13 +139,23 @@ class CrossPlatformStorage implements StorageAdapter {
   async getItem(key: string): Promise<StorageValue> {
     try {
       // Try IndexedDB first
-      const value = await this.indexedDB.getItem(key);
-      if (value !== null) {
-        return value;
+      const indexedDBValue = await this.indexedDB.getItem(key);
+      const localStorageValue = localStorage.getItem(key);
+      
+      // If values differ between storage mechanisms, log the discrepancy
+      if (indexedDBValue !== localStorageValue) {
+        console.warn(`Storage inconsistency for ${key}:`, {
+          indexedDB: indexedDBValue ? '[exists]' : null,
+          localStorage: localStorageValue ? '[exists]' : null
+        });
       }
       
-      // Fall back to localStorage if IndexedDB failed
-      return localStorage.getItem(key);
+      // Return IndexedDB value if available, otherwise localStorage
+      if (indexedDBValue !== null) {
+        return indexedDBValue;
+      }
+      
+      return localStorageValue;
     } catch (error) {
       console.error('Storage getItem error:', error);
       return localStorage.getItem(key);
@@ -154,8 +165,12 @@ class CrossPlatformStorage implements StorageAdapter {
   async setItem(key: string, value: string): Promise<void> {
     try {
       // Store in both IndexedDB and localStorage for redundancy
-      await this.indexedDB.setItem(key, value);
-      localStorage.setItem(key, value);
+      const promises = [
+        this.indexedDB.setItem(key, value),
+        Promise.resolve(localStorage.setItem(key, value))
+      ];
+      
+      await Promise.all(promises);
     } catch (error) {
       console.error('Storage setItem error:', error);
       localStorage.setItem(key, value);
@@ -165,8 +180,12 @@ class CrossPlatformStorage implements StorageAdapter {
   async removeItem(key: string): Promise<void> {
     try {
       // Remove from both IndexedDB and localStorage
-      await this.indexedDB.removeItem(key);
-      localStorage.removeItem(key);
+      const promises = [
+        this.indexedDB.removeItem(key),
+        Promise.resolve(localStorage.removeItem(key))
+      ];
+      
+      await Promise.all(promises);
     } catch (error) {
       console.error('Storage removeItem error:', error);
       localStorage.removeItem(key);
@@ -185,7 +204,7 @@ export const createSupabaseStorage = () => {
     getItem: async (key: string) => {
       console.log('Storage: Getting item', key);
       const value = await crossPlatformStorage.getItem(key);
-      console.log('Storage: Got item', key, value ? '[value]' : 'null');
+      console.log('Storage: Got item', key, value ? '[value exists]' : 'null');
       return value;
     },
     setItem: async (key: string, value: string) => {
@@ -211,12 +230,15 @@ export const validateSession = async (session: any): Promise<boolean> => {
   try {
     const payload = JSON.parse(atob(session.access_token.split('.')[1]));
     const expiry = payload.exp * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const timeRemaining = expiry - now;
     
-    if (Date.now() >= expiry) {
-      console.warn('Session token expired');
+    if (now >= expiry) {
+      console.warn(`Session token expired ${Math.abs(timeRemaining) / 1000} seconds ago`);
       return false;
     }
     
+    console.log(`Session valid. Expires in ${timeRemaining / 1000} seconds`);
     return true;
   } catch (error) {
     console.error('Error validating session token:', error);
@@ -237,32 +259,44 @@ export const getSessionInfo = async (): Promise<Record<string, any>> => {
     const legacySessionKey = 'supabase.auth.token';
     
     let sessionData = await storage.getItem(sessionKey);
+    let storageKey = sessionKey;
+    
     if (!sessionData) {
       sessionData = await storage.getItem(legacySessionKey);
-      if (!sessionData) {
-        return { 
-          status: 'missing', 
-          checkedKeys: [sessionKey, legacySessionKey]
-        };
+      if (sessionData) {
+        storageKey = legacySessionKey;
       }
+    }
+    
+    if (!sessionData) {
+      return { 
+        status: 'missing', 
+        checkedKeys: [sessionKey, legacySessionKey]
+      };
     }
     
     try {
       const session = JSON.parse(sessionData);
       const isValid = await validateSession(session);
       
+      // Check for token in localStorage as well
+      const localStorageToken = localStorage.getItem(storageKey);
+      const tokensMatch = localStorageToken === sessionData;
+      
       return {
         status: isValid ? 'valid' : 'invalid',
-        storageKey: sessionData === await storage.getItem(sessionKey) ? sessionKey : legacySessionKey,
+        storageKey: storageKey,
         hasAccessToken: !!session.access_token,
         hasRefreshToken: !!session.refresh_token,
         expiresAt: session.expires_at,
+        storageConsistent: tokensMatch,
+        accessTokenStart: session.access_token ? `${session.access_token.substring(0, 12)}...` : null
       };
     } catch (error) {
       return { 
         status: 'corrupted',
         error: error instanceof Error ? error.message : String(error),
-        rawData: sessionData
+        rawDataLength: sessionData ? sessionData.length : 0
       };
     }
   } catch (error) {

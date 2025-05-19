@@ -1,6 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { createSupabaseStorage } from "@/utils/storageAdapter";
 
 /**
  * Sets an interceptor for auth requests to fix specific errors
@@ -72,31 +72,52 @@ export async function validateSession(session: Session | null): Promise<boolean>
  */
 export function resetAuthState() {
   try {
+    console.log('resetAuthState: Beginning token cleanup');
+    
+    // Get the storage adapter to ensure we clean both localStorage and IndexedDB
+    const storageAdapter = createSupabaseStorage();
+    
+    // Define all possible auth token keys
     const projectRef = "oxeheowbfsshpyldlskb";
     const keys = [
       `sb-${projectRef}-auth-token`,
       `sb-${projectRef}-auth-token-code-verifier`,
+      "supabase.auth.token",
       "supabase-auth-token",
-      `sb-${projectRef}-provider-token`,
-      `sb-${projectRef}-session`
+      `sb-${projectRef}-provider-token`, 
+      `sb-${projectRef}-session`,
+      `sb-${projectRef}-auth-person-identity`,
+      "supabase.auth.refreshToken"
     ];
     
-    keys.forEach(key => {
+    // For each key, clear from our storage adapter (IndexedDB + localStorage)
+    const cleanupPromises = keys.map(async key => {
       try {
-        localStorage.removeItem(key);
-        console.log(`Removed ${key} from localStorage`);
+        await storageAdapter.removeItem(key);
+        console.log(`resetAuthState: Removed ${key} from custom storage`);
       } catch (e) {
-        console.error(`Failed to remove ${key} from localStorage:`, e);
+        console.error(`resetAuthState: Failed to remove ${key} from custom storage:`, e);
       }
     });
     
-    // Also clear session storage
+    // Also clear from localStorage directly as a fallback
+    keys.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+        console.log(`resetAuthState: Removed ${key} from localStorage`);
+      } catch (e) {
+        console.error(`resetAuthState: Failed to remove ${key} from localStorage:`, e);
+      }
+    });
+    
+    // Clear session storage related data
     sessionStorage.removeItem('authRedirectCount');
     localStorage.removeItem('authReturnTo');
     
+    console.log('resetAuthState: Token cleanup complete');
     return true;
   } catch (error) {
-    console.error('Failed to reset auth state:', error);
+    console.error('resetAuthState: Failed to reset auth state:', error);
     return false;
   }
 }

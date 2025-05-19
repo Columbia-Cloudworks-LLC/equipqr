@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { resetAuthState } from '@/utils/authInterceptors';
 
 /**
  * Custom hook to manage authentication state
@@ -12,12 +13,18 @@ export function useAuthState() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AuthState: Initializing auth state management');
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (event) {
-          console.log("Auth state change event:", event);
+        console.log("AuthState: Auth state change event:", event, session ? `Session ID: ${session.access_token.substring(0, 8)}...` : 'No session');
+        
+        if (event === 'SIGNED_OUT') {
+          // Force clear all tokens on explicit signout event
+          resetAuthState();
         }
+        
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
@@ -26,25 +33,39 @@ export function useAuthState() {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("AuthState: Initial session check:", session ? `Session ID: ${session.access_token.substring(0, 8)}...` : 'No session');
+      
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('AuthState: Unsubscribing from auth state changes');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const checkSession = useCallback(async () => {
     try {
+      console.log('AuthState: Performing session validity check');
       const { data } = await supabase.auth.getSession();
       const isValid = data?.session ? true : false;
       
+      console.log('AuthState: Session check result:', isValid ? 'Valid session' : 'No valid session');
+      
+      // If no valid session but we think we have a user, reset auth state
+      if (!isValid && user) {
+        console.warn('AuthState: Session invalid but user state exists, resetting auth state');
+        resetAuthState();
+      }
+      
       return isValid;
     } catch (error) {
-      console.error("Error checking session:", error);
+      console.error("AuthState: Error checking session:", error);
       return false;
     }
-  }, []);
+  }, [user]);
 
   return {
     user,

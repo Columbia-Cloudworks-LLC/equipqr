@@ -4,6 +4,7 @@ import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { resetAuthState } from "@/utils/authInterceptors";
+import { getSessionInfo } from "@/utils/storageAdapter";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -39,13 +40,31 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           return;
         }
         
-        // Double-check the session is valid
+        // Double-check the session is valid with both getSession and our token storage check
         const isValid = await checkSession();
         console.log("ProtectedRoute: Session check result:", isValid);
-        setIsSessionValid(isValid);
+        
+        // Additional validation through session info diagnostics
+        const sessionInfo = await getSessionInfo();
+        console.log("ProtectedRoute: Session diagnostic info:", sessionInfo);
+        
+        // Set session validity based on both checks
+        const tokenValid = sessionInfo.status === 'valid';
+        const finalValidity = isValid && tokenValid;
+        setIsSessionValid(finalValidity);
           
-        if (!isValid) {
-          console.warn("ProtectedRoute: Session exists but is invalid");
+        if (!finalValidity) {
+          console.warn("ProtectedRoute: Session invalid, details:", { 
+            supabaseCheck: isValid, 
+            tokenCheck: tokenValid,
+            tokenStatus: sessionInfo.status 
+          });
+          
+          // If session is invalid but we have a user, attempt token reset
+          if (user && !finalValidity) {
+            console.warn("ProtectedRoute: Session invalid with user present, resetting tokens");
+            resetAuthState();
+          }
         }
       } catch (err) {
         console.error("ProtectedRoute: Error checking session:", err);
