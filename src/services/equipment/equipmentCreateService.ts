@@ -45,12 +45,22 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
       orgId = permissionResult.orgId;
       console.log(`Permission check successful. Using org ID: ${orgId}`);
     } catch (permError) {
-      console.error('Permission check failed completely:', permError);
-      throw new Error(`Permission check failed: ${permError.message || 'Unknown error'}`);
+      console.error('Primary permission check failed:', permError);
+      
+      try {
+        // Try fallback method
+        console.log('Attempting fallback permission check...');
+        const fallbackResult = await fallbackPermissionCheck(authUserId, equipment.team_id);
+        orgId = fallbackResult.orgId;
+        console.log(`Fallback successful. Using org ID: ${orgId}`);
+      } catch (fallbackError) {
+        console.error('Fallback permission check failed:', fallbackError);
+        throw new Error(`Permission check failed: ${fallbackError.message || 'Access denied'}`);
+      }
     }
     
     if (!orgId) {
-      console.error('No organization ID returned from permission check');
+      console.error('No organization ID returned from permission checks');
       throw new Error('Failed to determine organization for equipment creation');
     }
     

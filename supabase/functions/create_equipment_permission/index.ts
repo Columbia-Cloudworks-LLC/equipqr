@@ -62,7 +62,7 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Call the simplified permission check function we just created
+    // Call the simplified permission check function
     const { data, error } = await supabase.rpc(
       'simplified_equipment_create_permission',
       { 
