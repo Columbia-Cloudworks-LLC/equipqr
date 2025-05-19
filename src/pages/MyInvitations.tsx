@@ -1,16 +1,15 @@
-
 import { useEffect, useState } from 'react';
 import { Layout } from '@/components/Layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InvitationNotification } from '@/components/Notifications/InvitationNotification';
-import { useNotifications } from '@/contexts/NotificationsContext';
+import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Mail, Check, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPendingInvitationsForUser } from '@/services/team/notificationService';
 
 export default function MyInvitations() {
-  const { invitations, isLoading, refreshNotifications, resetDismissedNotifications } = useNotifications();
+  const { invitations, isLoading, refreshNotifications, resetDismissedNotifications } = useNotificationsSafe();
   const [directInvitations, setDirectInvitations] = useState<any[]>([]);
   const [isDirectLoading, setIsDirectLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);

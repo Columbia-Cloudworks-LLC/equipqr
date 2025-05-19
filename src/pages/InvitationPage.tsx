@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useInvitationValidation } from '../hooks/useInvitationValidation';
@@ -8,11 +7,13 @@ import { InvitationContent } from '../components/Invitation/InvitationContent';
 import { InvitationLoading } from '../components/Invitation/InvitationLoading';
 import { InvitationError } from '../components/Invitation/InvitationError';
 import { InvitationValidating } from '../components/Invitation/InvitationStatus';
+import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 
 const InvitationPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const [searchParams] = useSearchParams();
   const invitationType = searchParams.get('type') || 'team';
+  const { refreshNotifications } = useNotificationsSafe();
   
   const { isValidating, isValid, error, invitation, user, isAuthLoading } = useInvitationValidation(token || '');
   const { acceptInvitation, isAccepting, acceptError } = useInvitationAcceptance();
@@ -41,6 +42,13 @@ const InvitationPage: React.FC = () => {
     }
   }, [error, acceptError]);
 
+  // Refresh notifications after successful invitation validation
+  useEffect(() => {
+    if (isValid && invitation && !isValidating && !isAuthLoading) {
+      refreshNotifications();
+    }
+  }, [isValid, invitation, isValidating, isAuthLoading, refreshNotifications]);
+
   if (isValidating || isAuthLoading) {
     return <InvitationValidating />;
   }
@@ -57,7 +65,11 @@ const InvitationPage: React.FC = () => {
     <InvitationContent 
       invitationType={invitationType || invitation.type || 'team'}
       invitationDetails={invitation} 
-      onAccept={() => acceptInvitation(token || '', invitationType)}
+      onAccept={() => {
+        acceptInvitation(token || '', invitationType).then(() => {
+          refreshNotifications();
+        });
+      }}
       token={token || ''}
     />
   );
