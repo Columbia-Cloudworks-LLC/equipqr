@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useInvitationValidation } from '../hooks/useInvitationValidation';
@@ -61,15 +62,20 @@ const InvitationPage: React.FC = () => {
     return <InvalidInvitation />;
   }
 
+  const handleAcceptInvitation = async () => {
+    try {
+      await acceptInvitation(token || '', invitationType);
+      await refreshNotifications();
+    } catch (error) {
+      console.error('Error in handleAcceptInvitation:', error);
+    }
+  };
+
   return (
     <InvitationContent 
       invitationType={invitationType || invitation.type || 'team'}
       invitationDetails={invitation} 
-      onAccept={() => {
-        acceptInvitation(token || '', invitationType).then(() => {
-          refreshNotifications();
-        });
-      }}
+      onAccept={handleAcceptInvitation}
       token={token || ''}
     />
   );
