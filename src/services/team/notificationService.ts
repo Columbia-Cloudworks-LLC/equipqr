@@ -1,121 +1,155 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  loadDismissedNotifications, 
-  saveDismissedNotifications,
-  clearLocalDismissedNotifications 
-} from './notificationStorage';
+import { supabase } from '@/integrations/supabase/client';
+import { Invitation } from '@/types/notifications';
+import { getDismissedNotifications, setDismissedNotification, clearDismissedNotifications } from './notificationStorage';
 
 /**
- * Get pending invitations for the current user's email
- * This works across organizations
+ * Fetch all active notifications for the current user
+ * This includes team and organization invitations that have not been dimissed
  */
-export async function getPendingInvitationsForUser() {
+export async function getActiveNotifications(): Promise<Invitation[]> {
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-      console.error("Error retrieving session:", sessionError);
+    if (sessionError || !sessionData?.session) {
+      console.error('Error fetching session:', sessionError);
       return [];
     }
     
-    if (!sessionData?.session?.user?.email) {
-      console.error("No authenticated user email found");
+    const userEmail = sessionData.session.user.email;
+    if (!userEmail) {
+      console.error('No user email found in session');
       return [];
     }
     
-    const userEmail = sessionData.session.user.email.toLowerCase();
+    console.log(`Fetching notifications for ${userEmail}`);
     
-    // Use the edge function to get both team and organization invitations
-    const { data, error } = await supabase.functions.invoke('get_user_invitations', {
-      body: { email: userEmail }
-    });
-    
-    if (error) {
-      console.error('Error fetching pending invitations for user:', error);
-      throw new Error(`Failed to fetch invitations: ${error.message}`);
+    // Try to use the edge function first for comprehensive results
+    try {
+      const { data, error } = await supabase.functions.invoke('get_user_invitations', {
+        body: { email: userEmail }
+      });
+      
+      if (error) throw error;
+      
+      // Filter out dismissed notifications
+      const dismissed = getDismissedNotifications();
+      const filtered = (data || []).filter(invite => !dismissed.includes(invite.id));
+      
+      console.log(`Found ${filtered.length} active notifications (${dismissed.length} dismissed)`);
+      return filtered;
+    } catch (edgeFunctionError) {
+      console.error('Error using edge function for notifications:', edgeFunctionError);
+      
+      // Fall back to direct DB calls if edge function fails
+      return await getPendingInvitationsForUser();
+    }
+  } catch (error) {
+    console.error('Error in getActiveNotifications:', error);
+    return [];
+  }
+}
+
+/**
+ * Get pending invitations for current user directly from DB
+ */
+export async function getPendingInvitationsForUser(): Promise<Invitation[]> {
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData?.session) {
+      console.error('Error fetching session:', sessionError);
+      return [];
     }
     
-    console.log(`Found ${data?.invitations?.length || 0} total pending invitations for ${userEmail}`);
-    return data?.invitations || [];
-  } catch (error: any) {
+    const userEmail = sessionData.session.user.email?.toLowerCase();
+    if (!userEmail) {
+      console.error('No user email found in session');
+      return [];
+    }
+    
+    // Get dismissed notification IDs
+    const dismissedIds = getDismissedNotifications();
+    
+    // Fetch team invitations
+    const { data: teamInvitations, error: teamError } = await supabase
+      .from('team_invitations')
+      .select('*, team:team_id(name, org_id)')
+      .eq('email', userEmail)
+      .eq('status', 'pending')
+      .is('accepted_at', null);
+      
+    if (teamError) {
+      console.error('Error fetching team invitations:', teamError);
+    }
+    
+    // Fetch organization invitations
+    const { data: orgInvitations, error: orgError } = await supabase
+      .from('organization_invitations')
+      .select('*, organization:org_id(name)')
+      .eq('email', userEmail)
+      .eq('status', 'pending')
+      .is('accepted_at', null);
+      
+    if (orgError) {
+      console.error('Error fetching organization invitations:', orgError);
+    }
+    
+    // Normalize invitations
+    const allInvitations: Invitation[] = [];
+    
+    // Add team invitations
+    if (teamInvitations) {
+      teamInvitations.forEach(inv => {
+        if (!dismissedIds.includes(inv.id)) {
+          allInvitations.push({
+            id: inv.id,
+            email: inv.email,
+            team: inv.team,
+            role: inv.role,
+            token: inv.token,
+            created_at: inv.created_at,
+            org_name: inv.team?.org_id ? 'Organization' : undefined,
+            invitationType: 'team'
+          });
+        }
+      });
+    }
+    
+    // Add organization invitations
+    if (orgInvitations) {
+      orgInvitations.forEach(inv => {
+        if (!dismissedIds.includes(inv.id)) {
+          allInvitations.push({
+            id: inv.id,
+            email: inv.email,
+            organization: inv.organization,
+            role: inv.role,
+            token: inv.token,
+            created_at: inv.created_at,
+            invitationType: 'organization',
+            status: inv.status
+          });
+        }
+      });
+    }
+    
+    console.log(`Found ${allInvitations.length} active invitations (direct DB call)`);
+    return allInvitations;
+  } catch (error) {
     console.error('Error in getPendingInvitationsForUser:', error);
     return [];
   }
 }
 
-// Function to get active notifications with minimal retry logic
-export async function getActiveNotifications(retryCount = 0, maxRetries = 1) {
-  try {
-    // Check if we have an active session
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      console.log("No active session, skipping invitation check");
-      return [];
-    }
-    
-    const invitations = await getPendingInvitationsForUser();
-    
-    // Only retry once if no invitations found initially
-    if (invitations.length === 0 && retryCount < maxRetries) {
-      console.log(`No invitations found on attempt ${retryCount + 1}, will retry in 1s`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return getActiveNotifications(retryCount + 1, maxRetries);
-    }
-    
-    return invitations;
-  } catch (error) {
-    console.error("Error in getActiveNotifications:", error);
-    
-    // Implement minimal retry logic
-    if (retryCount < maxRetries) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return getActiveNotifications(retryCount + 1, maxRetries);
-    }
-    
-    return [];
-  }
+/**
+ * Mark a notification as dismissed (locally)
+ */
+export function dismissNotification(id: string): void {
+  setDismissedNotification(id);
 }
 
 /**
- * Dismiss a notification by storing its ID in local storage
+ * Clear all dismissed notifications
  */
-export async function dismissNotification(notificationId: string) {
-  try {
-    const dismissed = await loadDismissedNotifications();
-    dismissed.push(notificationId);
-    await saveDismissedNotifications(dismissed);
-    console.log(`Dismissed notification ${notificationId}`);
-  } catch (error) {
-    console.error("Error dismissing notification:", error);
-  }
+export function clearLocalDismissedNotifications(): void {
+  clearDismissedNotifications();
 }
-
-/**
- * Reset dismissed notifications by clearing local storage
- */
-export async function resetDismissedNotifications() {
-  try {
-    await clearLocalDismissedNotifications();
-    console.log("Dismissed notifications reset");
-  } catch (e) {
-    console.warn('Could not clear dismissed notifications from localStorage:', e);
-  }
-}
-
-/**
- * Check if a notification has been dismissed
- */
-export async function isNotificationDismissed(notificationId: string): Promise<boolean> {
-  try {
-    const dismissed = await loadDismissedNotifications();
-    return dismissed.includes(notificationId);
-  } catch (error) {
-    console.error("Error checking if notification is dismissed:", error);
-    return false;
-  }
-}
-
-/**
- * Export the clearLocalDismissedNotifications function from notificationStorage
- */
-export { clearLocalDismissedNotifications };

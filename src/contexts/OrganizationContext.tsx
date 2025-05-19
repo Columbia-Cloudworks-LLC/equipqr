@@ -31,12 +31,15 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   const [selectedOrganization, setSelectedOrganization] = useState<UserOrganization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
-  const fetchOrganizations = async () => {
+  const fetchOrganizations = async (forceRefresh: boolean = false) => {
     try {
       setIsLoading(true);
       setError(null);
-      const orgs = await getAllUserOrganizations();
+      const orgs = await getAllUserOrganizations(forceRefresh);
+      
+      console.log('Fetched organizations:', orgs);
       setOrganizations(orgs);
       
       // If no organization is selected yet, select the first one (primary)
@@ -48,6 +51,12 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
         const stillExists = orgs.some(org => org.id === selectedOrganization.id);
         if (!stillExists && orgs.length > 0) {
           setSelectedOrganization(orgs[0]);
+        } else if (stillExists) {
+          // Update the selected organization with fresh data
+          const updatedOrg = orgs.find(org => org.id === selectedOrganization.id);
+          if (updatedOrg) {
+            setSelectedOrganization(updatedOrg);
+          }
         }
       }
     } catch (error) {
@@ -58,16 +67,21 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     }
   };
 
-  // Load organizations on mount
+  // Load organizations on mount and when refreshCounter changes
   useEffect(() => {
-    fetchOrganizations();
-  }, []);
+    fetchOrganizations(refreshCounter > 0);
+  }, [refreshCounter]);
 
   const selectOrganization = (orgId: string) => {
     const org = organizations.find(org => org.id === orgId);
     if (org) {
       setSelectedOrganization(org);
     }
+  };
+
+  const refreshOrganizations = async (): Promise<void> => {
+    setRefreshCounter(prev => prev + 1);
+    return fetchOrganizations(true);
   };
 
   return (
@@ -78,7 +92,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
         isLoading,
         error,
         selectOrganization,
-        refreshOrganizations: fetchOrganizations,
+        refreshOrganizations,
       }}
     >
       {children}

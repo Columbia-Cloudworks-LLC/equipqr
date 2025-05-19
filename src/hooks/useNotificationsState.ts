@@ -14,7 +14,7 @@ export function useNotificationsState() {
   const { user, session } = useAuth();
   
   // Debounced refresh function to prevent multiple rapid calls
-  const debouncedRefresh = useCallback(async () => {
+  const debouncedRefresh = useCallback(async (force: boolean = false) => {
     // Don't refresh if no user is authenticated
     if (!user || !session) {
       setInvitations([]);
@@ -22,9 +22,9 @@ export function useNotificationsState() {
       return;
     }
     
-    // Prevent refreshing more than once every 2 seconds
+    // Prevent refreshing more than once every 2 seconds unless forced
     const now = new Date();
-    if (lastRefreshAttempt && (now.getTime() - lastRefreshAttempt.getTime()) < 2000) {
+    if (!force && lastRefreshAttempt && (now.getTime() - lastRefreshAttempt.getTime()) < 2000) {
       return;
     }
     
@@ -55,14 +55,14 @@ export function useNotificationsState() {
     }
   }, [user, session, lastRefreshAttempt]);
   
-  // Called after authentication is complete
+  // Called after authentication is complete or when manually triggered
   const refreshNotifications = useCallback(async () => {
     if (!user) {
       console.log("Manual refresh attempted but no user is authenticated");
       return;
     }
     
-    await debouncedRefresh();
+    await debouncedRefresh(true);
   }, [user, debouncedRefresh]);
 
   // Reset dismissed notifications

@@ -14,14 +14,24 @@ import { Layout } from '@/components/Layout/Layout';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const OrganizationSettings = () => {
-  const { organizations, selectedOrganization, isLoading: orgContextLoading, selectOrganization } = useOrganization();
+  const { 
+    organizations, 
+    selectedOrganization, 
+    isLoading: orgContextLoading, 
+    selectOrganization,
+    refreshOrganizations,
+    error: orgContextError
+  } = useOrganization();
+  
   const [organization, setOrganization] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<UserRole>('viewer');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // When the selected organization changes in context, update the page
   useEffect(() => {
@@ -68,10 +78,29 @@ const OrganizationSettings = () => {
     selectOrganization(orgId);
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshOrganizations();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Content to render based on loading/error state
   const renderContent = () => {
-    if (orgContextLoading || loading) {
+    // Handle initial context loading
+    if (orgContextLoading) {
       return <OrganizationLoading />;
+    }
+
+    // If no organizations found and not loading, show error
+    if (organizations.length === 0 && !orgContextLoading) {
+      return <OrganizationError 
+        errorMessage="No organizations found"
+        handleRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+      />;
     }
 
     // Check if user is authenticated
@@ -79,11 +108,35 @@ const OrganizationSettings = () => {
       return <AuthenticationRequired />;
     }
 
-    if (error || !organization) {
+    // If context has error and no selected organization
+    if ((orgContextError || error) && !selectedOrganization) {
       return <OrganizationError 
-        errorMessage={error || 'Failed to load organization'} 
-        handleRefresh={() => window.location.reload()} 
-        isRefreshing={false} 
+        errorMessage={orgContextError || error || 'Failed to load organization'} 
+        handleRefresh={handleRefresh} 
+        isRefreshing={isRefreshing} 
+      />;
+    }
+
+    // If still loading organization data
+    if (loading) {
+      return <OrganizationLoading />;
+    }
+
+    // If no organization is selected, but organizations exist
+    if (!organization && organizations.length > 0) {
+      return <OrganizationError 
+        errorMessage="No organization selected" 
+        handleRefresh={handleRefresh} 
+        isRefreshing={isRefreshing} 
+      />;
+    }
+
+    // If no organization data
+    if (!organization) {
+      return <OrganizationError 
+        errorMessage="Organization data not available" 
+        handleRefresh={handleRefresh} 
+        isRefreshing={isRefreshing} 
       />;
     }
 
@@ -94,7 +147,18 @@ const OrganizationSettings = () => {
     return (
       <div className="container p-4 mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <h1 className="text-2xl font-bold tracking-tight">Organization Settings</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Organization Settings</h1>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleRefresh} 
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Refresh</span>
+            </Button>
+          </div>
           
           {organizations.length > 1 && (
             <OrganizationSelector

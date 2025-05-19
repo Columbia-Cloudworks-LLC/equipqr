@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { acceptInvitation } from "@/services/team/invitationService";
-import { acceptOrganizationInvitation } from "@/services/organization/invitationService";
 import { Check, X, Loader2 } from 'lucide-react';
 import { Invitation } from '@/types/notifications';
+import { useInvitationAcceptance } from '@/hooks/useInvitationAcceptance';
+import { useNotifications } from '@/contexts/NotificationsContext';
 
 interface InvitationNotificationProps {
   invitation: Invitation;
@@ -19,6 +20,8 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclined, setIsDeclined] = useState(false);
   const navigate = useNavigate();
+  const { refreshNotifications } = useNotifications();
+  const { acceptInvitation: acceptInvite } = useInvitationAcceptance();
   
   // Determine if this is a team or organization invitation
   const isTeamInvitation = invitation.invitationType === 'team' || invitation.team !== null;
@@ -39,32 +42,17 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
     try {
       setIsAccepting(true);
       
-      let result;
+      // Use the updated acceptInvitation hook that handles both invitation types
+      await acceptInvite(invitation.token, isOrgInvitation ? 'organization' : 'team');
       
-      if (isOrgInvitation) {
-        // Handle organization invitation
-        result = await acceptOrganizationInvitation(invitation.token);
-        
-        toast.success(`You've joined ${entityName}!`, {
-          description: `You have successfully joined as a ${invitation.role}`
-        });
-        
-        // For organization invitations, redirect to the organization settings
-        // Use the correct route path from App.tsx
-        onAccept();
-        navigate('/settings/organization');
-      } else {
-        // Handle team invitation
-        result = await acceptInvitation(invitation.token);
-        
-        toast.success(`You've joined ${entityName}!`, {
-          description: `You have successfully joined as a ${result.role || invitation.role}`
-        });
-        
-        // For team invitations, redirect to the team page
-        onAccept();
-        navigate('/team');
-      }
+      // Call the onAccept callback to update the parent component
+      onAccept();
+      
+      // Refresh the notifications list
+      setTimeout(() => {
+        refreshNotifications();
+      }, 500);
+      
     } catch (error: any) {
       toast.error(`Failed to accept invitation: ${error.message}`);
       console.error("Invitation acceptance error:", error);
