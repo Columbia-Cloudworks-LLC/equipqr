@@ -3,13 +3,7 @@ import { SearchField } from './SearchField';
 import { StatusFilter } from './StatusFilter';
 import { TeamFilter } from './TeamFilter';
 import { OrganizationFilter } from './OrganizationFilter';
-
-interface Organization {
-  id: string;
-  name: string;
-  role?: string;
-  is_primary?: boolean;
-}
+import { UserOrganization } from '@/services/organization/userOrganizations';
 
 interface EquipmentFiltersProps {
   searchQuery: string;
@@ -19,7 +13,7 @@ interface EquipmentFiltersProps {
   filterTeam: string;
   onTeamChange: (value: string) => void;
   teams: string[];
-  organizations: Organization[];
+  organizations: UserOrganization[];
   selectedOrgId?: string;
   onOrganizationChange: (orgId: string) => void;
   showOrgSelector: boolean;

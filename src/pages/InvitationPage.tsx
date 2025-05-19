@@ -3,10 +3,10 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useInvitationValidation } from '../hooks/useInvitationValidation';
 import { useInvitationAcceptance } from '../hooks/useInvitationAcceptance';
-import InvalidInvitation from '../components/Invitation/InvalidInvitation';
-import InvitationContent from '../components/Invitation/InvitationContent';
-import InvitationLoading from '../components/Invitation/InvitationLoading';
-import InvitationError from '../components/Invitation/InvitationError';
+import { InvalidInvitation } from '../components/Invitation/InvalidInvitation';
+import { InvitationContent } from '../components/Invitation/InvitationContent';
+import { InvitationLoading } from '../components/Invitation/InvitationLoading';
+import { InvitationError } from '../components/Invitation/InvitationError';
 
 const InvitationPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -27,11 +27,10 @@ const InvitationPage: React.FC = () => {
 
   return (
     <InvitationContent 
-      invitation={invitation} 
-      user={user} 
-      onAccept={(data) => acceptInvitation(data, invitation)}
-      isAccepting={isAccepting}
-      acceptError={acceptError}
+      invitationType={invitation.type || 'team'}
+      invitationDetails={invitation} 
+      onAccept={acceptInvitation}
+      token={token || ''}
     />
   );
 };

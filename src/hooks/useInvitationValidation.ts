@@ -29,7 +29,11 @@ export function useInvitationValidation(token?: string) {
           setError(data?.error || 'This invitation is invalid or has expired.');
           setIsValid(false);
         } else {
-          setInvitation(data.invitation);
+          // Determine the invitation type and store it in the invitation object
+          const invitationData = data.invitation;
+          invitationData.type = invitationData.team_id ? 'team' : 'organization';
+          
+          setInvitation(invitationData);
           setIsValid(true);
           setError(null);
         }
@@ -57,3 +61,5 @@ export function useInvitationValidation(token?: string) {
     user
   };
 }
+
+export default useInvitationValidation;

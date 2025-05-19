@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './hooks/useAuthState';
-import ProtectedRoute from './components/Auth/ProtectedRoute';
-import AuthRedirect from './components/Auth/AuthRedirect';
+import { useAuth } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/Auth/ProtectedRoute';
+import { AuthRedirect } from './components/Auth/AuthRedirect';
 
 // Pages
 import Index from './pages/Index';

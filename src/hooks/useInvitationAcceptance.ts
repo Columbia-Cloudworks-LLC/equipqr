@@ -4,46 +4,39 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
-interface AcceptanceData {
-  token: string;
-  type: 'team' | 'organization';
-}
-
 export function useInvitationAcceptance() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [acceptError, setAcceptError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const acceptInvitation = async (data: AcceptanceData, invitationDetails?: any) => {
+  const acceptInvitation = async (token: string, type?: string): Promise<any> => {
     setIsAccepting(true);
     setAcceptError(null);
 
     try {
       let result;
       
-      if (data.type === 'team') {
-        const { data: acceptData, error } = await supabase.functions.invoke('accept_team_invitation', {
-          body: { token: data.token }
-        });
-        
-        if (error) throw new Error(error.message);
-        result = acceptData;
-      } else {
+      if (type === 'organization') {
         const { data: acceptData, error } = await supabase.functions.invoke('accept_organization_invitation', {
-          body: { token: data.token }
+          body: { token }
         });
         
         if (error) throw new Error(error.message);
         result = acceptData;
-      }
-
-      toast.success(`Successfully accepted the ${data.type} invitation`);
-      
-      // Navigate based on invitation type
-      if (data.type === 'team') {
-        navigate('/teams');
-      } else {
+        
+        toast.success('Successfully accepted the organization invitation');
         navigate('/organization');
+      } else {
+        // Default to team invitation
+        const { data: acceptData, error } = await supabase.functions.invoke('accept_team_invitation', {
+          body: { token }
+        });
+        
+        if (error) throw new Error(error.message);
+        result = acceptData;
+        
+        toast.success('Successfully accepted the team invitation');
+        navigate('/teams');
       }
       
       return result;

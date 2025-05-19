@@ -36,9 +36,10 @@ export async function directDatabasePermissionCheck(
     }
     
     // Handle the response with proper type checking
-    const hasPermission = typeof data === 'object' && 'can_create' in data ? !!data.can_create : false;
-    const resultOrgId = typeof data === 'object' && 'org_id' in data ? data.org_id : orgId;
-    const reason = typeof data === 'object' && 'reason' in data ? String(data.reason) : 'unknown';
+    const responseObj = data as any;
+    const hasPermission = responseObj && 'can_create' in responseObj ? Boolean(responseObj.can_create) : false;
+    const resultOrgId = responseObj && 'org_id' in responseObj ? String(responseObj.org_id) : orgId;
+    const reason = responseObj && 'reason' in responseObj ? String(responseObj.reason) : 'unknown';
     
     return {
       authUserId,
