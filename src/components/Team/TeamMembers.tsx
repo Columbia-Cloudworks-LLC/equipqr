@@ -15,9 +15,9 @@ interface TeamMembersProps {
   isLoadingInvitations?: boolean;
   teamId: string;
   teamName?: string;
-  onInviteMember?: (email: string, role: string, teamId: string) => void;
-  onChangeRole?: (id: string, role: string, teamId: string) => void;
-  onRemoveMember?: (id: string, teamId: string) => void;
+  onInviteMember?: (email: string, role: string) => void;
+  onChangeRole?: (id: string, role: string) => Promise<any>;
+  onRemoveMember?: (id: string) => Promise<any>;
   onResendInvite?: (id: string) => Promise<void>;
   onCancelInvitation?: (id: string) => Promise<void>;
   onFetchPendingInvitations?: () => void;
@@ -26,10 +26,10 @@ interface TeamMembersProps {
   isMember?: boolean;
   isUpgradingRole?: boolean;
   isRequestingRole?: boolean;
-  onUpgradeRole?: (teamId: string) => Promise<void>;
-  onRequestRoleUpgrade?: (teamId: string) => Promise<void>;
+  onUpgradeRole?: () => Promise<void>;
+  onRequestRoleUpgrade?: () => Promise<void>;
   isRepairingTeam?: boolean;
-  onRepairTeam?: (teamId: string) => Promise<void>;
+  onRepairTeam?: () => Promise<void>;
   children?: ReactNode;
 }
 
@@ -101,7 +101,7 @@ export function TeamMembers({
       {showInviteForm && canManageMembers && onInviteMember && (
         <InviteForm
           onInvite={(email, role) => {
-            onInviteMember(email, role, teamId);
+            onInviteMember(email, role);
             setShowInviteForm(false);
           }}
           onCancel={() => setShowInviteForm(false)}

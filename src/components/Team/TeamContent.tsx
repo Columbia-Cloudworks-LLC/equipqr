@@ -1,3 +1,4 @@
+
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
 import { TeamSettings } from "./TeamSettings";
@@ -124,21 +125,21 @@ export function TeamContent({
             canChangeRoles={canChangeRoles}
             isUpgradingRole={isUpgradingRole}
             isRequestingRole={isRequestingRole}
-            onInviteMember={onInviteMember}
-            onChangeRole={onChangeRole}
-            onRemoveMember={onRemoveMember}
-            onUpgradeRole={onUpgradeRole}
-            onRequestRoleUpgrade={onRequestRoleUpgrade}
+            onInviteMember={(email, role) => onInviteMember({ email, role, teamId: selectedTeamId })}
+            onChangeRole={(userId, role) => onChangeRole(userId, role)}
+            onRemoveMember={(userId) => onRemoveMember(userId)}
+            onUpgradeRole={() => onUpgradeRole(selectedTeamId)}
+            onRequestRoleUpgrade={() => onRequestRoleUpgrade(selectedTeamId)}
             isRepairingTeam={isRepairingTeam}
-            onRepairTeam={onRepairTeam}
+            onRepairTeam={() => onRepairTeam(selectedTeamId)}
           >
             <TeamMembersList 
               members={members}
               teamId={selectedTeamId}
               isLoading={isLoading}
               currentUserRole={currentUserRole || undefined}
-              onChangeRole={onChangeRole}
-              onRemoveMember={onRemoveMember}
+              onChangeRole={(id, role) => onChangeRole(id, role)}
+              onRemoveMember={(id) => onRemoveMember(id)}
               onResendInvite={onResendInvite}
             />
           </TeamMembers>

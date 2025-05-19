@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { UserRole } from '@/types/supabase-enums';
 
 export default function TeamManagement() {
   const {
@@ -82,24 +83,51 @@ export default function TeamManagement() {
   }, [teams.length, selectedTeamId, isLoading, isMember, currentUserRole, canChangeRoles, isViewerOnly]);
 
   // Wrapper functions to adapt the hook functions to the expected return types for TeamContent
-  const handleUpdateTeamWrapper = async (id: string, name: string) => {
+  const handleUpdateTeamWrapper = async (id: string, name: string): Promise<void> => {
     await handleUpdateTeam(id, name);
   };
   
-  const handleDeleteTeamWrapper = async (teamId: string) => {
+  const handleDeleteTeamWrapper = async (teamId: string): Promise<void> => {
     await handleDeleteTeam(teamId);
   };
   
-  const handleRepairTeamWrapper = async (teamId: string) => {
+  const handleRepairTeamWrapper = async (teamId: string): Promise<void> => {
     await handleRepairTeam(teamId);
   };
   
-  const handleUpgradeRoleWrapper = async (teamId: string) => {
+  const handleUpgradeRoleWrapper = async (teamId: string): Promise<void> => {
     await handleUpgradeRole(teamId);
   };
   
-  const handleRequestRoleUpgradeWrapper = async (teamId: string) => {
+  const handleRequestRoleUpgradeWrapper = async (teamId: string): Promise<void> => {
     await handleRequestRoleUpgrade(teamId);
+  };
+
+  // Wrapper functions to adapt argument patterns for TeamContent props
+  const handleInviteMemberWrapper = async (data: any): Promise<any> => {
+    // Expected data format: { email: string, role: UserRole, teamId: string }
+    if (data && data.email && data.role && data.teamId) {
+      return handleInviteMember(data.email, data.role, data.teamId);
+    } else if (typeof data === 'string' && selectedTeamId) {
+      // Fallback for simple email string format
+      return handleInviteMember(data, 'viewer' as UserRole, selectedTeamId);
+    }
+    console.error("Invalid data format for invite member", data);
+    return Promise.reject("Invalid invite member data format");
+  };
+  
+  const handleChangeRoleWrapper = async (userId: string, role: string): Promise<any> => {
+    if (selectedTeamId) {
+      return handleChangeRole(userId, role as UserRole, selectedTeamId);
+    }
+    return Promise.reject("No team selected");
+  };
+  
+  const handleRemoveMemberWrapper = async (userId: string): Promise<any> => {
+    if (selectedTeamId) {
+      return handleRemoveMember(userId, selectedTeamId);
+    }
+    return Promise.reject("No team selected");
   };
 
   // Show loading state during auth check
@@ -189,9 +217,9 @@ export default function TeamManagement() {
               isMember={isMember}
               currentUserRole={currentUserRole}
               canChangeRoles={canChangeRoles}
-              onInviteMember={handleInviteMember}
-              onChangeRole={handleChangeRole}
-              onRemoveMember={handleRemoveMember}
+              onInviteMember={handleInviteMemberWrapper}
+              onChangeRole={handleChangeRoleWrapper}
+              onRemoveMember={handleRemoveMemberWrapper}
               onResendInvite={handleResendInvite}
               onCancelInvitation={handleCancelInvitation}
               onCreateTeam={handleCreateTeam}
