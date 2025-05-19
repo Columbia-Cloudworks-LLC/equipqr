@@ -22,7 +22,8 @@ const Index = () => {
     isEquipmentError,
     isTeamsError,
     invitations,
-    equipment
+    equipment,
+    refetchTeams
   } = useDashboardData();
 
   const stats: DashboardStat[] = [
@@ -81,6 +82,7 @@ const Index = () => {
             teams={teams}
             isLoading={isTeamsLoading} 
             isError={isTeamsError}
+            onRefresh={refetchTeams}
           />
           
           <QuickLinksCard />

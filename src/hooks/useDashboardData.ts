@@ -1,31 +1,60 @@
 
-import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getEquipment } from '@/services/equipment';
 import { Equipment } from '@/types';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { getTeams } from '@/services/team';
 
 export function useDashboardData() {
+  const queryClient = useQueryClient();
   const { invitations, refreshNotifications } = useNotificationsSafe();
+  const [retries, setRetries] = useState(0);
   
-  const { data: equipmentData = [], isLoading: isEquipmentLoading, isError: isEquipmentError } = useQuery({
+  // Equipment data query
+  const { 
+    data: equipmentData = [], 
+    isLoading: isEquipmentLoading, 
+    isError: isEquipmentError 
+  } = useQuery({
     queryKey: ['equipment'],
     queryFn: getEquipment,
     retry: 1,
   });
 
-  const { data: teamsData = [], isLoading: isTeamsLoading, isError: isTeamsError } = useQuery({
-    queryKey: ['teams'],
-    queryFn: getTeams,
-    retry: 1,
+  // Teams data query with force refresh option
+  const { 
+    data: teamsData = [], 
+    isLoading: isTeamsLoading, 
+    isError: isTeamsError,
+    refetch: refetchTeams
+  } = useQuery({
+    queryKey: ['teams', 'dashboard'],
+    queryFn: async () => {
+      console.log('Dashboard: Fetching teams with forceRefresh');
+      return getTeams({ forceRefresh: true });
+    },
+    retry: 2,
   });
 
   // Safely ensure equipment is always an array
   const equipment = Array.isArray(equipmentData) ? equipmentData : [];
   
-  // Safely ensure teams is always an array
-  const teams = Array.isArray(teamsData) ? teamsData : [];
+  // Safely ensure teams is always an array with validated data
+  const teams = Array.isArray(teamsData) ? teamsData.filter(team => 
+    team && typeof team === 'object' && team.id && team.name
+  ) : [];
+
+  // Log team data for debugging
+  useEffect(() => {
+    if (teams.length > 0) {
+      console.log('Dashboard teams data:', teams);
+    } else if (!isTeamsLoading && retries < 2) {
+      console.log('No teams found in dashboard, will retry...');
+      setRetries(prev => prev + 1);
+      setTimeout(() => refetchTeams(), 1500);
+    }
+  }, [teams, isTeamsLoading, refetchTeams, retries]);
 
   // Refresh notifications when the dashboard loads
   useEffect(() => {
@@ -68,10 +97,11 @@ export function useDashboardData() {
     maintenanceCount,
     isEquipmentLoading,
     isTeamsLoading,
-    isLoading: isEquipmentLoading,
+    isLoading: isEquipmentLoading || isTeamsLoading,
     isEquipmentError,
     isTeamsError,
-    isError: isEquipmentError,
-    invitations
+    isError: isEquipmentError || isTeamsError,
+    invitations,
+    refetchTeams
   };
 }

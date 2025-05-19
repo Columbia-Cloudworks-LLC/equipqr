@@ -8,10 +8,15 @@ import { getCachedTeams } from "./teamCache";
 /**
  * Get all teams for the current user, including those from other organizations where
  * the user has been granted access through organization_acl
+ * 
+ * @param options Optional configuration
+ * @param options.forceRefresh Force refresh from server instead of using cache
  */
-export async function getTeams() {
+export async function getTeams(options?: { forceRefresh?: boolean }) {
+  const forceRefresh = options?.forceRefresh || false;
+
   try {
-    console.log('Fetching all teams for current user');
+    console.log(`Fetching all teams for current user (forceRefresh: ${forceRefresh})`);
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -27,21 +32,23 @@ export async function getTeams() {
     const authUserId = sessionData.session.user.id;
     console.log('Auth user ID:', authUserId);
     
-    // Check cache first
-    const cachedTeams = getCachedTeams();
+    // Check cache first (if not forcing refresh)
+    const cachedTeams = getCachedTeams(forceRefresh);
     if (cachedTeams) {
       console.log(`Using ${cachedTeams.length} cached teams`);
-      return cachedTeams;
+      return normalizeTeamData(cachedTeams);
     }
     
     // Try the edge function first with a short timeout
     try {
-      return await getTeamsViaEdgeFunction(authUserId);
+      const teams = await getTeamsViaEdgeFunction(authUserId, forceRefresh);
+      return normalizeTeamData(teams);
     } catch (edgeFunctionError) {
       console.warn('Edge function failed, falling back to direct query:', edgeFunctionError);
       
       // Use fallback direct query approach
-      return await getTeamsFallback(authUserId);
+      const teams = await getTeamsFallback(authUserId);
+      return normalizeTeamData(teams);
     }
   } catch (error) {
     console.error('Error in getTeams:', error);
@@ -55,4 +62,27 @@ export async function getTeams() {
     
     throw error;
   }
+}
+
+/**
+ * Normalize team data to ensure consistent format for components
+ */
+function normalizeTeamData(teams: any[]): any[] {
+  if (!Array.isArray(teams)) {
+    console.warn('Teams data is not an array, returning empty array');
+    return [];
+  }
+  
+  return teams.map(team => {
+    if (!team) return null;
+    
+    return {
+      id: team.id,
+      name: team.name || 'Unnamed Team',
+      role: team.role || 'viewer',
+      org_id: team.org_id || '',
+      org_name: team.org_name || team.organization?.name || 'Unknown Organization',
+      is_external: typeof team.is_external === 'boolean' ? team.is_external : false
+    };
+  }).filter(Boolean); // Remove any null entries
 }
