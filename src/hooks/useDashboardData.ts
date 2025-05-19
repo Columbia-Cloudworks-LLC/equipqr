@@ -2,24 +2,30 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getEquipment } from '@/services/equipment';
-import { Equipment, TeamMember } from '@/types';
-import { MOCK_TEAM_MEMBERS } from '@/data/mockData';
+import { Equipment } from '@/types';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
+import { getTeams } from '@/services/team';
 
 export function useDashboardData() {
   const { invitations, refreshNotifications } = useNotificationsSafe();
   
-  const { data: equipmentData = [], isLoading, isError } = useQuery({
+  const { data: equipmentData = [], isLoading: isEquipmentLoading, isError: isEquipmentError } = useQuery({
     queryKey: ['equipment'],
     queryFn: getEquipment,
     retry: 1,
   });
 
+  const { data: teamsData = [], isLoading: isTeamsLoading, isError: isTeamsError } = useQuery({
+    queryKey: ['teams'],
+    queryFn: getTeams,
+    retry: 1,
+  });
+
   // Safely ensure equipment is always an array
   const equipment = Array.isArray(equipmentData) ? equipmentData : [];
-
-  // Get team members (still using mock data for now)
-  const teamMembers: TeamMember[] = MOCK_TEAM_MEMBERS;
+  
+  // Safely ensure teams is always an array
+  const teams = Array.isArray(teamsData) ? teamsData : [];
 
   // Refresh notifications when the dashboard loads
   useEffect(() => {
@@ -57,11 +63,15 @@ export function useDashboardData() {
   return {
     equipment,
     recentEquipment,
-    teamMembers,
+    teams,
     activeCount,
     maintenanceCount,
-    isLoading,
-    isError,
+    isEquipmentLoading,
+    isTeamsLoading,
+    isLoading: isEquipmentLoading,
+    isEquipmentError,
+    isTeamsError,
+    isError: isEquipmentError,
     invitations
   };
 }

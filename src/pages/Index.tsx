@@ -7,17 +7,20 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { InvitationAlert } from '@/components/Dashboard/InvitationAlert';
 import { RecentEquipmentSection } from '@/components/Dashboard/RecentEquipmentSection';
+import { TeamsSection } from '@/components/Dashboard/TeamsSection';
 import { QuickLinksCard } from '@/components/Dashboard/QuickLinksCard';
 import { useDashboardData } from '@/hooks/useDashboardData';
 
 const Index = () => {
   const { 
-    teamMembers, 
+    teams, 
     activeCount,
     maintenanceCount,
     recentEquipment,
-    isLoading,
-    isError,
+    isEquipmentLoading,
+    isTeamsLoading,
+    isEquipmentError,
+    isTeamsError,
     invitations,
     equipment
   } = useDashboardData();
@@ -41,8 +44,8 @@ const Index = () => {
       icon: Settings,
     },
     {
-      label: 'Team Members',
-      value: teamMembers.length,
+      label: 'Team Memberships',
+      value: teams.length,
       change: 20,
       icon: Users,
     },
@@ -70,8 +73,14 @@ const Index = () => {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <RecentEquipmentSection 
             recentEquipment={recentEquipment}
-            isLoading={isLoading}
-            isError={isError}
+            isLoading={isEquipmentLoading}
+            isError={isEquipmentError}
+          />
+          
+          <TeamsSection
+            teams={teams}
+            isLoading={isTeamsLoading} 
+            isError={isTeamsError}
           />
           
           <QuickLinksCard />
