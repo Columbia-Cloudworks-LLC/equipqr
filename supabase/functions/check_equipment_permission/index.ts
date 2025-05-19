@@ -35,6 +35,12 @@ function createErrorResponse(message: string, status: number = 400) {
   );
 }
 
+// Helper function to validate UUID format
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -42,13 +48,10 @@ serve(async (req) => {
   }
 
   try {
-    // Log the raw request body for debugging
-    const rawBody = await req.text();
-    console.log(`Raw request body: ${rawBody}`);
-    
-    // Parse the request body
     let body;
     try {
+      const rawBody = await req.text();
+      console.log(`Raw request body: ${rawBody}`);
       body = JSON.parse(rawBody);
       console.log('Parsed request body:', body);
     } catch (parseError) {
@@ -65,8 +68,7 @@ serve(async (req) => {
     console.log(`Processing permission check: user_id=${user_id}, equipment_id=${equipment_id || 'null'}, action=${action}, team_id=${team_id || 'null'}`);
     
     // Validate UUID format for user_id
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(user_id)) {
+    if (!isValidUUID(user_id)) {
       console.error(`Invalid UUID format for user_id: ${user_id}`);
       return createErrorResponse("Invalid UUID format for user_id");
     }
@@ -90,6 +92,11 @@ serve(async (req) => {
         let formattedTeamId = team_id;
         if (team_id === 'null' || team_id === 'none' || team_id === '') {
           formattedTeamId = null;
+        }
+        
+        // Validate team_id format if present
+        if (formattedTeamId !== null && !isValidUUID(formattedTeamId)) {
+          return createErrorResponse("Invalid UUID format for team_id");
         }
         
         console.log('Using formatted team ID:', formattedTeamId);
@@ -153,6 +160,11 @@ serve(async (req) => {
         return createErrorResponse("equipment_id is required for view/edit actions");
       }
       
+      // Validate equipment_id format
+      if (!isValidUUID(equipment_id)) {
+        return createErrorResponse("Invalid UUID format for equipment_id");
+      }
+      
       // For view action
       if (action === 'view') {
         console.log(`Checking view permission for equipment ${equipment_id}`);
@@ -211,7 +223,40 @@ serve(async (req) => {
           
           if (error) {
             console.error('Edit permission check error:', error);
-            return createErrorResponse(`Edit permission check failed: ${error.message}`);
+            
+            // Try direct query as fallback approach
+            const { data: equipment } = await supabase
+              .from('equipment')
+              .select('id, org_id, team_id')
+              .eq('id', equipment_id)
+              .is('deleted_at', null)
+              .single();
+              
+            if (!equipment) {
+              return createErrorResponse('Equipment not found or already deleted');
+            }
+            
+            const { data: userProfile } = await supabase
+              .from('user_profiles')
+              .select('org_id')
+              .eq('id', user_id)
+              .single();
+              
+            // Allow edit if same organization and has appropriate role
+            if (userProfile && equipment && userProfile.org_id === equipment.org_id) {
+              const { data: userRoles } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', user_id)
+                .eq('org_id', equipment.org_id)
+                .single();
+                
+              if (userRoles && ['owner', 'manager', 'admin'].includes(userRoles.role)) {
+                return createSuccessResponse({ has_permission: true, reason: 'org_role' });
+              }
+            }
+            
+            return createErrorResponse('Edit permission denied - insufficient privileges', 403);
           }
           
           return createSuccessResponse({ has_permission: !!data });

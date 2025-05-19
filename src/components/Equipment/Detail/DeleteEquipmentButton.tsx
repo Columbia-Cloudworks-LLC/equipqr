@@ -30,6 +30,7 @@ export function DeleteEquipmentButton({
 }: DeleteEquipmentButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -39,23 +40,30 @@ export function DeleteEquipmentButton({
   }
 
   async function handleDelete() {
+    if (!equipmentId) {
+      toast.error('Missing equipment ID');
+      return;
+    }
+    
+    setError(null);
+    setIsDeleting(true);
+    
     try {
-      setIsDeleting(true);
       await deleteEquipment(equipmentId);
       
       // Invalidate queries to refresh equipment list
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       
-      toast.success('Equipment deleted successfully');
+      // Close the dialog
+      setIsOpen(false);
+      
+      // Navigate back to equipment list
       navigate('/equipment');
     } catch (error) {
       console.error('Error deleting equipment:', error);
-      toast.error('Failed to delete equipment', {
-        description: error instanceof Error ? error.message : 'Please try again later',
-      });
+      setError(error instanceof Error ? error.message : 'Failed to delete equipment');
     } finally {
       setIsDeleting(false);
-      setIsOpen(false);
     }
   }
 
@@ -75,9 +83,15 @@ export function DeleteEquipmentButton({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action will delete the equipment "{equipmentName}". 
-              This action cannot be undone, and the equipment record will be permanently removed.
+            <AlertDialogDescription className="space-y-2">
+              <p>This action will delete the equipment "{equipmentName}". 
+              This action cannot be undone, and the equipment record will be permanently removed.</p>
+              
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/30 text-destructive p-3 rounded-md">
+                  {error}
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
