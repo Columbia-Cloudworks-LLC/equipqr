@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Invitation } from '@/types/notifications';
-import { getDismissedNotifications, setDismissedNotification, clearDismissedNotifications } from './notificationStorage';
+import { loadDismissedNotifications, saveDismissedNotifications, clearAllDismissedNotifications } from './notificationStorage';
 
 /**
  * Fetch all active notifications for the current user
@@ -32,7 +32,7 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
       if (error) throw error;
       
       // Filter out dismissed notifications
-      const dismissed = getDismissedNotifications();
+      const dismissed = await loadDismissedNotifications();
       const filtered = (data || []).filter(invite => !dismissed.includes(invite.id));
       
       console.log(`Found ${filtered.length} active notifications (${dismissed.length} dismissed)`);
@@ -67,7 +67,7 @@ export async function getPendingInvitationsForUser(): Promise<Invitation[]> {
     }
     
     // Get dismissed notification IDs
-    const dismissedIds = getDismissedNotifications();
+    const dismissedIds = await loadDismissedNotifications();
     
     // Fetch team invitations
     const { data: teamInvitations, error: teamError } = await supabase
@@ -144,12 +144,19 @@ export async function getPendingInvitationsForUser(): Promise<Invitation[]> {
  * Mark a notification as dismissed (locally)
  */
 export function dismissNotification(id: string): void {
-  setDismissedNotification(id);
+  // Get existing dismissed notifications
+  loadDismissedNotifications().then(dismissed => {
+    // Add the new notification ID if not already dismissed
+    if (!dismissed.includes(id)) {
+      dismissed.push(id);
+      saveDismissedNotifications(dismissed);
+    }
+  });
 }
 
 /**
  * Clear all dismissed notifications
  */
 export function clearLocalDismissedNotifications(): void {
-  clearDismissedNotifications();
+  clearAllDismissedNotifications();
 }

@@ -81,7 +81,9 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
   const refreshOrganizations = async (): Promise<void> => {
     setRefreshCounter(prev => prev + 1);
-    return fetchOrganizations(true);
+    // This line was causing the error - we need to remove the argument
+    // as fetchOrganizations is called via the useEffect triggered by refreshCounter
+    return Promise.resolve();
   };
 
   return (
