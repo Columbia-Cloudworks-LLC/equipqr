@@ -33,11 +33,12 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   const [error, setError] = useState<string | null>(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
 
-  const fetchOrganizations = async (forceRefresh: boolean = false) => {
+  const fetchOrganizations = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const orgs = await getAllUserOrganizations(forceRefresh);
+      // Pass the forceRefresh parameter based on refreshCounter
+      const orgs = await getAllUserOrganizations(refreshCounter > 0);
       
       console.log('Fetched organizations:', orgs);
       setOrganizations(orgs);
@@ -69,7 +70,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
   // Load organizations on mount and when refreshCounter changes
   useEffect(() => {
-    fetchOrganizations(refreshCounter > 0);
+    fetchOrganizations();
   }, [refreshCounter]);
 
   const selectOrganization = (orgId: string) => {
