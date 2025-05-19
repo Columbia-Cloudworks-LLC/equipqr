@@ -4,7 +4,7 @@ import { Equipment } from "@/types";
 import { getAppUserId } from "@/utils/authUtils";
 import { saveEquipmentAttributes } from "./attributesService";
 import { insertEquipment } from "./db/equipmentDbService";
-import { checkCreatePermission, fallbackPermissionCheck } from "./permissions/createPermissionCheck";
+import { checkCreatePermission, fallbackPermissionCheck } from "./permissions";
 import { prepareEquipmentData, extractAttributes } from "./utils/dataProcessing";
 
 /**
