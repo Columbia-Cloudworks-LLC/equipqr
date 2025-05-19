@@ -39,6 +39,14 @@ function createErrorResponse(message: string, status: number = 400) {
  * Check if a string is a valid UUID
  */
 function isValidUuid(uuid: string): boolean {
+  if (uuid === null || uuid === undefined) {
+    return false;
+  }
+  
+  if (typeof uuid !== 'string') {
+    return false;
+  }
+  
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
 }
@@ -186,7 +194,7 @@ serve(async (req) => {
     let body;
     try {
       body = JSON.parse(rawBody);
-      console.log('Parsed request body:', body);
+      console.log('Full incoming payload:', body);
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
       return createErrorResponse(`Invalid JSON in request body: ${parseError.message}`);
@@ -194,29 +202,28 @@ serve(async (req) => {
     
     let { user_id, team_id } = body;
     
-    // Validate parameters
+    // Log the exact types for debugging
+    console.log(`Parameters received with types: user_id=${user_id} (${typeof user_id}), team_id=${team_id || 'null'} (${typeof team_id})`);
+    
+    // Validate required parameters
     if (!user_id) {
       console.error('Missing required parameter: user_id');
       return createErrorResponse("Missing required parameter: user_id");
     }
     
-    // Log parameters with types for debugging
-    console.log(`Parameters received: user_id=${user_id} (${typeof user_id}), team_id=${team_id || 'null'} (${typeof team_id})`);
-    
     // Validate UUID format for user_id
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(user_id)) {
+    if (!isValidUuid(user_id)) {
       console.error(`Invalid UUID format for user_id: ${user_id}`);
-      return createErrorResponse("Invalid UUID format for user_id");
+      return createErrorResponse(`Invalid UUID format for user_id: ${user_id}`);
     }
     
     // Handle team_id nulls and validate format if provided
     if (team_id === 'null' || team_id === 'none' || team_id === '') {
       team_id = null;
       console.log('Normalized team_id to null');
-    } else if (team_id !== null && !uuidRegex.test(team_id)) {
+    } else if (team_id !== null && team_id !== undefined && !isValidUuid(team_id)) {
       console.error(`Invalid UUID format for team_id: ${team_id}`);
-      return createErrorResponse("Invalid UUID format for team_id");
+      return createErrorResponse(`Invalid UUID format for team_id: ${team_id}`);
     }
     
     // Initialize Supabase admin client
