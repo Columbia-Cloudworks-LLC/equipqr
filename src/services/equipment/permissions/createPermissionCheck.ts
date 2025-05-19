@@ -11,6 +11,13 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
     console.log('Using enhanced permission check for equipment creation');
     console.log(`Parameters: authUserId=${authUserId}, teamId=${teamId || 'none'}`);
     
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(authUserId)) {
+      console.error('Invalid UUID format for authUserId:', authUserId);
+      throw new Error('Invalid user ID format');
+    }
+    
     // Use the utility function for more reliable edge function calling
     const data = await invokeEdgeFunctionWithRetry(
       'create_equipment_permission',
@@ -40,6 +47,17 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
     };
   } catch (error) {
     console.error('Permission check error:', error);
+    
+    // Provide more specific error messages based on the error type
+    if (error.message?.includes('type mismatch')) {
+      console.error('Type mismatch error detected in permission check');
+      throw new Error('System error: Data type mismatch in permission check');
+    }
+    
+    if (error.message?.includes('Invalid UUID')) {
+      throw new Error('Invalid user identification. Please log out and log back in.');
+    }
+    
     throw error;
   }
 }
@@ -51,6 +69,13 @@ export async function checkCreatePermission(authUserId: string, teamId?: string 
 export async function fallbackPermissionCheck(authUserId: string, teamId?: string | null) {
   try {
     console.log('Using fallback permission check with check_equipment_permission');
+    
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(authUserId)) {
+      console.error('Invalid UUID format for authUserId in fallback:', authUserId);
+      throw new Error('Invalid user ID format');
+    }
     
     // Use the check_equipment_permission edge function which may be more reliable
     const data = await invokeEdgeFunctionWithRetry(
@@ -79,6 +104,12 @@ export async function fallbackPermissionCheck(authUserId: string, teamId?: strin
     };
   } catch (error) {
     console.error('Fallback permission check failed:', error);
+    
+    // Enhanced error handling with specific messages
+    if (error.message?.includes('Invalid UUID')) {
+      throw new Error('Session error: Please log out and log back in.');
+    }
+    
     throw error;
   }
 }

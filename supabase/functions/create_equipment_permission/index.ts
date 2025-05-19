@@ -42,37 +42,81 @@ serve(async (req) => {
   }
 
   try {
-    // Extract request data with explicit type checking
-    const body = await req.json();
+    // Log the raw request body for debugging
+    const rawBody = await req.text();
+    console.log(`Raw request body: ${rawBody}`);
+    
+    // Parse the request body
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+      console.log('Parsed request body:', body);
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return createErrorResponse(`Invalid JSON in request body: ${parseError.message}`);
+    }
+    
     const { user_id, team_id } = body;
     
+    // Validate parameters
     if (!user_id) {
+      console.error('Missing required parameter: user_id');
       return createErrorResponse("Missing required parameter: user_id");
     }
     
-    console.log(`Processing permission check for user_id=${user_id}, team_id=${team_id || 'none'}`);
+    // Log parameters for debugging
+    console.log(`Parameters received: user_id=${user_id} (${typeof user_id}), team_id=${team_id || 'null'} (${typeof team_id})`);
+    
+    // Validate UUID format for user_id
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(user_id)) {
+      console.error(`Invalid UUID format for user_id: ${user_id}`);
+      return createErrorResponse("Invalid UUID format for user_id");
+    }
+    
+    // If team_id is provided, validate it as well
+    if (team_id && team_id !== 'null' && team_id !== 'none' && !uuidRegex.test(team_id)) {
+      console.error(`Invalid UUID format for team_id: ${team_id}`);
+      return createErrorResponse("Invalid UUID format for team_id");
+    }
     
     // Initialize Supabase admin client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase environment variables');
       throw new Error('Missing Supabase environment variables');
     }
     
+    console.log(`Initializing Supabase client with URL: ${supabaseUrl.substring(0, 20)}...`);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Use check_equipment_create_permission instead of simplified_equipment_create_permission
+    // Prepare parameters for the database function call
+    const functionParams: Record<string, any> = {
+      p_user_id: user_id,
+      // Handle different null/none values that might be passed from frontend
+      p_team_id: (team_id && team_id !== 'none' && team_id !== 'null') ? team_id : null
+    };
+    
+    console.log('Calling DB function check_equipment_create_permission with params:', functionParams);
+    
+    // Call the database function with explicit parameters
     const { data, error } = await supabase.rpc(
       'check_equipment_create_permission',
-      { 
-        p_user_id: user_id,
-        p_team_id: team_id || null
-      }
+      functionParams
     );
     
+    // Log the result or error
     if (error) {
-      console.error('Database function error:', error);
+      console.error('Database function error details:', error);
+      
+      // Check for specific type mismatch errors
+      if (error.message && error.message.includes('operator does not exist')) {
+        console.error('Type mismatch error detected. This is often caused by UUID vs string comparison issues.');
+        return createErrorResponse(`Permission check failed due to type mismatch: ${error.message}`);
+      }
+      
       return createErrorResponse(`Permission check failed: ${error.message}`);
     }
     

@@ -33,7 +33,7 @@ export async function invokeEdgeFunction<T = any>(
   // Create the actual function call promise
   const functionPromise = async (): Promise<T> => {
     try {
-      console.log(`Calling edge function ${functionName} with payload:`, payload);
+      console.log(`Calling edge function ${functionName} with payload:`, JSON.stringify(payload));
       
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: payload
@@ -41,6 +41,14 @@ export async function invokeEdgeFunction<T = any>(
       
       if (error) {
         console.error(`Edge function ${functionName} error:`, error);
+        
+        // Check for specific response status codes
+        if (error.message?.includes('status code: 400')) {
+          console.error('Bad request error (400). This often indicates parameter validation failure.');
+        } else if (error.message?.includes('status code: 500')) {
+          console.error('Server error (500). This often indicates an unhandled exception in the edge function.');
+        }
+        
         throw new Error(`Edge function error: ${error.message || error}`);
       }
       
@@ -48,6 +56,16 @@ export async function invokeEdgeFunction<T = any>(
       return data as T;
     } catch (error: any) {
       console.error(`Edge function ${functionName} failed:`, error);
+      
+      // Enhanced error detail reporting
+      if (error.message?.includes('status code:')) {
+        const statusMatch = error.message.match(/status code: (\d+)/);
+        if (statusMatch) {
+          const statusCode = statusMatch[1];
+          console.error(`HTTP status ${statusCode} received from edge function`);
+        }
+      }
+      
       throw error;
     }
   };
@@ -94,8 +112,17 @@ export async function invokeEdgeFunctionWithRetry<T = any>(
       lastError = error;
       console.warn(`Attempt ${attempt + 1}/${retries + 1} failed for ${functionName}:`, error);
       
-      // Don't retry if it's not a timeout or network error
-      if (!error.message?.includes('timed out') && !error.message?.includes('network')) {
+      // Provide detailed failure information
+      const isNetworkError = error.message?.includes('network') || 
+                             error.message?.includes('fetch') ||
+                             error.message?.includes('connection');
+      
+      const isTimeoutError = error.message?.includes('timed out');
+      
+      console.log(`Error type: ${isNetworkError ? 'Network' : isTimeoutError ? 'Timeout' : 'Other'}`);
+      
+      // Don't retry if it's not a timeout or network error, unless it's specifically a 500 error
+      if (!isTimeoutError && !isNetworkError && !error.message?.includes('status code: 500')) {
         throw error;
       }
     }

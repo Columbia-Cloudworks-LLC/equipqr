@@ -9,7 +9,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-function createSuccessResponse(data: any, status: number = 200) {
+function createSuccessResponse(data: any) {
   return new Response(
     JSON.stringify(data),
     { 
@@ -17,7 +17,7 @@ function createSuccessResponse(data: any, status: number = 200) {
         ...corsHeaders, 
         'Content-Type': 'application/json' 
       },
-      status 
+      status: 200 
     }
   );
 }
@@ -42,210 +42,129 @@ serve(async (req) => {
   }
 
   try {
-    // Parse the request body to get parameters
-    const { user_id, equipment_id, action, team_id } = await req.json();
+    // Log the raw request body for debugging
+    const rawBody = await req.text();
+    console.log(`Raw request body: ${rawBody}`);
     
-    // Basic validation
-    if (!user_id || (!equipment_id && action !== 'create')) {
-      return createErrorResponse('Missing required parameters');
+    // Parse the request body
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+      console.log('Parsed request body:', body);
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return createErrorResponse(`Invalid JSON in request body: ${parseError.message}`);
     }
     
-    console.log(`Processing permission check: user_id=${user_id}, equipment_id=${equipment_id}, action=${action}, team_id=${team_id}`);
+    const { user_id, equipment_id, action, team_id } = body;
     
-    // Set up Supabase client with service role to bypass RLS
+    if (!user_id) {
+      return createErrorResponse("Missing required parameter: user_id");
+    }
+    
+    console.log(`Processing permission check: user_id=${user_id}, equipment_id=${equipment_id || 'null'}, action=${action}, team_id=${team_id || 'null'}`);
+    
+    // Validate UUID format for user_id
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(user_id)) {
+      console.error(`Invalid UUID format for user_id: ${user_id}`);
+      return createErrorResponse("Invalid UUID format for user_id");
+    }
+    
+    // Initialize Supabase admin client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing Supabase environment variables');
     }
     
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Handle creation permission check
+    // For creation permission check
     if (action === 'create') {
-      // Check that user_id is a valid UUID
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user_id)) {
-        return createErrorResponse('Invalid user_id format');
-      }
-      
-      if (team_id && !uuidRegex.test(team_id)) {
-        return createErrorResponse('Invalid team_id format');
-      }
-      
-      // Use our database function through RPC with explicit type casting
-      const { data: permissionData, error: permissionError } = await supabase.rpc(
-        'check_equipment_create_permission',
-        { 
-          p_user_id: user_id,
-          p_team_id: team_id || null
-        }
-      );
-      
-      if (permissionError) {
-        console.error('Error checking creation permission:', permissionError);
-        return createErrorResponse(`Permission check error: ${permissionError.message}`);
-      }
-      
-      if (!permissionData || permissionData.length === 0) {
-        return createSuccessResponse({
-          has_permission: false,
-          reason: 'unknown_error'
-        });
-      }
-      
-      return createSuccessResponse({
-        has_permission: permissionData[0].has_permission,
-        org_id: permissionData[0].org_id,
-        reason: permissionData[0].reason
-      });
-    }
-    
-    // For view/edit/delete actions, we need a different approach
-    if (['view', 'edit', 'delete'].includes(action)) {
       try {
-        // Get equipment details first to determine permissions approach
-        const { data: equipment, error: equipmentError } = await supabase
-          .from('equipment')
-          .select('org_id, team_id')
-          .eq('id', equipment_id)
-          .is('deleted_at', null)
-          .single();
-          
-        if (equipmentError) {
-          console.error('Error fetching equipment:', equipmentError);
-          return createErrorResponse(`Failed to fetch equipment: ${equipmentError.message}`);
+        console.log('Checking creation permission...');
+        
+        // Prepare parameters
+        const functionParams: Record<string, any> = {
+          p_user_id: user_id,
+          p_team_id: (team_id && team_id !== 'none' && team_id !== 'null') ? team_id : null
+        };
+        
+        console.log('Calling check_equipment_create_permission with params:', functionParams);
+        
+        const { data: permData, error: permError } = await supabase.rpc(
+          'check_equipment_create_permission', 
+          functionParams
+        );
+        
+        if (permError) {
+          console.error('Error checking creation permission:', permError);
+          return createErrorResponse(`Permission check failed: ${permError.message}`);
         }
         
-        if (!equipment) {
-          return createSuccessResponse({
-            has_permission: false,
-            reason: 'equipment_not_found'
-          });
+        if (!permData || permData.length === 0) {
+          console.error('No permission data returned');
+          return createErrorResponse('Invalid response from permission check');
         }
         
-        // Get user's org ID
-        const { data: userProfile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('org_id')
-          .eq('id', user_id)
-          .single();
-          
-        if (profileError) {
-          console.error('Error fetching user profile:', profileError);
-          return createErrorResponse(`Failed to get user profile: ${profileError.message}`);
-        }
+        console.log('Permission result:', permData);
         
-        // Same org check - different logic for view vs edit/delete
-        if (userProfile.org_id === equipment.org_id) {
-          // For view action, same org is sufficient
-          if (action === 'view') {
-            return createSuccessResponse({
-              has_permission: true,
-              reason: 'same_organization'
-            });
-          }
-          
-          // For edit/delete, check if user has a manager or owner role
-          const { data: userRoles } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', user_id)
-            .eq('org_id', equipment.org_id)
-            .single();
-            
-          if (userRoles && ['owner', 'manager'].includes(userRoles.role)) {
-            return createSuccessResponse({
-              has_permission: true,
-              reason: 'org_role',
-              role: userRoles.role
-            });
-          }
-        }
-        
-        // Team-based permission check if equipment belongs to a team
-        if (equipment.team_id) {
-          // Get app_user.id from auth_uid
-          const { data: appUser, error: appUserError } = await supabase
-            .from('app_user')
-            .select('id')
-            .eq('auth_uid', user_id)
-            .single();
-            
-          if (appUserError) {
-            console.error('Error fetching app user:', appUserError);
-            return createSuccessResponse({
-              has_permission: false,
-              reason: 'user_not_found'
-            });
-          }
-          
-          // Check if user is member of this team
-          const { data: teamMember, error: teamMemberError } = await supabase
-            .from('team_member')
-            .select('id')
-            .eq('user_id', appUser.id)
-            .eq('team_id', equipment.team_id)
-            .single();
-            
-          if (teamMemberError && !teamMemberError.message.includes('No rows found')) {
-            console.error('Error checking team membership:', teamMemberError);
-            return createErrorResponse(`Team membership check error: ${teamMemberError.message}`);
-          }
-          
-          if (teamMember) {
-            // Get user's role in this team
-            const { data: teamRole, error: roleError } = await supabase
-              .from('team_roles')
-              .select('role')
-              .eq('team_member_id', teamMember.id)
-              .single();
-              
-            if (roleError && !roleError.message.includes('No rows found')) {
-              console.error('Error fetching team role:', roleError);
-              return createErrorResponse(`Team role check error: ${roleError.message}`);
-            }
-            
-            if (teamRole) {
-              // Define allowed roles for each action
-              const role = teamRole.role;
-              let hasPermission = false;
-              
-              if (action === 'view') {
-                // All roles can view
-                hasPermission = true;
-              } else if (action === 'edit' || action === 'delete') {
-                // Only manager, owner and creator roles can edit/delete
-                hasPermission = ['manager', 'owner', 'creator'].includes(role);
-              }
-              
-              return createSuccessResponse({
-                has_permission: hasPermission,
-                reason: 'team_role',
-                role: role
-              });
-            }
-          }
-        }
-        
-        // No permission by default
         return createSuccessResponse({
-          has_permission: false,
-          reason: 'insufficient_permissions'
+          has_permission: permData[0].has_permission,
+          org_id: permData[0].org_id,
+          reason: permData[0].reason
+        });
+      } catch (error) {
+        console.error('Error in creation permission check:', error);
+        throw error;
+      }
+    } 
+    
+    // For accessing existing equipment
+    if (action === 'view' || action === 'edit') {
+      if (!equipment_id) {
+        return createErrorResponse("equipment_id is required for view/edit actions");
+      }
+      
+      // For view action
+      if (action === 'view') {
+        console.log(`Checking view permission for equipment ${equipment_id}`);
+        const { data, error } = await supabase.rpc('can_access_equipment', { 
+          p_uid: user_id,
+          p_equipment_id: equipment_id
         });
         
-      } catch (err) {
-        console.error('Error during permission check:', err);
-        return createErrorResponse(`Error processing permission check: ${err.message}`);
+        if (error) {
+          console.error('Access check error:', error);
+          return createErrorResponse(`Access check failed: ${error.message}`);
+        }
+        
+        return createSuccessResponse({ has_permission: data });
+      }
+      
+      // For edit action
+      if (action === 'edit') {
+        console.log(`Checking edit permission for equipment ${equipment_id}`);
+        const { data, error } = await supabase.rpc('can_edit_equipment', { 
+          p_uid: user_id,
+          p_equipment_id: equipment_id
+        });
+        
+        if (error) {
+          console.error('Edit permission check error:', error);
+          return createErrorResponse(`Edit permission check failed: ${error.message}`);
+        }
+        
+        return createSuccessResponse({ has_permission: data });
       }
     }
     
     // Invalid action
-    return createErrorResponse(`Invalid action: ${action}`);
-    
+    return createErrorResponse(`Unsupported action: ${action}`);
   } catch (error) {
     console.error('Unexpected error:', error);
-    return createErrorResponse(error.message);
+    return createErrorResponse(error.message || 'Unknown error');
   }
 });
