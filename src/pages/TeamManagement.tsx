@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { TeamSelector } from '@/components/Team/TeamSelector';
 import { TeamContent } from '@/components/Team/TeamContent';
@@ -13,8 +13,17 @@ import { RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/supabase-enums';
+import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 export default function TeamManagement() {
+  const { organizations, selectedOrganization, selectOrganization } = useOrganization();
+  const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(
+    selectedOrganization?.id
+  );
+
   const {
     members,
     pendingInvitations,
@@ -53,6 +62,9 @@ export default function TeamManagement() {
   const navigate = useNavigate();
   const { user, session, isLoading: isAuthLoading } = useAuth();
 
+  // Track if viewing external organization teams
+  const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
+
   // Authentication check
   useEffect(() => {
     // Only check after auth loading is complete
@@ -66,6 +78,25 @@ export default function TeamManagement() {
     }
   }, [session, isAuthLoading, navigate]);
 
+  // Update organization context when selectedOrgId changes
+  useEffect(() => {
+    if (selectedOrgId && selectedOrgId !== selectedOrganization?.id) {
+      selectOrganization(selectedOrgId);
+    }
+  }, [selectedOrgId, selectOrganization, selectedOrganization]);
+
+  // Update selectedOrgId when selectedOrganization changes
+  useEffect(() => {
+    if (selectedOrganization && selectedOrgId !== selectedOrganization.id) {
+      setSelectedOrgId(selectedOrganization.id);
+    }
+  }, [selectedOrganization]);
+
+  // Filter teams by selected organization
+  const filteredTeams = selectedOrgId 
+    ? teams.filter(team => team.organizationId === selectedOrgId) 
+    : teams;
+
   // Determine if the user has viewer role only - check if it's 'viewer' specifically
   const isViewerOnly = isMember && currentUserRole === 'viewer';
   
@@ -73,14 +104,16 @@ export default function TeamManagement() {
   useEffect(() => {
     console.log('TeamManagement render:', {
       teamsCount: teams.length,
+      filteredTeamsCount: filteredTeams.length,
       selectedTeamId,
+      selectedOrgId,
       isLoading,
       isMember,
       currentUserRole,
       canChangeRoles,
       isViewerOnly
     });
-  }, [teams.length, selectedTeamId, isLoading, isMember, currentUserRole, canChangeRoles, isViewerOnly]);
+  }, [teams.length, filteredTeams.length, selectedTeamId, selectedOrgId, isLoading, isMember, currentUserRole, canChangeRoles, isViewerOnly]);
 
   // Wrapper functions to adapt the hook functions to the expected return types for TeamContent
   const handleUpdateTeamWrapper = async (id: string, name: string): Promise<void> => {
@@ -130,6 +163,18 @@ export default function TeamManagement() {
     return Promise.reject("No team selected");
   };
 
+  // Handle organization change
+  const handleOrganizationChange = (orgId: string) => {
+    setSelectedOrgId(orgId);
+    // Clear selected team when changing org
+    setSelectedTeamId('');
+  };
+
+  // Handle team creation with selected organization
+  const handleCreateTeamWithOrg = async (name: string) => {
+    return handleCreateTeam(name, selectedOrgId);
+  };
+
   // Show loading state during auth check
   if (isAuthLoading) {
     return (
@@ -153,13 +198,33 @@ export default function TeamManagement() {
   return (
     <Layout>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h1 className="text-2xl font-bold">Team Management</h1>
-          <Button variant="outline" size="sm" onClick={fetchTeams} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Loading...' : 'Refresh'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {organizations.length > 1 && (
+              <OrganizationSelector
+                organizations={organizations}
+                selectedOrgId={selectedOrgId}
+                onChange={handleOrganizationChange}
+                className="w-[200px]"
+              />
+            )}
+            <Button variant="outline" size="sm" onClick={fetchTeams} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Loading...' : 'Refresh'}
+            </Button>
+          </div>
         </div>
+        
+        {isExternalOrg && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4" />
+            <AlertTitle>External Organization</AlertTitle>
+            <AlertDescription>
+              You are managing teams in {selectedOrganization?.name} where you have {selectedOrganization?.role} access.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <ErrorDisplay 
           error={error} 
@@ -179,12 +244,12 @@ export default function TeamManagement() {
             <Skeleton className="h-10 w-full max-w-xs" />
             <Skeleton className="h-40 w-full" />
           </div>
-        ) : teams.length > 0 ? (
+        ) : filteredTeams.length > 0 ? (
           <>
             <div className="flex items-center">
               <div className="max-w-xs flex-1">
                 <TeamSelector 
-                  teams={teams}
+                  teams={filteredTeams}
                   value={selectedTeamId}
                   onChange={setSelectedTeamId}
                   placeholder="Select a team to manage"
@@ -195,7 +260,7 @@ export default function TeamManagement() {
               {/* Add Create Team Button - only shown for users who can manage teams */}
               {(currentUserRole === 'owner' || currentUserRole === 'manager' || canChangeRoles) && (
                 <CreateTeamButton 
-                  onCreateTeam={handleCreateTeam}
+                  onCreateTeam={handleCreateTeamWithOrg}
                   isCreating={isCreatingTeam}
                 />
               )}
@@ -205,7 +270,7 @@ export default function TeamManagement() {
               selectedTeamId={selectedTeamId}
               members={members}
               pendingInvitations={pendingInvitations}
-              teams={teams}
+              teams={filteredTeams}
               isLoading={isLoading}
               isLoadingInvitations={isLoadingInvitations}
               isCreatingTeam={isCreatingTeam}
@@ -222,7 +287,7 @@ export default function TeamManagement() {
               onRemoveMember={handleRemoveMemberWrapper}
               onResendInvite={handleResendInvite}
               onCancelInvitation={handleCancelInvitation}
-              onCreateTeam={handleCreateTeam}
+              onCreateTeam={handleCreateTeamWithOrg}
               onUpdateTeam={handleUpdateTeamWrapper}
               onDeleteTeam={handleDeleteTeamWrapper}
               onRepairTeam={handleRepairTeamWrapper}
@@ -234,7 +299,7 @@ export default function TeamManagement() {
           </>
         ) : (
           <EmptyTeamState
-            onCreateTeam={handleCreateTeam}
+            onCreateTeam={handleCreateTeamWithOrg}
             isCreatingTeam={isCreatingTeam}
           />
         )}

@@ -10,6 +10,9 @@ import { prepareEquipmentData, extractAttributes } from "./utils/dataProcessing"
 /**
  * Create new equipment - only for equipment owned by the current user's organization
  * or for teams the user has manager access to
+ * 
+ * @param equipment The equipment data to create
+ * @returns The created equipment record
  */
 export async function createEquipment(equipment: Partial<Equipment>): Promise<Equipment> {
   try {
@@ -41,14 +44,28 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
       throw new Error('Failed to retrieve user profile information');
     }
     
-    let orgId;
+    let orgId = equipment.org_id;
     let permissionResult;
     
     try {
       // Try the permission check with improved error handling
-      console.log('Checking equipment creation permission...');
-      permissionResult = await checkCreatePermission(authUserId, equipment.team_id);
-      orgId = permissionResult.orgId;
+      console.log('Checking equipment creation permission...', {
+        authUserId,
+        teamId: equipment.team_id,
+        orgId: equipment.org_id
+      });
+      
+      permissionResult = await checkCreatePermission(
+        authUserId, 
+        equipment.team_id, 
+        equipment.org_id
+      );
+      
+      // If no explicit org_id was provided, use the one from permission check
+      if (!orgId) {
+        orgId = permissionResult.orgId;
+      }
+      
       console.log(`Permission check successful. Using org ID: ${orgId}`);
     } catch (permError: any) {
       console.error('Primary permission check failed:', permError);
@@ -62,9 +79,23 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
       
       try {
         // Try fallback method with more robustness
-        console.log('Attempting fallback permission check...');
-        const fallbackResult = await fallbackPermissionCheck(authUserId, equipment.team_id);
-        orgId = fallbackResult.orgId;
+        console.log('Attempting fallback permission check...', {
+          authUserId,
+          teamId: equipment.team_id,
+          orgId: equipment.org_id
+        });
+        
+        const fallbackResult = await fallbackPermissionCheck(
+          authUserId, 
+          equipment.team_id, 
+          equipment.org_id
+        );
+        
+        // If no explicit org_id was provided, use the one from permission check
+        if (!orgId) {
+          orgId = fallbackResult.orgId;
+        }
+        
         console.log(`Fallback successful. Using org ID: ${orgId}`);
       } catch (fallbackError: any) {
         console.error('Fallback permission check failed:', fallbackError);

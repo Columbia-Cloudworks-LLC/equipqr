@@ -34,7 +34,10 @@ export function useTeams() {
       // First try using the Edge Function for teams with roles
       try {
         const { data, error } = await supabase.functions.invoke('get_user_teams', {
-          body: { user_id: userId }
+          body: { 
+            user_id: userId,
+            include_all_orgs: true  // Get teams from all organizations, not just primary
+          }
         });
         
         if (error) throw error;
@@ -94,7 +97,7 @@ export function useTeams() {
   }, [fetchTeams]);
 
   // Implement team CRUD operations
-  const handleCreateTeam = useCallback(async (name: string) => {
+  const handleCreateTeam = useCallback(async (name: string, orgId?: string) => {
     try {
       setIsCreatingTeam(true);
       setError(null);
@@ -107,21 +110,28 @@ export function useTeams() {
         throw new Error('Authentication required');
       }
       
-      const { data: userData, error: userError } = await supabase
-        .from('user_profiles')
-        .select('org_id')
-        .eq('id', userId)
-        .single();
+      // If orgId is provided, use it. Otherwise, get user's primary organization
+      let targetOrgId = orgId;
+      
+      if (!targetOrgId) {
+        const { data: userData, error: userError } = await supabase
+          .from('user_profiles')
+          .select('org_id')
+          .eq('id', userId)
+          .single();
 
-      if (userError || !userData) {
-        throw new Error('Failed to get user organization');
+        if (userError || !userData) {
+          throw new Error('Failed to get user organization');
+        }
+        
+        targetOrgId = userData.org_id;
       }
 
       const { data: teamData, error: createError } = await supabase
         .from('team')
         .insert({
           name, 
-          org_id: userData.org_id,
+          org_id: targetOrgId,
           created_by: userId
         })
         .select();

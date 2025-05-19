@@ -45,8 +45,8 @@ serve(async (req) => {
   try {
     const { user_id, team_id, org_id } = await req.json();
     
-    if (!user_id || (!team_id && !org_id)) {
-      return createErrorResponse("Missing required parameters");
+    if (!user_id) {
+      return createErrorResponse("Missing required user_id parameter");
     }
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -61,7 +61,7 @@ serve(async (req) => {
     
     console.log(`Permission check request: user_id=${user_id}, team_id=${team_id || 'null'}, org_id=${org_id || 'null'}`);
     
-    // Use our optimized database function
+    // Use our optimized database function - now supports explicit org_id parameter
     const { data: permissionData, error: permissionError } = await supabase.rpc(
       'check_equipment_create_permission',
       { 

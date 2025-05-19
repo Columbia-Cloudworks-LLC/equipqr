@@ -10,32 +10,37 @@ import {
 } from '@/components/ui/select';
 import { UserOrganization } from '@/services/organization/userOrganizations';
 
-interface OrganizationFilterProps {
+interface OrganizationSelectorProps {
   organizations: UserOrganization[];
   selectedOrgId?: string;
   onChange: (orgId: string) => void;
+  disabled?: boolean;
   placeholder?: string;
   className?: string;
 }
 
-export function OrganizationFilter({ 
-  organizations, 
-  selectedOrgId, 
+export function OrganizationSelector({
+  organizations,
+  selectedOrgId,
   onChange,
-  placeholder = "All organizations",
+  disabled = false,
+  placeholder = "Select organization",
   className = "w-[200px]"
-}: OrganizationFilterProps) {
-  if (organizations.length <= 1) {
-    return null; // Don't render if there's only one or no organizations
+}: OrganizationSelectorProps) {
+  if (organizations.length <= 0) {
+    return null; // Don't render if there are no organizations
   }
 
   return (
-    <Select value={selectedOrgId} onValueChange={onChange}>
+    <Select 
+      value={selectedOrgId} 
+      onValueChange={onChange}
+      disabled={disabled}
+    >
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">All organizations</SelectItem>
         {organizations.map((org) => (
           <SelectItem key={org.id} value={org.id}>
             <div className="flex items-center">

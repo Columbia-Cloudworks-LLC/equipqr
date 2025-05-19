@@ -2,12 +2,19 @@
 import { useState, useEffect } from 'react';
 import { Equipment, EquipmentAttribute } from '@/types';
 import { useTeamsData } from './useTeamsData';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { UserOrganization } from '@/services/organization/userOrganizations';
 
 interface UseEquipmentFormProps {
   initialEquipment?: Equipment;
 }
 
 export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {}) {
+  const { organizations, selectedOrganization } = useOrganization();
+  const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(
+    initialEquipment?.org_id || selectedOrganization?.id
+  );
+  
   const [formData, setFormData] = useState<Partial<Equipment>>({
     name: initialEquipment?.name || '',
     model: initialEquipment?.model || '',
@@ -19,11 +26,35 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     warranty_expiration: initialEquipment?.warranty_expiration || null,
     notes: initialEquipment?.notes || '',
     team_id: initialEquipment?.team_id || '',
+    org_id: initialEquipment?.org_id || selectedOrgId,
     attributes: initialEquipment?.attributes || []
   });
 
-  // Get teams data
-  const { teams, isLoading: teamsLoading, error: teamsError } = useTeamsData();
+  // Update org_id in form data when selectedOrgId changes
+  useEffect(() => {
+    if (selectedOrgId) {
+      setFormData(prev => ({ ...prev, org_id: selectedOrgId }));
+    }
+  }, [selectedOrgId]);
+
+  // Update selectedOrgId if selectedOrganization changes and we don't have an initial org
+  useEffect(() => {
+    if (!initialEquipment?.org_id && selectedOrganization?.id && !selectedOrgId) {
+      setSelectedOrgId(selectedOrganization.id);
+    }
+  }, [selectedOrganization, initialEquipment, selectedOrgId]);
+
+  // Get teams data, filtered by selected organization
+  const { 
+    teams: allTeams, 
+    isLoading: teamsLoading, 
+    error: teamsError 
+  } = useTeamsData();
+  
+  // Filter teams by selected org
+  const teams = selectedOrgId ? 
+    allTeams.filter(team => team.org_id === selectedOrgId) : 
+    allTeams;
   
   // Check if selected team is external
   const [selectedTeamIsExternal, setSelectedTeamIsExternal] = useState(false);
@@ -45,7 +76,18 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
   const handleSelectChange = (name: string, value: string) => {
     // Handle "none" as null for team_id
     const processedValue = name === 'team_id' && value === 'none' ? null : value;
-    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+    
+    // For org_id changes, also reset team_id since teams are org-specific
+    if (name === 'org_id') {
+      setSelectedOrgId(value);
+      setFormData((prev) => ({ 
+        ...prev, 
+        [name]: processedValue,
+        team_id: null  // Reset team when org changes
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: processedValue }));
+    }
   };
 
   const handleDateChange = (name: string, value: string | null) => {
@@ -62,6 +104,10 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
       return 'Please enter equipment name';
     }
     
+    if (!formData.org_id) {
+      return 'Please select an organization';
+    }
+    
     // Date validation - already handled by the DatePicker component
     // which provides null for empty dates, or valid date strings
     
@@ -74,6 +120,8 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     teamsLoading,
     teamsError,
     selectedTeamIsExternal,
+    organizations,
+    selectedOrgId,
     handleChange,
     handleSelectChange,
     handleDateChange,

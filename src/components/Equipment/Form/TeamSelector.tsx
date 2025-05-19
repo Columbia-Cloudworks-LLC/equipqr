@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 interface Team {
   id: string;
   name: string;
+  org_id: string;
   org_name?: string;
   is_external?: boolean;
   role?: string;
@@ -21,7 +22,24 @@ interface TeamSelectorProps {
 
 export function EnhancedTeamSelector({ teams, value, onChange, showExternalTeamAlert = true }: TeamSelectorProps) {
   const [selectedTeamIsExternal, setSelectedTeamIsExternal] = useState(false);
+  const [teamsGroupedByOrg, setTeamsGroupedByOrg] = useState<{[key: string]: Team[]}>({});
   
+  // Group teams by organization
+  useEffect(() => {
+    const groupedTeams: {[key: string]: Team[]} = {};
+    
+    teams.forEach(team => {
+      const orgId = team.org_id;
+      if (!groupedTeams[orgId]) {
+        groupedTeams[orgId] = [];
+      }
+      groupedTeams[orgId].push(team);
+    });
+    
+    setTeamsGroupedByOrg(groupedTeams);
+  }, [teams]);
+  
+  // Check if selected team is external
   useEffect(() => {
     if (value && value !== 'none') {
       const selectedTeam = teams.find(t => t.id === value);
@@ -56,11 +74,29 @@ export function EnhancedTeamSelector({ teams, value, onChange, showExternalTeamA
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="none">No Team</SelectItem>
-          {teams.map((team) => (
-            <SelectItem key={team.id} value={team.id}>
-              {team.name} {team.is_external && `(${team.org_name || 'External Organization'})`}
-            </SelectItem>
-          ))}
+          
+          {/* Group teams by organization */}
+          {Object.entries(teamsGroupedByOrg).map(([orgId, orgTeams]) => {
+            // Use the first team to get org information
+            const orgName = orgTeams[0]?.org_name || 'Unknown Organization';
+            const isExternal = orgTeams[0]?.is_external;
+            
+            return (
+              <div key={orgId} className="pt-1 first:pt-0">
+                {Object.keys(teamsGroupedByOrg).length > 1 && (
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/30">
+                    {orgName} {isExternal && "(External)"}
+                  </div>
+                )}
+                
+                {orgTeams.map(team => (
+                  <SelectItem key={team.id} value={team.id}>
+                    {team.name}
+                  </SelectItem>
+                ))}
+              </div>
+            );
+          })}
         </SelectContent>
       </Select>
     </>

@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Team {
   id: string;
   name: string;
+  org_id: string;
   org_name?: string;
   is_external?: boolean;
   role?: string;
@@ -30,7 +31,7 @@ export function useTeamsData() {
         
         const authUserId = sessionData.session.user.id;
         
-        // Get user's organization for determining external teams
+        // Get user's primary organization for determining external teams
         const { data: userProfile, error: profileError } = await supabase
           .from('user_profiles')
           .select('org_id')
@@ -46,9 +47,9 @@ export function useTeamsData() {
         
         const userOrgId = userProfile?.org_id;
         
-        // Get user's teams including external ones
+        // Get user's teams including external ones across all organizations
         const { data: userTeams, error: teamsError } = await supabase.functions.invoke('get_user_teams', {
-          body: { user_id: authUserId }
+          body: { user_id: authUserId, include_all_orgs: true }
         });
         
         if (teamsError) {
@@ -59,10 +60,24 @@ export function useTeamsData() {
           const processedTeams = userTeams.teams.map((team: any) => ({
             id: team.id,
             name: team.name,
+            org_id: team.org_id,
             org_name: team.org_name || 'Your Organization',
             is_external: team.org_id !== userOrgId,
             role: team.role
           }));
+          
+          // Sort teams: primary org first, then alphabetically
+          processedTeams.sort((a: Team, b: Team) => {
+            // Primary organization teams first
+            if (a.org_id === userOrgId && b.org_id !== userOrgId) return -1;
+            if (a.org_id !== userOrgId && b.org_id === userOrgId) return 1;
+            
+            // Same organization, sort by name
+            if (a.org_id === b.org_id) return a.name.localeCompare(b.name);
+            
+            // Different organizations, sort by organization name then team name
+            return a.org_name!.localeCompare(b.org_name!) || a.name.localeCompare(b.name);
+          });
           
           setTeams(processedTeams);
         }

@@ -19,6 +19,9 @@ import { StatusLocationFields } from './Form/StatusLocationFields';
 import { NotesField } from './Form/NotesField';
 import { EnhancedTeamSelector } from './Form/TeamSelector';
 import { Label } from '@/components/ui/label';
+import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 interface EquipmentFormProps {
   equipment?: Equipment;
@@ -33,12 +36,22 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
     teamsLoading,
     teamsError,
     selectedTeamIsExternal,
+    organizations,
+    selectedOrgId,
     handleChange,
     handleSelectChange,
     handleDateChange,
     handleAttributesChange,
     validate
   } = useEquipmentForm({ initialEquipment: equipment });
+  
+  // If we're editing, don't allow changing the organization
+  const isEditing = !!equipment;
+  
+  // Check if selected organization is different from user's primary org
+  const isExternalOrg = organizations.some(
+    org => org.id === selectedOrgId && !org.is_primary
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +73,28 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
           <CardTitle>{equipment ? 'Edit Equipment' : 'Add New Equipment'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {organizations.length > 1 && !isEditing && (
+            <div className="space-y-2">
+              <Label htmlFor="org_id">Organization</Label>
+              <OrganizationSelector
+                organizations={organizations}
+                selectedOrgId={selectedOrgId}
+                onChange={(value) => handleSelectChange('org_id', value)}
+                className="w-full"
+                disabled={isEditing}
+              />
+            </div>
+          )}
+          
+          {isExternalOrg && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                You are creating equipment for an external organization where you have management access.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Basic Info Fields */}
             <BasicInfoFields

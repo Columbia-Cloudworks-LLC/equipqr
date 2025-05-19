@@ -1,130 +1,152 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { DirectDBPermissionResult, PermissionResult } from "./types";
+import { supabase } from '@/integrations/supabase/client';
+import { PermissionResult } from './types';
 
 /**
- * Fallback permission check when edge function fails
- * Uses direct database RPC call
+ * Database-first permission check fallback when edge functions aren't available
  */
-export const fallbackPermissionCheck = async (
-  authUserId: string,
-  teamId?: string | null
-): Promise<PermissionResult> => {
+export async function fallbackPermissionCheck(
+  authUserId: string, 
+  teamId?: string | null,
+  orgId?: string | null
+): Promise<PermissionResult> {
   try {
-    console.log('Using fallback permission check with params:', { authUserId, teamId });
+    console.log('Using fallback permission check function', {
+      authUserId,
+      teamId,
+      orgId
+    });
     
-    // Try to use a direct database function first
-    try {
-      const result = await directDatabasePermissionCheck(authUserId, teamId);
-      return result;
-    } catch (dbError) {
-      console.error('Direct database permission check failed:', dbError);
+    // If orgId is explicitly provided, check if user has permission in that org
+    if (orgId) {
+      console.log(`Checking explicit org_id permission: ${orgId}`);
+      const { data, error } = await supabase.rpc('simplified_equipment_create_permission', {
+        p_user_id: authUserId,
+        p_team_id: null,
+        p_org_id: orgId
+      });
       
-      // Final fallback - use test function that returns more diagnostic info
-      const { data, error } = await supabase.rpc(
-        'test_equipment_permission_flow',
-        { 
-          auth_user_id: authUserId,
-          team_id: teamId
-        }
-      );
+      if (error) throw error;
+      
+      const hasAccess = data && data.can_create;
+      
+      if (hasAccess) {
+        return {
+          authUserId,
+          teamId: null,
+          orgId,
+          hasPermission: true,
+          reason: 'explicit_org' 
+        };
+      } else {
+        throw new Error(`You don't have permission to create equipment in this organization`);
+      }
+    }
+    
+    // If team is provided, check team-based permission
+    if (teamId) {
+      // Check direct database function
+      const { data, error } = await supabase.rpc('can_create_equipment_safe', {
+        p_user_id: authUserId,
+        p_team_id: teamId
+      });
       
       if (error) {
-        console.error('Test permission flow failed:', error);
-        throw error;
+        console.error('Error checking team permission:', error);
+        throw new Error('Failed to check team permission');
       }
       
-      console.log('Test permission flow result:', data);
-      
-      // More defensive type checking for the fallback flow
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid response format from permission check');
+      if (!data) {
+        throw new Error('You don\'t have permission to create equipment for this team');
       }
       
-      // Safe type assertion
-      const typedData = data as DirectDBPermissionResult;
-      
-      // Verify the expected structure exists
-      const permissionCheck = typedData.permission_check;
-      if (!permissionCheck || typeof permissionCheck !== 'object') {
-        throw new Error('Missing permission_check in response');
+      // Get the organization ID for this team
+      const { data: teamData, error: teamError } = await supabase
+        .from('team')
+        .select('org_id')
+        .eq('id', teamId)
+        .single();
+        
+      if (teamError) {
+        console.error('Error fetching team:', teamError);
+        throw new Error('Failed to fetch team information');
       }
-      
-      // Safely determine permission result
-      const hasPermission = 'has_permission' in permissionCheck && Boolean(permissionCheck.has_permission);
-      
-      if (!hasPermission) {
-        throw new Error('Permission denied by fallback check');
-      }
-      
-      // Safely extract org_id and reason with fallbacks
-      let orgId: string | null = null;
-      if (permissionCheck && typeof permissionCheck === 'object' && 'org_id' in permissionCheck) {
-        orgId = permissionCheck.org_id as string || null;
-      } else if (typedData.user_info && typeof typedData.user_info === 'object' && 'user_org_id' in typedData.user_info) {
-        orgId = typedData.user_info.user_org_id as string || null;
-      }
-      
-      const reason = permissionCheck && typeof permissionCheck === 'object' && 'reason' in permissionCheck ? 
-                    permissionCheck.reason as string : 'fallback_success';
       
       return {
-        canCreate: true,
-        orgId,
-        reason
+        authUserId,
+        teamId,
+        orgId: teamData.org_id,
+        hasPermission: true,
+        reason: 'team_permission'
       };
     }
-  } catch (error: any) {
-    console.error('All fallback methods failed:', error);
-    throw new Error(`Permission check failed after all fallbacks: ${error.message}`);
-  }
-};
-
-/**
- * Direct database permission check via RPC
- */
-export const directDatabasePermissionCheck = async (
-  authUserId: string,
-  teamId?: string | null
-): Promise<PermissionResult> => {
-  const { data, error } = await supabase.rpc(
-    'rpc_check_equipment_permission',
-    { 
-      user_id: authUserId, 
-      action: 'create',
-      team_id: teamId
+    
+    // If no team or org provided, use user's default org
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', authUserId)
+      .single();
+      
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      throw new Error('Failed to fetch user organization');
     }
-  );
-  
-  if (error) {
-    console.error('Direct DB permission check failed:', error);
+    
+    return {
+      authUserId,
+      teamId: null,
+      orgId: profileData.org_id,
+      hasPermission: true,
+      reason: 'default_org'
+    };
+  } catch (error: any) {
+    console.error('Error in fallbackPermissionCheck:', error);
     throw error;
   }
-  
-  // Validate the response exists
-  if (!data) {
-    throw new Error('Empty response from permission check');
+}
+
+/**
+ * Direct database permission check (most reliable but slowest)
+ */
+export async function directDatabasePermissionCheck(
+  authUserId: string, 
+  teamId?: string | null,
+  orgId?: string | null
+): Promise<PermissionResult> {
+  try {
+    console.log('Using direct database permission check', {
+      authUserId,
+      teamId,
+      orgId
+    });
+    
+    const { data, error } = await supabase.rpc('check_equipment_create_permission', {
+      p_user_id: authUserId,
+      p_team_id: teamId || null,
+      p_org_id: orgId || null
+    });
+    
+    if (error) {
+      console.error('Database permission check error:', error);
+      throw new Error(`Permission check failed: ${error.message}`);
+    }
+    
+    if (!data?.[0]) {
+      throw new Error('Permission check returned no data');
+    }
+    
+    const result = data[0];
+    
+    return {
+      authUserId,
+      teamId: teamId || null,
+      orgId: result.org_id || orgId || null,
+      hasPermission: result.has_permission || false,
+      reason: result.reason || 'unknown'
+    };
+  } catch (error: any) {
+    console.error('Error in directDatabasePermissionCheck:', error);
+    throw error;
   }
-  
-  // Safely work with the response object
-  if (typeof data !== 'object') {
-    throw new Error('Invalid response type from permission check');
-  }
-  
-  // Type assertion with runtime validation
-  const typedData = data as { has_permission?: boolean; org_id?: string; reason?: string };
-  
-  // Check if key properties exist
-  const hasPermission = 'has_permission' in typedData && Boolean(typedData.has_permission);
-  
-  if (!hasPermission) {
-    throw new Error('Permission denied by database check');
-  }
-  
-  // Safe extraction of properties with fallbacks
-  return {
-    canCreate: hasPermission,
-    orgId: 'org_id' in typedData ? (typedData.org_id as string) || null : null,
-    reason: 'reason' in typedData ? (typedData.reason as string) || 'direct_db_check' : 'direct_db_check'
-  };
-};
+}

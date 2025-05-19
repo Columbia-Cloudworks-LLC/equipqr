@@ -19,13 +19,14 @@ export type { PermissionResult };
  */
 export async function checkEquipmentCreatePermission(
   authUserId: string, 
-  teamId?: string | null
+  teamId?: string | null,
+  orgId?: string | null
 ): Promise<PermissionResult> {
   try {
     // Try with retry logic first for better resilience
     return await invokeEdgeFunctionWithRetry<PermissionResult>(
       'create_equipment_permission', 
-      { user_id: authUserId, team_id: teamId },
+      { user_id: authUserId, team_id: teamId, org_id: orgId },
       { maxRetries: 2, timeoutMs: 8000 }
     );
   } catch (error) {
@@ -33,12 +34,12 @@ export async function checkEquipmentCreatePermission(
     
     try {
       // First try the standard edge function approach if retry failed
-      return await checkCreatePermission(authUserId, teamId);
+      return await checkCreatePermission(authUserId, teamId, orgId);
     } catch (edgeError) {
       console.warn('Primary permission check failed, using database fallback:', edgeError);
       
       // Use the fallback if the main approach fails
-      return await fallbackPermissionCheck(authUserId, teamId);
+      return await fallbackPermissionCheck(authUserId, teamId, orgId);
     }
   }
 }

@@ -1,75 +1,50 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { isValidUuid } from "@/utils/validationUtils";
-import { EdgePermissionResponse, PermissionResult } from "./types";
+import { supabase } from '@/integrations/supabase/client';
+import { PermissionResult } from './types';
 
 /**
- * Check if the user has permission to create equipment using the edge function
+ * Check if the current user can create equipment for a given team
+ * Uses the Edge Function for better performance and reliability
  */
-export const checkCreatePermission = async (
-  authUserId: string,
-  teamId?: string | null
-): Promise<PermissionResult> => {
+export async function checkCreatePermission(
+  authUserId: string, 
+  teamId?: string | null,
+  orgId?: string | null
+): Promise<PermissionResult> {
   try {
-    // Validate UUID format for user_id
-    if (!isValidUuid(authUserId)) {
-      console.error(`Invalid UUID format for authUserId: ${authUserId}`);
-      throw new Error('Invalid user ID format');
-    }
-
-    // Validate team_id if provided
-    if (teamId && teamId !== 'none' && !isValidUuid(teamId)) {
-      console.error(`Invalid UUID format for teamId: ${teamId}`);
-      throw new Error('Invalid team ID format');
-    }
-
-    // Normalize team_id to null if it's 'none' or empty string
-    const normalizedTeamId = teamId === 'none' || teamId === '' ? null : teamId;
-
-    // Log the full payload being sent to the edge function
-    console.log('Sending payload to create_equipment_permission:', {
-      user_id: authUserId,
-      team_id: normalizedTeamId
+    console.log('Checking equipment creation permission via edge function', {
+      authUserId,
+      teamId,
+      orgId
     });
-
-    // Call the edge function
-    const { data, error } = await supabase.functions.invoke(
-      'create_equipment_permission',
-      {
-        method: 'POST',
-        body: {
-          user_id: authUserId,
-          team_id: normalizedTeamId
-        },
-      }
-    );
-
-    // Enhanced error handling
+    
+    const { data, error } = await supabase.functions.invoke('check_equipment_create_permission', {
+      body: { user_id: authUserId, team_id: teamId, org_id: orgId }
+    });
+    
     if (error) {
       console.error('Edge function error:', error);
       throw new Error(`Permission check failed: ${error.message}`);
     }
-
-    if (!data) {
-      console.error('No data returned from edge function');
-      throw new Error('Permission check failed: No data returned');
-    }
-
-    console.log('Edge function response:', data);
-
-    // Safely parse the response
-    const response = data as EdgePermissionResponse;
     
-    // Look for both can_create and has_permission properties
-    const hasPermission = response.can_create === true || response.has_permission === true;
+    if (!data) {
+      throw new Error('Permission check returned no data');
+    }
+    
+    // Check if we have a permission result with the expected format
+    if (typeof data.can_create !== 'boolean') {
+      throw new Error('Invalid permission response format');
+    }
     
     return {
-      canCreate: hasPermission,
-      orgId: response.org_id || null,
-      reason: response.reason || 'edge_function'
+      authUserId,
+      teamId: teamId || null,
+      orgId: data.org_id || orgId || null,
+      hasPermission: data.can_create,
+      reason: data.reason || 'unknown'
     };
   } catch (error: any) {
-    console.error('Error checking permission:', error);
+    console.error('Error in checkCreatePermission:', error);
     throw error;
   }
-};
+}

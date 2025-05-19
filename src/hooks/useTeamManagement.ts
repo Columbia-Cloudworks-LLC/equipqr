@@ -7,8 +7,10 @@ import { useTeamMembers } from './useTeamMembers';
 import { useTeamMembership } from './useTeamMembership';
 import { useRoleManagement } from './useRoleManagement';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 export function useTeamManagement() {
+  const { organizations, selectedOrganization } = useOrganization();
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -141,9 +143,16 @@ export function useTeamManagement() {
   }, [selectedTeamId, fetchPendingInvitations]);
 
   // Enhanced create team handler that sets the selection afterwards
-  const handleCreateTeam = useCallback(async (name: string) => {
+  const handleCreateTeam = useCallback(async (name: string, orgId?: string) => {
     try {
-      const result = await handleCreateTeamBase(name);
+      // Use selected organization from context if not specified
+      const targetOrgId = orgId || selectedOrganization?.id;
+      
+      if (!targetOrgId) {
+        throw new Error('No organization selected for team creation');
+      }
+      
+      const result = await handleCreateTeamBase(name, targetOrgId);
       
       if (result.success && result.team) {
         setSelectedTeamId(result.team.id);
@@ -156,7 +165,7 @@ export function useTeamManagement() {
       console.error('Error creating team:', errorMessage);
       return { success: false, error: errorMessage };
     }
-  }, [handleCreateTeamBase]);
+  }, [handleCreateTeamBase, selectedOrganization]);
   
   // Enhanced delete team handler that updates selection if needed
   const handleDeleteAndUpdateSelection = useCallback(async (teamId: string) => {
@@ -191,6 +200,7 @@ export function useTeamManagement() {
     pendingInvitations,
     teams,
     selectedTeamId,
+    organizations,
     isLoading,
     isLoadingInvitations,
     isCreatingTeam,

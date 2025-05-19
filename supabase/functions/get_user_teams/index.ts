@@ -1,207 +1,199 @@
 
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Inlined from _shared/cors.ts
+// Inlined CORS headers from _shared/cors.ts
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
+// Inlined success response function from _shared/cors.ts
+function createSuccessResponse(data: any) {
+  return new Response(
+    JSON.stringify(data),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      },
+      status: 200 
+    }
+  );
+}
+
+// Inlined error response function from _shared/cors.ts
+function createErrorResponse(message: string, status: number = 400) {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      }, 
+      status 
+    }
+  );
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Set a reasonable timeout for the function execution
-    const timeout = setTimeout(() => {
-      throw new Error('Function execution timed out');
-    }, 8000); // 8 seconds max execution time
-
-    let responseData;
-    try {
-      const { user_id } = await req.json();
+    const { user_id, include_all_orgs = false } = await req.json();
+    
+    if (!user_id) {
+      return createErrorResponse("Missing required user_id parameter");
+    }
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    
+    // Use service role key to bypass RLS
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+    
+    // Get user's app_user ID from auth_uid
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', user_id)
+      .single();
+    
+    if (appUserError || !appUser) {
+      console.error('Error finding app_user:', appUserError);
+      return createErrorResponse('User not found');
+    }
+    
+    const appUserId = appUser.id;
+    
+    // Get user's organization for determining external teams
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', user_id)
+      .single();
+    
+    if (profileError) {
+      console.error('Error finding user profile:', profileError);
+      return createErrorResponse('User profile not found');
+    }
+    
+    const userOrgId = userProfile.org_id;
+    
+    // Get teams the user is a direct member of
+    const { data: memberTeams, error: memberTeamsError } = await supabase
+      .from('team_member')
+      .select(`
+        team_id,
+        team:team_id (
+          id,
+          name,
+          org_id,
+          org:org_id (name)
+        ),
+        team_roles (role)
+      `)
+      .eq('user_id', appUserId)
+      .is('team:deleted_at', null);
+    
+    if (memberTeamsError) {
+      console.error('Error getting member teams:', memberTeamsError);
+      return createErrorResponse('Failed to get team memberships');
+    }
+    
+    // If include_all_orgs is false, we need extra teams the user can access through org-level roles
+    let extraTeams = [];
+    
+    if (include_all_orgs) {
+      // Get all organizations where user has a role of manager or higher
+      const { data: userOrgs, error: userOrgsError } = await supabase
+        .from('user_roles')
+        .select(`
+          org_id,
+          role,
+          org:org_id (name)
+        `)
+        .eq('user_id', user_id)
+        .in('role', ['owner', 'manager', 'admin']);
       
-      if (!user_id) {
-        console.error('Missing user_id parameter');
-        return new Response(
-          JSON.stringify({ error: "User ID is required" }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-      
-      // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user_id)) {
-        console.error(`Invalid UUID format for user_id: ${user_id}`);
-        return new Response(
-          JSON.stringify({ error: "Invalid user ID format" }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-      
-      console.log(`Fetching teams for user: ${user_id}`);
-      
-      // Create Supabase admin client with service role to bypass RLS
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-      
-      // Get user's organization and app_user ID using the correct relationship
-      // FIX: Use explicit query to get the app_user via auth_uid instead of trying to use the nested select
-      const { data: userProfile, error: profileError } = await supabaseClient
-        .from('user_profiles')
-        .select('org_id')
-        .eq('id', user_id)
-        .single();
-
-      if (profileError) {
-        console.error('Error getting user profile:', profileError);
-        return new Response(
-          JSON.stringify({ error: "Failed to retrieve user profile" }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-
-      // FIX: Separate query to get app_user correctly using auth_uid
-      const { data: appUser, error: appUserError } = await supabaseClient
-        .from('app_user')
-        .select('id')
-        .eq('auth_uid', user_id)
-        .single();
-
-      if (appUserError) {
-        console.error('Error getting app_user:', appUserError);
-        return new Response(
-          JSON.stringify({ 
-            error: "Failed to retrieve app user information", 
-            details: appUserError.message
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-
-      const userOrgId = userProfile?.org_id;
-      const appUserId = appUser?.id;
-      
-      console.log(`User org ID: ${userOrgId}, App user ID: ${appUserId}`);
-      
-      // Array to store all teams the user has access to
-      const allTeams = [];
-      
-      // OPTIMIZATION: Get teams from user's org and user's memberships in one query
-      // First query: Get teams from user's organization
-      if (userOrgId) {
-        const { data: orgTeams, error: orgTeamsError } = await supabaseClient
+      if (userOrgsError) {
+        console.error('Error getting user organizations:', userOrgsError);
+      } else if (userOrgs && userOrgs.length > 0) {
+        // For each org where user has manager+ role, get all teams
+        const orgIds = userOrgs.map(o => o.org_id);
+        
+        // Get all teams from these organizations
+        const { data: orgTeams, error: orgTeamsError } = await supabase
           .from('team')
           .select(`
             id,
             name,
             org_id,
-            organization:org_id (
-              name
-            ),
-            created_at,
-            created_by
+            org:org_id (name)
           `)
-          .eq('org_id', userOrgId)
-          .is('deleted_at', null); // Only include non-deleted teams
-          
+          .in('org_id', orgIds)
+          .is('deleted_at', null);
+        
         if (orgTeamsError) {
-          console.error('Error fetching organization teams:', orgTeamsError);
+          console.error('Error getting org teams:', orgTeamsError);
         } else if (orgTeams) {
-          const processedTeams = orgTeams.map(team => ({
-            id: team.id,
-            name: team.name,
-            org_id: team.org_id,
-            org_name: team.organization?.name,
-            is_external_org: false
-          }));
+          // Filter out teams the user is already a direct member of
+          const memberTeamIds = new Set(memberTeams?.map(t => t.team_id) || []);
           
-          allTeams.push(...processedTeams);
-          console.log(`Found ${processedTeams.length} teams through organization`);
-        }
-      }
-      
-      // Second query: Get teams user is a member of (if we have app_user_id)
-      if (appUserId) {
-        // Join with team table to filter out deleted teams
-        const { data: memberTeams, error: memberTeamsError } = await supabaseClient
-          .from('team_member')
-          .select(`
-            team:team_id (
-              id,
-              name,
-              org_id,
-              deleted_at,
-              organization:org_id (
-                name
-              )
-            ),
-            role:team_roles(role)
-          `)
-          .eq('user_id', appUserId);
-          
-        if (memberTeamsError) {
-          console.error('Error fetching member teams:', memberTeamsError);
-        } else if (memberTeams) {
-          // Transform the data to extract role information
-          const membershipTeams = memberTeams
-            .filter(item => item.team !== null && item.team.deleted_at === null) // Filter out deleted teams
-            .map(item => {
-              // Extract role from the team_roles relationship
-              const role = item.role && item.role.length > 0 ? item.role[0]?.role : null;
+          extraTeams = orgTeams
+            .filter(team => !memberTeamIds.has(team.id))
+            .map(team => {
+              // Find the user's role in this org
+              const userOrg = userOrgs.find(o => o.org_id === team.org_id);
               
               return {
-                id: item.team.id,
-                name: item.team.name,
-                org_id: item.team.org_id,
-                org_name: item.team.organization?.name,
-                is_external_org: userOrgId !== item.team.org_id,
-                role: role
+                team_id: team.id,
+                team: {
+                  id: team.id,
+                  name: team.name,
+                  org_id: team.org_id,
+                  org: team.org
+                },
+                team_roles: [{
+                  role: userOrg?.role || 'manager' // Default to manager if role not found
+                }],
+                is_from_org_role: true
               };
             });
-            
-          // Add teams that aren't already in the list
-          membershipTeams.forEach(memberTeam => {
-            if (!allTeams.some(team => team.id === memberTeam.id)) {
-              allTeams.push(memberTeam);
-            } else {
-              // Update existing team with role information if it exists
-              const existingTeam = allTeams.find(team => team.id === memberTeam.id);
-              if (existingTeam) {
-                existingTeam.role = memberTeam.role;
-              }
-            }
-          });
-          
-          console.log(`Found ${membershipTeams.length} teams through team membership`);
         }
       }
-      
-      responseData = { teams: allTeams };
-      console.log(`Returning ${allTeams.length} total teams`);
-
-    } finally {
-      clearTimeout(timeout);
     }
     
-    return new Response(
-      JSON.stringify(responseData),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
+    // Combine direct memberships and org-level access teams
+    const allTeamMemberships = [...(memberTeams || []), ...extraTeams];
+    
+    // Process and format the result
+    const teams = allTeamMemberships.map(membership => {
+      const team = membership.team;
+      const roles = membership.team_roles || [];
+      const role = roles.length > 0 ? roles[0].role : 'viewer';
+      
+      return {
+        id: team.id,
+        name: team.name,
+        role: role,
+        org_id: team.org_id,
+        org_name: team.org?.name || 'Unknown Organization',
+        is_external: team.org_id !== userOrgId,
+        is_from_org_role: membership.is_from_org_role || false
+      };
+    });
+    
+    return createSuccessResponse({ teams });
   } catch (error) {
-    console.error('Unexpected error in get_user_teams function:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: "Server error",
-        details: error instanceof Error ? error.message : "Unknown error occurred" 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    console.error('Unexpected error:', error);
+    return createErrorResponse('Server error: ' + error.message);
   }
-})
+});
