@@ -122,7 +122,7 @@ export function TeamMemberRow({
         <div className="flex items-center gap-1">
           {memberName}
           {isCurrentUser && (
-            <Badge variant="outline" size="sm" className="ml-1 text-xs">
+            <Badge variant="outline" className="ml-1 text-xs">
               You
             </Badge>
           )}
