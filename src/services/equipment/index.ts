@@ -16,7 +16,7 @@ export * from './utils/equipmentFormatting';
 
 // Permission checking modules
 export * from './permissions/accessCheck';
-export * from './permissions';  // Updated from createPermissionCheck
+export * from './permissions';
 export * from './permissions/updatePermissionCheck';
 
 // Database operations

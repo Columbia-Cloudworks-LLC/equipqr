@@ -1,16 +1,14 @@
 
-import { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { Edit, QrCode, Info, Users, Tags } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
-import { AttributesList } from '@/components/Equipment/Attributes/AttributesList';
-import { WorkNotes } from '@/components/Equipment/WorkNotes';
 import { Equipment } from '@/types';
+import { QRCodeGenerator } from '../QRCodeGenerator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Link } from 'react-router-dom';
+import { Edit } from 'lucide-react';
+import { WorkNotes } from '../WorkNotes';
+import { AttributesList } from '../Attributes';
+import { DeleteEquipmentButton } from './DeleteEquipmentButton'; 
 
 interface EquipmentDetailContentProps {
   equipment: Equipment;
@@ -20,147 +18,135 @@ interface EquipmentDetailContentProps {
   setActiveTab: (tab: string) => void;
 }
 
-export function EquipmentDetailContent({ 
-  equipment, 
+export function EquipmentDetailContent({
+  equipment,
   id,
   canEdit,
   activeTab,
   setActiveTab
 }: EquipmentDetailContentProps) {
-  // Check if there are any attributes to display
-  const hasAttributes = equipment.attributes && equipment.attributes.length > 0;
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-start gap-2">
+        <div>
+          <h1 className="text-3xl font-bold">{equipment.name}</h1>
+          <p className="text-muted-foreground">
+            {equipment.manufacturer ? `${equipment.manufacturer} · ` : ''}
+            {equipment.model || 'No model'}
+            {equipment.serial_number ? ` · ${equipment.serial_number}` : ''}
+          </p>
+        </div>
+        
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <RouterLink to={`/equipment/${id}/qr`}>
-              <QrCode className="mr-2 h-4 w-4" />
-              QR Code
-            </RouterLink>
-          </Button>
-          {canEdit ? (
-            <Button asChild>
-              <RouterLink to={`/equipment/${id}/edit`}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </RouterLink>
-            </Button>
-          ) : (
-            <Button variant="ghost" disabled title="You don't have permission to edit this equipment">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+          {canEdit && (
+            <>
+              <Button asChild>
+                <Link to={`/equipment/${id}/edit`}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Link>
+              </Button>
+              <DeleteEquipmentButton 
+                equipmentId={id} 
+                equipmentName={equipment.name}
+                canDelete={canEdit} 
+              />
+            </>
           )}
+          <Button asChild variant="outline">
+            <Link to={`/equipment/${id}/qr`}>
+              View QR Code
+            </Link>
+          </Button>
         </div>
       </div>
       
-      {equipment.is_external_org && (
-        <Alert className="bg-blue-50 border-blue-200">
-          <Info className="h-4 w-4" />
-          <AlertTitle>External Organization Equipment</AlertTitle>
-          <AlertDescription>
-            This equipment is shared from another organization.
-            {!canEdit && " You have view-only access."}
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <AccessInformationCard equipment={equipment} canEdit={canEdit} />
-      
-      <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
+      <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
-          {hasAttributes && (
-            <TabsTrigger value="quick-hits" className="flex items-center">
-              <Tags className="mr-2 h-4 w-4" />
-              Quick Hits 
-              {hasAttributes && <Badge className="ml-2">{equipment.attributes?.length}</Badge>}
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="work-notes">Work Notes</TabsTrigger>
+          <TabsTrigger value="notes">Work Notes</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="details">
-          <EquipmentCard equipment={equipment} showOrgInfo={false} />
+        <TabsContent value="details" className="space-y-4 mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Equipment Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Status</p>
+                      <p>{equipment.status}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Location</p>
+                      <p>{equipment.location || 'Not specified'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Install Date</p>
+                      <p>{equipment.install_date || 'Not specified'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Warranty Expiration</p>
+                      <p>{equipment.warranty_expiration || 'Not specified'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Team</p>
+                      <p>{equipment.team_name || 'Not assigned'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Organization</p>
+                      <p>{equipment.org_name || 'Unknown'}</p>
+                    </div>
+                  </div>
+
+                  {equipment.notes && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Notes</h3>
+                      <p className="whitespace-pre-wrap">{equipment.notes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {equipment.attributes && equipment.attributes.length > 0 && (
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle>Additional Attributes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AttributesList 
+                      attributes={equipment.attributes}
+                      equipmentId={id}
+                      canEdit={canEdit}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+            
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>QR Code</CardTitle>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                  <QRCodeGenerator
+                    equipmentId={id}
+                    size={150}
+                    showInstructions={false}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
         
-        {hasAttributes && (
-          <TabsContent value="quick-hits">
-            <AttributesCard equipment={equipment} />
-          </TabsContent>
-        )}
-        
-        <TabsContent value="work-notes">
+        <TabsContent value="notes">
           <WorkNotes equipmentId={id} />
         </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-// Access Information Card Component
-function AccessInformationCard({ equipment, canEdit }: { equipment: Equipment, canEdit: boolean }) {
-  if (!equipment.org_name && !equipment.team_name) return null;
-  
-  return (
-    <Card>
-      <CardHeader className="py-4">
-        <CardTitle className="text-base flex items-center">
-          <Users className="mr-2 h-4 w-4" />
-          Access Information
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="py-0">
-        <div className="grid grid-cols-2 gap-4">
-          {equipment.org_name && (
-            <div>
-              <p className="text-sm font-medium">Organization</p>
-              <p className="text-sm text-muted-foreground">
-                {equipment.org_name}
-                {equipment.is_external_org && (
-                  <Badge variant="outline" className="ml-2 text-xs bg-blue-50">
-                    External
-                  </Badge>
-                )}
-              </p>
-            </div>
-          )}
-          {equipment.team_name && (
-            <div>
-              <p className="text-sm font-medium">Team</p>
-              <p className="text-sm text-muted-foreground">{equipment.team_name}</p>
-            </div>
-          )}
-          <div>
-            <p className="text-sm font-medium">Access Level</p>
-            <p className="text-sm text-muted-foreground">
-              {canEdit ? 'Edit Access' : 'View Only'}
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Attributes Card Component
-function AttributesCard({ equipment }: { equipment: Equipment }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center">
-          <Tags className="mr-2 h-5 w-5" />
-          Custom Attributes
-        </CardTitle>
-        <CardDescription>
-          Quick reference information for this {equipment.name}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <AttributesList attributes={equipment.attributes || []} />
-      </CardContent>
-    </Card>
   );
 }

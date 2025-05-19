@@ -33,11 +33,16 @@ export async function getEquipment(): Promise<Equipment[]> {
     const userId = sessionData.session.user.id;
     console.log('Authenticated user ID:', userId);
     
-    // Check cache first
-    const cachedEquipment = checkCache();
-    if (cachedEquipment) {
-      console.log(`Using ${cachedEquipment.length} cached equipment items`);
-      return cachedEquipment;
+    // Check cache first but skip if cache busting is requested
+    if (!window.localStorage.getItem('equipment_cache_bust')) {
+      const cachedEquipment = checkCache();
+      if (cachedEquipment) {
+        console.log(`Using ${cachedEquipment.length} cached equipment items`);
+        return cachedEquipment;
+      }
+    } else {
+      // Clear cache busting flag after use
+      window.localStorage.removeItem('equipment_cache_bust');
     }
     
     // Try the edge function first
@@ -88,6 +93,18 @@ export async function getEquipment(): Promise<Equipment[]> {
       return []; 
     }
   }
+}
+
+/**
+ * Force refresh equipment data by busting the cache
+ */
+export async function refreshEquipment(): Promise<Equipment[]> {
+  // Set cache bust flag
+  window.localStorage.setItem('equipment_cache_bust', 'true');
+  // Clear existing cache
+  window.localStorage.removeItem(CACHE_KEY);
+  // Fetch fresh data
+  return getEquipment();
 }
 
 /**

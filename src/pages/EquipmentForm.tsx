@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Equipment } from '@/types';
@@ -14,6 +13,7 @@ import { Info, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { resetAuthState } from '@/utils/authInterceptors';
+import { refreshEquipment } from '@/services/equipment/equipmentListService';
 
 const EquipmentFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -91,9 +91,20 @@ const EquipmentFormPage = () => {
   // Create equipment mutation
   const createMutation = useMutation({
     mutationFn: createEquipment,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success('Equipment added successfully');
+      
+      // Force refresh equipment list data
+      try {
+        await refreshEquipment();
+      } catch (refreshError) {
+        console.warn('Failed to refresh equipment list:', refreshError);
+      }
+      
+      // Invalidate queries to ensure data is fresh
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      
+      // Navigate to the new equipment page
       navigate(`/equipment/${data.id}`);
     },
     onError: (error: any) => {
@@ -155,9 +166,20 @@ const EquipmentFormPage = () => {
   // Update equipment mutation
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string, data: Partial<Equipment> }) => updateEquipment(id, data),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success('Equipment updated successfully');
+      
+      // Force refresh equipment list data
+      try {
+        await refreshEquipment();
+      } catch (refreshError) {
+        console.warn('Failed to refresh equipment list:', refreshError);
+      }
+      
+      // Invalidate queries to ensure data is fresh
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      
+      // Navigate to the updated equipment page
       navigate(`/equipment/${data.id}`);
     },
     onError: (error: any) => {

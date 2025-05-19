@@ -98,6 +98,13 @@ export async function createEquipment(equipment: Partial<Equipment>): Promise<Eq
     const data = await insertEquipment(processedEquipment);
     console.log('Equipment created successfully:', data);
     
+    // Set cache busting flag for equipment list refresh
+    try {
+      window.localStorage.setItem('equipment_cache_bust', 'true');
+    } catch (e) {
+      console.warn('Could not set cache bust flag:', e);
+    }
+    
     // If we have attributes, insert them
     if (attributes.length > 0) {
       try {

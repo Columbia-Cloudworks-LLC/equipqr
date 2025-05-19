@@ -54,6 +54,13 @@ export async function deleteEquipment(id: string): Promise<boolean> {
       throw error;
     }
     
+    // Set cache busting flag for equipment list refresh
+    try {
+      window.localStorage.setItem('equipment_cache_bust', 'true');
+    } catch (e) {
+      console.warn('Could not set cache bust flag:', e);
+    }
+    
     return true;
   } catch (error) {
     console.error('Error in deleteEquipment:', error);
