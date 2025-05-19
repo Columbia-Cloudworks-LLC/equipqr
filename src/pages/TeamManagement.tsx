@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { TeamSelector } from '@/components/Team/TeamSelector';
@@ -80,9 +81,25 @@ export default function TeamManagement() {
     });
   }, [teams.length, selectedTeamId, isLoading, isMember, currentUserRole, canChangeRoles, isViewerOnly]);
 
-  // Fix the Promise return type for the onFetchPendingInvitations handler
-  const handleFetchPendingInvitations = async () => {
-    return await refetchPendingInvitations();
+  // Wrapper functions to adapt the hook functions to the expected return types for TeamContent
+  const handleUpdateTeamWrapper = async (id: string, name: string) => {
+    await handleUpdateTeam(id, name);
+  };
+  
+  const handleDeleteTeamWrapper = async (teamId: string) => {
+    await handleDeleteTeam(teamId);
+  };
+  
+  const handleRepairTeamWrapper = async (teamId: string) => {
+    await handleRepairTeam(teamId);
+  };
+  
+  const handleUpgradeRoleWrapper = async (teamId: string) => {
+    await handleUpgradeRole(teamId);
+  };
+  
+  const handleRequestRoleUpgradeWrapper = async (teamId: string) => {
+    await handleRequestRoleUpgrade(teamId);
   };
 
   // Show loading state during auth check
@@ -121,8 +138,8 @@ export default function TeamManagement() {
           onRetry={selectedTeamId ? refetchTeamMembers : fetchTeams} 
           onUpgradeRole={isViewerOnly ? 
             (canChangeRoles ? 
-              () => handleUpgradeRole(selectedTeamId) : 
-              () => handleRequestRoleUpgrade(selectedTeamId)
+              () => handleUpgradeRoleWrapper(selectedTeamId) : 
+              () => handleRequestRoleUpgradeWrapper(selectedTeamId)
             ) : undefined}
           isViewer={isViewerOnly}
           canDirectlyUpgrade={canChangeRoles}
@@ -178,12 +195,12 @@ export default function TeamManagement() {
               onResendInvite={handleResendInvite}
               onCancelInvitation={handleCancelInvitation}
               onCreateTeam={handleCreateTeam}
-              onUpdateTeam={handleUpdateTeam}
-              onDeleteTeam={handleDeleteTeam}
-              onRepairTeam={handleRepairTeam}
-              onUpgradeRole={handleUpgradeRole}
-              onRequestRoleUpgrade={handleRequestRoleUpgrade}
-              onFetchPendingInvitations={handleFetchPendingInvitations}
+              onUpdateTeam={handleUpdateTeamWrapper}
+              onDeleteTeam={handleDeleteTeamWrapper}
+              onRepairTeam={handleRepairTeamWrapper}
+              onUpgradeRole={handleUpgradeRoleWrapper}
+              onRequestRoleUpgrade={handleRequestRoleUpgradeWrapper}
+              onFetchPendingInvitations={refetchPendingInvitations}
               getTeamEquipmentCount={getTeamEquipmentCount}
             />
           </>

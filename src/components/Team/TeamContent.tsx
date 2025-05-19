@@ -1,4 +1,3 @@
-
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
 import { TeamSettings } from "./TeamSettings";
@@ -12,9 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TeamContentProps {
   selectedTeamId: string;
-  teams: any[];
   members: TeamMember[];
   pendingInvitations: any[];
+  teams: any[];
   isLoading: boolean;
   isLoadingInvitations: boolean;
   isCreatingTeam: boolean;
@@ -26,26 +25,26 @@ interface TeamContentProps {
   isMember: boolean;
   currentUserRole: string | null;
   canChangeRoles: boolean;
-  onInviteMember: (email: string, role: UserRole, teamId: string) => Promise<void>;
-  onChangeRole: (userId: string, role: UserRole, teamId: string) => Promise<void>;
-  onRemoveMember: (userId: string, teamId: string) => Promise<void>;
-  onResendInvite: (id: string) => Promise<void>;
-  onCancelInvitation: (id: string) => Promise<void>;
+  onInviteMember: (data: any) => Promise<any>;
+  onChangeRole: (userId: string, role: string) => Promise<any>;
+  onRemoveMember: (userId: string) => Promise<any>;
+  onResendInvite: (inviteId: string) => Promise<any>;
+  onCancelInvitation: (inviteId: string) => Promise<any>;
   onCreateTeam: (name: string) => Promise<any>;
-  onUpdateTeam: (id: string, name: string) => Promise<void>;
-  onDeleteTeam: (id: string) => Promise<void>;
-  onRepairTeam: (teamId: string) => Promise<void>;
-  onUpgradeRole: (teamId: string) => Promise<void>;
-  onRequestRoleUpgrade: (teamId: string) => Promise<void>;
-  onFetchPendingInvitations: () => Promise<void>;
+  onUpdateTeam: (id: string, name: string) => Promise<any>;
+  onDeleteTeam: (teamId: string) => Promise<any>;
+  onRepairTeam: (teamId: string) => Promise<any>;
+  onUpgradeRole: (teamId: string) => Promise<any>;
+  onRequestRoleUpgrade: (teamId: string) => Promise<any>;
+  onFetchPendingInvitations: () => Promise<any>;
   getTeamEquipmentCount: (teamId: string) => Promise<number>;
 }
 
 export function TeamContent({ 
   selectedTeamId,
-  teams,
   members,
   pendingInvitations,
+  teams,
   isLoading,
   isLoadingInvitations,
   isCreatingTeam,

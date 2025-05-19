@@ -63,13 +63,17 @@ export function useTeams() {
       if (membershipData && Array.isArray(membershipData)) {
         const processedTeams = membershipData
           .filter(team => team && team.id)
-          .map(team => ({
-            id: team.id,
-            name: team.name || 'Unnamed Team',
-            role: team.role || 'viewer',
-            organizationId: team.org_id || '', // Provide default values
-            organizationName: team.org_name || ''
-          }));
+          .map(team => {
+            // Using type assertion since we know the structure coming from the DB
+            const teamData = team as any;
+            return {
+              id: teamData.id,
+              name: teamData.name || 'Unnamed Team',
+              role: teamData.role || 'viewer',
+              organizationId: teamData.org_id || '', // Use type assertion to access these properties
+              organizationName: teamData.org_name || ''
+            };
+          });
         
         setTeams(processedTeams);
       } else {
