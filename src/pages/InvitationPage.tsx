@@ -14,11 +14,11 @@ function InvitationPage() {
   const invitationType = searchParams.get('type') || 'team';
   
   // Custom hooks for validation and acceptance
-  const { loading, error, invitationDetails } = useInvitationValidation(token, invitationType);
+  const { isValidating, error, invitation } = useInvitationValidation(token);
   const { acceptInvitationHandler } = useInvitationAcceptance();
 
   // Render appropriate UI based on state
-  if (loading) {
+  if (isValidating) {
     return <InvitationLoading />;
   }
 
@@ -26,14 +26,14 @@ function InvitationPage() {
     return <InvitationError error={error} />;
   }
 
-  if (!invitationDetails) {
+  if (!invitation) {
     return <InvalidInvitation />;
   }
 
   return (
     <InvitationContent
       invitationType={invitationType as 'team' | 'organization'}
-      invitationDetails={invitationDetails}
+      invitationDetails={invitation}
       onAccept={acceptInvitationHandler}
       token={token!}
     />

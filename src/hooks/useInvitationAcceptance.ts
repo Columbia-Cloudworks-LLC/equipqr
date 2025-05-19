@@ -10,7 +10,7 @@ export function useInvitationAcceptance() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  const acceptInvitationHandler = async (token: string, invitationType: string) => {
+  const acceptInvitationHandler = async (token: string, invitationType?: string) => {
     try {
       setProcessing(true);
       setError(null);

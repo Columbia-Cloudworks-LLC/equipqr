@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 interface InvitationContentProps {
   invitationType: 'team' | 'organization';
   invitationDetails: any;
-  onAccept: (token: string, invitationType: string) => Promise<void>;
+  onAccept: (token: string, invitationType?: string) => Promise<void>;
   token: string;
 }
 
