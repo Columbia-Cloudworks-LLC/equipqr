@@ -29,7 +29,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   let orgName = invitation?.org_name;
   
   if (isTeamInvitation) {
-    entityName = invitation?.team?.name || invitation?.org_name || 'Team';
+    entityName = invitation?.team?.name || invitation?.team_name || invitation?.org_name || 'Team';
   } else if (isOrgInvitation) {
     entityName = invitation?.organization?.name || invitation?.org_name || 'Organization';
     orgName = null; // Don't show org name separately for org invitations
@@ -50,8 +50,9 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
         });
         
         // For organization invitations, redirect to the organization settings
+        // Use the correct route path from App.tsx
         onAccept();
-        navigate('/organization-settings');
+        navigate('/settings/organization');
       } else {
         // Handle team invitation
         result = await acceptInvitation(invitation.token);

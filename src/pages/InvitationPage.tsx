@@ -70,7 +70,8 @@ function InvitationPage() {
         const response = await acceptOrganizationInvitation(token!);
         
         if (response.success) {
-          navigate('/organization-settings');
+          // Update to use correct route path
+          navigate('/settings/organization');
         } else {
           setError(response.error || 'Failed to accept invitation');
         }
