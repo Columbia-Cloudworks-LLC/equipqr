@@ -3,7 +3,9 @@
  * Team caching utility functions for storing and retrieving team data
  */
 
-const CACHE_KEY = 'cached_user_teams';
+const getCacheKey = (userId?: string) => userId ? 
+  `cached_user_teams_${userId}` : 'cached_user_teams';
+  
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 interface CachedData {
@@ -14,14 +16,15 @@ interface CachedData {
 /**
  * Cache team results in localStorage
  */
-export function cacheTeams(teams: any[]): void {
+export function cacheTeams(teams: any[], userId?: string): void {
   try {
     const cacheData: CachedData = {
       data: teams,
       timestamp: Date.now()
     };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-    console.log(`Cached ${teams.length} teams at ${new Date().toISOString()}`);
+    const cacheKey = getCacheKey(userId);
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    console.log(`Cached ${teams.length} teams for ${userId ? `user ${userId.slice(0, 8)}...` : 'current user'} at ${new Date().toISOString()}`);
   } catch (error) {
     console.warn('Failed to cache teams:', error);
   }
@@ -30,15 +33,17 @@ export function cacheTeams(teams: any[]): void {
 /**
  * Check for valid cached teams data
  * @param forceRefresh If true, ignore cache and return null
+ * @param userId Optional user ID to get user-specific cache
  */
-export function getCachedTeams(forceRefresh = false): any[] | null {
+export function getCachedTeams(forceRefresh = false, userId?: string): any[] | null {
   try {
     if (forceRefresh) {
       console.log('Force refresh requested, ignoring cache');
       return null;
     }
     
-    const cached = localStorage.getItem(CACHE_KEY);
+    const cacheKey = getCacheKey(userId);
+    const cached = localStorage.getItem(cacheKey);
     if (!cached) return null;
     
     const parsedCache = JSON.parse(cached) as CachedData;
@@ -61,11 +66,24 @@ export function getCachedTeams(forceRefresh = false): any[] | null {
 
 /**
  * Clear the team cache
+ * @param userId Optional user ID to clear specific user cache
  */
-export function clearTeamCache(): void {
+export function clearTeamCache(userId?: string): void {
   try {
-    localStorage.removeItem(CACHE_KEY);
-    console.log('Team cache cleared');
+    if (userId) {
+      // Clear specific user cache
+      localStorage.removeItem(getCacheKey(userId));
+      console.log(`Team cache cleared for user ${userId.slice(0, 8)}...`);
+    } else {
+      // Find and clear all team cache entries
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('cached_user_teams_')) {
+          localStorage.removeItem(key);
+        }
+      }
+      console.log('All team caches cleared');
+    }
   } catch (error) {
     console.warn('Failed to clear team cache:', error);
   }

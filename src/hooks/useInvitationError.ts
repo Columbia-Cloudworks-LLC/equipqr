@@ -2,12 +2,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface UseInvitationErrorOptions {
   onReset?: () => void;
   maxAttempts?: number;
   redirectOnError?: boolean;
   redirectPath?: string;
+  invalidateQueries?: boolean;
 }
 
 /**
@@ -18,13 +20,15 @@ export function useInvitationError(options: UseInvitationErrorOptions = {}) {
     onReset, 
     maxAttempts = 3,
     redirectOnError = false,
-    redirectPath = '/'
+    redirectPath = '/',
+    invalidateQueries = true
   } = options;
   
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [retryingIn, setRetryingIn] = useState(0);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   // Clear error state
   const clearError = useCallback(() => {
@@ -56,6 +60,13 @@ export function useInvitationError(options: UseInvitationErrorOptions = {}) {
             clearInterval(intervalId);
             // Increment retry counter
             setRetryCount(prev => prev + 1);
+            
+            // Invalidate relevant queries to ensure fresh data on retry
+            if (invalidateQueries) {
+              queryClient.invalidateQueries({ queryKey: ['notifications'] });
+              console.log('Invalidated notification queries before retry');
+            }
+            
             // Trigger the reset callback
             if (onReset) {
               onReset();
@@ -72,7 +83,7 @@ export function useInvitationError(options: UseInvitationErrorOptions = {}) {
       toast.error("Maximum retry attempts reached");
       navigate(redirectPath);
     }
-  }, [retryCount, maxAttempts, onReset, navigate, redirectOnError, redirectPath]);
+  }, [retryCount, maxAttempts, onReset, navigate, redirectOnError, redirectPath, invalidateQueries, queryClient]);
   
   // Reset retry counter when dependencies change
   useEffect(() => {

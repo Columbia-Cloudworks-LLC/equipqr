@@ -4,7 +4,8 @@ import { Equipment } from "@/types";
 import { processEquipmentList } from "./utils/equipmentFormatting";
 import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
 
-const CACHE_KEY = 'cached_user_equipment';
+// Include user ID in cache key to prevent using data from previous users
+const getCacheKey = (userId: string) => `cached_user_equipment_${userId}`;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 interface CachedData {
@@ -33,11 +34,13 @@ export async function getEquipment(): Promise<Equipment[]> {
     const userId = sessionData.session.user.id;
     console.log('Authenticated user ID:', userId);
     
+    const cacheKey = getCacheKey(userId);
+    
     // Check cache first but skip if cache busting is requested
     if (!window.localStorage.getItem('equipment_cache_bust')) {
-      const cachedEquipment = checkCache();
+      const cachedEquipment = checkCache(userId);
       if (cachedEquipment) {
-        console.log(`Using ${cachedEquipment.length} cached equipment items`);
+        console.log(`Using ${cachedEquipment.length} cached equipment items for user ${userId.slice(0, 8)}...`);
         return cachedEquipment;
       }
     } else {
@@ -61,7 +64,7 @@ export async function getEquipment(): Promise<Equipment[]> {
       const processedData = processEquipmentList(data);
       
       // Cache the results
-      cacheResults(processedData);
+      cacheResults(processedData, userId);
       
       return processedData;
     } catch (edgeFunctionError) {
@@ -101,10 +104,33 @@ export async function getEquipment(): Promise<Equipment[]> {
 export async function refreshEquipment(): Promise<Equipment[]> {
   // Set cache bust flag
   window.localStorage.setItem('equipment_cache_bust', 'true');
-  // Clear existing cache
-  window.localStorage.removeItem(CACHE_KEY);
+  
+  // Clear existing user-specific cache
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (sessionData?.session?.user?.id) {
+    window.localStorage.removeItem(getCacheKey(sessionData.session.user.id));
+  }
+  
   // Fetch fresh data
   return getEquipment();
+}
+
+/**
+ * Clear all equipment caches (used during login/logout)
+ */
+export function clearEquipmentCache(): void {
+  console.log('Clearing all equipment caches');
+  
+  // Find and clear all equipment cache entries
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('cached_user_equipment_')) {
+      localStorage.removeItem(key);
+    }
+  }
+  
+  // Also remove the general cache bust flag
+  localStorage.removeItem('equipment_cache_bust');
 }
 
 /**
@@ -216,13 +242,14 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
 /**
  * Cache equipment results in localStorage
  */
-function cacheResults(equipment: Equipment[]) {
+function cacheResults(equipment: Equipment[], userId: string) {
   try {
+    const cacheKey = getCacheKey(userId);
     const cacheData: CachedData = {
       data: equipment,
       timestamp: Date.now()
     };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
   } catch (error) {
     console.warn('Failed to cache equipment:', error);
   }
@@ -231,9 +258,10 @@ function cacheResults(equipment: Equipment[]) {
 /**
  * Check for valid cached equipment data
  */
-function checkCache(): Equipment[] | null {
+function checkCache(userId: string): Equipment[] | null {
   try {
-    const cached = localStorage.getItem(CACHE_KEY);
+    const cacheKey = getCacheKey(userId);
+    const cached = localStorage.getItem(cacheKey);
     if (!cached) return null;
     
     const parsedCache = JSON.parse(cached) as CachedData;

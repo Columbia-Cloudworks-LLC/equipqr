@@ -1,25 +1,54 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getEquipment } from '@/services/equipment';
+import { getEquipment, refreshEquipment } from '@/services/equipment/equipmentListService';
 import { Equipment } from '@/types';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { getTeams } from '@/services/team';
+import { useLocation } from 'react-router-dom';
 
 export function useDashboardData() {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const { invitations, refreshNotifications } = useNotificationsSafe();
   const [retries, setRetries] = useState(0);
+  
+  // Check if we need to force refresh data from location state
+  const shouldRefresh = location.state?.refreshSession === true;
+  const [hasRefreshed, setHasRefreshed] = useState(false);
+  
+  // Force refresh data if coming from authentication
+  useEffect(() => {
+    if (shouldRefresh && !hasRefreshed) {
+      console.log('Dashboard: Detected refresh flag, invalidating queries');
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      // Mark as refreshed so we don't do it again
+      setHasRefreshed(true);
+      
+      // Force refresh equipment data
+      refreshEquipment().catch(console.error);
+      
+      // Clear the location state to prevent refreshing again on future renders
+      window.history.replaceState(
+        { ...location.state, refreshSession: false }, 
+        '', 
+        location.pathname
+      );
+    }
+  }, [shouldRefresh, hasRefreshed, queryClient, location]);
   
   // Equipment data query
   const { 
     data: equipmentData = [], 
     isLoading: isEquipmentLoading, 
-    isError: isEquipmentError 
+    isError: isEquipmentError,
+    refetch: refetchEquipment
   } = useQuery({
     queryKey: ['equipment'],
     queryFn: getEquipment,
     retry: 1,
+    staleTime: shouldRefresh ? 0 : 300000, // 5 minutes, but 0 if refresh flag is set
   });
 
   // Teams data query with force refresh option
@@ -32,9 +61,10 @@ export function useDashboardData() {
     queryKey: ['teams', 'dashboard'],
     queryFn: async () => {
       console.log('Dashboard: Fetching teams with forceRefresh');
-      return getTeams({ forceRefresh: true });
+      return getTeams({ forceRefresh: shouldRefresh || false });
     },
     retry: 2,
+    staleTime: shouldRefresh ? 0 : 300000, // 5 minutes, but 0 if refresh flag is set
   });
 
   // Safely ensure equipment is always an array
@@ -102,6 +132,7 @@ export function useDashboardData() {
     isTeamsError,
     isError: isEquipmentError || isTeamsError,
     invitations,
-    refetchTeams
+    refetchTeams,
+    refetchEquipment
   };
 }

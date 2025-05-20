@@ -3,6 +3,9 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { clearEquipmentCache } from '@/services/equipment/equipmentListService';
+import { clearTeamCache } from '@/services/team/retrieval/teamCache';
+import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * Component to handle authentication redirects
@@ -12,6 +15,7 @@ export function AuthRedirect() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, session, isLoading, checkSession } = useAuth();
+  const queryClient = useQueryClient();
   
   // Get returnTo path from location state or localStorage
   const state = location.state as { returnTo?: string; message?: string } | undefined;
@@ -38,6 +42,15 @@ export function AuthRedirect() {
         
         // Clear stored return path
         localStorage.removeItem('authReturnTo');
+        
+        // Force clear all caches to ensure fresh data
+        clearEquipmentCache();
+        clearTeamCache();
+        queryClient.invalidateQueries({ queryKey: ['equipment'] });
+        queryClient.invalidateQueries({ queryKey: ['teams'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        
+        console.log('Cleared all caches before redirecting from auth');
         
         // Show success message
         toast.success('Authenticated', {
@@ -72,7 +85,7 @@ export function AuthRedirect() {
         });
       }
     }
-  }, [session, isLoading, navigate, returnPath, message, checkSession]);
+  }, [session, isLoading, navigate, returnPath, message, checkSession, queryClient]);
   
   // Return null since this is just a redirect component
   return null;

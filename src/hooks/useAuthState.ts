@@ -3,6 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { resetAuthState } from '@/utils/authInterceptors';
+import { clearEquipmentCache } from '@/services/equipment/equipmentListService';
+import { clearTeamCache } from '@/services/team/retrieval/teamCache';
+import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * Custom hook to manage authentication state
@@ -11,6 +14,21 @@ export function useAuthState() {
   const [user, setUser] = useState<Session['user'] | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // Helper function to clear all caches on auth state changes
+  const clearAllCaches = useCallback((userId?: string) => {
+    // Clear localStorage caches
+    clearEquipmentCache();
+    clearTeamCache();
+    
+    // Invalidate React Query caches
+    queryClient.invalidateQueries({ queryKey: ['equipment'] });
+    queryClient.invalidateQueries({ queryKey: ['teams'] });
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    
+    console.log('All caches cleared due to auth state change');
+  }, [queryClient]);
 
   useEffect(() => {
     console.log('AuthState: Initializing auth state management');
@@ -23,6 +41,12 @@ export function useAuthState() {
         if (event === 'SIGNED_OUT') {
           // Force clear all tokens on explicit signout event
           resetAuthState();
+          clearAllCaches();
+        }
+        
+        if (event === 'SIGNED_IN') {
+          // Clear caches when user signs in to ensure fresh data
+          clearAllCaches(session?.user?.id);
         }
         
         setSession(session);
@@ -44,7 +68,7 @@ export function useAuthState() {
       console.log('AuthState: Unsubscribing from auth state changes');
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [clearAllCaches]);
 
   const checkSession = useCallback(async () => {
     try {
@@ -58,6 +82,7 @@ export function useAuthState() {
       if (!isValid && user) {
         console.warn('AuthState: Session invalid but user state exists, resetting auth state');
         resetAuthState();
+        clearAllCaches();
       }
       
       return isValid;
@@ -65,7 +90,7 @@ export function useAuthState() {
       console.error("AuthState: Error checking session:", error);
       return false;
     }
-  }, [user]);
+  }, [user, clearAllCaches]);
 
   return {
     user,
