@@ -32,19 +32,19 @@ export function useNotificationsState() {
     attemptCountRef.current = 0;
   }, [user?.id]);
   
-  // Throttled refresh function to prevent multiple rapid calls
-  const debouncedRefresh = useCallback(async (force: boolean = false) => {
+  // Fetch notifications function (doesn't directly call itself)
+  const fetchNotifications = useCallback(async (force: boolean = false): Promise<boolean> => {
     // Don't refresh if no user is authenticated
     if (!user || !session) {
       setInvitations([]);
       setHasNewNotifications(false);
-      return;
+      return false;
     }
     
     // Prevent refreshing more than once every 2 seconds unless forced
     const now = new Date();
     if (!force && lastRefreshAttempt && (now.getTime() - lastRefreshAttempt.getTime()) < 2000) {
-      return;
+      return false;
     }
     
     // Prevent excessive attempts if we're failing repeatedly
@@ -53,7 +53,7 @@ export function useNotificationsState() {
         (!lastSuccessRef.current || (now.getTime() - lastSuccessRef.current.getTime() > 30000))) {
       console.warn("Too many notification refresh attempts without success, backing off");
       setHasError(true);
-      return;
+      return false;
     }
     
     try {
@@ -62,11 +62,7 @@ export function useNotificationsState() {
       setHasError(false);
       attemptCountRef.current++;
       
-      const data = await getActiveNotifications().catch(error => {
-        console.error("Error in getActiveNotifications:", error);
-        setHasError(true);
-        return []; // Return empty array on error
-      });
+      const data = await getActiveNotifications();
       
       // Ensure we always have a valid array
       const notificationArray = Array.isArray(data) ? data : [];
@@ -79,16 +75,18 @@ export function useNotificationsState() {
       // Reset attempt counter on success
       attemptCountRef.current = 0;
       lastSuccessRef.current = new Date();
+      return true;
     } catch (error) {
       console.error("Error fetching notifications:", error);
       setHasError(true);
       // Don't update state on error to avoid wiping out previous valid data
+      return false;
     } finally {
       setIsLoading(false);
     }
-  }, [user, session, lastRefreshAttempt]);
+  }, [user, session, lastRefreshAttempt]); // Dependencies explicitly defined
   
-  // Called after authentication is complete or when manually triggered
+  // Manual refresh function (exported)
   const refreshNotifications = useCallback(async () => {
     if (!user) {
       console.log("Manual refresh attempted but no user is authenticated");
@@ -101,8 +99,8 @@ export function useNotificationsState() {
       refreshTimeoutRef.current = null;
     }
     
-    await debouncedRefresh(true);
-  }, [user, debouncedRefresh]);
+    return await fetchNotifications(true);
+  }, [user, fetchNotifications]);
 
   // Reset dismissed notifications
   const resetDismissedNotifications = useCallback(() => {
@@ -127,7 +125,7 @@ export function useNotificationsState() {
       
       // Small delay to make sure auth is fully established
       refreshTimeoutRef.current = window.setTimeout(() => {
-        debouncedRefresh().catch(error => {
+        fetchNotifications().catch(error => {
           console.error("Failed to refresh notifications on auth state change:", error);
         });
       }, 1500);
@@ -142,14 +140,14 @@ export function useNotificationsState() {
       setInvitations([]);
       setHasNewNotifications(false);
     }
-  }, [user, session, debouncedRefresh]);
+  }, [user, session, fetchNotifications]);
 
   // Setup periodic check for new notifications (every 5 minutes)
   useEffect(() => {
     if (!user) return;
     
     const interval = setInterval(() => {
-      debouncedRefresh().catch(error => {
+      fetchNotifications().catch(error => {
         console.error("Failed to refresh notifications in periodic check:", error);
       });
     }, 5 * 60 * 1000);
@@ -157,7 +155,7 @@ export function useNotificationsState() {
     return () => {
       clearInterval(interval);
     };
-  }, [user, debouncedRefresh]);
+  }, [user, fetchNotifications]);
 
   const dismissInvitation = useCallback((id: string) => {
     try {

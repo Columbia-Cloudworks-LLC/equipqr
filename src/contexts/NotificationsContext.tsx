@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { useNotificationsState } from '@/hooks/useNotificationsState';
 import { NotificationsContextType } from '@/types/notifications';
 
@@ -8,9 +8,17 @@ export const NotificationsContext = createContext<NotificationsContextType | und
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
   const notificationsState = useNotificationsState();
+  
+  // Use useMemo to prevent unnecessary re-renders of context consumers
+  const contextValue = useMemo(() => notificationsState, [
+    notificationsState.invitations, 
+    notificationsState.isLoading,
+    notificationsState.hasNewNotifications,
+    notificationsState.hasError
+  ]);
 
   return (
-    <NotificationsContext.Provider value={notificationsState}>
+    <NotificationsContext.Provider value={contextValue}>
       {children}
     </NotificationsContext.Provider>
   );

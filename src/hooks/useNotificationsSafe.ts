@@ -1,5 +1,5 @@
 
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import { NotificationsContextType } from '@/types/notifications';
 import { NotificationsContext } from '@/contexts/NotificationsContext';
 
@@ -10,17 +10,16 @@ import { NotificationsContext } from '@/contexts/NotificationsContext';
 export function useNotificationsSafe(): NotificationsContextType {
   const context = useContext(NotificationsContext);
   
-  if (context === undefined) {
-    // Return default values that match the NotificationsContextType
-    return {
-      invitations: [],
-      isLoading: false,
-      hasNewNotifications: false,
-      refreshNotifications: async () => { /* no-op */ },
-      dismissInvitation: () => { /* no-op */ },
-      resetDismissedNotifications: () => { /* no-op */ }
-    };
-  }
+  // Only create default values when context is undefined
+  const defaultValues = useMemo<NotificationsContextType>(() => ({
+    invitations: [],
+    isLoading: false,
+    hasNewNotifications: false,
+    hasError: false,
+    refreshNotifications: async () => { /* no-op */ },
+    dismissInvitation: () => { /* no-op */ },
+    resetDismissedNotifications: () => { /* no-op */ }
+  }), []);
   
-  return context;
+  return context === undefined ? defaultValues : context;
 }

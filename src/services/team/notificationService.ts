@@ -29,11 +29,17 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
         body: { email: userEmail }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+      
+      // Ensure data is an array
+      const invitations = Array.isArray(data) ? data : [];
       
       // Filter out dismissed notifications
       const dismissed = await loadDismissedNotifications();
-      const filtered = (data || []).filter(invite => !dismissed.includes(invite.id));
+      const filtered = invitations.filter(invite => !dismissed.includes(invite.id));
       
       console.log(`Found ${filtered.length} active notifications (${dismissed.length} dismissed)`);
       return filtered;
@@ -97,7 +103,7 @@ export async function getPendingInvitationsForUser(): Promise<Invitation[]> {
     const allInvitations: Invitation[] = [];
     
     // Add team invitations
-    if (teamInvitations) {
+    if (teamInvitations && Array.isArray(teamInvitations)) {
       teamInvitations.forEach(inv => {
         if (!dismissedIds.includes(inv.id)) {
           allInvitations.push({
@@ -115,7 +121,7 @@ export async function getPendingInvitationsForUser(): Promise<Invitation[]> {
     }
     
     // Add organization invitations
-    if (orgInvitations) {
+    if (orgInvitations && Array.isArray(orgInvitations)) {
       orgInvitations.forEach(inv => {
         if (!dismissedIds.includes(inv.id)) {
           allInvitations.push({
