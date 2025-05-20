@@ -10,21 +10,43 @@ import { Button } from '@/components/ui/button';
 import { getPendingInvitationsForUser } from '@/services/team/notificationService';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useInvitationError } from '@/hooks/useInvitationError';
 
 export default function MyInvitations() {
-  const { invitations, isLoading, refreshNotifications, resetDismissedNotifications } = useNotificationsSafe();
+  const { invitations, isLoading: isNotificationsLoading, refreshNotifications, resetDismissedNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
   const { user, isLoading: authLoading } = useAuth();
   const [directInvitations, setDirectInvitations] = useState<any[]>([]);
   const [isDirectLoading, setIsDirectLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [refreshAttempts, setRefreshAttempts] = useState(0);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+
+  // Use our new error handling hook
+  const { 
+    errorMessage, 
+    isRetrying, 
+    retryingIn, 
+    handleError, 
+    clearError 
+  } = useInvitationError({
+    onReset: handleResetAndRefresh,
+    maxAttempts: 3
+  });
+  
+  // Combined loading state
+  const isLoading = isNotificationsLoading || isDirectLoading || authLoading || isRetrying;
 
   // Initial load of notifications via context
   useEffect(() => {
     // Don't try to load anything until auth is settled
     if (authLoading) {
       console.log("MyInvitations: Waiting for authentication to complete");
+      return;
+    }
+    
+    // Don't fetch if we recently refreshed (debounce)
+    const now = Date.now();
+    if (now - lastRefreshTime < 3000) {
+      console.log("MyInvitations: Throttling refresh, too soon since last refresh");
       return;
     }
     
@@ -36,86 +58,80 @@ export default function MyInvitations() {
       }
       
       try {
+        setLastRefreshTime(now);
         console.log("MyInvitations: Refreshing notifications for authenticated user");
         await refreshNotifications();
         console.log("MyInvitations: Notifications refreshed");
+        clearError();
       } catch (error: any) {
         console.error("MyInvitations: Error refreshing notifications:", error);
-        setLoadError(`Failed to load notifications: ${error.message}`);
+        handleError(error, true);
       }
     };
     
     loadData();
-  }, [refreshNotifications, user, authLoading]);
+  }, [refreshNotifications, user, authLoading, lastRefreshTime, clearError, handleError]);
   
   // Direct database query as a fallback
   useEffect(() => {
     // Skip if there's no authenticated user or we're still checking auth
-    if (!user || authLoading) {
+    // or if context invitations are already loaded
+    if (!user || authLoading || isNotificationsLoading || invitations.length > 0 || isRetrying) {
       return;
     }
     
     const loadDirectInvitations = async () => {
       try {
         setIsDirectLoading(true);
-        setLoadError(null);
         console.log("MyInvitations: Loading direct invitations as fallback");
         const invites = await getPendingInvitationsForUser();
         console.log("MyInvitations: Direct invitations loaded:", invites);
         setDirectInvitations(invites);
       } catch (error: any) {
         console.error("MyInvitations: Error loading direct invitations:", error);
-        setLoadError(`Failed to load invitations: ${error.message}`);
+        handleError(`Failed to load invitations: ${error.message}`, false);
       } finally {
         setIsDirectLoading(false);
       }
     };
     
-    // Load direct invitations if context invitations are empty
-    if (!isLoading && invitations.length === 0) {
+    // Only attempt direct loading if context invitations are empty (and not loading)
+    if (!isNotificationsLoading && invitations.length === 0) {
       loadDirectInvitations();
     }
-  }, [isLoading, invitations, user, authLoading]);
+  }, [isNotificationsLoading, invitations, user, authLoading, handleError, isRetrying]);
   
   // Use direct invitations if context invitations are empty
   const displayInvitations = invitations.length > 0 ? invitations : directInvitations;
-  const loading = isLoading || isDirectLoading || authLoading;
   
   // Count team and org invitations
   const teamInvitations = displayInvitations.filter(inv => inv.invitationType === 'team' || inv.team);
   const orgInvitations = displayInvitations.filter(inv => inv.invitationType === 'organization' || inv.organization);
   
-  const handleResetAndRefresh = async () => {
-    setLoadError(null);
-    setRefreshAttempts(prev => prev + 1);
-    resetDismissedNotifications();
-    
-    if (!user) {
-      setLoadError("You must be logged in to view invitations");
-      return;
-    }
-    
+  // Combined reset and refresh function
+  async function handleResetAndRefresh() {
     try {
+      if (!user) {
+        return;
+      }
+      
+      setLastRefreshTime(Date.now());
       console.log("MyInvitations: Performing full data refresh");
       await Promise.all([
         refreshNotifications(),
         refreshOrganizations()
       ]);
       console.log("MyInvitations: Full data refresh completed");
+      clearError();
     } catch (error: any) {
       console.error("MyInvitations: Error in handleResetAndRefresh:", error);
-      setLoadError(`Failed to refresh: ${error.message}`);
-      
-      // If we've tried less than 3 times, try again with a delay
-      if (refreshAttempts < 3) {
-        console.log(`MyInvitations: Will retry refresh in ${refreshAttempts * 1000 + 1000}ms`);
-        setTimeout(() => handleResetAndRefresh(), refreshAttempts * 1000 + 1000);
-      }
+      handleError(error.message || 'Failed to refresh data', true);
     }
-  };
+  }
   
   const handleAcceptInvitation = async () => {
     try {
+      setLastRefreshTime(Date.now());
       console.log("MyInvitations: Refreshing data after invitation acceptance");
       // Refresh both notifications and organizations
       await Promise.all([
@@ -124,7 +140,7 @@ export default function MyInvitations() {
       ]);
     } catch (error: any) {
       console.error("MyInvitations: Error handling invitation acceptance:", error);
-      setLoadError(`Failed to refresh after acceptance: ${error.message}`);
+      handleError(`Failed to refresh after acceptance: ${error.message}`, false);
     }
   };
   
@@ -152,23 +168,40 @@ export default function MyInvitations() {
           <Button 
             variant="outline"
             size="sm"
-            onClick={handleResetAndRefresh}
-            disabled={loading}
+            onClick={() => resetDismissedNotifications()}
+            disabled={isLoading}
             className="flex items-center gap-1"
           >
-            <RotateCcw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> 
-            Refresh
+            <RotateCcw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} /> 
+            Reset & Refresh
           </Button>
         </div>
         
-        {loadError && (
+        {errorMessage && (
           <Alert variant="destructive">
             <AlertTitle>Error loading invitations</AlertTitle>
-            <AlertDescription>{loadError}</AlertDescription>
+            <AlertDescription className="flex flex-col gap-2">
+              {errorMessage}
+              {isRetrying && (
+                <div className="text-sm">
+                  Retrying in {retryingIn} seconds...
+                </div>
+              )}
+              {!isRetrying && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleResetAndRefresh} 
+                  className="self-start mt-2"
+                >
+                  Try Again
+                </Button>
+              )}
+            </AlertDescription>
           </Alert>
         )}
         
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center items-center p-8">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
           </div>

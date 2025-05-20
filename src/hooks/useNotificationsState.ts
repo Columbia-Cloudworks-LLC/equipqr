@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { getActiveNotifications, dismissNotification, clearLocalDismissedNotifications } from '@/services/team/notificationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -13,7 +13,26 @@ export function useNotificationsState() {
   const [hasError, setHasError] = useState(false);
   const { user, session } = useAuth();
   
-  // Debounced refresh function to prevent multiple rapid calls
+  // Track total attempts to prevent infinite loops
+  const attemptCountRef = useRef(0);
+  const lastSuccessRef = useRef<Date | null>(null);
+  const refreshTimeoutRef = useRef<number | null>(null);
+  
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
+  
+  // Reset attempt counter when user changes
+  useEffect(() => {
+    attemptCountRef.current = 0;
+  }, [user?.id]);
+  
+  // Throttled refresh function to prevent multiple rapid calls
   const debouncedRefresh = useCallback(async (force: boolean = false) => {
     // Don't refresh if no user is authenticated
     if (!user || !session) {
@@ -28,10 +47,20 @@ export function useNotificationsState() {
       return;
     }
     
+    // Prevent excessive attempts if we're failing repeatedly
+    const maxAttemptsWithoutSuccess = 5;
+    if (attemptCountRef.current >= maxAttemptsWithoutSuccess && 
+        (!lastSuccessRef.current || (now.getTime() - lastSuccessRef.current.getTime() > 30000))) {
+      console.warn("Too many notification refresh attempts without success, backing off");
+      setHasError(true);
+      return;
+    }
+    
     try {
       setLastRefreshAttempt(now);
       setIsLoading(true);
       setHasError(false);
+      attemptCountRef.current++;
       
       const data = await getActiveNotifications().catch(error => {
         console.error("Error in getActiveNotifications:", error);
@@ -46,6 +75,10 @@ export function useNotificationsState() {
       
       setInvitations(notificationArray);
       setHasNewNotifications(notificationArray.length > 0);
+      
+      // Reset attempt counter on success
+      attemptCountRef.current = 0;
+      lastSuccessRef.current = new Date();
     } catch (error) {
       console.error("Error fetching notifications:", error);
       setHasError(true);
@@ -62,6 +95,12 @@ export function useNotificationsState() {
       return;
     }
     
+    // Cancel any pending refresh
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+    
     await debouncedRefresh(true);
   }, [user, debouncedRefresh]);
 
@@ -69,6 +108,7 @@ export function useNotificationsState() {
   const resetDismissedNotifications = useCallback(() => {
     try {
       clearLocalDismissedNotifications();
+      attemptCountRef.current = 0; // Reset counter
       refreshNotifications();
       toast.success("Notification status reset");
     } catch (error) {
@@ -80,14 +120,23 @@ export function useNotificationsState() {
   // Fetch notifications when authentication state changes
   useEffect(() => {
     if (user && session) {
+      // Cancel any pending refresh
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
       // Small delay to make sure auth is fully established
-      const timer = setTimeout(() => {
+      refreshTimeoutRef.current = window.setTimeout(() => {
         debouncedRefresh().catch(error => {
           console.error("Failed to refresh notifications on auth state change:", error);
         });
-      }, 1000);
+      }, 1500);
       
-      return () => clearTimeout(timer);
+      return () => {
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+      };
     } else {
       // Reset state when user logs out
       setInvitations([]);

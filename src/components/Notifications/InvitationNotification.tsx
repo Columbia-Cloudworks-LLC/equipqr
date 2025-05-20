@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ interface InvitationNotificationProps {
 export function InvitationNotification({ invitation, onAccept, onDecline }: InvitationNotificationProps) {
   const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclined, setIsDeclined] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { refreshNotifications } = useNotifications();
   const { refreshOrganizations } = useOrganization();
@@ -41,7 +42,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
     orgName = null; // Don't show org name separately for org invitations
   }
   
-  const handleAccept = async () => {
+  const handleAccept = useCallback(async () => {
     if (!user) {
       toast.error("You must be logged in to accept invitations");
       return;
@@ -49,6 +50,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
     
     try {
       setIsAccepting(true);
+      setError(null);
       
       // Log what we're doing
       console.log(`InvitationNotification: Accepting invitation: ${invitation.token.substring(0, 8)}... (Type: ${isOrgInvitation ? 'organization' : 'team'})`);
@@ -99,20 +101,29 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
         }
       } else {
         console.error("InvitationNotification: Invitation acceptance failed:", result);
+        setError("Failed to accept invitation. Please try again.");
         toast.error("Failed to accept invitation. Please try again.");
       }
     } catch (error: any) {
       console.error("InvitationNotification: Invitation acceptance error:", error);
+      setError(error.message || "An error occurred");
       toast.error(`Failed to accept invitation: ${error.message}`);
     } finally {
       setIsAccepting(false);
     }
-  };
+  }, [invitation.token, isOrgInvitation, user, acceptInvitation, onAccept, refreshNotifications, refreshOrganizations, navigate]);
   
-  const handleViewDetails = () => {
+  const handleViewDetails = useCallback(() => {
     const queryParam = isOrgInvitation ? '?type=organization' : '';
     navigate(`/invitation/${invitation.token}${queryParam}`);
-  };
+  }, [invitation.token, isOrgInvitation, navigate]);
+  
+  const handleDismiss = useCallback(() => {
+    setIsDeclined(true);
+    if (onDecline) {
+      onDecline();
+    }
+  }, [onDecline]);
   
   if (isDeclined) {
     return null;
@@ -130,10 +141,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
               variant="ghost" 
               size="icon" 
               className="h-6 w-6" 
-              onClick={() => {
-                setIsDeclined(true);
-                onDecline?.();
-              }}
+              onClick={handleDismiss}
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Dismiss</span>
@@ -149,6 +157,12 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
             <Badge variant="outline" className="text-xs">
               {orgName} Organization
             </Badge>
+          </div>
+        )}
+        
+        {error && (
+          <div className="mt-1 text-sm text-destructive">
+            {error}
           </div>
         )}
         

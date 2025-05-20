@@ -5,10 +5,25 @@ import { validateOrganizationInvitation } from './invitationValidation';
 import { InvitationResult } from './types';
 import { invokeEdgeFunctionWithRetry } from '@/utils/edgeFunctionUtils';
 
+// Track invitations being processed to prevent duplicates
+const processingTokens: Set<string> = new Set();
+
 /**
- * Accept an organization invitation
+ * Accept an organization invitation with duplicate prevention
  */
 export async function acceptOrganizationInvitation(token: string): Promise<InvitationResult> {
+  // Check if this invitation is already being processed
+  if (processingTokens.has(token)) {
+    console.log(`Organization invitation ${token.substring(0, 8)}... is already being processed, skipping`);
+    return { 
+      success: false, 
+      error: 'This invitation is currently being processed. Please wait.' 
+    };
+  }
+  
+  // Mark as processing
+  processingTokens.add(token);
+  
   try {
     console.log(`Accepting organization invitation with token: ${token.substring(0, 8)}...`);
     
@@ -21,7 +36,16 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
     }
     
     // Get current user session
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      return { 
+        success: false, 
+        error: 'Authentication error. Please try logging out and in again.' 
+      };
+    }
+    
     if (!sessionData?.session?.user) {
       console.error('No authenticated session found');
       return { success: false, error: 'You must be logged in to accept an invitation' };
@@ -45,8 +69,8 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
     
     // Call the edge function to accept the invitation using our retry utility
     const data = await invokeEdgeFunctionWithRetry('accept_organization_invitation', { token }, {
-      maxRetries: 3,
-      timeoutMs: 10000,
+      maxRetries: 2,
+      timeoutMs: 12000,
       onRetry: (attempt, error) => {
         console.warn(`Retry attempt ${attempt} for accept_organization_invitation:`, error);
       }
@@ -71,5 +95,10 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
   } catch (error: any) {
     console.error('Error in acceptOrganizationInvitation:', error);
     return { success: false, error: error.message || 'Failed to accept invitation' };
+  } finally {
+    // Remove from processing set after a delay to prevent immediate retries
+    setTimeout(() => {
+      processingTokens.delete(token);
+    }, 5000);
   }
 }

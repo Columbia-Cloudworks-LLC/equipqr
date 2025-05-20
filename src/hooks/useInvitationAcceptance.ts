@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -6,6 +5,10 @@ import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { invokeEdgeFunctionWithRetry } from '@/utils/edgeFunctionUtils';
 import { useAuth } from '@/contexts/AuthContext';
+import { acceptOrganizationInvitation } from '@/services/organization/invitation/invitationAcceptance';
+
+// Track invitations being processed to prevent duplicate attempts
+const processingInvitations: Record<string, boolean> = {};
 
 export function useInvitationAcceptance() {
   const [isAccepting, setIsAccepting] = useState(false);
@@ -23,15 +26,44 @@ export function useInvitationAcceptance() {
     validateSession();
   }, [checkSession]);
 
-  const acceptInvitation = async (token: string, type?: string): Promise<any> => {
-    setIsAccepting(true);
-    setAcceptError(null);
-    let result = null;
+  // Wait for session to be valid before accepting invitations
+  const ensureValidSession = async (): Promise<boolean> => {
+    // Check if we already have a valid session
+    if (session?.user) {
+      return true;
+    }
+    
+    // Otherwise, explicitly check session status
+    console.log("Ensuring valid session before proceeding with invitation acceptance");
+    const isValid = await checkSession();
+    
+    if (!isValid) {
+      console.error("No valid session available for invitation acceptance");
+      throw new Error('Authentication required. Please login and try again.');
+    }
+    
+    // Double check we have a session now
+    const { data: sessionData } = await supabase.auth.getSession();
+    return !!sessionData?.session;
+  };
 
+  const acceptInvitation = async (token: string, type?: string): Promise<any> => {
+    // Prevent duplicate processing of the same invitation
+    if (processingInvitations[token]) {
+      console.log(`Invitation ${token.substring(0, 8)}... is already being processed, skipping`);
+      return null;
+    }
+    
     try {
+      // Mark as processing
+      processingInvitations[token] = true;
+      setIsAccepting(true);
+      setAcceptError(null);
+      let result = null;
+
       // Verify we have a valid session before proceeding
-      const isValidSession = await checkSession();
-      if (!isValidSession) {
+      const hasSession = await ensureValidSession();
+      if (!hasSession) {
         throw new Error('No authenticated session found. Please login and try again.');
       }
 
@@ -47,34 +79,14 @@ export function useInvitationAcceptance() {
       const invitationType = type === 'organization' ? 'organization' : 'team';
       
       if (invitationType === 'organization') {
-        // Check session again right before the edge function call
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData?.session) {
-          console.error('No authenticated session found before edge function call');
-          throw new Error('Authentication required. Please login and try again.');
+        // For organization invitations, use our dedicated service function
+        const acceptResult = await acceptOrganizationInvitation(token);
+        
+        if (!acceptResult.success) {
+          throw new Error(acceptResult.error || 'Failed to accept organization invitation');
         }
         
-        console.log('Calling accept_organization_invitation edge function with valid session');
-        
-        // Use the edge function utility with retry logic and longer timeout
-        const acceptData = await invokeEdgeFunctionWithRetry('accept_organization_invitation', {
-          token
-        }, { 
-          maxRetries: 3, 
-          timeoutMs: 12000,
-          // Explicitly log each attempt for debugging
-          onRetry: (attempt, error) => {
-            console.warn(`Retry attempt ${attempt} for accept_organization_invitation:`, error);
-          }
-        });
-        
-        console.log('Edge function response:', acceptData);
-        
-        if (!acceptData || !acceptData.success) {
-          throw new Error(acceptData?.error || 'Failed to accept organization invitation');
-        }
-        
-        result = acceptData;
+        result = acceptResult;
         
         // Force refresh organizations in context with delay to ensure DB changes are available
         console.log('Refreshing organizations after accepting org invitation');
@@ -97,7 +109,7 @@ export function useInvitationAcceptance() {
         const acceptData = await invokeEdgeFunctionWithRetry('accept_team_invitation', {
           token
         }, { 
-          maxRetries: 3, 
+          maxRetries: 2, 
           timeoutMs: 10000,
           onRetry: (attempt, error) => {
             console.warn(`Retry attempt ${attempt} for accept_team_invitation:`, error);
@@ -136,6 +148,11 @@ export function useInvitationAcceptance() {
       return null;
     } finally {
       setIsAccepting(false);
+      
+      // Clear processing state after a delay to prevent immediate retries
+      setTimeout(() => {
+        delete processingInvitations[token];
+      }, 5000);
     }
   };
 

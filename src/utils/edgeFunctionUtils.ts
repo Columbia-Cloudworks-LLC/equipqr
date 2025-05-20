@@ -21,15 +21,19 @@ interface EdgeFunctionOptions {
 export async function invokeEdgeFunction<T = any>(
   functionName: string, 
   payload: Record<string, any>,
-  timeoutMs: number = 5000
+  timeoutMs: number = 8000 // Increased from 5000ms
 ): Promise<T> {
-  // Get current session - this ensures auth headers are sent
+  // Check session before making the request
   const { data: sessionData } = await supabase.auth.getSession();
   const isAuthenticated = !!sessionData?.session;
   
   // Log authentication status for debugging
   if (!isAuthenticated) {
     console.warn(`WARNING: Calling edge function ${functionName} without authentication`);
+    // Don't proceed if authentication is required but missing
+    if (functionName !== 'health_check') { // Allow specific functions to run without auth
+      throw new Error('Authentication required to call this edge function');
+    }
   } else {
     console.log(`Calling edge function ${functionName} with authenticated user: ${sessionData.session?.user?.email}`);
   }
@@ -61,7 +65,16 @@ export async function invokeEdgeFunction<T = any>(
 }
 
 /**
- * Invoke a Supabase Edge Function with retry logic
+ * Circuit breaker state - tracks failed calls to prevent continuous failures
+ */
+const circuitBreakerState: Record<string, {
+  failures: number;
+  lastFailure: number;
+  backoffUntil: number;
+}> = {};
+
+/**
+ * Invoke a Supabase Edge Function with retry logic and circuit breaker pattern
  * @param functionName Name of the edge function to invoke
  * @param payload JSON payload to send to the function
  * @param config Retry configuration
@@ -72,22 +85,44 @@ export async function invokeEdgeFunctionWithRetry<T = any>(
   payload: Record<string, any>,
   config: EdgeFunctionOptions = {}
 ): Promise<T> {
-  const { maxRetries = 3, initialDelayMs = 500, timeoutMs = 5000, onRetry } = config;
+  const { 
+    maxRetries = 2, 
+    initialDelayMs = 1000, 
+    timeoutMs = 8000, 
+    onRetry 
+  } = config;
+  
+  // Check circuit breaker - if too many failures, don't even try
+  const now = Date.now();
+  const breakerState = circuitBreakerState[functionName] || { failures: 0, lastFailure: 0, backoffUntil: 0 };
+  
+  // If circuit is open (too many recent failures), wait before retrying
+  if (breakerState.failures >= 5 && now < breakerState.backoffUntil) {
+    console.warn(`Circuit breaker open for ${functionName} - skipping call until ${new Date(breakerState.backoffUntil).toISOString()}`);
+    throw new Error(`Function ${functionName} temporarily unavailable due to repeated failures. Try again later.`);
+  }
   
   let lastError: any = null;
   
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       // Exponential backoff delay after the first attempt
       if (attempt > 0) {
         const delayMs = initialDelayMs * Math.pow(2, attempt - 1);
-        console.log(`Retry attempt ${attempt + 1}/${maxRetries} for ${functionName} after ${delayMs}ms`);
+        console.log(`Retry attempt ${attempt}/${maxRetries} for ${functionName} after ${delayMs}ms`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
       
-      return await invokeEdgeFunction<T>(functionName, payload, timeoutMs);
+      const result = await invokeEdgeFunction<T>(functionName, payload, timeoutMs);
+      
+      // Success - reset circuit breaker for this function
+      if (breakerState.failures > 0) {
+        circuitBreakerState[functionName] = { failures: 0, lastFailure: 0, backoffUntil: 0 };
+      }
+      
+      return result;
     } catch (error) {
-      console.warn(`Attempt ${attempt + 1}/${maxRetries} failed for ${functionName}:`, error);
+      console.warn(`Attempt ${attempt + 1}/${maxRetries + 1} failed for ${functionName}:`, error);
       lastError = error;
       
       // Call the onRetry callback if provided
@@ -95,19 +130,26 @@ export async function invokeEdgeFunctionWithRetry<T = any>(
         onRetry(attempt + 1, error);
       }
       
+      // Update circuit breaker state
+      circuitBreakerState[functionName] = {
+        failures: breakerState.failures + 1,
+        lastFailure: now,
+        backoffUntil: now + Math.min(breakerState.failures * 5000, 60000) // Increasing backoff up to 1 minute
+      };
+      
       // If this is a connection error or timeout, continue retrying
       // Otherwise, throw immediately
       const errorMessage = error instanceof Error ? error.message : String(error);
-      if (!(
-        errorMessage.includes('timeout') ||
-        errorMessage.includes('network') ||
-        errorMessage.includes('connection')
-      ) && attempt > 0) {
+      const isRetryableError = errorMessage.includes('timeout') || 
+                              errorMessage.includes('network') ||
+                              errorMessage.includes('connection');
+      
+      if (!isRetryableError && attempt > 0) {
         throw error;
       }
     }
   }
   
   // If we got here, all attempts failed
-  throw lastError || new Error(`All ${maxRetries} attempts failed for ${functionName}`);
+  throw lastError || new Error(`All ${maxRetries + 1} attempts failed for ${functionName}`);
 }
