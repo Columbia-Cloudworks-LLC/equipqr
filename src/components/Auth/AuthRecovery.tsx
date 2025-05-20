@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, RefreshCw } from 'lucide-react';
-import { performFullAuthReset } from '@/utils/authInterceptors';
+import { performFullAuthReset } from '@/utils/auth';
 import { useNavigate } from 'react-router-dom';
-import { repairSessionStorage } from '@/utils/storageAdapter';
+import { repairSessionStorage } from '@/utils/storage';
 
 interface AuthRecoveryProps {
   message?: string;

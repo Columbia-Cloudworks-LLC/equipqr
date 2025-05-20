@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { resetAuthState } from '@/utils/authInterceptors';
+import { resetAuthState } from '@/utils/auth';
 import { clearEquipmentCache } from '@/services/equipment/equipmentListService';
 import { clearTeamCache } from '@/services/team/retrieval/teamCache';
 import { useQueryClient } from '@tanstack/react-query';

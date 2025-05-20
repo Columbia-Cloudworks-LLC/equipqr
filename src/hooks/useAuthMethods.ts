@@ -1,8 +1,7 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getSiteUrl, getAuthCallbackUrl } from '@/utils/authCallbackUtils';
-import { resetAuthState, performFullAuthReset } from '@/utils/authInterceptors';
+import { resetAuthState, performFullAuthReset } from '@/utils/auth';
 
 /**
  * Custom hook providing authentication methods
