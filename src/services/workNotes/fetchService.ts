@@ -55,16 +55,35 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       
     const userOrgId = userProfile?.org_id;
     
-    // Process notes with additional metadata
-    const processedNotes = data.map(note => {
+    // Process notes with additional metadata and type safety
+    const processedNotes: WorkNote[] = data.map(note => {
       const equipmentOrgId = note.equipment?.org_id;
       const teamId = note.equipment?.team_id;
-      const teamOrgId = note.equipment?.team?.org_id;
       const teamName = note.equipment?.team?.name;
+      const teamOrgId = note.equipment?.team?.org_id;
       
       // Determine if this note is from an external organization
       const isExternalOrg = equipmentOrgId && userOrgId && equipmentOrgId !== userOrgId;
       
+      // Safely handle creator data with proper null checks
+      const creatorDisplayName = typeof note.creator === 'object' && note.creator !== null 
+        ? note.creator.display_name 
+        : "Unknown User";
+        
+      const creatorEmail = typeof note.creator === 'object' && note.creator !== null 
+        ? note.creator.email 
+        : "unknown@example.com";
+        
+      // Build the creator object with proper structure
+      const creator = typeof note.creator === 'object' && note.creator !== null ? {
+        id: note.creator.id || note.created_by,
+        display_name: creatorDisplayName,
+        email: creatorEmail
+      } : {
+        id: note.created_by,
+        display_name: "Unknown User"
+      };
+
       return {
         ...note,
         is_external_org: isExternalOrg,
@@ -72,9 +91,9 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
         organization_name: isExternalOrg ? "External Organization" : "Your Organization",
         team_id: teamId,
         team_name: teamName,
-        // Replace potentially missing values with defaults
-        created_by_name: note.creator?.display_name || "Unknown User",
-        created_by_email: note.creator?.email || "unknown@example.com"
+        created_by_name: creatorDisplayName,
+        created_by_email: creatorEmail,
+        creator
       } as WorkNote;
     });
     

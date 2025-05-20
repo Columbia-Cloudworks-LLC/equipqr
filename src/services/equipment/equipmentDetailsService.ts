@@ -51,7 +51,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     console.log('Getting equipment by ID. Auth user ID:', authUserId);
     
     // Use more reliable edge function with retry
-    const accessResponse = await invokeEdgeFunctionWithRetry<PermissionResponse>(
+    const result = await invokeEdgeFunctionWithRetry(
       'check_equipment_permission', 
       {
         user_id: authUserId,
@@ -63,7 +63,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       console.warn('Edge function failed, falling back to direct database check:', error);
       
       // Fall back to direct database query for permissions
-      const { data, error: permError } = await supabase.rpc(
+      const { data: permData, error: permError } = await supabase.rpc(
         'rpc_check_equipment_permission',
         { 
           user_id: authUserId, 
@@ -77,8 +77,13 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
         throw new Error('Failed to verify access permissions');
       }
       
-      return data as PermissionResponse;
+      return permData;
     });
+    
+    // Properly type check and cast the result
+    const accessResponse: PermissionResponse = typeof result === 'object' ? 
+      (result as PermissionResponse) : 
+      { has_permission: false, reason: 'Invalid response format' };
     
     if (!accessResponse || !accessResponse.has_permission) {
       console.error('User does not have access to this equipment. Reason:', accessResponse?.reason);
@@ -113,7 +118,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const isExternalOrg = equipment.team?.org_id && userOrgId && equipment.team.org_id !== userOrgId;
     
     // Check edit permissions - use the same retry function
-    const editResponse = await invokeEdgeFunctionWithRetry<PermissionResponse>(
+    const editResult = await invokeEdgeFunctionWithRetry(
       'check_equipment_permission', 
       {
         user_id: authUserId,
@@ -125,7 +130,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       console.warn('Edit permission check via edge function failed, falling back:', error);
       
       // Fall back to direct database query for edit permissions
-      const { data, error: permError } = await supabase.rpc(
+      const { data: editData, error: permError } = await supabase.rpc(
         'rpc_check_equipment_permission',
         { 
           user_id: authUserId, 
@@ -139,8 +144,13 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
         return { has_permission: false };
       }
       
-      return data as PermissionResponse;
+      return editData;
     });
+    
+    // Properly type check and cast the edit result
+    const editResponse: PermissionResponse = typeof editResult === 'object' ? 
+      (editResult as PermissionResponse) : 
+      { has_permission: false, reason: 'Invalid response format' };
     
     const canEdit = editResponse?.has_permission || false;
     console.log('Edit permission check result:', editResponse);

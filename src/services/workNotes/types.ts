@@ -13,9 +13,13 @@ export interface WorkNote {
   organization_name?: string;
   is_external_org?: boolean;
   team_name?: string;
+  team_id?: string;
+  created_by_name?: string;
+  created_by_email?: string;
   creator?: {
     id: string;
     display_name: string;
+    email?: string;
     org?: {
       id: string;
       name: string;
