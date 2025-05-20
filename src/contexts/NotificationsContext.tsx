@@ -14,7 +14,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     notificationsState.invitations, 
     notificationsState.isLoading,
     notificationsState.hasNewNotifications,
-    notificationsState.hasError
+    notificationsState.hasError,
+    notificationsState.isRefreshPending
   ]);
 
   return (

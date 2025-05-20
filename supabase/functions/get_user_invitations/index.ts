@@ -9,18 +9,41 @@ const corsHeaders = {
 };
 
 // Create a response with CORS headers
-function createResponse(body: any, status = 200) {
+function createResponse(body: any, status = 200, headers: Record<string, string> = {}) {
   return new Response(
     JSON.stringify(body),
     { 
       status, 
       headers: { 
         ...corsHeaders, 
-        'Content-Type': 'application/json' 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'max-age=60, stale-while-revalidate=300',
+        ...headers
       } 
     }
   );
 }
+
+// Simple in-memory cache for the edge function
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+  etag: string;
+}
+
+const responseCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 60000; // 60 second cache TTL
+const CACHE_CLEANUP_INTERVAL = 300000; // Clean up every 5 minutes
+
+// Clean up old cache entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of responseCache.entries()) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      responseCache.delete(key);
+    }
+  }
+}, CACHE_CLEANUP_INTERVAL);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -33,6 +56,39 @@ serve(async (req) => {
     
     if (!email) {
       return createResponse({ error: 'Email is required' }, 400);
+    }
+    
+    // Generate cache key from email
+    const cacheKey = email.toLowerCase().trim();
+    
+    // Check for If-None-Match header for conditional requests
+    const ifNoneMatch = req.headers.get('If-None-Match');
+    
+    // Check cache for a hit
+    if (responseCache.has(cacheKey)) {
+      const cachedEntry = responseCache.get(cacheKey)!;
+      
+      // If the client sent an ETag that matches our cached version and it's still fresh,
+      // return a 304 Not Modified response
+      if (ifNoneMatch === cachedEntry.etag && 
+          (Date.now() - cachedEntry.timestamp) < CACHE_TTL) {
+        return new Response(null, { 
+          status: 304,
+          headers: {
+            ...corsHeaders,
+            'ETag': cachedEntry.etag,
+            'Cache-Control': 'max-age=60, stale-while-revalidate=300'
+          }
+        });
+      }
+      
+      // If cache is still fresh but no ETag match, return the cached data
+      if ((Date.now() - cachedEntry.timestamp) < CACHE_TTL) {
+        return createResponse(cachedEntry.data, 200, {
+          'ETag': cachedEntry.etag,
+          'X-Cache': 'HIT'
+        });
+      }
     }
     
     // Create Supabase admin client with service role to bypass RLS
@@ -115,8 +171,26 @@ serve(async (req) => {
     // Combine both types of invitations
     const allInvitations = [...processedTeamInvitations, ...processedOrgInvitations];
     
+    // Create response data
+    const responseData = { invitations: allInvitations };
+    
+    // Generate ETag from the response data
+    const etag = `W/"${Date.now().toString(36)}"`;
+    
+    // Cache the response
+    responseCache.set(cacheKey, {
+      data: responseData,
+      timestamp: Date.now(),
+      etag
+    });
+    
     console.log(`Found ${processedTeamInvitations.length} team invitations and ${processedOrgInvitations.length} organization invitations for ${normalizedEmail}`);
-    return createResponse({ invitations: allInvitations });
+    
+    // Return the response with cache headers
+    return createResponse(responseData, 200, {
+      'ETag': etag,
+      'X-Cache': 'MISS'
+    });
     
   } catch (error) {
     console.error('Unexpected error in get_user_invitations:', error);

@@ -1,25 +1,27 @@
 
-import { useContext, useMemo } from 'react';
-import { NotificationsContextType } from '@/types/notifications';
+import { useContext } from 'react';
 import { NotificationsContext } from '@/contexts/NotificationsContext';
 
 /**
- * A safe version of useNotifications that returns default values when used outside 
- * of NotificationsProvider context, rather than throwing an error.
+ * Safe hook to access notifications context with proper error handling
  */
-export function useNotificationsSafe(): NotificationsContextType {
+export function useNotificationsSafe() {
   const context = useContext(NotificationsContext);
   
-  // Only create default values when context is undefined
-  const defaultValues = useMemo<NotificationsContextType>(() => ({
-    invitations: [],
-    isLoading: false,
-    hasNewNotifications: false,
-    hasError: false,
-    refreshNotifications: async () => false,
-    dismissInvitation: () => { /* no-op */ },
-    resetDismissedNotifications: () => { /* no-op */ }
-  }), []);
+  if (context === undefined) {
+    // Provide a fallback implementation that doesn't crash
+    console.error('useNotifications must be used within a NotificationsProvider');
+    return {
+      invitations: [],
+      isLoading: false,
+      hasNewNotifications: false,
+      hasError: true,
+      refreshNotifications: async () => false,
+      dismissInvitation: () => {},
+      resetDismissedNotifications: () => {},
+      isRefreshPending: false
+    };
+  }
   
-  return context === undefined ? defaultValues : context;
+  return context;
 }

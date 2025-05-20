@@ -23,23 +23,33 @@ export function NotificationDropdown() {
     hasNewNotifications, 
     refreshNotifications, 
     dismissInvitation,
-    resetDismissedNotifications
+    resetDismissedNotifications,
+    isRefreshPending
   } = useNotificationsSafe();
   const { user } = useAuth();
-  const [localLoading, setLocalLoading] = useState(false);
-
-  // Fetch invitations when dropdown is opened
+  
+  // Track last open time to implement a cooldown between refreshes
+  const [lastOpenTime, setLastOpenTime] = useState<number>(0);
+  const OPEN_REFRESH_COOLDOWN = 30000; // 30 seconds
+  
+  // Fetch invitations when dropdown is opened, with cooldown
   const handleOpenChange = async (open: boolean) => {
     setIsOpen(open);
     
     if (open && user) {
       setRefreshAttempted(true);
-      setLocalLoading(true);
+      const now = Date.now();
       
-      try {
-        await refreshNotifications();
-      } finally {
-        setLocalLoading(false);
+      // Only refresh if it's been more than the cooldown period since last open
+      if (now - lastOpenTime > OPEN_REFRESH_COOLDOWN) {
+        setLastOpenTime(now); 
+        try {
+          await refreshNotifications();
+        } catch (error) {
+          console.error("Error refreshing notifications on open:", error);
+        }
+      } else {
+        console.log("Skipping refresh on open - cooldown active");
       }
     }
   };
@@ -60,12 +70,12 @@ export function NotificationDropdown() {
   };
   
   const handleManualRefresh = async () => {
-    setLocalLoading(true);
+    setLastOpenTime(Date.now());
     try {
       await refreshNotifications();
       setRefreshAttempted(true);
-    } finally {
-      setLocalLoading(false);
+    } catch (error) {
+      console.error("Error manually refreshing notifications:", error);
     }
   };
 
@@ -97,15 +107,15 @@ export function NotificationDropdown() {
             variant="ghost" 
             size="icon" 
             onClick={handleManualRefresh} 
-            disabled={localLoading}
+            disabled={isLoading || isRefreshPending}
             className="h-6 w-6"
           >
-            <RotateCcw className={`h-3.5 w-3.5 ${localLoading ? 'animate-spin' : ''}`} />
+            <RotateCcw className={`h-3.5 w-3.5 ${(isLoading || isRefreshPending) ? 'animate-spin' : ''}`} />
             <span className="sr-only">Refresh</span>
           </Button>
         </div>
         <div className="max-h-96 overflow-y-auto">
-          {(isLoading || localLoading) ? (
+          {(isLoading || isRefreshPending) ? (
             <div className="p-4 flex justify-center">
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
             </div>

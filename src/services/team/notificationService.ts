@@ -2,10 +2,18 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Invitation } from '@/types/notifications';
 import { loadDismissedNotifications, saveDismissedNotifications, clearAllDismissedNotifications } from './notificationStorage';
+import { invokeEdgeFunctionWithCache } from '@/utils/edgeFunctionUtils';
+
+// Cache durations (in seconds)
+const CACHE_DURATIONS = {
+  ACTIVE_NOTIFICATIONS: 300, // 5 minutes 
+  PENDING_INVITATIONS: 600   // 10 minutes
+};
 
 /**
  * Fetch all active notifications for the current user
- * This includes team and organization invitations that have not been dimissed
+ * This includes team and organization invitations that have not been dismissed
+ * Uses caching to reduce edge function calls
  */
 export async function getActiveNotifications(): Promise<Invitation[]> {
   try {
@@ -23,19 +31,22 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
     
     console.log(`Fetching notifications for ${userEmail}`);
     
-    // Try to use the edge function first for comprehensive results
+    // Use the edge function with caching
     try {
-      const { data, error } = await supabase.functions.invoke('get_user_invitations', {
-        body: { email: userEmail }
-      });
-      
-      if (error) {
-        console.error('Edge function error:', error);
-        throw error;
-      }
+      const data = await invokeEdgeFunctionWithCache<any>(
+        'get_user_invitations', 
+        { email: userEmail },
+        {
+          useCache: true,
+          cacheDuration: CACHE_DURATIONS.ACTIVE_NOTIFICATIONS,
+          cachePrefix: 'notifications_',
+          useStaleWhileRevalidate: true,
+          cacheKeyFn: payload => `user_invitations_${payload.email}`
+        }
+      );
       
       // Ensure data is an array
-      const invitations = Array.isArray(data) ? data : [];
+      const invitations = data?.invitations || [];
       
       // Filter out dismissed notifications
       const dismissed = await loadDismissedNotifications();

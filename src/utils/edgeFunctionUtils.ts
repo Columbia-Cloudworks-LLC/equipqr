@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -9,6 +8,22 @@ interface EdgeFunctionOptions {
   initialDelayMs?: number;
   timeoutMs?: number;
   onRetry?: (attempt: number, error: any) => void;
+}
+
+/**
+ * Cache configuration for edge functions
+ */
+interface EdgeFunctionCacheOptions {
+  /** Enable caching for this call */
+  useCache?: boolean;
+  /** Cache duration in seconds (default: 60) */
+  cacheDuration?: number;
+  /** Cache key prefix (default: function name) */
+  cachePrefix?: string;
+  /** Function to determine cache key from payload */
+  cacheKeyFn?: (payload: Record<string, any>) => string;
+  /** Skip the actual call if cached data exists */
+  useStaleWhileRevalidate?: boolean;
 }
 
 /**
@@ -63,15 +78,6 @@ export async function invokeEdgeFunction<T = any>(
     throw error;
   }
 }
-
-/**
- * Circuit breaker state - tracks failed calls to prevent continuous failures
- */
-const circuitBreakerState: Record<string, {
-  failures: number;
-  lastFailure: number;
-  backoffUntil: number;
-}> = {};
 
 /**
  * Invoke a Supabase Edge Function with retry logic and circuit breaker pattern
@@ -153,3 +159,88 @@ export async function invokeEdgeFunctionWithRetry<T = any>(
   // If we got here, all attempts failed
   throw lastError || new Error(`All ${maxRetries + 1} attempts failed for ${functionName}`);
 }
+
+/**
+ * Invoke a Supabase Edge Function with caching support
+ * @param functionName Name of the edge function to invoke
+ * @param payload JSON payload to send to the function
+ * @param cacheOptions Cache configuration options
+ * @returns Function response data
+ */
+export async function invokeEdgeFunctionWithCache<T = any>(
+  functionName: string, 
+  payload: Record<string, any>,
+  cacheOptions: EdgeFunctionCacheOptions = {}
+): Promise<T> {
+  // Import cache utilities dynamically to avoid circular dependencies
+  const { cacheGet, cacheStore, getCacheKey } = await import('./storage/clientCache');
+  
+  // Setup cache options with defaults
+  const options = {
+    useCache: true,
+    cacheDuration: 60, // 1 minute default
+    cachePrefix: `edge_${functionName}_`,
+    useStaleWhileRevalidate: false,
+    ...cacheOptions
+  };
+  
+  // Generate cache key from function name and payload
+  const cacheKeyFn = options.cacheKeyFn || 
+    (p => getCacheKey(options.cachePrefix, p));
+  const cacheKey = cacheKeyFn(payload);
+  
+  // Try to get from cache first
+  if (options.useCache) {
+    const cachedData = cacheGet<T>(cacheKey, {
+      duration: options.cacheDuration,
+      prefix: options.cachePrefix
+    });
+    
+    if (cachedData) {
+      console.log(`[CACHE HIT] ${functionName}`, { cacheKey });
+      
+      // If using stale-while-revalidate, return cached data immediately
+      if (options.useStaleWhileRevalidate) {
+        // Trigger a refresh in the background
+        setTimeout(() => {
+          invokeEdgeFunction<T>(functionName, payload)
+            .then(freshData => {
+              cacheStore<T>(cacheKey, freshData, {
+                duration: options.cacheDuration,
+                prefix: options.cachePrefix
+              });
+              console.log(`[CACHE REFRESH] ${functionName}`, { cacheKey });
+            })
+            .catch(err => console.warn(`[CACHE REFRESH FAILED] ${functionName}`, err));
+        }, 100);
+        
+        return cachedData;
+      }
+      
+      return cachedData;
+    }
+  }
+  
+  // No cache hit, call the function
+  console.log(`[CACHE MISS] ${functionName}`, { cacheKey });
+  const result = await invokeEdgeFunction<T>(functionName, payload);
+  
+  // Store in cache for next time
+  if (options.useCache) {
+    cacheStore<T>(cacheKey, result, {
+      duration: options.cacheDuration,
+      prefix: options.cachePrefix
+    });
+  }
+  
+  return result;
+}
+
+/**
+ * Circuit breaker state - tracks failed calls to prevent continuous failures
+ */
+const circuitBreakerState: Record<string, {
+  failures: number;
+  lastFailure: number;
+  backoffUntil: number;
+}> = {};

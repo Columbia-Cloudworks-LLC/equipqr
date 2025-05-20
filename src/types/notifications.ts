@@ -24,6 +24,7 @@ export interface NotificationsContextType {
   isLoading: boolean;
   hasNewNotifications: boolean;
   hasError: boolean;
+  isRefreshPending?: boolean; // New property
   refreshNotifications: () => Promise<boolean | void>;
   dismissInvitation: (id: string) => void;
   resetDismissedNotifications: () => void;
