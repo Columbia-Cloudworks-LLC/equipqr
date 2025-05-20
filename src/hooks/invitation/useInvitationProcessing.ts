@@ -42,6 +42,8 @@ export function useInvitationProcessing() {
       // Normalize invitation type to ensure consistent handling
       const invitationType = type === 'organization' ? 'organization' : 'team';
       
+      console.log(`Processing ${invitationType} invitation with token: ${token.substring(0, 8)}...`);
+      
       // Process the invitation based on type
       if (invitationType === 'organization') {
         return await orgInvitation.acceptInvitation(token);

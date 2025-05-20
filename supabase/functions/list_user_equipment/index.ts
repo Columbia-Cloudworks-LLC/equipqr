@@ -75,30 +75,33 @@ serve(async (req) => {
         supabaseServiceKey
       );
       
-      // OPTIMIZATION: Get user and organization info in a single query
-      const { data: userData, error: userDataError } = await adminClient
+      // FIX: Get user organization ID directly without using the problematic join
+      const { data: userProfile, error: userProfileError } = await adminClient
         .from('user_profiles')
-        .select(`
-          org_id,
-          app_user:id (
-            id
-          )
-        `)
+        .select('org_id')
         .eq('id', user_id)
         .single();
         
-      if (userDataError || !userData) {
-        console.error('Error fetching user data:', userDataError);
-        return createErrorResponse(`Failed to fetch user data: ${userDataError?.message || 'User not found'}`);
+      if (userProfileError || !userProfile) {
+        console.error('Error fetching user profile:', userProfileError);
+        return createErrorResponse(`Failed to fetch user profile: ${userProfileError?.message || 'User profile not found'}`);
       }
       
-      const userOrgId = userData.org_id;
-      const appUserId = userData.app_user?.id;
+      const userOrgId = userProfile.org_id;
       
       if (!userOrgId) {
         console.log('No organization found for user:', user_id);
         return createSuccessResponse([]);
       }
+      
+      // FIX: Get app_user record directly using auth_uid
+      const { data: appUserData, error: appUserError } = await adminClient
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', user_id)
+        .single();
+        
+      const appUserId = appUserData?.id;
       
       if (!appUserId) {
         console.log('No app_user record found for user:', user_id);

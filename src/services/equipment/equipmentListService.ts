@@ -52,10 +52,16 @@ export async function getEquipment(): Promise<Equipment[]> {
     try {
       const data = await invokeEdgeFunction('list_user_equipment', { user_id: userId }, 8000);
       
+      // FIX: Add better validation to prevent app errors
+      if (!data) {
+        console.error('Invalid response from list_user_equipment function: null or undefined');
+        throw new Error('Empty response from equipment service');
+      }
+      
       // Validate that we received an array
       if (!Array.isArray(data)) {
         console.error('Invalid response from list_user_equipment function:', data);
-        throw new Error('Invalid response format');
+        throw new Error('Invalid response format from equipment service');
       }
       
       console.log(`Successfully fetched ${data.length} equipment items via edge function`);
@@ -63,7 +69,7 @@ export async function getEquipment(): Promise<Equipment[]> {
       // Process the data to ensure all properties are set correctly
       const processedData = processEquipmentList(data);
       
-      // Cache the results - FIX: Passing userId as the second argument
+      // Cache the results (with the user ID as a parameter)
       cacheResults(processedData, userId);
       
       return processedData;
@@ -76,7 +82,7 @@ export async function getEquipment(): Promise<Equipment[]> {
   } catch (error) {
     console.error('Error in getEquipment:', error);
     
-    // Show more context about the error
+    // Show more context about the error without disrupting UI
     if (error instanceof Error) {
       console.error('Error details:', error.message);
       console.error('Error stack:', error.stack);
@@ -90,9 +96,15 @@ export async function getEquipment(): Promise<Equipment[]> {
       if (userId) {
         return await getEquipmentDirectQuery(userId);
       }
-      return [];
+      
+      // FIX: Return empty array instead of throwing to prevent breaking other features
+      console.warn('Returning empty equipment list due to errors');
+      return []; 
     } catch (fallbackError) {
-      console.error('Fallback also failed:', fallbackError);
+      console.error('Equipment fallback also failed:', fallbackError);
+      
+      // FIX: Return empty array instead of throwing to prevent breaking other features
+      console.warn('Returning empty equipment list due to errors in fallback');
       return []; 
     }
   }
@@ -102,17 +114,23 @@ export async function getEquipment(): Promise<Equipment[]> {
  * Force refresh equipment data by busting the cache
  */
 export async function refreshEquipment(): Promise<Equipment[]> {
-  // Set cache bust flag
-  window.localStorage.setItem('equipment_cache_bust', 'true');
-  
-  // Clear existing user-specific cache
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (sessionData?.session?.user?.id) {
-    window.localStorage.removeItem(getCacheKey(sessionData.session.user.id));
+  try {
+    // Set cache bust flag
+    window.localStorage.setItem('equipment_cache_bust', 'true');
+    
+    // Clear existing user-specific cache
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session?.user?.id) {
+      window.localStorage.removeItem(getCacheKey(sessionData.session.user.id));
+    }
+    
+    // Fetch fresh data
+    return getEquipment();
+  } catch (error) {
+    // FIX: Handle refresh errors gracefully
+    console.error('Error refreshing equipment:', error);
+    return [];
   }
-  
-  // Fetch fresh data
-  return getEquipment();
 }
 
 /**
@@ -181,7 +199,7 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
       }
       
       const processedData = processEquipmentList(orgEquipment || []);
-      // FIX: Passing userId as the second argument
+      // Cache the results (with the user ID as a parameter)
       cacheResults(processedData, userId);
       return processedData;
     }
@@ -232,7 +250,7 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
     
     console.log(`Successfully fetched ${equipment?.length || 0} equipment items via direct query`);
     const processedData = processEquipmentList(equipment || []);
-    // FIX: Passing userId as the second argument
+    // Cache the results (with the user ID as a parameter)
     cacheResults(processedData, userId);
     return processedData;
   } catch (error) {

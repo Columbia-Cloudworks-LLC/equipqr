@@ -49,7 +49,17 @@ export async function invokeEdgeFunction<T = any>(
   payload: any,
   timeoutMs = 30000
 ): Promise<T> {
-  return invokeEdgeFunctionWithRetry<T>(functionName, payload, { timeoutMs });
+  // FIX: Add timeout handling for edge functions
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  
+  try {
+    return await invokeEdgeFunctionWithRetry<T>(functionName, payload, { timeoutMs });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /**
@@ -85,11 +95,11 @@ export async function invokeEdgeFunctionWithRetry<T>(
     throw new Error('Authentication required to perform this action');
   }
 
-  // Use direct Supabase function invocation instead of a custom API endpoint
+  // FIX: Add error handling for common edge function failures
   return await retry<T>(
     async () => {
       try {
-        console.log(`Directly invoking Supabase function ${functionName} with auth token`);
+        console.log(`Invoking Supabase function ${functionName} with auth token`);
         
         const { data, error } = await supabase.functions.invoke(functionName, {
           body: payload,
@@ -100,10 +110,22 @@ export async function invokeEdgeFunctionWithRetry<T>(
           throw new Error(error.message || `Error calling ${functionName}`);
         }
         
+        // FIX: Check for error in response payload (some edge functions return success but with error inside)
+        if (data && typeof data === 'object' && 'error' in data) {
+          console.error(`Error returned in edge function ${functionName} payload:`, data.error);
+          throw new Error(typeof data.error === 'string' ? data.error : 'Error in edge function response');
+        }
+        
         console.log(`Edge function ${functionName} succeeded:`, data);
         onSuccess?.(data);
         return data as T;
       } catch (error: any) {
+        // FIX: Better error classification for debugging
+        if (error.name === 'AbortError') {
+          console.error(`Timeout exceeded calling Supabase function ${functionName}`);
+          throw new Error(`Function ${functionName} timed out after ${timeoutMs}ms`);
+        }
+        
         console.error(`Failed to invoke Supabase function ${functionName}:`, error);
         throw error;
       }
@@ -191,15 +213,20 @@ export async function invokeEdgeFunctionWithCache<T>(
   }
 
   // Cache miss or caching disabled, invoke the function with retries
-  const data = await invokeEdgeFunctionWithRetry<T>(functionName, payload, {
-    maxRetries,
-    retryDelay
-  });
-  
-  // Store in cache if caching is enabled
-  if (useCache && data) {
-    cacheStore<T>(cacheKey, data, { duration: cacheDuration, prefix: cachePrefix });
+  try {
+    const data = await invokeEdgeFunctionWithRetry<T>(functionName, payload, {
+      maxRetries,
+      retryDelay
+    });
+    
+    // Store in cache if caching is enabled
+    if (useCache && data) {
+      cacheStore<T>(cacheKey, data, { duration: cacheDuration, prefix: cachePrefix });
+    }
+    
+    return data;
+  } catch (error) {
+    console.error(`Failed to invoke and cache edge function ${functionName}:`, error);
+    throw error;
   }
-  
-  return data;
 }

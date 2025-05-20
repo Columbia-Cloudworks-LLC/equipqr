@@ -1,52 +1,51 @@
 
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { acceptOrganizationInvitation } from '@/services/organization/invitation/invitationAcceptance';
 
-/**
- * Hook for processing organization invitations
- */
 export function useOrganizationInvitation() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const { refreshOrganizations } = useOrganization();
 
   const acceptInvitation = async (token: string) => {
-    setIsProcessing(true);
-    setError(null);
-    
+    if (!token) {
+      const errorMsg = 'No invitation token provided';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    }
+
     try {
-      // For organization invitations, use our dedicated service function
-      const acceptResult = await acceptOrganizationInvitation(token);
+      setIsProcessing(true);
+      setError(null);
+
+      console.log('Accepting organization invitation with token:', token.substring(0, 8) + '...');
       
-      if (!acceptResult.success) {
-        throw new Error(acceptResult.error || 'Failed to accept organization invitation');
+      // Call the edge function to accept the organization invitation
+      const { data, error: fnError } = await supabase.functions.invoke('accept_organization_invitation', {
+        body: { token }
+      });
+
+      if (fnError) {
+        throw new Error(fnError.message || 'Failed to accept organization invitation');
       }
+
+      if (!data || data.error) {
+        throw new Error(data?.error || 'Invalid response from server');
+      }
+
+      // Ensure we have a success flag in response
+      if (!data.success) {
+        throw new Error('Invitation acceptance failed');
+      }
+
+      toast.success('Organization invitation accepted successfully!');
       
-      // Force refresh organizations in context with delay to ensure DB changes are available
-      console.log('Refreshing organizations after accepting org invitation');
-      setTimeout(async () => {
-        try {
-          await refreshOrganizations();
-          console.log('Organizations refreshed successfully');
-        } catch (refreshError) {
-          console.error('Error refreshing organizations:', refreshError);
-        }
-      }, 1000);
-      
-      toast.success('Successfully joined the organization');
-      
-      // Redirect to organization settings
-      navigate('/organization');
-      
-      return acceptResult;
+      // Return the response data for further processing
+      return data;
     } catch (error: any) {
-      console.error('Error accepting organization invitation:', error);
-      setError(error.message || 'Failed to accept invitation');
-      throw error;
+      const errorMsg = error.message || 'Failed to accept organization invitation';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
     } finally {
       setIsProcessing(false);
     }
