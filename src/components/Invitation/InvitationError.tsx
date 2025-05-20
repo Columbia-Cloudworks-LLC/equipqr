@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 
 interface InvitationErrorProps {
   error: string;
+  suggestion?: string; // Added suggestion as an optional prop
 }
 
-export function InvitationError({ error }: InvitationErrorProps) {
+export function InvitationError({ error, suggestion }: InvitationErrorProps) {
   const navigate = useNavigate();
   
   return (
@@ -17,6 +18,11 @@ export function InvitationError({ error }: InvitationErrorProps) {
         <CardHeader>
           <CardTitle>Invitation Error</CardTitle>
           <CardDescription className="text-destructive">{error}</CardDescription>
+          {suggestion && (
+            <CardDescription className="mt-2">
+              {suggestion}
+            </CardDescription>
+          )}
         </CardHeader>
         <CardFooter>
           <Button variant="outline" onClick={() => navigate('/')} className="w-full">
