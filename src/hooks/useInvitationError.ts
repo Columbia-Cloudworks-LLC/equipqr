@@ -1,102 +1,88 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 interface UseInvitationErrorOptions {
-  onReset?: () => void;
   maxAttempts?: number;
-  redirectOnError?: boolean;
-  redirectPath?: string;
-  invalidateQueries?: boolean;
+  retryDelay?: number;
+  onReset?: () => Promise<void> | void;
 }
 
-/**
- * Hook for managing invitation error states and retry logic
- */
 export function useInvitationError(options: UseInvitationErrorOptions = {}) {
-  const { 
-    onReset, 
-    maxAttempts = 3,
-    redirectOnError = false,
-    redirectPath = '/',
-    invalidateQueries = true
-  } = options;
+  const { maxAttempts = 3, retryDelay = 3000, onReset } = options;
   
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [retryingIn, setRetryingIn] = useState(0);
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const [attempts, setAttempts] = useState(0);
   
-  // Clear error state
+  const timerRef = useRef<number | null>(null);
+  
   const clearError = useCallback(() => {
     setErrorMessage(null);
-    setRetryCount(0);
-    setRetryingIn(0);
-    if (onReset) {
-      onReset();
+    setIsRetrying(false);
+    setAttempts(0);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
-  }, [onReset]);
+  }, []);
   
-  // Handle an error, with optional retry logic
-  const handleError = useCallback((error: Error | string, autoRetry = false) => {
+  const handleError = useCallback((error: string | Error, shouldRetry: boolean = false) => {
     const message = typeof error === 'string' ? error : error.message;
     setErrorMessage(message);
     
-    if (autoRetry && retryCount < maxAttempts) {
-      // Exponential backoff for retries
-      const delaySeconds = Math.pow(2, retryCount);
-      console.log(`Will retry in ${delaySeconds} seconds (attempt ${retryCount + 1}/${maxAttempts})`);
+    if (shouldRetry && attempts < maxAttempts) {
+      setIsRetrying(true);
+      setAttempts(prev => prev + 1);
       
-      // Show countdown
-      setRetryingIn(delaySeconds);
+      // Set up countdown timer
+      const countdownSeconds = Math.round(retryDelay / 1000);
+      setRetryingIn(countdownSeconds);
       
-      // Start countdown
-      const intervalId = setInterval(() => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      // Start countdown for user feedback
+      timerRef.current = window.setInterval(() => {
         setRetryingIn(prev => {
           if (prev <= 1) {
-            clearInterval(intervalId);
-            // Increment retry counter
-            setRetryCount(prev => prev + 1);
+            clearInterval(timerRef.current!);
+            setIsRetrying(false);
             
-            // Invalidate relevant queries to ensure fresh data on retry
-            if (invalidateQueries) {
-              queryClient.invalidateQueries({ queryKey: ['notifications'] });
-              console.log('Invalidated notification queries before retry');
-            }
-            
-            // Trigger the reset callback
+            // Try to reset and refresh
             if (onReset) {
-              onReset();
+              try {
+                onReset();
+              } catch (e) {
+                console.error('Error during reset:', e);
+              }
             }
+            
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
-      
-      return () => clearInterval(intervalId);
-    } else if (retryCount >= maxAttempts && redirectOnError) {
-      // If we've exceeded max retries and redirectOnError is true
-      toast.error("Maximum retry attempts reached");
-      navigate(redirectPath);
+    } else {
+      setIsRetrying(false);
     }
-  }, [retryCount, maxAttempts, onReset, navigate, redirectOnError, redirectPath, invalidateQueries, queryClient]);
+  }, [attempts, maxAttempts, retryDelay, onReset]);
   
-  // Reset retry counter when dependencies change
+  // Clean up timer on unmount
   useEffect(() => {
-    setRetryCount(0);
-  }, [options]);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
   
   return {
     errorMessage,
-    retryCount,
+    isRetrying,
     retryingIn,
-    isRetrying: retryingIn > 0,
-    hasReachedMaxRetries: retryCount >= maxAttempts,
     handleError,
-    clearError,
+    clearError
   };
 }

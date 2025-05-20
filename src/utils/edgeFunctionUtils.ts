@@ -1,3 +1,4 @@
+
 import { cacheGet, cacheStore } from './storage/clientCache';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -37,6 +38,9 @@ export async function retry<T>(
 
 /**
  * Invoke a Supabase Edge Function with retry capabilities
+ * 
+ * CRITICAL: This function now explicitly includes the Supabase authentication token
+ * to ensure proper authorization when calling edge functions.
  *
  * @param functionName The name of the edge function to invoke
  * @param payload The payload to send to the function
@@ -50,11 +54,20 @@ export async function invokeEdgeFunctionWithRetry<T>(
     maxRetries?: number;
     retryDelay?: number;
     onRetry?: (attempt: number, error: any) => void;
-		onSuccess?: (data: T) => void;
+    onSuccess?: (data: T) => void;
     timeoutMs?: number;
   } = {}
 ): Promise<T> {
   const { maxRetries = 3, retryDelay = 1000, onRetry, onSuccess, timeoutMs = 30000 } = options;
+
+  // Get the current session for auth headers
+  const { data: sessionData } = await supabase.auth.getSession();
+  const authToken = sessionData?.session?.access_token;
+
+  if (!authToken) {
+    console.error('No authentication token available for edge function call');
+    throw new Error('Authentication required to perform this action');
+  }
 
   return await retry<T>(
     async () => {
@@ -63,11 +76,18 @@ export async function invokeEdgeFunctionWithRetry<T>(
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
+        // Create request with explicit Authorization header
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        };
+
+        // Log the invocation for debugging
+        console.log(`Invoking edge function ${functionName} with auth token present:`, !!authToken);
+
         const response = await fetch(`/api/${functionName}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify(payload),
           signal: controller.signal,
         });
@@ -75,12 +95,20 @@ export async function invokeEdgeFunctionWithRetry<T>(
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error?.error || `HTTP error! status: ${response.status}`);
+          let errorMessage: string;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData?.error || `HTTP error! status: ${response.status}`;
+          } catch (e) {
+            errorMessage = `HTTP error! status: ${response.status}`;
+          }
+          console.error(`Error in edge function ${functionName}:`, errorMessage);
+          throw new Error(errorMessage);
         }
 
         const data: T = await response.json();
-				onSuccess?.(data);
+        console.log(`Edge function ${functionName} succeeded:`, data);
+        onSuccess?.(data);
         return data;
       } catch (error: any) {
         clearTimeout(timeoutId);

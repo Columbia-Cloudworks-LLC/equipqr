@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Check, X, Loader2 } from 'lucide-react';
 import { Invitation } from '@/types/notifications';
 import { useInvitationAcceptance } from '@/hooks/useInvitationAcceptance';
-import { useNotifications } from '@/contexts/NotificationsContext';
+import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -22,7 +22,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const [isDeclined, setIsDeclined] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { refreshNotifications } = useNotifications();
+  const { refreshNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
   const { acceptInvitation } = useInvitationAcceptance();
   const { user } = useAuth();

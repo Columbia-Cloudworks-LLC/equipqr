@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -106,7 +107,10 @@ export function useInvitationAcceptance() {
       } else {
         // Team invitation logic - also use the retry utility
         console.log('Calling accept_team_invitation edge function for team invitation');
-        const acceptData = await invokeEdgeFunctionWithRetry('accept_team_invitation', {
+        const acceptData: {
+          success: boolean;
+          error?: string;
+        } = await invokeEdgeFunctionWithRetry('accept_team_invitation', {
           token
         }, { 
           maxRetries: 2, 

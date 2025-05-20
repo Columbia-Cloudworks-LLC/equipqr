@@ -54,7 +54,8 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
     // Add detailed logging
     console.log('Session found with user:', {
       email: sessionData.session.user.email,
-      id: sessionData.session.user.id
+      id: sessionData.session.user.id,
+      hasAccessToken: !!sessionData.session.access_token
     });
     console.log('Invitation is for:', invitation.email);
     
@@ -68,7 +69,16 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
     }
     
     // Call the edge function to accept the invitation using our retry utility
-    const data = await invokeEdgeFunctionWithRetry('accept_organization_invitation', { token }, {
+    console.log('Calling accept_organization_invitation edge function...');
+    const result = await invokeEdgeFunctionWithRetry<{
+      success: boolean;
+      error?: string;
+      data?: {
+        organization: any;
+        role: string;
+      };
+      message?: string;
+    }>('accept_organization_invitation', { token }, {
       maxRetries: 2,
       timeoutMs: 12000,
       onRetry: (attempt, error) => {
@@ -77,19 +87,19 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
     });
     
     // Check for errors in the response
-    if (!data?.success) {
-      console.error('Error in accept_organization_invitation:', data?.error);
-      return { success: false, error: data?.error || 'Unknown error accepting invitation' };
+    if (!result.success) {
+      console.error('Error in accept_organization_invitation:', result.error);
+      return { success: false, error: result.error || 'Unknown error accepting invitation' };
     }
     
     // Log successful acceptance
-    console.log('Organization invitation accepted successfully:', data);
+    console.log('Organization invitation accepted successfully:', result);
     
     return {
       success: true,
       data: {
-        organization: data.data.organization,
-        role: data.data.role
+        organization: result.data?.organization,
+        role: result.data?.role
       }
     };
   } catch (error: any) {

@@ -1,3 +1,4 @@
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +18,7 @@ import {
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Invitation } from "@/types/notifications"
 import { toast } from "sonner"
 import { useNotifications } from "@/contexts/NotificationsContext"
@@ -25,8 +26,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { clearLocalDismissedNotifications, dismissNotification } from "@/services/team/notificationService"
 import { Button } from "../ui/button"
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 
 // Define a throttling interval to prevent too frequent refreshes
 const REFRESH_THROTTLE_MS = 10000; // 10 seconds
