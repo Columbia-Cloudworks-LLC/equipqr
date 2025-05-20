@@ -1,87 +1,91 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 
-interface UseInvitationErrorOptions {
+interface InvitationErrorOptions {
   maxAttempts?: number;
-  retryDelay?: number;
-  onReset?: () => Promise<void> | void;
+  retryIntervalMs?: number;
+  onReset?: () => void;
 }
 
-export function useInvitationError(options: UseInvitationErrorOptions = {}) {
-  const { maxAttempts = 3, retryDelay = 3000, onReset } = options;
+/**
+ * Custom hook for handling invitation errors with retry functionality
+ */
+export function useInvitationError(options: InvitationErrorOptions = {}) {
+  const { 
+    maxAttempts = 3, 
+    retryIntervalMs = 5000,
+    onReset
+  } = options;
   
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryingIn, setRetryingIn] = useState(0);
-  const [attempts, setAttempts] = useState(0);
-  
   const timerRef = useRef<number | null>(null);
   
-  const clearError = useCallback(() => {
-    setErrorMessage(null);
-    setIsRetrying(false);
-    setAttempts(0);
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+  // Clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, []);
   
-  const handleError = useCallback((error: string | Error, shouldRetry: boolean = false) => {
+  // Handle errors with optional auto-retry
+  const handleError = useCallback((error: Error | string, autoRetry = false) => {
     const message = typeof error === 'string' ? error : error.message;
     setErrorMessage(message);
     
-    if (shouldRetry && attempts < maxAttempts) {
+    if (autoRetry && attemptCount < maxAttempts) {
       setIsRetrying(true);
-      setAttempts(prev => prev + 1);
+      setAttemptCount(prev => prev + 1);
       
       // Set up countdown timer
-      const countdownSeconds = Math.round(retryDelay / 1000);
-      setRetryingIn(countdownSeconds);
+      let countdown = Math.floor(retryIntervalMs / 1000);
+      setRetryingIn(countdown);
       
-      if (timerRef.current) {
+      if (timerRef.current !== null) {
         clearInterval(timerRef.current);
       }
       
-      // Start countdown for user feedback
+      // Update countdown every second
       timerRef.current = window.setInterval(() => {
-        setRetryingIn(prev => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            setIsRetrying(false);
-            
-            // Try to reset and refresh
-            if (onReset) {
-              try {
-                onReset();
-              } catch (e) {
-                console.error('Error during reset:', e);
-              }
-            }
-            
-            return 0;
+        countdown -= 1;
+        setRetryingIn(countdown);
+        
+        if (countdown <= 0) {
+          clearInterval(timerRef.current!);
+          setIsRetrying(false);
+          
+          // Trigger the reset callback
+          if (onReset) {
+            onReset();
           }
-          return prev - 1;
-        });
+        }
       }, 1000);
     } else {
       setIsRetrying(false);
     }
-  }, [attempts, maxAttempts, retryDelay, onReset]);
+  }, [attemptCount, maxAttempts, retryIntervalMs, onReset]);
   
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
+  // Reset error state
+  const clearError = useCallback(() => {
+    setErrorMessage(null);
+    setAttemptCount(0);
+    setIsRetrying(false);
+    
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
   
   return {
     errorMessage,
     isRetrying,
     retryingIn,
+    attemptCount,
     handleError,
     clearError
   };

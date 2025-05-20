@@ -1,65 +1,79 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { validateInvitationToken } from '@/services/team/invitationService';
+import { validateOrganizationInvitation } from '@/services/organization/invitationService';
 
-export function useInvitationValidation(token?: string) {
+export function useInvitationValidation(token: string, type?: string) {
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invitation, setInvitation] = useState<any>(null);
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    const validateToken = async () => {
-      if (!token) {
-        setError('No invitation token provided');
-        setIsValidating(false);
-        return;
+    const checkAuth = async () => {
+      setIsAuthLoading(true);
+      const { data } = await supabase.auth.getSession();
+      
+      if (data.session?.user) {
+        setUser(data.session.user);
+      } else {
+        setError('Authentication required to validate invitation.');
       }
+      
+      setIsAuthLoading(false);
+    };
 
+    const validateInvitation = async () => {
+      setIsValidating(true);
+      setError(null);
+      
       try {
-        // Use edge function to validate invitation to avoid RLS recursion
-        const { data, error } = await supabase.functions.invoke('validate_invitation', {
-          body: { token }
-        });
+        // Determine if this is an organization or team invitation
+        const invitationType = type === 'organization' ? 'organization' : 'team';
         
-        if (error || !data?.valid) {
-          console.error('Error validating invitation token:', error || data?.error);
-          setError(data?.error || 'This invitation is invalid or has expired.');
-          setIsValid(false);
+        let result;
+        if (invitationType === 'organization') {
+          result = await validateOrganizationInvitation(token);
         } else {
-          // Determine the invitation type and store it in the invitation object
-          const invitationData = data.invitation;
-          invitationData.type = invitationData.team_id ? 'team' : 'organization';
-          
-          setInvitation(invitationData);
-          setIsValid(true);
-          setError(null);
+          result = await validateInvitationToken(token);
         }
-      } catch (err: any) {
-        console.error('Error in validateToken:', err);
-        setError(`Failed to validate invitation: ${err.message}`);
+
+        if (result && result.valid) {
+          setIsValid(true);
+          setInvitation(result.invitation);
+        } else {
+          setIsValid(false);
+          setError(result.error || 'Invalid invitation');
+        }
+      } catch (error: any) {
+        console.error('Error validating invitation:', error);
         setIsValid(false);
+        setError(error.message || 'Failed to validate invitation');
       } finally {
         setIsValidating(false);
       }
     };
 
-    // Only validate if we have a token and auth status is known
-    if (token && !isAuthLoading) {
-      validateToken();
+    checkAuth();
+
+    if (token) {
+      validateInvitation();
+    } else {
+      setIsValidating(false);
+      setIsValid(false);
+      setError('No invitation token provided');
     }
-  }, [token, isAuthLoading]);
+  }, [token, type]);
 
   return {
     isValidating,
-    isAuthLoading,
     isValid,
     error,
     invitation,
-    user
+    user,
+    isAuthLoading
   };
 }
-
-export default useInvitationValidation;

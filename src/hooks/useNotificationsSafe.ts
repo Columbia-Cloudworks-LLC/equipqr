@@ -1,47 +1,18 @@
 
-import { useContext, useEffect } from 'react';
-import { NotificationsContext } from '@/contexts/NotificationsContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNotificationsState } from './useNotificationsState';
 
-/**
- * A safer version of the useNotifications hook that handles edge cases
- * like the context not being available or the user not being authenticated.
- */
+// This is a simple wrapper to ensure we never get undefined from the notifications hook
 export function useNotificationsSafe() {
-  const notificationsContext = useContext(NotificationsContext);
-  const { user } = useAuth();
+  const notificationsState = useNotificationsState();
   
-  // Handle missing context more gracefully
-  if (!notificationsContext) {
-    // Return a safe fallback implementation
-    return {
-      invitations: [],
-      isLoading: false,
-      hasNewNotifications: false,
-      hasError: false,
-      isRefreshPending: false,
-      refreshNotifications: async () => {
-        console.warn('NotificationsContext not available, cannot refresh notifications');
-        return false;
-      },
-      dismissInvitation: (id: string) => {
-        console.warn('NotificationsContext not available, cannot dismiss invitation');
-      },
-      resetDismissedNotifications: () => {
-        console.warn('NotificationsContext not available, cannot reset dismissed notifications');
-      }
-    };
-  }
-  
-  // Effect to refresh notifications when user changes
-  useEffect(() => {
-    if (user) {
-      // Only refresh if authenticated
-      notificationsContext.refreshNotifications().catch(err => {
-        console.error('Error refreshing notifications on auth change:', err);
-      });
-    }
-  }, [user?.id]);
-  
-  return notificationsContext;
+  return {
+    invitations: notificationsState.invitations || [],
+    isLoading: notificationsState.isLoading || false,
+    hasNewNotifications: notificationsState.hasNewNotifications || false,
+    hasError: notificationsState.hasError || false,
+    refreshNotifications: notificationsState.refreshNotifications || (async () => false),
+    dismissInvitation: notificationsState.dismissInvitation || (async () => {}),
+    resetDismissedNotifications: notificationsState.resetDismissedNotifications || (() => {}),
+    isRefreshPending: notificationsState.isRefreshPending || false
+  };
 }

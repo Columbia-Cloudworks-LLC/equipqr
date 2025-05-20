@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { validateOrganizationInvitation } from './invitationValidation';
 import { InvitationResult } from './types';
-import { invokeEdgeFunctionWithRetry } from '@/utils/edgeFunctionUtils';
 
 // Track invitations being processed to prevent duplicates
 const processingTokens: Set<string> = new Set();
@@ -51,14 +50,6 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
       return { success: false, error: 'You must be logged in to accept an invitation' };
     }
     
-    // Add detailed logging
-    console.log('Session found with user:', {
-      email: sessionData.session.user.email,
-      id: sessionData.session.user.id,
-      hasAccessToken: !!sessionData.session.access_token
-    });
-    console.log('Invitation is for:', invitation.email);
-    
     // Email validation - case insensitive comparison
     if (sessionData.session.user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
       console.error('Email mismatch between session and invitation');
@@ -68,40 +59,88 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
       };
     }
     
-    // Call the edge function to accept the invitation using our retry utility
-    console.log('Calling accept_organization_invitation edge function...');
-    const result = await invokeEdgeFunctionWithRetry<{
-      success: boolean;
-      error?: string;
-      data?: {
-        organization: any;
-        role: string;
-      };
-      message?: string;
-    }>('accept_organization_invitation', { token }, {
-      maxRetries: 2,
-      timeoutMs: 12000,
-      onRetry: (attempt, error) => {
-        console.warn(`Retry attempt ${attempt} for accept_organization_invitation:`, error);
+    try {
+      // Directly handle organization invitation acceptance
+      // First check if user already has a role in the organization
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('id, role')
+        .eq('org_id', invitation.org_id)
+        .eq('user_id', sessionData.session.user.id)
+        .maybeSingle();
+        
+      if (existingRole?.id) {
+        console.log(`User is already a member of this organization with role: ${existingRole.role}`);
+        
+        // Update the invitation status
+        await supabase
+          .from('organization_invitations')
+          .update({
+            status: 'accepted',
+            accepted_at: new Date().toISOString()
+          })
+          .eq('id', invitation.id);
+          
+        return { 
+          success: true, 
+          message: 'You are already a member of this organization',
+          data: {
+            organization: invitation.organization,
+            role: invitation.role
+          }
+        };
       }
-    });
-    
-    // Check for errors in the response
-    if (!result.success) {
-      console.error('Error in accept_organization_invitation:', result.error);
-      return { success: false, error: result.error || 'Unknown error accepting invitation' };
+      
+      // Add user to organization
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: sessionData.session.user.id,
+          org_id: invitation.org_id,
+          role: invitation.role,
+          assigned_by: invitation.created_by
+        });
+        
+      if (roleError) {
+        throw new Error(`Failed to assign role: ${roleError.message}`);
+      }
+      
+      // Check user profile
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', sessionData.session.user.id)
+        .maybeSingle();
+        
+      // Update profile if it doesn't have an org_id
+      if (profile && !profile.org_id) {
+        await supabase
+          .from('user_profiles')
+          .update({ org_id: invitation.org_id })
+          .eq('id', sessionData.session.user.id);
+      }
+      
+      // Mark invitation as accepted
+      await supabase
+        .from('organization_invitations')
+        .update({ 
+          status: 'accepted', 
+          accepted_at: new Date().toISOString() 
+        })
+        .eq('id', invitation.id);
+      
+      return {
+        success: true,
+        data: {
+          organization: invitation.organization,
+          role: invitation.role
+        }
+      };
+    } catch (error: any) {
+      console.error('Error processing organization invitation:', error);
+      throw error;
     }
     
-    // Log successful acceptance
-    console.log('Organization invitation accepted successfully:', result);
-    
-    return {
-      success: true,
-      data: {
-        organization: result.data?.organization,
-        role: result.data?.role
-      }
-    };
   } catch (error: any) {
     console.error('Error in acceptOrganizationInvitation:', error);
     return { success: false, error: error.message || 'Failed to accept invitation' };
