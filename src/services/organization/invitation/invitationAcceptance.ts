@@ -55,7 +55,8 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
       console.error('Email mismatch between session and invitation');
       return { 
         success: false, 
-        error: `This invitation was sent to ${invitation.email}. You are currently logged in as ${sessionData.session.user.email}.` 
+        error: `This invitation was sent to ${invitation.email}. You are currently logged in as ${sessionData.session.user.email}.`,
+        message: `This invitation was sent to ${invitation.email}. You are currently logged in as ${sessionData.session.user.email}.` 
       };
     }
     
@@ -98,7 +99,7 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
           user_id: sessionData.session.user.id,
           org_id: invitation.org_id,
           role: invitation.role,
-          assigned_by: invitation.created_by
+          assigned_by: invitation.created_by || sessionData.session.user.id // Use created_by or fall back to current user
         });
         
       if (roleError) {

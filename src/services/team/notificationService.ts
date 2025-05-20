@@ -83,18 +83,18 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
       throw new Error(`Error fetching organization invitations: ${orgResponse.error.message}`);
     }
     
-    // Combine notifications and add type field
+    // Combine notifications and add type field with correct typing
     const teamInvitations = (teamResponse.data || []).map(invite => ({
       ...invite,
-      invitationType: 'team'
+      invitationType: 'team' as const
     }));
     
     const orgInvitations = (orgResponse.data || []).map(invite => ({
       ...invite,
-      invitationType: 'organization'
+      invitationType: 'organization' as const
     }));
     
-    const all = [...teamInvitations, ...orgInvitations];
+    const all = [...teamInvitations, ...orgInvitations] as Invitation[];
     
     // Filter out dismissed notifications
     const dismissed = getDismissedNotificationIds();
@@ -152,17 +152,17 @@ export async function getPendingInvitationsForUser(): Promise<Invitation[]> {
       console.error('Error fetching organization invitations:', orgError);
     }
     
-    // Combine and format the results
+    // Combine and format the results with correct typing
     const pendingInvites = [
       ...(teamInvites || []).map(invite => ({
         ...invite,
-        invitationType: 'team'
+        invitationType: 'team' as const
       })),
       ...(orgInvites || []).map(invite => ({
         ...invite,
-        invitationType: 'organization'
+        invitationType: 'organization' as const
       }))
-    ];
+    ] as Invitation[];
     
     return pendingInvites;
   } catch (error) {

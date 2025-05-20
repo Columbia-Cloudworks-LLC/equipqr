@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,6 +6,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { invokeEdgeFunctionWithRetry } from '@/utils/edgeFunctionUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { acceptOrganizationInvitation } from '@/services/organization/invitation/invitationAcceptance';
+import { validateInvitationToken } from '@/services/team/invitation/validateInvitation';
 
 // Track invitations being processed to prevent duplicate attempts
 const processingInvitations: Record<string, boolean> = {};

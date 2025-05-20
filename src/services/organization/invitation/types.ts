@@ -9,6 +9,7 @@ export interface OrganizationInvitation {
   created_at: string;
   updated_at: string;
   org_id: string;
+  created_by?: string; // Make this optional
   organization?: {
     name: string;
   };
@@ -23,6 +24,7 @@ export interface ValidationResult {
 export interface InvitationResult {
   success: boolean;
   error?: string;
+  message?: string; // Add this property
   data?: any;
 }
 
