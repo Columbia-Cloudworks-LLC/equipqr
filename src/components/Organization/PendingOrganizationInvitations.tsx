@@ -7,7 +7,7 @@ import {
   getPendingOrganizationInvitations, 
   resendOrganizationInvite, 
   cancelOrganizationInvite
-} from '@/services/organization/invitation/invitationService';
+} from '@/services/organization/invitationService';
 import { OrganizationInvitation } from '@/services/organization/invitation/types';
 import { toast } from '@/hooks/use-toast';
 
