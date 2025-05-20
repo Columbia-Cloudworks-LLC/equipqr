@@ -10,6 +10,13 @@ export * from './equipmentDeleteService';
 export * from './scanService';
 export * from './attributesService';
 
+// Caching modules
+export * from './caching/equipmentCache';
+
+// Query modules
+export * from './queries/directQueries';
+export * from './queries/edgeFunctionQueries';
+
 // Utility modules
 export * from './utils/dataProcessing';
 export * from './utils/equipmentFormatting';
