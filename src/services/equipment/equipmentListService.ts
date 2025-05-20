@@ -63,7 +63,7 @@ export async function getEquipment(): Promise<Equipment[]> {
       // Process the data to ensure all properties are set correctly
       const processedData = processEquipmentList(data);
       
-      // Cache the results
+      // Cache the results - FIX: Passing userId as the second argument
       cacheResults(processedData, userId);
       
       return processedData;
@@ -181,7 +181,8 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
       }
       
       const processedData = processEquipmentList(orgEquipment || []);
-      cacheResults(processedData);
+      // FIX: Passing userId as the second argument
+      cacheResults(processedData, userId);
       return processedData;
     }
     
@@ -231,7 +232,8 @@ async function getEquipmentDirectQuery(userId: string): Promise<Equipment[]> {
     
     console.log(`Successfully fetched ${equipment?.length || 0} equipment items via direct query`);
     const processedData = processEquipmentList(equipment || []);
-    cacheResults(processedData);
+    // FIX: Passing userId as the second argument
+    cacheResults(processedData, userId);
     return processedData;
   } catch (error) {
     console.error('Error in getEquipmentDirectQuery:', error);
