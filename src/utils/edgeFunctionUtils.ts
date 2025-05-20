@@ -85,52 +85,26 @@ export async function invokeEdgeFunctionWithRetry<T>(
     throw new Error('Authentication required to perform this action');
   }
 
+  // Use direct Supabase function invocation instead of a custom API endpoint
   return await retry<T>(
     async () => {
-      // Add a timeout to the fetch call
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
       try {
-        // Create request with explicit Authorization header
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        };
-
-        // Log the invocation for debugging
-        console.log(`Invoking edge function ${functionName} with auth token present:`, !!authToken);
-
-        const response = await fetch(`/api/${functionName}`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-          signal: controller.signal,
+        console.log(`Directly invoking Supabase function ${functionName} with auth token`);
+        
+        const { data, error } = await supabase.functions.invoke(functionName, {
+          body: payload,
         });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          let errorMessage: string;
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData?.error || `HTTP error! status: ${response.status}`;
-          } catch (e) {
-            errorMessage = `HTTP error! status: ${response.status}`;
-          }
-          console.error(`Error in edge function ${functionName}:`, errorMessage);
-          throw new Error(errorMessage);
+        
+        if (error) {
+          console.error(`Error in edge function ${functionName}:`, error);
+          throw new Error(error.message || `Error calling ${functionName}`);
         }
-
-        const data: T = await response.json();
+        
         console.log(`Edge function ${functionName} succeeded:`, data);
         onSuccess?.(data);
-        return data;
+        return data as T;
       } catch (error: any) {
-        clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
-          throw new Error(`Request timed out after ${timeoutMs}ms`);
-        }
+        console.error(`Failed to invoke Supabase function ${functionName}:`, error);
         throw error;
       }
     },
