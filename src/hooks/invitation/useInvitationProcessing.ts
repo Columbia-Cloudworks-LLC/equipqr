@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { useSessionValidation } from './useSessionValidation';
 import { useOrganizationInvitation } from './useOrganizationInvitation';
 import { useTeamInvitation } from './useTeamInvitation';
-
-// Track invitations being processed to prevent duplicate attempts
-const processingInvitations: Record<string, boolean> = {};
+import { useDuplicateInvitationPrevention } from './useDuplicateInvitationPrevention';
+import { useInvitationError } from './useInvitationError';
+import { toast } from 'sonner';
 
 /**
  * Combined hook for processing invitations with duplicate prevention
@@ -17,17 +17,19 @@ export function useInvitationProcessing() {
   const { ensureValidSession, isValidating } = useSessionValidation();
   const orgInvitation = useOrganizationInvitation();
   const teamInvitation = useTeamInvitation();
+  const { checkIfProcessing, markAsProcessing, clearProcessing } = useDuplicateInvitationPrevention();
+  const { handleInvitationError } = useInvitationError();
   
   const processInvitation = async (token: string, type?: string): Promise<any> => {
     // Prevent duplicate processing of the same invitation
-    if (processingInvitations[token]) {
-      console.log(`Invitation ${token.substring(0, 8)}... is already being processed, skipping`);
+    if (checkIfProcessing(token)) {
+      toast.info(`This invitation is already being processed`);
       return null;
     }
     
     try {
       // Mark as processing
-      processingInvitations[token] = true;
+      markAsProcessing(token);
       setIsProcessing(true);
       setError(null);
       
@@ -47,16 +49,14 @@ export function useInvitationProcessing() {
         return await teamInvitation.acceptInvitation(token);
       }
     } catch (error: any) {
-      console.error('Error processing invitation:', error);
-      setError(error.message || 'Failed to process invitation');
-      return { success: false, error: error.message || 'Failed to process invitation' };
+      const errorMessage = handleInvitationError(error);
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setIsProcessing(false);
       
-      // Clear processing state after a delay to prevent immediate retries
-      setTimeout(() => {
-        delete processingInvitations[token];
-      }, 5000);
+      // Clear processing state after a delay
+      clearProcessing(token);
     }
   };
   
