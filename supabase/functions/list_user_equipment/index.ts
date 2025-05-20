@@ -1,6 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { createAdminClient } from '../../_shared/adminClient.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { getUserEquipment } from './equipment-service.ts';
 
 // Inline CORS headers instead of importing from shared module
@@ -35,6 +35,22 @@ function createErrorResponse(message: string, status: number = 400) {
       status 
     }
   );
+}
+
+// Inline the createAdminClient function instead of importing it
+function createAdminClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing required environment variables for Supabase client');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      persistSession: false
+    }
+  });
 }
 
 serve(async (req) => {
