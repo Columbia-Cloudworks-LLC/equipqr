@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { getAllUserOrganizations, UserOrganization } from '@/services/organization/userOrganizations';
-import { toast } from 'sonner'; // Import toast for user feedback
+import { toast } from 'sonner';
 
 interface OrganizationContextType {
   organizations: UserOrganization[];
@@ -34,7 +34,8 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   const [error, setError] = useState<string | null>(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
 
-  const fetchOrganizations = async () => {
+  // Fix: Change the return type to Promise<UserOrganization[]> to match what we're returning
+  const fetchOrganizations = async (): Promise<UserOrganization[]> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -96,8 +97,9 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   const refreshOrganizations = async (): Promise<void> => {
     console.log('OrganizationContext: Refreshing organizations...');
     setRefreshCounter(prev => prev + 1);
-    // Actually wait for the fetch to complete
-    return fetchOrganizations();
+    // Actually wait for the fetch to complete but don't return the organizations since the return type is Promise<void>
+    await fetchOrganizations();
+    return;
   };
 
   return (
