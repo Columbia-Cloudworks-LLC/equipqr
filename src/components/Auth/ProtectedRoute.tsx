@@ -4,7 +4,7 @@ import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { resetAuthState } from "@/utils/authInterceptors";
-import { getSessionInfo, repairSessionStorage } from "@/utils/storageAdapter";
+import { getSessionInfo, repairSessionStorage } from "@/utils/storage";
 import { AuthRecovery } from "./AuthRecovery";
 
 interface ProtectedRouteProps {

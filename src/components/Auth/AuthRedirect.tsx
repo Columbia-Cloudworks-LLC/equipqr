@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { clearEquipmentCache } from '@/services/equipment/equipmentListService';
 import { clearTeamCache } from '@/services/team/retrieval/teamCache';
 import { useQueryClient } from '@tanstack/react-query';
-import { repairSessionStorage } from '@/utils/storageAdapter';
+import { repairSessionStorage } from '@/utils/storage';
 import { AuthRecovery } from './AuthRecovery';
 
 /**
