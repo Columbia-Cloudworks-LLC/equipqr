@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getEquipment, refreshEquipment } from '@/services/equipment/equipmentListService';
 import { Equipment } from '@/types';
@@ -10,8 +10,9 @@ import { useLocation } from 'react-router-dom';
 export function useDashboardData() {
   const queryClient = useQueryClient();
   const location = useLocation();
-  const { invitations, refreshNotifications } = useNotificationsSafe();
+  const { invitations } = useNotificationsSafe(); // Don't destructure refreshNotifications to avoid extra calls
   const [retries, setRetries] = useState(0);
+  const initialLoadCompleteRef = useRef(false);
   
   // Check if we need to force refresh data from location state
   const shouldRefresh = location.state?.refreshSession === true;
@@ -38,7 +39,7 @@ export function useDashboardData() {
     }
   }, [shouldRefresh, hasRefreshed, queryClient, location]);
   
-  // Equipment data query
+  // Equipment data query with increased staleTime to reduce calls
   const { 
     data: equipmentData = [], 
     isLoading: isEquipmentLoading, 
@@ -48,10 +49,10 @@ export function useDashboardData() {
     queryKey: ['equipment'],
     queryFn: getEquipment,
     retry: 1,
-    staleTime: shouldRefresh ? 0 : 300000, // 5 minutes, but 0 if refresh flag is set
+    staleTime: shouldRefresh ? 0 : 600000, // 10 minutes (was 5 minutes)
   });
 
-  // Teams data query with force refresh option
+  // Teams data query with increased staleTime to reduce calls
   const { 
     data: teamsData = [], 
     isLoading: isTeamsLoading, 
@@ -64,7 +65,7 @@ export function useDashboardData() {
       return getTeams({ forceRefresh: shouldRefresh || false });
     },
     retry: 2,
-    staleTime: shouldRefresh ? 0 : 300000, // 5 minutes, but 0 if refresh flag is set
+    staleTime: shouldRefresh ? 0 : 600000, // 10 minutes (was 5 minutes)
   });
 
   // Safely ensure equipment is always an array
@@ -75,28 +76,20 @@ export function useDashboardData() {
     team && typeof team === 'object' && team.id && team.name
   ) : [];
 
-  // Log team data for debugging
+  // Log team data for debugging, but only retry once to avoid excessive calls
   useEffect(() => {
-    if (teams.length > 0) {
+    if (teams.length > 0 && !initialLoadCompleteRef.current) {
       console.log('Dashboard teams data:', teams);
-    } else if (!isTeamsLoading && retries < 2) {
-      console.log('No teams found in dashboard, will retry...');
+      initialLoadCompleteRef.current = true;
+    } else if (!isTeamsLoading && retries < 1 && !initialLoadCompleteRef.current) {
+      console.log('No teams found in dashboard, will retry once...');
       setRetries(prev => prev + 1);
-      setTimeout(() => refetchTeams(), 1500);
+      setTimeout(() => refetchTeams(), 2000);
     }
   }, [teams, isTeamsLoading, refetchTeams, retries]);
 
-  // Refresh notifications when the dashboard loads
-  useEffect(() => {
-    try {
-      refreshNotifications().catch(error => {
-        console.error("Failed to refresh notifications:", error);
-        // Non-critical error, don't block the UI
-      });
-    } catch (error) {
-      console.error("Error refreshing notifications:", error);
-    }
-  }, [refreshNotifications]);
+  // We no longer trigger notification refreshes from the dashboard automatically
+  // This prevents excessive edge function calls and lets the notification system handle itself
 
   // Safely calculate equipment counts with defensive checks
   const activeCount = Array.isArray(equipment) 

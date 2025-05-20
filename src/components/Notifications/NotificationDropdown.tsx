@@ -1,4 +1,3 @@
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +12,6 @@ import {
   BellOff,
   CheckCircle2,
   Loader2,
-  Mail,
   XCircle,
 } from "lucide-react"
 import { Link } from "react-router-dom"
@@ -21,22 +19,21 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useEffect, useState, useRef } from "react"
 import { Invitation } from "@/types/notifications"
 import { toast } from "sonner"
-import { useNotifications } from "@/contexts/NotificationsContext"
 import { formatDistanceToNow } from 'date-fns';
 import { clearLocalDismissedNotifications, dismissNotification } from "@/services/team/notificationService"
 import { Button } from "../ui/button"
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 
-// Define a throttling interval to prevent too frequent refreshes
-const REFRESH_THROTTLE_MS = 10000; // 10 seconds
+// Much longer throttle to prevent excessive refreshing
+const REFRESH_THROTTLE_MS = 60000; // 60 seconds (was 10 seconds)
 
-// Modified function component to include optimizations
 export function NotificationDropdown() {
   const { invitations, isLoading, hasNewNotifications, refreshNotifications } = useNotificationsSafe();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const lastRefreshTime = useRef<number>(0);
   const refreshTimeoutRef = useRef<number | null>(null);
+  const hasRefreshedRef = useRef<boolean>(false);
   
   // Clear any pending timeouts on unmount
   useEffect(() => {
@@ -47,26 +44,29 @@ export function NotificationDropdown() {
     };
   }, []);
   
-  // Refresh notifications when dropdown opens, but throttle the refreshes
+  // Refresh notifications when dropdown opens, but only once per session
+  // and with strong throttling
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     
-    if (open && user) {
+    if (open && user && !hasRefreshedRef.current) {
       const now = Date.now();
       
       // Only refresh if enough time has passed since the last refresh
       if (now - lastRefreshTime.current > REFRESH_THROTTLE_MS) {
         lastRefreshTime.current = now;
+        hasRefreshedRef.current = true;
         
         // Use a small delay to prevent refreshing if user is just quickly hovering
         if (refreshTimeoutRef.current) {
           clearTimeout(refreshTimeoutRef.current);
         }
         
+        console.log('NotificationDropdown: Scheduling refresh on open');
         refreshTimeoutRef.current = window.setTimeout(() => {
           refreshNotifications();
           refreshTimeoutRef.current = null;
-        }, 150);
+        }, 500); // Half second delay
       }
     }
   };
@@ -126,6 +126,7 @@ export function NotificationDropdown() {
                 clearLocalDismissedNotifications()
                 refreshNotifications()
                 toast.success("Notifications reset.")
+                hasRefreshedRef.current = false; // Allow refreshing again
               }}
             >
               <CheckCircle2 className="mr-2 h-4 w-4" /> Reset Notifications
@@ -152,7 +153,7 @@ interface InvitationItemProps {
 }
 
 function InvitationItem({ invitation }: InvitationItemProps) {
-  const { refreshNotifications } = useNotifications()
+  const { refreshNotifications } = useNotificationsSafe()
   const [isDismissing, setIsDismissing] = useState(false)
 
   const handleDismiss = async (id: string) => {

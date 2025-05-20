@@ -1,4 +1,3 @@
-
 import { DashboardStat } from '@/types';
 import { DashboardStats } from '@/components/Dashboard/DashboardStats';
 import { Layout } from '@/components/Layout/Layout';
@@ -10,11 +9,15 @@ import { RecentEquipmentSection } from '@/components/Dashboard/RecentEquipmentSe
 import { TeamsSection } from '@/components/Dashboard/TeamsSection';
 import { QuickLinksCard } from '@/components/Dashboard/QuickLinksCard';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
+
+// Prevent rapid refreshes of dashboard data
+const REFRESH_THROTTLE_MS = 10000; // 10 seconds
 
 const Index = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastRefreshTime = useRef<number>(0);
   
   const { 
     teams, 
@@ -57,9 +60,19 @@ const Index = () => {
     },
   ];
 
-  // Function to refresh all dashboard data
+  // Function to refresh all dashboard data with throttling
   const refreshDashboardData = async () => {
+    const now = Date.now();
+    
+    // Prevent refreshing too frequently
+    if (now - lastRefreshTime.current < REFRESH_THROTTLE_MS) {
+      toast.info('Please wait a moment before refreshing again');
+      return;
+    }
+    
     setIsRefreshing(true);
+    lastRefreshTime.current = now;
+    
     try {
       await Promise.all([
         refetchEquipment(),

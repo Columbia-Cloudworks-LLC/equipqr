@@ -4,11 +4,14 @@ import { Invitation } from '@/types/notifications';
 import { loadDismissedNotifications, saveDismissedNotifications, clearAllDismissedNotifications } from './notificationStorage';
 import { invokeEdgeFunctionWithCache } from '@/utils/edgeFunctionUtils';
 
-// Cache durations (in seconds)
+// Cache durations (in seconds) - Increased to reduce function calls
 const CACHE_DURATIONS = {
-  ACTIVE_NOTIFICATIONS: 300, // 5 minutes 
-  PENDING_INVITATIONS: 600   // 10 minutes
+  ACTIVE_NOTIFICATIONS: 1800, // 30 minutes (was 5 minutes)
+  PENDING_INVITATIONS: 3600   // 1 hour (was 10 minutes)
 };
+
+// Flag to track if we've fetched notifications in this session
+let hasInitiallyFetchedNotifications = false;
 
 /**
  * Fetch all active notifications for the current user
@@ -31,8 +34,32 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
     
     console.log(`Fetching notifications for ${userEmail}`);
     
-    // Use the edge function with caching
+    // Use the edge function with enhanced caching
     try {
+      // Check if we can use client-side cache instead of making an edge function call
+      const cachedInvitations = getCachedInvitationsSync(userEmail);
+      if (cachedInvitations && !hasInitiallyFetchedNotifications) {
+        console.log(`Using client-side cached invitations for ${userEmail}`);
+        
+        // For first app load, use cached data, but request refresh in background
+        if (!hasInitiallyFetchedNotifications) {
+          hasInitiallyFetchedNotifications = true;
+          
+          // Background refresh after a delay
+          setTimeout(() => {
+            console.log('Background refreshing notifications after initial load');
+            refreshNotificationsInBackground(userEmail).catch(console.error);
+          }, 10000); // 10 second delay before background refresh
+          
+          // Filter out dismissed notifications from cache
+          const dismissed = await loadDismissedNotifications();
+          return cachedInvitations.filter(invite => !dismissed.includes(invite.id));
+        }
+        
+        return cachedInvitations;
+      }
+      
+      // If no cache or forced refresh, make the actual edge function call
       const data = await invokeEdgeFunctionWithCache<any>(
         'get_user_invitations', 
         { email: userEmail },
@@ -45,8 +72,14 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
         }
       );
       
+      // Mark that we've fetched at least once
+      hasInitiallyFetchedNotifications = true;
+      
       // Ensure data is an array
       const invitations = data?.invitations || [];
+      
+      // Cache the invitations client-side as well
+      cacheInvitations(userEmail, invitations);
       
       // Filter out dismissed notifications
       const dismissed = await loadDismissedNotifications();
@@ -63,6 +96,32 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
   } catch (error) {
     console.error('Error in getActiveNotifications:', error);
     return [];
+  }
+}
+
+/**
+ * Refresh notifications in background without blocking UI
+ */
+async function refreshNotificationsInBackground(userEmail: string): Promise<void> {
+  try {
+    console.log(`Background refresh of notifications for ${userEmail}`);
+    
+    const data = await invokeEdgeFunctionWithCache<any>(
+      'get_user_invitations', 
+      { email: userEmail },
+      {
+        useCache: false, // Skip cache for background refresh
+        cacheDuration: CACHE_DURATIONS.ACTIVE_NOTIFICATIONS,
+        cachePrefix: 'notifications_',
+        maxRetries: 1 // Limit retries for background refresh
+      }
+    );
+    
+    const invitations = data?.invitations || [];
+    cacheInvitations(userEmail, invitations);
+    console.log(`Background refresh complete: Found ${invitations.length} invitations`);
+  } catch (error) {
+    console.error('Background notification refresh failed:', error);
   }
 }
 
@@ -194,15 +253,16 @@ export function clearLocalDismissedNotifications(): void {
   clearAllDismissedNotifications();
 }
 
-// Client-side cache
+// Client-side cache with stronger typing
 interface CachedData<T> {
   data: T;
   timestamp: number;
 }
 
-const INVITATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Increased cache durations to reduce API calls
+const INVITATION_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes (was 5 minutes)
 
-// Helper to cache invitations in memory
+// Helper to cache invitations in memory and sessionStorage
 function cacheInvitations(key: string, invitations: Invitation[]): void {
   try {
     // We'll use sessionStorage for persistence between page navigations
@@ -211,15 +271,38 @@ function cacheInvitations(key: string, invitations: Invitation[]): void {
       timestamp: Date.now()
     };
     
-    sessionStorage.setItem(key, JSON.stringify(cachedData));
+    try {
+      sessionStorage.setItem(key, JSON.stringify(cachedData));
+    } catch (storageError) {
+      console.warn('Failed to save to sessionStorage:', storageError);
+    }
+    
+    // Also store in a module-level variable for faster access
+    moduleCache[key] = cachedData;
   } catch (error) {
     console.error('Error caching invitations:', error);
   }
 }
 
-// Helper to get cached invitations
+// Module-level cache for even faster access without storage API calls
+const moduleCache: Record<string, CachedData<Invitation[]>> = {};
+
+// Helper to get cached invitations with multi-level fallback
 function getCachedInvitations(key: string): Invitation[] | null {
   try {
+    // First check module level cache (RAM)
+    if (moduleCache[key]) {
+      const cachedData = moduleCache[key];
+      
+      // Check if cache is still valid
+      if (Date.now() - cachedData.timestamp <= INVITATION_CACHE_DURATION) {
+        return cachedData.data;
+      } else {
+        delete moduleCache[key]; // Clear expired cache
+      }
+    }
+    
+    // Then try sessionStorage
     const cached = sessionStorage.getItem(key);
     
     if (!cached) return null;
@@ -232,9 +315,43 @@ function getCachedInvitations(key: string): Invitation[] | null {
       return null;
     }
     
+    // Update module cache
+    moduleCache[key] = cachedData;
+    
     return cachedData.data;
   } catch (error) {
     console.error('Error retrieving cached invitations:', error);
+    return null;
+  }
+}
+
+// Sync version that doesn't use await
+function getCachedInvitationsSync(userEmail: string): Invitation[] | null {
+  const key = `user_invitations_${userEmail}`;
+  
+  try {
+    // Check module cache first (fastest)
+    if (moduleCache[key]) {
+      const cachedData = moduleCache[key];
+      if (Date.now() - cachedData.timestamp <= INVITATION_CACHE_DURATION) {
+        return cachedData.data;
+      }
+    }
+    
+    // Try localStorage
+    const cachedStr = sessionStorage.getItem(key);
+    if (cachedStr) {
+      const cached = JSON.parse(cachedStr) as CachedData<Invitation[]>;
+      if (Date.now() - cached.timestamp <= INVITATION_CACHE_DURATION) {
+        // Update module cache
+        moduleCache[key] = cached;
+        return cached.data;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn('Error in getCachedInvitationsSync:', error);
     return null;
   }
 }
