@@ -161,6 +161,7 @@ serve(async (req) => {
     
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
+    console.log(`Fetching invitations for email: ${normalizedEmail}`);
     
     // 1. Fetch team invitations
     const { data: teamInvitations, error: teamError } = await supabase

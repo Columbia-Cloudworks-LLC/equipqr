@@ -16,6 +16,7 @@ export async function getPendingInvitationsForUser() {
     }
 
     const userEmail = sessionData.session.user.email.toLowerCase();
+    console.log(`Getting invitations for email: ${userEmail}`);
     
     // Use a direct call to an edge function to avoid RLS recursion issues
     const { data, error } = await supabase.functions.invoke('get_user_invitations', {
@@ -48,6 +49,7 @@ export async function getActiveInvitations(retryCount = 0, maxRetries = 1) {
       return [];
     }
     
+    console.log(`Getting active invitations for ${sessionData.session.user.email}`);
     const invitations = await getPendingInvitationsForUser();
     
     // Only retry once if no invitations found initially

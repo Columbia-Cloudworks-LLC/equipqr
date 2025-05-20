@@ -61,10 +61,21 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
       return cachedNotifications.data;
     }
 
-    // Get pending team invitations
+    // Get the current user's email first
+    const { data: authData, error: authError } = await supabase.auth.getSession();
+    if (authError || !authData?.session?.user?.email) {
+      console.log('No authenticated user found or session error:', authError?.message);
+      return [];
+    }
+
+    const userEmail = authData.session.user.email.toLowerCase();
+    console.log('Fetching notifications for user email:', userEmail);
+
+    // Get pending team invitations for this user's email
     const teamResponse = await supabase
       .from('team_invitations')
       .select('*, team:team_id(id, name, org_id)')
+      .eq('email', userEmail)  // Filter by user email
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
       
@@ -72,10 +83,11 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
       throw new Error(`Error fetching team invitations: ${teamResponse.error.message}`);
     }
     
-    // Get pending organization invitations
+    // Get pending organization invitations for this user's email
     const orgResponse = await supabase
       .from('organization_invitations')
       .select('*, organization:org_id(id, name)')
+      .eq('email', userEmail)  // Filter by user email
       .eq('status', 'pending') 
       .order('created_at', { ascending: false });
       
@@ -99,6 +111,8 @@ export async function getActiveNotifications(): Promise<Invitation[]> {
     // Filter out dismissed notifications
     const dismissed = getDismissedNotificationIds();
     const active = all.filter(invite => !dismissed.includes(invite.id));
+    
+    console.log(`Found ${active.length} active invitations for ${userEmail}`);
     
     // Cache the results
     cachedNotifications = {
