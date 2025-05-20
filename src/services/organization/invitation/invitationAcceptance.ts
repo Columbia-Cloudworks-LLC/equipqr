@@ -23,19 +23,26 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
     // Get current user session
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
+      console.error('No authenticated session found');
       return { success: false, error: 'You must be logged in to accept an invitation' };
     }
     
     // Call the edge function to accept the invitation using our retry utility
     const data = await invokeEdgeFunctionWithRetry('accept_organization_invitation', { token }, {
-      maxRetries: 2,
-      timeoutMs: 10000
+      maxRetries: 3,
+      timeoutMs: 10000,
+      onRetry: (attempt, error) => {
+        console.warn(`Retry attempt ${attempt} for accept_organization_invitation:`, error);
+      }
     });
     
     if (!data?.success) {
       console.error('Error in accept_organization_invitation:', data?.error);
       return { success: false, error: data?.error || 'Unknown error accepting invitation' };
     }
+    
+    // Log successful acceptance
+    console.log('Organization invitation accepted successfully:', data);
     
     return {
       success: true,

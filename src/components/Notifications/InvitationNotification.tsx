@@ -8,6 +8,7 @@ import { Check, X, Loader2 } from 'lucide-react';
 import { Invitation } from '@/types/notifications';
 import { useInvitationAcceptance } from '@/hooks/useInvitationAcceptance';
 import { useNotifications } from '@/contexts/NotificationsContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface InvitationNotificationProps {
   invitation: Invitation;
@@ -20,6 +21,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const [isDeclined, setIsDeclined] = useState(false);
   const navigate = useNavigate();
   const { refreshNotifications } = useNotifications();
+  const { refreshOrganizations } = useOrganization();
   const { acceptInvitation } = useInvitationAcceptance();
   
   // Determine if this is a team or organization invitation
@@ -42,24 +44,40 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
       setIsAccepting(true);
       
       // Log what we're doing
-      console.log(`Accepting invitation: ${invitation.token.substring(0, 8)}... (Type: ${isOrgInvitation ? 'organization' : 'team'})`);
+      console.log(`InvitationNotification: Accepting invitation: ${invitation.token.substring(0, 8)}... (Type: ${isOrgInvitation ? 'organization' : 'team'})`);
       
       // Use the updated acceptInvitation hook that handles both invitation types
-      await acceptInvitation(invitation.token, isOrgInvitation ? 'organization' : 'team');
+      const result = await acceptInvitation(invitation.token, isOrgInvitation ? 'organization' : 'team');
       
-      // Call the onAccept callback to update the parent component
-      onAccept();
-      
-      // Update the local state to remove the notification
-      setIsDeclined(true);
-      
-      // Refresh the notifications list
-      setTimeout(() => {
-        refreshNotifications();
-      }, 500);
-      
+      if (result && result.success) {
+        console.log("InvitationNotification: Invitation accepted successfully:", result);
+        
+        // Call the onAccept callback to update the parent component
+        onAccept();
+        
+        // Update the local state to remove the notification
+        setIsDeclined(true);
+        
+        // Refresh the notifications list and organizations
+        await Promise.all([
+          refreshNotifications(),
+          refreshOrganizations()
+        ]);
+        
+        toast.success(`Successfully joined the ${isOrgInvitation ? 'organization' : 'team'}`);
+        
+        // Navigate to the relevant page
+        if (isOrgInvitation) {
+          navigate('/organization');
+        } else {
+          navigate('/teams');
+        }
+      } else {
+        console.error("InvitationNotification: Invitation acceptance failed:", result);
+        toast.error("Failed to accept invitation. Please try again.");
+      }
     } catch (error: any) {
-      console.error("Invitation acceptance error:", error);
+      console.error("InvitationNotification: Invitation acceptance error:", error);
       toast.error(`Failed to accept invitation: ${error.message}`);
     } finally {
       setIsAccepting(false);

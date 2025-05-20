@@ -1,4 +1,15 @@
+
 import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Options for invoking edge functions
+ */
+interface EdgeFunctionOptions {
+  maxRetries?: number;
+  initialDelayMs?: number;
+  timeoutMs?: number;
+  onRetry?: (attempt: number, error: any) => void;
+}
 
 /**
  * Invoke a Supabase Edge Function with timeout handling
@@ -12,6 +23,17 @@ export async function invokeEdgeFunction<T = any>(
   payload: Record<string, any>,
   timeoutMs: number = 5000
 ): Promise<T> {
+  // Get current session - this ensures auth headers are sent
+  const { data: sessionData } = await supabase.auth.getSession();
+  const isAuthenticated = !!sessionData?.session;
+  
+  // Log authentication status for debugging
+  if (!isAuthenticated) {
+    console.warn(`WARNING: Calling edge function ${functionName} without authentication`);
+  } else {
+    console.log(`Calling edge function ${functionName} with authenticated user: ${sessionData.session?.user?.email}`);
+  }
+  
   // Create a promise for the edge function call
   const functionPromise = supabase.functions.invoke(functionName, {
     body: payload
@@ -48,13 +70,9 @@ export async function invokeEdgeFunction<T = any>(
 export async function invokeEdgeFunctionWithRetry<T = any>(
   functionName: string,
   payload: Record<string, any>,
-  config: {
-    maxRetries?: number;
-    initialDelayMs?: number;
-    timeoutMs?: number;
-  } = {}
+  config: EdgeFunctionOptions = {}
 ): Promise<T> {
-  const { maxRetries = 3, initialDelayMs = 500, timeoutMs = 5000 } = config;
+  const { maxRetries = 3, initialDelayMs = 500, timeoutMs = 5000, onRetry } = config;
   
   let lastError: any = null;
   
@@ -71,6 +89,11 @@ export async function invokeEdgeFunctionWithRetry<T = any>(
     } catch (error) {
       console.warn(`Attempt ${attempt + 1}/${maxRetries} failed for ${functionName}:`, error);
       lastError = error;
+      
+      // Call the onRetry callback if provided
+      if (onRetry) {
+        onRetry(attempt + 1, error);
+      }
       
       // If this is a connection error or timeout, continue retrying
       // Otherwise, throw immediately

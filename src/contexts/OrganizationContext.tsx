@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { getAllUserOrganizations, UserOrganization } from '@/services/organization/userOrganizations';
+import { toast } from 'sonner'; // Import toast for user feedback
 
 interface OrganizationContextType {
   organizations: UserOrganization[];
@@ -37,32 +38,41 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     try {
       setIsLoading(true);
       setError(null);
-      // Pass the forceRefresh parameter based on refreshCounter
-      const orgs = await getAllUserOrganizations(refreshCounter > 0);
       
-      console.log('Fetched organizations:', orgs);
+      console.log("OrganizationContext: Fetching organizations...");
+      // Always force refresh when explicitly called
+      const orgs = await getAllUserOrganizations(true);
+      
+      console.log('OrganizationContext: Fetched organizations:', orgs);
       setOrganizations(orgs);
       
       // If no organization is selected yet, select the first one (primary)
       if (!selectedOrganization && orgs.length > 0) {
         const primaryOrg = orgs.find(org => org.is_primary) || orgs[0];
+        console.log('OrganizationContext: Setting primary organization:', primaryOrg);
         setSelectedOrganization(primaryOrg);
       } else if (selectedOrganization) {
         // Make sure the selected organization is still in the list
         const stillExists = orgs.some(org => org.id === selectedOrganization.id);
         if (!stillExists && orgs.length > 0) {
+          console.log('OrganizationContext: Selected organization no longer exists, selecting first available');
           setSelectedOrganization(orgs[0]);
         } else if (stillExists) {
           // Update the selected organization with fresh data
           const updatedOrg = orgs.find(org => org.id === selectedOrganization.id);
           if (updatedOrg) {
+            console.log('OrganizationContext: Updating selected organization with fresh data');
             setSelectedOrganization(updatedOrg);
           }
         }
       }
+      
+      return orgs;
     } catch (error) {
-      console.error('Error fetching organizations:', error);
+      console.error('OrganizationContext: Error fetching organizations:', error);
       setError(error instanceof Error ? error.message : 'Failed to load organizations');
+      toast.error("Failed to load organizations");
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -74,16 +84,20 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   }, [refreshCounter]);
 
   const selectOrganization = (orgId: string) => {
+    console.log('OrganizationContext: Selecting organization:', orgId);
     const org = organizations.find(org => org.id === orgId);
     if (org) {
       setSelectedOrganization(org);
+    } else {
+      console.warn(`OrganizationContext: Attempted to select non-existent organization: ${orgId}`);
     }
   };
 
   const refreshOrganizations = async (): Promise<void> => {
+    console.log('OrganizationContext: Refreshing organizations...');
     setRefreshCounter(prev => prev + 1);
-    // Remove the argument from here - we'll use the refreshCounter in fetchOrganizations
-    return Promise.resolve();
+    // Actually wait for the fetch to complete
+    return fetchOrganizations();
   };
 
   return (

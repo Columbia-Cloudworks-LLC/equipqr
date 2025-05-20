@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Layout } from '@/components/Layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,9 +8,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Mail, Check, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPendingInvitationsForUser } from '@/services/team/notificationService';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 export default function MyInvitations() {
   const { invitations, isLoading, refreshNotifications, resetDismissedNotifications } = useNotificationsSafe();
+  const { refreshOrganizations } = useOrganization();
   const [directInvitations, setDirectInvitations] = useState<any[]>([]);
   const [isDirectLoading, setIsDirectLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -17,12 +20,17 @@ export default function MyInvitations() {
   // Initial load of notifications via context
   useEffect(() => {
     // Refresh notifications when page loads
-    try {
-      refreshNotifications();
-    } catch (error: any) {
-      console.error("Error refreshing notifications:", error);
-      setLoadError(`Failed to load notifications: ${error.message}`);
-    }
+    const loadData = async () => {
+      try {
+        await refreshNotifications();
+        console.log("MyInvitations: Notifications refreshed");
+      } catch (error: any) {
+        console.error("MyInvitations: Error refreshing notifications:", error);
+        setLoadError(`Failed to load notifications: ${error.message}`);
+      }
+    };
+    
+    loadData();
   }, [refreshNotifications]);
   
   // Direct database query as a fallback
@@ -31,12 +39,12 @@ export default function MyInvitations() {
       try {
         setIsDirectLoading(true);
         setLoadError(null);
-        console.log("Loading direct invitations as fallback");
+        console.log("MyInvitations: Loading direct invitations as fallback");
         const invites = await getPendingInvitationsForUser();
-        console.log("Direct invitations loaded:", invites);
+        console.log("MyInvitations: Direct invitations loaded:", invites);
         setDirectInvitations(invites);
       } catch (error: any) {
-        console.error("Error loading direct invitations:", error);
+        console.error("MyInvitations: Error loading direct invitations:", error);
         setLoadError(`Failed to load invitations: ${error.message}`);
       } finally {
         setIsDirectLoading(false);
@@ -57,10 +65,31 @@ export default function MyInvitations() {
   const teamInvitations = displayInvitations.filter(inv => inv.invitationType === 'team' || inv.team);
   const orgInvitations = displayInvitations.filter(inv => inv.invitationType === 'organization' || inv.organization);
   
-  const handleResetAndRefresh = () => {
+  const handleResetAndRefresh = async () => {
     setLoadError(null);
     resetDismissedNotifications();
-    refreshNotifications();
+    try {
+      await Promise.all([
+        refreshNotifications(),
+        refreshOrganizations()
+      ]);
+    } catch (error: any) {
+      console.error("MyInvitations: Error in handleResetAndRefresh:", error);
+      setLoadError(`Failed to refresh: ${error.message}`);
+    }
+  };
+  
+  const handleAcceptInvitation = async () => {
+    try {
+      // Refresh both notifications and organizations
+      await Promise.all([
+        refreshNotifications(),
+        refreshOrganizations()
+      ]);
+    } catch (error: any) {
+      console.error("MyInvitations: Error handling invitation acceptance:", error);
+      setLoadError(`Failed to refresh after acceptance: ${error.message}`);
+    }
   };
 
   return (
@@ -122,7 +151,7 @@ export default function MyInvitations() {
                         <InvitationNotification
                           key={invitation.id}
                           invitation={invitation}
-                          onAccept={() => refreshNotifications()}
+                          onAccept={handleAcceptInvitation}
                           onDecline={() => refreshNotifications()}
                         />
                       ))}
@@ -143,7 +172,7 @@ export default function MyInvitations() {
                         <InvitationNotification
                           key={invitation.id}
                           invitation={invitation}
-                          onAccept={() => refreshNotifications()}
+                          onAccept={handleAcceptInvitation}
                           onDecline={() => refreshNotifications()}
                         />
                       ))}
