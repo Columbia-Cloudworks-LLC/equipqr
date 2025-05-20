@@ -66,22 +66,27 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       const isExternalOrg = equipmentOrgId && userOrgId && equipmentOrgId !== userOrgId;
       
       // Safely handle creator data with proper null checks
-      const creatorDisplayName = typeof note.creator === 'object' && note.creator !== null 
+      // Check if creator exists and is a proper object (not null or undefined)
+      const isValidCreator = typeof note.creator === 'object' && note.creator !== null;
+      
+      // Default values for creator properties
+      const creatorDisplayName = isValidCreator && note.creator.display_name 
         ? note.creator.display_name 
         : "Unknown User";
         
-      const creatorEmail = typeof note.creator === 'object' && note.creator !== null 
+      const creatorEmail = isValidCreator && note.creator.email 
         ? note.creator.email 
         : "unknown@example.com";
         
-      // Build the creator object with proper structure
-      const creator = typeof note.creator === 'object' && note.creator !== null ? {
+      // Build the creator object with proper structure and null checks
+      const creator = isValidCreator ? {
         id: note.creator.id || note.created_by,
         display_name: creatorDisplayName,
         email: creatorEmail
       } : {
         id: note.created_by,
-        display_name: "Unknown User"
+        display_name: "Unknown User",
+        email: "unknown@example.com"
       };
 
       return {
