@@ -16,7 +16,7 @@ export function useNotificationsSafe(): NotificationsContextType {
     isLoading: false,
     hasNewNotifications: false,
     hasError: false,
-    refreshNotifications: async () => { /* no-op */ },
+    refreshNotifications: async () => false,
     dismissInvitation: () => { /* no-op */ },
     resetDismissedNotifications: () => { /* no-op */ }
   }), []);

@@ -23,7 +23,8 @@ export interface NotificationsContextType {
   invitations: Invitation[];
   isLoading: boolean;
   hasNewNotifications: boolean;
-  refreshNotifications: () => Promise<void>;
+  hasError: boolean;
+  refreshNotifications: () => Promise<boolean | void>;
   dismissInvitation: (id: string) => void;
   resetDismissedNotifications: () => void;
 }
