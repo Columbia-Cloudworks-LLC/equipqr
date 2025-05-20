@@ -65,22 +65,31 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       // Determine if this note is from an external organization
       const isExternalOrg = equipmentOrgId && userOrgId && equipmentOrgId !== userOrgId;
       
-      // Safely handle creator data with proper null checks
-      // Check if creator exists and is a proper object (not null or undefined)
-      const isValidCreator = typeof note.creator === 'object' && note.creator !== null;
+      // Properly check if creator is a valid object with expected properties
+      // First, check for error object (which has an error property)
+      const hasErrorProperty = typeof note.creator === 'object' && note.creator !== null && 'error' in note.creator;
       
-      // Default values for creator properties
-      const creatorDisplayName = isValidCreator && note.creator.display_name 
-        ? note.creator.display_name 
-        : "Unknown User";
+      // If creator is an error object or not an object at all, we'll use fallbacks
+      const isValidCreator = typeof note.creator === 'object' && note.creator !== null && !hasErrorProperty;
+      
+      // We need to safely access properties with explicit type narrowing
+      const creatorDisplayName = isValidCreator && 
+        typeof note.creator === 'object' &&
+        'display_name' in note.creator &&
+        note.creator.display_name
+          ? note.creator.display_name 
+          : "Unknown User";
         
-      const creatorEmail = isValidCreator && note.creator.email 
-        ? note.creator.email 
-        : "unknown@example.com";
+      const creatorEmail = isValidCreator && 
+        typeof note.creator === 'object' &&
+        'email' in note.creator &&
+        note.creator.email
+          ? note.creator.email 
+          : "unknown@example.com";
         
       // Build the creator object with proper structure and null checks
       const creator = isValidCreator ? {
-        id: note.creator.id || note.created_by,
+        id: typeof note.creator === 'object' && 'id' in note.creator ? note.creator.id : note.created_by,
         display_name: creatorDisplayName,
         email: creatorEmail
       } : {
