@@ -15,16 +15,20 @@ export async function getPendingOrganizationInvitations(orgId: string): Promise<
       return [];
     }
     
+    console.log(`Fetching pending invitations for org ID: ${orgId}`);
+    
     const { data: invitationsData, error } = await supabase
       .from('organization_invitations')
       .select('*, organization:org_id(name)')
       .eq('org_id', orgId)
-      .eq('status', 'sent');
+      .eq('status', 'pending');  // Changed from 'sent' to 'pending' to match actual database state
       
     if (error) {
       console.error('Error fetching pending invitations:', error);
       return [];
     }
+    
+    console.log(`Found ${invitationsData?.length || 0} pending invitations`);
     
     // Transform data to match OrganizationInvitation type, ensuring role is cast correctly
     const invitations: OrganizationInvitation[] = invitationsData.map(item => ({
@@ -75,7 +79,7 @@ export async function resendOrganizationInvite(invitationId: string): Promise<{
         token: newToken,
         updated_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'sent'
+        status: 'pending' // Keep status as 'pending' to match our retrieval query
       })
       .eq('id', invitationId);
       

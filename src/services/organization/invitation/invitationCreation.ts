@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/supabase-enums';
 import { toast } from '@/hooks/use-toast';
@@ -102,7 +101,7 @@ export async function inviteToOrganization(
     // Get inviter's email for context
     const inviterEmail = sessionData.session.user.email;
     
-    // Create an invitation record
+    // Create an invitation record with status 'pending' to match our retrieval query
     const { data: invitation, error: inviteError } = await supabase
       .from('organization_invitations')
       .insert({
@@ -111,7 +110,7 @@ export async function inviteToOrganization(
         role: role,
         token: token,
         created_by: sessionData.session.user.id,
-        status: 'pending',
+        status: 'pending', // Keep this as 'pending' - we're now querying for 'pending' status
         invited_by_email: inviterEmail
       })
       .select()
@@ -132,12 +131,9 @@ export async function inviteToOrganization(
         role: role
       });
       
-      // Update invitation status to 'sent'
-      await supabase
-        .from('organization_invitations')
-        .update({ status: 'sent' })
-        .eq('id', invitation.id);
-        
+      // We no longer need to update the invitation status to 'sent' - keep it as 'pending'
+      // as that's what our query is now looking for
+      
       return {
         success: true,
         data: {

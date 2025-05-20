@@ -7,7 +7,7 @@ import {
   getPendingOrganizationInvitations, 
   resendOrganizationInvite, 
   cancelOrganizationInvite
-} from '@/services/organization/invitationService';
+} from '@/services/organization/invitation/invitationService';
 import { OrganizationInvitation } from '@/services/organization/invitation/types';
 import { toast } from '@/hooks/use-toast';
 
@@ -30,8 +30,11 @@ const PendingOrganizationInvitations: React.FC<PendingOrganizationInvitationsPro
       if (!organizationId) return;
       
       setLoading(true);
+      console.log(`Fetching pending invitations for org: ${organizationId}`);
+      
       try {
         const invitations = await getPendingOrganizationInvitations(organizationId);
+        console.log(`Retrieved ${invitations.length} pending invitations`);
         setPendingInvitations(invitations);
       } catch (error) {
         console.error('Error fetching pending invitations:', error);
