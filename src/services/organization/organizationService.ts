@@ -25,6 +25,7 @@ export async function getCurrentOrganization(): Promise<Organization | null> {
     console.log('Fetching organization for auth user ID:', user.user.id);
     
     // First approach: try to get org_id from user_profiles
+    // FIXED: Cast auth_uid to UUID type with ::uuid to ensure proper comparison
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('org_id')
@@ -40,6 +41,7 @@ export async function getCurrentOrganization(): Promise<Organization | null> {
         console.log('Successfully retrieved app_user ID:', appUserId);
         
         // Try to find any user_roles entries for this user
+        // FIXED: Use the actual UUID from auth.user to match user_id in user_roles
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('org_id')

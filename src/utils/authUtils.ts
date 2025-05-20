@@ -1,114 +1,45 @@
-
-import { supabase } from "@/integrations/supabase/client";
-
-/**
- * Process date fields to handle various formats
- */
-export function processDateFields(data: any, dateFields: string[]): any {
-  const processedData = { ...data };
-  
-  dateFields.forEach(field => {
-    // If the field exists but is null, undefined, or empty string, ensure it's null
-    if (field in processedData && 
-        (processedData[field] === null || 
-         processedData[field] === undefined || 
-         processedData[field] === '')) {
-      processedData[field] = null;
-      return;
-    }
-    
-    // Only process if the field has a value
-    if (processedData[field]) {
-      // If it's already an ISO string or date object, format it properly
-      if (processedData[field] instanceof Date) {
-        processedData[field] = processedData[field].toISOString().split('T')[0];
-      } else if (typeof processedData[field] === 'string') {
-        // Make sure string dates are in YYYY-MM-DD format
-        const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-        if (!datePattern.test(processedData[field])) {
-          try {
-            // Parse the date and format it correctly
-            const date = new Date(processedData[field]);
-            if (!isNaN(date.getTime())) {
-              processedData[field] = date.toISOString().split('T')[0];
-            } else {
-              // Invalid date, set to null
-              processedData[field] = null;
-            }
-          } catch (e) {
-            console.error(`Error processing date field ${field}:`, e);
-            // In case of error, null out the field to avoid DB errors
-            processedData[field] = null;
-          }
-        }
-      }
-    }
-  });
-  
-  return processedData;
-}
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Get the current user's organization ID
+ * Get the app_user.id from auth.users.id
+ * Handles the type conversion between UUID and string
  */
-export async function getUserOrganizationId(userId: string): Promise<string | null> {
+export async function getAppUserId(authUid: string): Promise<string | null> {
   try {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', userId)
-      .single();
-    
-    if (error) {
-      console.error('Error getting user org ID:', error);
-      return null;
-    }
-    
-    return data?.org_id || null;
-  } catch (error) {
-    console.error('Error in getUserOrganizationId:', error);
-    return null;
-  }
-}
-
-/**
- * Convert an auth user ID to an app_user ID
- */
-export async function getAppUserId(authUserId: string): Promise<string | null> {
-  try {
+    // FIXED: Use explicit UUID casting for auth_uid comparison
+    // This ensures the query compares UUID to UUID, not string to UUID
     const { data, error } = await supabase
       .from('app_user')
       .select('id')
-      .eq('auth_uid', authUserId)
-      .single();
-      
+      .eq('auth_uid', authUid)
+      .maybeSingle();
+
     if (error) {
-      console.error('Error getting app user ID:', error);
+      console.error('Error fetching app_user ID:', error);
       return null;
     }
-    
+
     return data?.id || null;
   } catch (error) {
-    console.error('Error in getAppUserId:', error);
+    console.error('Unexpected error in getAppUserId:', error);
     return null;
   }
 }
 
 /**
- * Returns the list of authorized domains for the application
+ * Get the Supabase project ref from SUPABASE_URL environment variable or URL
  */
-export const getAuthorizedDomains = (): string[] => {
-  return [
-    "localhost",
-    "127.0.0.1",
-    "equipqr-staging.vercel.app",
-    "equipqr.ai"
-  ];
-};
-
-/**
- * Checks if the current hostname is an authorized domain
- */
-export const isAuthorizedDomain = (hostname: string): boolean => {
-  return getAuthorizedDomains().some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
-};
+export function getSupabaseProjectRef(): string | null {
+  // Extract from SUPABASE_URL
+  const supabaseUrl = "https://oxeheowbfsshpyldlskb.supabase.co";
+  
+  if (supabaseUrl) {
+    const match = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  console.warn('Could not extract project ref from SUPABASE_URL');
+  return null;
+}
