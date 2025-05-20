@@ -1,11 +1,13 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { clearEquipmentCache } from '@/services/equipment/equipmentListService';
 import { clearTeamCache } from '@/services/team/retrieval/teamCache';
 import { useQueryClient } from '@tanstack/react-query';
+import { repairSessionStorage } from '@/utils/storageAdapter';
+import { AuthRecovery } from './AuthRecovery';
 
 /**
  * Component to handle authentication redirects
@@ -16,6 +18,10 @@ export function AuthRedirect() {
   const navigate = useNavigate();
   const { user, session, isLoading, checkSession } = useAuth();
   const queryClient = useQueryClient();
+  const [showRecovery, setShowRecovery] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [isRepairing, setIsRepairing] = useState(false);
+  const [repairAttempts, setRepairAttempts] = useState(0);
   
   // Get returnTo path from location state or localStorage
   const state = location.state as { returnTo?: string; message?: string } | undefined;
@@ -29,15 +35,45 @@ export function AuthRedirect() {
       console.log(`User is authenticated, redirecting to ${returnPath}`);
       
       try {
+        // First attempt to repair any storage inconsistencies
+        await repairSessionStorage();
+        
         // Validate session before redirecting
         const isValidSession = await checkSession();
         
         if (!isValidSession) {
           console.error('Session validation failed in AuthRedirect');
-          toast.error('Session Error', {
-            description: 'There was an issue with your authentication. Please try signing in again.'
-          });
-          return;
+          
+          // If we've already attempted repair, show recovery UI
+          if (repairAttempts > 0) {
+            setRecoveryError('Authentication session could not be validated even after repair attempts');
+            setShowRecovery(true);
+            return;
+          }
+          
+          // Try to repair storage
+          setIsRepairing(true);
+          setRepairAttempts(prev => prev + 1);
+          
+          const repaired = await repairSessionStorage();
+          if (repaired) {
+            toast.info('Authentication storage was repaired, checking session again');
+            // Re-check session after repair
+            const isValidAfterRepair = await checkSession();
+            if (!isValidAfterRepair) {
+              // Still not valid after repair
+              setRecoveryError('Session remains invalid after storage repair');
+              setShowRecovery(true);
+              return;
+            }
+          } else {
+            // No repairs made
+            toast.error('Session Error', {
+              description: 'There was an issue with your authentication. Please try signing in again.'
+            });
+            setShowRecovery(true);
+            return;
+          }
         }
         
         // Clear stored return path
@@ -67,9 +103,10 @@ export function AuthRedirect() {
         });
       } catch (error) {
         console.error('Error handling authentication redirect:', error);
-        toast.error('Authentication Error', {
-          description: 'Failed to complete sign-in process. Please try again.'
-        });
+        setRecoveryError('Failed to complete sign-in process due to a technical error');
+        setShowRecovery(true);
+      } finally {
+        setIsRepairing(false);
       }
     };
     
@@ -85,7 +122,28 @@ export function AuthRedirect() {
         });
       }
     }
-  }, [session, isLoading, navigate, returnPath, message, checkSession, queryClient]);
+  }, [session, isLoading, navigate, returnPath, message, checkSession, queryClient, repairAttempts]);
+
+  // Handle retry from recovery component
+  const handleRetry = async () => {
+    setShowRecovery(false);
+    setRepairAttempts(prev => prev + 1);
+    
+    // Force refresh auth state
+    await checkSession();
+  };
+  
+  // If showing recovery UI
+  if (showRecovery) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-muted/20 p-4">
+        <AuthRecovery 
+          message={recoveryError || "There was a problem with your authentication."}
+          onRetry={handleRetry}
+        />
+      </div>
+    );
+  }
   
   // Return null since this is just a redirect component
   return null;

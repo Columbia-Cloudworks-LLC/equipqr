@@ -6,6 +6,9 @@ import { LoginForm } from '@/components/Auth/LoginForm';
 import { SignUpForm } from '@/components/Auth/SignUpForm';
 import { AuthRedirect } from '@/components/Auth/AuthRedirect';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
+import { performFullAuthReset } from '@/utils/authInterceptors';
+import { toast } from 'sonner';
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -23,6 +26,14 @@ export default function Auth() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle troubleshooting button click
+  const handleTroubleshooting = () => {
+    performFullAuthReset();
+    toast.success("Authentication system reset", {
+      description: "All authentication data has been cleared. Please try signing in again."
+    });
   };
 
   return (
@@ -67,6 +78,27 @@ export default function Auth() {
                 />
               </TabsContent>
             </Tabs>
+            
+            <div className="mt-6">
+              <div className="text-center space-y-2">
+                <div>
+                  <Link 
+                    to="/forgot-password"
+                    className="text-sm text-primary hover:text-primary/90 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div>
+                  <button
+                    onClick={handleTroubleshooting}
+                    className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                  >
+                    Having trouble signing in?
+                  </button>
+                </div>
+              </div>
+            </div>
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-xs text-center text-muted-foreground">

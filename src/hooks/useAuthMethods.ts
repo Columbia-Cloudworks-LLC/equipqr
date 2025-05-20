@@ -2,7 +2,7 @@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getSiteUrl, getAuthCallbackUrl } from '@/utils/authCallbackUtils';
-import { resetAuthState } from '@/utils/authInterceptors';
+import { resetAuthState, performFullAuthReset } from '@/utils/authInterceptors';
 
 /**
  * Custom hook providing authentication methods
@@ -140,11 +140,19 @@ export function useAuthMethods() {
           valid: !!sessionData.session 
         } : 'No session');
       
-      // Use signOut with global scope to ensure complete signout
-      await supabase.auth.signOut({ scope: 'global' });
+      // IMPROVED: Use a more comprehensive logout approach
+      try {
+        // First try specific scope
+        await supabase.auth.signOut({ scope: 'local' });
+        
+        // Then try global scope (affects all browser tabs)
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (signOutError) {
+        console.error('Logout: Error during supabase.auth.signOut:', signOutError);
+      }
       
-      // Force manual cleanup of tokens to ensure clean state
-      resetAuthState();
+      // ENHANCED: Use the more thorough cleanup
+      performFullAuthReset();
       
       console.log('Logout: signOut completed successfully');
       
@@ -157,7 +165,7 @@ export function useAuthMethods() {
       console.error('Logout: Error during signOut:', error);
       
       // Even if server-side logout fails, ensure client-side tokens are removed
-      resetAuthState();
+      performFullAuthReset();
       toast.error("There was an issue during sign out, but local tokens have been cleared.");
       
       // Throw the error for upstream handling if needed
