@@ -88,29 +88,32 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       }
       
       // Now we know creator is not null, we can check if it's an error object
+      // Using type assertion to assure TypeScript that note.creator is not null here
+      const creator = note.creator as Record<string, any>;
+      
       const hasErrorProperty = 
-        typeof note.creator === 'object' && 
-        'error' in note.creator;
+        typeof creator === 'object' && 
+        'error' in creator;
       
       // Handle valid creator vs error object
       const isValidCreator = !hasErrorProperty;
       
       // Now we can safely extract properties with appropriate fallbacks
       const creatorDisplayName = isValidCreator && 
-        'display_name' in note.creator &&
-        note.creator.display_name
-          ? note.creator.display_name 
+        'display_name' in creator &&
+        creator.display_name
+          ? creator.display_name 
           : "Unknown User";
         
       const creatorEmail = isValidCreator && 
-        'email' in note.creator &&
-        note.creator.email
-          ? note.creator.email 
+        'email' in creator &&
+        creator.email
+          ? creator.email 
           : "unknown@example.com";
       
       // Create the creator object based on our checks
-      const creator = {
-        id: isValidCreator && 'id' in note.creator ? note.creator.id : note.created_by,
+      const safeCreator = {
+        id: isValidCreator && 'id' in creator ? creator.id : note.created_by,
         display_name: creatorDisplayName,
         email: creatorEmail
       };
@@ -124,7 +127,7 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
         team_name: teamName,
         created_by_name: creatorDisplayName,
         created_by_email: creatorEmail,
-        creator
+        creator: safeCreator
       } as WorkNote;
     });
     
