@@ -37,6 +37,22 @@ export async function retry<T>(
 }
 
 /**
+ * Basic function to invoke a Supabase Edge Function
+ * 
+ * @param functionName Name of the edge function to invoke
+ * @param payload Payload to send to the function
+ * @param timeoutMs Timeout in milliseconds (optional)
+ * @returns The function response data
+ */
+export async function invokeEdgeFunction<T = any>(
+  functionName: string, 
+  payload: any,
+  timeoutMs = 30000
+): Promise<T> {
+  return invokeEdgeFunctionWithRetry<T>(functionName, payload, { timeoutMs });
+}
+
+/**
  * Invoke a Supabase Edge Function with retry capabilities
  * 
  * CRITICAL: This function now explicitly includes the Supabase authentication token
