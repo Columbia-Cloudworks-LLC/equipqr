@@ -65,37 +65,54 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       // Determine if this note is from an external organization
       const isExternalOrg = equipmentOrgId && userOrgId && equipmentOrgId !== userOrgId;
       
-      // Properly check if creator is a valid object with expected properties
-      // First, check for error object (which has an error property)
-      const hasErrorProperty = typeof note.creator === 'object' && note.creator !== null && 'error' in note.creator;
+      // First check if note.creator exists at all
+      if (note.creator === null) {
+        // Handle null creator case directly
+        const fallbackCreator = {
+          id: note.created_by,
+          display_name: "Unknown User",
+          email: "unknown@example.com"
+        };
+
+        return {
+          ...note,
+          is_external_org: isExternalOrg,
+          organization_id: equipmentOrgId,
+          organization_name: isExternalOrg ? "External Organization" : "Your Organization",
+          team_id: teamId,
+          team_name: teamName,
+          created_by_name: "Unknown User",
+          created_by_email: "unknown@example.com",
+          creator: fallbackCreator
+        } as WorkNote;
+      }
       
-      // If creator is an error object or not an object at all, we'll use fallbacks
-      const isValidCreator = typeof note.creator === 'object' && note.creator !== null && !hasErrorProperty;
+      // Now we know creator is not null, we can check if it's an error object
+      const hasErrorProperty = 
+        typeof note.creator === 'object' && 
+        'error' in note.creator;
       
-      // We need to safely access properties with explicit type narrowing
+      // Handle valid creator vs error object
+      const isValidCreator = !hasErrorProperty;
+      
+      // Now we can safely extract properties with appropriate fallbacks
       const creatorDisplayName = isValidCreator && 
-        typeof note.creator === 'object' &&
         'display_name' in note.creator &&
         note.creator.display_name
           ? note.creator.display_name 
           : "Unknown User";
         
       const creatorEmail = isValidCreator && 
-        typeof note.creator === 'object' &&
         'email' in note.creator &&
         note.creator.email
           ? note.creator.email 
           : "unknown@example.com";
-        
-      // Build the creator object with proper structure and null checks
-      const creator = isValidCreator ? {
-        id: typeof note.creator === 'object' && 'id' in note.creator ? note.creator.id : note.created_by,
+      
+      // Create the creator object based on our checks
+      const creator = {
+        id: isValidCreator && 'id' in note.creator ? note.creator.id : note.created_by,
         display_name: creatorDisplayName,
         email: creatorEmail
-      } : {
-        id: note.created_by,
-        display_name: "Unknown User",
-        email: "unknown@example.com"
       };
 
       return {
