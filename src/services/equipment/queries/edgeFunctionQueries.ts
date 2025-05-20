@@ -3,7 +3,7 @@
  * Edge function queries for equipment data
  */
 import { Equipment } from "@/types";
-import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
+import { invokeEdgeFunction } from "@/utils/edgeFunctions";
 import { processEquipmentList } from "../utils/equipmentFormatting";
 import { cacheEquipmentResults } from "../caching/equipmentCache";
 

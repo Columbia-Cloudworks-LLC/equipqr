@@ -2,7 +2,7 @@
 import { PermissionResult } from './types';
 import { checkCreatePermission } from './edgeFunction';
 import { fallbackPermissionCheck, directDatabasePermissionCheck } from './fallbackChecks';
-import { invokeEdgeFunctionWithRetry } from '@/utils/edgeFunctionUtils';
+import { invokeEdgeFunctionWithRetry } from '@/utils/edgeFunctions';
 
 // Re-export the main permission checking functions and types
 export { 

@@ -1,5 +1,5 @@
 
-import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
+import { invokeEdgeFunction } from "@/utils/edgeFunctions";
 import { clearTeamCache, cacheTeams } from "./teamCache";
 
 /**
