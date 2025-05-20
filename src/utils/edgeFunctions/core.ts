@@ -67,8 +67,12 @@ export async function invokeEdgeFunctionWithRetry<T>(
       try {
         console.log(`Invoking Supabase function ${functionName} with auth token`);
         
+        // Now explicitly pass the auth token in headers via the invoke method
         const { data, error } = await supabase.functions.invoke(functionName, {
           body: payload,
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
         });
         
         if (error) {

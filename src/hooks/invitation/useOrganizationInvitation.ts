@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunction } from '@/utils/edgeFunctions';
 import { toast } from 'sonner';
 
 export function useOrganizationInvitation() {
@@ -20,14 +20,8 @@ export function useOrganizationInvitation() {
 
       console.log('Accepting organization invitation with token:', token.substring(0, 8) + '...');
       
-      // Call the edge function to accept the organization invitation
-      const { data, error: fnError } = await supabase.functions.invoke('accept_organization_invitation', {
-        body: { token }
-      });
-
-      if (fnError) {
-        throw new Error(fnError.message || 'Failed to accept organization invitation');
-      }
+      // Call the edge function to accept the organization invitation using our improved edge function utility
+      const data = await invokeEdgeFunction('accept_organization_invitation', { token });
 
       if (!data || data.error) {
         throw new Error(data?.error || 'Invalid response from server');

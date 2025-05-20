@@ -25,7 +25,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const { refreshNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
   const { acceptInvitation } = useInvitationAcceptance();
-  const { user } = useAuth();
+  const { user, checkSession } = useAuth();
   
   // Determine if this is a team or organization invitation
   const isTeamInvitation = invitation.invitationType === 'team' || invitation.team !== null;
@@ -51,6 +51,14 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
     try {
       setIsAccepting(true);
       setError(null);
+      
+      // Verify session is valid before proceeding
+      const sessionValid = await checkSession();
+      if (!sessionValid) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate('/login');
+        return;
+      }
       
       // Log what we're doing
       console.log(`InvitationNotification: Accepting invitation: ${invitation.token.substring(0, 8)}... (Type: ${isOrgInvitation ? 'organization' : 'team'})`);
@@ -101,8 +109,8 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
         }
       } else {
         console.error("InvitationNotification: Invitation acceptance failed:", result);
-        setError("Failed to accept invitation. Please try again.");
-        toast.error("Failed to accept invitation. Please try again.");
+        setError(result?.error || "Failed to accept invitation. Please try again.");
+        toast.error(result?.error || "Failed to accept invitation. Please try again.");
       }
     } catch (error: any) {
       console.error("InvitationNotification: Invitation acceptance error:", error);
@@ -111,7 +119,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
     } finally {
       setIsAccepting(false);
     }
-  }, [invitation.token, isOrgInvitation, user, acceptInvitation, onAccept, refreshNotifications, refreshOrganizations, navigate]);
+  }, [invitation.token, isOrgInvitation, user, acceptInvitation, onAccept, refreshNotifications, refreshOrganizations, navigate, checkSession]);
   
   const handleViewDetails = useCallback(() => {
     const queryParam = isOrgInvitation ? '?type=organization' : '';
