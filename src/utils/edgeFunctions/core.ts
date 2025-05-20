@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { retry } from './retry';
 
 /**
  * Basic function to invoke a Supabase Edge Function
