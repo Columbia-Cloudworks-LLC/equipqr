@@ -13,7 +13,7 @@ export interface Organization {
 export function useWorkNotesQuery(equipmentId: string) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   
-  // Fetch work notes
+  // Fetch work notes with a reasonable staleTime to avoid excessive refetching
   const { 
     data: workNotes = [], 
     isLoading, 
@@ -22,6 +22,7 @@ export function useWorkNotesQuery(equipmentId: string) {
   } = useQuery({
     queryKey: ['workNotes', equipmentId],
     queryFn: () => getWorkNotes(equipmentId),
+    staleTime: 60000, // Consider data fresh for 1 minute
     meta: {
       onError: (err: Error) => {
         console.error('Error fetching work notes:', err);

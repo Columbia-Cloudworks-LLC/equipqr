@@ -15,13 +15,13 @@ interface EdgeFunctionOptions {
  * Invoke a Supabase Edge Function with timeout handling
  * @param functionName Name of the edge function to invoke
  * @param payload JSON payload to send to the function
- * @param timeoutMs Optional timeout in milliseconds (default: 5000ms)
+ * @param timeoutMs Optional timeout in milliseconds (default: 8000ms)
  * @returns Function response data
  */
 export async function invokeEdgeFunction<T = any>(
   functionName: string, 
   payload: Record<string, any>,
-  timeoutMs: number = 8000 // Increased from 5000ms
+  timeoutMs: number = 8000
 ): Promise<T> {
   // Check session before making the request
   const { data: sessionData } = await supabase.auth.getSession();

@@ -28,6 +28,7 @@ export default function EquipmentDetail() {
     queryFn: () => getEquipmentById(id as string),
     enabled: !!id, // only run query if ID is available
     retry: 1, // Only retry once to avoid too many error messages
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
   });
   
   useEffect(() => {

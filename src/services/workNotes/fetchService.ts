@@ -1,82 +1,86 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { WorkNote } from './types';
+import { supabase } from "@/integrations/supabase/client";
+import { WorkNote } from "./types";
 
 /**
- * Fetch work notes for a piece of equipment
+ * Get work notes for an equipment item
+ * @param equipmentId The equipment ID
+ * @returns Array of work notes
  */
 export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
   try {
-    console.log(`Fetching work notes for equipment: ${equipmentId}`);
+    // First check if user has session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('Authentication required to fetch work notes');
+    }
     
+    const userId = sessionData.session.user.id;
+    
+    // Efficient single query with joins to get notes with user data
     const { data, error } = await supabase
       .from('equipment_work_notes')
-      .select('*')
+      .select(`
+        *,
+        creator:created_by (
+          id,
+          display_name,
+          email
+        ),
+        equipment:equipment_id (
+          org_id,
+          team_id,
+          team:team_id (name, org_id)
+        )
+      `)
       .eq('equipment_id', equipmentId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
-    
+      
     if (error) {
       console.error('Error fetching work notes:', error);
-      throw error;
+      throw new Error(`Failed to fetch work notes: ${error.message}`);
     }
     
-    // Process the work notes to match our interface
-    const processedNotes: WorkNote[] = await Promise.all(
-      data.map(async (note) => {
-        try {
-          // Only try to get user info if we have a created_by value
-          if (note.created_by) {
-            const { data: userData } = await supabase
-              .from('user_profiles')
-              .select('display_name, org_id')
-              .eq('id', note.created_by)
-              .single();
-              
-            if (userData) {
-              // Try to get organization name
-              const { data: orgData } = await supabase
-                .from('organization')
-                .select('name')
-                .eq('id', userData.org_id)
-                .single();
-                
-              return {
-                ...note,
-                organization_id: userData.org_id,
-                organization_name: orgData?.name || 'Unknown Organization',
-                is_external_org: false, // Default to false
-                creator: {
-                  id: note.created_by,
-                  display_name: userData.display_name || 'Unknown User',
-                  org: orgData ? {
-                    id: userData.org_id,
-                    name: orgData.name
-                  } : undefined
-                }
-              };
-            }
-          }
-          
-          // Return note without creator info if we couldn't get it
-          return {
-            ...note,
-            is_external_org: false
-          };
-        } catch (err) {
-          console.log('Error fetching user info for note:', err);
-          return {
-            ...note,
-            is_external_org: false
-          };
-        }
-      })
-    );
+    if (!data || data.length === 0) {
+      return [];
+    }
     
-    console.log(`Found ${processedNotes.length} work notes`);
+    // Get user profile to determine own organization
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', userId)
+      .single();
+      
+    const userOrgId = userProfile?.org_id;
+    
+    // Process notes with additional metadata
+    const processedNotes = data.map(note => {
+      const equipmentOrgId = note.equipment?.org_id;
+      const teamId = note.equipment?.team_id;
+      const teamOrgId = note.equipment?.team?.org_id;
+      const teamName = note.equipment?.team?.name;
+      
+      // Determine if this note is from an external organization
+      const isExternalOrg = equipmentOrgId && userOrgId && equipmentOrgId !== userOrgId;
+      
+      return {
+        ...note,
+        is_external_org: isExternalOrg,
+        organization_id: equipmentOrgId,
+        organization_name: isExternalOrg ? "External Organization" : "Your Organization",
+        team_id: teamId,
+        team_name: teamName,
+        // Replace potentially missing values with defaults
+        created_by_name: note.creator?.display_name || "Unknown User",
+        created_by_email: note.creator?.email || "unknown@example.com"
+      } as WorkNote;
+    });
+    
     return processedNotes;
-  } catch (err) {
-    console.error('Error in getWorkNotes:', err);
-    throw new Error(`Failed to fetch work notes: ${err.message}`);
+  } catch (error) {
+    console.error('Error in getWorkNotes:', error);
+    throw error;
   }
 }

@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { getEquipmentAttributes } from "./attributesService";
+import { invokeEdgeFunctionWithRetry } from "@/utils/edgeFunctionUtils";
 
 interface PermissionResponse {
   has_permission: boolean;
@@ -14,6 +15,26 @@ interface PermissionResponse {
  */
 export async function getEquipmentById(id: string): Promise<Equipment> {
   try {
+    // Create a cache key for this specific equipment ID
+    const cacheKey = `equipment_details_${id}`;
+    const cachedData = sessionStorage.getItem(cacheKey);
+    
+    // Check if we have cached data that's less than 5 minutes old
+    if (cachedData) {
+      try {
+        const { data, timestamp } = JSON.parse(cachedData);
+        const now = Date.now();
+        // Cache valid for 5 minutes
+        if (now - timestamp < 5 * 60 * 1000) {
+          console.log('Using cached equipment details');
+          return data as Equipment;
+        }
+      } catch (e) {
+        console.error('Error parsing cached equipment data:', e);
+        // Continue with fresh fetch if cache parsing fails
+      }
+    }
+    
     // Get current user's auth ID
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
@@ -29,25 +50,38 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const authUserId = sessionData.session.user.id;
     console.log('Getting equipment by ID. Auth user ID:', authUserId);
     
-    // Verify access to this equipment using our edge function
-    const { data: accessCheck, error: accessCheckError } = await supabase.functions.invoke('check_equipment_permission', {
-      body: {
+    // Use more reliable edge function with retry
+    const accessResponse = await invokeEdgeFunctionWithRetry<PermissionResponse>(
+      'check_equipment_permission', 
+      {
         user_id: authUserId,
         equipment_id: id,
         action: 'view'
+      },
+      { maxRetries: 1 }
+    ).catch(async (error) => {
+      console.warn('Edge function failed, falling back to direct database check:', error);
+      
+      // Fall back to direct database query for permissions
+      const { data, error: permError } = await supabase.rpc(
+        'rpc_check_equipment_permission',
+        { 
+          user_id: authUserId, 
+          action: 'view',
+          equipment_id: id
+        }
+      );
+      
+      if (permError) {
+        console.error('Permission check failed:', permError);
+        throw new Error('Failed to verify access permissions');
       }
+      
+      return data as PermissionResponse;
     });
     
-    if (accessCheckError) {
-      console.error('Error checking equipment access:', accessCheckError);
-      throw new Error(`Access check failed: ${accessCheckError.message}`);
-    }
-    
-    const response = accessCheck as PermissionResponse;
-    console.log('Permission check response:', response);
-    
-    if (!response || !response.has_permission) {
-      console.error('User does not have access to this equipment. Reason:', response?.reason);
+    if (!accessResponse || !accessResponse.has_permission) {
+      console.error('User does not have access to this equipment. Reason:', accessResponse?.reason);
       throw new Error('You do not have permission to view this equipment');
     }
     
@@ -78,29 +112,45 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const userOrgId = userProfile?.org_id;
     const isExternalOrg = equipment.team?.org_id && userOrgId && equipment.team.org_id !== userOrgId;
     
-    // Check if user has edit permissions
-    const { data: editCheck, error: editError } = await supabase.functions.invoke('check_equipment_permission', {
-      body: {
+    // Check edit permissions - use the same retry function
+    const editResponse = await invokeEdgeFunctionWithRetry<PermissionResponse>(
+      'check_equipment_permission', 
+      {
         user_id: authUserId,
         equipment_id: id,
         action: 'edit'
+      },
+      { maxRetries: 1 }
+    ).catch(async (error) => {
+      console.warn('Edit permission check via edge function failed, falling back:', error);
+      
+      // Fall back to direct database query for edit permissions
+      const { data, error: permError } = await supabase.rpc(
+        'rpc_check_equipment_permission',
+        { 
+          user_id: authUserId, 
+          action: 'edit',
+          equipment_id: id
+        }
+      );
+      
+      if (permError) {
+        console.error('Edit permission check failed:', permError);
+        return { has_permission: false };
       }
+      
+      return data as PermissionResponse;
     });
     
-    if (editError) {
-      console.error('Error checking edit permission:', editError);
-    }
-    
-    const editResponse = editCheck as PermissionResponse;
     const canEdit = editResponse?.has_permission || false;
     console.log('Edit permission check result:', editResponse);
     
-    // Then fetch the attributes
+    // Then fetch the attributes efficiently
     const attributes = await getEquipmentAttributes(id);
     console.log('Equipment attributes fetched:', attributes);
     
-    // Return equipment with attributes and extra info
-    return {
+    // Build the complete equipment object
+    const fullEquipment = {
       ...equipment,
       team_name: equipment.team?.name || null, 
       org_name: equipment.org?.name || 'Unknown Organization',
@@ -108,6 +158,18 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       can_edit: canEdit,
       attributes
     } as Equipment;
+    
+    // Cache the result for 5 minutes
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        data: fullEquipment,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.warn('Failed to cache equipment details:', e);
+    }
+    
+    return fullEquipment;
   } catch (error) {
     console.error('Error in getEquipmentById:', error);
     throw error;
