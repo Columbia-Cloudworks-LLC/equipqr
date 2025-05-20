@@ -1,246 +1,187 @@
-import { supabase } from "@/integrations/supabase/client";
+import { cacheGet, cacheStore } from './storage/clientCache';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Options for invoking edge functions
+ * Retry an asynchronous operation with a backoff strategy.
+ *
+ * @param fn The function to execute.
+ * @param options Retry configuration options.
+ * @returns A promise that resolves with the result of the function or rejects after maximum retries.
  */
-interface EdgeFunctionOptions {
-  maxRetries?: number;
-  initialDelayMs?: number;
-  timeoutMs?: number;
-  onRetry?: (attempt: number, error: any) => void;
-}
-
-/**
- * Cache configuration for edge functions
- */
-interface EdgeFunctionCacheOptions {
-  /** Enable caching for this call */
-  useCache?: boolean;
-  /** Cache duration in seconds (default: 60) */
-  cacheDuration?: number;
-  /** Cache key prefix (default: function name) */
-  cachePrefix?: string;
-  /** Function to determine cache key from payload */
-  cacheKeyFn?: (payload: Record<string, any>) => string;
-  /** Skip the actual call if cached data exists */
-  useStaleWhileRevalidate?: boolean;
-}
-
-/**
- * Invoke a Supabase Edge Function with timeout handling
- * @param functionName Name of the edge function to invoke
- * @param payload JSON payload to send to the function
- * @param timeoutMs Optional timeout in milliseconds (default: 8000ms)
- * @returns Function response data
- */
-export async function invokeEdgeFunction<T = any>(
-  functionName: string, 
-  payload: Record<string, any>,
-  timeoutMs: number = 8000
+export async function retry<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries: number;
+    retryDelay: number;
+    onRetry?: (attempt: number, error: any) => void;
+    onSuccess?: (result: T) => void;
+  }
 ): Promise<T> {
-  // Check session before making the request
-  const { data: sessionData } = await supabase.auth.getSession();
-  const isAuthenticated = !!sessionData?.session;
-  
-  // Log authentication status for debugging
-  if (!isAuthenticated) {
-    console.warn(`WARNING: Calling edge function ${functionName} without authentication`);
-    // Don't proceed if authentication is required but missing
-    if (functionName !== 'health_check') { // Allow specific functions to run without auth
-      throw new Error('Authentication required to call this edge function');
-    }
-  } else {
-    console.log(`Calling edge function ${functionName} with authenticated user: ${sessionData.session?.user?.email}`);
-  }
-  
-  // Create a promise for the edge function call
-  const functionPromise = supabase.functions.invoke(functionName, {
-    body: payload
-  });
-  
-  // Create a timeout promise
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error(`Edge function ${functionName} timed out after ${timeoutMs}ms`)), timeoutMs);
-  });
-  
-  try {
-    // Race the function call against the timeout
-    const result = await Promise.race([functionPromise, timeoutPromise]) as any;
-    
-    if (result.error) {
-      console.error(`Error invoking edge function ${functionName}:`, result.error);
-      throw new Error(result.error.message || `${functionName} failed`);
-    }
-    
-    return result.data as T;
-  } catch (error) {
-    console.error(`Failed to invoke edge function ${functionName}:`, error);
-    throw error;
-  }
-}
-
-/**
- * Invoke a Supabase Edge Function with retry logic and circuit breaker pattern
- * @param functionName Name of the edge function to invoke
- * @param payload JSON payload to send to the function
- * @param config Retry configuration
- * @returns Function response data
- */
-export async function invokeEdgeFunctionWithRetry<T = any>(
-  functionName: string,
-  payload: Record<string, any>,
-  config: EdgeFunctionOptions = {}
-): Promise<T> {
-  const { 
-    maxRetries = 2, 
-    initialDelayMs = 1000, 
-    timeoutMs = 8000, 
-    onRetry 
-  } = config;
-  
-  // Check circuit breaker - if too many failures, don't even try
-  const now = Date.now();
-  const breakerState = circuitBreakerState[functionName] || { failures: 0, lastFailure: 0, backoffUntil: 0 };
-  
-  // If circuit is open (too many recent failures), wait before retrying
-  if (breakerState.failures >= 5 && now < breakerState.backoffUntil) {
-    console.warn(`Circuit breaker open for ${functionName} - skipping call until ${new Date(breakerState.backoffUntil).toISOString()}`);
-    throw new Error(`Function ${functionName} temporarily unavailable due to repeated failures. Try again later.`);
-  }
-  
-  let lastError: any = null;
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  let attempt = 0;
+  while (attempt <= options.maxRetries) {
     try {
-      // Exponential backoff delay after the first attempt
-      if (attempt > 0) {
-        const delayMs = initialDelayMs * Math.pow(2, attempt - 1);
-        console.log(`Retry attempt ${attempt}/${maxRetries} for ${functionName} after ${delayMs}ms`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-      
-      const result = await invokeEdgeFunction<T>(functionName, payload, timeoutMs);
-      
-      // Success - reset circuit breaker for this function
-      if (breakerState.failures > 0) {
-        circuitBreakerState[functionName] = { failures: 0, lastFailure: 0, backoffUntil: 0 };
-      }
-      
+      const result = await fn();
+      options.onSuccess?.(result);
       return result;
-    } catch (error) {
-      console.warn(`Attempt ${attempt + 1}/${maxRetries + 1} failed for ${functionName}:`, error);
-      lastError = error;
-      
-      // Call the onRetry callback if provided
-      if (onRetry) {
-        onRetry(attempt + 1, error);
-      }
-      
-      // Update circuit breaker state
-      circuitBreakerState[functionName] = {
-        failures: breakerState.failures + 1,
-        lastFailure: now,
-        backoffUntil: now + Math.min(breakerState.failures * 5000, 60000) // Increasing backoff up to 1 minute
-      };
-      
-      // If this is a connection error or timeout, continue retrying
-      // Otherwise, throw immediately
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const isRetryableError = errorMessage.includes('timeout') || 
-                              errorMessage.includes('network') ||
-                              errorMessage.includes('connection');
-      
-      if (!isRetryableError && attempt > 0) {
+    } catch (error: any) {
+      if (attempt === options.maxRetries) {
         throw error;
       }
+      attempt++;
+      options.onRetry?.(attempt, error);
+      await new Promise((resolve) => setTimeout(resolve, options.retryDelay));
     }
   }
-  
-  // If we got here, all attempts failed
-  throw lastError || new Error(`All ${maxRetries + 1} attempts failed for ${functionName}`);
+  throw new Error("Max retries exceeded"); // Should not happen, but keeps TS happy
 }
 
 /**
- * Invoke a Supabase Edge Function with caching support
- * @param functionName Name of the edge function to invoke
- * @param payload JSON payload to send to the function
- * @param cacheOptions Cache configuration options
- * @returns Function response data
+ * Invoke a Supabase Edge Function with retry capabilities
+ *
+ * @param functionName The name of the edge function to invoke
+ * @param payload The payload to send to the function
+ * @param options Configuration options for retries
+ * @returns The function response data
  */
-export async function invokeEdgeFunctionWithCache<T = any>(
-  functionName: string, 
-  payload: Record<string, any>,
-  cacheOptions: EdgeFunctionCacheOptions = {}
+export async function invokeEdgeFunctionWithRetry<T>(
+  functionName: string,
+  payload: any,
+  options: {
+    maxRetries?: number;
+    retryDelay?: number;
+    onRetry?: (attempt: number, error: any) => void;
+		onSuccess?: (data: T) => void;
+    timeoutMs?: number;
+  } = {}
 ): Promise<T> {
-  // Import cache utilities dynamically to avoid circular dependencies
-  const { cacheGet, cacheStore, getCacheKey } = await import('./storage/clientCache');
-  
-  // Setup cache options with defaults
-  const options = {
-    useCache: true,
-    cacheDuration: 60, // 1 minute default
-    cachePrefix: `edge_${functionName}_`,
-    useStaleWhileRevalidate: false,
-    ...cacheOptions
-  };
-  
-  // Generate cache key from function name and payload
-  const cacheKeyFn = options.cacheKeyFn || 
-    (p => getCacheKey(options.cachePrefix, p));
-  const cacheKey = cacheKeyFn(payload);
-  
-  // Try to get from cache first
-  if (options.useCache) {
-    const cachedData = cacheGet<T>(cacheKey, {
-      duration: options.cacheDuration,
-      prefix: options.cachePrefix
-    });
+  const { maxRetries = 3, retryDelay = 1000, onRetry, onSuccess, timeoutMs = 30000 } = options;
+
+  return await retry<T>(
+    async () => {
+      // Add a timeout to the fetch call
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(`/api/${functionName}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error?.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const data: T = await response.json();
+				onSuccess?.(data);
+        return data;
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error(`Request timed out after ${timeoutMs}ms`);
+        }
+        throw error;
+      }
+    },
+    {
+      maxRetries,
+      retryDelay,
+      onRetry,
+    }
+  );
+}
+
+/**
+ * Invoke a Supabase Edge Function with caching and retry capabilities
+ * 
+ * @param functionName The name of the edge function to invoke
+ * @param payload The payload to send to the function
+ * @param options Configuration options for caching and retries
+ * @returns The function response data
+ */
+export async function invokeEdgeFunctionWithCache<T>(
+  functionName: string,
+  payload: any,
+  options: {
+    useCache?: boolean,
+    cacheDuration?: number, // in seconds
+    maxRetries?: number,
+    retryDelay?: number, // in ms
+    cachePrefix?: string,
+    cacheKeyFn?: (payload: any) => string,
+    useStaleWhileRevalidate?: boolean
+  } = {}
+): Promise<T> {
+  const {
+    useCache = true,
+    cacheDuration = 60, // Default 60 seconds
+    maxRetries = 2,
+    retryDelay = 1000,
+    cachePrefix = 'edge_fn_',
+    cacheKeyFn,
+    useStaleWhileRevalidate = false
+  } = options;
+
+  // Generate a cache key from the function name and payload
+  const generateKey = () => {
+    if (cacheKeyFn) {
+      return cacheKeyFn(payload);
+    }
     
-    if (cachedData) {
-      console.log(`[CACHE HIT] ${functionName}`, { cacheKey });
+    try {
+      return `${cachePrefix}${functionName}_${JSON.stringify(payload)}`;
+    } catch (e) {
+      // Fallback for non-serializable arguments
+      return `${cachePrefix}${functionName}_${Date.now().toString()}`;
+    }
+  };
+
+  const cacheKey = generateKey();
+  
+  // Try to get from cache first if caching is enabled
+  if (useCache) {
+    const cached = cacheGet<T>(cacheKey, { duration: cacheDuration, prefix: cachePrefix });
+    if (cached) {
+      console.log(`Cache hit for edge function ${functionName}`);
       
-      // If using stale-while-revalidate, return cached data immediately
-      if (options.useStaleWhileRevalidate) {
-        // Trigger a refresh in the background
+      // If stale-while-revalidate is enabled, refresh the cache in the background
+      if (useStaleWhileRevalidate) {
         setTimeout(() => {
-          invokeEdgeFunction<T>(functionName, payload)
-            .then(freshData => {
-              cacheStore<T>(cacheKey, freshData, {
-                duration: options.cacheDuration,
-                prefix: options.cachePrefix
+          console.log(`Background refresh for ${functionName}`);
+          invokeEdgeFunctionWithRetry<T>(functionName, payload, { 
+            maxRetries, 
+            retryDelay,
+            onSuccess: (data) => {
+              cacheStore<T>(cacheKey, data, { 
+                duration: cacheDuration, 
+                prefix: cachePrefix 
               });
-              console.log(`[CACHE REFRESH] ${functionName}`, { cacheKey });
-            })
-            .catch(err => console.warn(`[CACHE REFRESH FAILED] ${functionName}`, err));
-        }, 100);
-        
-        return cachedData;
+            }
+          }).catch(e => console.error(`Background refresh failed for ${functionName}:`, e));
+        }, 10); // Very short delay to not block the main thread
       }
       
-      return cachedData;
+      return cached;
     }
   }
+
+  // Cache miss or caching disabled, invoke the function with retries
+  const data = await invokeEdgeFunctionWithRetry<T>(functionName, payload, {
+    maxRetries,
+    retryDelay
+  });
   
-  // No cache hit, call the function
-  console.log(`[CACHE MISS] ${functionName}`, { cacheKey });
-  const result = await invokeEdgeFunction<T>(functionName, payload);
-  
-  // Store in cache for next time
-  if (options.useCache) {
-    cacheStore<T>(cacheKey, result, {
-      duration: options.cacheDuration,
-      prefix: options.cachePrefix
-    });
+  // Store in cache if caching is enabled
+  if (useCache && data) {
+    cacheStore<T>(cacheKey, data, { duration: cacheDuration, prefix: cachePrefix });
   }
   
-  return result;
+  return data;
 }
-
-/**
- * Circuit breaker state - tracks failed calls to prevent continuous failures
- */
-const circuitBreakerState: Record<string, {
-  failures: number;
-  lastFailure: number;
-  backoffUntil: number;
-}> = {};

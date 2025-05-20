@@ -35,15 +35,36 @@ const responseCache = new Map<string, CacheEntry>();
 const CACHE_TTL = 60000; // 60 second cache TTL
 const CACHE_CLEANUP_INTERVAL = 300000; // Clean up every 5 minutes
 
+// Track invitations count per user for rate limiting
+interface RateLimitState {
+  count: number;
+  resetAt: number;
+  firstRequestAt: number;
+}
+
+const rateLimits = new Map<string, RateLimitState>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute window
+const RATE_LIMIT_MAX = 10; // Max 10 requests per minute per user
+const RATE_LIMIT_CLEANUP_INTERVAL = 600000; // Clean up rate limit records every 10 minutes
+
 // Clean up old cache entries periodically
 setInterval(() => {
   const now = Date.now();
+  
+  // Clean cache
   for (const [key, entry] of responseCache.entries()) {
     if (now - entry.timestamp > CACHE_TTL) {
       responseCache.delete(key);
     }
   }
-}, CACHE_CLEANUP_INTERVAL);
+  
+  // Clean rate limits
+  for (const [key, state] of rateLimits.entries()) {
+    if (now > state.resetAt) {
+      rateLimits.delete(key);
+    }
+  }
+}, Math.min(CACHE_CLEANUP_INTERVAL, RATE_LIMIT_CLEANUP_INTERVAL));
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -60,6 +81,47 @@ serve(async (req) => {
     
     // Generate cache key from email
     const cacheKey = email.toLowerCase().trim();
+    
+    // Apply rate limiting
+    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimitKey = `${cacheKey}:${clientIp}`;
+    
+    // Check if user is rate limited
+    if (rateLimits.has(rateLimitKey)) {
+      const limitState = rateLimits.get(rateLimitKey)!;
+      const now = Date.now();
+      
+      // Reset rate limit if window has passed
+      if (now > limitState.resetAt) {
+        rateLimits.set(rateLimitKey, {
+          count: 1,
+          resetAt: now + RATE_LIMIT_WINDOW,
+          firstRequestAt: now
+        });
+      } else {
+        // Increment count within window
+        limitState.count++;
+        
+        // If exceeded limit, return 429
+        if (limitState.count > RATE_LIMIT_MAX) {
+          const retryAfterSecs = Math.ceil((limitState.resetAt - now) / 1000);
+          return createResponse(
+            { error: 'Rate limit exceeded. Please try again later.' },
+            429,
+            { 'Retry-After': `${retryAfterSecs}` }
+          );
+        }
+        
+        rateLimits.set(rateLimitKey, limitState);
+      }
+    } else {
+      // First request from this user/IP
+      rateLimits.set(rateLimitKey, {
+        count: 1,
+        resetAt: Date.now() + RATE_LIMIT_WINDOW,
+        firstRequestAt: Date.now()
+      });
+    }
     
     // Check for If-None-Match header for conditional requests
     const ifNoneMatch = req.headers.get('If-None-Match');

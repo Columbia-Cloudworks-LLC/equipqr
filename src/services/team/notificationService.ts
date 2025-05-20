@@ -83,6 +83,19 @@ export async function getPendingInvitationsForUser(): Promise<Invitation[]> {
       return [];
     }
     
+    // Cache key based on user email for client-side caching
+    const cacheKey = `direct_invitations_${userEmail}`;
+    
+    // Try to get cached invitations first
+    const cachedInvitations = getCachedInvitations(cacheKey);
+    if (cachedInvitations) {
+      console.log(`Using cached direct DB invitations for ${userEmail}`);
+      
+      // Filter out dismissed invitations
+      const dismissed = await loadDismissedNotifications();
+      return cachedInvitations.filter(inv => !dismissed.includes(inv.id));
+    }
+    
     // Get dismissed notification IDs
     const dismissedIds = await loadDismissedNotifications();
     
@@ -149,6 +162,9 @@ export async function getPendingInvitationsForUser(): Promise<Invitation[]> {
       });
     }
     
+    // Cache the invitations for future use
+    cacheInvitations(cacheKey, allInvitations);
+    
     console.log(`Found ${allInvitations.length} active invitations (direct DB call)`);
     return allInvitations;
   } catch (error) {
@@ -176,4 +192,49 @@ export function dismissNotification(id: string): void {
  */
 export function clearLocalDismissedNotifications(): void {
   clearAllDismissedNotifications();
+}
+
+// Client-side cache
+interface CachedData<T> {
+  data: T;
+  timestamp: number;
+}
+
+const INVITATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Helper to cache invitations in memory
+function cacheInvitations(key: string, invitations: Invitation[]): void {
+  try {
+    // We'll use sessionStorage for persistence between page navigations
+    const cachedData: CachedData<Invitation[]> = {
+      data: invitations,
+      timestamp: Date.now()
+    };
+    
+    sessionStorage.setItem(key, JSON.stringify(cachedData));
+  } catch (error) {
+    console.error('Error caching invitations:', error);
+  }
+}
+
+// Helper to get cached invitations
+function getCachedInvitations(key: string): Invitation[] | null {
+  try {
+    const cached = sessionStorage.getItem(key);
+    
+    if (!cached) return null;
+    
+    const cachedData = JSON.parse(cached) as CachedData<Invitation[]>;
+    
+    // Check if cache is still valid
+    if (Date.now() - cachedData.timestamp > INVITATION_CACHE_DURATION) {
+      sessionStorage.removeItem(key);
+      return null;
+    }
+    
+    return cachedData.data;
+  } catch (error) {
+    console.error('Error retrieving cached invitations:', error);
+    return null;
+  }
 }

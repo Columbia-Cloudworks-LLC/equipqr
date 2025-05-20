@@ -1,166 +1,211 @@
-
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuTrigger,
+  DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuItem
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Bell, ExternalLink, AlertCircle, RotateCcw } from 'lucide-react';
-import { InvitationNotification } from "./InvitationNotification";
-import { useNotificationsSafe } from "@/hooks/useNotificationsSafe";
-import { useAuth } from "@/contexts/AuthContext";
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import {
+  Bell,
+  BellOff,
+  CheckCircle2,
+  Loader2,
+  Mail,
+  XCircle,
+} from "lucide-react"
+import { Link } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { useEffect, useState } from "react"
+import { Invitation } from "@/types/notifications"
+import { toast } from "sonner"
+import { useNotifications } from "@/contexts/NotificationsContext"
+import { formatDistanceToNow } from 'date-fns';
+import { clearLocalDismissedNotifications, dismissNotification } from "@/services/team/notificationService"
+import { Button } from "../ui/button"
+import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
+// Define a throttling interval to prevent too frequent refreshes
+const REFRESH_THROTTLE_MS = 10000; // 10 seconds
+
+// Modified function component to include optimizations
 export function NotificationDropdown() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [refreshAttempted, setRefreshAttempted] = useState(false);
-  const { 
-    invitations, 
-    isLoading, 
-    hasNewNotifications, 
-    refreshNotifications, 
-    dismissInvitation,
-    resetDismissedNotifications,
-    isRefreshPending
-  } = useNotificationsSafe();
+  const { invitations, isLoading, hasNewNotifications, refreshNotifications } = useNotificationsSafe();
   const { user } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const lastRefreshTime = useRef<number>(0);
+  const refreshTimeoutRef = useRef<number | null>(null);
   
-  // Track last open time to implement a cooldown between refreshes
-  const [lastOpenTime, setLastOpenTime] = useState<number>(0);
-  const OPEN_REFRESH_COOLDOWN = 30000; // 30 seconds
+  // Clear any pending timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
   
-  // Fetch invitations when dropdown is opened, with cooldown
-  const handleOpenChange = async (open: boolean) => {
+  // Refresh notifications when dropdown opens, but throttle the refreshes
+  const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     
     if (open && user) {
-      setRefreshAttempted(true);
       const now = Date.now();
       
-      // Only refresh if it's been more than the cooldown period since last open
-      if (now - lastOpenTime > OPEN_REFRESH_COOLDOWN) {
-        setLastOpenTime(now); 
-        try {
-          await refreshNotifications();
-        } catch (error) {
-          console.error("Error refreshing notifications on open:", error);
+      // Only refresh if enough time has passed since the last refresh
+      if (now - lastRefreshTime.current > REFRESH_THROTTLE_MS) {
+        lastRefreshTime.current = now;
+        
+        // Use a small delay to prevent refreshing if user is just quickly hovering
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
         }
-      } else {
-        console.log("Skipping refresh on open - cooldown active");
+        
+        refreshTimeoutRef.current = window.setTimeout(() => {
+          refreshNotifications();
+          refreshTimeoutRef.current = null;
+        }, 150);
       }
     }
   };
-
-  // Reset the refresh attempted flag when closed
-  useEffect(() => {
-    if (!isOpen) {
-      setRefreshAttempted(false);
-    }
-  }, [isOpen]);
-
-  const handleAccept = () => {
-    refreshNotifications();
-  };
-
-  const handleDismiss = (id: string) => {
-    dismissInvitation(id);
-  };
   
-  const handleManualRefresh = async () => {
-    setLastOpenTime(Date.now());
-    try {
-      await refreshNotifications();
-      setRefreshAttempted(true);
-    } catch (error) {
-      console.error("Error manually refreshing notifications:", error);
-    }
-  };
-
-  // Filter out any accepted invitations 
-  const pendingInvitations = invitations.filter(inv => 
-    inv.status === undefined || inv.status === 'pending'
-  );
-
-  // Don't render the notification bell if there's no authenticated user
+  // Don't render the dropdown for unauthenticated users
   if (!user) {
     return null;
   }
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
+    <DropdownMenu onOpenChange={handleOpenChange} open={isOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {hasNewNotifications && (
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          {hasNewNotifications ? (
+            <Bell className="h-5 w-5" />
+          ) : (
+            <BellOff className="h-5 w-5" />
           )}
           <span className="sr-only">Notifications</span>
+          {hasNewNotifications ? (
+            <Badge
+              variant="secondary"
+              className="absolute -top-0 -right-0.5 rounded-full px-1 text-xs"
+            >
+              {invitations.length}
+            </Badge>
+          ) : null}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <div className="py-2 px-4 font-medium border-b flex justify-between items-center">
-          <span>Notifications</span>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleManualRefresh} 
-            disabled={isLoading || isRefreshPending}
-            className="h-6 w-6"
-          >
-            <RotateCcw className={`h-3.5 w-3.5 ${(isLoading || isRefreshPending) ? 'animate-spin' : ''}`} />
-            <span className="sr-only">Refresh</span>
-          </Button>
+      <DropdownMenuContent className="w-80">
+        <div className="flex flex-col space-y-1 p-2">
+          <p className="text-sm font-medium leading-none">Notifications</p>
+          <p className="text-sm text-muted-foreground">
+            {isLoading
+              ? "Loading notifications..."
+              : invitations.length > 0
+              ? `You have ${invitations.length} notifications.`
+              : "No notifications yet."}
+          </p>
         </div>
-        <div className="max-h-96 overflow-y-auto">
-          {(isLoading || isRefreshPending) ? (
-            <div className="p-4 flex justify-center">
-              <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
-            </div>
-          ) : pendingInvitations.length > 0 ? (
-            pendingInvitations.map((invitation) => (
-              <InvitationNotification
-                key={invitation.id}
-                invitation={invitation}
-                onAccept={handleAccept}
-                onDecline={() => handleDismiss(invitation.id)}
-              />
-            ))
-          ) : refreshAttempted ? (
-            <div className="p-4 text-center text-muted-foreground">
-              No new notifications
-            </div>
-          ) : (
-            <div className="p-4 text-center text-muted-foreground">
-              Click refresh to check for new notifications
-            </div>
-          )}
-        </div>
-        {pendingInvitations.length > 0 && (
+        <DropdownMenuSeparator />
+        {isLoading ? (
+          <DropdownMenuItem className="justify-center">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <span>Loading...</span>
+          </DropdownMenuItem>
+        ) : invitations.length > 0 ? (
           <>
+            {invitations.map((invitation) => (
+              <DropdownMenuItem key={invitation.id}>
+                <InvitationItem invitation={invitation} />
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link to="/my-invitations" className="flex w-full items-center justify-center py-2 font-medium">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View all invitations
-              </Link>
+            <DropdownMenuItem
+              onClick={() => {
+                clearLocalDismissedNotifications()
+                refreshNotifications()
+                toast.success("Notifications reset.")
+              }}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Reset Notifications
             </DropdownMenuItem>
           </>
+        ) : (
+          <DropdownMenuItem className="justify-center">
+            <span>No new notifications</span>
+          </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link to="/my-invitations" className="flex w-full items-center justify-center py-2 text-sm text-muted-foreground">
-            <AlertCircle className="mr-2 h-3 w-3" />
-            Check all invitations
+          <Link to="/my-invitations" className="w-full">
+            View All
           </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={resetDismissedNotifications} className="flex w-full items-center justify-center py-2 text-xs text-muted-foreground">
-          <RotateCcw className="mr-1 h-3 w-3" />
-          Reset notification status
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
+}
+
+interface InvitationItemProps {
+  invitation: Invitation
+}
+
+function InvitationItem({ invitation }: InvitationItemProps) {
+  const { refreshNotifications } = useNotifications()
+  const [isDismissing, setIsDismissing] = useState(false)
+
+  const handleDismiss = async (id: string) => {
+    setIsDismissing(true)
+    try {
+      dismissNotification(id)
+      await refreshNotifications()
+      toast.success("Notification dismissed.")
+    } catch (error) {
+      console.error("Error dismissing notification:", error)
+      toast.error("Failed to dismiss notification.")
+    } finally {
+      setIsDismissing(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-between space-x-2">
+      <div className="flex items-center space-x-2">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src="/avatars/0.png" alt="Avatar" />
+          <AvatarFallback>
+            {invitation.email.substring(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium leading-none">
+            {invitation.invitationType === "team"
+              ? `Team Invitation: ${invitation.team?.name}`
+              : `Organization Invitation: ${invitation.organization?.name}`}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {invitation.email} -{" "}
+            {formatDistanceToNow(new Date(invitation.created_at), {
+              addSuffix: true,
+            })}
+          </p>
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleDismiss(invitation.id)}
+        disabled={isDismissing}
+      >
+        {isDismissing ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <XCircle className="h-4 w-4" />
+        )}
+        <span className="sr-only">Dismiss</span>
+      </Button>
+    </div>
+  )
 }
