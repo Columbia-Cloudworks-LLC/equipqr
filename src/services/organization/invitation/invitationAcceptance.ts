@@ -27,6 +27,22 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
       return { success: false, error: 'You must be logged in to accept an invitation' };
     }
     
+    // Add detailed logging
+    console.log('Session found with user:', {
+      email: sessionData.session.user.email,
+      id: sessionData.session.user.id
+    });
+    console.log('Invitation is for:', invitation.email);
+    
+    // Email validation - case insensitive comparison
+    if (sessionData.session.user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
+      console.error('Email mismatch between session and invitation');
+      return { 
+        success: false, 
+        error: `This invitation was sent to ${invitation.email}. You are currently logged in as ${sessionData.session.user.email}.` 
+      };
+    }
+    
     // Call the edge function to accept the invitation using our retry utility
     const data = await invokeEdgeFunctionWithRetry('accept_organization_invitation', { token }, {
       maxRetries: 3,
@@ -36,6 +52,7 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
       }
     });
     
+    // Check for errors in the response
     if (!data?.success) {
       console.error('Error in accept_organization_invitation:', data?.error);
       return { success: false, error: data?.error || 'Unknown error accepting invitation' };

@@ -10,6 +10,9 @@ import { InvitationError } from '../components/Invitation/InvitationError';
 import { InvitationValidating } from '../components/Invitation/InvitationStatus';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const InvitationPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -17,11 +20,13 @@ const InvitationPage: React.FC = () => {
   const invitationType = searchParams.get('type') || 'team';
   const { refreshNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
+  const { user, isLoading: authLoading } = useAuth();
   
-  const { isValidating, isValid, error, invitation, user, isAuthLoading } = useInvitationValidation(token || '');
+  const { isValidating, isValid, error, invitation, user: inviteeUser, isAuthLoading } = useInvitationValidation(token || '');
   const { acceptInvitation, isAccepting, acceptError } = useInvitationAcceptance();
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [acceptedSuccessfully, setAcceptedSuccessfully] = useState(false);
+  const [waitingForAuth, setWaitingForAuth] = useState(false);
 
   useEffect(() => {
     console.log(`Invitation page loaded for token: ${token?.substring(0, 8)}... (Type: ${invitationType})`);
@@ -32,9 +37,36 @@ const InvitationPage: React.FC = () => {
       isAuthLoading,
       isAccepting,
       hasAcceptError: Boolean(acceptError),
-      invitation
+      invitation,
+      isAuthenticated: !!user
     });
-  }, [token, invitationType, isValidating, isValid, error, isAuthLoading, isAccepting, acceptError, invitation]);
+    
+    // When the page loads, check if we need to wait for authentication
+    if (!user && !authLoading && invitation) {
+      console.log('User not authenticated but invitation exists - waiting for authentication');
+      setWaitingForAuth(true);
+    } else if (user && waitingForAuth) {
+      console.log('User now authenticated - can proceed with invitation');
+      setWaitingForAuth(false);
+    }
+  }, [token, invitationType, isValidating, isValid, error, isAuthLoading, 
+      isAccepting, acceptError, invitation, user, authLoading, waitingForAuth]);
+
+  // Check session validity periodically when waiting for auth
+  useEffect(() => {
+    if (waitingForAuth) {
+      const checkSessionInterval = setInterval(async () => {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          console.log('Session now detected - can proceed with invitation');
+          setWaitingForAuth(false);
+          clearInterval(checkSessionInterval);
+        }
+      }, 2000);
+      
+      return () => clearInterval(checkSessionInterval);
+    }
+  }, [waitingForAuth]);
 
   // Combine errors for display
   useEffect(() => {
@@ -71,7 +103,16 @@ const InvitationPage: React.FC = () => {
     }
   }, [acceptedSuccessfully, refreshNotifications, refreshOrganizations]);
 
-  if (isValidating || isAuthLoading) {
+  if (waitingForAuth) {
+    return (
+      <InvitationError 
+        error="Please login to accept this invitation" 
+        suggestion="You'll need to sign in or create an account before accepting this invitation."
+      />
+    );
+  }
+
+  if (isValidating || isAuthLoading || authLoading) {
     return <InvitationValidating />;
   }
 
@@ -84,29 +125,59 @@ const InvitationPage: React.FC = () => {
   }
 
   const handleAcceptInvitation = async () => {
+    if (!user) {
+      toast.error("You must be logged in to accept invitations");
+      setWaitingForAuth(true);
+      return;
+    }
+
     try {
       console.log(`Accepting invitation: ${token?.substring(0, 8)}... (Type: ${invitationType})`);
+      console.log(`Current user: ${user?.email}, Invitation for: ${invitation.email}`);
+      
       const result = await acceptInvitation(token || '', invitationType);
       
       if (result && result.success) {
         console.log("Invitation accepted successfully:", result);
         setAcceptedSuccessfully(true);
-        // Explicitly refresh data
-        await Promise.all([
-          refreshNotifications(),
-          refreshOrganizations()
-        ]);
+        
+        // Explicitly refresh data with retry logic
+        let refreshAttempts = 0;
+        const maxRefreshAttempts = 3;
+        
+        const attemptRefresh = async () => {
+          try {
+            refreshAttempts++;
+            console.log(`Refreshing data attempt ${refreshAttempts}/${maxRefreshAttempts}`);
+            await Promise.all([
+              refreshNotifications(),
+              refreshOrganizations()
+            ]);
+            console.log("Data refreshed successfully after invitation acceptance");
+          } catch (error) {
+            console.error("Error refreshing data:", error);
+            if (refreshAttempts < maxRefreshAttempts) {
+              console.log(`Retrying refresh in ${refreshAttempts * 1000}ms`);
+              setTimeout(attemptRefresh, refreshAttempts * 1000);
+            }
+          }
+        };
+        
+        // Start the refresh process
+        attemptRefresh();
       } else {
         console.error("Invitation acceptance failed:", result);
+        setProcessingError("Failed to accept invitation. Please try again.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in handleAcceptInvitation:', error);
+      setProcessingError(error.message || "An unexpected error occurred");
     }
   };
 
   return (
     <InvitationContent 
-      invitationType={invitationType || invitation.type || 'team'}
+      invitationType={invitationType === 'organization' ? 'organization' : 'team'}
       invitationDetails={invitation} 
       onAccept={handleAcceptInvitation}
       token={token || ''}

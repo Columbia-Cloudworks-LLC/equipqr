@@ -9,6 +9,7 @@ import { Invitation } from '@/types/notifications';
 import { useInvitationAcceptance } from '@/hooks/useInvitationAcceptance';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface InvitationNotificationProps {
   invitation: Invitation;
@@ -23,6 +24,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const { refreshNotifications } = useNotifications();
   const { refreshOrganizations } = useOrganization();
   const { acceptInvitation } = useInvitationAcceptance();
+  const { user } = useAuth();
   
   // Determine if this is a team or organization invitation
   const isTeamInvitation = invitation.invitationType === 'team' || invitation.team !== null;
@@ -40,14 +42,23 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   }
   
   const handleAccept = async () => {
+    if (!user) {
+      toast.error("You must be logged in to accept invitations");
+      return;
+    }
+    
     try {
       setIsAccepting(true);
       
       // Log what we're doing
       console.log(`InvitationNotification: Accepting invitation: ${invitation.token.substring(0, 8)}... (Type: ${isOrgInvitation ? 'organization' : 'team'})`);
+      console.log('Current auth state:', { email: user?.email });
+      
+      // Explicitly use correct invitation type
+      const invitationType = isOrgInvitation ? 'organization' : 'team';
       
       // Use the updated acceptInvitation hook that handles both invitation types
-      const result = await acceptInvitation(invitation.token, isOrgInvitation ? 'organization' : 'team');
+      const result = await acceptInvitation(invitation.token, invitationType);
       
       if (result && result.success) {
         console.log("InvitationNotification: Invitation accepted successfully:", result);
@@ -58,11 +69,25 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
         // Update the local state to remove the notification
         setIsDeclined(true);
         
-        // Refresh the notifications list and organizations
-        await Promise.all([
-          refreshNotifications(),
-          refreshOrganizations()
-        ]);
+        // Refresh with retry mechanism
+        const refreshWithRetry = async (retryCount = 0) => {
+          try {
+            console.log(`Refreshing data after invitation acceptance (attempt ${retryCount + 1})`);
+            await Promise.all([
+              refreshNotifications(),
+              refreshOrganizations()
+            ]);
+            console.log("Data refreshed successfully");
+          } catch (err) {
+            console.error("Error refreshing data:", err);
+            if (retryCount < 2) {
+              console.log(`Will retry refresh in ${(retryCount + 1) * 1000}ms`);
+              setTimeout(() => refreshWithRetry(retryCount + 1), (retryCount + 1) * 1000);
+            }
+          }
+        };
+        
+        refreshWithRetry();
         
         toast.success(`Successfully joined the ${isOrgInvitation ? 'organization' : 'team'}`);
         

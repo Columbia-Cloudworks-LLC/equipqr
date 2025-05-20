@@ -9,19 +9,34 @@ import { Mail, Check, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPendingInvitationsForUser } from '@/services/team/notificationService';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function MyInvitations() {
   const { invitations, isLoading, refreshNotifications, resetDismissedNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
+  const { user, isLoading: authLoading } = useAuth();
   const [directInvitations, setDirectInvitations] = useState<any[]>([]);
   const [isDirectLoading, setIsDirectLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshAttempts, setRefreshAttempts] = useState(0);
 
   // Initial load of notifications via context
   useEffect(() => {
+    // Don't try to load anything until auth is settled
+    if (authLoading) {
+      console.log("MyInvitations: Waiting for authentication to complete");
+      return;
+    }
+    
     // Refresh notifications when page loads
     const loadData = async () => {
+      if (!user) {
+        console.log("MyInvitations: No authenticated user, skipping refresh");
+        return;
+      }
+      
       try {
+        console.log("MyInvitations: Refreshing notifications for authenticated user");
         await refreshNotifications();
         console.log("MyInvitations: Notifications refreshed");
       } catch (error: any) {
@@ -31,10 +46,15 @@ export default function MyInvitations() {
     };
     
     loadData();
-  }, [refreshNotifications]);
+  }, [refreshNotifications, user, authLoading]);
   
   // Direct database query as a fallback
   useEffect(() => {
+    // Skip if there's no authenticated user or we're still checking auth
+    if (!user || authLoading) {
+      return;
+    }
+    
     const loadDirectInvitations = async () => {
       try {
         setIsDirectLoading(true);
@@ -55,11 +75,11 @@ export default function MyInvitations() {
     if (!isLoading && invitations.length === 0) {
       loadDirectInvitations();
     }
-  }, [isLoading, invitations]);
+  }, [isLoading, invitations, user, authLoading]);
   
   // Use direct invitations if context invitations are empty
   const displayInvitations = invitations.length > 0 ? invitations : directInvitations;
-  const loading = isLoading || isDirectLoading;
+  const loading = isLoading || isDirectLoading || authLoading;
   
   // Count team and org invitations
   const teamInvitations = displayInvitations.filter(inv => inv.invitationType === 'team' || inv.team);
@@ -67,20 +87,36 @@ export default function MyInvitations() {
   
   const handleResetAndRefresh = async () => {
     setLoadError(null);
+    setRefreshAttempts(prev => prev + 1);
     resetDismissedNotifications();
+    
+    if (!user) {
+      setLoadError("You must be logged in to view invitations");
+      return;
+    }
+    
     try {
+      console.log("MyInvitations: Performing full data refresh");
       await Promise.all([
         refreshNotifications(),
         refreshOrganizations()
       ]);
+      console.log("MyInvitations: Full data refresh completed");
     } catch (error: any) {
       console.error("MyInvitations: Error in handleResetAndRefresh:", error);
       setLoadError(`Failed to refresh: ${error.message}`);
+      
+      // If we've tried less than 3 times, try again with a delay
+      if (refreshAttempts < 3) {
+        console.log(`MyInvitations: Will retry refresh in ${refreshAttempts * 1000 + 1000}ms`);
+        setTimeout(() => handleResetAndRefresh(), refreshAttempts * 1000 + 1000);
+      }
     }
   };
   
   const handleAcceptInvitation = async () => {
     try {
+      console.log("MyInvitations: Refreshing data after invitation acceptance");
       // Refresh both notifications and organizations
       await Promise.all([
         refreshNotifications(),
@@ -91,6 +127,22 @@ export default function MyInvitations() {
       setLoadError(`Failed to refresh after acceptance: ${error.message}`);
     }
   };
+  
+  // Show authentication required message if not logged in
+  if (!user && !authLoading) {
+    return (
+      <Layout>
+        <div className="flex-1 space-y-6 p-6">
+          <Alert variant="destructive">
+            <AlertTitle>Authentication Required</AlertTitle>
+            <AlertDescription>
+              You need to be logged in to view your invitations. Please sign in and try again.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
