@@ -16,3 +16,8 @@ export function getSupabaseProjectRef(): string | null {
   console.warn('Could not extract project ref from SUPABASE_URL');
   return null;
 }
+
+/**
+ * Re-export from main authUtils for backward compatibility
+ */
+export { processDateFields, getAppUserId } from '@/utils/authUtils';
