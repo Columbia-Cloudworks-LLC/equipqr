@@ -1,44 +1,70 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { sendInvitationEmail, generateToken } from "./invitationHelpers";
 
 /**
- * Resend a team invitation email to a user
- * @param invitationId - The ID of the invitation to resend
- * @returns Promise resolving to true if successful
+ * Resend an invitation to a pending team member
  */
-export async function resendTeamInvitation(invitationId: string): Promise<boolean> {
+export async function resendInvite(invitationId: string) {
   try {
-    // Get the current user's session
+    // Get the invitation details using direct query instead of joins that might trigger recursion
+    const { data: invitation, error: getError } = await supabase
+      .from('team_invitations')
+      .select('*')
+      .eq('id', invitationId)
+      .single();
+      
+    if (getError || !invitation) {
+      console.error('Error getting invitation:', getError);
+      throw new Error('Failed to find the invitation.');
+    }
+    
+    // Get team details separately to avoid join recursion
+    const { data: team, error: teamError } = await supabase
+      .from('team')
+      .select('name')
+      .eq('id', invitation.team_id)
+      .single();
+      
+    if (teamError) {
+      console.error('Error getting team details:', teamError);
+      throw new Error('Failed to get team details.');
+    }
+    
+    // Generate a new token and update the invitation
+    const newToken = await generateToken();
+    
+    const { error: updateError } = await supabase
+      .from('team_invitations')
+      .update({ 
+        token: newToken,
+        updated_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      })
+      .eq('id', invitationId);
+      
+    if (updateError) {
+      console.error('Error updating invitation:', updateError);
+      throw new Error(`Failed to update invitation: ${updateError.message}`);
+    }
+
+    // Get current user's email for the from field
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to resend invitations');
-    }
+    const currentUserEmail = sessionData?.session?.user?.email || invitation.invited_by_email;
     
-    // Use the edge function to resend the invitation
-    const { data: result, error } = await supabase.functions.invoke('resend_team_invitation', {
-      body: {
-        invitation_id: invitationId,
-        requester_id: sessionData.session.user.id
-      }
+    // Send the invitation email with the new token
+    await sendInvitationEmail({
+      recipientEmail: invitation.email,
+      teamName: team.name,
+      inviterEmail: currentUserEmail,
+      token: newToken,
+      action: "resend",
+      role: invitation.role
     });
     
-    if (error) {
-      console.error('Error resending invitation:', error);
-      throw new Error(`Failed to resend invitation: ${error.message}`);
-    }
-    
-    if (!result?.success) {
-      const reason = result?.reason || 'unknown error';
-      throw new Error(`Failed to resend invitation: ${reason}`);
-    }
-    
-    return true;
+    return { success: true };
   } catch (error: any) {
-    console.error('Error in resendTeamInvitation:', error);
-    toast.error('Could not resend invitation', {
-      description: error.message || 'Please try again later'
-    });
-    throw error;
+    console.error('Error in resendInvite:', error);
+    throw new Error(`Resend invitation failed: ${error.message}`);
   }
 }

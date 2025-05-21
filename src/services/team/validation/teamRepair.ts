@@ -1,89 +1,55 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction } from "@/utils/edgeFunctions/core";
 import { retry } from "@/utils/edgeFunctions/retry";
-import { toast } from 'sonner';
-
-interface RepairResult {
-  success: boolean;
-  team_member_id?: string;
-  error?: string;
-}
+import { toast } from "sonner";
 
 /**
- * Repair team membership by adding the current user as a manager
- * @param teamId The team ID to repair
- * @returns Result of the repair operation
+ * Repairs team membership if there's an issue with the user's access
  */
-export async function repairTeamMembership(teamId: string): Promise<RepairResult> {
+export async function repairTeamMembership(teamId: string): Promise<boolean> {
+  if (!teamId) {
+    console.log("No team ID provided for repair");
+    return false;
+  }
+
   try {
-    if (!teamId) {
-      throw new Error("Team ID is required");
-    }
+    console.log(`Attempting to repair team membership for team: ${teamId}`);
     
-    // Get current user ID
+    // First, get session to ensure user is authenticated
     const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    
-    if (!userId) {
-      throw new Error("User not authenticated");
+    if (!sessionData?.session?.user?.id) {
+      console.log('No authenticated user for team repair');
+      return false;
     }
     
-    console.log(`Attempting to repair team membership for user ${userId} on team ${teamId}`);
+    // Attempt repair through edge function
+    const { data, error } = await retry(() => 
+      supabase.functions.invoke('repair_team_membership', {
+        body: { team_id: teamId }
+      }), 3, 200);
     
-    // Check if the team exists and get its organization
-    const { data: teamData, error: teamError } = await supabase
-      .from('team')
-      .select('id, org_id')
-      .eq('id', teamId)
-      .is('deleted_at', null)
-      .single();
-      
-    if (teamError || !teamData) {
-      console.error('Error finding team:', teamError);
-      throw new Error(teamError?.message || "Team not found");
+    if (error) {
+      console.error('Team repair error:', error);
+      toast.error("Repair failed", {
+        description: "Could not repair team access."
+      });
+      return false;
     }
     
-    // Use edge function with admin rights to add user to team
-    try {
-      const result = await retry(
-        () => invokeEdgeFunction('add_team_member', {
-          _team_id: teamId,
-          _user_id: userId,
-          _role: 'manager', // Default to manager for repairs
-          _added_by: userId
-        }),
-        {
-          maxRetries: 2,
-          retryDelay: 1000
-        }
-      );
-      
-      if (!result || !result.success) {
-        throw new Error(result?.error || "Failed to repair team membership");
-      }
-      
-      console.log('Team membership repaired successfully:', result);
-      
-      return {
-        success: true,
-        team_member_id: result.team_member_id
-      };
-    } catch (error: any) {
-      console.error('Error repairing team membership:', error);
-      throw new Error(error.message || "Failed to repair team membership");
+    if (data?.repaired === true) {
+      console.log('Team membership successfully repaired');
+      toast.success("Access restored", {
+        description: "Your team access has been repaired."
+      });
+      return true;
+    } else {
+      console.log('Team repair was not needed or not possible');
+      return false;
     }
-  } catch (error: any) {
-    console.error('Error in repairTeamMembership:', error);
-    
-    // Show toast for user feedback
-    toast.error("Failed to repair team membership", {
-      description: error.message || "Unknown error occurred"
+  } catch (error) {
+    console.error('Team repair attempt failed:', error);
+    toast.error("Repair failed", {
+      description: "An error occurred while trying to repair team access."
     });
-    
-    return {
-      success: false,
-      error: error.message || "Unknown error occurred"
-    };
+    return false;
   }
 }

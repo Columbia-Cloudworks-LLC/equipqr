@@ -1,210 +1,137 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunctionWithRetry } from "@/utils/edgeFunctions/core";
 import { retry } from "@/utils/edgeFunctions/retry";
-import { TeamAccessResult, TeamAccessDetailedResult } from './types';
+import { toast } from "sonner";
+import { Team } from "@/services/team";
+
+export interface TeamAccessDetails {
+  hasAccess: boolean;
+  role: string | null;
+  isOwner: boolean;
+  teamData: Team | null;
+}
 
 /**
- * Validate a user's membership in a team using our improved non-recursive function
- * @param teamId The team ID to validate
- * @param userId Optional user ID (defaults to current user)
- * @returns Object with validation results 
+ * Validates if a user has access to a team by checking team membership
  */
-export async function validateTeamMembership(teamId: string, userId?: string) {
+export async function validateTeamMembership(teamId: string): Promise<boolean> {
+  if (!teamId) {
+    console.log("No team ID provided for validation");
+    return false;
+  }
+
   try {
-    if (!teamId) {
-      throw new Error("Team ID is required");
-    }
+    console.log(`Validating membership for team: ${teamId}`);
     
-    // Get current user if not provided
-    if (!userId) {
-      const { data } = await supabase.auth.getSession();
-      userId = data.session?.user?.id;
-      
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
-    }
-    
-    console.log(`Validating team membership: userId=${userId}, teamId=${teamId}`);
-    
-    // Use our improved validate_team_access edge function with retries for reliability
+    // First attempt: Try edge function
     try {
-      const data = await retry(
-        () => invokeEdgeFunctionWithRetry<TeamAccessResult>('validate_team_access', {
-          team_id: teamId,
-          user_id: userId
-        }, { maxRetries: 2 }), 
-        {
-          maxRetries: 2,
-          retryDelay: 1000,
-          onRetry: (attempt, error) => {
-            console.warn(`Retry ${attempt} for team membership validation:`, error);
-          }
-        }
-      );
+      const { data, error } = await retry(() => 
+        supabase.functions.invoke('validate_team_access', {
+          body: { team_id: teamId }
+        }), 3, 200);
+      
+      if (error) {
+        console.error('Error from validate_team_access function:', error);
+        throw error;
+      }
       
       console.log('Team access validation result:', data);
+      return data?.has_access === true;
+    } catch (edgeFnError) {
+      console.error('Edge function validation failed, falling back to direct query:', edgeFnError);
       
-      // Type assertion to ensure TypeScript recognizes data as TeamAccessResult
-      const typedData = data as TeamAccessResult;
-      
-      return {
-        isValid: typedData?.is_member === true,
-        result: typedData || null
-      };
-    } catch (error) {
-      console.error('Team membership validation error:', error);
-      
-      // Fallback to simpler function if edge function fails
-      console.log('Trying fallback validation method...');
-      const { data: fallbackResult, error: fallbackError } = await supabase.rpc(
-        'check_team_access_nonrecursive',
-        { p_user_id: userId, p_team_id: teamId }
-      );
-      
-      if (fallbackError) {
-        console.error('Fallback validation error:', fallbackError);
-        throw new Error(fallbackError.message);
+      // Fallback: Try direct query
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user?.id) {
+        console.log('No authenticated user for team access check');
+        return false;
       }
       
-      console.log('Fallback validation result:', fallbackResult);
+      const userId = session.session.user.id;
       
-      return {
-        isValid: fallbackResult === true,
-        result: { 
-          is_member: fallbackResult === true,
-          access_reason: 'fallback_check'
-        } as TeamAccessResult
-      };
+      // Check for team membership
+      const { data: membership, error: membershipError } = await retry(() => 
+        supabase
+          .from('team_member')
+          .select('id')
+          .eq('team_id', teamId)
+          .eq('user_id', userId)
+          .single(), 3, 200);
+      
+      if (membershipError) {
+        console.error('Membership check failed:', membershipError);
+        return false;
+      }
+      
+      return Boolean(membership?.id);
     }
-  } catch (error: any) {
-    console.error('Error in validateTeamMembership:', error);
-    // Return a safe default to prevent breaking the UI
-    return {
-      isValid: false,
-      result: {
-        is_member: false,
-        access_reason: 'error_validation_failed'
-      } as TeamAccessResult,
-      error: error.message
-    };
+  } catch (error) {
+    console.error('Team membership validation failed:', error);
+    return false;
   }
 }
 
 /**
- * Get detailed team access information for a user using our improved non-recursive function
- * @param userId User ID to check
- * @param teamId Team ID to check
- * @returns Detailed access information
+ * Checks if a user can assign a specific role within a team
  */
-export async function getTeamAccessDetails(userId: string, teamId: string) {
+export async function canAssignTeamRole(teamId: string, role: string): Promise<boolean> {
   try {
-    if (!userId || !teamId) {
-      throw new Error("User ID and Team ID are required");
+    const accessDetails = await getTeamAccessDetails(teamId);
+    
+    if (!accessDetails.hasAccess) {
+      console.log('User does not have access to the team');
+      return false;
     }
     
-    console.log(`Getting team access details: userId=${userId}, teamId=${teamId}`);
-    
-    // Try the edge function with proper error handling
-    try {
-      const data = await retry(
-        () => invokeEdgeFunctionWithRetry<TeamAccessResult>('validate_team_access', {
-          team_id: teamId,
-          user_id: userId
-        }, { maxRetries: 2 }),
-        {
-          maxRetries: 2,
-          retryDelay: 1000
-        }
-      );
-      
-      console.log('Team access details from edge function:', data);
-      
-      // Explicitly type the data to ensure type safety
-      const typedData = data as TeamAccessResult;
-      
-      return {
-        isMember: typedData?.is_member === true,
-        hasOrgAccess: typedData?.has_org_access === true,
-        hasCrossOrgAccess: typedData?.has_cross_org_access === true,
-        teamMemberId: typedData?.team_member_id,
-        accessReason: typedData?.access_reason,
-        role: typedData?.role,
-        // Use optional chaining and provide a null fallback for org_role
-        orgRole: typedData?.org_role || null,
-        team: typedData?.team,
-        orgName: typedData?.org_name,
-        error: null
-      };
-    } catch (error) {
-      console.error('Error using edge function for team access details:', error);
-      
-      // Fallback to direct database query
-      console.log('Trying fallback access details method...');
-      const { data: fallbackData, error: fallbackError } = await supabase.rpc(
-        'check_team_access_detailed',
-        { user_id: userId, team_id: teamId }
-      );
-      
-      if (fallbackError) {
-        console.error('Error in fallback team access details:', fallbackError);
-        throw new Error('Failed to check team access');
-      }
-      
-      console.log('Fallback access details result:', fallbackData);
-      
-      // Extract first row from the result array since RPC returns an array
-      const resultRow = fallbackData && fallbackData.length > 0 ? fallbackData[0] : null;
-      
-      if (!resultRow) {
-        console.error('No access details returned from fallback');
-        throw new Error('No access details returned');
-      }
-      
-      const typedRow = resultRow as TeamAccessDetailedResult;
-      
-      // Get the user's organization role if they belong to the team's organization
-      let orgRole = null;
-      if (typedRow.user_org_id === typedRow.team_org_id) {
-        try {
-          const { data: roleData } = await supabase.rpc(
-            'get_org_role',
-            { p_auth_user_id: userId, p_org_id: typedRow.team_org_id }
-          );
-          orgRole = roleData;
-        } catch (roleError) {
-          console.warn('Failed to get org role:', roleError);
-        }
-      }
-      
-      return {
-        isMember: typedRow.has_access === true,
-        hasOrgAccess: typedRow.user_org_id === typedRow.team_org_id,
-        hasCrossOrgAccess: false,
-        teamMemberId: null,
-        accessReason: typedRow.access_reason || 'fallback_detailed_check',
-        role: typedRow.team_role || null,
-        orgRole: orgRole,
-        team: null,
-        orgName: null,
-        error: null
-      };
+    // Only managers and owners can assign roles
+    if (accessDetails.role !== 'manager' && accessDetails.role !== 'owner') {
+      console.log('User does not have permission to assign roles');
+      return false;
     }
-  } catch (error: any) {
-    console.error('Error in getTeamAccessDetails:', error);
-    // Return default values with proper error flag
+    
+    // Owners can assign any role, managers can only assign viewer roles
+    if (accessDetails.role === 'manager' && role !== 'viewer') {
+      console.log('Manager can only assign viewer roles');
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking role assignment permission:', error);
+    return false;
+  }
+}
+
+/**
+ * Gets detailed information about a user's access to a team
+ */
+export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDetails> {
+  if (!teamId) {
+    console.log("No team ID provided for access details");
+    return { hasAccess: false, role: null, isOwner: false, teamData: null };
+  }
+
+  try {
+    console.log(`Getting access details for team: ${teamId}`);
+    
+    const { data, error } = await retry(() => 
+      supabase.functions.invoke('validate_team_access', {
+        body: { team_id: teamId }
+      }), 3, 200);
+    
+    if (error) {
+      console.error('Error from validate_team_access function:', error);
+      throw error;
+    }
+    
+    console.log('Team access details:', data);
     return {
-      isMember: false,
-      hasOrgAccess: false,
-      hasCrossOrgAccess: false,
-      teamMemberId: null,
-      accessReason: 'error',
-      role: null,
-      orgRole: null,
-      team: null,
-      orgName: null,
-      error: error.message
+      hasAccess: data?.has_access === true,
+      role: data?.role || null,
+      isOwner: data?.is_owner === true,
+      teamData: data?.team_data as Team | null
     };
+  } catch (error) {
+    console.error('Failed to get team access details:', error);
+    return { hasAccess: false, role: null, isOwner: false, teamData: null };
   }
 }

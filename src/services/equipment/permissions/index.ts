@@ -1,51 +1,79 @@
+import { supabase } from "@/integrations/supabase/client";
+import { retry } from "@/utils/edgeFunctions/retry";
 
-import { PermissionResult } from './types';
-import { checkCreatePermission } from './edgeFunction';
-import { fallbackPermissionCheck, directDatabasePermissionCheck } from './fallbackChecks';
-import { invokeEdgeFunction } from '@/utils/edgeFunctions';
-import { retry } from '@/utils/edgeFunctions/retry';
-
-// Re-export the main permission checking functions and types
-export { 
-  checkCreatePermission,
-  fallbackPermissionCheck, 
-  directDatabasePermissionCheck 
-};
-
-export type { PermissionResult };
+export interface PermissionCheckResult {
+  has_permission: boolean;
+  reason?: string;
+}
 
 /**
- * Main entry point for checking equipment creation permissions
- * Tries multiple approaches with fallbacks for reliability
+ * Check if a user has access to create equipment in an organization
  */
-export async function checkEquipmentCreatePermission(
-  authUserId: string, 
-  teamId?: string | null,
-  orgId?: string | null
-): Promise<PermissionResult> {
+export async function checkCreatePermission(orgId: string) {
   try {
-    // Try with the edge function first with retry
-    return await retry(
-      () => invokeEdgeFunction(
-        'create_equipment_permission', 
-        { user_id: authUserId, team_id: teamId, org_id: orgId }
-      ),
-      {
-        maxRetries: 2,
-        retryDelay: 1000
-      }
-    );
-  } catch (error) {
-    console.warn('Edge function permission check failed, using fallback:', error);
+    console.log(`Checking equipment create permission for org: ${orgId}`);
     
-    try {
-      // First try the standard edge function approach if retry failed
-      return await checkCreatePermission(authUserId, teamId, orgId);
-    } catch (edgeError) {
-      console.warn('Primary permission check failed, using database fallback:', edgeError);
-      
-      // Use the fallback if the main approach fails
-      return await fallbackPermissionCheck(authUserId, teamId, orgId);
+    const { data, error } = await retry(() => 
+      supabase.functions.invoke('check_equipment_create_permission', {
+        body: { org_id: orgId }
+      }), 3);
+    
+    if (error) {
+      console.log('Create permission check error:', error);
+      return false;
     }
+    
+    return data?.has_permission === true;
+  } catch (error) {
+    console.error('Create permission check failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if a user has permission to manage equipment for a specific organization
+ */
+export async function checkManageEquipmentPermission(orgId: string): Promise<boolean> {
+  try {
+    console.log(`Checking manage equipment permission for org: ${orgId}`);
+    
+    const { data, error } = await retry(() =>
+      supabase.functions.invoke('check_manage_equipment_permission', {
+        body: { org_id: orgId }
+      }), 3);
+    
+    if (error) {
+      console.error('Manage equipment permission check error:', error);
+      return false;
+    }
+    
+    return data?.has_permission === true;
+  } catch (error) {
+    console.error('Manage equipment permission check failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if a user has permission to view equipment for a specific organization
+ */
+export async function checkViewEquipmentPermission(orgId: string): Promise<boolean> {
+  try {
+    console.log(`Checking view equipment permission for org: ${orgId}`);
+    
+    const { data, error } = await retry(() =>
+      supabase.functions.invoke('check_view_equipment_permission', {
+        body: { org_id: orgId }
+      }), 3);
+    
+    if (error) {
+      console.error('View equipment permission check error:', error);
+      return false;
+    }
+    
+    return data?.has_permission === true;
+  } catch (error) {
+    console.error('View equipment permission check failed:', error);
+    return false;
   }
 }

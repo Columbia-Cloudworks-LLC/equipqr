@@ -5,5 +5,5 @@
 
 export { inviteMember } from './inviteTeamMember';
 export { resendInvite } from './resendInvitation';
-export { getPendingInvitations } from './invitationQueries';
+export { getPendingInvitations, getPendingInvitationsForUser, getActiveInvitations } from './invitationQueries';
 export { cancelInvitation } from './invitationActions';
