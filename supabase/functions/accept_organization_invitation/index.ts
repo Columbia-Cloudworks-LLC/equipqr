@@ -101,7 +101,7 @@ serve(async (req) => {
       .from('organization_invitations')
       .select('*, organization:org_id(id, name)')
       .eq('token', token)
-      .eq('status', 'pending')
+      .eq('status', 'sent')
       .single();
     
     if (inviteError || !invitation) {
