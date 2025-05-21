@@ -1,53 +1,58 @@
-
 /**
- * Get the higher priority role between team role and organization role
+ * Gets the higher priority role between team role and org role
  */
-export function getHigherRole(teamRole: string | null | undefined, orgRole: string | null | undefined): string | null {
-  if (!teamRole && !orgRole) return null;
-  if (!teamRole) return orgRole || null;
+export function getHigherRole(teamRole: string | null, orgRole: string | null): string | null {
+  // Role priority from highest to lowest
+  const rolePriority = ['owner', 'manager', 'admin', 'creator', 'technician', 'viewer'];
+  
+  // If only one role exists, return it
+  if (!teamRole) return orgRole;
   if (!orgRole) return teamRole;
   
-  const rolePriority: Record<string, number> = {
-    'owner': 1,
-    'manager': 2,
-    'admin': 3,
-    'creator': 4,
-    'technician': 5,
-    'viewer': 6
-  };
+  // Find the priority index for each role
+  const teamPriority = rolePriority.indexOf(teamRole);
+  const orgPriority = rolePriority.indexOf(orgRole);
   
-  const teamRolePriority = rolePriority[teamRole] || 99;
-  const orgRolePriority = rolePriority[orgRole] || 99;
+  // Lower index means higher priority
+  // If org role is owner or manager, it should take precedence
+  if (orgRole === 'owner' || orgRole === 'manager') {
+    return orgRole;
+  }
   
-  // Return the role with higher priority (lower number)
-  return teamRolePriority <= orgRolePriority ? teamRole : orgRole;
+  // Otherwise, return the higher priority role (lower index)
+  return teamPriority < orgPriority ? teamRole : orgRole;
 }
 
 /**
- * Determine the final access reason based on all factors
+ * Determines the access reason based on membership details
  */
 export function determineAccessReason(
-  initialReason: string | undefined,
-  teamRole: string | null | undefined,
-  orgRole: string | null | undefined,
-  hasSameOrg: boolean,
-  hasCrossOrg: boolean
+  membershipType?: string, 
+  teamRole?: string | null, 
+  orgRole?: string | null,
+  hasSameOrg?: boolean,
+  hasCrossOrg?: boolean
 ): string {
-  if (initialReason === 'error' || initialReason?.includes('error')) {
-    return initialReason;
+  // Direct team membership takes precedence
+  if (membershipType === 'team_member') {
+    return 'team_member';
   }
   
-  if (initialReason === 'team_member' && teamRole) {
-    return hasCrossOrg ? 'cross_org_team_member' : 'team_member';
+  // If they're in the same org and user has manager/owner role
+  if (hasSameOrg && orgRole && (orgRole === 'owner' || orgRole === 'manager')) {
+    return 'org_manager_access';
   }
   
-  if (hasSameOrg && orgRole) {
-    return `org_${orgRole}`;
-  }
-  
+  // Same org but no direct team membership
   if (hasSameOrg) {
     return 'same_org';
   }
   
-  return initialReason || 'unknown';
+  // Cross-org access via team
+  if (hasCrossOrg) {
+    return 'cross_org_team';
+  }
+  
+  // Default - no clear reason for access
+  return 'none';
 }

@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction } from "@/utils/edgeFunctions/core";
+import { invokeEdgeFunctionWithRetry } from "@/utils/edgeFunctions/core";
 import { retry } from "@/utils/edgeFunctions/retry";
 import { TeamAccessResult, TeamAccessDetailedResult } from './types';
 
@@ -31,10 +31,10 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
     // Use our improved validate_team_access edge function with retries for reliability
     try {
       const data = await retry(
-        () => invokeEdgeFunction('validate_team_access', {
+        () => invokeEdgeFunctionWithRetry('validate_team_access', {
           team_id: teamId,
           user_id: userId
-        }), 
+        }, { maxRetries: 2 }), 
         {
           maxRetries: 2,
           retryDelay: 1000,
@@ -106,10 +106,10 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
     // Try the edge function with proper error handling
     try {
       const data = await retry(
-        () => invokeEdgeFunction('validate_team_access', {
+        () => invokeEdgeFunctionWithRetry('validate_team_access', {
           team_id: teamId,
           user_id: userId
-        }),
+        }, { maxRetries: 2 }),
         {
           maxRetries: 2,
           retryDelay: 1000
@@ -127,6 +127,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         teamMemberId: typedData?.team_member_id,
         accessReason: typedData?.access_reason,
         role: typedData?.role,
+        orgRole: typedData?.org_role || null, // FIXED: Capture the org role separately
         team: typedData?.team,
         orgName: typedData?.org_name,
         error: null
@@ -158,6 +159,20 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       
       const typedRow = resultRow as TeamAccessDetailedResult;
       
+      // Get the user's organization role if they belong to the team's organization
+      let orgRole = null;
+      if (typedRow.user_org_id === typedRow.team_org_id) {
+        try {
+          const { data: roleData } = await supabase.rpc(
+            'get_org_role',
+            { p_auth_user_id: userId, p_org_id: typedRow.team_org_id }
+          );
+          orgRole = roleData;
+        } catch (roleError) {
+          console.warn('Failed to get org role:', roleError);
+        }
+      }
+      
       return {
         isMember: typedRow.has_access === true,
         hasOrgAccess: typedRow.user_org_id === typedRow.team_org_id,
@@ -165,6 +180,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         teamMemberId: null,
         accessReason: typedRow.access_reason || 'fallback_detailed_check',
         role: typedRow.team_role || null,
+        orgRole: orgRole,
         team: null,
         orgName: null,
         error: null
@@ -180,6 +196,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       teamMemberId: null,
       accessReason: 'error',
       role: null,
+      orgRole: null,
       team: null,
       orgName: null,
       error: error.message

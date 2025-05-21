@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,9 @@ const OrganizationInvitation: React.FC<OrganizationInvitationProps> = ({ organiz
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole>('viewer');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Valid organization roles (excluding technician which is team-specific)
+  const validOrgRoles: UserRole[] = ['viewer', 'manager', 'owner'];
 
   const handleInvite = async () => {
     if (!email) {
@@ -96,14 +100,12 @@ const OrganizationInvitation: React.FC<OrganizationInvitationProps> = ({ organiz
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="viewer">Viewer</SelectItem>
-                <SelectItem value="technician">Technician</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="owner">Owner</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground mt-2">
               {role === 'viewer' && "Viewers can view equipment and public notes, but cannot make changes."}
-              {role === 'technician' && "Technicians can view equipment, all notes, and add work notes."}
               {role === 'manager' && "Managers can edit equipment records and manage team assignments."}
               {role === 'owner' && "Owners have full access to the organization, including member management."}
             </p>

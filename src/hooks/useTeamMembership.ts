@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +16,8 @@ export function useTeamMembership(teamId: string | null) {
   const [hasCrossOrgAccess, setHasCrossOrgAccess] = useState<boolean>(false);
   const [teamOrgName, setTeamOrgName] = useState<string | null>(null);
   const [teamDetails, setTeamDetails] = useState<any>(null);
+  const [hasOrgAccess, setHasOrgAccess] = useState<boolean>(false);
+  const [organizationRole, setOrganizationRole] = useState<string | null>(null);
   
   // Get the current user's ID
   useEffect(() => {
@@ -56,6 +59,8 @@ export function useTeamMembership(teamId: string | null) {
       setTeamOrgName(null);
       setTeamDetails(null);
       setError(null);
+      setHasOrgAccess(false);
+      setOrganizationRole(null);
     }
   }, [teamId, currentUserId, retryCount]);
 
@@ -74,7 +79,20 @@ export function useTeamMembership(teamId: string | null) {
       
       console.log('Team access details result:', accessDetails);
       
-      setIsMember(accessDetails.isMember);
+      // FIXED: Consider both direct team membership and org manager/owner access
+      const hasMemberAccess = accessDetails.isMember;
+      
+      // FIXED: Track if user has org-level access and their org role
+      setHasOrgAccess(accessDetails.hasOrgAccess || false);
+      setOrganizationRole(accessDetails.orgRole || null);
+      
+      // Check if user has manager/owner role at the org level
+      const hasOrgManagerAccess = accessDetails.hasOrgAccess && 
+        (accessDetails.orgRole === 'manager' || accessDetails.orgRole === 'owner');
+      
+      // Set member status based on both team membership and org access
+      setIsMember(hasMemberAccess || hasOrgManagerAccess);
+      
       setAccessReason(accessDetails.accessReason);
       setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess);
       setTeamOrgName(accessDetails.orgName || null);
@@ -85,7 +103,8 @@ export function useTeamMembership(teamId: string | null) {
         setAccessRole(accessDetails.role);
       }
       
-      if (!accessDetails.isMember) {
+      // FIXED: Only show errors if both team and org access are missing
+      if (!hasMemberAccess && !hasOrgManagerAccess) {
         setError('You are not a member of this team. This may be due to an issue during team creation.');
       } else {
         setError(null);
@@ -94,12 +113,15 @@ export function useTeamMembership(teamId: string | null) {
       // Log detailed access information for debugging
       console.log('Team access details summary:', {
         teamId,
-        isMember: accessDetails.isMember,
+        isMember: hasMemberAccess,
+        hasOrgAccess: accessDetails.hasOrgAccess,
+        orgRole: accessDetails.orgRole,
         reason: accessDetails.accessReason,
         role: accessDetails.role,
         hasCrossOrgAccess: accessDetails.hasCrossOrgAccess,
         orgName: accessDetails.orgName,
-        team: accessDetails.team
+        team: accessDetails.team,
+        finalAccess: hasMemberAccess || hasOrgManagerAccess
       });
       
       // If the access reason indicates an error or fallback was used, show a warning
@@ -176,6 +198,8 @@ export function useTeamMembership(teamId: string | null) {
     accessReason,
     accessRole,
     hasCrossOrgAccess,
+    hasOrgAccess,
+    organizationRole,
     teamOrgName,
     teamDetails,
     handleRepairTeam,

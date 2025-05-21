@@ -120,9 +120,19 @@ export class TeamAccessValidator {
         hasCrossOrg
       );
       
+      // FIXED: Organization managers should always have access
+      // If user has org-level manager or owner role, they should have access to all teams in their org
+      let isMember = !!membershipDetails.teamMemberId;
+      
+      // If user is in same org and has manager/owner role at org level
+      // consider them as having team access
+      if (hasSameOrg && (orgRole === 'manager' || orgRole === 'owner')) {
+        isMember = true;
+      }
+      
       // Step 8: Build and return the result
       return {
-        is_member: !!membershipDetails.teamMemberId || hasSameOrg,
+        is_member: isMember,
         has_org_access: hasSameOrg,
         has_cross_org_access: hasCrossOrg,
         team_member_id: membershipDetails.teamMemberId,

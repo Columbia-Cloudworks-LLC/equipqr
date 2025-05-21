@@ -76,6 +76,18 @@ export function useOrganizationInvitation() {
         throw new Error(data.message || 'Invitation acceptance failed');
       }
 
+      // FIXED: Explicitly dismiss the invitation notification
+      try {
+        // Force a refresh of notifications after accepting invitation
+        await supabase.rpc('dismiss_notification', {
+          notification_type: 'organization_invitation',
+          reference_id: token 
+        });
+      } catch (dismissError) {
+        console.warn('Could not dismiss notification:', dismissError);
+        // Continue execution even if dismissal fails
+      }
+
       toast.success('Organization invitation accepted successfully!');
       
       // Return the response data for further processing
