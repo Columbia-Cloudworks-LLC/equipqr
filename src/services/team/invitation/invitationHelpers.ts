@@ -45,8 +45,8 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams): Pr
           }
         });
       },
-      2, // retries
-      1000 // delay in ms
+      2, // retries as a number
+      1000 // delay in ms as a number
     );
     
     if (result.error) {

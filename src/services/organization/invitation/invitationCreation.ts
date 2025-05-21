@@ -21,23 +21,29 @@ export async function createOrganizationInvitation(
     
     if (existingUser) {
       // Extract user ID correctly from the response - handle both array and single object response
-      const userId = Array.isArray(existingUser) 
-        ? existingUser[0]?.id 
-        : existingUser?.id;
+      let userId: string | undefined;
       
-      // Check if user already has a role in this org
-      const { data: existingRole } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('org_id', organizationId)
-        .maybeSingle();
-        
-      if (existingRole) {
-        return { 
-          success: false,
-          error: 'This user is already a member of this organization'
-        };
+      if (Array.isArray(existingUser)) {
+        userId = existingUser.length > 0 ? existingUser[0]?.id : undefined;
+      } else if (typeof existingUser === 'object' && existingUser !== null) {
+        userId = existingUser.id;
+      }
+      
+      if (userId) {
+        // Check if user already has a role in this org
+        const { data: existingRole } = await supabase
+          .from('user_roles')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('org_id', organizationId)
+          .maybeSingle();
+          
+        if (existingRole) {
+          return { 
+            success: false,
+            error: 'This user is already a member of this organization'
+          };
+        }
       }
     }
     

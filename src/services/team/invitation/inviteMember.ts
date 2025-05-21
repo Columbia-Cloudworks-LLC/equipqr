@@ -29,18 +29,34 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       throw new Error(`Failed to check team access: ${accessError.message}`);
     }
 
-    // Handle the array response correctly by extracting the first item
-    const accessDetails = Array.isArray(teamAccess) && teamAccess.length > 0
-      ? teamAccess[0]
-      : teamAccess;
+    // Convert the response to appropriate type
+    let accessDetails: { 
+      has_access: boolean;
+      team_role?: string;
+      is_org_owner?: boolean;
+    };
+
+    if (Array.isArray(teamAccess)) {
+      if (teamAccess.length === 0) {
+        throw new Error('You do not have access to this team');
+      }
+      // Take the first element if it's an array
+      accessDetails = {
+        has_access: teamAccess[0]?.has_access || false,
+        team_role: teamAccess[0]?.team_role,
+        is_org_owner: teamAccess[0]?.is_org_owner
+      };
+    } else {
+      accessDetails = teamAccess as any;
+    }
     
-    // Check access properly
-    if (!accessDetails?.has_access) {
+    // Validate access
+    if (!accessDetails.has_access) {
       throw new Error('You do not have access to this team');
     }
 
     // Only managers or org owners can invite members
-    if (accessDetails?.team_role !== 'manager' && !accessDetails?.is_org_owner) {
+    if (accessDetails.team_role !== 'manager' && !accessDetails.is_org_owner) {
       throw new Error('Only team managers or organization owners can invite members');
     }
 

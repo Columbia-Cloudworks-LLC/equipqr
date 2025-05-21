@@ -43,16 +43,20 @@ export async function changeRole(teamId: string, userId: string, role: string): 
     // Check if there would be at least one manager left
     if (role !== 'manager') {
       // Get count of existing managers in this team using proper parameter syntax
+      const { data: teamMembers } = await supabase
+        .from('team_member')
+        .select('id')
+        .eq('team_id', teamId);
+      
+      // Extract team member IDs
+      const teamMemberIds = teamMembers ? teamMembers.map(member => member.id) : [];
+      
+      // Get the count of managers
       const { count, error: countError } = await supabase
         .from('team_roles')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'manager')
-        .in('team_member_id', 
-          supabase
-            .from('team_member')
-            .select('id')
-            .eq('team_id', teamId)
-        );
+        .in('team_member_id', teamMemberIds);
       
       if (countError) {
         return { success: false, error: `Error checking managers count: ${countError.message}` };

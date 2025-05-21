@@ -48,17 +48,21 @@ export async function removeMember(teamId: string, userId: string): Promise<{ su
       .single();
 
     if (roleData && roleData.role === 'manager') {
-      // Count managers in the team using proper syntax
+      // Get all team members
+      const { data: teamMembers } = await supabase
+        .from('team_member')
+        .select('id')
+        .eq('team_id', teamId);
+        
+      // Extract team member IDs
+      const teamMemberIds = teamMembers ? teamMembers.map(member => member.id) : [];
+      
+      // Now count managers
       const { count, error: countError } = await supabase
         .from('team_roles')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'manager')
-        .in('team_member_id', 
-          supabase
-            .from('team_member')
-            .select('id')
-            .eq('team_id', teamId)
-        );
+        .in('team_member_id', teamMemberIds);
 
       if (countError) {
         return { success: false, error: `Error checking managers count: ${countError.message}` };
