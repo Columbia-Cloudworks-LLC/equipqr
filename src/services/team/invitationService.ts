@@ -3,12 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { validateInvitationToken } from "./invitation/validateInvitation";
 import { acceptInvitation } from "./invitation/acceptInvitation";
 import { sendInvitationEmail, generateToken } from "./invitation/invitationHelpers";
-import { getPendingInvitationsForUser } from "./notificationService";
+import { getPendingInvitationsForUser } from "./invitation/invitationQueries";
 import { 
   resendInvite, 
   cancelInvitation, 
   getPendingInvitations 
-} from "./invitation/invitationActions";
+} from "./invitation";
 
 /**
  * Export all functions to maintain compatibility with existing code

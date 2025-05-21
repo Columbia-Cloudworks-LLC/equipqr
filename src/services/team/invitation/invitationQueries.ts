@@ -3,96 +3,77 @@ import { supabase } from "@/integrations/supabase/client";
 import { retry } from "@/utils/edgeFunctions/retry";
 
 /**
- * Function to get pending invitations for a team using the edge function
- * to avoid recursion issues with RLS policies
+ * Fetches pending invitations for a specific team
  */
 export async function getPendingInvitations(teamId: string) {
   try {
-    // Use our new edge function instead of direct query to avoid recursion
-    const { data, error } = await supabase.functions.invoke('get_pending_invitations', {
-      body: { team_id: teamId }
-    });
+    const { data, error } = await supabase
+      .from('team_invitations')
+      .select('*, team:team_id(name)')
+      .eq('team_id', teamId)
+      .eq('status', 'pending');
       
     if (error) {
       console.error('Error fetching pending invitations:', error);
-      throw new Error(`Failed to fetch pending invitations: ${error.message}`);
+      throw new Error(`Failed to fetch invitations: ${error.message}`);
     }
     
-    return data?.invitations || [];
+    return data || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitations:', error);
-    throw new Error(`Failed to get pending invitations: ${error.message}`);
+    return [];
   }
 }
 
-// Function to get pending invitations for the current user
+/**
+ * Fetches pending invitations for the current user's email
+ * This works across organizations
+ */
 export async function getPendingInvitationsForUser() {
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
-      console.error("Error retrieving session when checking for invitations:", sessionError);
+      console.error("Error retrieving session:", sessionError);
       return [];
     }
     
     if (!sessionData?.session?.user?.email) {
-      console.log("No authenticated user email found when checking for invitations");
+      console.error("No authenticated user email found");
       return [];
     }
-
-    const userEmail = sessionData.session.user.email.toLowerCase();
-    console.log(`Getting invitations for email: ${userEmail}`);
     
-    // Use a direct call to an edge function to avoid RLS recursion issues
-    const { data, error } = await supabase.functions.invoke('get_user_invitations', {
-      body: {
-        email: userEmail
-      }
-    });
-      
+    const userEmail = sessionData.session.user.email.toLowerCase();
+    
+    // Query invitations directly with an email filter to avoid RLS errors
+    const { data, error } = await supabase
+      .from('team_invitations')
+      .select('*, team:team_id(name)')
+      .eq('email', userEmail)
+      .eq('status', 'pending');
+    
     if (error) {
-      console.error('Error fetching pending invitations for user:', error);
-      throw error;
+      console.error('Error fetching pending invitations:', error);
+      throw new Error(`Failed to fetch invitations: ${error.message}`);
     }
     
-    console.log(`Found ${data?.invitations?.length || 0} pending invitations for ${userEmail}`);
-    
-    return data?.invitations || [];
+    console.log(`Found ${data?.length || 0} pending invitations for ${userEmail}`);
+    return data || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitationsForUser:', error);
-    throw new Error(`Failed to get pending invitations: ${error.message}`);
+    return [];
   }
 }
 
-// Function to get active notifications with minimal retry logic
-export async function getActiveInvitations(retryCount = 0, maxRetries = 1) {
+/**
+ * Get active invitations for current user (not dismissed)
+ */
+export async function getActiveInvitations() {
   try {
-    // Check if we have an active session
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      console.log("No active session, skipping invitation check");
-      return [];
-    }
-    
-    console.log(`Getting active invitations for ${sessionData.session.user.email}`);
-    const invitations = await getPendingInvitationsForUser();
-    
-    // Only retry once if no invitations found initially
-    if (invitations.length === 0 && retryCount < maxRetries) {
-      console.log(`No invitations found on attempt ${retryCount + 1}, will retry in 1s`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return getActiveInvitations(retryCount + 1, maxRetries);
-    }
-    
-    return invitations;
+    // Use the same logic as getPendingInvitationsForUser but could be extended
+    // to filter by active/dismissed status in the future
+    return await getPendingInvitationsForUser();
   } catch (error) {
-    console.error("Error in getActiveInvitations:", error);
-    
-    // Implement minimal retry logic
-    if (retryCount < maxRetries) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return getActiveInvitations(retryCount + 1, maxRetries);
-    }
-    
+    console.error("Error fetching active invitations:", error);
     return [];
   }
 }

@@ -1,9 +1,37 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { retry } from "@/utils/edgeFunctions/retry";
 
 export interface PermissionCheckResult {
   has_permission: boolean;
   reason?: string;
+}
+
+/**
+ * Fallback permission check for equipment operations
+ */
+export async function fallbackPermissionCheck(orgId: string): Promise<boolean> {
+  try {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session?.user?.id) {
+      return false;
+    }
+
+    const { data, error } = await supabase.rpc('is_org_member', {
+      p_auth_user_id: session.session.user.id,
+      p_org_id: orgId
+    });
+    
+    if (error) {
+      console.error('Permission check error:', error);
+      return false;
+    }
+    
+    return data === true;
+  } catch (error) {
+    console.error('Permission check failed:', error);
+    return false;
+  }
 }
 
 /**

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { retry } from "@/utils/edgeFunctions/retry";
 import { toast } from "sonner";
@@ -8,6 +9,16 @@ export interface TeamAccessDetails {
   role: string | null;
   isOwner: boolean;
   teamData: Team | null;
+  // Extended properties needed by our app
+  isMember: boolean;
+  hasOrgAccess: boolean;
+  orgRole: string | null;
+  accessReason: string | null;
+  hasCrossOrgAccess: boolean;
+  orgName: string | null;
+  team: any | null;
+  error?: string | null;
+  success?: boolean;
 }
 
 /**
@@ -24,10 +35,12 @@ export async function validateTeamMembership(teamId: string): Promise<boolean> {
     
     // First attempt: Try edge function
     try {
-      const { data, error } = await retry(() => 
+      const response = await retry(() => 
         supabase.functions.invoke('validate_team_access', {
           body: { team_id: teamId }
-        }), 3, 200);
+        }), 3);
+      
+      const { data, error } = response || { data: null, error: null };
       
       if (error) {
         console.error('Error from validate_team_access function:', error);
@@ -55,7 +68,7 @@ export async function validateTeamMembership(teamId: string): Promise<boolean> {
           .select('id')
           .eq('team_id', teamId)
           .eq('user_id', userId)
-          .single(), 3, 200);
+          .single(), 3);
       
       if (membershipError) {
         console.error('Membership check failed:', membershipError);
@@ -107,16 +120,31 @@ export async function canAssignTeamRole(teamId: string, role: string): Promise<b
 export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDetails> {
   if (!teamId) {
     console.log("No team ID provided for access details");
-    return { hasAccess: false, role: null, isOwner: false, teamData: null };
+    return { 
+      hasAccess: false, 
+      role: null, 
+      isOwner: false, 
+      teamData: null,
+      isMember: false,
+      hasOrgAccess: false,
+      orgRole: null,
+      accessReason: null,
+      hasCrossOrgAccess: false,
+      orgName: null,
+      team: null,
+      error: "No team ID provided"
+    };
   }
 
   try {
     console.log(`Getting access details for team: ${teamId}`);
     
-    const { data, error } = await retry(() => 
+    const response = await retry(() => 
       supabase.functions.invoke('validate_team_access', {
         body: { team_id: teamId }
-      }), 3, 200);
+      }), 3);
+    
+    const { data, error } = response || { data: null, error: null };
     
     if (error) {
       console.error('Error from validate_team_access function:', error);
@@ -124,14 +152,40 @@ export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDe
     }
     
     console.log('Team access details:', data);
+    
+    // Return with proper field mapping
     return {
       hasAccess: data?.has_access === true,
       role: data?.role || null,
       isOwner: data?.is_owner === true,
-      teamData: data?.team_data as Team | null
+      teamData: data?.team_data as Team | null,
+      // Map additional fields returned by our edge function
+      isMember: data?.is_member === true,
+      hasOrgAccess: data?.has_org_access === true,
+      orgRole: data?.org_role || null,
+      accessReason: data?.access_reason || null,
+      hasCrossOrgAccess: data?.has_cross_org_access === true,
+      orgName: data?.org_name || null,
+      team: data?.team || null,
+      error: data?.error || null,
+      success: true
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to get team access details:', error);
-    return { hasAccess: false, role: null, isOwner: false, teamData: null };
+    return { 
+      hasAccess: false, 
+      role: null, 
+      isOwner: false, 
+      teamData: null,
+      isMember: false,
+      hasOrgAccess: false,
+      orgRole: null,
+      accessReason: `error: ${error.message || 'Unknown error'}`,
+      hasCrossOrgAccess: false,
+      orgName: null,
+      team: null,
+      error: error.message || 'Unknown error',
+      success: false
+    };
   }
 }

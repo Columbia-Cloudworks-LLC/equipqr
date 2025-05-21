@@ -1,157 +1,110 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Equipment } from "@/types";
-import { getAppUserId } from "@/utils/authUtils";
-import { saveEquipmentAttributes } from "./attributesService";
-import { insertEquipment } from "./db/equipmentDbService";
+import { retry } from "@/utils/edgeFunctions/retry";
+import { EquipmentFormValues } from "@/types/equipment";
+import { CreateEquipmentParams } from "@/types/equipment";
+import { toast } from "sonner";
 import { checkCreatePermission, fallbackPermissionCheck } from "./permissions";
-import { prepareEquipmentData, extractAttributes } from "./utils/dataProcessing";
 
 /**
- * Create new equipment - only for equipment owned by the current user's organization
- * or for teams the user has manager access to
- * 
- * @param equipment The equipment data to create
- * @returns The created equipment record
+ * Create new equipment record
  */
-export async function createEquipment(equipment: Partial<Equipment>): Promise<Equipment> {
+export async function createEquipment(data: EquipmentFormValues) {
   try {
-    // Ensure name is provided as it's required in the database
-    if (!equipment.name) {
+    // Check if there's a session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('You must be logged in to create equipment.');
+    }
+    
+    // Check if the data is valid
+    if (!data.name) {
       throw new Error('Equipment name is required');
     }
     
-    // Get the current user's auth ID
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-      console.error('Session error:', sessionError);
-      throw new Error('Authentication error: Please log in again');
-    }
+    const targetOrgId = data.org_id;
+    const targetTeamId = data.team_id === 'none' ? null : data.team_id;
     
-    if (!sessionData?.session?.user) {
-      console.error('No session user found');
-      throw new Error('User must be logged in to create equipment');
-    }
+    // Check permission through edge function
+    const permCheck = await retry(() => 
+      supabase.functions.invoke('check_equipment_create_permission', {
+        body: { 
+          org_id: targetOrgId,
+          team_id: targetTeamId 
+        }
+      }), 3);
     
-    const authUserId = sessionData.session.user.id;
-    console.log('Current auth user ID:', authUserId);
+    const permission = permCheck?.data;
     
-    // Convert auth user ID to app_user ID
-    const appUserId = await getAppUserId(authUserId);
-    console.log('Mapped to app_user ID:', appUserId);
-    
-    if (!appUserId) {
-      throw new Error('Failed to retrieve user profile information');
-    }
-    
-    let orgId = equipment.org_id;
-    let permissionResult;
-    
-    try {
-      // Try the permission check with improved error handling
-      console.log('Checking equipment creation permission...', {
-        authUserId,
-        teamId: equipment.team_id,
-        orgId: equipment.org_id
-      });
+    if (!permission || !permission.has_permission) {
+      // Try fallback permission check
+      const hasFallbackPermission = await fallbackPermissionCheck(targetOrgId);
       
-      permissionResult = await checkCreatePermission(
-        authUserId, 
-        equipment.team_id, 
-        equipment.org_id
-      );
-      
-      // If no explicit org_id was provided, use the one from permission check
-      if (!orgId) {
-        orgId = permissionResult.orgId;
+      if (!hasFallbackPermission) {
+        throw new Error('You do not have permission to create equipment');
       }
       
-      console.log(`Permission check successful. Using org ID: ${orgId}`);
-    } catch (permError: any) {
-      console.error('Primary permission check failed:', permError);
+      console.log('Using fallback permission check');
+    }
+    
+    // Create the equipment
+    const { data: equipment, error } = await supabase
+      .from('equipment')
+      .insert({
+        name: data.name,
+        model: data.model,
+        serial_number: data.serialNumber,
+        manufacturer: data.manufacturer,
+        status: data.status,
+        location: data.location,
+        install_date: data.installDate,
+        warranty_expiration: data.warrantyExpiration,
+        notes: data.notes,
+        org_id: targetOrgId,
+        team_id: targetTeamId,
+        created_by: sessionData.session.user.id
+      })
+      .select()
+      .single();
       
-      // More detailed diagnostic logging
-      console.log('Permission check error details:', { 
-        message: permError.message, 
-        stack: permError.stack,
-        name: permError.name
-      });
+    if (error) {
+      console.error('Error creating equipment:', error);
+      throw error;
+    }
+    
+    // Create custom attributes if there are any
+    if (data.attributes && data.attributes.length > 0) {
+      const attributes = data.attributes.filter(attr => attr.key && attr.value);
       
-      try {
-        // Try fallback method with more robustness
-        console.log('Attempting fallback permission check...', {
-          authUserId,
-          teamId: equipment.team_id,
-          orgId: equipment.org_id
-        });
+      if (attributes.length > 0) {
+        const attributeRecords = attributes.map(attr => ({
+          equipment_id: equipment.id,
+          key: attr.key,
+          value: attr.value
+        }));
         
-        const fallbackResult = await fallbackPermissionCheck(
-          authUserId, 
-          equipment.team_id, 
-          equipment.org_id
-        );
-        
-        // If no explicit org_id was provided, use the one from permission check
-        if (!orgId) {
-          orgId = fallbackResult.orgId;
-        }
-        
-        console.log(`Fallback successful. Using org ID: ${orgId}`);
-      } catch (fallbackError: any) {
-        console.error('Fallback permission check failed:', fallbackError);
-        
-        // Provide more helpful error messages based on the error type
-        if (fallbackError.message?.includes('Edge function') || 
-            fallbackError.message?.includes('timed out')) {
-          throw new Error('Server permission service is temporarily unavailable. Please try again in a few moments.');
-        } else if (fallbackError.message?.includes('permission') ||
-                  fallbackError.message?.includes('access')) {
-          throw new Error(fallbackError.message || 'You do not have permission to create equipment');
-        } else {
-          throw new Error(`Permission check failed: ${fallbackError.message || 'Access denied'}`);
+        const { error: attrError } = await supabase
+          .from('equipment_attributes')
+          .insert(attributeRecords);
+          
+        if (attrError) {
+          console.error('Error saving attributes:', attrError);
         }
       }
     }
     
-    if (!orgId) {
-      console.error('No organization ID returned from permission checks');
-      throw new Error('Failed to determine organization for equipment creation');
-    }
+    toast.success(`${data.name} created`, {
+      description: "Equipment record has been created successfully"
+    });
     
-    // Extract attributes before sending to database
-    const attributes = extractAttributes(equipment);
-    
-    // Process and prepare equipment data
-    const processedEquipment = prepareEquipmentData(equipment, appUserId, orgId);
-    console.log('Processed equipment data:', processedEquipment);
-    
-    // Create the equipment record
-    const data = await insertEquipment(processedEquipment);
-    console.log('Equipment created successfully:', data);
-    
-    // Set cache busting flag for equipment list refresh
-    try {
-      window.localStorage.setItem('equipment_cache_bust', 'true');
-    } catch (e) {
-      console.warn('Could not set cache bust flag:', e);
-    }
-    
-    // If we have attributes, insert them
-    if (attributes.length > 0) {
-      try {
-        console.log('Saving attributes:', attributes);
-        const savedAttributes = await saveEquipmentAttributes(data.id, attributes);
-        return { ...data, attributes: savedAttributes } as Equipment;
-      } catch (attrError) {
-        console.error('Error adding equipment attributes:', attrError);
-        // Return equipment without attributes on attribute error
-        return data as Equipment;
-      }
-    }
-    
-    return data as Equipment;
-  } catch (error) {
+    return equipment;
+  } catch (error: any) {
     console.error('Error in createEquipment:', error);
+    
+    toast.error("Failed to create equipment", {
+      description: error.message || "An unknown error occurred"
+    });
+    
     throw error;
   }
 }

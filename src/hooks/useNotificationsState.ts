@@ -1,9 +1,12 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { getActiveNotifications, dismissNotification, clearLocalDismissedNotifications } from '@/services/team/notificationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Invitation } from '@/types/notifications';
+import { 
+  getActiveNotifications, 
+  dismissNotification, 
+  clearLocalDismissedNotifications 
+} from '@/services/team/notification/notificationHelpers';
 
 // Throttling and debouncing configurations - Increased intervals to reduce edge function calls
 const CONFIG = {

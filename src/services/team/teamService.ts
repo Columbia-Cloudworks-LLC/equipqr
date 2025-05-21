@@ -20,13 +20,17 @@ export { getTeamEquipmentCount } from './deleteTeam';
 // Re-export team membership functions
 export { 
   getTeamMembers, 
-  inviteMember, 
   changeRole, 
-  removeMember, 
-  resendInvite, 
-  cancelInvitation, 
-  getPendingInvitations 
+  removeMember 
 } from './members';
+
+// Re-export team invitation functions
+export {
+  inviteMember,
+  resendInvite,
+  cancelInvitation,
+  getPendingInvitations
+} from './invitation';
 
 // Re-export team validation functions
 export {

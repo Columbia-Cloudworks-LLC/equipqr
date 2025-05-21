@@ -1,122 +1,88 @@
 
-import { useState } from 'react';
-import { invokeEdgeFunctionWithRetry } from '@/utils/edgeFunctions/core';
-import { toast } from 'sonner';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-// Define the response type from the edge function
-interface InvitationResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-  data?: {
-    organization?: {
-      id: string;
-      name: string;
-    };
-    role?: string;
-  };
-}
+import { acceptInvitation, validateInvitationToken } from '@/services/team/invitationService';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export function useOrganizationInvitation() {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [invitationDetails, setInvitationDetails] = useState<any>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const acceptInvitation = async (token: string) => {
+  const validateToken = useCallback(async (token: string) => {
     if (!token) {
-      const errorMsg = 'No invitation token provided';
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
+      setValidationError('Invalid invitation link. No token provided.');
+      return false;
     }
 
     try {
-      setIsProcessing(true);
-      setError(null);
-
-      console.log('Accepting organization invitation with token:', token.substring(0, 8) + '...');
+      setIsValidating(true);
+      setValidationError(null);
       
-      // Force refresh the session to ensure we have the most up-to-date token
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      const details = await validateInvitationToken(token);
       
-      if (refreshError) {
-        console.error('Error refreshing session:', refreshError);
-        throw new Error('Authentication error. Please try logging out and in again.');
-      } 
-      
-      if (!refreshData?.session?.access_token) {
-        console.error('No access token after refresh');
-        throw new Error('Authentication required. Please log in again.');
+      if (!details || !details.valid) {
+        setValidationError(details?.error || 'This invitation is no longer valid.');
+        return false;
       }
       
-      // The session refresh was successful
-      console.log('Session refreshed successfully');
-      console.log(`Using auth token: ${refreshData.session.access_token.substring(0, 10)}...`);
-      
-      // Use the fresh access token with the edge function
-      const data = await invokeEdgeFunctionWithRetry<InvitationResponse>('accept_organization_invitation', 
-        { token }, 
-        {
-          maxRetries: 2,
-          retryDelay: 1000,
-          onRetry: (attempt) => {
-            console.log(`Retrying invitation acceptance (attempt ${attempt})`);
-          },
-          authToken: refreshData.session.access_token // Use the fresh token
-        }
-      );
-
-      if (!data || data.error) {
-        console.error('Error from edge function:', data?.error);
-        throw new Error(data?.error || 'Invalid response from server');
-      }
-
-      // Ensure we have a success flag in response
-      if (!data.success) {
-        console.error('Invitation acceptance failed:', data);
-        throw new Error(data.message || 'Invitation acceptance failed');
-      }
-
-      // FIXED: Instead of updating a non-existent column, mark the invitation as accepted
-      try {
-        // Update the organization_invitations table to mark as accepted if not already
-        const { error: updateError } = await supabase
-          .from('organization_invitations')
-          .update({ status: 'accepted' })
-          .eq('token', token);
-          
-        if (updateError) {
-          console.warn('Could not update invitation status:', updateError);
-        }
-      } catch (dismissError) {
-        console.warn('Could not update invitation status:', dismissError);
-        // Continue execution even if update fails
-      }
-
-      toast.success('Organization invitation accepted successfully!');
-      
-      // Return the response data for further processing
-      return data;
+      setInvitationDetails(details);
+      return true;
     } catch (error: any) {
-      const errorMsg = error.message || 'Failed to accept organization invitation';
-      console.error('Error in acceptInvitation:', error);
-      setError(errorMsg);
-      
-      // Return a more detailed error object for better debugging
-      return { 
-        success: false, 
-        error: errorMsg,
-        details: error.toString(),
-        name: error.name,
-        status: error.status
-      };
+      console.error('Error validating invitation token:', error);
+      setValidationError(error.message || 'Failed to validate invitation.');
+      return false;
     } finally {
-      setIsProcessing(false);
+      setIsValidating(false);
     }
-  };
+  }, []);
+
+  const handleAcceptInvitation = useCallback(async (token: string) => {
+    if (!token) {
+      toast.error('Invalid invitation token');
+      return false;
+    }
+    
+    try {
+      setIsAccepting(true);
+      
+      // Call without type argument that was causing the error
+      const result = await acceptInvitation(token);
+      
+      if (result.success) {
+        toast.success('Invitation accepted!', {
+          description: 'You have successfully joined the organization.'
+        });
+        
+        // Refresh the auth session to get updated permissions
+        await supabase.auth.refreshSession();
+        
+        // Navigate to teams page or dashboard
+        navigate('/dashboard');
+        return true;
+      } else {
+        throw new Error(result.error || 'Failed to accept invitation');
+      }
+    } catch (error: any) {
+      console.error('Error accepting invitation:', error);
+      toast.error('Failed to accept invitation', {
+        description: error.message || 'An unexpected error occurred'
+      });
+      return false;
+    } finally {
+      setIsAccepting(false);
+    }
+  }, [navigate]);
 
   return {
-    acceptInvitation,
-    isProcessing,
-    error
+    isValidating,
+    isAccepting,
+    invitationDetails,
+    validationError,
+    validateToken,
+    handleAcceptInvitation
   };
 }
