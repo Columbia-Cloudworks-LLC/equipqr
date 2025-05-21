@@ -21,17 +21,14 @@ const MembersList: React.FC<MembersListProps> = ({ members, isOwner, loading }) 
       const success = await updateMemberRole(memberId, newRole);
       
       if (success) {
-        toast({
-          title: "Role Updated",
+        toast.success("Role Updated", {
           description: "The member's role has been updated successfully"
         });
       }
     } catch (error: any) {
       console.error('Error updating role:', error);
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update the member's role",
-        variant: "destructive"
+      toast.error("Update Failed", {
+        description: error.message || "Failed to update the member's role"
       });
     } finally {
       setUpdatingRole(prev => ({ ...prev, [memberId]: false }));

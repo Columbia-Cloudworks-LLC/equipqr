@@ -26,7 +26,7 @@ export interface Equipment {
   is_external_org?: boolean;
   description?: string;
   purchase_date?: string;
-  maintenance_date?: string; // Added this missing property
+  maintenance_date?: string;
 }
 
 export interface EquipmentAttribute {
@@ -66,7 +66,8 @@ export interface EquipmentFormValues {
   team_id?: string | null;
   attributes?: EquipmentAttribute[];
   description?: string;
+  maintenance_date?: string;
 }
 
-// Use the same interface for CreateEquipmentParams for consistency
+// Export CreateEquipmentParams type
 export type CreateEquipmentParams = EquipmentFormValues;

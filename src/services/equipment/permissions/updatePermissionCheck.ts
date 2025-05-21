@@ -1,26 +1,32 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { PermissionResult } from './types';
+import { checkEquipmentEditPermission } from './accessCheck';
 
 /**
- * Check if the current user has permission to update a specific equipment
+ * Check if the current user has permission to update the equipment
+ * @param equipmentId The ID of the equipment to check
  */
-export async function checkUpdatePermission(equipmentId: string): Promise<boolean> {
+export async function checkUpdatePermission(equipmentId: string): Promise<PermissionResult> {
   try {
-    const { data, error } = await supabase.functions.invoke('check_equipment_edit_permission', {
-      body: { equipment_id: equipmentId }
-    });
-
-    if (error) {
-      console.error('Error checking equipment edit permission:', error);
-      return false;
+    // Get current user session first
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('User must be logged in to update equipment');
     }
-
-    return data?.has_permission === true;
-  } catch (error) {
-    console.error('Failed to check equipment edit permission:', error);
-    return false;
+    
+    const authUserId = sessionData.session.user.id;
+    
+    // Check if user has permission to edit this equipment
+    const permissionResult = await checkEquipmentEditPermission(equipmentId);
+    
+    if (!permissionResult.hasPermission) {
+      throw new Error(`Permission denied: ${permissionResult.reason}`);
+    }
+    
+    return permissionResult;
+  } catch (error: any) {
+    console.error('Error checking update permission:', error);
+    throw error;
   }
 }
-
-// Alias for checkUpdatePermission for better semantic naming
-export const checkEditPermission = checkUpdatePermission;

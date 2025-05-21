@@ -35,7 +35,7 @@ export async function checkViewPermission(equipmentId: string): Promise<Permissi
     }
 
     // Check if the user has permission to view this equipment
-    const { data, error } = await supabase.rpc('check_equipment_access', {
+    const { data, error } = await supabase.rpc('check_equipment_permission', {
       p_equipment_id: equipmentId,
       p_user_id: authUserId,
       p_action: 'view'
@@ -52,12 +52,23 @@ export async function checkViewPermission(equipmentId: string): Promise<Permissi
       };
     }
 
+    // Parse the returned data to match our expected permission result
+    if (data && typeof data === 'object') {
+      return {
+        authUserId,
+        teamId: data.team_id || null,
+        orgId: data.org_id || null,
+        hasPermission: !!data.can_access,
+        reason: data.reason || 'Unknown'
+      };
+    }
+
     return {
       authUserId,
-      teamId: data?.team_id || null,
-      orgId: data?.org_id || null,
-      hasPermission: !!data?.can_access,
-      reason: data?.reason || 'Unknown'
+      teamId: null,
+      orgId: null,
+      hasPermission: false,
+      reason: 'Invalid response format from permission check'
     };
   } catch (error: any) {
     console.error('Error in checkViewPermission:', error);
@@ -126,12 +137,23 @@ export async function checkEquipmentEditPermission(equipmentId: string): Promise
       };
     }
 
+    // Parse the returned data properly
+    if (data && typeof data === 'object') {
+      return {
+        authUserId,
+        teamId: data.team_id || null,
+        orgId: data.org_id || null,
+        hasPermission: !!data.can_edit,
+        reason: data.reason || 'Unknown'
+      };
+    }
+
     return {
       authUserId,
-      teamId: data?.team_id || null,
-      orgId: data?.org_id || null,
-      hasPermission: !!data?.can_edit,
-      reason: data?.reason || 'Unknown'
+      teamId: null,
+      orgId: null,
+      hasPermission: false,
+      reason: 'Invalid response format from permission check'
     };
   } catch (error: any) {
     console.error('Error in checkEquipmentEditPermission:', error);

@@ -9,11 +9,13 @@ export * from './retrieval/index';
 export * from './notificationService';
 export * from './validation/index';
 
-// Specifically export the functions needed by useTeamMembers
+// Export specific functions for team members management
 export { getTeamMembers } from './members/getTeamMembers';
 export { changeRole } from './members/changeRole';
 export { removeMember } from './members/removeMember';
-export { resendInvite } from './invitation/resendInvite';
+
+// Export invitation related functions
 export { inviteMember } from './invitation/inviteMember';
+export { resendInvite } from './invitation/resendInvite';
 export { getPendingInvitations } from './invitation/getPendingInvitations';
 export { cancelInvitation } from './invitation/cancelInvitation';

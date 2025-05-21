@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
@@ -9,8 +10,8 @@ import {
   resendInvite,
   inviteMember,
   getPendingInvitations,
-  cancelInvitation
-} from '@/services/team';
+  cancelInvitation 
+} from '@/services/team/index';
 
 export function useTeamMembers(teamId: string) {
   const [members, setMembers] = useState<TeamMember[]>([]);

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { OrganizationMember } from '@/services/organization/types';
 import { UserRole } from '@/types/supabase-enums';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,11 +14,13 @@ interface OrganizationMembersTableProps {
   setRefreshTrigger: (trigger: number) => void;
 }
 
-export function OrganizationMembersTable() {
-  const [members, setMembers] = useState<OrganizationMember[]>([]);
-  const [isOwner, setIsOwner] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+export function OrganizationMembersTable({
+  members, 
+  isOwner, 
+  loading, 
+  refreshTrigger, 
+  setRefreshTrigger
+}: OrganizationMembersTableProps) {
   const [isUpdatingRole, setIsUpdatingRole] = useState<Record<string, boolean>>({});
 
   const handleRoleChange = async (memberId: string, newRole: UserRole) => {
@@ -27,8 +30,7 @@ export function OrganizationMembersTable() {
       const success = await updateMemberRole(memberId, newRole);
       
       if (success) {
-        toast({
-          title: 'Role updated',
+        toast.success('Role updated', {
           description: 'Member role has been updated successfully'
         });
         // Trigger a refresh of the members list
@@ -36,10 +38,8 @@ export function OrganizationMembersTable() {
       }
     } catch (error: any) {
       console.error('Error updating role:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to update member role',
-        variant: 'destructive'
+      toast.error('Error', {
+        description: error.message || 'Failed to update member role'
       });
     } finally {
       setIsUpdatingRole(prev => ({ ...prev, [memberId]: false }));

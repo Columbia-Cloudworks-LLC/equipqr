@@ -21,8 +21,8 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     console.log('Updating equipment with ID:', id);
     console.log('Auth user ID:', authUserId);
     
-    // Check access permission
-    await checkUpdatePermission(authUserId, id);
+    // Check access permission with one argument
+    await checkUpdatePermission(id);
     
     // Extract attributes before sending to database
     const attributes = equipment.attributes || [];
