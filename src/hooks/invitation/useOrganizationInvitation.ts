@@ -76,13 +76,18 @@ export function useOrganizationInvitation() {
         throw new Error(data.message || 'Invitation acceptance failed');
       }
 
-      // FIXED: Explicitly dismiss the invitation notification
+      // FIXED: Use direct database operation instead of RPC for notification dismissal
       try {
-        // Force a refresh of notifications after accepting invitation
-        await supabase.rpc('dismiss_notification', {
-          notification_type: 'organization_invitation',
-          reference_id: token 
-        });
+        // Manually dismiss the notification in the database
+        const { error: dismissError } = await supabase
+          .from('notifications')
+          .update({ dismissed_at: new Date().toISOString() })
+          .eq('type', 'organization_invitation')
+          .eq('reference_id', token);
+          
+        if (dismissError) {
+          console.warn('Could not dismiss notification:', dismissError);
+        }
       } catch (dismissError) {
         console.warn('Could not dismiss notification:', dismissError);
         // Continue execution even if dismissal fails

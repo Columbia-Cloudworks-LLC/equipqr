@@ -9,6 +9,7 @@ export interface TeamAccessResult {
   team_member_id?: string | null;
   access_reason?: string;
   role?: string | null;
+  org_role?: string | null; // Added explicit org_role field
   team?: {
     name: string;
     org_id: string;

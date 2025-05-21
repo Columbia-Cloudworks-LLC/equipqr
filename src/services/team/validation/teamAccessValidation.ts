@@ -31,7 +31,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
     // Use our improved validate_team_access edge function with retries for reliability
     try {
       const data = await retry(
-        () => invokeEdgeFunctionWithRetry('validate_team_access', {
+        () => invokeEdgeFunctionWithRetry<TeamAccessResult>('validate_team_access', {
           team_id: teamId,
           user_id: userId
         }, { maxRetries: 2 }), 
@@ -46,9 +46,12 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
       
       console.log('Team access validation result:', data);
       
+      // Type assertion to ensure TypeScript recognizes data as TeamAccessResult
+      const typedData = data as TeamAccessResult;
+      
       return {
-        isValid: data?.is_member === true,
-        result: data || null
+        isValid: typedData?.is_member === true,
+        result: typedData || null
       };
     } catch (error) {
       console.error('Team membership validation error:', error);
@@ -72,7 +75,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
         result: { 
           is_member: fallbackResult === true,
           access_reason: 'fallback_check'
-        }
+        } as TeamAccessResult
       };
     }
   } catch (error: any) {
@@ -83,7 +86,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
       result: {
         is_member: false,
         access_reason: 'error_validation_failed'
-      },
+      } as TeamAccessResult,
       error: error.message
     };
   }
@@ -106,7 +109,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
     // Try the edge function with proper error handling
     try {
       const data = await retry(
-        () => invokeEdgeFunctionWithRetry('validate_team_access', {
+        () => invokeEdgeFunctionWithRetry<TeamAccessResult>('validate_team_access', {
           team_id: teamId,
           user_id: userId
         }, { maxRetries: 2 }),
@@ -118,6 +121,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
       
       console.log('Team access details from edge function:', data);
       
+      // Explicitly type the data to ensure type safety
       const typedData = data as TeamAccessResult;
       
       return {
@@ -127,7 +131,8 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
         teamMemberId: typedData?.team_member_id,
         accessReason: typedData?.access_reason,
         role: typedData?.role,
-        orgRole: typedData?.org_role || null, // FIXED: Capture the org role separately
+        // Use optional chaining and provide a null fallback for org_role
+        orgRole: typedData?.org_role || null,
         team: typedData?.team,
         orgName: typedData?.org_name,
         error: null
