@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { generateUniqueToken } from '@/lib/crypto';
+import { generateInvitationToken } from '@/lib/crypto';
 import { UserRole } from '@/types/supabase-enums';
 
 export interface InviteToOrgResult {
@@ -74,7 +74,7 @@ export async function inviteToOrganization(
       .single();
     
     // Generate a unique token for the invitation
-    const token = await generateUniqueToken();
+    const token = await generateInvitationToken();
     
     // Use type assertion to fix the role type issue
     const { data: invitation, error: createError } = await supabase
