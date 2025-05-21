@@ -23,10 +23,12 @@ export async function createOrganizationInvitation(
       // Extract user ID correctly from the response - handle both array and single object response
       let userId: string | undefined;
       
-      if (Array.isArray(existingUser)) {
-        userId = existingUser.length > 0 ? existingUser[0]?.id : undefined;
+      if (Array.isArray(existingUser) && existingUser.length > 0) {
+        userId = existingUser[0]?.id;
       } else if (typeof existingUser === 'object' && existingUser !== null) {
-        userId = existingUser.id;
+        // Cast existingUser to handle the type more explicitly
+        const userObject = existingUser as { id: string, email: string };
+        userId = userObject.id;
       }
       
       if (userId) {
