@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
+import { invokeEdgeFunction } from "@/utils/edgeFunctions/core";
+import { retry } from "@/utils/edgeFunctions/retry";
 import { TeamAccessResult, TeamAccessDetailedResult } from './types';
 
 /**
@@ -27,12 +28,21 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
     
     console.log(`Validating team membership: userId=${userId}, teamId=${teamId}`);
     
-    // Use our improved validate_team_access edge function
+    // Use our improved validate_team_access edge function with retries for reliability
     try {
-      const data = await invokeEdgeFunction('validate_team_access', {
-        team_id: teamId,
-        user_id: userId
-      }, 8000); // Increased timeout for reliability
+      const data = await retry(
+        () => invokeEdgeFunction('validate_team_access', {
+          team_id: teamId,
+          user_id: userId
+        }), 
+        {
+          maxRetries: 2,
+          retryDelay: 1000,
+          onRetry: (attempt, error) => {
+            console.warn(`Retry ${attempt} for team membership validation:`, error);
+          }
+        }
+      );
       
       console.log('Team access validation result:', data);
       
@@ -95,10 +105,16 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
     
     // Try the edge function with proper error handling
     try {
-      const data = await invokeEdgeFunction('validate_team_access', {
-        team_id: teamId,
-        user_id: userId
-      }, 8000); // Increased timeout for reliability
+      const data = await retry(
+        () => invokeEdgeFunction('validate_team_access', {
+          team_id: teamId,
+          user_id: userId
+        }),
+        {
+          maxRetries: 2,
+          retryDelay: 1000
+        }
+      );
       
       console.log('Team access details from edge function:', data);
       

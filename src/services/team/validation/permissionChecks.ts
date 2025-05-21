@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { isValidUuid } from "@/utils/validationUtils";
 
 /**
  * Check if a user has permission to assign a role in a team
@@ -9,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export async function canAssignTeamRole(teamId: string, role: string) {
   try {
-    if (!teamId) {
+    if (!teamId || !isValidUuid(teamId)) {
       return false;
     }
     

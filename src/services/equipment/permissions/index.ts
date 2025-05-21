@@ -3,6 +3,7 @@ import { PermissionResult } from './types';
 import { checkCreatePermission } from './edgeFunction';
 import { fallbackPermissionCheck, directDatabasePermissionCheck } from './fallbackChecks';
 import { invokeEdgeFunction } from '@/utils/edgeFunctions';
+import { retry } from '@/utils/edgeFunctions/retry';
 
 // Re-export the main permission checking functions and types
 export { 
@@ -23,11 +24,16 @@ export async function checkEquipmentCreatePermission(
   orgId?: string | null
 ): Promise<PermissionResult> {
   try {
-    // Try with the edge function first
-    return await invokeEdgeFunction(
-      'create_equipment_permission', 
-      { user_id: authUserId, team_id: teamId, org_id: orgId },
-      8000
+    // Try with the edge function first with retry
+    return await retry(
+      () => invokeEdgeFunction(
+        'create_equipment_permission', 
+        { user_id: authUserId, team_id: teamId, org_id: orgId }
+      ),
+      {
+        maxRetries: 2,
+        retryDelay: 1000
+      }
     );
   } catch (error) {
     console.warn('Edge function permission check failed, using fallback:', error);
