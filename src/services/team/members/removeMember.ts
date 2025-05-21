@@ -48,22 +48,24 @@ export async function removeMember(teamId: string, userId: string): Promise<{ su
       .single();
 
     if (roleData && roleData.role === 'manager') {
-      // Count managers in the team
-      const { data: managersCountData } = await supabase
+      // Count managers in the team using proper syntax
+      const { count, error: countError } = await supabase
         .from('team_roles')
-        .select('count', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('role', 'manager')
-        .in('team_member_id', function(builder) {
-          return builder
-            .select('id')
+        .in('team_member_id', 
+          supabase
             .from('team_member')
-            .eq('team_id', teamId);
-        });
+            .select('id')
+            .eq('team_id', teamId)
+        );
 
-      // Parse count correctly
-      const managersCount = managersCountData as unknown as { count: number };
+      if (countError) {
+        return { success: false, error: `Error checking managers count: ${countError.message}` };
+      }
 
-      if (managersCount.count <= 1) {
+      // Ensure at least one manager remains
+      if (count <= 1) {
         return { 
           success: false, 
           error: 'Cannot remove the last manager from a team' 

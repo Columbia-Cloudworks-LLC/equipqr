@@ -21,7 +21,8 @@ export {
 
 // Re-export functions from other files for backward compatibility
 export * from './acceptInvitation';
-export * from './validateInvitation';
+// Export validateInvitationToken explicitly to avoid ambiguity
+export { validateInvitationToken } from './validateInvitation';
 export * from './invitationHelpers';
 export * from './invitationActions';
 export * from './invitationQueries';

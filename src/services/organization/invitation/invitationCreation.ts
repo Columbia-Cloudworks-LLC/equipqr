@@ -20,8 +20,10 @@ export async function createOrganizationInvitation(
     }
     
     if (existingUser) {
-      // Extract user ID correctly from the response
-      const userId = existingUser?.id;
+      // Extract user ID correctly from the response - handle both array and single object response
+      const userId = Array.isArray(existingUser) 
+        ? existingUser[0]?.id 
+        : existingUser?.id;
       
       // Check if user already has a role in this org
       const { data: existingRole } = await supabase
@@ -57,7 +59,7 @@ export async function createOrganizationInvitation(
       email: email.toLowerCase(),
       org_id: organizationId,
       token: token,
-      role: role, // TypeScript will handle this correctly now
+      role: role as "owner" | "manager" | "technician" | "viewer" | "member", // Cast to the correct type
       created_by: session.session.user.id,
       invited_by_email: currentUserEmail
     };

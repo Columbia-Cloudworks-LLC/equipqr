@@ -42,21 +42,22 @@ export async function changeRole(teamId: string, userId: string, role: string): 
 
     // Check if there would be at least one manager left
     if (role !== 'manager') {
-      // Get count of existing managers in this team
-      const { data: managersCountData } = await supabase
+      // Get count of existing managers in this team using proper parameter syntax
+      const { count, error: countError } = await supabase
         .from('team_roles')
-        .select('count', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('role', 'manager')
-        .in('team_member_id', function(builder) {
-          return builder
-            .select('id')
+        .in('team_member_id', 
+          supabase
             .from('team_member')
-            .eq('team_id', teamId);
-        });
+            .select('id')
+            .eq('team_id', teamId)
+        );
+      
+      if (countError) {
+        return { success: false, error: `Error checking managers count: ${countError.message}` };
+      }
 
-      // Parse the count result correctly
-      const managersCount = managersCountData as unknown as { count: number };
-        
       // Check if user being changed is currently a manager
       const { data: currentRoleData } = await supabase
         .from('team_roles')
@@ -65,7 +66,7 @@ export async function changeRole(teamId: string, userId: string, role: string): 
         .single();
 
       // If there's only one manager and we're changing this manager to another role, block the change
-      if (managersCount.count === 1 && currentRoleData && currentRoleData.role === 'manager') {
+      if (count === 1 && currentRoleData && currentRoleData.role === 'manager') {
         return { 
           success: false, 
           error: 'Cannot change role: team must have at least one manager' 

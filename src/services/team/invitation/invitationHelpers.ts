@@ -31,6 +31,7 @@ export interface SendInvitationEmailParams {
 
 export async function sendInvitationEmail(params: SendInvitationEmailParams): Promise<boolean> {
   try {
+    // Modified to properly use the retry function
     const result = await retry(
       async () => {
         return await supabase.functions.invoke('send_invitation_email', {
@@ -44,10 +45,8 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams): Pr
           }
         });
       },
-      {
-        retries: 2,
-        delay: 1000,
-      }
+      2, // retries
+      1000 // delay in ms
     );
     
     if (result.error) {

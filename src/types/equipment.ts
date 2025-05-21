@@ -1,4 +1,3 @@
-
 import { EquipmentStatus } from "./supabase-enums";
 
 export interface Equipment {
