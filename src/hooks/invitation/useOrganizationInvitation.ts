@@ -76,21 +76,20 @@ export function useOrganizationInvitation() {
         throw new Error(data.message || 'Invitation acceptance failed');
       }
 
-      // FIXED: Use direct database operation instead of RPC for notification dismissal
+      // FIXED: Instead of updating a non-existent column, mark the invitation as accepted
       try {
-        // Manually dismiss the notification in the database
-        const { error: dismissError } = await supabase
-          .from('team_invitations')
-          .update({ dismissed_at: new Date().toISOString() })
-          .eq('type', 'organization_invitation')
-          .eq('reference_id', token);
+        // Update the organization_invitations table to mark as accepted if not already
+        const { error: updateError } = await supabase
+          .from('organization_invitations')
+          .update({ status: 'accepted' })
+          .eq('token', token);
           
-        if (dismissError) {
-          console.warn('Could not dismiss notification:', dismissError);
+        if (updateError) {
+          console.warn('Could not update invitation status:', updateError);
         }
       } catch (dismissError) {
-        console.warn('Could not dismiss notification:', dismissError);
-        // Continue execution even if dismissal fails
+        console.warn('Could not update invitation status:', dismissError);
+        // Continue execution even if update fails
       }
 
       toast.success('Organization invitation accepted successfully!');
