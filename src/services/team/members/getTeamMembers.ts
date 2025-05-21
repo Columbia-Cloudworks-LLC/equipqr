@@ -3,27 +3,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
 
 /**
- * Get team members with their roles
- * @param teamId The ID of the team
- * @returns Array of team members with their roles and details
+ * Get team members for a specific team
  */
 export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
   try {
     if (!teamId) {
-      throw new Error("Team ID is required");
+      throw new Error('Team ID is required');
     }
     
-    // Fetch team members using the edge function to avoid RLS issues
-    const { data, error } = await supabase.functions.invoke('get_team_members', {
-      body: { team_id: teamId }
-    });
+    console.log(`Fetching team members for team ${teamId}`);
     
+    const { data, error } = await supabase
+      .rpc('get_team_members_with_details', {
+        _team_id: teamId
+      });
+      
     if (error) {
-      console.error('Error in getTeamMembers:', error);
-      throw new Error(error.message);
+      console.error('Error fetching team members:', error);
+      throw new Error(`Failed to fetch team members: ${error.message}`);
     }
     
-    console.log("Team members fetched:", data?.length || 0);
     return data || [];
   } catch (error: any) {
     console.error('Error in getTeamMembers:', error);

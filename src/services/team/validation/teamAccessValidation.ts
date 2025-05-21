@@ -10,13 +10,13 @@ export interface TeamAccessDetails {
   isOwner: boolean;
   teamData: Team | null;
   // Extended properties needed by our app
-  isMember: boolean;
-  hasOrgAccess: boolean;
-  orgRole: string | null;
-  accessReason: string | null;
-  hasCrossOrgAccess: boolean;
-  orgName: string | null;
-  team: any | null;
+  isMember?: boolean;
+  hasOrgAccess?: boolean;
+  orgRole?: string | null;
+  accessReason?: string | null;
+  hasCrossOrgAccess?: boolean;
+  orgName?: string | null;
+  team?: any | null;
   error?: string | null;
   success?: boolean;
 }
@@ -40,7 +40,9 @@ export async function validateTeamMembership(teamId: string): Promise<boolean> {
           body: { team_id: teamId }
         }), 3);
       
-      const { data, error } = response || { data: null, error: null };
+      if (!response) return false;
+      
+      const { data, error } = response;
       
       if (error) {
         console.error('Error from validate_team_access function:', error);
@@ -62,13 +64,12 @@ export async function validateTeamMembership(teamId: string): Promise<boolean> {
       const userId = session.session.user.id;
       
       // Check for team membership
-      const { data: membership, error: membershipError } = await retry(() => 
-        supabase
-          .from('team_member')
-          .select('id')
-          .eq('team_id', teamId)
-          .eq('user_id', userId)
-          .single(), 3);
+      const { data: membership, error: membershipError } = await supabase
+        .from('team_member')
+        .select('id')
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+        .maybeSingle();
       
       if (membershipError) {
         console.error('Membership check failed:', membershipError);
@@ -124,15 +125,7 @@ export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDe
       hasAccess: false, 
       role: null, 
       isOwner: false, 
-      teamData: null,
-      isMember: false,
-      hasOrgAccess: false,
-      orgRole: null,
-      accessReason: null,
-      hasCrossOrgAccess: false,
-      orgName: null,
-      team: null,
-      error: "No team ID provided"
+      teamData: null
     };
   }
 
@@ -144,7 +137,11 @@ export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDe
         body: { team_id: teamId }
       }), 3);
     
-    const { data, error } = response || { data: null, error: null };
+    if (!response) {
+      throw new Error("Failed to get team access details: No response from server");
+    }
+    
+    const { data, error } = response;
     
     if (error) {
       console.error('Error from validate_team_access function:', error);
@@ -177,15 +174,28 @@ export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDe
       role: null, 
       isOwner: false, 
       teamData: null,
-      isMember: false,
-      hasOrgAccess: false,
-      orgRole: null,
-      accessReason: `error: ${error.message || 'Unknown error'}`,
-      hasCrossOrgAccess: false,
-      orgName: null,
-      team: null,
       error: error.message || 'Unknown error',
       success: false
     };
+  }
+}
+
+/**
+ * Repairs team membership by adding the current user as a manager
+ */
+export async function repairTeamMembership(teamId: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke('repair_team_membership', {
+      body: { team_id: teamId }
+    });
+    
+    if (error) {
+      throw new Error(error.message);
+    }
+    
+    return data || { success: true };
+  } catch (error: any) {
+    console.error('Error repairing team membership:', error);
+    return { success: false, error: error.message || 'Unknown error' };
   }
 }

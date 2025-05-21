@@ -46,7 +46,7 @@ export function useInvitationProcessing() {
       
       // Process the invitation based on type
       if (invitationType === 'organization') {
-        return await orgInvitation.acceptInvitation(token);
+        return await orgInvitation.handleAcceptInvitation(token);
       } else {
         return await teamInvitation.acceptInvitation(token);
       }
@@ -64,7 +64,7 @@ export function useInvitationProcessing() {
   
   return {
     processInvitation,
-    isProcessing: isProcessing || isValidating || orgInvitation.isProcessing || teamInvitation.isProcessing,
-    error: error || orgInvitation.error || teamInvitation.error
+    isProcessing: isProcessing || isValidating || orgInvitation.isAccepting || teamInvitation.isProcessing,
+    error: error || orgInvitation.validationError || teamInvitation.error
   };
 }

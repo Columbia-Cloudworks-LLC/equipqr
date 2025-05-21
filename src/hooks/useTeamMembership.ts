@@ -50,7 +50,7 @@ export function useTeamMembership(teamId: string | null) {
       // Always set to true initially to avoid flashing "not a member" message
       setIsMember(true);
       setError(null);
-      checkDetailedTeamAccess(teamId, currentUserId);
+      checkDetailedTeamAccess(teamId);
     } else {
       setIsMember(true); // Reset to true when no team is selected
       setAccessReason(null);
@@ -64,7 +64,7 @@ export function useTeamMembership(teamId: string | null) {
     }
   }, [teamId, currentUserId, retryCount]);
 
-  const checkDetailedTeamAccess = async (teamId: string, userId: string) => {
+  const checkDetailedTeamAccess = async (teamId: string) => {
     if (isCheckingAccess) return; // Prevent concurrent checks
     
     try {
@@ -72,67 +72,39 @@ export function useTeamMembership(teamId: string | null) {
       // Clear previous state
       setError(null);
       
-      console.log(`Checking detailed team access for user ${userId} on team ${teamId}`);
+      console.log(`Checking detailed team access for team ${teamId}`);
       
       // Use the enhanced team access details function with retry logic
-      const accessDetails = await getTeamAccessDetails(userId, teamId);
+      const accessDetails = await getTeamAccessDetails(teamId);
       
       console.log('Team access details result:', accessDetails);
       
-      // FIXED: Consider both direct team membership and org manager/owner access
-      const hasMemberAccess = accessDetails.isMember;
+      // Consider both direct team membership and org manager/owner access
+      const hasMemberAccess = accessDetails.hasAccess;
       
-      // FIXED: Track if user has org-level access and their org role
-      setHasOrgAccess(accessDetails.hasOrgAccess || false);
-      setOrganizationRole(accessDetails.orgRole || null);
+      // Track if user has org-level access and their org role
+      setHasOrgAccess(accessDetails.hasAccess || false);
+      setOrganizationRole(accessDetails.role || null);
       
       // Check if user has manager/owner role at the org level
-      const hasOrgManagerAccess = accessDetails.hasOrgAccess && 
-        (accessDetails.orgRole === 'manager' || accessDetails.orgRole === 'owner');
+      const hasOrgManagerAccess = accessDetails.hasAccess && 
+        (accessDetails.role === 'manager' || accessDetails.role === 'owner');
       
       // Set member status based on both team membership and org access
       setIsMember(hasMemberAccess || hasOrgManagerAccess);
-      
-      setAccessReason(accessDetails.accessReason);
-      setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess);
-      setTeamOrgName(accessDetails.orgName || null);
-      setTeamDetails(accessDetails.team || null);
       
       // Only set access role if it's not null to prevent overriding with null
       if (accessDetails.role !== null) {
         setAccessRole(accessDetails.role);
       }
       
-      // FIXED: Only show errors if both team and org access are missing
+      // Only show errors if both team and org access are missing
       if (!hasMemberAccess && !hasOrgManagerAccess) {
         setError('You are not a member of this team. This may be due to an issue during team creation.');
       } else {
         setError(null);
       }
       
-      // Log detailed access information for debugging
-      console.log('Team access details summary:', {
-        teamId,
-        isMember: hasMemberAccess,
-        hasOrgAccess: accessDetails.hasOrgAccess,
-        orgRole: accessDetails.orgRole,
-        reason: accessDetails.accessReason,
-        role: accessDetails.role,
-        hasCrossOrgAccess: accessDetails.hasCrossOrgAccess,
-        orgName: accessDetails.orgName,
-        team: accessDetails.team,
-        finalAccess: hasMemberAccess || hasOrgManagerAccess
-      });
-      
-      // If the access reason indicates an error or fallback was used, show a warning
-      if (accessDetails.accessReason?.includes('error') || accessDetails.accessReason?.includes('fallback')) {
-        console.warn(`Using fallback access mechanism: ${accessDetails.accessReason}`);
-      }
-      
-      // If there's an explicit error in the response, set it
-      if (accessDetails.error) {
-        setError(accessDetails.error);
-      }
     } catch (error: any) {
       console.error('Error checking team access:', error);
       setError('Failed to verify team membership. Please try again.');

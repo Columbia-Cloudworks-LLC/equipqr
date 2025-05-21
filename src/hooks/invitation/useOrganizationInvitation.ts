@@ -43,7 +43,7 @@ export function useOrganizationInvitation() {
   const handleAcceptInvitation = useCallback(async (token: string) => {
     if (!token) {
       toast.error('Invalid invitation token');
-      return false;
+      return { success: false, error: 'Invalid invitation token' };
     }
     
     try {
@@ -62,7 +62,7 @@ export function useOrganizationInvitation() {
         
         // Navigate to teams page or dashboard
         navigate('/dashboard');
-        return true;
+        return result;
       } else {
         throw new Error(result.error || 'Failed to accept invitation');
       }
@@ -71,7 +71,7 @@ export function useOrganizationInvitation() {
       toast.error('Failed to accept invitation', {
         description: error.message || 'An unexpected error occurred'
       });
-      return false;
+      return { success: false, error: error.message || 'Failed to accept invitation' };
     } finally {
       setIsAccepting(false);
     }

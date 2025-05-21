@@ -1,107 +1,110 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Invitation } from "@/types/notifications";
+import { toast } from "sonner";
 
-// Local storage key for dismissed notifications
-const DISMISSED_NOTIFICATIONS_KEY = 'equipqr_dismissed_notifications';
-
-/**
- * Dismisses a notification locally by storing its ID
- */
-export function dismissNotification(id: string): void {
-  try {
-    // Get current dismissed notifications
-    const currentDismissed = getDismissedNotifications();
-    
-    // Add the new ID if not already present
-    if (!currentDismissed.includes(id)) {
-      currentDismissed.push(id);
-      
-      // Store updated list
-      localStorage.setItem(DISMISSED_NOTIFICATIONS_KEY, JSON.stringify(currentDismissed));
-    }
-  } catch (error) {
-    console.error("Error dismissing notification:", error);
-  }
+// Interface for invitation data
+export interface Invitation {
+  id: string;
+  email: string;
+  status: string;
+  created_at: string;
+  invitationType: string;
+  team?: any;
+  organization?: any;
+  role?: string;
+  token?: string;
 }
 
-/**
- * Clears all locally dismissed notifications
- */
-export function clearLocalDismissedNotifications(): void {
-  try {
-    localStorage.removeItem(DISMISSED_NOTIFICATIONS_KEY);
-  } catch (error) {
-    console.error("Error clearing dismissed notifications:", error);
-  }
-}
+// List of dismissed notification IDs stored in local storage
+const DISMISSED_NOTIFICATIONS_KEY = 'dismissed_notifications';
 
 /**
- * Gets the list of dismissed notification IDs
+ * Get dismissed notification IDs from local storage
  */
-export function getDismissedNotifications(): string[] {
+function getDismissedNotifications(): string[] {
   try {
-    const dismissed = localStorage.getItem(DISMISSED_NOTIFICATIONS_KEY);
-    return dismissed ? JSON.parse(dismissed) : [];
+    const stored = localStorage.getItem(DISMISSED_NOTIFICATIONS_KEY);
+    return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    console.error("Error getting dismissed notifications:", error);
+    console.error('Error reading dismissed notifications from localStorage:', error);
     return [];
   }
 }
 
 /**
- * Gets active notifications - combines pending invitations and filters out dismissed ones
+ * Save a dismissed notification ID to local storage
+ */
+function saveDismissedNotification(id: string): void {
+  try {
+    const current = getDismissedNotifications();
+    if (!current.includes(id)) {
+      const updated = [...current, id];
+      localStorage.setItem(DISMISSED_NOTIFICATIONS_KEY, JSON.stringify(updated));
+    }
+  } catch (error) {
+    console.error('Error saving dismissed notification to localStorage:', error);
+  }
+}
+
+/**
+ * Mark a notification as dismissed
+ */
+export async function dismissNotification(id: string): Promise<void> {
+  try {
+    saveDismissedNotification(id);
+  } catch (error) {
+    console.error('Error dismissing notification:', error);
+  }
+}
+
+/**
+ * Clear all dismissed notifications from local storage
+ */
+export async function clearLocalDismissedNotifications(): Promise<void> {
+  try {
+    localStorage.removeItem(DISMISSED_NOTIFICATIONS_KEY);
+    toast.success('Notifications reset successfully');
+  } catch (error) {
+    console.error('Error clearing dismissed notifications:', error);
+    toast.error('Failed to reset notifications');
+  }
+}
+
+/**
+ * Get active invitations/notifications that haven't been dismissed
  */
 export async function getActiveNotifications(): Promise<Invitation[]> {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user?.email) {
-      return [];
-    }
-    
-    const userEmail = sessionData.session.user.email.toLowerCase();
-    const dismissedIds = getDismissedNotifications();
-    
     // Get team invitations
-    const { data: teamInvites } = await supabase
+    const { data: teamInvitations, error: teamError } = await supabase
       .from('team_invitations')
       .select('*, team:team_id(*)')
-      .eq('email', userEmail)
       .eq('status', 'pending');
     
-    // Get organization invitations
-    const { data: orgInvites } = await supabase
-      .from('organization_invitations')
-      .select('*, organization:org_id(*)')
-      .eq('email', userEmail)
-      .eq('status', 'pending');
+    if (teamError) throw teamError;
     
-    // Combine and transform invitations
-    const allInvitations: Invitation[] = [
-      ...(teamInvites || []).map(invite => ({
-        id: invite.id,
-        email: invite.email,
-        status: invite.status,
-        created_at: invite.created_at,
-        invitationType: 'team',
-        team: invite.team,
-        organization: null
-      })),
-      ...(orgInvites || []).map(invite => ({
-        id: invite.id,
-        email: invite.email,
-        status: invite.status,
-        created_at: invite.created_at,
-        invitationType: 'organization',
-        team: null,
-        organization: invite.organization
-      }))
-    ];
+    // Get organization invitations (placeholder, implement if needed)
+    const orgInvitations: any[] = []; 
     
-    // Filter out dismissed notifications
-    return allInvitations.filter(invite => !dismissedIds.includes(invite.id));
+    // Add type information to each invitation
+    const typedTeamInvitations = (teamInvitations || []).map(inv => ({
+      ...inv,
+      invitationType: 'team',
+    }));
+    
+    const typedOrgInvitations = orgInvitations.map(inv => ({
+      ...inv,
+      invitationType: 'organization',
+    }));
+    
+    // Combine all invitations
+    const allInvitations = [...typedTeamInvitations, ...typedOrgInvitations];
+    
+    // Filter out dismissed invitations
+    const dismissed = getDismissedNotifications();
+    return allInvitations.filter(inv => !dismissed.includes(inv.id)) as Invitation[];
   } catch (error) {
-    console.error("Error fetching active notifications:", error);
+    console.error('Error fetching active notifications:', error);
     return [];
   }
 }
