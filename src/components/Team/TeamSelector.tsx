@@ -15,8 +15,10 @@ interface Team {
   id: string;
   name: string;
   org_name?: string;
+  org_id?: string;
   is_external?: boolean;
   role?: string;
+  deleted_at?: string | null;
 }
 
 interface TeamSelectorProps {
@@ -34,10 +36,13 @@ export function TeamSelector({
   placeholder = "Select a team",
   hideNoTeamOption = false
 }: TeamSelectorProps) {
+  // Ensure we only work with non-deleted teams
+  const validTeams = teams.filter(team => !team.deleted_at);
+  
   // Group teams by organization if org_name is present
-  const hasOrgInfo = teams.some(team => team.org_name);
+  const hasOrgInfo = validTeams.some(team => team.org_name);
   const groupedTeams = hasOrgInfo ? 
-    teams.reduce((acc, team) => {
+    validTeams.reduce((acc, team) => {
       const orgName = team.org_name || 'Your Organization';
       if (!acc[orgName]) {
         acc[orgName] = [];
@@ -45,7 +50,25 @@ export function TeamSelector({
       acc[orgName].push(team);
       return acc;
     }, {} as Record<string, Team[]>) :
-    { 'All Teams': teams };
+    { 'All Teams': validTeams };
+  
+  // If no teams are available or the selected team no longer exists,
+  // trigger onChange with the first valid team or empty string
+  useEffect(() => {
+    if (validTeams.length > 0) {
+      const teamExists = validTeams.some(team => team.id === value);
+      if (!teamExists && value) {
+        onChange(validTeams[0].id);
+      }
+    } else if (value) {
+      onChange('');
+    }
+  }, [validTeams, value, onChange]);
+  
+  // If there are no valid teams to select, return null
+  if (validTeams.length === 0) {
+    return null;
+  }
   
   return (
     <Select value={value} onValueChange={onChange}>
@@ -87,7 +110,7 @@ export function TeamSelector({
             </SelectGroup>
           ))
         ) : (
-          teams.map(team => (
+          validTeams.map(team => (
             <SelectItem key={team.id} value={team.id}>
               {team.name}
             </SelectItem>
@@ -97,3 +120,5 @@ export function TeamSelector({
     </Select>
   );
 }
+
+import { useEffect } from 'react';

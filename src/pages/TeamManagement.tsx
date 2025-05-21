@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { TeamSelector } from '@/components/Team/TeamSelector';
 import { TeamContent } from '@/components/Team/TeamContent';
@@ -93,12 +92,58 @@ export default function TeamManagement() {
   }, [selectedOrganization]);
 
   // Filter teams by selected organization
-  const filteredTeams = selectedOrgId 
-    ? teams.filter(team => team.organizationId === selectedOrgId) 
-    : teams;
+  const filteredTeams = useMemo(() => {
+    // Filter by org ID and also ensure we only include non-deleted teams
+    return selectedOrgId 
+      ? teams.filter(team => team.org_id === selectedOrgId && !team.deleted_at) 
+      : teams.filter(team => !team.deleted_at);
+  }, [teams, selectedOrgId]);
+
+  // When filtered teams change, ensure we select a valid team
+  useEffect(() => {
+    // If there are teams available but none selected or the selected one is invalid
+    if (filteredTeams.length > 0) {
+      const teamExists = filteredTeams.some(team => team.id === selectedTeamId);
+      
+      // If no team is selected or the selected team doesn't exist in the filtered list
+      if (!selectedTeamId || !teamExists) {
+        console.log('Selecting first available team:', filteredTeams[0].id);
+        setSelectedTeamId(filteredTeams[0].id);
+      }
+    } else {
+      // Clear selection if no teams available
+      if (selectedTeamId) {
+        console.log('No teams available, clearing selection');
+        setSelectedTeamId('');
+      }
+    }
+  }, [filteredTeams, selectedTeamId, setSelectedTeamId]);
 
   // Determine if the user has viewer role only - check if it's 'viewer' specifically
   const isViewerOnly = isMember && currentUserRole === 'viewer';
+  
+  // Determine if the user can manage teams in the selected organization
+  const canManageTeamsInOrg = selectedOrganization?.role === 'owner' || 
+                              selectedOrganization?.role === 'manager' || 
+                              selectedOrganization?.role === 'admin';
+
+  // Filter organizations for the selector - viewers shouldn't see orgs with no teams
+  const filteredOrganizations = useMemo(() => {
+    if (!organizations || organizations.length <= 1) return organizations;
+    
+    // If user is not a manager/owner/admin, only show orgs where they have teams
+    if (selectedOrganization?.role === 'viewer') {
+      return organizations.filter(org => {
+        // Always include their primary org
+        if (org.is_primary) return true;
+        
+        // For non-primary orgs, only include if they have at least one team there
+        return teams.some(team => team.org_id === org.id && !team.deleted_at);
+      });
+    }
+    
+    return organizations;
+  }, [organizations, teams, selectedOrganization]);
   
   // Log state for debugging
   useEffect(() => {
@@ -111,9 +156,12 @@ export default function TeamManagement() {
       isMember,
       currentUserRole,
       canChangeRoles,
-      isViewerOnly
+      isViewerOnly,
+      organizations: organizations.length,
+      filteredOrganizations: filteredOrganizations.length
     });
-  }, [teams.length, filteredTeams.length, selectedTeamId, selectedOrgId, isLoading, isMember, currentUserRole, canChangeRoles, isViewerOnly]);
+  }, [teams.length, filteredTeams.length, selectedTeamId, selectedOrgId, isLoading, isMember, 
+      currentUserRole, canChangeRoles, isViewerOnly, organizations, filteredOrganizations]);
 
   // Wrapper functions to adapt the hook functions to the expected return types for TeamContent
   const handleUpdateTeamWrapper = async (id: string, name: string): Promise<void> => {
@@ -166,7 +214,7 @@ export default function TeamManagement() {
   // Handle organization change
   const handleOrganizationChange = (orgId: string) => {
     setSelectedOrgId(orgId);
-    // Clear selected team when changing org
+    // Clear selected team when changing org - the useEffect will select the first available team if any
     setSelectedTeamId('');
   };
 
@@ -201,9 +249,9 @@ export default function TeamManagement() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h1 className="text-2xl font-bold">Team Management</h1>
           <div className="flex items-center gap-2">
-            {organizations.length > 1 && (
+            {filteredOrganizations.length > 1 && (
               <OrganizationSelector
-                organizations={organizations}
+                organizations={filteredOrganizations}
                 selectedOrgId={selectedOrgId}
                 onChange={handleOrganizationChange}
                 className="w-[200px]"
@@ -258,7 +306,7 @@ export default function TeamManagement() {
               </div>
               
               {/* Add Create Team Button - only shown for users who can manage teams */}
-              {(currentUserRole === 'owner' || currentUserRole === 'manager' || canChangeRoles) && (
+              {canManageTeamsInOrg && (
                 <CreateTeamButton 
                   onCreateTeam={handleCreateTeamWithOrg}
                   isCreating={isCreatingTeam}
@@ -301,6 +349,8 @@ export default function TeamManagement() {
           <EmptyTeamState
             onCreateTeam={handleCreateTeamWithOrg}
             isCreatingTeam={isCreatingTeam}
+            userRole={selectedOrganization?.role || undefined}
+            organizationName={selectedOrganization?.name}
           />
         )}
       </div>

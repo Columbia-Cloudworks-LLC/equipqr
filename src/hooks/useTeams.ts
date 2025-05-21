@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -6,8 +5,10 @@ interface Team {
   id: string;
   name: string;
   role: string;
+  org_id: string;
   organizationId: string;
   organizationName: string;
+  deleted_at?: string | null;
 }
 
 export function useTeams() {
@@ -47,8 +48,10 @@ export function useTeams() {
             id: team.id,
             name: team.name,
             role: team.role || 'viewer',
+            org_id: team.org_id,
             organizationId: team.org_id,
-            organizationName: team.org_name
+            organizationName: team.org_name,
+            deleted_at: team.deleted_at  // Include deleted_at field
           }));
           
           setTeams(typedTeams);
@@ -62,6 +65,19 @@ export function useTeams() {
       const { data: membershipData } = await supabase
         .rpc('get_team_members_with_roles', { _team_id: null });
       
+      // Also fetch all teams to get deleted_at status
+      const { data: allTeamsData } = await supabase
+        .from('team')
+        .select('id, deleted_at');
+        
+      // Create a map of team ID to deleted_at status
+      const deletedStatusMap = new Map();
+      if (allTeamsData) {
+        allTeamsData.forEach((team: any) => {
+          deletedStatusMap.set(team.id, team.deleted_at);
+        });
+      }
+      
       // Convert and set the teams
       if (membershipData && Array.isArray(membershipData)) {
         const processedTeams = membershipData
@@ -73,8 +89,10 @@ export function useTeams() {
               id: teamData.id,
               name: teamData.name || 'Unnamed Team',
               role: teamData.role || 'viewer',
-              organizationId: teamData.org_id || '', // Use type assertion to access these properties
-              organizationName: teamData.org_name || ''
+              org_id: teamData.org_id || '',
+              organizationId: teamData.org_id || '',
+              organizationName: teamData.org_name || '',
+              deleted_at: deletedStatusMap.get(teamData.id) || null
             };
           });
         

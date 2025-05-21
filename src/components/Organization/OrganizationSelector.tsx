@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { UserOrganization } from '@/services/organization/userOrganizations';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface OrganizationSelectorProps {
   organizations: UserOrganization[];
@@ -17,6 +18,7 @@ interface OrganizationSelectorProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  showRoleBadges?: boolean;
 }
 
 export function OrganizationSelector({
@@ -25,7 +27,8 @@ export function OrganizationSelector({
   onChange,
   disabled = false,
   placeholder = "Select organization",
-  className = "w-[200px]"
+  className = "w-[200px]",
+  showRoleBadges = true
 }: OrganizationSelectorProps) {
   // Always show the selector if there are organizations, even if just one
   if (organizations.length === 0) {
@@ -47,15 +50,24 @@ export function OrganizationSelector({
             <div className="flex items-center">
               <Building className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               {org.name}
-              {org.is_primary && (
+              {showRoleBadges && org.is_primary && (
                 <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-blue-50">
                   Primary
                 </Badge>
               )}
-              {!org.is_primary && org.role && (
-                <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-gray-50">
-                  {org.role}
-                </Badge>
+              {showRoleBadges && !org.is_primary && org.role && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-gray-50">
+                        {org.role}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Your role in this organization</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           </SelectItem>
