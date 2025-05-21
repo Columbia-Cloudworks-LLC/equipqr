@@ -4,6 +4,20 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team/validation';
 
+export interface TeamAccessDetails {
+  hasAccess: boolean;
+  role: string | null;
+  // Additional fields to avoid type errors
+  isMember: boolean;
+  hasOrgAccess: boolean;
+  orgRole: string | null;
+  accessReason: string | null;
+  hasCrossOrgAccess: boolean;
+  orgName: string | null;
+  team: any;
+  error?: string | null;
+}
+
 export function useTeamMembership(teamId: string | null) {
   const [isMember, setIsMember] = useState<boolean>(true); // Optimistic initial state
   const [isRepairingTeam, setIsRepairingTeam] = useState(false);

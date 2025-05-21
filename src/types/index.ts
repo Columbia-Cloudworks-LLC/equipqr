@@ -3,6 +3,11 @@
  * Core types for the application
  */
 
+import { Equipment, EquipmentAttribute, WorkNote } from './equipment';
+
+// Re-export types from equipment.ts
+export type { Equipment, EquipmentAttribute, WorkNote };
+
 export interface TeamMember {
   id: string;
   user_id: string;
@@ -13,6 +18,8 @@ export interface TeamMember {
   avatar_url?: string;
   joined_at?: string;
   is_current_user?: boolean;
+  auth_uid?: string; // Added for TeamMemberRow
+  status?: string; // Added for TeamMemberRow
 }
 
 export interface DashboardStat {

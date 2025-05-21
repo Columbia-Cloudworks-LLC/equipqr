@@ -1,4 +1,3 @@
-
 import { Equipment, TeamMember, WorkNote } from '@/types';
 
 export const MOCK_EQUIPMENT: Equipment[] = [
@@ -126,6 +125,7 @@ export const MOCK_WORK_NOTES: WorkNote[] = [
     created_at: '2023-12-01T14:32:00Z',
     author: 'John Doe',
     content: 'Inspected the conference camera. The main microphone isn\'t picking up audio correctly. Ordered replacement part.',
+    is_public: true
   },
   {
     id: 'note-2',
@@ -166,9 +166,9 @@ export const MOCK_TEAM_MEMBERS: TeamMember[] = [
     user_id: 'auth-user-1',
     joined_at: '2023-01-15T08:00:00Z',
     name: 'John Doe',
-    display_name: 'John Doe',
     email: 'john.doe@example.com',
     role: 'Admin',
+    auth_uid: 'auth-user-1',
     status: 'Active',
   },
   {
@@ -177,9 +177,9 @@ export const MOCK_TEAM_MEMBERS: TeamMember[] = [
     user_id: 'auth-user-2',
     joined_at: '2023-02-20T10:30:00Z',
     name: 'Jane Smith',
-    display_name: 'Jane Smith',
     email: 'jane.smith@example.com',
     role: 'Editor',
+    auth_uid: 'auth-user-2',
     status: 'Active',
   },
   {
@@ -188,9 +188,9 @@ export const MOCK_TEAM_MEMBERS: TeamMember[] = [
     user_id: 'auth-user-3',
     joined_at: '2023-03-05T13:45:00Z',
     name: 'Lisa Johnson',
-    display_name: 'Lisa Johnson',
     email: 'lisa.johnson@example.com',
     role: 'Editor',
+    auth_uid: 'auth-user-3',
     status: 'Active',
   },
   {
@@ -199,9 +199,9 @@ export const MOCK_TEAM_MEMBERS: TeamMember[] = [
     user_id: 'auth-user-4',
     joined_at: '2023-04-10T09:15:00Z',
     name: 'Michael Brown',
-    display_name: 'Michael Brown',
     email: 'michael.brown@example.com',
     role: 'Viewer',
+    auth_uid: 'auth-user-4',
     status: 'Active',
   },
   {
@@ -210,9 +210,9 @@ export const MOCK_TEAM_MEMBERS: TeamMember[] = [
     user_id: 'auth-user-5',
     joined_at: '2023-12-01T14:20:00Z',
     name: 'Emily Davis',
-    display_name: 'Emily Davis',
     email: 'emily.davis@example.com',
     role: 'Viewer',
+    auth_uid: 'auth-user-5',
     status: 'Pending',
   },
 ];

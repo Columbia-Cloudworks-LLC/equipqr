@@ -1,31 +1,29 @@
 
-export interface Invitation {
+import { Invitation as BaseInvitation } from './index';
+
+// Export the same Invitation interface to ensure consistency
+export type { Invitation } from './index';
+
+// Define the helper types for notifications
+export interface NotificationBase {
   id: string;
-  email: string;
-  team?: {
-    name?: string;
-    org_id?: string;
-  };
-  organization?: {
-    name?: string;
-    id?: string;
-  };
-  role: string;
-  token: string;
+  type: string;
+  read: boolean;
   created_at: string;
-  status?: string;
-  invitationType?: 'team' | 'organization';
-  org_name?: string;
-  team_name?: string;
+  title: string;
+  message: string;
+  action_url?: string;
+  priority?: 'low' | 'medium' | 'high';
 }
 
-export interface NotificationsContextType {
-  invitations: Invitation[];
-  isLoading: boolean;
-  hasNewNotifications: boolean;
-  hasError: boolean;
-  isRefreshPending?: boolean; // New property
-  refreshNotifications: () => Promise<boolean | void>;
-  dismissInvitation: (id: string) => void;
-  resetDismissedNotifications: () => void;
+export interface InvitationNotification extends NotificationBase {
+  type: 'invitation';
+  invitation: BaseInvitation;
 }
+
+export interface SystemNotification extends NotificationBase {
+  type: 'system';
+  system_id: string;
+}
+
+export type Notification = InvitationNotification | SystemNotification;

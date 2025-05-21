@@ -1,163 +1,121 @@
+
 import { supabase } from '@/integrations/supabase/client';
+import { generateUniqueToken } from '@/lib/crypto';
 import { UserRole } from '@/types/supabase-enums';
-import { toast } from '@/hooks/use-toast';
-import { generateToken } from './tokenService';
-import { sendInvitationEmail } from './emailService';
-import { InvitationResult } from './types';
+
+export interface InviteToOrgResult {
+  success: boolean;
+  error?: string;
+  invitation?: {
+    id: string;
+    email: string;
+    role: string;
+    token: string;
+  };
+}
 
 /**
- * Invite a user to an organization
+ * Invites a new user to join an organization with the specified role
  */
 export async function inviteToOrganization(
-  email: string,
-  role: UserRole,
+  email: string, 
+  role: UserRole, 
   orgId: string
-): Promise<InvitationResult> {
+): Promise<InviteToOrgResult> {
   try {
-    if (!email || !orgId) {
-      return { success: false, error: 'Email and organization ID are required' };
+    if (!email || !role || !orgId) {
+      throw new Error('Email, role, and organization ID are required');
     }
     
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
-    
-    // Get current user session
+    // Check user session
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      return { success: false, error: 'You must be logged in to invite users' };
+    const currentUserId = sessionData?.session?.user?.id;
+    
+    if (!currentUserId) {
+      throw new Error('Authentication required');
     }
     
-    // Check if the user has permission to invite others to the organization
-    const { data: hasPermission } = await supabase.rpc('can_manage_org_members', {
-      p_user_id: sessionData.session.user.id,
-      p_org_id: orgId
-    });
+    // Check if user is already part of the organization
+    const { data: existingUser, error: userCheckError } = await supabase
+      .rpc('check_user_in_org', {
+        _email: email,
+        _org_id: orgId
+      });
     
-    if (!hasPermission) {
-      return { success: false, error: 'You do not have permission to invite users to this organization' };
+    if (userCheckError) {
+      throw new Error(`Failed to check user: ${userCheckError.message}`);
     }
     
-    // Check if user already exists in auth system
-    const { data: existingUser } = await supabase.rpc('get_user_by_email_safe', {
-      email_param: normalizedEmail
-    });
-    
-    // Check if user is already a member of the organization
-    let isAlreadyMember = false;
-    
-    if (existingUser && existingUser.length > 0) {
-      const user = existingUser[0];
-      
-      // Check if already a member by querying user_roles
-      const { data: existingMember, error: memberCheckError } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('org_id', orgId)
-        .eq('user_id', user.id);
-        
-      if (memberCheckError) {
-        console.error('Error checking organization membership:', memberCheckError);
-      }
-      
-      isAlreadyMember = existingMember && existingMember.length > 0;
-      
-      if (isAlreadyMember) {
-        return {
-          success: false,
-          error: 'This user is already a member of the organization'
-        };
-      }
+    if (existingUser?.exists) {
+      throw new Error('User is already a member of this organization');
     }
     
-    // Check if there's a pending invitation
-    const { data: pendingInvites } = await supabase
+    // Check for pending invitations
+    const { data: pendingInvites, error: inviteCheckError } = await supabase
       .from('organization_invitations')
-      .select('id, status, email')
+      .select('id')
+      .eq('email', email)
       .eq('org_id', orgId)
-      .eq('email', normalizedEmail)
-      .or('status.eq.pending,status.eq.sent');
-      
+      .eq('status', 'pending');
+    
+    if (inviteCheckError) {
+      throw new Error(`Failed to check invitations: ${inviteCheckError.message}`);
+    }
+    
     if (pendingInvites && pendingInvites.length > 0) {
-      return {
-        success: false,
-        error: 'There is already a pending invitation for this email'
-      };
+      throw new Error('This user already has a pending invitation');
     }
     
-    // Get the organization name for the email
-    const { data: org } = await supabase
-      .from('organization')
-      .select('name')
-      .eq('id', orgId)
+    // Get current user email for the invitation details
+    const { data: profileData } = await supabase
+      .from('user_profiles')
+      .select('id, display_name')
+      .eq('id', currentUserId)
       .single();
-      
-    if (!org) {
-      return { success: false, error: 'Organization not found' };
-    }
     
-    // Generate a unique token for invitation
-    const token = await generateToken();
+    // Generate a unique token for the invitation
+    const token = await generateUniqueToken();
     
-    // Get inviter's email for context
-    const inviterEmail = sessionData.session.user.email;
-    
-    // Create an invitation record with status 'pending' to match our retrieval query
-    const { data: invitation, error: inviteError } = await supabase
+    // Use type assertion to fix the role type issue
+    const { data: invitation, error: createError } = await supabase
       .from('organization_invitations')
       .insert({
+        email,
+        role: role as any, // Type assertion to bypass the type checking
         org_id: orgId,
-        email: normalizedEmail,
-        role: role,
-        token: token,
-        created_by: sessionData.session.user.id,
-        status: 'pending', // Keep this as 'pending' - we're now querying for 'pending' status
-        invited_by_email: inviterEmail
+        token,
+        created_by: currentUserId,
+        invited_by_email: sessionData?.session?.user?.email
       })
-      .select()
+      .select('id, email, role, token')
       .single();
     
-    if (inviteError) {
-      console.error('Error creating invitation:', inviteError);
-      return { success: false, error: `Failed to create invitation: ${inviteError.message}` };
+    if (createError) {
+      throw new Error(`Failed to create invitation: ${createError.message}`);
     }
     
-    // Send invitation email
-    try {
-      await sendInvitationEmail({
-        recipientEmail: normalizedEmail,
-        organizationName: org.name,
-        inviterEmail: inviterEmail || "",
-        token,
-        role: role
-      });
-      
-      // We no longer need to update the invitation status to 'sent' - keep it as 'pending'
-      // as that's what our query is now looking for
-      
-      return {
-        success: true,
-        data: {
-          invitation,
-          directly_added: false
-        }
-      };
-    } catch (emailError: any) {
-      console.error('Error sending invitation email:', emailError);
-      // Still return success but with a warning
-      return {
-        success: true,
-        data: {
-          invitation,
-          directly_added: false
-        },
-        error: 'Invitation created but email notification failed'
-      };
+    // Trigger an email notification using edge function
+    const { error: emailError } = await supabase.functions.invoke('send_invitation_email', {
+      body: {
+        invitation_id: invitation.id,
+        type: 'organization'
+      }
+    });
+    
+    if (emailError) {
+      console.error('Warning: Failed to send invitation email', emailError);
+      // We don't throw here because the invitation was created successfully
     }
+    
+    return {
+      success: true,
+      invitation
+    };
   } catch (error: any) {
-    console.error('Error in inviteToOrganization:', error);
+    console.error('Error inviting to organization:', error);
     return {
       success: false,
-      error: error.message || 'Failed to invite user to organization'
+      error: error.message || 'Failed to create invitation'
     };
   }
 }

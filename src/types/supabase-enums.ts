@@ -23,3 +23,8 @@ export type NoteVisibility = 'public' | 'private';
  * Enum for team member status
  */
 export type MemberStatus = 'active' | 'inactive' | 'pending';
+
+/**
+ * Enum for datetime format preferences
+ */
+export type DateTimeFormat = 'MM/DD/YYYY h:mm A' | 'DD/MM/YYYY h:mm A' | 'YYYY-MM-DD HH:mm';

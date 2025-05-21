@@ -1,7 +1,11 @@
 
-// Export notification service functions
+/**
+ * Export all notification-related functions
+ */
+
 export { 
+  getActiveInvitations, 
   dismissNotification, 
   clearLocalDismissedNotifications,
-  getActiveNotifications
+  hasActiveNotifications 
 } from './notificationHelpers';

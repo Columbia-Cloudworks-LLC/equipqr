@@ -64,7 +64,8 @@ export function useOrganizationInvitation() {
         navigate('/dashboard');
         return result;
       } else {
-        throw new Error(result.error || 'Failed to accept invitation');
+        const errorMsg = typeof result.error === 'string' ? result.error : 'Failed to accept invitation';
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
       console.error('Error accepting invitation:', error);

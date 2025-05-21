@@ -1,110 +1,142 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
+import { Invitation } from '@/types';
 
-// Interface for invitation data
-export interface Invitation {
-  id: string;
-  email: string;
-  status: string;
-  created_at: string;
-  invitationType: string;
-  team?: any;
-  organization?: any;
-  role?: string;
-  token?: string;
-}
-
-// List of dismissed notification IDs stored in local storage
+// Local storage key for dismissed notifications
 const DISMISSED_NOTIFICATIONS_KEY = 'dismissed_notifications';
 
 /**
- * Get dismissed notification IDs from local storage
+ * Get active invitations for the current user
  */
-function getDismissedNotifications(): string[] {
+export async function getActiveInvitations(): Promise<Invitation[]> {
   try {
-    const stored = localStorage.getItem(DISMISSED_NOTIFICATIONS_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user?.email) {
+      console.log('No authenticated user with email found');
+      return [];
+    }
+    
+    const userEmail = sessionData.session.user.email;
+    
+    // Get team invitations
+    const { data: teamInvitations, error: teamError } = await supabase
+      .from('team_invitations')
+      .select(`
+        id,
+        email,
+        status,
+        created_at,
+        team:team_id (
+          id,
+          name,
+          org_id,
+          created_by,
+          created_at,
+          deleted_at
+        ),
+        role
+      `)
+      .eq('email', userEmail)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    
+    if (teamError) {
+      console.error('Error fetching team invitations:', teamError);
+    }
+    
+    // Get organization invitations
+    const { data: orgInvitations, error: orgError } = await supabase
+      .from('organization_invitations')
+      .select(`
+        id,
+        email,
+        status,
+        created_at,
+        role,
+        org_id,
+        organization:org_id (
+          id,
+          name,
+          created_at
+        )
+      `)
+      .eq('email', userEmail)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    
+    if (orgError) {
+      console.error('Error fetching organization invitations:', orgError);
+    }
+    
+    // Process team invitations
+    const processedTeamInvitations = (teamInvitations || []).map(inv => ({
+      ...inv,
+      token: '',  // Token is server-side only
+      invitationType: 'team'
+    }));
+    
+    // Process organization invitations
+    const processedOrgInvitations = (orgInvitations || []).map(inv => ({
+      ...inv,
+      token: '',  // Token is server-side only
+      invitationType: 'organization',
+      team_id: null
+    }));
+    
+    // Combine and filter out locally dismissed notifications
+    const allInvitations = [...processedTeamInvitations, ...processedOrgInvitations];
+    const dismissedIds = getDismissedNotificationIds();
+    
+    return allInvitations.filter(inv => !dismissedIds.includes(inv.id)) as Invitation[];
   } catch (error) {
-    console.error('Error reading dismissed notifications from localStorage:', error);
+    console.error('Error in getActiveInvitations:', error);
     return [];
   }
 }
 
 /**
- * Save a dismissed notification ID to local storage
+ * Get dismissed notification IDs from local storage
  */
-function saveDismissedNotification(id: string): void {
+function getDismissedNotificationIds(): string[] {
   try {
-    const current = getDismissedNotifications();
-    if (!current.includes(id)) {
-      const updated = [...current, id];
-      localStorage.setItem(DISMISSED_NOTIFICATIONS_KEY, JSON.stringify(updated));
-    }
+    const dismissed = localStorage.getItem(DISMISSED_NOTIFICATIONS_KEY);
+    return dismissed ? JSON.parse(dismissed) : [];
   } catch (error) {
-    console.error('Error saving dismissed notification to localStorage:', error);
+    console.error('Error reading dismissed notifications:', error);
+    return [];
   }
 }
 
 /**
- * Mark a notification as dismissed
+ * Dismiss a notification locally
  */
-export async function dismissNotification(id: string): Promise<void> {
+export function dismissNotification(id: string): void {
   try {
-    saveDismissedNotification(id);
+    const dismissed = getDismissedNotificationIds();
+    if (!dismissed.includes(id)) {
+      dismissed.push(id);
+      localStorage.setItem(DISMISSED_NOTIFICATIONS_KEY, JSON.stringify(dismissed));
+    }
   } catch (error) {
     console.error('Error dismissing notification:', error);
   }
 }
 
 /**
- * Clear all dismissed notifications from local storage
+ * Clear all locally dismissed notifications
  */
-export async function clearLocalDismissedNotifications(): Promise<void> {
+export function clearLocalDismissedNotifications(): void {
   try {
     localStorage.removeItem(DISMISSED_NOTIFICATIONS_KEY);
-    toast.success('Notifications reset successfully');
   } catch (error) {
     console.error('Error clearing dismissed notifications:', error);
-    toast.error('Failed to reset notifications');
   }
 }
 
 /**
- * Get active invitations/notifications that haven't been dismissed
+ * Check if there are any active notifications
  */
-export async function getActiveNotifications(): Promise<Invitation[]> {
-  try {
-    // Get team invitations
-    const { data: teamInvitations, error: teamError } = await supabase
-      .from('team_invitations')
-      .select('*, team:team_id(*)')
-      .eq('status', 'pending');
-    
-    if (teamError) throw teamError;
-    
-    // Get organization invitations (placeholder, implement if needed)
-    const orgInvitations: any[] = []; 
-    
-    // Add type information to each invitation
-    const typedTeamInvitations = (teamInvitations || []).map(inv => ({
-      ...inv,
-      invitationType: 'team',
-    }));
-    
-    const typedOrgInvitations = orgInvitations.map(inv => ({
-      ...inv,
-      invitationType: 'organization',
-    }));
-    
-    // Combine all invitations
-    const allInvitations = [...typedTeamInvitations, ...typedOrgInvitations];
-    
-    // Filter out dismissed invitations
-    const dismissed = getDismissedNotifications();
-    return allInvitations.filter(inv => !dismissed.includes(inv.id)) as Invitation[];
-  } catch (error) {
-    console.error('Error fetching active notifications:', error);
-    return [];
-  }
+export async function hasActiveNotifications(): Promise<boolean> {
+  const invitations = await getActiveInvitations();
+  return invitations.length > 0;
 }

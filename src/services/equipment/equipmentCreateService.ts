@@ -1,110 +1,69 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { retry } from "@/utils/edgeFunctions/retry";
-import { EquipmentFormValues } from "@/types/equipment";
-import { CreateEquipmentParams } from "@/types/equipment";
-import { toast } from "sonner";
-import { checkCreatePermission, fallbackPermissionCheck } from "./permissions";
+import { Equipment } from '@/types';
+import { EquipmentFormValues, CreateEquipmentParams } from '@/types/equipment';
+import { saveEquipmentAttributes } from './attributesService';
+import { fallbackPermissionCheck } from './permissions';
 
 /**
- * Create new equipment record
+ * Create a new equipment record
  */
-export async function createEquipment(data: EquipmentFormValues) {
+export async function createEquipment(
+  equipment: EquipmentFormValues,
+  userId: string,
+  orgId: string
+): Promise<{ success: boolean; equipment?: Equipment; error?: string }> {
   try {
-    // Check if there's a session
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user) {
-      throw new Error('You must be logged in to create equipment.');
+    if (!equipment || !userId || !orgId) {
+      throw new Error('Missing required parameters');
     }
     
-    // Check if the data is valid
-    if (!data.name) {
-      throw new Error('Equipment name is required');
+    // Check if user has permission to create equipment for this org
+    const hasPermission = await fallbackPermissionCheck(null, orgId);
+    
+    if (!hasPermission) {
+      throw new Error('You do not have permission to create equipment for this organization');
     }
     
-    const targetOrgId = data.org_id;
-    const targetTeamId = data.team_id === 'none' ? null : data.team_id;
+    // Extract attributes for separate insertion
+    const attributes = equipment.attributes || [];
+    const equipmentInput = { ...equipment };
+    delete equipmentInput.attributes;
     
-    // Check permission through edge function
-    const permCheck = await retry(() => 
-      supabase.functions.invoke('check_equipment_create_permission', {
-        body: { 
-          org_id: targetOrgId,
-          team_id: targetTeamId 
-        }
-      }), 3);
-    
-    const permission = permCheck?.data;
-    
-    if (!permission || !permission.has_permission) {
-      // Try fallback permission check
-      const hasFallbackPermission = await fallbackPermissionCheck(targetOrgId);
-      
-      if (!hasFallbackPermission) {
-        throw new Error('You do not have permission to create equipment');
-      }
-      
-      console.log('Using fallback permission check');
-    }
-    
-    // Create the equipment
-    const { data: equipment, error } = await supabase
+    // Create the equipment record
+    const { data: newEquipment, error } = await supabase
       .from('equipment')
       .insert({
-        name: data.name,
-        model: data.model,
-        serial_number: data.serialNumber,
-        manufacturer: data.manufacturer,
-        status: data.status,
-        location: data.location,
-        install_date: data.installDate,
-        warranty_expiration: data.warrantyExpiration,
-        notes: data.notes,
-        org_id: targetOrgId,
-        team_id: targetTeamId,
-        created_by: sessionData.session.user.id
+        ...equipmentInput,
+        created_by: userId,
+        org_id: orgId
       })
       .select()
       .single();
-      
+    
     if (error) {
       console.error('Error creating equipment:', error);
-      throw error;
+      throw new Error(`Failed to create equipment: ${error.message}`);
     }
     
-    // Create custom attributes if there are any
-    if (data.attributes && data.attributes.length > 0) {
-      const attributes = data.attributes.filter(attr => attr.key && attr.value);
-      
-      if (attributes.length > 0) {
-        const attributeRecords = attributes.map(attr => ({
-          equipment_id: equipment.id,
-          key: attr.key,
-          value: attr.value
-        }));
-        
-        const { error: attrError } = await supabase
-          .from('equipment_attributes')
-          .insert(attributeRecords);
-          
-        if (attrError) {
-          console.error('Error saving attributes:', attrError);
-        }
-      }
+    if (!newEquipment) {
+      throw new Error('Failed to create equipment: No data returned');
     }
     
-    toast.success(`${data.name} created`, {
-      description: "Equipment record has been created successfully"
-    });
+    // Create attributes if any
+    if (attributes.length > 0) {
+      await saveEquipmentAttributes(newEquipment.id, attributes);
+    }
     
-    return equipment;
+    return {
+      success: true,
+      equipment: newEquipment
+    };
   } catch (error: any) {
     console.error('Error in createEquipment:', error);
-    
-    toast.error("Failed to create equipment", {
-      description: error.message || "An unknown error occurred"
-    });
-    
-    throw error;
+    return {
+      success: false,
+      error: error.message || 'Failed to create equipment'
+    };
   }
 }
