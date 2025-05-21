@@ -80,7 +80,7 @@ export function useOrganizationInvitation() {
       try {
         // Manually dismiss the notification in the database
         const { error: dismissError } = await supabase
-          .from('notifications')
+          .from('team_invitations')
           .update({ dismissed_at: new Date().toISOString() })
           .eq('type', 'organization_invitation')
           .eq('reference_id', token);
