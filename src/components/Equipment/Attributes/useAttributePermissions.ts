@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthState } from '@/hooks/useAuthState';
 import { supabase } from '@/integrations/supabase/client';
-import { checkEquipmentEditPermission } from '@/services/equipment/permissions/accessCheck';
 
 /**
  * Custom hook to handle attribute editing permissions
@@ -25,11 +24,20 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
       setPermissionCheckError(null);
       
       try {
-        // If we have an equipment ID, use the permission checker service
+        // If we have an equipment ID, check permissions
         if (equipmentId) {
-          const hasPermission = await checkEquipmentEditPermission(user.id, equipmentId);
-          console.log(`Permission check for user ${user.id} to edit equipment ${equipmentId}: ${hasPermission}`);
-          setCanEdit(hasPermission);
+          // Use the can_edit_equipment function from Supabase
+          const { data, error } = await supabase.rpc(
+            'can_edit_equipment',
+            { p_uid: user.id, p_equipment_id: equipmentId }
+          );
+          
+          if (error) {
+            throw new Error(`Permission check failed: ${error.message}`);
+          }
+          
+          console.log(`Permission check for user ${user.id} to edit equipment ${equipmentId}: ${data}`);
+          setCanEdit(!!data); // Convert to boolean
           return;
         }
         

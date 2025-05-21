@@ -4,7 +4,7 @@ import { OrganizationMember } from '@/services/organization/types';
 import { UserRole } from '@/types/supabase-enums';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { updateMemberRole } from '@/services/organization';
+import { updateMemberRole } from '@/services/organization/membersService';
 
 interface MembersListProps {
   members: OrganizationMember[];
@@ -21,14 +21,17 @@ const MembersList: React.FC<MembersListProps> = ({ members, isOwner, loading }) 
       const success = await updateMemberRole(memberId, newRole);
       
       if (success) {
-        toast.success("Role Updated", {
+        toast({
+          title: "Role Updated",
           description: "The member's role has been updated successfully"
         });
       }
     } catch (error: any) {
       console.error('Error updating role:', error);
-      toast.error("Update Failed", {
-        description: error.message || "Failed to update the member's role"
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update the member's role",
+        variant: "destructive"
       });
     } finally {
       setUpdatingRole(prev => ({ ...prev, [memberId]: false }));

@@ -1,66 +1,68 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types/supabase-enums';
 import { OrganizationMember } from './types';
+import { UserRole } from '@/types/supabase-enums';
+import { toast } from '@/hooks/use-toast';
 
-// Fetch organization members
+/**
+ * Fetches all members of the specified organization
+ */
 export async function getOrganizationMembers(orgId: string): Promise<OrganizationMember[]> {
+  if (!orgId) {
+    throw new Error('Organization ID is required');
+  }
+  
   try {
-    if (!orgId) {
-      throw new Error('Organization ID is required');
-    }
-
-    const { data: members, error } = await supabase
-      .rpc('get_organization_members', { org_id: orgId });
-
+    // Call RPC function to get organization members
+    const { data, error } = await supabase.rpc('get_organization_members', {
+      org_id: orgId
+    });
+    
     if (error) {
       throw new Error(`Failed to fetch organization members: ${error.message}`);
     }
-
-    return members || [];
-  } catch (error: any) {
+    
+    return data || [];
+  } catch (error) {
     console.error('Error in getOrganizationMembers:', error);
     throw error;
   }
 }
 
-// Update member role
+/**
+ * Updates the role of an organization member
+ */
 export async function updateMemberRole(
   memberId: string, 
-  role: UserRole, 
-  orgId: string
-): Promise<void> {
+  newRole: UserRole,
+  orgId?: string
+): Promise<boolean> {
+  if (!memberId) {
+    throw new Error('Member ID is required');
+  }
+  
   try {
-    if (!memberId || !role || !orgId) {
-      throw new Error('Member ID, role, and organization ID are required');
-    }
-
-    // Check if current user is owner of the org
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.user?.id) {
-      throw new Error('Authentication required');
-    }
-
-    const currentUserId = sessionData.session.user.id;
-    const { data: permissionData } = await supabase.rpc('can_manage_org_members', {
-      p_user_id: currentUserId,
-      p_org_id: orgId
-    });
-
-    if (!permissionData) {
-      throw new Error('You do not have permission to update roles');
-    }
-
-    // Update the role
+    // Update the user's role in the database
     const { error } = await supabase
       .from('user_roles')
-      .update({ role })
+      .update({ 
+        role: newRole as string, 
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', memberId);
-
+    
     if (error) {
-      throw new Error(`Failed to update role: ${error.message}`);
+      console.error('Error updating member role:', error);
+      toast({
+        title: "Error",
+        description: `Failed to update role: ${error.message}`,
+        variant: "destructive"
+      });
+      return false;
     }
-  } catch (error: any) {
+    
+    return true;
+  } catch (error) {
     console.error('Error in updateMemberRole:', error);
     throw error;
   }

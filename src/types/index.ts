@@ -8,7 +8,7 @@ export interface TeamMember {
   email?: string;
   role?: string;
   status?: string;
-  auth_uid?: string; // Add auth_uid property
+  auth_uid?: string;
 }
 
 export interface Invitation {
