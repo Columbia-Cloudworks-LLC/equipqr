@@ -24,10 +24,12 @@ export async function createOrganizationInvitation(
       let userId: string | undefined;
       
       if (Array.isArray(existingUser) && existingUser.length > 0) {
+        // Handle array response - use the first item if it exists
         userId = existingUser[0]?.id;
-      } else if (typeof existingUser === 'object' && existingUser !== null) {
-        // Cast existingUser to handle the type more explicitly
-        const userObject = existingUser as { id: string, email: string };
+      } else if (existingUser && typeof existingUser === 'object' && existingUser !== null) {
+        // Handle single object response - first cast to unknown then to the expected shape
+        // This is safer than direct casting which might cause runtime issues
+        const userObject = existingUser as unknown as { id: string, email: string };
         userId = userObject.id;
       }
       
