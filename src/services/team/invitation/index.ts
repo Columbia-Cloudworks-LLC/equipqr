@@ -1,8 +1,9 @@
 
-// Export all functions from the individual files
-export * from "./inviteTeamMember";
-export * from "./invitationActions";
-export * from "./validateInvitation";
-export * from "./acceptInvitation";
-export * from "./invitationHelpers";
-export * from "./resendInvitation";
+/**
+ * Export all team invitation functions
+ */
+
+export { inviteMember } from './inviteTeamMember';
+export { resendInvite } from './resendInvitation';
+export { getPendingInvitations } from './invitationQueries';
+export { cancelInvitation } from './invitationActions';

@@ -1,122 +1,91 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { retry } from './retry';
+import { isValidUuid } from '../validationUtils';
 
 /**
- * Basic function to invoke a Supabase Edge Function
- * 
+ * Safely invoke an edge function with proper error handling and timeouts
  * @param functionName Name of the edge function to invoke
- * @param payload Payload to send to the function
- * @param timeoutMs Timeout in milliseconds (optional)
+ * @param params Parameters to pass to the function
+ * @param timeoutMs Optional timeout in milliseconds (defaults to 5000)
  * @returns The function response data
+ * @throws Error if the function invocation fails
  */
-export async function invokeEdgeFunction<T = any>(
-  functionName: string, 
-  payload: any,
-  timeoutMs = 30000
-): Promise<T> {
-  // Add timeout handling for edge functions
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-  
+export async function invokeEdgeFunction(
+  functionName: string,
+  params: Record<string, any> = {},
+  timeoutMs: number = 5000
+): Promise<any> {
   try {
-    return await invokeEdgeFunctionWithRetry<T>(functionName, payload, { timeoutMs });
-  } finally {
-    clearTimeout(timeoutId);
+    // Validate UUID parameters to ensure consistent type handling
+    for (const [key, value] of Object.entries(params)) {
+      // If the parameter key includes 'id' and the value appears to be a UUID
+      if ((key.includes('id') || key.includes('uid')) && typeof value === 'string') {
+        // Ensure it's a valid UUID to prevent type mismatches
+        if (value && !isValidUuid(value)) {
+          console.warn(`Parameter ${key} with value ${value} is not a valid UUID`);
+        }
+      }
+    }
+
+    // Create timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`Edge function ${functionName} timed out after ${timeoutMs}ms`)), timeoutMs);
+    });
+
+    // Create function invocation promise
+    const functionPromise = supabase.functions.invoke(functionName, {
+      body: params
+    });
+
+    // Race the promises
+    const result = await Promise.race([functionPromise, timeoutPromise]) as {
+      data: any;
+      error: any;
+    };
+
+    if (result.error) {
+      console.error(`Error invoking edge function ${functionName}:`, result.error);
+      throw new Error(`Edge function error: ${result.error.message || 'Unknown error'}`);
+    }
+
+    return result.data;
+  } catch (error: any) {
+    console.error(`Failed to invoke edge function ${functionName}:`, error);
+    throw new Error(`Edge function ${functionName} failed: ${error.message}`);
   }
 }
 
 /**
- * Invoke a Supabase Edge Function with retry capabilities
- * 
- * CRITICAL: This function now explicitly includes the Supabase authentication token
- * to ensure proper authorization when calling edge functions.
- *
- * @param functionName The name of the edge function to invoke
- * @param payload The payload to send to the function
- * @param options Configuration options for retries
- * @returns The function response data
+ * Invoke an edge function with automatic retry on failure
  */
-export async function invokeEdgeFunctionWithRetry<T>(
+export async function invokeEdgeFunctionWithRetry(
   functionName: string,
-  payload: any,
-  options: {
-    maxRetries?: number;
-    retryDelay?: number;
-    onRetry?: (attempt: number, error?: any) => void;
-    onSuccess?: (data: T) => void;
-    timeoutMs?: number;
-    authToken?: string; // Optional explicit auth token
-  } = {}
-): Promise<T> {
-  const { 
-    maxRetries = 3, 
-    retryDelay = 1000, 
-    onRetry, 
-    onSuccess, 
-    timeoutMs = 30000,
-    authToken
-  } = options;
-
-  // Get the current session for auth headers if not explicitly provided
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = authToken || sessionData?.session?.access_token;
-
-  if (!token) {
-    console.error('No authentication token available for edge function call');
-    throw new Error('Authentication required to perform this action');
-  }
-
-  // Add error handling for common edge function failures
-  return await retry<T>(
-    async () => {
-      try {
-        console.log(`Invoking Supabase function ${functionName} with auth token (first 10 chars): ${token.substring(0, 10)}...`);
-        
-        // Now explicitly pass the auth token in headers via the invoke method
-        const { data, error } = await supabase.functions.invoke(functionName, {
-          body: payload,
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        
-        if (error) {
-          console.error(`Error in edge function ${functionName}:`, error);
-          throw new Error(error.message || `Error calling ${functionName}`);
-        }
-        
-        // Check for error in response payload (some edge functions return success but with error inside)
-        if (data && typeof data === 'object' && 'error' in data) {
-          console.error(`Error returned in edge function ${functionName} payload:`, data.error);
-          throw new Error(typeof data.error === 'string' ? data.error : 'Error in edge function response');
-        }
-        
-        console.log(`Edge function ${functionName} succeeded:`, data);
-        onSuccess?.(data as T);
-        return data as T;
-      } catch (error: any) {
-        // Better error classification for debugging
-        if (error.name === 'AbortError') {
-          console.error(`Timeout exceeded calling Supabase function ${functionName}`);
-          throw new Error(`Function ${functionName} timed out after ${timeoutMs}ms`);
-        }
-        
-        // Log additional details for auth errors to help diagnose the issue
-        if (error.status === 401 || error.message?.includes('unauthorized')) {
-          console.error(`Authentication error (401) calling ${functionName}. Token length: ${token?.length || 0}`);
-        }
-        
-        console.error(`Failed to invoke Supabase function ${functionName}:`, error);
-        throw error;
+  params: Record<string, any> = {},
+  maxRetries: number = 2,
+  initialTimeoutMs: number = 5000
+): Promise<any> {
+  let lastError: Error | null = null;
+  let timeoutMs = initialTimeoutMs;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Increase timeout for each retry
+      const currentTimeout = attempt === 0 ? timeoutMs : timeoutMs * (attempt + 1);
+      
+      return await invokeEdgeFunction(functionName, params, currentTimeout);
+    } catch (error: any) {
+      lastError = error;
+      console.log(`Attempt ${attempt + 1}/${maxRetries + 1} failed: ${error.message}`);
+      
+      // Don't wait after the last attempt
+      if (attempt < maxRetries) {
+        // Exponential backoff
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt), 5000);
+        console.log(`Retrying in ${backoffMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
       }
-    },
-    {
-      maxRetries,
-      retryDelay,
-      onRetry,
     }
-  );
+  }
+  
+  throw lastError || new Error(`All ${maxRetries + 1} attempts to invoke ${functionName} failed`);
 }

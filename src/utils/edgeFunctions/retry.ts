@@ -1,38 +1,27 @@
 
 /**
  * Retry a function with exponential backoff
- * @param fn The function to retry
- * @param options Retry options
  */
 export async function retry<T>(
   fn: () => Promise<T>,
-  options: {
-    maxRetries?: number;
-    retryDelay?: number;
-    onRetry?: (attempt: number, error: any) => void;
-  } = {}
+  maxRetries: number = 3,
+  initialDelayMs: number = 200
 ): Promise<T> {
-  const { maxRetries = 3, retryDelay = 1000, onRetry } = options;
-  let lastError: any;
-
+  let lastError: Error | null = null;
+  
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error) {
+    } catch (error: any) {
       lastError = error;
+      console.log(`Attempt ${attempt + 1}/${maxRetries + 1} failed: ${error.message}`);
       
       if (attempt < maxRetries) {
-        const delay = retryDelay * Math.pow(2, attempt);
-        console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
-        
-        if (onRetry) {
-          onRetry(attempt, error);
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, delay));
+        const backoffMs = initialDelayMs * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
       }
     }
   }
-
-  throw lastError;
+  
+  throw lastError || new Error(`All ${maxRetries + 1} attempts failed`);
 }

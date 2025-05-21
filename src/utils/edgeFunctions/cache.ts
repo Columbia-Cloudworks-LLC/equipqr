@@ -1,57 +1,66 @@
 
 /**
- * Cache for edge function responses
+ * Cache utility for edge function results
  */
-const edgeFunctionCache = new Map<string, { data: any; timestamp: number }>();
 
-/**
- * Get a cache key for an edge function call
- */
-function getCacheKey(functionName: string, params: any): string {
-  const paramsString = JSON.stringify(params || {});
-  return `${functionName}:${paramsString}`;
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
 }
+
+// Internal cache storage
+const cache = new Map<string, CacheEntry<any>>();
 
 /**
  * Invoke an edge function with caching
- * @param fn The function to invoke the edge function
- * @param functionName The name of the edge function
- * @param params Parameters to pass to the function
- * @param options Caching options
  */
 export async function invokeEdgeFunctionWithCache<T>(
   functionName: string,
-  params: any,
+  params: Record<string, any> = {},
   options: {
     ttlMs?: number;
+    cacheKey?: string;
     forceRefresh?: boolean;
-    onCacheHit?: (data: T) => void;
   } = {}
 ): Promise<T> {
-  const { ttlMs = 60000, forceRefresh = false, onCacheHit } = options;
-  const cacheKey = getCacheKey(functionName, params);
-  const now = Date.now();
+  const {
+    ttlMs = 5 * 60 * 1000, // 5 minutes default
+    cacheKey = `${functionName}:${JSON.stringify(params)}`,
+    forceRefresh = false
+  } = options;
   
   // Check cache if not forcing refresh
   if (!forceRefresh) {
-    const cached = edgeFunctionCache.get(cacheKey);
-    if (cached && now - cached.timestamp < ttlMs) {
+    const cached = cache.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp) < ttlMs) {
       console.log(`Cache hit for ${functionName}`);
-      if (onCacheHit) {
-        onCacheHit(cached.data);
-      }
       return cached.data as T;
     }
   }
   
-  // Import dynamically to avoid circular dependency
+  // Import here to avoid circular dependencies
   const { invokeEdgeFunction } = await import('./core');
   
   // Call the edge function
-  const data = await invokeEdgeFunction<T>(functionName, params);
+  const data = await invokeEdgeFunction(functionName, params);
   
   // Cache the result
-  edgeFunctionCache.set(cacheKey, { data, timestamp: now });
+  cache.set(cacheKey, {
+    data,
+    timestamp: Date.now()
+  });
   
-  return data;
+  return data as T;
+}
+
+/**
+ * Clear all cached results or specific key
+ */
+export function clearEdgeFunctionCache(cacheKey?: string): void {
+  if (cacheKey) {
+    cache.delete(cacheKey);
+  } else {
+    cache.clear();
+  }
 }

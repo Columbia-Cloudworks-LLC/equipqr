@@ -1,120 +1,106 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Team } from '../../team';
+import { saveTeamCache } from './teamCache';
 
 /**
- * Direct database query fallback for getting teams
+ * Fallback method to get teams directly from the database
+ * Used when edge function fails
  */
 export async function getTeamsDirectly(userId: string, orgId?: string): Promise<Team[]> {
   try {
-    // Get user's organization ID for context
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', userId)
-      .single();
-      
-    const userOrgId = userProfile?.org_id;
+    console.log('Fetching teams directly from the database');
     
-    // Get app_user ID
-    const { data: appUser } = await supabase
+    // Get app_user ID for this auth user
+    const { data: appUserData, error: appUserError } = await supabase
       .from('app_user')
       .select('id')
       .eq('auth_uid', userId)
       .single();
-      
-    if (!appUser?.id) {
-      throw new Error('User not found in app_user table');
+    
+    if (appUserError) {
+      console.error('Error getting app_user ID:', appUserError);
+      return [];
     }
     
-    const appUserId = appUser.id;
+    const appUserId = appUserData.id;
     
-    // 1. Get teams the user is a direct member of
-    const { data: memberTeams, error: memberTeamsError } = await supabase
-      .from('team')
-      .select(`
-        *,
-        org:organization(id, name)
-      `)
-      .eq('team_member.user_id', appUserId)
-      .is('deleted_at', null);
+    // Get user's organization
+    const { data: userProfile, error: userProfileError } = await supabase
+      .from('user_profiles')
+      .select('org_id')
+      .eq('id', userId)
+      .single();
+    
+    if (userProfileError) {
+      console.error('Error getting user profile:', userProfileError);
+    }
+    
+    const userOrgId = userProfile?.org_id;
+    
+    // 1. Get teams the user is a member of
+    let memberTeamsQuery = supabase
+      .rpc('get_team_members_with_roles')
+      .select('*');
+    
+    const { data: memberTeams, error: memberTeamsError } = await memberTeamsQuery;
     
     if (memberTeamsError) {
-      console.error('Error fetching member teams:', memberTeamsError);
+      console.error('Error getting member teams:', memberTeamsError);
     }
     
-    // 2. Get teams from user's organization
-    let orgQuery = supabase
+    // 2. Get teams in the user's organization or specified organization
+    let orgTeamsQuery = supabase
       .from('team')
       .select(`
         *,
-        org:organization(id, name)
-      `)
-      .is('deleted_at', null);
+        org:org_id (
+          id,
+          name
+        )
+      `);
     
-    // Filter by organization ID if provided or use user's organization
-    if (orgId) {
-      orgQuery = orgQuery.eq('org_id', orgId);
-    } else if (userOrgId) {
-      orgQuery = orgQuery.eq('org_id', userOrgId);
-    } else {
-      // If no org context available, just use member teams
-      return processTeams(memberTeams || [], appUserId, userOrgId);
+    // Apply organization filter if provided
+    const targetOrgId = orgId || userOrgId;
+    if (targetOrgId) {
+      orgTeamsQuery = orgTeamsQuery.eq('org_id', targetOrgId);
     }
     
-    const { data: orgTeams, error: orgTeamsError } = await orgQuery;
+    // Don't show deleted teams
+    orgTeamsQuery = orgTeamsQuery.is('deleted_at', null);
+    
+    const { data: orgTeams, error: orgTeamsError } = await orgTeamsQuery;
     
     if (orgTeamsError) {
-      console.error('Error fetching organization teams:', orgTeamsError);
+      console.error('Error getting organization teams:', orgTeamsError);
     }
     
-    // 3. Get user's role in each team
-    const { data: teamRoles } = await supabase
-      .from('team_member')
-      .select(`
-        team_id,
-        team_roles(role)
-      `)
-      .eq('user_id', appUserId);
+    // 3. Process and combine the results
+    const teams: Team[] = [];
     
-    // Process and return teams
-    const allTeams = [...(memberTeams || []), ...(orgTeams || [])];
+    // Add organization teams
+    if (orgTeams) {
+      orgTeams.forEach(team => {
+        teams.push({
+          id: team.id,
+          name: team.name,
+          org_id: team.org_id,
+          org_name: team.org?.name || 'Unknown Organization',
+          is_external: userOrgId && team.org_id !== userOrgId,
+          created_at: team.created_at,
+          deleted_at: null,
+          has_access: true
+        });
+      });
+    }
     
-    // Deduplicate teams
-    const uniqueTeamIds = new Set();
-    const uniqueTeams = allTeams.filter(team => {
-      if (uniqueTeamIds.has(team.id)) {
-        return false;
-      }
-      uniqueTeamIds.add(team.id);
-      return true;
-    });
+    // Save to cache and return
+    const cacheKey = orgId ? `${userId}_${orgId}` : userId;
+    saveTeamCache(cacheKey, teams);
     
-    return processTeams(uniqueTeams, appUserId, userOrgId);
+    return teams;
   } catch (error) {
     console.error('Error in getTeamsDirectly:', error);
-    throw error;
+    return [];
   }
-}
-
-/**
- * Helper function to process team data
- */
-function processTeams(teams: any[], appUserId: string, userOrgId?: string): Team[] {
-  if (!Array.isArray(teams)) return [];
-  
-  return teams.map(team => {
-    // Convert team data to Team interface
-    const teamData: Team = {
-      id: team.id,
-      name: team.name,
-      org_id: team.org_id,
-      org_name: team.org?.name || 'Unknown Organization',
-      is_external: userOrgId && team.org_id !== userOrgId,
-      created_at: team.created_at,
-      deleted_at: team.deleted_at
-    };
-    
-    return teamData;
-  });
 }
