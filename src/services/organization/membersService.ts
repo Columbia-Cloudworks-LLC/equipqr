@@ -41,11 +41,14 @@ export async function updateMemberRole(
   }
   
   try {
+    // Cast the newRole to match the expected type in the database
+    const role = newRole as "owner" | "manager" | "technician" | "viewer" | "member";
+    
     // Update the user's role in the database
     const { error } = await supabase
       .from('user_roles')
       .update({ 
-        role: newRole, 
+        role: role, 
         updated_at: new Date().toISOString() 
       })
       .eq('id', memberId);

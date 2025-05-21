@@ -1,16 +1,10 @@
 
-/**
- * Re-export all permission checking functions
- */
-
-// Export functions for checking access to equipment
-export { checkAccessPermission, checkViewPermission, checkEquipmentEditPermission } from './accessCheck';
-
-// Export functions for updating equipment
+// Re-export permission check functions
+export { checkAccessPermission, checkOrgOrTeamAccess } from './accessCheck';
 export { checkUpdatePermission } from './updatePermissionCheck';
-
-// Export functions for creating equipment
 export { checkCreatePermission } from './createPermissionCheck';
+export * from './types';
 
-// Export functions for deleting equipment
-export { checkDeletePermission } from './deletePermissionCheck';
+// Explicitly import and re-export deletePermissionCheck
+import { checkDeletePermission } from './deletePermissionCheck';
+export { checkDeletePermission };

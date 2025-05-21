@@ -29,6 +29,7 @@ export async function inviteMember(email: string, role: UserRole, teamId: string
       throw new Error(`Failed to check team access: ${accessError.message}`);
     }
 
+    // The result is one row, not an array
     if (!teamAccess || !teamAccess.has_access) {
       throw new Error('You do not have access to this team');
     }
