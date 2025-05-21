@@ -14,8 +14,9 @@ import { Layout } from '@/components/Layout/Layout';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, RefreshCw } from 'lucide-react';
+import { Info, RefreshCw, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const OrganizationSettings = () => {
   const { 
@@ -24,6 +25,8 @@ const OrganizationSettings = () => {
     isLoading: orgContextLoading, 
     selectOrganization,
     refreshOrganizations,
+    defaultOrganizationId,
+    setDefaultOrganization,
     error: orgContextError
   } = useOrganization();
   
@@ -76,6 +79,10 @@ const OrganizationSettings = () => {
 
   const handleOrganizationChange = (orgId: string) => {
     selectOrganization(orgId);
+  };
+
+  const handleSetDefaultOrg = async (orgId: string) => {
+    return await setDefaultOrganization(orgId);
   };
 
   const handleRefresh = async () => {
@@ -143,6 +150,7 @@ const OrganizationSettings = () => {
     // Convert userRole to boolean isOwner for OrganizationDetailsCard
     const isOwner = userRole === 'owner';
     const isManager = userRole === 'owner' || userRole === 'manager';
+    const isDefault = organization.id === defaultOrganizationId;
 
     return (
       <div className="container p-4 mx-auto space-y-6">
@@ -161,13 +169,38 @@ const OrganizationSettings = () => {
           </div>
           
           {/* Always show organization selector if multiple organizations are available */}
-          <OrganizationSelector
-            organizations={organizations}
-            selectedOrgId={organization?.id}
-            onChange={handleOrganizationChange}
-            className="w-full md:w-[250px]"
-          />
+          <div className="flex items-center gap-2">
+            <OrganizationSelector
+              organizations={organizations}
+              selectedOrgId={organization?.id}
+              defaultOrgId={defaultOrganizationId}
+              onChange={handleOrganizationChange}
+              className="w-full md:w-[250px]"
+            />
+            
+            {!isDefault && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSetDefaultOrg(organization.id)}
+                title="Set as default organization"
+              >
+                <Star className="h-4 w-4 mr-2" />
+                Set Default
+              </Button>
+            )}
+          </div>
         </div>
+        
+        {isDefault && (
+          <Alert className="bg-green-50 border-green-200">
+            <Star className="h-4 w-4 text-green-600" />
+            <AlertTitle>Default Organization</AlertTitle>
+            <AlertDescription>
+              This is your default organization. It will be pre-selected across the application.
+            </AlertDescription>
+          </Alert>
+        )}
         
         {!organization.is_primary && (
           <Alert className="bg-blue-50 border-blue-200">

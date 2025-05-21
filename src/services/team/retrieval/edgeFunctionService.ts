@@ -1,35 +1,26 @@
 
-import { invokeEdgeFunction } from "@/utils/edgeFunctions";
-import { clearTeamCache, cacheTeams } from "./teamCache";
+import { supabase } from '@/integrations/supabase/client';
+import { Team } from '../../team';
+import { invokeEdgeFunction } from '@/utils/edgeFunctions';
 
 /**
- * Get teams using the edge function
- * @param userId The authenticated user's ID
- * @param forceRefresh Whether to force a refresh from the server
- * @returns Array of teams the user has access to
+ * Get teams via edge function for better performance
  */
-export async function getTeamsViaEdgeFunction(userId: string, forceRefresh = false): Promise<any[]> {
-  // Clear any cached data if force refresh requested
-  if (forceRefresh) {
-    clearTeamCache();
+export async function getTeamsViaEdgeFunction(userId: string, orgId?: string): Promise<Team[]> {
+  try {
+    // Call the edge function to get user's teams
+    const response = await invokeEdgeFunction('get_user_teams', { 
+      user_id: userId,
+      org_id: orgId || null
+    });
+
+    if (!response?.data?.teams || !Array.isArray(response.data.teams)) {
+      throw new Error('Invalid response from edge function');
+    }
+
+    return response.data.teams;
+  } catch (error) {
+    console.error('Error fetching teams via edge function:', error);
+    throw error;
   }
-  
-  console.log('Calling get_user_teams edge function...');
-  const data = await invokeEdgeFunction('get_user_teams', { 
-    user_id: userId,
-    include_all_orgs: true // Always include all organizations for consistency
-  }, 8000);
-  
-  // Check if data is properly structured
-  if (!data || !Array.isArray(data.teams)) {
-    console.error('Invalid response structure from get_user_teams:', data);
-    throw new Error('Invalid response from server');
-  }
-  
-  console.log(`Successfully fetched ${data.teams.length || 0} teams via edge function`);
-  
-  // Cache the results
-  cacheTeams(data.teams);
-  
-  return data.teams || [];
 }

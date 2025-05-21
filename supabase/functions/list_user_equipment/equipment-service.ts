@@ -1,329 +1,201 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-import { processEquipmentData } from './equipment-formatter.ts';
+import { createAdminClient } from "../_shared/adminClient.ts";
 
-/**
- * Create a Supabase client with admin privileges
- * Uses service role key to bypass RLS policies
- */
-function createAdminClient() {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing required environment variables for Supabase client');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      persistSession: false
-    }
-  });
+interface EquipmentResult {
+  success: boolean;
+  equipment: any[];
+  error?: string;
 }
 
-/**
- * Get all equipment for a user, including those from teams they belong to
- * @param userId The authenticated user's ID
- * @param orgId Optional organization ID to filter by
- */
-export async function getUserEquipment(userId: string, orgId?: string): Promise<any[]> {
-  const adminClient = createAdminClient();
-  
-  // Get user's organization ID
-  const { data: userProfile, error: userProfileError } = await adminClient
-    .from('user_profiles')
-    .select('org_id')
-    .eq('id', userId)
-    .single();
+export async function fetchUserEquipment(userId: string, orgId?: string): Promise<EquipmentResult> {
+  try {
+    const adminClient = createAdminClient();
     
-  if (userProfileError || !userProfile) {
-    console.error('Error fetching user profile:', userProfileError);
-    throw new Error(`Failed to fetch user profile: ${userProfileError?.message || 'User profile not found'}`);
-  }
-  
-  const userOrgId = userProfile.org_id;
-  
-  if (!userOrgId) {
-    console.log('No organization found for user:', userId);
-    return [];
-  }
-  
-  // If org_id is specified, check user's role in that organization
-  let userRole = null;
-  
-  // Also check if the user has teams in this organization
-  let hasTeams = false;
-  
-  if (orgId) {
-    // Get user's role in the organization
-    const { data: roleData, error: roleError } = await adminClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('org_id', orgId)
-      .maybeSingle();
-      
-    if (roleError) {
-      console.error('Error fetching user role:', roleError);
-    } else if (roleData) {
-      userRole = roleData.role;
-    }
+    console.log(`Fetching equipment for user: ${userId}${orgId ? `, filtered by org: ${orgId}` : ''}`);
     
-    // Check if user has any teams in this organization
-    const { data: appUserData } = await adminClient
+    // Get app_user ID for this auth user
+    const { data: appUserData, error: appUserError } = await adminClient
       .from('app_user')
       .select('id')
       .eq('auth_uid', userId)
       .single();
-      
-    if (appUserData?.id) {
-      const { data: teamMemberships, error: teamError } = await adminClient
-        .from('team_member')
-        .select('team_id, team:team_id (org_id)')
-        .eq('user_id', appUserData.id);
-        
-      if (!teamError && teamMemberships) {
-        hasTeams = teamMemberships.some(tm => tm.team?.org_id === orgId);
-      }
+    
+    if (appUserError) {
+      console.error('Error getting app_user ID:', appUserError);
+      return { 
+        success: false, 
+        equipment: [],
+        error: "Could not find app_user record" 
+      };
     }
     
-    // If user has no role in the requested org, they don't have access
-    if (!userRole) {
-      console.log('User has no role in the requested organization');
-      return [];
-    }
-  }
+    const appUserId = appUserData.id;
   
-  // Get app_user record directly using auth_uid
-  const { data: appUserData, error: appUserError } = await adminClient
-    .from('app_user')
-    .select('id')
-    .eq('auth_uid', userId)
-    .single();
+    // If org_id is specified, check user's role in that organization
+    let userRole = null;
     
-  const appUserId = appUserData?.id;
-  
-  if (!appUserId) {
-    console.log('No app_user record found for user:', userId);
+    // Also check if the user has teams in this organization
+    let hasTeams = false;
     
-    // If specific org is requested
     if (orgId) {
-      // If user is viewer in requested org, they have limited access
-      if (userRole === 'viewer') {
-        return []; // Viewers need team access which requires app_user record
-      }
-      
-      // Just get equipment from the requested organization for managers/owners
-      const { data: orgEquipment, error: orgEquipError } = await adminClient
-        .from('equipment')
-        .select(`
-          *,
-          team:team_id (name, org_id),
-          org:org_id (name)
-        `)
+      // Get user's role in the organization
+      const { data: roleData, error: roleError } = await adminClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
         .eq('org_id', orgId)
-        .is('deleted_at', null)
-        .order('name');
+        .maybeSingle();
+      
+      if (roleError) {
+        console.error('Error fetching user role:', roleError);
+      } else if (roleData) {
+        userRole = roleData.role;
+      }
+      
+      // Check if user has any teams in this organization
+      const { data: appUserData } = await adminClient
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', userId)
+        .single();
         
-      if (orgEquipError) {
-        console.error('Error fetching organization equipment:', orgEquipError);
-        throw new Error(`Failed to fetch equipment: ${orgEquipError.message}`);
+      if (appUserData?.id) {
+        const { data: teamMemberships, error: teamError } = await adminClient
+          .from('team_member')
+          .select('team_id, team:team_id (org_id)')
+          .eq('user_id', appUserData.id);
+          
+        if (!teamError && teamMemberships) {
+          hasTeams = teamMemberships.some(tm => tm.team?.org_id === orgId);
+        }
       }
       
-      return processEquipmentData(orgEquipment || [], [orgId]);
+      // If user has no role in this org and no teams, they don't have access to its equipment
+      if (!userRole && !hasTeams) {
+        return { 
+          success: true, 
+          equipment: [], 
+          error: "User has no access to this organization" 
+        };
+      }
     }
-    
-    // No specific org requested, just get equipment from user's organization
-    const { data: orgEquipment, error: orgEquipError } = await adminClient
-      .from('equipment')
+
+    // 1. Get equipment from user's teams
+    let teamEquipmentQuery = adminClient
+      .from('team_member')
       .select(`
-        *,
-        team:team_id (name, org_id),
-        org:org_id (name)
+        user_id,
+        team:team_id (
+          id,
+          name,
+          org_id,
+          equipment:equipment (
+            *
+          )
+        )
       `)
-      .eq('org_id', userOrgId)
-      .is('deleted_at', null)
-      .order('name');
-      
-    if (orgEquipError) {
-      console.error('Error fetching organization equipment:', orgEquipError);
-      throw new Error(`Failed to fetch equipment: ${orgEquipError.message}`);
+      .eq('user_id', appUserId);
+    
+    const { data: teamMemberships, error: teamError } = await teamEquipmentQuery;
+    
+    if (teamError) {
+      console.error('Error getting team equipment:', teamError);
     }
     
-    return processEquipmentData(orgEquipment || [], [userOrgId]);
-  }
-  
-  // If specific org requested and user is a viewer, apply special rules
-  if (orgId && userRole === 'viewer') {
-    return await getViewerOrganizationEquipment(adminClient, appUserId, orgId);
-  }
-  
-  // If specific org requested and user is manager/owner, show all equipment in that org
-  if (orgId) {
-    return await getManagerOrganizationEquipment(adminClient, orgId);
-  }
-  
-  // No specific org requested - get all equipment user has access to
-  return await getEquipmentWithTeamAccess(adminClient, appUserId, userOrgId);
-}
-
-/**
- * Get equipment for viewers based on team membership in specific organization
- */
-async function getViewerOrganizationEquipment(
-  adminClient: any,
-  appUserId: string,
-  orgId: string
-): Promise<any[]> {
-  // Get teams in the specified organization
-  const { data: orgTeams, error: orgTeamsError } = await adminClient
-    .from('team')
-    .select('id')
-    .eq('org_id', orgId)
-    .is('deleted_at', null);
+    // Extract equipment items from team memberships
+    let teamEquipment = [];
+    if (teamMemberships) {
+      teamMemberships.forEach(membership => {
+        // Skip if team or equipment is missing or team belongs to a different org than requested
+        if (!membership.team || !membership.team.equipment) return;
+        if (orgId && membership.team.org_id !== orgId) return;
+        
+        teamEquipment = [
+          ...teamEquipment,
+          ...membership.team.equipment
+            .filter(item => !item.deleted_at)
+            .map(item => ({
+              ...item,
+              access_via: 'team',
+              team_name: membership.team.name
+            }))
+        ];
+      });
+    }
     
-  if (orgTeamsError) {
-    console.error('Error fetching organization teams:', orgTeamsError);
-    return [];
-  }
-  
-  if (!orgTeams || orgTeams.length === 0) {
-    return []; // No teams in this org, no equipment to view
-  }
-  
-  const orgTeamIds = orgTeams.map(team => team.id);
-  
-  // Find which teams the user is a member of
-  const { data: userTeams, error: userTeamsError } = await adminClient
-    .from('team_member')
-    .select('team_id')
-    .eq('user_id', appUserId)
-    .in('team_id', orgTeamIds);
+    // 2. Get equipment from user's organizations
+    let userOrgQuery = adminClient
+      .from('user_profiles')
+      .select(`
+        org:org_id (
+          id,
+          name,
+          equipment (
+            *
+          )
+        )
+      `)
+      .eq('id', userId);
     
-  if (userTeamsError) {
-    console.error('Error fetching user team memberships:', userTeamsError);
-    return [];
-  }
-  
-  if (!userTeams || userTeams.length === 0) {
-    return []; // User is not a member of any teams in this org
-  }
-  
-  const userTeamIds = userTeams.map(tm => tm.team_id);
-  
-  // Get equipment assigned to those teams
-  const { data: equipment, error: equipmentError } = await adminClient
-    .from('equipment')
-    .select(`
-      *,
-      team:team_id (name, org_id),
-      org:org_id (name)
-    `)
-    .in('team_id', userTeamIds)
-    .is('deleted_at', null)
-    .order('name');
+    const { data: userOrgs, error: userOrgError } = await userOrgQuery;
     
-  if (equipmentError) {
-    console.error('Error fetching team equipment:', equipmentError);
-    return [];
-  }
-  
-  return processEquipmentData(equipment || [], [orgId]);
-}
-
-/**
- * Get all equipment in an organization for managers/owners
- */
-async function getManagerOrganizationEquipment(
-  adminClient: any,
-  orgId: string
-): Promise<any[]> {
-  const { data: equipment, error } = await adminClient
-    .from('equipment')
-    .select(`
-      *,
-      team:team_id (name, org_id),
-      org:org_id (name)
-    `)
-    .eq('org_id', orgId)
-    .is('deleted_at', null)
-    .order('name');
+    if (userOrgError) {
+      console.error('Error getting user org equipment:', userOrgError);
+    }
     
-  if (error) {
-    console.error('Error fetching organization equipment:', error);
-    throw new Error(`Failed to fetch equipment: ${error.message}`);
-  }
-  
-  return processEquipmentData(equipment || [], [orgId]);
-}
-
-/**
- * Get equipment based on user's team memberships and their organization
- */
-async function getEquipmentWithTeamAccess(
-  adminClient: any, 
-  appUserId: string, 
-  userOrgId: string
-): Promise<any[]> {
-  // Get teams the user is a member of
-  const { data: teamMemberships, error: teamError } = await adminClient
-    .from('team_member')
-    .select('team_id, team:team_id (org_id)')
-    .eq('user_id', appUserId);
+    // Extract equipment items from user organizations
+    let orgEquipment = [];
+    if (userOrgs && userOrgs.length > 0) {
+      userOrgs.forEach(userOrg => {
+        // Skip if org or equipment is missing or org doesn't match requested org
+        if (!userOrg.org || !userOrg.org.equipment) return;
+        if (orgId && userOrg.org.id !== orgId) return;
+        
+        orgEquipment = [
+          ...orgEquipment,
+          ...userOrg.org.equipment
+            .filter(item => !item.deleted_at)
+            .map(item => ({
+              ...item,
+              access_via: 'org',
+              org_name: userOrg.org.name
+            }))
+        ];
+      });
+    }
     
-  let teamIds: string[] = [];
-  let teamOrgIds: string[] = [];
-  
-  if (!teamError && teamMemberships && teamMemberships.length > 0) {
-    teamIds = teamMemberships.map((tm: any) => tm.team_id);
-    
-    // Collect unique org IDs from teams
-    teamMemberships.forEach((tm: any) => {
-      if (tm.team?.org_id && !teamOrgIds.includes(tm.team.org_id)) {
-        teamOrgIds.push(tm.team.org_id);
+    // 3. If orgId is specified and user has role/access, get direct equipment from that org
+    let directOrgEquipment = [];
+    if (orgId && (userRole || hasTeams)) {
+      const { data: orgEq, error: orgEqError } = await adminClient
+        .from('equipment')
+        .select('*')
+        .eq('org_id', orgId)
+        .is('deleted_at', null);
+      
+      if (orgEqError) {
+        console.error('Error getting direct org equipment:', orgEqError);
+      } else if (orgEq) {
+        directOrgEquipment = orgEq.map(item => ({
+          ...item,
+          access_via: 'direct_org'
+        }));
       }
-    });
-  }
-  
-  // OPTIMIZATION: Use a single query with OR condition for both org and team-based access
-  let query = adminClient
-    .from('equipment')
-    .select(`
-      *,
-      team:team_id (name, org_id),
-      org:org_id (name)
-    `)
-    .is('deleted_at', null)
-    .order('name');
+    }
     
-  // Build filter conditions based on what we found
-  const filterParts = [];
-  
-  // Add user's org condition
-  filterParts.push(`org_id.eq.${userOrgId}`);
-  
-  // Add team condition if we have team IDs
-  if (teamIds.length > 0) {
-    filterParts.push(`team_id.in.(${teamIds.join(',')})`);
+    // Combine all equipment sources and deduplicate
+    const allEquipment = [...teamEquipment, ...orgEquipment, ...directOrgEquipment];
+    const uniqueEquipment = allEquipment.filter((item, index, self) =>
+      index === self.findIndex((eq) => eq.id === item.id)
+    );
+    
+    return { success: true, equipment: uniqueEquipment };
+  } catch (error) {
+    console.error('Error in fetchUserEquipment:', error);
+    return { 
+      success: false, 
+      equipment: [],
+      error: error.message || "Internal server error" 
+    };
   }
-  
-  // Apply combined filter conditions
-  if (filterParts.length > 0) {
-    query = query.or(filterParts.join(','));
-  }
-  
-  // Execute final query
-  const { data: equipment, error } = await query;
-  
-  if (error) {
-    console.error('Error fetching equipment:', error);
-    throw new Error(`Failed to fetch equipment: ${error.message}`);
-  }
-  
-  // Process equipment data based on the user's organizations
-  const allUserOrgIds = [userOrgId, ...teamOrgIds];
-  const processedData = processEquipmentData(equipment || [], allUserOrgIds);
-  
-  console.log(`Successfully fetched ${processedData.length} equipment items`);
-  return processedData;
 }

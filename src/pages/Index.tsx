@@ -1,3 +1,4 @@
+
 import { DashboardStat } from '@/types';
 import { DashboardStats } from '@/components/Dashboard/DashboardStats';
 import { Layout } from '@/components/Layout/Layout';
@@ -11,6 +12,8 @@ import { QuickLinksCard } from '@/components/Dashboard/QuickLinksCard';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 
 // Prevent rapid refreshes of dashboard data
 const REFRESH_THROTTLE_MS = 10000; // 10 seconds
@@ -18,6 +21,14 @@ const REFRESH_THROTTLE_MS = 10000; // 10 seconds
 const Index = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const lastRefreshTime = useRef<number>(0);
+  
+  const { 
+    organizations, 
+    selectedOrganization, 
+    selectOrganization, 
+    defaultOrganizationId,
+    setDefaultOrganization
+  } = useOrganization();
   
   const { 
     teams, 
@@ -32,7 +43,7 @@ const Index = () => {
     equipment,
     refetchTeams,
     refetchEquipment
-  } = useDashboardData();
+  } = useDashboardData(selectedOrganization?.id);
 
   const stats: DashboardStat[] = [
     {
@@ -87,6 +98,16 @@ const Index = () => {
     }
   };
 
+  const handleOrganizationChange = (orgId: string) => {
+    selectOrganization(orgId);
+  };
+
+  const handleSetDefaultOrg = async (orgId: string) => {
+    return await setDefaultOrganization(orgId);
+  };
+
+  const showOrgSelector = organizations.length > 1;
+
   return (
     <Layout>
       <div className="flex-1 space-y-3">
@@ -95,6 +116,17 @@ const Index = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <div className="flex items-center gap-2">
+            {showOrgSelector && (
+              <OrganizationSelector
+                organizations={organizations}
+                selectedOrgId={selectedOrganization?.id}
+                defaultOrgId={defaultOrganizationId}
+                onChange={handleOrganizationChange}
+                onSetDefault={handleSetDefaultOrg}
+                showSetDefault={true}
+                className="w-[200px] mr-2"
+              />
+            )}
             <Button 
               variant="outline" 
               size="icon" 

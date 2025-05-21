@@ -7,7 +7,7 @@ import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { getTeams } from '@/services/team';
 import { useLocation } from 'react-router-dom';
 
-export function useDashboardData() {
+export function useDashboardData(orgId?: string) {
   const queryClient = useQueryClient();
   const location = useLocation();
   const { invitations } = useNotificationsSafe(); // Don't destructure refreshNotifications to avoid extra calls
@@ -46,10 +46,10 @@ export function useDashboardData() {
     isError: isEquipmentError,
     refetch: refetchEquipment
   } = useQuery({
-    queryKey: ['equipment'],
-    // Fix: Use queryFn that properly handles the context parameter
+    queryKey: ['equipment', orgId],
+    // Use queryFn that properly handles the organization ID parameter
     queryFn: async () => {
-      return getEquipment();
+      return getEquipment(orgId);
     },
     retry: 1,
     staleTime: shouldRefresh ? 0 : 600000, // 10 minutes (was 5 minutes)
@@ -62,10 +62,10 @@ export function useDashboardData() {
     isError: isTeamsError,
     refetch: refetchTeams
   } = useQuery({
-    queryKey: ['teams', 'dashboard'],
+    queryKey: ['teams', 'dashboard', orgId],
     queryFn: async () => {
-      console.log('Dashboard: Fetching teams with forceRefresh');
-      return getTeams({ forceRefresh: shouldRefresh || false });
+      console.log('Dashboard: Fetching teams for org:', orgId);
+      return getTeams({ forceRefresh: shouldRefresh || false, orgId });
     },
     retry: 2,
     staleTime: shouldRefresh ? 0 : 600000, // 10 minutes (was 5 minutes)
@@ -90,9 +90,6 @@ export function useDashboardData() {
       setTimeout(() => refetchTeams(), 2000);
     }
   }, [teams, isTeamsLoading, refetchTeams, retries]);
-
-  // We no longer trigger notification refreshes from the dashboard automatically
-  // This prevents excessive edge function calls and lets the notification system handle itself
 
   // Safely calculate equipment counts with defensive checks
   const activeCount = Array.isArray(equipment) 

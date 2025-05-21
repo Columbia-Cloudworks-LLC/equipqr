@@ -86,21 +86,22 @@ export async function getEquipment(orgId?: string): Promise<Equipment[]> {
 /**
  * Force refresh equipment data by busting the cache
  */
-export async function refreshEquipment(): Promise<Equipment[]> {
+export async function refreshEquipment(orgId?: string): Promise<Equipment[]> {
   try {
     // Get current user ID
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     
-    // Bust cache for this user
+    // Bust cache for this user/org combination
     if (userId) {
-      bustEquipmentCache(userId);
+      const cacheKey = orgId ? `${userId}_${orgId}` : userId;
+      bustEquipmentCache(cacheKey);
     } else {
       bustEquipmentCache();
     }
     
     // Fetch fresh data
-    return getEquipment();
+    return getEquipment(orgId);
   } catch (error) {
     // Handle refresh errors gracefully
     console.error('Error refreshing equipment:', error);

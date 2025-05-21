@@ -851,6 +851,7 @@ export type Database = {
           datetime_format_preference:
             | Database["public"]["Enums"]["datetime_format"]
             | null
+          default_org_id: string | null
           display_name: string | null
           id: string
           job_title: string | null
@@ -865,6 +866,7 @@ export type Database = {
           datetime_format_preference?:
             | Database["public"]["Enums"]["datetime_format"]
             | null
+          default_org_id?: string | null
           display_name?: string | null
           id: string
           job_title?: string | null
@@ -879,6 +881,7 @@ export type Database = {
           datetime_format_preference?:
             | Database["public"]["Enums"]["datetime_format"]
             | null
+          default_org_id?: string | null
           display_name?: string | null
           id?: string
           job_title?: string | null
@@ -888,6 +891,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_profiles_default_org_id_fkey"
+            columns: ["default_org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_profiles_org_id_fkey"
             columns: ["org_id"]
@@ -1255,6 +1265,10 @@ export type Database = {
           email: string
         }[]
       }
+      get_user_default_org: {
+        Args: { user_id_param: string }
+        Returns: string
+      }
       get_user_org_id_safe: {
         Args: { auth_uid: string }
         Returns: string
@@ -1299,6 +1313,10 @@ export type Database = {
           equipment_id?: string
         }
         Returns: Json
+      }
+      set_user_default_org: {
+        Args: { user_id_param: string; org_id_param: string }
+        Returns: boolean
       }
       simplified_equipment_create_permission: {
         Args: { p_user_id: string; p_team_id?: string }
