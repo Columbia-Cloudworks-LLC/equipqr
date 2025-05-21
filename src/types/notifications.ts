@@ -34,6 +34,12 @@ export interface NotificationsContextType {
   isLoading: boolean;
   hasNewNotifications: boolean;
   hasError: boolean;
+  error?: string;
+  unreadCount?: number;
+  lastRefreshed?: Date;
+  fetchInvitations?: () => Promise<void>;
+  handleDismiss?: (id: string) => Promise<void>;
+  handleDismissAll?: () => Promise<void>;
   refreshNotifications: () => Promise<boolean>;
   dismissInvitation: (id: string) => Promise<void>;
   resetDismissedNotifications: () => void;

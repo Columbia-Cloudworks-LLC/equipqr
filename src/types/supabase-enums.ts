@@ -1,3 +1,4 @@
+
 /**
  * Enum for user roles in the application
  */

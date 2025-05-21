@@ -90,7 +90,7 @@ const EquipmentFormPage = () => {
 
   // Create equipment mutation
   const createMutation = useMutation({
-    mutationFn: createEquipment,
+    mutationFn: (formData: Partial<Equipment>) => createEquipment(formData as CreateEquipmentParams),
     onSuccess: async (data) => {
       toast.success('Equipment added successfully');
       
@@ -104,8 +104,12 @@ const EquipmentFormPage = () => {
       // Invalidate queries to ensure data is fresh
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       
-      // Navigate to the new equipment page
-      navigate(`/equipment/${data.id}`);
+      // Navigate to the new equipment page if we have an ID
+      if (data.equipment && data.equipment.id) {
+        navigate(`/equipment/${data.equipment.id}`);
+      } else {
+        navigate('/equipment');
+      }
     },
     onError: (error: any) => {
       const errorMessage = error?.message || 'Please try again later';
@@ -254,7 +258,7 @@ const EquipmentFormPage = () => {
     if (isEditMode && id) {
       updateMutation.mutate({ id, data: processedData });
     } else {
-      createMutation.mutate(processedData);
+      createMutation.mutate(processedData as CreateEquipmentParams);
     }
   };
 

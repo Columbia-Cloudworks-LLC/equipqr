@@ -7,7 +7,7 @@ import { retry } from "@/utils/edgeFunctions/retry";
 
 // Re-export the notification functions
 export { 
-  getActiveNotifications,
+  hasActiveNotifications,
   dismissNotification,
   clearLocalDismissedNotifications
 } from "./notification/notificationHelpers";

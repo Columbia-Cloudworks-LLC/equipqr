@@ -79,10 +79,12 @@ export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDe
       };
     }
     
-    // Use the RPC function to get detailed access info
-    const { data, error } = await supabase.rpc('check_team_access', {
-      p_team_id: teamId,
-      p_user_id: userId
+    // Use the edge function to get detailed access info
+    const { data, error } = await supabase.functions.invoke('validate_team_access', {
+      body: { 
+        team_id: teamId,
+        user_id: userId 
+      }
     });
     
     if (error) {
@@ -101,17 +103,33 @@ export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDe
       };
     }
     
+    // Check if data is returned and has the expected properties
+    if (!data) {
+      return {
+        hasAccess: false,
+        role: null,
+        isMember: false,
+        hasOrgAccess: false,
+        orgRole: null,
+        accessReason: null,
+        hasCrossOrgAccess: false,
+        orgName: null,
+        team: null,
+        error: 'No data returned from access check'
+      };
+    }
+    
     // Add extended properties to satisfy the interface
     return {
-      hasAccess: data?.has_access || false,
-      role: data?.role || null,
-      isMember: data?.has_access || false,
-      hasOrgAccess: data?.has_access || false,
-      orgRole: data?.role || null,
-      accessReason: data?.reason || null,
-      hasCrossOrgAccess: data?.has_cross_org_access || false,
-      orgName: data?.org_name || null,
-      team: data?.team_details || null,
+      hasAccess: data.has_access || false,
+      role: data.role || null,
+      isMember: data.is_team_member || false,
+      hasOrgAccess: data.has_access || false,
+      orgRole: data.org_role || null,
+      accessReason: data.access_reason || null,
+      hasCrossOrgAccess: data.has_cross_org_access || false,
+      orgName: data.org_name || null,
+      team: data.team_details || null,
       error: null
     };
   } catch (error: any) {

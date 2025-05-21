@@ -37,14 +37,20 @@ export async function removeMember(memberId: string, teamId: string): Promise<vo
     
     // If the member is a manager, check if they're the last one
     if (teamRoles.role === 'manager') {
-      const { data: managerCount, error: countError } = await supabase
-        .rpc('count_team_managers', { _team_id: teamId });
+      // Use a direct query instead of an RPC function
+      const { data: managers, error: countError } = await supabase
+        .from('team_roles')
+        .select('id')
+        .eq('role', 'manager')
+        .in('team_member_id', (subquery) => 
+          subquery.from('team_member').select('id').eq('team_id', teamId)
+        );
       
       if (countError) {
         throw new Error(`Failed to count managers: ${countError.message}`);
       }
       
-      if (managerCount === 1) {
+      if (managers.length === 1) {
         throw new Error('Cannot remove the last manager of the team');
       }
     }

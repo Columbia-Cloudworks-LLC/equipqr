@@ -1,27 +1,11 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { generateInvitationToken } from '@/lib/crypto';
-import { UserRole } from '@/types/supabase-enums';
-
-export interface InviteToOrgResult {
-  success: boolean;
-  error?: string;
-  invitation?: {
-    id: string;
-    email: string;
-    role: string;
-    token: string;
-  };
-}
+import { generateUniqueToken } from '@/lib/crypto';
 
 /**
  * Invites a new user to join an organization with the specified role
  */
-export async function inviteToOrganization(
-  email: string, 
-  role: UserRole, 
-  orgId: string
-): Promise<InviteToOrgResult> {
+export async function inviteToOrganization(email, role, orgId) {
   try {
     if (!email || !role || !orgId) {
       throw new Error('Email, role, and organization ID are required');
@@ -36,17 +20,19 @@ export async function inviteToOrganization(
     }
     
     // Check if user is already part of the organization
-    const { data: existingUser, error: userCheckError } = await supabase
-      .rpc('check_user_in_org', {
-        _email: email,
-        _org_id: orgId
-      });
-    
+    // Use a custom function directly instead of an RPC call
+    const { data: userCheck, error: userCheckError } = await supabase.from('user_roles')
+      .select('id')
+      .eq('org_id', orgId)
+      .eq('user_id', (subquery) => 
+        subquery.from('user_profiles').select('id').eq('email', email)
+      );
+      
     if (userCheckError) {
       throw new Error(`Failed to check user: ${userCheckError.message}`);
     }
     
-    if (existingUser?.exists) {
+    if (userCheck && userCheck.length > 0) {
       throw new Error('User is already a member of this organization');
     }
     
@@ -57,7 +43,7 @@ export async function inviteToOrganization(
       .eq('email', email)
       .eq('org_id', orgId)
       .eq('status', 'pending');
-    
+      
     if (inviteCheckError) {
       throw new Error(`Failed to check invitations: ${inviteCheckError.message}`);
     }
@@ -72,16 +58,16 @@ export async function inviteToOrganization(
       .select('id, display_name')
       .eq('id', currentUserId)
       .single();
-    
+      
     // Generate a unique token for the invitation
-    const token = await generateInvitationToken();
+    const token = await generateUniqueToken();
     
     // Use type assertion to fix the role type issue
     const { data: invitation, error: createError } = await supabase
       .from('organization_invitations')
       .insert({
         email,
-        role: role as any, // Type assertion to bypass the type checking
+        role: role,
         org_id: orgId,
         token,
         created_by: currentUserId,
@@ -89,7 +75,7 @@ export async function inviteToOrganization(
       })
       .select('id, email, role, token')
       .single();
-    
+      
     if (createError) {
       throw new Error(`Failed to create invitation: ${createError.message}`);
     }
@@ -111,7 +97,7 @@ export async function inviteToOrganization(
       success: true,
       invitation
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error inviting to organization:', error);
     return {
       success: false,

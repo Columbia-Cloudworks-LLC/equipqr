@@ -1,48 +1,80 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { OrganizationMember } from './types';
 import { UserRole } from '@/types/supabase-enums';
-import { showSuccessToast, handleOrganizationError } from './errors';
 
 /**
- * Get members of an organization
+ * Add a user to an organization with a specific role
  */
-export async function getOrganizationMembers(orgId: string): Promise<OrganizationMember[]> {
+export async function addUserToOrg(
+  userId: string, 
+  orgId: string, 
+  role: UserRole
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const { data, error } = await supabase
-      .rpc('get_organization_members', { org_id: orgId });
-
-    if (error) {
-      console.error('Error fetching organization members:', error);
-      return [];
+    if (!userId || !orgId || !role) {
+      throw new Error('User ID, organization ID, and role are required');
     }
-
-    return data || [];
-  } catch (error) {
-    console.error('Error in getOrganizationMembers:', error);
-    return [];
-  }
-}
-
-/**
- * Update a member's role in the organization
- */
-export async function updateMemberRole(memberId: string, role: UserRole): Promise<boolean> {
-  try {
-    const { error } = await supabase
+    
+    // Check if the user already has a role in this org
+    const { data: existingRoles, error: roleCheckError } = await supabase
       .from('user_roles')
-      .update({ role })
-      .eq('id', memberId);
-
-    if (error) {
-      handleOrganizationError(error, `Failed to update role: ${error.message}`);
-      return false;
+      .select('*')
+      .eq('user_id', userId)
+      .eq('org_id', orgId);
+      
+    if (roleCheckError) {
+      throw new Error(`Error checking existing roles: ${roleCheckError.message}`);
     }
-
-    showSuccessToast("The member's role has been updated successfully");
-    return true;
+    
+    if (existingRoles && existingRoles.length > 0) {
+      return { 
+        success: false, 
+        error: 'User already has a role in this organization' 
+      };
+    }
+    
+    // Get the current user for the assigned_by field
+    const { data: sessionData } = await supabase.auth.getSession();
+    const currentUserId = sessionData?.session?.user?.id;
+    
+    if (!currentUserId) {
+      return { 
+        success: false, 
+        error: 'Authentication required to add users' 
+      };
+    }
+    
+    // Make sure role is a valid value for the enum
+    let validRole: 'owner' | 'manager' | 'technician' | 'viewer' | 'member';
+    
+    if (role === 'admin') {
+      validRole = 'owner'; // Map admin to owner
+    } else if (role === 'owner' || role === 'manager' || role === 'technician' || role === 'viewer' || role === 'member') {
+      validRole = role;
+    } else {
+      validRole = 'member'; // Default role
+    }
+    
+    // Insert the user role
+    const { error: insertError } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: userId,
+        org_id: orgId,
+        role: validRole,
+        assigned_by: currentUserId
+      });
+      
+    if (insertError) {
+      throw new Error(`Error adding user to organization: ${insertError.message}`);
+    }
+    
+    return { success: true };
   } catch (error) {
-    handleOrganizationError(error);
-    return false;
+    console.error('Error in addUserToOrg:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to add user to organization'
+    };
   }
 }

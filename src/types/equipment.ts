@@ -1,83 +1,35 @@
 
-// Create equipment types that are missing
+import { EquipmentStatus } from "./supabase-enums";
 
 export interface Equipment {
   id: string;
   name: string;
-  description?: string;
-  serial_number?: string;
-  model?: string;
-  manufacturer?: string;
-  status: string;
-  location?: string;
-  purchase_date?: string;
-  install_date?: string;
-  warranty_expiration?: string;
-  maintenance_date?: string;
-  notes?: string;
   org_id: string;
-  team_id?: string;
+  team_id?: string | null;
+  status: EquipmentStatus;
+  location?: string;
+  manufacturer?: string;
+  model?: string;
+  serial_number?: string;
+  notes?: string;
+  install_date?: string | null;
+  warranty_expiration?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
-  // Additional fields used in components
-  org_name?: string;
-  team_name?: string;
-  is_external_org?: boolean;
-  attributes?: EquipmentAttribute[];
   created_by: string;
-  // Adding missing properties
+  attributes?: EquipmentAttribute[];
   can_edit?: boolean;
   has_no_team?: boolean;
 }
 
 export interface EquipmentAttribute {
-  id?: string;
+  id: string;
   equipment_id: string;
   key: string;
-  value?: string | null;
+  value: string;
   created_at?: string;
   updated_at?: string;
-}
-
-export interface EquipmentCreateData {
-  name: string;
-  description?: string;
-  serial_number?: string;
-  model?: string;
-  manufacturer?: string;
-  status: string;
-  location?: string;
-  purchase_date?: string;
-  warranty_expiration?: string;
-  maintenance_date?: string;
-  notes?: string;
-  team_id?: string;
-  org_id: string;
-  attributes?: EquipmentAttribute[];
-}
-
-export interface EquipmentFormValues {
-  name: string;
-  description?: string;
-  serial_number?: string;
-  model?: string;
-  manufacturer?: string;
-  status: string;
-  location?: string;
-  purchase_date?: string;
-  warranty_expiration?: string;
-  maintenance_date?: string;
-  notes?: string;
-  team_id?: string;
-  org_id: string;
-  attributes?: EquipmentAttribute[];
-}
-
-export interface CreateEquipmentParams {
-  equipment: EquipmentFormValues;
-  userId: string;
-  orgId: string;
 }
 
 export interface WorkNote {
@@ -86,11 +38,41 @@ export interface WorkNote {
   work_order_id?: string;
   created_by: string;
   note: string;
-  content?: string;
-  author?: string;
   created_at: string;
-  updated_at?: string;
-  deleted_at?: string | null;
-  hours_worked?: number;
   is_public: boolean;
+  hours_worked?: number;
+  author?: string;
+  content?: string;
+}
+
+export interface EquipmentFormValues {
+  name: string;
+  org_id: string;
+  model?: string;
+  serial_number?: string;
+  manufacturer?: string;
+  status?: string;
+  location?: string;
+  purchase_date?: string;
+  install_date?: string | null;
+  warranty_expiration?: string | null;
+  notes?: string;
+  team_id?: string | null;
+  attributes?: EquipmentAttribute[];
+  description?: string;
+}
+
+export interface CreateEquipmentParams {
+  name: string;
+  org_id: string;
+  model?: string;
+  serial_number?: string;
+  manufacturer?: string;
+  status?: string;
+  location?: string;
+  install_date?: string | null;
+  warranty_expiration?: string | null;
+  notes?: string;
+  team_id?: string | null;
+  attributes?: EquipmentAttribute[];
 }

@@ -1,81 +1,77 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Equipment } from '@/types';
-import { EquipmentFormValues, CreateEquipmentParams } from '@/types/equipment';
+import { Equipment, EquipmentAttribute, CreateEquipmentParams } from '@/types/equipment';
+import { processAttributes } from './utils/dataProcessing';
 
-export async function createEquipment(params: CreateEquipmentParams): Promise<{ 
-  success: boolean; 
-  equipment?: Equipment;
-  error?: string;
-}> {
+/**
+ * Create a new equipment record
+ */
+export async function createEquipment(params: CreateEquipmentParams): Promise<{ success: boolean; equipment?: Equipment; error?: string }> {
   try {
-    const { equipment, userId, orgId } = params;
-
-    if (!equipment.name || !equipment.status || !orgId || !userId) {
-      throw new Error('Required fields missing: name, status, organization, and user ID');
+    // Validate inputs
+    if (!params.name) {
+      throw new Error('Equipment name is required');
     }
 
-    // Validate equipment status is one of the allowed values
-    const validStatuses = ['active', 'inactive', 'maintenance'];
-    if (!validStatuses.includes(equipment.status)) {
-      throw new Error('Invalid status value. Must be one of: active, inactive, maintenance');
+    if (!params.org_id) {
+      throw new Error('Organization ID is required');
     }
 
-    // Create new equipment record
-    const { data, error } = await supabase
+    // Get the current user's ID
+    const { data: session, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      throw new Error(`Authentication required: ${sessionError.message}`);
+    }
+
+    const userId = session?.session?.user?.id;
+    if (!userId) {
+      throw new Error('Authentication required');
+    }
+
+    // Process optional fields
+    const equipmentData = {
+      name: params.name,
+      org_id: params.org_id,
+      team_id: params.team_id === 'none' ? null : params.team_id,
+      status: params.status || 'active',
+      location: params.location,
+      manufacturer: params.manufacturer,
+      model: params.model,
+      serial_number: params.serial_number,
+      notes: params.notes,
+      install_date: params.install_date || null,
+      warranty_expiration: params.warranty_expiration || null,
+      created_by: userId
+    };
+
+    // Create the equipment record
+    const { data: equipment, error: createError } = await supabase
       .from('equipment')
-      .insert({
-        created_by: userId,
-        org_id: orgId,
-        name: equipment.name,
-        description: equipment.description,
-        serial_number: equipment.serial_number,
-        model: equipment.model,
-        manufacturer: equipment.manufacturer,
-        status: equipment.status as 'active' | 'inactive' | 'maintenance',
-        location: equipment.location,
-        purchase_date: equipment.purchase_date,
-        install_date: equipment.install_date,
-        warranty_expiration: equipment.warranty_expiration,
-        notes: equipment.notes,
-        team_id: equipment.team_id || null
-      })
+      .insert(equipmentData)
       .select('*')
       .single();
 
-    if (error) {
-      throw new Error(`Failed to create equipment: ${error.message}`);
+    if (createError) {
+      throw new Error(`Failed to create equipment: ${createError.message}`);
     }
 
-    const createdEquipment = data as Equipment;
-
-    // If attributes exist, create them as well
-    if (equipment.attributes && equipment.attributes.length > 0) {
-      const attributeRecords = equipment.attributes.map(attr => ({
-        equipment_id: createdEquipment.id,
-        key: attr.key,
-        value: attr.value || null
-      }));
-
-      const { error: attrError } = await supabase
-        .from('equipment_attributes')
-        .insert(attributeRecords);
-
+    // Process and save attributes if any
+    if (params.attributes && params.attributes.length > 0) {
+      const { error: attrError } = await processAttributes(params.attributes, equipment.id);
       if (attrError) {
-        console.error('Failed to create equipment attributes:', attrError);
-        // Don't throw, just log - we still created the equipment
+        console.error('Error saving equipment attributes:', attrError);
       }
     }
 
     return {
       success: true,
-      equipment: createdEquipment
+      equipment
     };
   } catch (error: any) {
     console.error('Error creating equipment:', error);
     return {
       success: false,
-      error: error.message || 'An error occurred while creating equipment'
+      error: error.message || 'An unexpected error occurred'
     };
   }
 }

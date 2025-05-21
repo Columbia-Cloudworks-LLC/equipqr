@@ -38,14 +38,20 @@ export async function changeRole(memberId: string, role: UserRole, teamId: strin
     
     // If the member is the last manager, prevent role change
     if (teamMember.role === 'manager') {
-      const { data: managerCount, error: countError } = await supabase
-        .rpc('count_team_managers', { _team_id: teamId });
+      // Use a direct query instead of an RPC function
+      const { data: managers, error: countError } = await supabase
+        .from('team_roles')
+        .select('id')
+        .eq('role', 'manager')
+        .in('team_member_id', (subquery) => 
+          subquery.from('team_member').select('id').eq('team_id', teamId)
+        );
       
       if (countError) {
         throw new Error(`Failed to count managers: ${countError.message}`);
       }
       
-      if (managerCount === 1 && role !== 'manager') {
+      if (managers.length === 1 && role !== 'manager') {
         throw new Error('Cannot change role: This is the last manager of the team');
       }
     }

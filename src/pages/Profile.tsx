@@ -116,12 +116,33 @@ export default function Profile() {
 
   const handleChange = (field: keyof UserProfile, value: string) => {
     if (!userProfile) return;
-    setUserProfile({
-      ...userProfile,
-      [field]: field === 'datetime_format_preference' 
-        ? value as DateTimeFormat 
-        : value,
-    });
+    
+    // For datetime_format_preference, ensure we only use valid values from the enum
+    if (field === 'datetime_format_preference') {
+      let validFormat: DateTimeFormat;
+      
+      // Validate the format against our enum
+      switch (value) {
+        case 'MM/DD/YYYY h:mm A':
+        case 'DD/MM/YYYY h:mm A':
+        case 'YYYY-MM-DD HH:mm':
+        case 'ISO':
+          validFormat = value as DateTimeFormat;
+          break;
+        default:
+          validFormat = 'MM/DD/YYYY h:mm A'; // Default format
+      }
+      
+      setUserProfile({
+        ...userProfile,
+        datetime_format_preference: validFormat
+      });
+    } else {
+      setUserProfile({
+        ...userProfile,
+        [field]: value
+      });
+    }
   };
 
   if (isLoading) {

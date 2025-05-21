@@ -1,45 +1,26 @@
 
-import { supabase } from "@/integrations/supabase/client";
-
-interface PermissionResponse {
-  has_permission: boolean;
-  reason?: string;
-  role?: string;
-}
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Check if user has permission to update equipment
- * @param authUserId - The auth user ID 
- * @param equipmentId - The equipment ID
- * @returns Permission check result
+ * Check if the current user has permission to update a specific equipment
  */
-export async function checkUpdatePermission(authUserId: string, equipmentId: string): Promise<PermissionResponse> {
+export async function checkUpdatePermission(equipmentId: string): Promise<boolean> {
   try {
-    // Verify permission to update this equipment using edge function
-    const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('check_equipment_permission', {
-      body: { 
-        user_id: authUserId,
-        equipment_id: equipmentId,
-        action: 'edit'
-      }
+    const { data, error } = await supabase.functions.invoke('check_equipment_edit_permission', {
+      body: { equipment_id: equipmentId }
     });
-    
-    if (permissionError) {
-      console.error('Error checking equipment edit permission:', permissionError);
-      throw new Error(`Permission check failed: ${permissionError.message}`);
+
+    if (error) {
+      console.error('Error checking equipment edit permission:', error);
+      return false;
     }
-    
-    const response = permissionCheck as PermissionResponse;
-    
-    if (!response || !response.has_permission) {
-      const reason = response?.reason || 'unknown';
-      console.error('Update permission denied:', reason);
-      throw new Error(`You do not have permission to edit this equipment. Reason: ${reason}`);
-    }
-    
-    return response;
+
+    return data?.has_permission === true;
   } catch (error) {
-    console.error('Error in checkUpdatePermission:', error);
-    throw error;
+    console.error('Failed to check equipment edit permission:', error);
+    return false;
   }
 }
+
+// Alias for checkUpdatePermission for better semantic naming
+export const checkEditPermission = checkUpdatePermission;
