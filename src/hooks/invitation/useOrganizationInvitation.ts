@@ -4,6 +4,20 @@ import { invokeEdgeFunctionWithRetry } from '@/utils/edgeFunctions/core';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define the response type from the edge function
+interface InvitationResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: {
+    organization?: {
+      id: string;
+      name: string;
+    };
+    role?: string;
+  };
+}
+
 export function useOrganizationInvitation() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +42,7 @@ export function useOrganizationInvitation() {
       }
       
       // Explicitly use the session token with the edge function
-      const data = await invokeEdgeFunctionWithRetry('accept_organization_invitation', 
+      const data = await invokeEdgeFunctionWithRetry<InvitationResponse>('accept_organization_invitation', 
         { token }, 
         {
           maxRetries: 2,
