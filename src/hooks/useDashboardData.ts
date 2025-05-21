@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { toast from 'sonner';
+import { toast } from 'sonner';
 import { getTeams } from '@/services/team/retrieval';
 
 export function useDashboardData() {
