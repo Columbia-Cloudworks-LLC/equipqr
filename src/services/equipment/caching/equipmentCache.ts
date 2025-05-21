@@ -29,7 +29,19 @@ export function checkEquipmentCache(cacheKey: string): Equipment[] | null {
 /**
  * Clear equipment cache
  */
-export function bustEquipmentCache() {
+export function clearEquipmentCache() {
   equipmentCache.clear();
   cacheMetadata.clear();
+}
+
+/**
+ * Clear equipment cache for a specific key
+ */
+export function bustEquipmentCache(cacheKey?: string) {
+  if (cacheKey) {
+    equipmentCache.delete(cacheKey);
+    cacheMetadata.delete(cacheKey);
+  } else {
+    clearEquipmentCache();
+  }
 }

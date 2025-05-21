@@ -60,7 +60,7 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
       if (orgEquipmentError) {
         console.error('Error getting organization equipment:', orgEquipmentError);
       } else if (orgEquipment) {
-        allEquipment = [...orgEquipment.map(item => ({ ...item, access_via: 'org' }))];
+        allEquipment = [...orgEquipment.map(item => ({ ...item }))];
       }
     }
     
@@ -104,7 +104,7 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
               // Add to equipment list, avoiding duplicates
               teamEquipment.forEach(item => {
                 if (!allEquipment.some(eq => eq.id === item.id)) {
-                  allEquipment.push({ ...item, access_via: 'team' });
+                  allEquipment.push({ ...item });
                 }
               });
             }
@@ -123,7 +123,7 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
             // Add to equipment list, avoiding duplicates
             teamEquipment.forEach(item => {
               if (!allEquipment.some(eq => eq.id === item.id)) {
-                allEquipment.push({ ...item, access_via: 'team' });
+                allEquipment.push({ ...item });
               }
             });
           }
