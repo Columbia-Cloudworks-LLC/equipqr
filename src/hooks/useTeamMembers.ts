@@ -1,17 +1,14 @@
-
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
-import { 
-  getTeamMembers,
-  changeRole,
-  removeMember,
-  resendInvite,
-  inviteMember,
-  getPendingInvitations,
-  cancelInvitation 
-} from '@/services/team/index';
+import { getTeamMembers } from '@/services/team/members/getTeamMembers';
+import { changeRole } from '@/services/team/members/changeRole';
+import { removeMember } from '@/services/team/members/removeMember';
+import { resendInvite } from '@/services/team/invitation/resendInvite';
+import { inviteMember } from '@/services/team/invitation/inviteMember';
+import { getPendingInvitations } from '@/services/team/invitation/getPendingInvitations';
+import { cancelInvitation } from '@/services/team/invitation/cancelInvitation';
 
 export function useTeamMembers(teamId: string) {
   const [members, setMembers] = useState<TeamMember[]>([]);

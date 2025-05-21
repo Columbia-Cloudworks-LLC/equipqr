@@ -71,3 +71,4 @@ export interface EquipmentFormValues {
 
 // Export CreateEquipmentParams type
 export type CreateEquipmentParams = EquipmentFormValues;
+

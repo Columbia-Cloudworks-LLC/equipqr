@@ -35,11 +35,13 @@ export async function checkViewPermission(equipmentId: string): Promise<Permissi
     }
 
     // Check if the user has permission to view this equipment
-    const { data, error } = await supabase.rpc('check_equipment_permission', {
-      p_equipment_id: equipmentId,
-      p_user_id: authUserId,
-      p_action: 'view'
-    });
+    const { data: permissionData, error } = await supabase.rpc(
+      'can_access_equipment',
+      {
+        p_uid: authUserId,
+        p_equipment_id: equipmentId
+      }
+    );
 
     if (error) {
       console.error('Error checking equipment view permission:', error);
@@ -52,14 +54,14 @@ export async function checkViewPermission(equipmentId: string): Promise<Permissi
       };
     }
 
-    // Parse the returned data to match our expected permission result
-    if (data && typeof data === 'object') {
+    // Process the response from the RPC function
+    if (typeof permissionData === 'boolean') {
       return {
         authUserId,
-        teamId: data.team_id || null,
-        orgId: data.org_id || null,
-        hasPermission: !!data.can_access,
-        reason: data.reason || 'Unknown'
+        teamId: null, 
+        orgId: null,
+        hasPermission: permissionData,
+        reason: permissionData ? 'Access granted' : 'Access denied'
       };
     }
 
@@ -120,11 +122,13 @@ export async function checkEquipmentEditPermission(equipmentId: string): Promise
     }
 
     // Check if the user has permission to edit this equipment
-    const { data, error } = await supabase.rpc('check_equipment_permission', {
-      p_equipment_id: equipmentId,
-      p_user_id: authUserId,
-      p_action: 'edit'
-    });
+    const { data: permissionData, error } = await supabase.rpc(
+      'can_edit_equipment',
+      {
+        p_uid: authUserId,
+        p_equipment_id: equipmentId
+      }
+    );
 
     if (error) {
       console.error('Error checking equipment edit permission:', error);
@@ -137,14 +141,14 @@ export async function checkEquipmentEditPermission(equipmentId: string): Promise
       };
     }
 
-    // Parse the returned data properly
-    if (data && typeof data === 'object') {
+    // Process the response from the RPC function
+    if (typeof permissionData === 'boolean') {
       return {
         authUserId,
-        teamId: data.team_id || null,
-        orgId: data.org_id || null,
-        hasPermission: !!data.can_edit,
-        reason: data.reason || 'Unknown'
+        teamId: null,
+        orgId: null,
+        hasPermission: permissionData,
+        reason: permissionData ? 'Edit permission granted' : 'Edit permission denied'
       };
     }
 

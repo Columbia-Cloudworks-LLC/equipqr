@@ -34,11 +34,10 @@ export async function createEquipment(params: CreateEquipmentParams): Promise<{
     }
     
     // Check if permission was successful
-    if (!permission || !permission.has_permission) {
-      const reason = permission?.reason || 'Unknown permission error';
+    if (!permission) {
       return { 
         success: false, 
-        error: `You don't have permission to create equipment: ${reason}` 
+        error: `You don't have permission to create equipment: Unknown error` 
       };
     }
 
@@ -61,7 +60,7 @@ export async function createEquipment(params: CreateEquipmentParams): Promise<{
     // Insert equipment with proper typing
     const { data: equipmentResult, error: equipmentError } = await supabase
       .from('equipment')
-      .insert(equipmentData as any) // Use type assertion to bypass type checking
+      .insert(equipmentData)
       .select()
       .single();
 
@@ -82,7 +81,7 @@ export async function createEquipment(params: CreateEquipmentParams): Promise<{
 
       const { error: attrError } = await supabase
         .from('equipment_attributes')
-        .insert(attributesWithEquipmentId as any);
+        .insert(attributesWithEquipmentId);
 
       if (attrError) {
         console.error('Failed to add equipment attributes:', attrError);

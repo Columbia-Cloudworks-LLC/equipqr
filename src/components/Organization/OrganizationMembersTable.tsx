@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { OrganizationMember } from '@/services/organization/types';
 import { UserRole } from '@/types/supabase-enums';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { updateMemberRole } from '@/services/organization/membersService';
 
 interface OrganizationMembersTableProps {
@@ -34,7 +34,7 @@ export function OrganizationMembersTable({
           description: 'Member role has been updated successfully'
         });
         // Trigger a refresh of the members list
-        setRefreshTrigger(prev => prev + 1);
+        setRefreshTrigger(refreshTrigger + 1);
       }
     } catch (error: any) {
       console.error('Error updating role:', error);

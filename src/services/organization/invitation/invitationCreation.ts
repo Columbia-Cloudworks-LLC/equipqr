@@ -1,107 +1,112 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { generateUniqueToken } from '@/lib/crypto';
+import { supabase } from '@/integrations/supabase/client'; 
+import { UserRole } from '@/types/supabase-enums';
 
 /**
- * Invites a new user to join an organization with the specified role
+ * Create an invitation for an organization
  */
-export async function inviteToOrganization(email, role, orgId) {
+export async function createOrganizationInvitation(
+  email: string,
+  organizationId: string,
+  role: UserRole = 'viewer'
+) {
   try {
-    if (!email || !role || !orgId) {
-      throw new Error('Email, role, and organization ID are required');
+    // First check if the user is already in the organization
+    const { data: existingUser, error: checkError } = await supabase
+      .rpc('get_user_by_email_safe', { email_param: email });
+      
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw new Error(`Error checking user: ${checkError.message}`);
     }
     
-    // Check user session
-    const { data: sessionData } = await supabase.auth.getSession();
-    const currentUserId = sessionData?.session?.user?.id;
+    if (existingUser) {
+      // Check if user already has a role in this org
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', existingUser.id)
+        .eq('org_id', organizationId)
+        .maybeSingle();
+        
+      if (existingRole) {
+        return { 
+          success: false,
+          error: 'This user is already a member of this organization'
+        };
+      }
+    }
     
-    if (!currentUserId) {
+    // Get current user for invited_by field
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session?.user) {
       throw new Error('Authentication required');
     }
     
-    // Check if user is already part of the organization
-    // Use a custom function directly instead of an RPC call
-    const { data: userCheck, error: userCheckError } = await supabase.from('user_roles')
-      .select('id')
-      .eq('org_id', orgId)
-      .eq('user_id', (subquery) => 
-        subquery.from('user_profiles').select('id').eq('email', email)
-      );
-      
-    if (userCheckError) {
-      throw new Error(`Failed to check user: ${userCheckError.message}`);
-    }
+    // Generate token
+    const token = generateToken(32);
     
-    if (userCheck && userCheck.length > 0) {
-      throw new Error('User is already a member of this organization');
-    }
-    
-    // Check for pending invitations
-    const { data: pendingInvites, error: inviteCheckError } = await supabase
-      .from('organization_invitations')
-      .select('id')
-      .eq('email', email)
-      .eq('org_id', orgId)
-      .eq('status', 'pending');
-      
-    if (inviteCheckError) {
-      throw new Error(`Failed to check invitations: ${inviteCheckError.message}`);
-    }
-    
-    if (pendingInvites && pendingInvites.length > 0) {
-      throw new Error('This user already has a pending invitation');
-    }
-    
-    // Get current user email for the invitation details
-    const { data: profileData } = await supabase
+    const { data: currentUser } = await supabase
       .from('user_profiles')
-      .select('id, display_name')
-      .eq('id', currentUserId)
+      .select('email')
+      .eq('id', session.session.user.id)
       .single();
-      
-    // Generate a unique token for the invitation
-    const token = await generateUniqueToken();
     
-    // Use type assertion to fix the role type issue
-    const { data: invitation, error: createError } = await supabase
+    // Create the invitation
+    const invitationData = {
+      email: email.toLowerCase(),
+      org_id: organizationId,
+      token: token,
+      role: role,
+      created_by: session.session.user.id,
+      invited_by_email: currentUser?.email
+    };
+    
+    const { data, error } = await supabase
       .from('organization_invitations')
-      .insert({
-        email,
-        role: role,
-        org_id: orgId,
-        token,
-        created_by: currentUserId,
-        invited_by_email: sessionData?.session?.user?.email
-      })
-      .select('id, email, role, token')
+      .insert(invitationData)
+      .select()
       .single();
       
-    if (createError) {
-      throw new Error(`Failed to create invitation: ${createError.message}`);
+    if (error) {
+      throw new Error(`Failed to create invitation: ${error.message}`);
     }
     
-    // Trigger an email notification using edge function
-    const { error: emailError } = await supabase.functions.invoke('send_invitation_email', {
-      body: {
-        invitation_id: invitation.id,
-        type: 'organization'
+    // Send email notification (handled by database triggers or edge function)
+    const emailResult = await supabase.functions.invoke('send_organization_invitation_email', {
+      body: { 
+        invitation_id: data.id,
+        email: email
       }
     });
     
-    if (emailError) {
-      console.error('Warning: Failed to send invitation email', emailError);
-      // We don't throw here because the invitation was created successfully
+    if (emailResult.error) {
+      console.error('Error sending invitation email:', emailResult.error);
+      // We don't throw here to still return success if the invitation was created
     }
     
     return {
       success: true,
-      invitation
+      data: data
     };
-  } catch (error) {
-    console.error('Error inviting to organization:', error);
+  } catch (error: any) {
+    console.error('Error creating organization invitation:', error);
     return {
       success: false,
-      error: error.message || 'Failed to create invitation'
+      error: error.message || 'An error occurred creating invitation'
     };
   }
+}
+
+/**
+ * Generate a random token for the invitation
+ */
+function generateToken(length: number): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  return result;
 }

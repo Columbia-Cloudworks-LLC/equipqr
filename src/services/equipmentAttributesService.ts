@@ -1,9 +1,10 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { EquipmentAttribute } from "@/types";
+import { supabase } from '@/integrations/supabase/client';
+import { EquipmentAttribute } from '@/types';
 
 /**
- * Get attributes for a specific equipment
+ * Get all attributes for an equipment item
+ * @param equipmentId ID of the equipment
  */
 export async function getEquipmentAttributes(equipmentId: string): Promise<EquipmentAttribute[]> {
   try {
@@ -13,133 +14,132 @@ export async function getEquipmentAttributes(equipmentId: string): Promise<Equip
       .eq('equipment_id', equipmentId);
 
     if (error) {
-      console.error('Error fetching equipment attributes:', error);
-      throw error;
+      throw new Error(`Error fetching attributes: ${error.message}`);
     }
-    
-    return data as EquipmentAttribute[];
+
+    return data || [];
   } catch (error) {
-    console.error('Error in getEquipmentAttributes:', error);
+    console.error('Error getting equipment attributes:', error);
     throw error;
   }
 }
 
 /**
- * Save equipment attributes (create new ones, update existing ones, delete removed ones)
+ * Add new attribute to an equipment item
+ * @param equipmentId ID of the equipment
+ * @param key Attribute key
+ * @param value Attribute value
  */
-export async function saveEquipmentAttributes(
+export async function addEquipmentAttribute(
   equipmentId: string,
-  attributes: EquipmentAttribute[]
-): Promise<EquipmentAttribute[]> {
+  key: string,
+  value: string
+): Promise<EquipmentAttribute> {
   try {
-    // Get existing attributes
-    const { data: existingAttributes, error: fetchError } = await supabase
+    const newAttribute = {
+      equipment_id: equipmentId,
+      key: key,
+      value: value
+    };
+
+    const { data, error } = await supabase
       .from('equipment_attributes')
-      .select('*')
-      .eq('equipment_id', equipmentId);
+      .insert([newAttribute])
+      .select()
+      .single();
 
-    if (fetchError) {
-      console.error('Error fetching existing attributes:', fetchError);
-      throw fetchError;
+    if (error) {
+      throw new Error(`Error adding attribute: ${error.message}`);
     }
 
-    // Filter out attributes with empty keys
-    const validAttributes = attributes.filter(attr => attr.key.trim() !== '');
-    
-    console.log('Valid attributes to save:', validAttributes);
-    console.log('Existing attributes:', existingAttributes);
-    
-    // Handle create, update, delete operations as needed
-    const attributesToCreate: EquipmentAttribute[] = [];
-    const attributesToUpdate: EquipmentAttribute[] = [];
-    const existingIds = new Set();
-
-    // Sort attributes into update and create categories
-    validAttributes.forEach(attr => {
-      // If it has an ID, it might be an update
-      if (attr.id) {
-        // Check if the ID actually exists in the database
-        const exists = existingAttributes?.some(existing => existing.id === attr.id);
-        if (exists) {
-          attributesToUpdate.push(attr);
-          existingIds.add(attr.id);
-        } else {
-          // ID is invalid, treat as new attribute
-          const { id, ...restAttr } = attr;
-          attributesToCreate.push({
-            ...restAttr,
-            equipment_id: equipmentId
-          });
-        }
-      } else {
-        // No ID, definitely a new attribute
-        attributesToCreate.push({
-          ...attr,
-          equipment_id: equipmentId
-        });
-      }
-    });
-
-    // Find attributes to delete (existing but not in the incoming list)
-    const attributesToDelete = existingAttributes
-      ?.filter(attr => !existingIds.has(attr.id))
-      .map(attr => attr.id) || [];
-
-    // Handle creations
-    if (attributesToCreate.length > 0) {
-      console.log('Creating attributes:', attributesToCreate);
-      const { error: createError } = await supabase
-        .from('equipment_attributes')
-        .insert(attributesToCreate);
-
-      if (createError) {
-        console.error('Error creating attributes:', createError);
-        throw createError;
-      }
-    }
-
-    // Handle updates
-    for (const attr of attributesToUpdate) {
-      console.log('Updating attribute:', attr);
-      const { error: updateError } = await supabase
-        .from('equipment_attributes')
-        .update({ key: attr.key, value: attr.value })
-        .eq('id', attr.id);
-
-      if (updateError) {
-        console.error(`Error updating attribute ${attr.id}:`, updateError);
-        throw updateError;
-      }
-    }
-
-    // Handle deletions
-    if (attributesToDelete.length > 0) {
-      console.log('Deleting attributes:', attributesToDelete);
-      const { error: deleteError } = await supabase
-        .from('equipment_attributes')
-        .delete()
-        .in('id', attributesToDelete);
-
-      if (deleteError) {
-        console.error('Error deleting attributes:', deleteError);
-        throw deleteError;
-      }
-    }
-
-    // Get the updated list of attributes
-    const { data: updatedAttributes, error: finalFetchError } = await supabase
-      .from('equipment_attributes')
-      .select('*')
-      .eq('equipment_id', equipmentId);
-
-    if (finalFetchError) {
-      console.error('Error fetching updated attributes:', finalFetchError);
-      throw finalFetchError;
-    }
-
-    return updatedAttributes as EquipmentAttribute[];
+    return data;
   } catch (error) {
-    console.error('Error in saveEquipmentAttributes:', error);
+    console.error('Error adding equipment attribute:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing attribute
+ * @param attributeId ID of the attribute to update
+ * @param key New key
+ * @param value New value
+ */
+export async function updateEquipmentAttribute(
+  attributeId: string,
+  key: string,
+  value: string
+): Promise<EquipmentAttribute> {
+  try {
+    const { data, error } = await supabase
+      .from('equipment_attributes')
+      .update({ key, value, updated_at: new Date().toISOString() })
+      .eq('id', attributeId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Error updating attribute: ${error.message}`);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error updating equipment attribute:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete an attribute
+ * @param attributeId ID of the attribute to delete
+ */
+export async function deleteEquipmentAttribute(attributeId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('equipment_attributes')
+      .delete()
+      .eq('id', attributeId);
+
+    if (error) {
+      throw new Error(`Error deleting attribute: ${error.message}`);
+    }
+  } catch (error) {
+    console.error('Error deleting equipment attribute:', error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a new attribute for equipment
+ */
+export async function createEquipmentAttribute(
+  equipmentId: string,
+  key: string,
+  value: string
+): Promise<EquipmentAttribute> {
+  try {
+    const attributeData = {
+      id: crypto.randomUUID(), // Ensure there's an ID
+      equipment_id: equipmentId,
+      key: key,
+      value: value,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('equipment_attributes')
+      .insert(attributeData)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Error creating attribute: ${error.message}`);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error creating equipment attribute:', error);
     throw error;
   }
 }

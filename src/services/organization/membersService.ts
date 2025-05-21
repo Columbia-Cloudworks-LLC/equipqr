@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { OrganizationMember } from './types';
 import { UserRole } from '@/types/supabase-enums';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 /**
  * Fetches all members of the specified organization
@@ -34,8 +34,7 @@ export async function getOrganizationMembers(orgId: string): Promise<Organizatio
  */
 export async function updateMemberRole(
   memberId: string, 
-  newRole: UserRole,
-  orgId?: string
+  newRole: UserRole
 ): Promise<boolean> {
   if (!memberId) {
     throw new Error('Member ID is required');
@@ -46,17 +45,15 @@ export async function updateMemberRole(
     const { error } = await supabase
       .from('user_roles')
       .update({ 
-        role: newRole as string, 
+        role: newRole, 
         updated_at: new Date().toISOString() 
       })
       .eq('id', memberId);
     
     if (error) {
       console.error('Error updating member role:', error);
-      toast({
-        title: "Error",
-        description: `Failed to update role: ${error.message}`,
-        variant: "destructive"
+      toast.error("Error", {
+        description: `Failed to update role: ${error.message}`
       });
       return false;
     }

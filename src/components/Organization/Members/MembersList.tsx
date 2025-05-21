@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { OrganizationMember } from '@/services/organization/types';
 import { UserRole } from '@/types/supabase-enums';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { updateMemberRole } from '@/services/organization/membersService';
 
 interface MembersListProps {
