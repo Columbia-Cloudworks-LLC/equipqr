@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { getEquipmentAttributes } from "./attributesService";
-import { invokeEdgeFunctionWithRetry } from "@/utils/edgeFunctionUtils";
+import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
 
 interface PermissionResponse {
   has_permission: boolean;
@@ -50,15 +50,15 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const authUserId = sessionData.session.user.id;
     console.log('Getting equipment by ID. Auth user ID:', authUserId);
     
-    // Use more reliable edge function with retry
-    const result = await invokeEdgeFunctionWithRetry(
+    // Use edge function with retry
+    const result = await invokeEdgeFunction(
       'check_equipment_permission', 
       {
         user_id: authUserId,
         equipment_id: id,
         action: 'view'
       },
-      { maxRetries: 1 }
+      10000
     ).catch(async (error) => {
       console.warn('Edge function failed, falling back to direct database check:', error);
       
@@ -117,15 +117,15 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const userOrgId = userProfile?.org_id;
     const isExternalOrg = equipment.team?.org_id && userOrgId && equipment.team.org_id !== userOrgId;
     
-    // Check edit permissions - use the same retry function
-    const editResult = await invokeEdgeFunctionWithRetry(
+    // Check edit permissions - use the same function
+    const editResult = await invokeEdgeFunction(
       'check_equipment_permission', 
       {
         user_id: authUserId,
         equipment_id: id,
         action: 'edit'
       },
-      { maxRetries: 1 }
+      10000
     ).catch(async (error) => {
       console.warn('Edit permission check via edge function failed, falling back:', error);
       

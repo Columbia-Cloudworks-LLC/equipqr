@@ -1,8 +1,7 @@
 
 /**
- * Type definitions for team validation functionality
+ * Result from team access check
  */
-
 export interface TeamAccessResult {
   is_member: boolean;
   has_org_access?: boolean;
@@ -17,6 +16,9 @@ export interface TeamAccessResult {
   org_name?: string | null;
 }
 
+/**
+ * Result from detailed team access check 
+ */
 export interface TeamAccessDetailedResult {
   has_access: boolean;
   access_reason: string;
@@ -25,28 +27,4 @@ export interface TeamAccessDetailedResult {
   is_team_member: boolean;
   is_org_owner: boolean;
   team_role: string;
-}
-
-export interface TeamRepairResult {
-  success: boolean;
-  team_member_id?: string;
-  error?: string;
-}
-
-export interface TeamMembershipResponse {
-  isValid: boolean;
-  result: any;
-  error?: string;
-}
-
-export interface TeamAccessDetailsResponse {
-  isMember: boolean;
-  hasOrgAccess: boolean;
-  hasCrossOrgAccess: boolean;
-  teamMemberId: string | null;
-  accessReason: string | null;
-  role: string | null;
-  team: any | null;
-  orgName: string | null;
-  error?: string | null;
 }

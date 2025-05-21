@@ -49,7 +49,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
     
     // Use validate_team_access edge function with timeout
     try {
-      const data = await invokeEdgeFunction<TeamAccessResult>('validate_team_access', {
+      const data = await invokeEdgeFunction('validate_team_access', {
         team_id: teamId,
         user_id: userId
       }, 10000); // 10 second timeout
@@ -132,11 +132,7 @@ export async function repairTeamMembership(teamId: string): Promise<RepairResult
     }
     
     // Use edge function with admin rights to add user to team
-    const result = await invokeEdgeFunction<{
-      success: boolean;
-      team_member_id?: string;
-      error?: string;
-    }>('add_team_member', {
+    const result = await invokeEdgeFunction('add_team_member', {
       _team_id: teamId,
       _user_id: userId,
       _role: 'manager', // Default to manager for repairs
@@ -183,7 +179,7 @@ export async function getTeamAccessDetails(userId: string, teamId: string) {
     console.log(`Getting detailed team access for user ${userId} on team ${teamId}`);
     
     try {
-      const data = await invokeEdgeFunction<TeamAccessResult>('validate_team_access', {
+      const data = await invokeEdgeFunction('validate_team_access', {
         team_id: teamId,
         user_id: userId
       }, 10000); // 10 second timeout

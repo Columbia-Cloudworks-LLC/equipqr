@@ -1,34 +1,38 @@
 
 /**
- * Retry an asynchronous operation with a backoff strategy.
- *
- * @param fn The function to execute.
- * @param options Retry configuration options.
- * @returns A promise that resolves with the result of the function or rejects after maximum retries.
+ * Retry a function with exponential backoff
+ * @param fn The function to retry
+ * @param options Retry options
  */
 export async function retry<T>(
   fn: () => Promise<T>,
   options: {
-    maxRetries: number;
-    retryDelay: number;
+    maxRetries?: number;
+    retryDelay?: number;
     onRetry?: (attempt: number, error: any) => void;
-    onSuccess?: (result: T) => void;
-  }
+  } = {}
 ): Promise<T> {
-  let attempt = 0;
-  while (attempt <= options.maxRetries) {
+  const { maxRetries = 3, retryDelay = 1000, onRetry } = options;
+  let lastError: any;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const result = await fn();
-      options.onSuccess?.(result);
-      return result;
-    } catch (error: any) {
-      if (attempt === options.maxRetries) {
-        throw error;
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      
+      if (attempt < maxRetries) {
+        const delay = retryDelay * Math.pow(2, attempt);
+        console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+        
+        if (onRetry) {
+          onRetry(attempt, error);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
-      attempt++;
-      options.onRetry?.(attempt, error);
-      await new Promise((resolve) => setTimeout(resolve, options.retryDelay));
     }
   }
-  throw new Error("Max retries exceeded"); // Should not happen, but keeps TS happy
+
+  throw lastError;
 }

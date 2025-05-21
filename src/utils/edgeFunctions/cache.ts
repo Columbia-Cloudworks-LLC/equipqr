@@ -1,96 +1,57 @@
 
-import { cacheGet, cacheStore } from '../storage/clientCache';
-import { invokeEdgeFunctionWithRetry } from './core';
+/**
+ * Cache for edge function responses
+ */
+const edgeFunctionCache = new Map<string, { data: any; timestamp: number }>();
 
 /**
- * Invoke a Supabase Edge Function with caching and retry capabilities
- * 
- * @param functionName The name of the edge function to invoke
- * @param payload The payload to send to the function
- * @param options Configuration options for caching and retries
- * @returns The function response data
+ * Get a cache key for an edge function call
+ */
+function getCacheKey(functionName: string, params: any): string {
+  const paramsString = JSON.stringify(params || {});
+  return `${functionName}:${paramsString}`;
+}
+
+/**
+ * Invoke an edge function with caching
+ * @param fn The function to invoke the edge function
+ * @param functionName The name of the edge function
+ * @param params Parameters to pass to the function
+ * @param options Caching options
  */
 export async function invokeEdgeFunctionWithCache<T>(
   functionName: string,
-  payload: any,
+  params: any,
   options: {
-    useCache?: boolean,
-    cacheDuration?: number, // in seconds
-    maxRetries?: number,
-    retryDelay?: number, // in ms
-    cachePrefix?: string,
-    cacheKeyFn?: (payload: any) => string,
-    useStaleWhileRevalidate?: boolean
+    ttlMs?: number;
+    forceRefresh?: boolean;
+    onCacheHit?: (data: T) => void;
   } = {}
 ): Promise<T> {
-  const {
-    useCache = true,
-    cacheDuration = 60, // Default 60 seconds
-    maxRetries = 2,
-    retryDelay = 1000,
-    cachePrefix = 'edge_fn_',
-    cacheKeyFn,
-    useStaleWhileRevalidate = false
-  } = options;
-
-  // Generate a cache key from the function name and payload
-  const generateKey = () => {
-    if (cacheKeyFn) {
-      return cacheKeyFn(payload);
-    }
-    
-    try {
-      return `${cachePrefix}${functionName}_${JSON.stringify(payload)}`;
-    } catch (e) {
-      // Fallback for non-serializable arguments
-      return `${cachePrefix}${functionName}_${Date.now().toString()}`;
-    }
-  };
-
-  const cacheKey = generateKey();
+  const { ttlMs = 60000, forceRefresh = false, onCacheHit } = options;
+  const cacheKey = getCacheKey(functionName, params);
+  const now = Date.now();
   
-  // Try to get from cache first if caching is enabled
-  if (useCache) {
-    const cached = cacheGet<T>(cacheKey, { duration: cacheDuration, prefix: cachePrefix });
-    if (cached) {
-      console.log(`Cache hit for edge function ${functionName}`);
-      
-      // If stale-while-revalidate is enabled, refresh the cache in the background
-      if (useStaleWhileRevalidate) {
-        setTimeout(() => {
-          console.log(`Background refresh for ${functionName}`);
-          invokeEdgeFunctionWithRetry<T>(functionName, payload, { 
-            maxRetries, 
-            retryDelay,
-            onSuccess: (data) => {
-              cacheStore<T>(cacheKey, data, { 
-                duration: cacheDuration, 
-                prefix: cachePrefix 
-              });
-            }
-          }).catch(e => console.error(`Background refresh failed for ${functionName}:`, e));
-        }, 10); // Very short delay to not block the main thread
+  // Check cache if not forcing refresh
+  if (!forceRefresh) {
+    const cached = edgeFunctionCache.get(cacheKey);
+    if (cached && now - cached.timestamp < ttlMs) {
+      console.log(`Cache hit for ${functionName}`);
+      if (onCacheHit) {
+        onCacheHit(cached.data);
       }
-      
-      return cached;
+      return cached.data as T;
     }
   }
-
-  // Cache miss or caching disabled, invoke the function with retries
-  try {
-    const data = await invokeEdgeFunctionWithRetry<T>(functionName, payload, {
-      maxRetries,
-      retryDelay
-    });
-    
-    // Store in cache if caching is enabled
-    if (useCache && data) {
-      cacheStore<T>(cacheKey, data, { duration: cacheDuration, prefix: cachePrefix });
-    }
-    
-    return data;
-  } catch (error) {
-    console.error(`Failed to invoke and cache edge function ${functionName}:`, error);
-    throw error;
-  }
+  
+  // Import dynamically to avoid circular dependency
+  const { invokeEdgeFunction } = await import('./core');
+  
+  // Call the edge function
+  const data = await invokeEdgeFunction<T>(functionName, params);
+  
+  // Cache the result
+  edgeFunctionCache.set(cacheKey, { data, timestamp: now });
+  
+  return data;
 }
