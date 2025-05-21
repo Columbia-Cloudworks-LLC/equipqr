@@ -1,11 +1,10 @@
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useInvitationValidation } from '../hooks/useInvitationValidation';
 import { useInvitationAcceptance } from '../hooks/useInvitationAcceptance';
 import { InvalidInvitation } from '../components/Invitation/InvalidInvitation';
 import { InvitationContent } from '../components/Invitation/InvitationContent';
-import { InvitationLoading } from '../components/Invitation/InvitationLoading';
 import { InvitationError } from '../components/Invitation/InvitationError';
 import { InvitationValidating } from '../components/Invitation/InvitationStatus';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
@@ -18,15 +17,37 @@ const InvitationPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const [searchParams] = useSearchParams();
   const invitationType = searchParams.get('type') || 'team';
+  const navigate = useNavigate();
   const { refreshNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
   const { user, isLoading: authLoading } = useAuth();
   
-  const { isValidating, isValid, error, invitation, user: inviteeUser, isAuthLoading } = useInvitationValidation(token || '');
+  const { isValidating, isValid, error, invitation, isAuthLoading } = useInvitationValidation(token || '');
   const { acceptInvitation, isAccepting, acceptError } = useInvitationAcceptance();
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [acceptedSuccessfully, setAcceptedSuccessfully] = useState(false);
   const [waitingForAuth, setWaitingForAuth] = useState(false);
+  const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0);
+
+  // Force a session refresh to ensure we have the latest auth state
+  const refreshAuthSession = useCallback(async () => {
+    try {
+      console.log("Forcing auth session refresh");
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) {
+        console.error("Error refreshing session:", error);
+        return false;
+      }
+      if (data.session) {
+        console.log("Session refreshed successfully");
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Error in refreshAuthSession:", err);
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     console.log(`Invitation page loaded for token: ${token?.substring(0, 8)}... (Type: ${invitationType})`);
@@ -42,31 +63,37 @@ const InvitationPage: React.FC = () => {
     });
     
     // When the page loads, check if we need to wait for authentication
-    if (!user && !authLoading && invitation) {
-      console.log('User not authenticated but invitation exists - waiting for authentication');
+    if (!user && !authLoading) {
+      console.log("User not authenticated but invitation exists - waiting for authentication");
       setWaitingForAuth(true);
     } else if (user && waitingForAuth) {
-      console.log('User now authenticated - can proceed with invitation');
+      console.log("User now authenticated - can proceed with invitation");
       setWaitingForAuth(false);
+      // Force a session refresh when the user becomes authenticated
+      refreshAuthSession();
     }
   }, [token, invitationType, isValidating, isValid, error, isAuthLoading, 
-      isAccepting, acceptError, invitation, user, authLoading, waitingForAuth]);
+      isAccepting, acceptError, invitation, user, authLoading, waitingForAuth, refreshAuthSession]);
 
-  // Check session validity periodically when waiting for auth
+  // Check session validity periodically with exponential backoff when waiting for auth
   useEffect(() => {
-    if (waitingForAuth) {
-      const checkSessionInterval = setInterval(async () => {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          console.log('Session now detected - can proceed with invitation');
-          setWaitingForAuth(false);
-          clearInterval(checkSessionInterval);
-        }
-      }, 2000);
+    if (waitingForAuth && sessionCheckAttempt < 5) {
+      const delay = Math.min(2000 * Math.pow(2, sessionCheckAttempt), 16000); // Exponential backoff with 16s max
+      console.log(`Scheduling session check attempt ${sessionCheckAttempt + 1} in ${delay}ms`);
       
-      return () => clearInterval(checkSessionInterval);
+      const checkSessionTimeout = setTimeout(async () => {
+        const { data } = await supabase.auth.getSession();
+        setSessionCheckAttempt(prev => prev + 1);
+        
+        if (data.session) {
+          console.log('Session detected - can proceed with invitation');
+          setWaitingForAuth(false);
+        }
+      }, delay);
+      
+      return () => clearTimeout(checkSessionTimeout);
     }
-  }, [waitingForAuth]);
+  }, [waitingForAuth, sessionCheckAttempt]);
 
   // Combine errors for display
   useEffect(() => {
@@ -132,6 +159,9 @@ const InvitationPage: React.FC = () => {
     }
 
     try {
+      // Force a session refresh before accepting the invitation
+      await refreshAuthSession();
+      
       console.log(`Accepting invitation: ${token?.substring(0, 8)}... (Type: ${invitationType})`);
       console.log(`Current user: ${user?.email}, Invitation for: ${invitation.email}`);
       
