@@ -41,9 +41,15 @@ serve(async (req) => {
       );
     }
     
-    console.log('Authorization header present, creating authenticated client');
+    // Extract the JWT token from the Authorization header
+    const token = authHeader.replace('Bearer ', '');
+    console.log(`JWT token extracted, first 10 chars: ${token.substring(0, 10)}...`);
     
-    // Create authenticated client using the user's token
+    // Create an admin client for operations that require bypassing RLS
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+    
+    // Create a client with the user's auth token
+    // This approach is more direct than using getSession
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
@@ -51,136 +57,211 @@ serve(async (req) => {
         },
       },
     });
-
-    // Create admin client for operations that require bypassing RLS
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
-
-    // Get the current user's session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    if (sessionError) {
-      console.error('Error getting session:', sessionError);
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'Authentication error', 
-          details: sessionError.message 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
-      );
-    }
-    
-    if (!session) {
-      console.error('No session found in getSession() response');
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'No authenticated session found' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
-      );
-    }
-
-    const currentUser = session.user;
-    console.log(`User authenticated: ${currentUser.id} (${currentUser.email})`);
-    
-    // Parse request body
-    const requestData = await req.json();
-    const { token } = requestData as RequestBody;
-    
-    if (!token) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing invitation token' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    console.log(`Processing organization invitation token: ${token.substring(0, 8)}...`);
-    
-    // Fetch invitation details using admin client to bypass RLS
-    // Check for both 'sent' and 'pending' statuses to handle any inconsistency
-    const { data: invitationData, error: inviteQueryError } = await adminClient
-      .from('organization_invitations')
-      .select('*, organization:org_id(id, name)')
-      .eq('token', token)
-      .or('status.eq.sent,status.eq.pending')
-      .maybeSingle();
+    try {
+      // Verify the token by making a simple authenticated request
+      const { data: userResponse, error: userError } = await supabase.auth.getUser();
       
-    if (inviteQueryError) {
-      console.error('Error querying invitation:', inviteQueryError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Failed to fetch invitation details', 
-          details: inviteQueryError.message 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-    
-    if (!invitationData) {
-      console.error('No invitation found with token:', token.substring(0, 8));
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'Invalid or expired invitation'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
-    }
-    
-    const invitation = invitationData;
-    console.log(`Found invitation for ${invitation.email} to join ${invitation.organization?.name || 'unknown organization'}`);
-
-    // Validate the invitation is for the current user
-    if (currentUser.email?.toLowerCase() !== invitation.email.toLowerCase()) {
-      console.error(`Email mismatch: invitation for ${invitation.email}, but user is ${currentUser.email}`);
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: `This invitation was sent to ${invitation.email}. Please log in with that email to accept.` 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
-      );
-    }
-
-    // Check if the invitation has expired
-    if (new Date(invitation.expires_at) < new Date()) {
-      console.error('Invitation has expired:', invitation.expires_at);
-      return new Response(
-        JSON.stringify({ success: false, error: 'This invitation has expired' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 410 }
-      );
-    }
-
-    // Check if user is already a member of this organization
-    const { data: existingRole, error: existingRoleError } = await adminClient
-      .from('user_roles')
-      .select('id, role')
-      .eq('org_id', invitation.org_id)
-      .eq('user_id', currentUser.id)
-      .single();
+      if (userError) {
+        console.error('Error verifying user token:', userError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid authentication token', 
+            details: userError.message
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        );
+      }
       
-    if (existingRoleError && !existingRoleError.message.includes('No rows found')) {
-      console.error('Error checking existing role:', existingRoleError);
-    }
+      if (!userResponse.user) {
+        console.error('No user found in token verification');
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid user token'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        );
+      }
       
-    if (existingRole) {
-      console.log(`User is already a member of this organization with role: ${existingRole.role}`);
+      // Successfully authenticated user
+      const currentUser = userResponse.user;
+      console.log(`User authenticated: ${currentUser.id} (${currentUser.email})`);
       
-      // Update the invitation status even if already a member
-      await adminClient
+      // Parse request body
+      const requestData = await req.json();
+      const { token: invitationToken } = requestData as RequestBody;
+      
+      if (!invitationToken) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Missing invitation token' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      console.log(`Processing organization invitation token: ${invitationToken.substring(0, 8)}...`);
+      
+      // Fetch invitation details using admin client to bypass RLS
+      // Check for both 'sent' and 'pending' statuses to handle any inconsistency
+      const { data: invitationData, error: inviteQueryError } = await adminClient
         .from('organization_invitations')
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString()
+        .select('*, organization:org_id(id, name)')
+        .eq('token', invitationToken)
+        .or('status.eq.sent,status.eq.pending')
+        .maybeSingle();
+        
+      if (inviteQueryError) {
+        console.error('Error querying invitation:', inviteQueryError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Failed to fetch invitation details', 
+            details: inviteQueryError.message 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      if (!invitationData) {
+        console.error('No invitation found with token:', invitationToken.substring(0, 8));
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: 'Invalid or expired invitation'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+      
+      const invitation = invitationData;
+      console.log(`Found invitation for ${invitation.email} to join ${invitation.organization?.name || 'unknown organization'}`);
+
+      // Validate the invitation is for the current user
+      if (currentUser.email?.toLowerCase() !== invitation.email.toLowerCase()) {
+        console.error(`Email mismatch: invitation for ${invitation.email}, but user is ${currentUser.email}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: `This invitation was sent to ${invitation.email}. Please log in with that email to accept.` 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        );
+      }
+
+      // Check if the invitation has expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        console.error('Invitation has expired:', invitation.expires_at);
+        return new Response(
+          JSON.stringify({ success: false, error: 'This invitation has expired' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 410 }
+        );
+      }
+
+      // Check if user is already a member of this organization
+      const { data: existingRole, error: existingRoleError } = await adminClient
+        .from('user_roles')
+        .select('id, role')
+        .eq('org_id', invitation.org_id)
+        .eq('user_id', currentUser.id)
+        .single();
+        
+      if (existingRoleError && !existingRoleError.message.includes('No rows found')) {
+        console.error('Error checking existing role:', existingRoleError);
+      }
+        
+      if (existingRole) {
+        console.log(`User is already a member of this organization with role: ${existingRole.role}`);
+        
+        // Update the invitation status even if already a member
+        await adminClient
+          .from('organization_invitations')
+          .update({
+            status: 'accepted',
+            accepted_at: new Date().toISOString()
+          })
+          .eq('id', invitation.id);
+          
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'You are already a member of this organization',
+            data: {
+              organization: invitation.organization,
+              role: invitation.role
+            }
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+
+      console.log('Adding user to organization with role:', invitation.role);
+      
+      // Begin a transaction to add the user to the organization
+      // 1. Add the user to user_roles
+      const { error: roleError } = await adminClient
+        .from('user_roles')
+        .insert({
+          user_id: currentUser.id,
+          org_id: invitation.org_id,
+          role: invitation.role,
+          assigned_by: invitation.created_by
+        });
+
+      if (roleError) {
+        console.error('Error assigning role:', roleError);
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: `Failed to assign role: ${roleError.message}` 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      // 2. Update user_profiles if they don't have an org_id set
+      const { data: profile, error: profileError } = await adminClient
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', currentUser.id)
+        .single();
+      
+      if (profileError && !profileError.message.includes('No rows found')) {
+        console.error('Error checking user profile:', profileError);
+      }
+      
+      if (profile && !profile.org_id) {
+        const { error: updateProfileError } = await adminClient
+          .from('user_profiles')
+          .update({ org_id: invitation.org_id })
+          .eq('id', currentUser.id);
+          
+        if (updateProfileError) {
+          console.error('Error updating user profile:', updateProfileError);
+        }
+      }
+
+      // 3. Mark the invitation as accepted
+      const { error: updateError } = await adminClient
+        .from('organization_invitations')
+        .update({ 
+          status: 'accepted', 
+          accepted_at: new Date().toISOString() 
         })
         .eq('id', invitation.id);
         
+      if (updateError) {
+        console.error('Error updating invitation status:', updateError);
+        // Not critical as the user is already added to the organization
+      }
+
+      console.log('Successfully added user to organization');
+      
+      // Return success
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'You are already a member of this organization',
+          message: `Welcome to ${invitation.organization?.name || 'your new organization'}!`,
           data: {
             organization: invitation.organization,
             role: invitation.role
@@ -188,83 +269,17 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
-    }
-
-    console.log('Adding user to organization with role:', invitation.role);
-    
-    // Begin a transaction to add the user to the organization
-    // 1. Add the user to user_roles
-    const { error: roleError } = await adminClient
-      .from('user_roles')
-      .insert({
-        user_id: currentUser.id,
-        org_id: invitation.org_id,
-        role: invitation.role,
-        assigned_by: invitation.created_by
-      });
-
-    if (roleError) {
-      console.error('Error assigning role:', roleError);
+    } catch (tokenError: any) {
+      console.error('Error verifying auth token:', tokenError);
       return new Response(
         JSON.stringify({ 
-          success: false,
-          error: `Failed to assign role: ${roleError.message}` 
+          success: false, 
+          error: 'Error verifying authentication token', 
+          details: tokenError.message 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
-
-    // 2. Update user_profiles if they don't have an org_id set
-    const { data: profile, error: profileError } = await adminClient
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', currentUser.id)
-      .single();
-    
-    if (profileError && !profileError.message.includes('No rows found')) {
-      console.error('Error checking user profile:', profileError);
-    }
-    
-    if (profile && !profile.org_id) {
-      const { error: updateProfileError } = await adminClient
-        .from('user_profiles')
-        .update({ org_id: invitation.org_id })
-        .eq('id', currentUser.id);
-        
-      if (updateProfileError) {
-        console.error('Error updating user profile:', updateProfileError);
-      }
-    }
-
-    // 3. Mark the invitation as accepted
-    const { error: updateError } = await adminClient
-      .from('organization_invitations')
-      .update({ 
-        status: 'accepted', 
-        accepted_at: new Date().toISOString() 
-      })
-      .eq('id', invitation.id);
-      
-    if (updateError) {
-      console.error('Error updating invitation status:', updateError);
-      // Not critical as the user is already added to the organization
-    }
-
-    console.log('Successfully added user to organization');
-    
-    // Return success
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Welcome to ${invitation.organization?.name || 'your new organization'}!`,
-        data: {
-          organization: invitation.organization,
-          role: invitation.role
-        }
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
-
   } catch (error: any) {
     console.error('Error in accept_organization_invitation:', error);
     return new Response(

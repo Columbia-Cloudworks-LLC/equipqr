@@ -20,7 +20,7 @@ const InvitationPage: React.FC = () => {
   const navigate = useNavigate();
   const { refreshNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, checkSession } = useAuth();
   
   const { isValidating, isValid, error, invitation, isAuthLoading } = useInvitationValidation(token || '');
   const { acceptInvitation, isAccepting, acceptError } = useInvitationAcceptance();
@@ -28,26 +28,45 @@ const InvitationPage: React.FC = () => {
   const [acceptedSuccessfully, setAcceptedSuccessfully] = useState(false);
   const [waitingForAuth, setWaitingForAuth] = useState(false);
   const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0);
+  const [authVerified, setAuthVerified] = useState(false);
 
-  // Force a session refresh to ensure we have the latest auth state
+  // Improved session refresh function with specific error handling
   const refreshAuthSession = useCallback(async () => {
     try {
       console.log("Forcing auth session refresh");
+      
+      // First, check if we have a valid session
+      const isValid = await checkSession();
+      if (!isValid) {
+        console.error("No valid session found, redirecting to login");
+        navigate("/auth", { 
+          state: { returnTo: `/invitation/${token}${searchParams.toString() ? '?' + searchParams.toString() : ''}` }
+        });
+        return false;
+      }
+      
+      // Then refresh to get a new token
       const { data, error } = await supabase.auth.refreshSession();
       if (error) {
         console.error("Error refreshing session:", error);
+        toast.error("Authentication error", {
+          description: "Could not refresh your session. Please try logging out and in again."
+        });
         return false;
       }
+      
       if (data.session) {
         console.log("Session refreshed successfully, token:", data.session.access_token.substring(0, 10) + '...');
+        setAuthVerified(true);
         return true;
       }
+      
       return false;
     } catch (err) {
       console.error("Error in refreshAuthSession:", err);
       return false;
     }
-  }, []);
+  }, [checkSession, navigate, token, searchParams]);
 
   useEffect(() => {
     console.log(`Invitation page loaded for token: ${token?.substring(0, 8)}... (Type: ${invitationType})`);
@@ -71,9 +90,12 @@ const InvitationPage: React.FC = () => {
       setWaitingForAuth(false);
       // Force a session refresh when the user becomes authenticated
       refreshAuthSession();
+    } else if (user && !authVerified && !authLoading) {
+      // If user is logged in but we haven't verified the auth yet
+      refreshAuthSession();
     }
   }, [token, invitationType, isValidating, isValid, error, isAuthLoading, 
-      isAccepting, acceptError, invitation, user, authLoading, waitingForAuth, refreshAuthSession]);
+      isAccepting, acceptError, invitation, user, authLoading, waitingForAuth, refreshAuthSession, authVerified]);
 
   // Check session validity periodically with exponential backoff when waiting for auth
   useEffect(() => {
@@ -88,6 +110,7 @@ const InvitationPage: React.FC = () => {
         if (data.session) {
           console.log('Session detected - can proceed with invitation');
           setWaitingForAuth(false);
+          setAuthVerified(true);
         }
       }, delay);
       
@@ -160,7 +183,11 @@ const InvitationPage: React.FC = () => {
 
     try {
       // Force a session refresh before accepting the invitation
-      await refreshAuthSession();
+      const refreshSuccessful = await refreshAuthSession();
+      
+      if (!refreshSuccessful) {
+        throw new Error("Could not refresh your authentication session. Please try logging out and in again.");
+      }
       
       console.log(`Accepting invitation: ${token?.substring(0, 8)}... (Type: ${invitationType})`);
       console.log(`Current user: ${user?.email}, Invitation for: ${invitation.email}`);
@@ -205,7 +232,7 @@ const InvitationPage: React.FC = () => {
         attemptRefresh();
       } else {
         console.error("Invitation acceptance failed:", result);
-        setProcessingError("Failed to accept invitation. Please try again.");
+        setProcessingError(result.error || "Failed to accept invitation. Please try again.");
       }
     } catch (error: any) {
       console.error('Error in handleAcceptInvitation:', error);

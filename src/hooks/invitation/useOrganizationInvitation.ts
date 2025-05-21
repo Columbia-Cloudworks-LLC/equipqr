@@ -35,26 +35,24 @@ export function useOrganizationInvitation() {
 
       console.log('Accepting organization invitation with token:', token.substring(0, 8) + '...');
       
-      // Get the current session for auth token
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session?.access_token) {
+      // Force refresh the session to ensure we have the most up-to-date token
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        throw new Error('Authentication error. Please try logging out and in again.');
+      } 
+      
+      if (!refreshData?.session?.access_token) {
+        console.error('No access token after refresh');
         throw new Error('Authentication required. Please log in again.');
       }
       
-      // Force refresh the session to ensure we have the most up-to-date token
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.error('Error refreshing session:', refreshError);
-        // Continue with current token if refresh failed
-      } else if (refreshData?.session) {
-        console.log('Session refreshed successfully');
-      }
+      // The session refresh was successful
+      console.log('Session refreshed successfully');
+      console.log(`Using auth token: ${refreshData.session.access_token.substring(0, 10)}...`);
       
-      // Log the auth token being used (first 10 chars only for security)
-      const accessToken = refreshData?.session?.access_token || sessionData.session.access_token;
-      console.log(`Using auth token: ${accessToken.substring(0, 10)}...`);
-      
-      // Explicitly use the session token with the edge function
+      // Use the fresh access token with the edge function
       const data = await invokeEdgeFunctionWithRetry<InvitationResponse>('accept_organization_invitation', 
         { token }, 
         {
@@ -63,7 +61,7 @@ export function useOrganizationInvitation() {
           onRetry: (attempt) => {
             console.log(`Retrying invitation acceptance (attempt ${attempt})`);
           },
-          authToken: accessToken // Explicitly pass the token
+          authToken: refreshData.session.access_token // Use the fresh token
         }
       );
 
@@ -86,7 +84,15 @@ export function useOrganizationInvitation() {
       const errorMsg = error.message || 'Failed to accept organization invitation';
       console.error('Error in acceptInvitation:', error);
       setError(errorMsg);
-      return { success: false, error: errorMsg };
+      
+      // Return a more detailed error object for better debugging
+      return { 
+        success: false, 
+        error: errorMsg,
+        details: error.toString(),
+        name: error.name,
+        status: error.status
+      };
     } finally {
       setIsProcessing(false);
     }
