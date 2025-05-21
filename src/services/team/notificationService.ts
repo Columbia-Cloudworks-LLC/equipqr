@@ -9,7 +9,8 @@ import { retry } from "@/utils/edgeFunctions/retry";
 export { 
   hasActiveNotifications,
   dismissNotification,
-  clearLocalDismissedNotifications
+  clearLocalDismissedNotifications,
+  getActiveInvitations
 } from "./notification/notificationHelpers";
 
 // Re-export the invitation query functions

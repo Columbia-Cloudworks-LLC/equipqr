@@ -3,36 +3,44 @@ import { supabase } from '@/integrations/supabase/client';
 
 export async function resendInvite(invitationId: string): Promise<void> {
   try {
-    // Check if the invitation exists
-    const { data: invitation, error: inviteError } = await supabase
-      .from('team_invitations')
-      .select('id, email, team_id')
-      .eq('id', invitationId)
-      .eq('status', 'pending')
-      .single();
-
-    if (inviteError || !invitation) {
-      throw new Error('Invitation not found or already processed');
-    }
-
-    // Get the user's session
+    // Get user session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
       throw new Error('Authentication required');
     }
-
-    // Check team access
-    const { data: access, error: accessError } = await supabase
-      .rpc('check_team_access_detailed', {
-        user_id: sessionData.session.user.id,
-        team_id: invitation.team_id
-      });
-
-    if (accessError || !access || !access.has_access) {
-      throw new Error('You do not have permission to resend this invitation');
+    
+    // Get invitation details
+    const { data: invitation, error: inviteError } = await supabase
+      .from('team_invitations')
+      .select('id, team_id, email, status')
+      .eq('id', invitationId)
+      .single();
+      
+    if (inviteError) {
+      throw new Error(`Failed to get invitation: ${inviteError.message}`);
     }
-
-    // Update the expiration date to extend it
+    
+    if (!invitation) {
+      throw new Error('Invitation not found');
+    }
+    
+    if (invitation.status !== 'pending') {
+      throw new Error(`Cannot resend invitation with status '${invitation.status}'`);
+    }
+    
+    // Check if user can modify this team
+    const { data: permissionData } = await supabase.functions.invoke('check_team_role_permission', {
+      body: { 
+        team_id: invitation.team_id, 
+        user_id: sessionData.session.user.id
+      }
+    });
+    
+    if (!permissionData?.can_modify_members) {
+      throw new Error('You do not have permission to resend invitations');
+    }
+    
+    // Update the invitation expiry
     const { error: updateError } = await supabase
       .from('team_invitations')
       .update({
@@ -40,25 +48,24 @@ export async function resendInvite(invitationId: string): Promise<void> {
         updated_at: new Date().toISOString()
       })
       .eq('id', invitationId);
-
+      
     if (updateError) {
       throw new Error(`Failed to update invitation: ${updateError.message}`);
     }
-
-    // Trigger email sending via edge function
+    
+    // Resend the email by calling the edge function
     const { error: emailError } = await supabase.functions.invoke('send_invitation_email', {
       body: {
         invitation_id: invitationId,
         type: 'team'
       }
     });
-
+    
     if (emailError) {
-      console.warn('Warning: Failed to send invitation email', emailError);
-      // We don't throw here as the invitation was updated successfully
+      throw new Error(`Failed to resend invitation email: ${emailError.message}`);
     }
   } catch (error: any) {
-    console.error('Error in resendInvite:', error);
+    console.error('Error resending invitation:', error);
     throw error;
   }
 }

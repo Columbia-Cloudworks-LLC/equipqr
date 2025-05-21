@@ -37,9 +37,7 @@ export interface NotificationsContextType {
   error?: string;
   unreadCount?: number;
   lastRefreshed?: Date;
-  fetchInvitations?: () => Promise<boolean>; // Changed to return boolean
-  handleDismiss?: (id: string) => Promise<void>;
-  handleDismissAll?: () => Promise<void>;
+  fetchInvitations?: () => Promise<boolean>;
   refreshNotifications: () => Promise<boolean>;
   dismissInvitation: (id: string) => Promise<void>;
   resetDismissedNotifications: () => void;

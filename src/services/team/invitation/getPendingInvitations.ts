@@ -1,44 +1,41 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export async function getPendingInvitations(teamId: string): Promise<any[]> {
+export async function getPendingInvitations(teamId: string) {
   try {
-    // Get the user's session
+    // Get user session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
       throw new Error('Authentication required');
     }
-
-    // Check team access
-    const { data: access, error: accessError } = await supabase
-      .rpc('check_team_access_detailed', {
-        user_id: sessionData.session.user.id,
-        team_id: teamId
-      });
-
-    if (accessError) {
-      throw new Error(`Access check failed: ${accessError.message}`);
+    
+    // Check if user has access to the team
+    const { data: permissionData } = await supabase.functions.invoke('check_team_role_permission', {
+      body: { 
+        team_id: teamId, 
+        user_id: sessionData.session.user.id
+      }
+    });
+    
+    if (!permissionData?.can_view) {
+      throw new Error('You do not have permission to view this team');
     }
-
-    if (!access || !access.has_access) {
-      throw new Error('You do not have access to this team');
-    }
-
-    // Fetch pending invitations
-    const { data: invitations, error: inviteError } = await supabase
+    
+    // Get pending invitations
+    const { data: invitations, error: invitationsError } = await supabase
       .from('team_invitations')
-      .select('id, email, role, created_at, expires_at, invited_by_email')
+      .select('id, email, role, status, created_at, expires_at')
       .eq('team_id', teamId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
-
-    if (inviteError) {
-      throw new Error(`Failed to fetch invitations: ${inviteError.message}`);
+      
+    if (invitationsError) {
+      throw new Error(`Failed to get invitations: ${invitationsError.message}`);
     }
-
-    return invitations || [];
+    
+    return invitations;
   } catch (error: any) {
-    console.error('Error in getPendingInvitations:', error);
+    console.error('Error getting pending invitations:', error);
     throw error;
   }
 }

@@ -21,11 +21,12 @@ export interface Equipment {
   attributes?: EquipmentAttribute[];
   can_edit?: boolean;
   has_no_team?: boolean;
-  // Added missing properties
+  // Add missing properties
   team_name?: string;
   org_name?: string;
   is_external_org?: boolean;
   description?: string;
+  purchase_date?: string; // Add purchase_date property
 }
 
 export interface EquipmentAttribute {
@@ -67,18 +68,5 @@ export interface EquipmentFormValues {
   description?: string;
 }
 
-export interface CreateEquipmentParams {
-  name: string;
-  org_id: string;
-  model?: string;
-  serial_number?: string;
-  manufacturer?: string;
-  status?: string;
-  location?: string;
-  install_date?: string | null;
-  warranty_expiration?: string | null;
-  notes?: string;
-  team_id?: string | null;
-  attributes?: EquipmentAttribute[];
-  description?: string;
-}
+// Use the same interface for CreateEquipmentParams for consistency
+export interface CreateEquipmentParams extends EquipmentFormValues {}

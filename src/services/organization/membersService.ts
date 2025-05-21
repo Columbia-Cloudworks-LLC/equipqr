@@ -1,113 +1,67 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { OrganizationMember } from './types';
 import { UserRole } from '@/types/supabase-enums';
+import { OrganizationMember } from './types';
 
-/**
- * Fetch members of an organization
- */
+// Fetch organization members
 export async function getOrganizationMembers(orgId: string): Promise<OrganizationMember[]> {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      throw new Error('Authentication required');
+    if (!orgId) {
+      throw new Error('Organization ID is required');
     }
 
-    // Use the database function to get members
-    const { data, error } = await supabase
+    const { data: members, error } = await supabase
       .rpc('get_organization_members', { org_id: orgId });
 
     if (error) {
-      console.error('Error fetching organization members:', error);
-      throw new Error('Failed to fetch organization members');
+      throw new Error(`Failed to fetch organization members: ${error.message}`);
     }
 
-    return data || [];
+    return members || [];
   } catch (error: any) {
     console.error('Error in getOrganizationMembers:', error);
     throw error;
   }
 }
 
-/**
- * Update a member's role in the organization
- */
-export async function updateMemberRole(memberId: string, role: UserRole, orgId: string): Promise<void> {
+// Update member role
+export async function updateMemberRole(
+  memberId: string, 
+  role: UserRole, 
+  orgId: string
+): Promise<void> {
   try {
+    if (!memberId || !role || !orgId) {
+      throw new Error('Member ID, role, and organization ID are required');
+    }
+
+    // Check if current user is owner of the org
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
+    if (!sessionData?.session?.user?.id) {
       throw new Error('Authentication required');
     }
 
     const currentUserId = sessionData.session.user.id;
+    const { data: permissionData } = await supabase.rpc('can_manage_org_members', {
+      p_user_id: currentUserId,
+      p_org_id: orgId
+    });
 
-    // Check if the current user is an owner
-    const { data: isOwner, error: ownerCheckError } = await supabase
-      .rpc('has_role', { 
-        _user_id: currentUserId, 
-        _org_id: orgId, 
-        _role: 'owner' as UserRole 
-      });
-
-    if (ownerCheckError) {
-      throw new Error(`Failed to check permissions: ${ownerCheckError.message}`);
-    }
-
-    if (!isOwner) {
-      throw new Error('Only organization owners can update member roles');
-    }
-
-    // Make sure we aren't changing our own role
-    if (memberId === currentUserId) {
-      throw new Error('You cannot change your own role');
-    }
-
-    // Get the current role count if changing from owner
-    if (role !== 'owner') {
-      const { data: currentRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', memberId)
-        .eq('org_id', orgId)
-        .single();
-
-      if (currentRole?.role === 'owner') {
-        // Count owners
-        const { count, error: countError } = await supabase
-          .from('user_roles')
-          .select('*', { count: 'exact', head: true })
-          .eq('org_id', orgId)
-          .eq('role', 'owner');
-
-        if (countError) {
-          throw new Error('Failed to count organization owners');
-        }
-
-        if (count <= 1) {
-          throw new Error('Cannot change role: Organization must have at least one owner');
-        }
-      }
+    if (!permissionData) {
+      throw new Error('You do not have permission to update roles');
     }
 
     // Update the role
-    const { error: updateError } = await supabase
+    const { error } = await supabase
       .from('user_roles')
-      .update({ 
-        role: role,
-        assigned_by: currentUserId,
-        assigned_at: new Date().toISOString()
-      })
-      .eq('user_id', memberId)
-      .eq('org_id', orgId);
+      .update({ role })
+      .eq('id', memberId);
 
-    if (updateError) {
-      throw new Error(`Failed to update role: ${updateError.message}`);
+    if (error) {
+      throw new Error(`Failed to update role: ${error.message}`);
     }
   } catch (error: any) {
     console.error('Error in updateMemberRole:', error);
     throw error;
   }
 }
-
-// Export the functions
-export { getOrganizationMembers, updateMemberRole };

@@ -1,82 +1,100 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Equipment, CreateEquipmentParams, EquipmentAttribute } from '@/types';
+import { Equipment, EquipmentAttribute, CreateEquipmentParams } from '@/types/equipment';
 
-export interface CreateResponse {
+export async function createEquipment(params: CreateEquipmentParams): Promise<{
   success: boolean;
   equipment?: Equipment;
   error?: string;
-}
-
-/**
- * Create a new equipment record
- */
-export async function createEquipment(params: CreateEquipmentParams): Promise<CreateResponse> {
+}> {
   try {
-    // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw new Error('Authentication required');
+    // Get current user session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    const userId = sessionData.session.user.id;
+    
+    // Check if user has permission to create equipment
+    const { data: permission, error: permissionError } = await supabase.rpc(
+      'check_equipment_create_permission',
+      { 
+        p_user_id: userId, 
+        p_team_id: params.team_id || null
+      }
+    );
+    
+    if (permissionError) {
+      return { 
+        success: false, 
+        error: `Permission check failed: ${permissionError.message}` 
+      };
     }
     
-    // Prepare equipment data, ensuring correct types for fields
+    if (!permission?.has_permission) {
+      return { 
+        success: false, 
+        error: `You don't have permission to create equipment: ${permission?.reason || 'unknown reason'}` 
+      };
+    }
+
+    // Prepare equipment data
     const equipmentData = {
       name: params.name,
       org_id: params.org_id,
+      team_id: params.team_id || null,
+      status: params.status || 'active',
+      location: params.location || null,
+      manufacturer: params.manufacturer || null,
       model: params.model || null,
       serial_number: params.serial_number || null,
-      manufacturer: params.manufacturer || null,
-      status: params.status || 'active', 
-      location: params.location || null,
+      notes: params.notes || null,
       install_date: params.install_date || null,
       warranty_expiration: params.warranty_expiration || null,
-      notes: params.notes || null,
-      team_id: params.team_id === 'none' ? null : params.team_id,
-      created_by: session.user.id
+      created_by: userId
     };
-    
+
     // Insert equipment
-    const { data: equipment, error } = await supabase
+    const { data: equipmentResult, error: equipmentError } = await supabase
       .from('equipment')
       .insert(equipmentData)
       .select()
       .single();
-      
-    if (error) {
-      console.error('Error creating equipment:', error);
+
+    if (equipmentError) {
       return { 
         success: false, 
-        error: `Failed to create equipment: ${error.message}` 
+        error: `Failed to create equipment: ${equipmentError.message}` 
       };
     }
 
     // Insert attributes if any
     if (params.attributes && params.attributes.length > 0) {
       const attributesWithEquipmentId = params.attributes.map(attr => ({
-        equipment_id: equipment.id,
+        equipment_id: equipmentResult.id,
         key: attr.key,
-        value: attr.value || ''
+        value: attr.value
       }));
 
       const { error: attrError } = await supabase
         .from('equipment_attributes')
         .insert(attributesWithEquipmentId);
-        
+
       if (attrError) {
-        console.warn('Error saving attributes:', attrError);
-        // Continue anyway since the main equipment was created
+        console.error('Failed to add equipment attributes:', attrError);
       }
     }
 
     return {
       success: true,
-      equipment
+      equipment: equipmentResult
     };
   } catch (error: any) {
-    console.error('Error in createEquipment:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Failed to create equipment' 
+    console.error('Error creating equipment:', error);
+    return {
+      success: false,
+      error: error.message || 'An unexpected error occurred'
     };
   }
 }
