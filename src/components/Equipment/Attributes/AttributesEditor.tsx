@@ -48,8 +48,10 @@ export function AttributesEditor({
     const isDuplicate = attributes.some(attr => attr.key.toLowerCase() === key.toLowerCase());
     if (isDuplicate) return;
     
+    // Create a new attribute with a temporary ID that will be replaced when saving
     const newAttribute: EquipmentAttribute = {
-      equipment_id: '', // This will be set when saving the equipment
+      id: `temp-${Date.now()}`, // Temporary ID until saved to the database
+      equipment_id: equipmentId || '', 
       key: key,
       value: value
     };
@@ -76,7 +78,7 @@ export function AttributesEditor({
         
         {attributes.map((attr, index) => (
           <AttributeItem
-            key={index}
+            key={attr.id || index}
             attribute={attr}
             index={index}
             onUpdate={handleUpdateAttribute}

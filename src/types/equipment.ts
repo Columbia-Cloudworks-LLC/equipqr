@@ -21,6 +21,11 @@ export interface Equipment {
   attributes?: EquipmentAttribute[];
   can_edit?: boolean;
   has_no_team?: boolean;
+  // Added missing properties
+  team_name?: string;
+  org_name?: string;
+  is_external_org?: boolean;
+  description?: string;
 }
 
 export interface EquipmentAttribute {
@@ -75,4 +80,5 @@ export interface CreateEquipmentParams {
   notes?: string;
   team_id?: string | null;
   attributes?: EquipmentAttribute[];
+  description?: string;
 }

@@ -4,12 +4,10 @@
  */
 
 // Export functions for checking access to equipment
-export { checkAccessPermission } from './accessCheck';
-export { checkViewPermission } from './accessCheck';
+export { checkAccessPermission, checkViewPermission, checkEquipmentEditPermission } from './accessCheck';
 
 // Export functions for updating equipment
 export { checkUpdatePermission } from './updatePermissionCheck';
-export { checkEditPermission } from './updatePermissionCheck';
 
 // Export functions for creating equipment
 export { checkCreatePermission } from './createPermissionCheck';

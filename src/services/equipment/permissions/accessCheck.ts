@@ -22,5 +22,26 @@ export async function checkAccessPermission(equipmentId: string): Promise<boolea
   }
 }
 
+/**
+ * Check if the current user has permission to edit a specific equipment
+ */
+export async function checkEquipmentEditPermission(userId: string, equipmentId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.functions.invoke('check_equipment_edit_permission', {
+      body: { user_id: userId, equipment_id: equipmentId }
+    });
+
+    if (error) {
+      console.error('Error checking equipment edit permission:', error);
+      return false;
+    }
+
+    return data?.has_permission === true;
+  } catch (error) {
+    console.error('Failed to check equipment edit permission:', error);
+    return false;
+  }
+}
+
 // Alias for checkAccessPermission for better semantic naming
 export const checkViewPermission = checkAccessPermission;

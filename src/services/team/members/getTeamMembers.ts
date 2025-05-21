@@ -7,31 +7,30 @@ export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
     if (!teamId) {
       throw new Error('Team ID is required');
     }
-    
-    // First check if the team exists
-    const { data: team, error: teamError } = await supabase
+
+    // Check if team exists
+    const { data: teamData, error: teamError } = await supabase
       .from('team')
       .select('id, name')
       .eq('id', teamId)
       .single();
-    
-    if (teamError) {
-      if (teamError.code === 'PGRST116') {
-        throw { message: 'Team not found or has been deleted', code: 'TEAM_NOT_FOUND' };
+
+    if (teamError || !teamData) {
+      if (teamError?.code === 'PGRST116') {
+        throw { code: 'TEAM_NOT_FOUND', message: 'Team not found' };
       }
-      throw new Error(`Failed to check team: ${teamError.message}`);
+      throw new Error(teamError?.message || 'Team not found');
     }
-    
-    // Fetch team members using edge function for better performance and security
-    const { data: members, error } = await supabase
-      .functions.invoke('get_team_members', {
-        body: { team_id: teamId }
-      });
-    
-    if (error) {
-      throw new Error(`Failed to load team members: ${error.message}`);
+
+    // Call RPC function to get team members with roles
+    const { data: members, error: membersError } = await supabase
+      .rpc('get_team_members_with_roles', { _team_id: teamId });
+
+    if (membersError) {
+      console.error('Error fetching team members:', membersError);
+      throw new Error('Failed to load team members');
     }
-    
+
     return members || [];
   } catch (error: any) {
     console.error('Error in getTeamMembers:', error);

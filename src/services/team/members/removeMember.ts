@@ -2,77 +2,78 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export async function removeMember(memberId: string, teamId: string): Promise<void> {
-  if (!memberId || !teamId) {
-    throw new Error('Member ID and team ID are required');
-  }
-  
   try {
-    // Verify the user has permission to remove members from this team
-    const { data: checkResult, error: checkError } = await supabase
-      .functions.invoke('check_team_role_permission', {
-        body: { 
-          team_id: teamId,
-          action: 'remove_member' 
-        }
+    // Get the session user
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error('Authentication required');
+    }
+
+    // Check permissions
+    const { data: validationData, error: validationError } = await supabase
+      .rpc('check_team_access_detailed', { 
+        user_id: sessionData.session.user.id, 
+        team_id: teamId 
       });
-    
-    if (checkError) {
-      throw new Error(`Permission check failed: ${checkError.message}`);
+
+    if (validationError) {
+      throw new Error(`Permission check failed: ${validationError.message}`);
+    }
+
+    if (!validationData || !validationData.has_access) {
+      throw new Error('You do not have access to this team');
     }
     
-    if (!checkResult.can_remove_members) {
-      throw new Error('You do not have permission to remove members from this team');
+    // Only managers can remove members
+    if (validationData.team_role !== 'manager' && !validationData.is_org_owner) {
+      throw new Error('Only team managers or organization owners can remove members');
     }
-    
-    // Get the team member's role for validation
-    const { data: teamRoles, error: roleError } = await supabase
+
+    // Get team member role before removing
+    const { data: roleData, error: roleError } = await supabase
       .from('team_roles')
       .select('role')
       .eq('team_member_id', memberId)
-      .single();
-    
+      .maybeSingle();
+
     if (roleError) {
-      throw new Error(`Failed to get member role: ${roleError.message}`);
+      throw new Error(`Failed to check member role: ${roleError.message}`);
     }
-    
-    // If the member is a manager, check if they're the last one
-    if (teamRoles.role === 'manager') {
-      // Use a direct query instead of an RPC function
-      const { data: managers, error: countError } = await supabase
+
+    // If removing a manager, check that it's not the last one
+    if (roleData?.role === 'manager') {
+      const { count, error: countError } = await supabase
         .from('team_roles')
-        .select('id')
+        .select('*', { count: 'exact', head: true })
         .eq('role', 'manager')
-        .in('team_member_id', (subquery) => 
-          subquery.from('team_member').select('id').eq('team_id', teamId)
-        );
-      
+        .neq('team_member_id', memberId);
+
       if (countError) {
-        throw new Error(`Failed to count managers: ${countError.message}`);
+        throw new Error('Failed to verify team manager count');
       }
       
-      if (managers.length === 1) {
-        throw new Error('Cannot remove the last manager of the team');
+      if (count === 0) {
+        throw new Error('Cannot remove: This is the last manager of the team');
       }
     }
-    
-    // Delete the team_roles entry first (foreign key constraint)
+
+    // Delete team roles first, then team member
     const { error: deleteRoleError } = await supabase
       .from('team_roles')
       .delete()
       .eq('team_member_id', memberId);
-    
+
     if (deleteRoleError) {
-      throw new Error(`Failed to remove member role: ${deleteRoleError.message}`);
+      throw new Error(`Failed to delete team role: ${deleteRoleError.message}`);
     }
-    
-    // Now delete the team member
+
     const { error: deleteMemberError } = await supabase
       .from('team_member')
       .delete()
       .eq('id', memberId);
-    
+
     if (deleteMemberError) {
-      throw new Error(`Failed to remove member: ${deleteMemberError.message}`);
+      throw new Error(`Failed to delete team member: ${deleteMemberError.message}`);
     }
   } catch (error: any) {
     console.error('Error in removeMember:', error);

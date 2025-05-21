@@ -31,4 +31,5 @@ export type DateTimeFormat =
   | 'MM/DD/YYYY h:mm A'  // US format
   | 'DD/MM/YYYY h:mm A'  // European format
   | 'YYYY-MM-DD HH:mm'   // ISO-like format
+  | 'YYYY-MM-DD HH:mm:ss' // Extended ISO format
   | 'ISO';               // Full ISO format

@@ -1,53 +1,42 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export async function getPendingInvitations(teamId: string) {
-  if (!teamId) {
-    throw new Error('Team ID is required');
-  }
-  
+export async function getPendingInvitations(teamId: string): Promise<any[]> {
   try {
-    // Check team exists
-    const { data: team, error: teamError } = await supabase
-      .from('team')
-      .select('id')
-      .eq('id', teamId)
-      .single();
-    
-    if (teamError) {
-      if (teamError.code === 'PGRST116') {
-        throw { message: 'Team not found or has been deleted', code: 'TEAM_NOT_FOUND' };
-      }
-      throw new Error(`Failed to check team: ${teamError.message}`);
+    // Get the user's session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error('Authentication required');
     }
-    
-    // Verify user has access to view team invitations
-    const { data: accessCheck, error: accessError } = await supabase
-      .functions.invoke('validate_team_access', {
-        body: { team_id: teamId }
+
+    // Check team access
+    const { data: access, error: accessError } = await supabase
+      .rpc('check_team_access_detailed', {
+        user_id: sessionData.session.user.id,
+        team_id: teamId
       });
-    
+
     if (accessError) {
-      throw new Error(`Team access check failed: ${accessError.message}`);
+      throw new Error(`Access check failed: ${accessError.message}`);
     }
-    
-    if (!accessCheck.is_member) {
+
+    if (!access || !access.has_access) {
       throw new Error('You do not have access to this team');
     }
-    
-    // Get the invitations
-    const { data, error } = await supabase
+
+    // Fetch pending invitations
+    const { data: invitations, error: inviteError } = await supabase
       .from('team_invitations')
-      .select('id, email, role, status, created_at, created_by, expires_at, updated_at')
+      .select('id, email, role, created_at, expires_at, invited_by_email')
       .eq('team_id', teamId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
-    
-    if (error) {
-      throw new Error(`Failed to get pending invitations: ${error.message}`);
+
+    if (inviteError) {
+      throw new Error(`Failed to fetch invitations: ${inviteError.message}`);
     }
-    
-    return data || [];
+
+    return invitations || [];
   } catch (error: any) {
     console.error('Error in getPendingInvitations:', error);
     throw error;

@@ -1,21 +1,34 @@
 
-// Re-export team related services
-export * from './teamService';
-export * from './invitationService';
-export * from './validation';
-export * from './notification';
+// Re-export functions from team service modules
 
-// Re-export team member related services
-export { 
-  getTeamMembers,
-  changeRole,
-  removeMember 
-} from './members';
+// Core team functionalities
+export * from './creation/createTeam';
+export * from './deleteTeam';
 
-// Re-export invitation related services
-export {
-  inviteMember,
-  resendInvite,
-  getPendingInvitations,
-  cancelInvitation
-} from './invitation';
+// Validation
+export * from './validation/teamAccessValidation';
+
+// Invitation related
+export * from './invitation/acceptInvitation';
+export * from './invitation/cancelInvitation';
+export * from './invitation/createInvitation';
+export * from './invitation/getPendingInvitations';
+export * from './invitation/inviteMember';
+export * from './invitation/resendInvite';
+
+// Member management
+export * from './members/changeRole';
+export * from './members/getTeamMembers';
+export * from './members/removeMember';
+
+// Notifications
+export * from './notification/notificationHelpers';
+export * from './invitation/invitationQueries';
+
+// Export types
+export * from './types';
+
+// Team details
+export * from './getTeamDetails';
+export * from './listTeams';
+export * from './updateTeam';
