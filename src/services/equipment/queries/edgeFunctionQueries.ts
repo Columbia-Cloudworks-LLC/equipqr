@@ -9,12 +9,17 @@ import { cacheEquipmentResults } from "../caching/equipmentCache";
 
 /**
  * Get equipment data from the edge function
+ * @param userId The authenticated user's ID
+ * @param orgId Optional organization ID to filter by
  */
-export async function getEquipmentViaEdgeFunction(userId: string): Promise<Equipment[]> {
+export async function getEquipmentViaEdgeFunction(userId: string, orgId?: string): Promise<Equipment[]> {
   try {
-    console.log('Fetching equipment via edge function for user:', userId);
+    console.log('Fetching equipment via edge function for user:', userId, orgId ? `filtered by orgId: ${orgId}` : '');
     
-    const data = await invokeEdgeFunction('list_user_equipment', { user_id: userId }, 8000);
+    const data = await invokeEdgeFunction('list_user_equipment', { 
+      user_id: userId,
+      org_id: orgId
+    }, 8000);
     
     // FIX: Add better validation to prevent app errors
     if (!data) {
@@ -33,8 +38,9 @@ export async function getEquipmentViaEdgeFunction(userId: string): Promise<Equip
     // Process the data to ensure all properties are set correctly
     const processedData = processEquipmentList(data);
     
-    // Cache the results (with the user ID as a parameter)
-    cacheEquipmentResults(processedData, userId);
+    // Cache the results with appropriate cache key
+    const cacheKey = orgId ? `${userId}_${orgId}` : userId;
+    cacheEquipmentResults(processedData, cacheKey);
     
     return processedData;
   } catch (error) {

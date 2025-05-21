@@ -66,21 +66,27 @@ serve(async (req) => {
     }, 8000); // 8 seconds max execution time
     
     try {
-      const { user_id } = await req.json();
+      const { user_id, org_id } = await req.json();
       
       if (!user_id) {
         return createErrorResponse("Missing required parameter: user_id");
       }
 
-      // Validate UUID format
+      // Validate UUID format for user_id
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(user_id)) {
         console.error(`Invalid UUID format for user_id: ${user_id}`);
         return createErrorResponse("Invalid user ID format");
       }
+      
+      // Validate UUID format for org_id if provided
+      if (org_id && !uuidRegex.test(org_id)) {
+        console.error(`Invalid UUID format for org_id: ${org_id}`);
+        return createErrorResponse("Invalid organization ID format");
+      }
 
       // Get equipment data using the service function
-      const equipmentData = await getUserEquipment(user_id);
+      const equipmentData = await getUserEquipment(user_id, org_id);
       
       return createSuccessResponse(equipmentData);
     } finally {

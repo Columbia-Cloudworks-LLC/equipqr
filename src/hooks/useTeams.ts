@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -11,8 +12,12 @@ interface Team {
   deleted_at?: string | null;
 }
 
+interface TeamWithRole extends Team {
+  org_role?: string;
+}
+
 export function useTeams() {
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [teams, setTeams] = useState<TeamWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const [isUpdatingTeam, setIsUpdatingTeam] = useState(false);
@@ -51,7 +56,8 @@ export function useTeams() {
             org_id: team.org_id,
             organizationId: team.org_id,
             organizationName: team.org_name,
-            deleted_at: team.deleted_at  // Include deleted_at field
+            deleted_at: team.deleted_at,  // Include deleted_at field
+            org_role: team.org_role       // Include organization role
           }));
           
           setTeams(typedTeams);
@@ -78,6 +84,19 @@ export function useTeams() {
         });
       }
       
+      // Fetch org roles for the user
+      const { data: orgRolesData } = await supabase
+        .from('user_roles')
+        .select('role, org_id');
+        
+      // Create a map of org ID to role
+      const orgRolesMap = new Map();
+      if (orgRolesData) {
+        orgRolesData.forEach((role: any) => {
+          orgRolesMap.set(role.org_id, role.role);
+        });
+      }
+      
       // Convert and set the teams
       if (membershipData && Array.isArray(membershipData)) {
         const processedTeams = membershipData
@@ -92,7 +111,8 @@ export function useTeams() {
               org_id: teamData.org_id || '',
               organizationId: teamData.org_id || '',
               organizationName: teamData.org_name || '',
-              deleted_at: deletedStatusMap.get(teamData.id) || null
+              deleted_at: deletedStatusMap.get(teamData.id) || null,
+              org_role: orgRolesMap.get(teamData.org_id) || null
             };
           });
         

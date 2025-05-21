@@ -19,6 +19,7 @@ interface OrganizationSelectorProps {
   placeholder?: string;
   className?: string;
   showRoleBadges?: boolean;
+  filterViewerOrgs?: boolean; // New prop to filter orgs where user is just a viewer
 }
 
 export function OrganizationSelector({
@@ -28,10 +29,16 @@ export function OrganizationSelector({
   disabled = false,
   placeholder = "Select organization",
   className = "w-[200px]",
-  showRoleBadges = true
+  showRoleBadges = true,
+  filterViewerOrgs = false // Default to showing all orgs
 }: OrganizationSelectorProps) {
+  // Filter out organizations where user is just a viewer with no teams if requested
+  const filteredOrgs = filterViewerOrgs 
+    ? organizations.filter(org => org.role !== 'viewer' || org.hasTeams === true)
+    : organizations;
+  
   // Always show the selector if there are organizations, even if just one
-  if (organizations.length === 0) {
+  if (filteredOrgs.length === 0) {
     return null;
   }
 
@@ -45,7 +52,7 @@ export function OrganizationSelector({
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        {organizations.map((org) => (
+        {filteredOrgs.map((org) => (
           <SelectItem key={org.id} value={org.id}>
             <div className="flex items-center">
               <Building className="h-3.5 w-3.5 mr-2 text-muted-foreground" />

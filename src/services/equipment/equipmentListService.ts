@@ -10,10 +10,11 @@ import { bustEquipmentCache, checkEquipmentCache, clearEquipmentCache } from "./
 
 /**
  * Get all equipment items including those from teams the user belongs to
+ * @param orgId Optional organization ID to filter equipment by specific organization
  */
-export async function getEquipment(): Promise<Equipment[]> {
+export async function getEquipment(orgId?: string): Promise<Equipment[]> {
   try {
-    console.log('Fetching all equipment for current user');
+    console.log('Fetching equipment for current user', orgId ? `filtered by orgId: ${orgId}` : '');
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -29,9 +30,12 @@ export async function getEquipment(): Promise<Equipment[]> {
     const userId = sessionData.session.user.id;
     console.log('Authenticated user ID:', userId);
     
+    // Cache key should include org ID if filtering
+    const cacheKey = orgId ? `${userId}_${orgId}` : userId;
+    
     // Check cache first but skip if cache busting is requested
     if (!window.localStorage.getItem('equipment_cache_bust')) {
-      const cachedEquipment = checkEquipmentCache(userId);
+      const cachedEquipment = checkEquipmentCache(cacheKey);
       if (cachedEquipment) {
         console.log(`Using ${cachedEquipment.length} cached equipment items for user ${userId.slice(0, 8)}...`);
         return cachedEquipment;
@@ -43,12 +47,12 @@ export async function getEquipment(): Promise<Equipment[]> {
     
     // Try the edge function first
     try {
-      return await getEquipmentViaEdgeFunction(userId);
+      return await getEquipmentViaEdgeFunction(userId, orgId);
     } catch (edgeFunctionError) {
       console.warn('Edge function failed, falling back to direct query:', edgeFunctionError);
       
       // Fall back to direct query
-      return await getEquipmentDirectQuery(userId);
+      return await getEquipmentDirectQuery(userId, orgId);
     }
   } catch (error) {
     console.error('Error in getEquipment:', error);
@@ -65,7 +69,7 @@ export async function getEquipment(): Promise<Equipment[]> {
       const userId = sessionData?.session?.user?.id;
       
       if (userId) {
-        return await getEquipmentDirectQuery(userId);
+        return await getEquipmentDirectQuery(userId, orgId);
       }
       
       console.warn('Returning empty equipment list due to errors');

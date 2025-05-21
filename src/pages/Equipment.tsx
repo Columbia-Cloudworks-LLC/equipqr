@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, Package, Settings } from 'lucide-react';
+import { AlertCircle, Package } from 'lucide-react';
 import { Equipment } from '@/types';
 import { EquipmentList } from '@/components/Equipment/EquipmentList';
 import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
@@ -13,11 +13,29 @@ import { getEquipment } from '@/services/equipment/equipmentListService';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 const EquipmentPage = () => {
   const [view, setView] = useState<string>('list');
   const { user, isLoading: authLoading, checkSession } = useAuth();
   const navigate = useNavigate();
+  const { organizations, selectedOrganization, selectOrganization } = useOrganization();
+  const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(
+    selectedOrganization?.id
+  );
+  
+  // Update selectedOrgId when selectedOrganization changes
+  useEffect(() => {
+    if (selectedOrganization?.id) {
+      setSelectedOrgId(selectedOrganization.id);
+    }
+  }, [selectedOrganization]);
+
+  // Handle organization change
+  const handleOrganizationChange = (orgId: string) => {
+    setSelectedOrgId(orgId);
+    selectOrganization(orgId);
+  };
   
   // Check authentication on component mount
   useEffect(() => {
@@ -38,8 +56,8 @@ const EquipmentPage = () => {
     error,
     refetch
   } = useQuery({
-    queryKey: ['equipment'],
-    queryFn: getEquipment,
+    queryKey: ['equipment', selectedOrgId],
+    queryFn: () => getEquipment(selectedOrgId),
     enabled: !!user, // Only run the query if the user is authenticated
   });
 
@@ -61,6 +79,9 @@ const EquipmentPage = () => {
       });
     }
   }, [error]);
+
+  // Determine if we should show the organization selector
+  const showOrgSelector = organizations.length > 1;
 
   // If still loading auth, show loading state
   if (authLoading) {
@@ -123,7 +144,14 @@ const EquipmentPage = () => {
           </div>
           
           <TabsContent value="list" className="mt-4">
-            <EquipmentList equipment={equipment} isLoading={isLoading} />
+            <EquipmentList 
+              equipment={equipment} 
+              isLoading={isLoading}
+              organizations={organizations}
+              selectedOrgId={selectedOrgId}
+              onOrganizationChange={handleOrganizationChange}
+              showOrgSelector={showOrgSelector}
+            />
           </TabsContent>
           
           <TabsContent value="grid" className="mt-4">

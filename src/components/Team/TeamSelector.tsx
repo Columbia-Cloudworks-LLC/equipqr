@@ -1,4 +1,5 @@
 
+import { useEffect } from 'react';
 import {
   Select,
   SelectContent,
@@ -120,5 +121,3 @@ export function TeamSelector({
     </Select>
   );
 }
-
-import { useEffect } from 'react';
