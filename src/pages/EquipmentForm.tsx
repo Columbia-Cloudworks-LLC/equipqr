@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Equipment } from '@/types';
+import { Equipment, CreateEquipmentParams } from '@/types';
 import { EquipmentForm as EquipmentFormComponent } from '@/components/Equipment/EquipmentForm';
 import { Layout } from '@/components/Layout/Layout';
 import { toast } from 'sonner';
