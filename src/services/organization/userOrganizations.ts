@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Organization } from './types';
 import { handleOrganizationError } from './errors';
@@ -5,6 +6,7 @@ import { handleOrganizationError } from './errors';
 export interface UserOrganization extends Organization {
   role?: string;
   is_primary?: boolean;
+  hasTeams?: boolean; // Property to track if user has teams in an organization
 }
 
 /**
@@ -53,6 +55,35 @@ export async function getAllUserOrganizations(forceRefresh: boolean = false): Pr
       throw rolesError;
     }
     
+    // Get app_user record
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', userId)
+      .maybeSingle();
+    
+    if (appUserError) {
+      console.error('Error fetching app_user record:', appUserError);
+    }
+
+    let teamMemberships: any[] = [];
+    if (appUser?.id) {
+      // Get team memberships to determine which orgs the user has teams in
+      const { data: teams, error: teamsError } = await supabase
+        .from('team_member')
+        .select(`
+          team:team_id (
+            org_id,
+            deleted_at
+          )
+        `)
+        .eq('user_id', appUser.id);
+      
+      if (!teamsError && teams) {
+        teamMemberships = teams.filter(tm => tm.team && !tm.team.deleted_at);
+      }
+    }
+    
     // Process and deduplicate organizations
     const orgMap = new Map<string, UserOrganization>();
     
@@ -61,6 +92,9 @@ export async function getAllUserOrganizations(forceRefresh: boolean = false): Pr
       if (item.organization) {
         const org = item.organization as Organization;
         const existingOrg = orgMap.get(org.id);
+        
+        // Calculate if user has teams in this org
+        const hasTeamsInOrg = teamMemberships.some(tm => tm.team?.org_id === org.id);
         
         // Take the highest role if the org is already in the map
         if (existingOrg) {
@@ -72,12 +106,18 @@ export async function getAllUserOrganizations(forceRefresh: boolean = false): Pr
           if (newRoleValue > existingRoleValue) {
             existingOrg.role = item.role;
           }
+          
+          // Update hasTeams property if needed
+          if (hasTeamsInOrg) {
+            existingOrg.hasTeams = true;
+          }
         } else {
           // Add new org to map
           orgMap.set(org.id, {
             ...org,
             role: item.role,
-            is_primary: org.id === primaryOrgId
+            is_primary: org.id === primaryOrgId,
+            hasTeams: hasTeamsInOrg
           });
         }
       }

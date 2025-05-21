@@ -50,7 +50,12 @@ export async function getUserEquipment(userId: string, orgId?: string): Promise<
   
   // If org_id is specified, check user's role in that organization
   let userRole = null;
+  
+  // Also check if the user has teams in this organization
+  let hasTeams = false;
+  
   if (orgId) {
+    // Get user's role in the organization
     const { data: roleData, error: roleError } = await adminClient
       .from('user_roles')
       .select('role')
@@ -62,6 +67,24 @@ export async function getUserEquipment(userId: string, orgId?: string): Promise<
       console.error('Error fetching user role:', roleError);
     } else if (roleData) {
       userRole = roleData.role;
+    }
+    
+    // Check if user has any teams in this organization
+    const { data: appUserData } = await adminClient
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', userId)
+      .single();
+      
+    if (appUserData?.id) {
+      const { data: teamMemberships, error: teamError } = await adminClient
+        .from('team_member')
+        .select('team_id, team:team_id (org_id)')
+        .eq('user_id', appUserData.id);
+        
+      if (!teamError && teamMemberships) {
+        hasTeams = teamMemberships.some(tm => tm.team?.org_id === orgId);
+      }
     }
     
     // If user has no role in the requested org, they don't have access

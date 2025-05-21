@@ -47,7 +47,10 @@ export function useDashboardData() {
     refetch: refetchEquipment
   } = useQuery({
     queryKey: ['equipment'],
-    queryFn: getEquipment,
+    // Fix: Use queryFn that properly handles the context parameter
+    queryFn: async () => {
+      return getEquipment();
+    },
     retry: 1,
     staleTime: shouldRefresh ? 0 : 600000, // 10 minutes (was 5 minutes)
   });

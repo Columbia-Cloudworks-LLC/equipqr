@@ -57,7 +57,10 @@ const EquipmentPage = () => {
     refetch
   } = useQuery({
     queryKey: ['equipment', selectedOrgId],
-    queryFn: () => getEquipment(selectedOrgId),
+    // Fix: Use a proper queryFn that handles the context parameter
+    queryFn: async () => {
+      return getEquipment(selectedOrgId);
+    },
     enabled: !!user, // Only run the query if the user is authenticated
   });
 
