@@ -47,16 +47,86 @@ export async function checkAccessPermission(equipmentId: string): Promise<Permis
       throw new Error(`Permission check failed: ${error.message}`);
     }
     
+    // Cast the result to get proper type access
+    const result = data as { has_permission: boolean, reason: string };
+    
     // Process the result
     return {
       authUserId,
       teamId: equipment.team_id,
       orgId: equipment.org_id,
-      hasPermission: data.has_permission === true,
-      reason: data.reason || 'Permission check completed'
+      hasPermission: result.has_permission === true,
+      reason: result.reason || 'Permission check completed'
     };
   } catch (error: any) {
     console.error('Error checking equipment access:', error);
+    return {
+      authUserId: '',
+      teamId: null,
+      orgId: null,
+      hasPermission: false,
+      reason: `Error: ${error.message}`
+    };
+  }
+}
+
+/**
+ * Check if the current user has permission to edit the equipment
+ */
+export async function checkEquipmentEditPermission(equipmentId: string): Promise<PermissionResult> {
+  try {
+    // Get current user session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      throw new Error('User must be logged in to edit equipment');
+    }
+    
+    const authUserId = sessionData.session.user.id;
+    
+    // Fetch the equipment first to check if it exists
+    const { data: equipment, error: equipmentError } = await supabase
+      .from('equipment')
+      .select('id, org_id, team_id')
+      .eq('id', equipmentId)
+      .single();
+      
+    if (equipmentError) {
+      if (equipmentError.code === 'PGRST116') {
+        return {
+          authUserId,
+          teamId: null,
+          orgId: null,
+          hasPermission: false,
+          reason: 'Equipment not found'
+        };
+      }
+      throw new Error(`Error fetching equipment: ${equipmentError.message}`);
+    }
+    
+    // Use RPC function to check permission - using rpc_check_equipment_permission
+    const { data, error } = await supabase.rpc('rpc_check_equipment_permission', {
+      user_id: authUserId,
+      action: 'edit',
+      equipment_id: equipmentId
+    });
+    
+    if (error) {
+      throw new Error(`Permission check failed: ${error.message}`);
+    }
+    
+    // Cast the result to get proper type access
+    const result = data as { has_permission: boolean, reason: string };
+    
+    // Process the result
+    return {
+      authUserId,
+      teamId: equipment.team_id,
+      orgId: equipment.org_id,
+      hasPermission: result.has_permission === true,
+      reason: result.reason || 'Permission check completed'
+    };
+  } catch (error: any) {
+    console.error('Error checking equipment edit permission:', error);
     return {
       authUserId: '',
       teamId: null,
@@ -102,8 +172,11 @@ export async function checkOrgOrTeamAccess(
         throw new Error(`Team permission check failed: ${error.message}`);
       }
       
-      hasAccess = data.has_permission === true;
-      reason = data.reason || 'Team permission check completed';
+      // Cast the result to get proper type access
+      const result = data as { has_permission: boolean, reason: string };
+      
+      hasAccess = result.has_permission === true;
+      reason = result.reason || 'Team permission check completed';
     } else if (orgId) {
       // Check organization access (user belongs to organization)
       const { data: userProfile, error: profileError } = await supabase

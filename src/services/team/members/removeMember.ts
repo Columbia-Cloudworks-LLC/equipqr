@@ -1,74 +1,105 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export async function removeMember(memberId: string, teamId: string): Promise<void> {
+/**
+ * Remove a user from a team
+ */
+export async function removeMember(teamId: string, userId: string): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    if (!memberId || !teamId) {
-      throw new Error('Member ID and team ID are required');
+    if (!teamId || !userId) {
+      return { success: false, error: 'Team ID and user ID are required' };
     }
-    
-    // Get user session
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !sessionData.session) {
-      throw new Error('Authentication required');
+
+    // Get current user session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      return { success: false, error: 'Authentication required' };
     }
-    
-    const currentUserId = sessionData.session.user.id;
-    
-    // Check if current user can remove members
+
+    // Check if user has permission to manage team members
     const { data: permissionData } = await supabase.functions.invoke('check_team_role_permission', {
       body: { 
-        team_id: teamId, 
-        user_id: currentUserId
+        team_id: teamId,
+        user_id: sessionData.session.user.id
       }
     });
-    
-    if (!permissionData?.can_modify_members) {
-      throw new Error('You do not have permission to remove team members');
+
+    if (!permissionData?.hasPermission) {
+      return { success: false, error: 'You do not have permission to manage team members' };
     }
-    
-    // Check if the member is a manager and if they're the last manager
-    const { data: memberRole } = await supabase
+
+    // First get the team member record
+    const { data: teamMember } = await supabase
+      .from('team_member')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('team_id', teamId)
+      .single();
+
+    if (!teamMember) {
+      return { success: false, error: 'User is not a member of this team' };
+    }
+
+    // Check if removal would remove the last manager
+    const { data: roleData } = await supabase
       .from('team_roles')
       .select('role')
-      .eq('team_member_id', memberId)
+      .eq('team_member_id', teamMember.id)
       .single();
-    
-    if (memberRole && memberRole.role === 'manager') {
-      const { count } = await supabase
+
+    if (roleData && roleData.role === 'manager') {
+      // Count managers in the team
+      const { data: managersCountData } = await supabase
         .from('team_roles')
         .select('count', { count: 'exact', head: true })
         .eq('role', 'manager')
-        .eq('team_member_id', function(builder) {
-          return builder.from('team_member').select('id').eq('team_id', teamId);
+        .in('team_member_id', function(builder) {
+          return builder
+            .select('id')
+            .from('team_member')
+            .eq('team_id', teamId);
         });
-        
-      if (count === 1) {
-        throw new Error('Cannot remove the last manager of the team');
+
+      // Parse count correctly
+      const managersCount = managersCountData as unknown as { count: number };
+
+      if (managersCount.count <= 1) {
+        return { 
+          success: false, 
+          error: 'Cannot remove the last manager from a team' 
+        };
       }
     }
-    
-    // First delete the role
-    const { error: roleDeleteError } = await supabase
+
+    // Remove team role first
+    const { error: roleError } = await supabase
       .from('team_roles')
       .delete()
-      .eq('team_member_id', memberId);
-      
-    if (roleDeleteError) {
-      throw new Error(`Failed to remove role: ${roleDeleteError.message}`);
+      .eq('team_member_id', teamMember.id);
+
+    if (roleError) {
+      return { success: false, error: `Failed to remove team role: ${roleError.message}` };
     }
-    
-    // Then delete the membership
-    const { error: memberDeleteError } = await supabase
+
+    // Then remove team membership
+    const { error: memberError } = await supabase
       .from('team_member')
       .delete()
-      .eq('id', memberId);
-      
-    if (memberDeleteError) {
-      throw new Error(`Failed to remove member: ${memberDeleteError.message}`);
+      .eq('id', teamMember.id);
+
+    if (memberError) {
+      return { success: false, error: `Failed to remove team member: ${memberError.message}` };
     }
+
+    return { 
+      success: true, 
+      message: 'Team member removed successfully' 
+    };
   } catch (error: any) {
     console.error('Error removing team member:', error);
-    throw error;
+    return {
+      success: false,
+      error: error.message || 'Failed to remove team member'
+    };
   }
 }

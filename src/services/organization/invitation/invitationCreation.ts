@@ -19,12 +19,15 @@ export async function createOrganizationInvitation(
       throw new Error(`Error checking user: ${checkError.message}`);
     }
     
-    if (existingUser && existingUser.id) {
+    if (existingUser) {
+      // Extract user ID correctly from the response
+      const userId = existingUser?.id;
+      
       // Check if user already has a role in this org
       const { data: existingRole } = await supabase
         .from('user_roles')
         .select('id')
-        .eq('user_id', existingUser.id)
+        .eq('user_id', userId)
         .eq('org_id', organizationId)
         .maybeSingle();
         
@@ -45,13 +48,6 @@ export async function createOrganizationInvitation(
     // Generate token
     const token = generateToken(32);
     
-    // Get current user's email
-    const { data: currentUser } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('id', session.session.user.id)
-      .single();
-    
     // Get current user's email from auth.users through rpc
     const { data: userEmailData } = await supabase.auth.getUser();
     const currentUserEmail = userEmailData?.user?.email || '';
@@ -61,7 +57,7 @@ export async function createOrganizationInvitation(
       email: email.toLowerCase(),
       org_id: organizationId,
       token: token,
-      role: role as "owner" | "manager" | "technician" | "viewer" | "member", // Cast to satisfy type constraint
+      role: role, // TypeScript will handle this correctly now
       created_by: session.session.user.id,
       invited_by_email: currentUserEmail
     };

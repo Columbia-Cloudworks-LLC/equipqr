@@ -1,85 +1,102 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types/supabase-enums';
 
-export async function changeRole(memberId: string, role: UserRole, teamId: string): Promise<void> {
+/**
+ * Change a user's role in a team
+ */
+export async function changeRole(teamId: string, userId: string, role: string): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    if (!memberId || !role || !teamId) {
-      throw new Error('Member ID, role, and team ID are required');
+    if (!teamId || !userId || !role) {
+      return { success: false, error: 'Missing required parameters' };
     }
-    
-    // Get user session
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !sessionData.session) {
-      throw new Error('Authentication required');
+
+    // Get current user session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      return { success: false, error: 'Authentication required' };
     }
-    
-    const currentUserId = sessionData.session.user.id;
-    
-    // Check if current user can assign the role
+
+    // Check if user has permission to change roles in this team
     const { data: permissionData } = await supabase.functions.invoke('check_team_role_permission', {
       body: { 
-        team_id: teamId, 
-        user_id: currentUserId,
-        role: role
+        team_id: teamId,
+        user_id: sessionData.session.user.id
       }
     });
-    
-    if (!permissionData?.can_assign) {
-      throw new Error('You do not have permission to assign this role');
+
+    if (!permissionData?.hasPermission) {
+      return { success: false, error: 'You do not have permission to manage team members' };
     }
-    
-    // For safety, check if this is the last manager
+
+    // First get the team member record to get the team_member_id
+    const { data: teamMember } = await supabase
+      .from('team_member')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('team_id', teamId)
+      .single();
+
+    if (!teamMember) {
+      return { success: false, error: 'User is not a member of this team' };
+    }
+
+    // Check if there would be at least one manager left
     if (role !== 'manager') {
-      const { data: managerCount } = await supabase.from('team_roles')
+      // Get count of existing managers in this team
+      const { data: managersCountData } = await supabase
+        .from('team_roles')
         .select('count', { count: 'exact', head: true })
         .eq('role', 'manager')
-        .eq('team_member_id', function(builder) {
-          return builder.from('team_member').select('id').eq('team_id', teamId);
+        .in('team_member_id', function(builder) {
+          return builder
+            .select('id')
+            .from('team_member')
+            .eq('team_id', teamId);
         });
-      
-      if (managerCount && managerCount.count === 1) {
-        throw new Error("Cannot downgrade the only manager of the team");
+
+      // Parse the count result correctly
+      const managersCount = managersCountData as unknown as { count: number };
+        
+      // Check if user being changed is currently a manager
+      const { data: currentRoleData } = await supabase
+        .from('team_roles')
+        .select('role')
+        .eq('team_member_id', teamMember.id)
+        .single();
+
+      // If there's only one manager and we're changing this manager to another role, block the change
+      if (managersCount.count === 1 && currentRoleData && currentRoleData.role === 'manager') {
+        return { 
+          success: false, 
+          error: 'Cannot change role: team must have at least one manager' 
+        };
       }
     }
-    
-    // Find the team_roles record for this member
-    const { data: roleData, error: roleQueryError } = await supabase
+
+    // Update the user's role
+    const { data: roleData, error: roleError } = await supabase
       .from('team_roles')
-      .select('id')
-      .eq('team_member_id', memberId)
+      .upsert({ 
+        team_member_id: teamMember.id,
+        role: role,
+        assigned_by: sessionData.session.user.id
+      })
+      .select()
       .single();
-    
-    if (roleQueryError && roleQueryError.code !== 'PGRST116') {
-      throw new Error(`Failed to query role: ${roleQueryError.message}`);
+
+    if (roleError) {
+      return { success: false, error: `Failed to update role: ${roleError.message}` };
     }
-    
-    if (roleData) {
-      // Update existing role
-      const { error: updateError } = await supabase
-        .from('team_roles')
-        .update({ role })
-        .eq('id', roleData.id);
-        
-      if (updateError) {
-        throw new Error(`Failed to update role: ${updateError.message}`);
-      }
-    } else {
-      // Create new role
-      const { error: insertError } = await supabase
-        .from('team_roles')
-        .insert({
-          team_member_id: memberId,
-          role,
-          assigned_by: currentUserId
-        });
-        
-      if (insertError) {
-        throw new Error(`Failed to create role: ${insertError.message}`);
-      }
-    }
+
+    return { 
+      success: true, 
+      message: 'Role updated successfully' 
+    };
   } catch (error: any) {
     console.error('Error changing role:', error);
-    throw error;
+    return {
+      success: false,
+      error: error.message || 'Failed to update role'
+    };
   }
 }

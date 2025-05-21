@@ -1,70 +1,87 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
+import { retry } from "@/utils/edgeFunctions/retry";
 
 /**
- * Generate a random token for team invitations
+ * Generate a unique token for team invitations
  */
-export async function generateToken() {
-  try {
-    const buffer = new Uint8Array(32);
-    crypto.getRandomValues(buffer);
-    return Array.from(buffer)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  } catch (error) {
-    console.error('Error generating token:', error);
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+export async function generateToken(): Promise<string> {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  
+  // Generate a random 32-character token
+  for (let i = 0; i < 32; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
   }
+  
+  return token;
 }
 
 /**
  * Send invitation email using edge function
  */
-export async function sendInvitationEmail({
-  recipientEmail,
-  teamName,
-  inviterEmail,
-  inviterName,
-  token,
-  action,
-  role
-}: {
+export interface SendInvitationEmailParams {
   recipientEmail: string;
   teamName: string;
   inviterEmail: string;
-  inviterName?: string;
   token: string;
   action: 'invite' | 'resend';
   role: string;
-}) {
+}
+
+export async function sendInvitationEmail(params: SendInvitationEmailParams): Promise<boolean> {
   try {
-    console.log(`Sending ${action} invitation email to ${recipientEmail} for team ${teamName}`);
-    
-    const { data, error } = await supabase.functions.invoke('send_invitation_email', {
-      body: {
-        recipientEmail,
-        teamName,
-        inviterEmail,
-        inviterName,
-        token,
-        action,
-        role
+    const result = await retry(
+      async () => {
+        return await supabase.functions.invoke('send_invitation_email', {
+          body: {
+            recipient: params.recipientEmail,
+            team_name: params.teamName,
+            inviter: params.inviterEmail,
+            token: params.token,
+            action: params.action,
+            role: params.role
+          }
+        });
+      },
+      {
+        retries: 2,
+        delay: 1000,
       }
-    });
+    );
     
-    if (error) {
-      console.error('Error sending invitation email:', error);
-      throw new Error(`Failed to send invitation: ${error.message}`);
+    if (result.error) {
+      console.error('Error sending invitation email:', result.error);
+      return false;
     }
     
-    console.log('Email sent successfully:', data);
-    return data;
-  } catch (error: any) {
-    console.error('Error in sendInvitationEmail:', error);
-    toast.error('Failed to send invitation email', {
-      description: error.message || 'Please try again or contact support'
-    });
-    return null;
+    return true;
+  } catch (error) {
+    console.error('Failed to send invitation email after retries:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if an invitation token is valid
+ */
+export async function validateInvitationToken(token: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('team_invitations')
+      .select('id')
+      .eq('token', token)
+      .eq('status', 'pending')
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error validating invitation token:', error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error('Error in validateInvitationToken:', error);
+    return false;
   }
 }

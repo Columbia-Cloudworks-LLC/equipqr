@@ -1,10 +1,9 @@
 
-// Re-export permission check functions
-export { checkAccessPermission, checkOrgOrTeamAccess } from './accessCheck';
-export { checkUpdatePermission } from './updatePermissionCheck';
-export { checkCreatePermission } from './createPermissionCheck';
+// Export permission check types
 export * from './types';
 
-// Explicitly import and re-export deletePermissionCheck
-import { checkDeletePermission } from './deletePermissionCheck';
-export { checkDeletePermission };
+// Export permission check functions
+export { checkAccessPermission, checkOrgOrTeamAccess, checkEquipmentEditPermission } from './accessCheck';
+export { checkUpdatePermission } from './updatePermissionCheck';
+export { checkDeletePermission } from './deletePermissionCheck';
+export { checkCreatePermission } from './createPermissionCheck';
