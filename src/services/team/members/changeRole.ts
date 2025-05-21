@@ -1,31 +1,64 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { UserRole } from "@/types/supabase-enums";
+import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/supabase-enums';
 
-/**
- * Change the role of a team member
- */
-export async function changeRole(userId: string, role: UserRole, teamId: string) {
+export async function changeRole(memberId: string, role: UserRole, teamId: string): Promise<void> {
+  if (!memberId || !role || !teamId) {
+    throw new Error('Member ID, role, and team ID are required');
+  }
+  
   try {
-    if (!userId || !role || !teamId) {
-      throw new Error('User ID, role and team ID are required');
+    // Verify the user has permission to change roles in this team
+    const { data: checkResult, error: checkError } = await supabase
+      .functions.invoke('check_team_role_permission', {
+        body: { 
+          team_id: teamId,
+          action: 'change_role' 
+        }
+      });
+    
+    if (checkError) {
+      throw new Error(`Permission check failed: ${checkError.message}`);
     }
     
-    console.log(`Changing role for user ${userId} to ${role} in team ${teamId}`);
+    if (!checkResult.can_change_role) {
+      throw new Error('You do not have permission to change member roles in this team');
+    }
     
-    const { data, error } = await supabase
-      .from('team_member')
-      .update({ role })
-      .match({ user_id: userId, team_id: teamId })
-      .select()
+    // Get the team member's existing role for validation
+    const { data: teamMember, error: memberError } = await supabase
+      .from('team_roles')
+      .select('role')
+      .eq('team_member_id', memberId)
       .single();
-      
-    if (error) {
-      console.error('Error changing role:', error);
-      throw new Error(`Failed to change role: ${error.message}`);
+    
+    if (memberError) {
+      throw new Error(`Failed to get current role: ${memberError.message}`);
     }
     
-    return data;
+    // If the member is the last manager, prevent role change
+    if (teamMember.role === 'manager') {
+      const { data: managerCount, error: countError } = await supabase
+        .rpc('count_team_managers', { _team_id: teamId });
+      
+      if (countError) {
+        throw new Error(`Failed to count managers: ${countError.message}`);
+      }
+      
+      if (managerCount === 1 && role !== 'manager') {
+        throw new Error('Cannot change role: This is the last manager of the team');
+      }
+    }
+    
+    // Update the role
+    const { error: updateError } = await supabase
+      .from('team_roles')
+      .update({ role })
+      .eq('team_member_id', memberId);
+    
+    if (updateError) {
+      throw new Error(`Failed to update role: ${updateError.message}`);
+    }
   } catch (error: any) {
     console.error('Error in changeRole:', error);
     throw error;

@@ -27,3 +27,15 @@ export interface SystemNotification extends NotificationBase {
 }
 
 export type Notification = InvitationNotification | SystemNotification;
+
+// Add the NotificationsContextType
+export interface NotificationsContextType {
+  invitations: BaseInvitation[];
+  isLoading: boolean;
+  hasNewNotifications: boolean;
+  hasError: boolean;
+  refreshNotifications: () => Promise<boolean>;
+  dismissInvitation: (id: string) => Promise<void>;
+  resetDismissedNotifications: () => void;
+  isRefreshPending: boolean;
+}

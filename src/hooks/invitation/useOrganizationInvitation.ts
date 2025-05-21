@@ -50,7 +50,7 @@ export function useOrganizationInvitation() {
       setIsAccepting(true);
       
       // Call without type argument that was causing the error
-      const result = await acceptInvitation(token);
+      const result: any = await acceptInvitation(token);
       
       if (result.success) {
         toast.success('Invitation accepted!', {
@@ -64,7 +64,7 @@ export function useOrganizationInvitation() {
         navigate('/dashboard');
         return result;
       } else {
-        const errorMsg = typeof result.error === 'string' ? result.error : 'Failed to accept invitation';
+        const errorMsg = result.error || 'Failed to accept invitation';
         throw new Error(errorMsg);
       }
     } catch (error: any) {

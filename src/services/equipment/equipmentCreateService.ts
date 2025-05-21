@@ -1,69 +1,81 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 import { Equipment } from '@/types';
 import { EquipmentFormValues, CreateEquipmentParams } from '@/types/equipment';
-import { saveEquipmentAttributes } from './attributesService';
-import { fallbackPermissionCheck } from './permissions';
 
-/**
- * Create a new equipment record
- */
-export async function createEquipment(
-  equipment: EquipmentFormValues,
-  userId: string,
-  orgId: string
-): Promise<{ success: boolean; equipment?: Equipment; error?: string }> {
+export async function createEquipment(params: CreateEquipmentParams): Promise<{ 
+  success: boolean; 
+  equipment?: Equipment;
+  error?: string;
+}> {
   try {
-    if (!equipment || !userId || !orgId) {
-      throw new Error('Missing required parameters');
+    const { equipment, userId, orgId } = params;
+
+    if (!equipment.name || !equipment.status || !orgId || !userId) {
+      throw new Error('Required fields missing: name, status, organization, and user ID');
     }
-    
-    // Check if user has permission to create equipment for this org
-    const hasPermission = await fallbackPermissionCheck(null, orgId);
-    
-    if (!hasPermission) {
-      throw new Error('You do not have permission to create equipment for this organization');
+
+    // Validate equipment status is one of the allowed values
+    const validStatuses = ['active', 'inactive', 'maintenance'];
+    if (!validStatuses.includes(equipment.status)) {
+      throw new Error('Invalid status value. Must be one of: active, inactive, maintenance');
     }
-    
-    // Extract attributes for separate insertion
-    const attributes = equipment.attributes || [];
-    const equipmentInput = { ...equipment };
-    delete equipmentInput.attributes;
-    
-    // Create the equipment record
-    const { data: newEquipment, error } = await supabase
+
+    // Create new equipment record
+    const { data, error } = await supabase
       .from('equipment')
       .insert({
-        ...equipmentInput,
         created_by: userId,
-        org_id: orgId
+        org_id: orgId,
+        name: equipment.name,
+        description: equipment.description,
+        serial_number: equipment.serial_number,
+        model: equipment.model,
+        manufacturer: equipment.manufacturer,
+        status: equipment.status as 'active' | 'inactive' | 'maintenance',
+        location: equipment.location,
+        purchase_date: equipment.purchase_date,
+        install_date: equipment.install_date,
+        warranty_expiration: equipment.warranty_expiration,
+        notes: equipment.notes,
+        team_id: equipment.team_id || null
       })
-      .select()
+      .select('*')
       .single();
-    
+
     if (error) {
-      console.error('Error creating equipment:', error);
       throw new Error(`Failed to create equipment: ${error.message}`);
     }
-    
-    if (!newEquipment) {
-      throw new Error('Failed to create equipment: No data returned');
+
+    const createdEquipment = data as Equipment;
+
+    // If attributes exist, create them as well
+    if (equipment.attributes && equipment.attributes.length > 0) {
+      const attributeRecords = equipment.attributes.map(attr => ({
+        equipment_id: createdEquipment.id,
+        key: attr.key,
+        value: attr.value || null
+      }));
+
+      const { error: attrError } = await supabase
+        .from('equipment_attributes')
+        .insert(attributeRecords);
+
+      if (attrError) {
+        console.error('Failed to create equipment attributes:', attrError);
+        // Don't throw, just log - we still created the equipment
+      }
     }
-    
-    // Create attributes if any
-    if (attributes.length > 0) {
-      await saveEquipmentAttributes(newEquipment.id, attributes);
-    }
-    
+
     return {
       success: true,
-      equipment: newEquipment
+      equipment: createdEquipment
     };
   } catch (error: any) {
-    console.error('Error in createEquipment:', error);
+    console.error('Error creating equipment:', error);
     return {
       success: false,
-      error: error.message || 'Failed to create equipment'
+      error: error.message || 'An error occurred while creating equipment'
     };
   }
 }

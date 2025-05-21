@@ -26,6 +26,9 @@ export interface Equipment {
   is_external_org?: boolean;
   attributes?: EquipmentAttribute[];
   created_by: string;
+  // Adding missing properties
+  can_edit?: boolean;
+  has_no_team?: boolean;
 }
 
 export interface EquipmentAttribute {

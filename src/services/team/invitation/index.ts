@@ -1,9 +1,27 @@
 
 /**
- * Export all team invitation functions
+ * Export all invitation-related functions
  */
 
-export { inviteMember } from './inviteTeamMember';
-export { resendInvite } from './resendInvitation';
-export { getPendingInvitations, getPendingInvitationsForUser, getActiveInvitations } from './invitationQueries';
-export { cancelInvitation } from './invitationActions';
+export { 
+  inviteMember 
+} from './inviteMember';
+
+export {
+  getPendingInvitations
+} from './getPendingInvitations';
+
+export {
+  resendInvite
+} from './resendInvite';
+
+export {
+  cancelInvitation
+} from './cancelInvitation';
+
+// Re-export functions from other files for backward compatibility
+export * from './acceptInvitation';
+export * from './validateInvitation';
+export * from './invitationHelpers';
+export * from './invitationActions';
+export * from './invitationQueries';

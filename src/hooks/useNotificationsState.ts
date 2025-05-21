@@ -8,6 +8,7 @@ export function useNotificationsState() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [isRefreshPending, setIsRefreshPending] = useState(false);
   
   // Load invitations on mount
   useEffect(() => {
@@ -25,9 +26,11 @@ export function useNotificationsState() {
       // Ensure data is of the correct type before setting
       setInvitations(data as Invitation[]);
       setLastRefreshed(new Date());
+      return true;
     } catch (err: any) {
       console.error('Error fetching invitations:', err);
       setError(err.message || 'Failed to fetch invitations');
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -60,12 +63,27 @@ export function useNotificationsState() {
   // Get the count of unread notifications
   const unreadCount = invitations.length;
   
+  // Add the missing properties
+  const hasNewNotifications = invitations.length > 0;
+  const hasError = !!error;
+  
+  // Rename functions to match expected interface
+  const refreshNotifications = fetchInvitations;
+  const dismissInvitation = handleDismiss;
+  const resetDismissedNotifications = handleDismissAll;
+  
   return {
     invitations,
     isLoading,
     error,
     unreadCount,
     lastRefreshed,
+    hasNewNotifications,
+    hasError,
+    refreshNotifications,
+    dismissInvitation,
+    resetDismissedNotifications,
+    isRefreshPending,
     fetchInvitations,
     handleDismiss,
     handleDismissAll

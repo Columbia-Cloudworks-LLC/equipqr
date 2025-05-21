@@ -20,6 +20,8 @@ export interface TeamMember {
   is_current_user?: boolean;
   auth_uid?: string; // Added for TeamMemberRow
   status?: string; // Added for TeamMemberRow
+  // Add any other missing properties
+  display_name?: string;
 }
 
 export interface DashboardStat {
@@ -42,4 +44,7 @@ export interface Invitation {
   team?: any;
   invitationType?: string;
   organization?: any;
+  // Add missing properties
+  org_name?: string;
+  team_name?: string;
 }

@@ -1,8 +1,7 @@
-
 /**
  * Enum for user roles in the application
  */
-export type UserRole = 'viewer' | 'technician' | 'manager' | 'owner' | 'admin';
+export type UserRole = 'owner' | 'manager' | 'technician' | 'viewer' | 'member' | 'admin';
 
 /**
  * Enum for equipment status values
@@ -27,4 +26,8 @@ export type MemberStatus = 'active' | 'inactive' | 'pending';
 /**
  * Enum for datetime format preferences
  */
-export type DateTimeFormat = 'MM/DD/YYYY h:mm A' | 'DD/MM/YYYY h:mm A' | 'YYYY-MM-DD HH:mm';
+export type DateTimeFormat = 
+  | 'MM/DD/YYYY h:mm A'  // US format
+  | 'DD/MM/YYYY h:mm A'  // European format
+  | 'YYYY-MM-DD HH:mm'   // ISO-like format
+  | 'ISO';               // Full ISO format
