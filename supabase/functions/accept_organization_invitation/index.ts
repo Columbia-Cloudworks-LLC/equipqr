@@ -28,6 +28,7 @@ serve(async (req) => {
     
     // Extract authorization header - this contains the user's JWT token
     const authHeader = req.headers.get('Authorization');
+    console.log(`Auth header present: ${!!authHeader}, length: ${authHeader?.length || 0}`);
     
     if (!authHeader) {
       console.error('Missing Authorization header');
@@ -97,26 +98,39 @@ serve(async (req) => {
     console.log(`Processing organization invitation token: ${token.substring(0, 8)}...`);
     
     // Fetch invitation details using admin client to bypass RLS
-    const { data: invitation, error: inviteError } = await adminClient
+    // Check for both 'sent' and 'pending' statuses to handle any inconsistency
+    const { data: invitationData, error: inviteQueryError } = await adminClient
       .from('organization_invitations')
       .select('*, organization:org_id(id, name)')
       .eq('token', token)
-      .eq('status', 'sent')
-      .single();
+      .or('status.eq.sent,status.eq.pending')
+      .maybeSingle();
+      
+    if (inviteQueryError) {
+      console.error('Error querying invitation:', inviteQueryError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to fetch invitation details', 
+          details: inviteQueryError.message 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
     
-    if (inviteError || !invitation) {
-      console.error('Error fetching invitation:', inviteError);
+    if (!invitationData) {
+      console.error('No invitation found with token:', token.substring(0, 8));
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: 'Invalid or expired invitation', 
-          details: inviteError?.message 
+          error: 'Invalid or expired invitation'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
-
-    console.log(`Found invitation for ${invitation.email} to join ${invitation.organization.name}`);
+    
+    const invitation = invitationData;
+    console.log(`Found invitation for ${invitation.email} to join ${invitation.organization?.name || 'unknown organization'}`);
 
     // Validate the invitation is for the current user
     if (currentUser.email?.toLowerCase() !== invitation.email.toLowerCase()) {
@@ -242,7 +256,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Welcome to ${invitation.organization.name}!`,
+        message: `Welcome to ${invitation.organization?.name || 'your new organization'}!`,
         data: {
           organization: invitation.organization,
           role: invitation.role

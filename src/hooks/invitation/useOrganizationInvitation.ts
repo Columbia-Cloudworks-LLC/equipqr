@@ -41,6 +41,19 @@ export function useOrganizationInvitation() {
         throw new Error('Authentication required. Please log in again.');
       }
       
+      // Force refresh the session to ensure we have the most up-to-date token
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        // Continue with current token if refresh failed
+      } else if (refreshData?.session) {
+        console.log('Session refreshed successfully');
+      }
+      
+      // Log the auth token being used (first 10 chars only for security)
+      const accessToken = refreshData?.session?.access_token || sessionData.session.access_token;
+      console.log(`Using auth token: ${accessToken.substring(0, 10)}...`);
+      
       // Explicitly use the session token with the edge function
       const data = await invokeEdgeFunctionWithRetry<InvitationResponse>('accept_organization_invitation', 
         { token }, 
@@ -49,7 +62,8 @@ export function useOrganizationInvitation() {
           retryDelay: 1000,
           onRetry: (attempt) => {
             console.log(`Retrying invitation acceptance (attempt ${attempt})`);
-          }
+          },
+          authToken: accessToken // Explicitly pass the token
         }
       );
 

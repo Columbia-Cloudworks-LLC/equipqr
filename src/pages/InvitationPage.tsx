@@ -39,7 +39,7 @@ const InvitationPage: React.FC = () => {
         return false;
       }
       if (data.session) {
-        console.log("Session refreshed successfully");
+        console.log("Session refreshed successfully, token:", data.session.access_token.substring(0, 10) + '...');
         return true;
       }
       return false;
@@ -170,6 +170,7 @@ const InvitationPage: React.FC = () => {
       if (result && result.success) {
         console.log("Invitation accepted successfully:", result);
         setAcceptedSuccessfully(true);
+        toast.success(result.message || "Invitation accepted successfully!");
         
         // Explicitly refresh data with retry logic
         let refreshAttempts = 0;
@@ -184,6 +185,13 @@ const InvitationPage: React.FC = () => {
               refreshOrganizations()
             ]);
             console.log("Data refreshed successfully after invitation acceptance");
+            
+            // Navigate to the appropriate page based on invitation type
+            if (invitationType === 'organization') {
+              navigate('/organization');
+            } else {
+              navigate('/teams');
+            }
           } catch (error) {
             console.error("Error refreshing data:", error);
             if (refreshAttempts < maxRefreshAttempts) {
