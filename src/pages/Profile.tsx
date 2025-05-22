@@ -1,9 +1,9 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -22,6 +22,15 @@ import {
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout/Layout";
 import { DateTimeFormat } from "@/types/supabase-enums";
+import { useForm, Controller } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface UserProfile {
   id: string;
@@ -38,16 +47,29 @@ export default function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
+  // Initialize React Hook Form
+  const form = useForm({
+    defaultValues: {
+      display_name: "",
+      job_title: "",
+      timezone: "UTC",
+      datetime_format_preference: "MM/DD/YYYY h:mm A" as DateTimeFormat,
+      phone_number: "",
+    },
+  });
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
       
       setIsLoading(true);
       try {
+        console.log("Fetching profile for user:", user.id);
+        
         const { data, error } = await supabase
           .from('user_profiles')
           .select('*')
-          .eq('id', user.id as any)
+          .eq('id', user.id)
           .single();
           
         if (error) {
@@ -57,13 +79,24 @@ export default function Profile() {
         }
         
         if (data) {
-          setUserProfile({
+          const profileData = {
             id: data.id,
             display_name: data.display_name || '',
             job_title: data.job_title || '',
             timezone: data.timezone || 'UTC',
             datetime_format_preference: data.datetime_format_preference || 'MM/DD/YYYY h:mm A',
             phone_number: data.phone_number || '',
+          };
+          
+          setUserProfile(profileData);
+          
+          // Reset form with fetched values
+          form.reset({
+            display_name: profileData.display_name || '',
+            job_title: profileData.job_title || '',
+            timezone: profileData.timezone || 'UTC',
+            datetime_format_preference: profileData.datetime_format_preference || 'MM/DD/YYYY h:mm A',
+            phone_number: profileData.phone_number || '',
           });
         }
       } catch (error) {
@@ -75,13 +108,19 @@ export default function Profile() {
     };
 
     fetchUserProfile();
-  }, [user, supabase]);
+  }, [user, form]);
 
   const handleUpdateProfile = async (values: any) => {
-    if (!user) return;
+    if (!user) {
+      toast.error("You need to be logged in to update your profile");
+      return;
+    }
     
     setIsSaving(true);
     try {
+      console.log("Updating profile for user:", user.id);
+      console.log("With values:", values);
+      
       const updates = {
         display_name: values.display_name,
         job_title: values.job_title,
@@ -93,55 +132,25 @@ export default function Profile() {
 
       const { error } = await supabase
         .from('user_profiles')
-        .update(updates as any)
-        .eq('id', user.id as any);
+        .update(updates)
+        .eq('id', user.id);
 
       if (error) {
+        console.error("Update error:", error);
         throw error;
       }
       
       setUserProfile({
-        ...userProfile as any,
+        ...userProfile as UserProfile,
         ...updates
       });
       
       toast.success('Profile updated successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(error.message || 'Failed to update profile');
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleChange = (field: keyof UserProfile, value: string) => {
-    if (!userProfile) return;
-    
-    // For datetime_format_preference, ensure we only use valid values from the enum
-    if (field === 'datetime_format_preference') {
-      let validFormat: DateTimeFormat;
-      
-      // Validate the format against our enum
-      switch (value) {
-        case 'MM/DD/YYYY h:mm A':
-        case 'DD/MM/YYYY h:mm A':
-        case 'YYYY-MM-DD HH:mm':
-        case 'ISO':
-          validFormat = value as DateTimeFormat;
-          break;
-        default:
-          validFormat = 'MM/DD/YYYY h:mm A'; // Default format
-      }
-      
-      setUserProfile({
-        ...userProfile,
-        datetime_format_preference: validFormat
-      });
-    } else {
-      setUserProfile({
-        ...userProfile,
-        [field]: value
-      });
     }
   };
 
@@ -164,117 +173,149 @@ export default function Profile() {
         <h1 className="text-2xl font-bold mb-6">Profile Settings</h1>
 
         {userProfile && (
-          <form onSubmit={(e) => handleUpdateProfile(e.target)}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>
-                  Update your personal details and preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={user?.email || ""}
-                    disabled
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleUpdateProfile)} className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Personal Information</CardTitle>
+                  <CardDescription>
+                    Update your personal details and preferences
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <Input
+                        type="email"
+                        value={user?.email || ""}
+                        disabled
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Your email address cannot be changed
+                      </p>
+                    </FormItem>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="display_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Display Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Your email address cannot be changed
-                  </p>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="display_name">Display Name</Label>
-                  <Input
-                    id="display_name"
-                    value={userProfile.display_name || ""}
-                    onChange={(e) =>
-                      handleChange("display_name", e.target.value)
-                    }
+                  <FormField
+                    control={form.control}
+                    name="job_title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Job Title</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="job_title">Job Title</Label>
-                  <Input
-                    id="job_title"
-                    value={userProfile.job_title || ""}
-                    onChange={(e) => handleChange("job_title", e.target.value)}
+                  <FormField
+                    control={form.control}
+                    name="phone_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone_number">Phone Number</Label>
-                  <Input
-                    id="phone_number"
-                    value={userProfile.phone_number || ""}
-                    onChange={(e) => handleChange("phone_number", e.target.value)}
+                  <FormField
+                    control={form.control}
+                    name="timezone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Time Zone</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select time zone" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="UTC">UTC</SelectItem>
+                            <SelectItem value="America/New_York">
+                              Eastern Time (ET)
+                            </SelectItem>
+                            <SelectItem value="America/Chicago">
+                              Central Time (CT)
+                            </SelectItem>
+                            <SelectItem value="America/Denver">
+                              Mountain Time (MT)
+                            </SelectItem>
+                            <SelectItem value="America/Los_Angeles">
+                              Pacific Time (PT)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Time Zone</Label>
-                  <Select
-                    value={userProfile.timezone}
-                    onValueChange={(value) => handleChange("timezone", value)}
-                  >
-                    <SelectTrigger id="timezone">
-                      <SelectValue placeholder="Select time zone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="UTC">UTC</SelectItem>
-                      <SelectItem value="America/New_York">
-                        Eastern Time (ET)
-                      </SelectItem>
-                      <SelectItem value="America/Chicago">
-                        Central Time (CT)
-                      </SelectItem>
-                      <SelectItem value="America/Denver">
-                        Mountain Time (MT)
-                      </SelectItem>
-                      <SelectItem value="America/Los_Angeles">
-                        Pacific Time (PT)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="datetime_format">Date/Time Format</Label>
-                  <Select
-                    value={userProfile.datetime_format_preference}
-                    onValueChange={(value) =>
-                      handleChange("datetime_format_preference", value)
-                    }
-                  >
-                    <SelectTrigger id="datetime_format">
-                      <SelectValue placeholder="Select format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MM/DD/YYYY h:mm A">
-                        MM/DD/YYYY h:mm A (US)
-                      </SelectItem>
-                      <SelectItem value="DD/MM/YYYY h:mm A">
-                        DD/MM/YYYY h:mm A (UK/EU)
-                      </SelectItem>
-                      <SelectItem value="YYYY-MM-DD HH:mm:ss">
-                        YYYY-MM-DD HH:mm:ss (24h)
-                      </SelectItem>
-                      <SelectItem value="ISO">ISO 8601</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" disabled={isSaving}>
-                  {isSaving ? "Saving..." : "Save Changes"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </form>
+                  <FormField
+                    control={form.control}
+                    name="datetime_format_preference"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date/Time Format</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select format" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="MM/DD/YYYY h:mm A">
+                              MM/DD/YYYY h:mm A (US)
+                            </SelectItem>
+                            <SelectItem value="DD/MM/YYYY h:mm A">
+                              DD/MM/YYYY h:mm A (UK/EU)
+                            </SelectItem>
+                            <SelectItem value="YYYY-MM-DD HH:mm:ss">
+                              YYYY-MM-DD HH:mm:ss (24h)
+                            </SelectItem>
+                            <SelectItem value="ISO">ISO 8601</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </form>
+          </Form>
         )}
       </div>
     </Layout>
