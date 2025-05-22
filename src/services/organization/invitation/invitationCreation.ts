@@ -12,29 +12,29 @@ export async function createOrganizationInvitation(
 ) {
   try {
     // First check if the user is already in the organization
-    const { data: existingUser, error: checkError } = await supabase
+    const { data: existingUserResult, error: checkError } = await supabase
       .rpc('get_user_by_email_safe', { email_param: email });
       
-    if (checkError && checkError.code !== 'PGRST116') {
-      throw new Error(`Error checking user: ${checkError.message}`);
+    if (checkError) {
+      // Only throw if it's not the "no rows returned" error (PGRST116)
+      if (checkError.code !== 'PGRST116') {
+        throw new Error(`Error checking user: ${checkError.message}`);
+      }
+      console.log("No existing user found with this email, proceeding with invitation");
     }
     
-    if (existingUser) {
-      // Extract user ID correctly from the response - handle both array and single object response
-      let userId: string | undefined;
-      
-      if (Array.isArray(existingUser) && existingUser.length > 0) {
-        // Handle array response - use the first item if it exists
-        userId = existingUser[0]?.id;
-      } else if (existingUser && typeof existingUser === 'object' && existingUser !== null) {
-        // Handle single object response - first cast to unknown then to the expected shape
-        // This is safer than direct casting which might cause runtime issues
-        const userObject = existingUser as unknown as { id: string, email: string };
-        userId = userObject.id;
+    // Handle the response consistently as an array
+    let userId: string | undefined;
+    
+    if (existingUserResult) {
+      // The get_user_by_email_safe function returns a table, which comes as an array
+      if (Array.isArray(existingUserResult) && existingUserResult.length > 0) {
+        userId = existingUserResult[0]?.id;
+        console.log(`Found existing user with ID: ${userId}`);
       }
       
+      // If we found a user, check if they already have a role in this org
       if (userId) {
-        // Check if user already has a role in this org
         const { data: existingRole } = await supabase
           .from('user_roles')
           .select('id')
@@ -108,7 +108,26 @@ export async function createOrganizationInvitation(
     
     if (emailResult.error) {
       console.error('Error sending invitation email:', emailResult.error);
+      // Log detailed error information
+      console.error('Email error details:', {
+        params: {
+          email,
+          organizationName: orgData.name,
+          inviterEmail: currentUserEmail,
+          token: token.substring(0, 5) + '...',
+          role
+        },
+        errorMsg: emailResult.error.message,
+        errorName: emailResult.error.name,
+        errorCode: (emailResult.error as any).code
+      });
+      
       // We don't throw here to still return success if the invitation was created
+      return {
+        success: true,
+        data: data,
+        warning: 'Invitation created but email delivery failed. You may need to resend the invitation.'
+      };
     }
     
     return {
