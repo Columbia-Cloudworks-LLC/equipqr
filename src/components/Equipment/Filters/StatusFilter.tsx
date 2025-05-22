@@ -23,6 +23,8 @@ export function StatusFilter({ value, onChange }: StatusFilterProps) {
         <SelectItem value="active">Active</SelectItem>
         <SelectItem value="inactive">Inactive</SelectItem>
         <SelectItem value="maintenance">Maintenance</SelectItem>
+        <SelectItem value="storage">Storage</SelectItem>
+        <SelectItem value="retired">Retired</SelectItem>
       </SelectContent>
     </Select>
   );

@@ -1381,7 +1381,12 @@ export type Database = {
         | "DD/MM/YYYY h:mm A"
         | "YYYY-MM-DD HH:mm:ss"
         | "ISO"
-      equipment_status: "active" | "inactive" | "maintenance"
+      equipment_status:
+        | "active"
+        | "inactive"
+        | "maintenance"
+        | "storage"
+        | "retired"
       image_status: "processing" | "ready" | "failed"
       user_role: "owner" | "manager" | "technician" | "viewer" | "member"
       work_order_status:
@@ -1512,7 +1517,13 @@ export const Constants = {
         "YYYY-MM-DD HH:mm:ss",
         "ISO",
       ],
-      equipment_status: ["active", "inactive", "maintenance"],
+      equipment_status: [
+        "active",
+        "inactive",
+        "maintenance",
+        "storage",
+        "retired",
+      ],
       image_status: ["processing", "ready", "failed"],
       user_role: ["owner", "manager", "technician", "viewer", "member"],
       work_order_status: [
