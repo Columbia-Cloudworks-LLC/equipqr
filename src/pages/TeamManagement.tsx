@@ -197,9 +197,10 @@ export default function TeamManagement() {
     return Promise.reject("Invalid invite member data format");
   };
   
+  // Fix: Ensure we're passing a UserRole type
   const handleChangeRoleWrapper = async (userId: string, role: string): Promise<any> => {
     if (selectedTeamId) {
-      return handleChangeRole(userId, role);
+      return handleChangeRole(userId, role as UserRole);
     }
     return Promise.reject("No team selected");
   };
