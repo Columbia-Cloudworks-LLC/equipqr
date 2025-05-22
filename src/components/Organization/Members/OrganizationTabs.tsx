@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import MembersList from './MembersList';
+import { OrganizationMembersTable } from './OrganizationMembersTable';
 import OrganizationInvitation from '../OrganizationInvitation';
 import PendingOrganizationInvitations from '../PendingOrganizationInvitations';
 import { OrganizationMember } from '@/services/organization/types';
@@ -36,7 +36,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
       </TabsList>
       
       <TabsContent value="members">
-        <MembersList 
+        <OrganizationMembersTable 
           members={members} 
           isOwner={isOwner} 
           loading={loading} 

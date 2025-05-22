@@ -5,26 +5,34 @@ import { UserRole } from '@/types/supabase-enums';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { updateMemberRole } from '@/services/organization/membersService';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
 
 interface OrganizationMembersTableProps {
   members: OrganizationMember[];
   isOwner: boolean;
   loading: boolean;
-  refreshTrigger: number;
-  setRefreshTrigger: (trigger: number) => void;
+  refreshTrigger?: number;
+  setRefreshTrigger?: (trigger: number) => void;
 }
 
 export function OrganizationMembersTable({
   members, 
   isOwner, 
   loading, 
-  refreshTrigger, 
+  refreshTrigger = 0,
   setRefreshTrigger
 }: OrganizationMembersTableProps) {
-  const [isUpdatingRole, setIsUpdatingRole] = useState<Record<string, boolean>>({});
+  const [updatingRole, setUpdatingRole] = useState<Record<string, boolean>>({});
 
   const handleRoleChange = async (memberId: string, newRole: UserRole) => {
-    setIsUpdatingRole(prev => ({ ...prev, [memberId]: true }));
+    setUpdatingRole(prev => ({ ...prev, [memberId]: true }));
     
     try {
       const success = await updateMemberRole(memberId, newRole);
@@ -33,8 +41,10 @@ export function OrganizationMembersTable({
         toast.success('Role updated', {
           description: 'Member role has been updated successfully'
         });
-        // Trigger a refresh of the members list
-        setRefreshTrigger(refreshTrigger + 1);
+        // Trigger a refresh of the members list if the prop exists
+        if (setRefreshTrigger) {
+          setRefreshTrigger(refreshTrigger + 1);
+        }
       }
     } catch (error: any) {
       console.error('Error updating role:', error);
@@ -42,7 +52,7 @@ export function OrganizationMembersTable({
         description: error.message || 'Failed to update member role'
       });
     } finally {
-      setIsUpdatingRole(prev => ({ ...prev, [memberId]: false }));
+      setUpdatingRole(prev => ({ ...prev, [memberId]: false }));
     }
   };
 
@@ -60,27 +70,27 @@ export function OrganizationMembersTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="text-left py-3 px-4">Name</th>
-            <th className="text-left py-3 px-4">Email</th>
-            <th className="text-left py-3 px-4">Role</th>
-            {isOwner && <th className="text-left py-3 px-4">Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            {isOwner && <TableHead>Actions</TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {members.map(member => (
-            <tr key={member.id} className="border-b last:border-0">
-              <td className="py-3 px-4">{member.name || 'No name'}</td>
-              <td className="py-3 px-4">{member.email}</td>
-              <td className="py-3 px-4 capitalize">{member.role}</td>
+            <TableRow key={member.id}>
+              <TableCell>{member.name || 'No name'}</TableCell>
+              <TableCell>{member.email}</TableCell>
+              <TableCell className="capitalize">{member.role}</TableCell>
               {isOwner && (
-                <td className="py-3 px-4">
+                <TableCell>
                   <Select
                     value={member.role}
                     onValueChange={(value) => handleRoleChange(member.id, value as UserRole)}
-                    disabled={isUpdatingRole[member.id]}
+                    disabled={updatingRole[member.id]}
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue placeholder="Change role" />
@@ -90,12 +100,14 @@ export function OrganizationMembersTable({
                       <SelectItem value="viewer">Viewer</SelectItem>
                     </SelectContent>
                   </Select>
-                </td>
+                </TableCell>
               )}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
+
+export default OrganizationMembersTable;

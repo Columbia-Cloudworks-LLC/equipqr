@@ -1,76 +1,63 @@
 
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
-import { UserRole } from '@/types/supabase-enums';
-import ErrorDisplay from './Members/ErrorDisplay';
-import OrganizationTabs from './Members/OrganizationTabs';
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { OrganizationMembersTable } from './Members/OrganizationMembersTable';
 import { useOrganizationMembers } from './Members/useOrganizationMembers';
-import { InvitationStatusChecker } from './InvitationStatusChecker';
+import { ErrorDisplay } from './Members/ErrorDisplay';
+import { UserRole } from '@/types/supabase-enums';
+import OrganizationTabs from './Members/OrganizationTabs';
 
 interface OrganizationMembersManagementProps {
   organizationId: string;
-  userRole?: UserRole;
+  userRole: UserRole;
 }
 
 const OrganizationMembersManagement: React.FC<OrganizationMembersManagementProps> = ({ 
   organizationId, 
-  userRole = 'viewer' 
+  userRole 
 }) => {
-  const {
-    members,
-    loading,
-    error,
-    refreshTrigger,
-    activeTab,
-    setActiveTab,
-    refreshData,
-    handleInviteSent
-  } = useOrganizationMembers(organizationId);
+  const [activeTab, setActiveTab] = useState('members');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  const { 
+    members, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useOrganizationMembers(organizationId, refreshTrigger);
 
   const isOwner = userRole === 'owner';
-  const isAdmin = isOwner || userRole === 'manager';
 
-  // Show error state if there is an error
+  const handleInviteSent = () => {
+    // Increment the refresh trigger to reload members and invitations
+    setRefreshTrigger(prev => prev + 1);
+    // Switch to invitations tab after sending an invitation
+    setActiveTab('invitations');
+  };
+
+  // If there's an error, show the error display
   if (error) {
-    return <ErrorDisplay error={error} refreshData={refreshData} />;
+    return <ErrorDisplay error={error} refetch={refetch} />;
   }
 
-  // Otherwise show the main content
   return (
-    <>
-      <Card className="w-full">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Organization Members</CardTitle>
-            <Button variant="ghost" size="sm" onClick={refreshData}>
-              <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
-            </Button>
-          </div>
-          <CardDescription>
-            Manage members and send invitations to your organization
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <OrganizationTabs
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            members={members}
-            organizationId={organizationId}
-            isOwner={isOwner}
-            loading={loading}
-            refreshTrigger={refreshTrigger}
-            onInviteSent={handleInviteSent}
-          />
-        </CardContent>
-      </Card>
-      
-      {/* Only show the debug tool for owners and managers */}
-      {isAdmin && (
-        <InvitationStatusChecker orgId={organizationId} />
-      )}
-    </>
+    <Card>
+      <CardHeader>
+        <CardTitle>Organization Members</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <OrganizationTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          members={members}
+          organizationId={organizationId}
+          isOwner={isOwner}
+          loading={isLoading}
+          refreshTrigger={refreshTrigger}
+          onInviteSent={handleInviteSent}
+        />
+      </CardContent>
+    </Card>
   );
 };
 
