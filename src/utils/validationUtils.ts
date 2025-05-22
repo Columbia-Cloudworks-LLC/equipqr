@@ -1,19 +1,17 @@
 
 /**
- * Validates if a string is a valid UUID
+ * Check if the provided string is a valid UUID
  */
-export function isValidUuid(value: string | null | undefined): boolean {
-  if (!value) return false;
-  
+export function isValidUuid(uuid: string): boolean {
+  // Regular expression for UUID validation
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(value);
+  return uuidRegex.test(uuid);
 }
 
 /**
- * Safely parses a value that might be a UUID
- * Returns the value if it's a valid UUID, otherwise returns null
+ * Validate email format
  */
-export function parseUuid(value: string | null | undefined): string | null {
-  if (!value) return null;
-  return isValidUuid(value) ? value : null;
+export function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 }

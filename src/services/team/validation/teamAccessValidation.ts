@@ -20,20 +20,35 @@ export async function validateTeamMembership(teamId: string): Promise<boolean> {
       return false;
     }
     
-    // Check if the user is a member of the team
-    const { data, error } = await supabase
-      .from('team_member')
-      .select('id')
-      .eq('team_id', teamId)
-      .eq('user_id', userId)
-      .maybeSingle();
-      
+    // Use improved edge function to check access
+    const { data, error } = await supabase.functions.invoke('validate_team_access', {
+      body: { 
+        team_id: teamId,
+        user_id: userId 
+      }
+    });
+    
     if (error) {
       console.error('Error validating team membership:', error);
-      return false;
+      
+      // Fallback to simple team membership check
+      const { data: membershipData, error: membershipError } = await supabase
+        .from('team_member')
+        .select('id')
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      if (membershipError) {
+        console.error('Error in fallback membership check:', membershipError);
+        return false;
+      }
+      
+      return !!membershipData;
     }
     
-    return !!data;
+    // If the edge function worked, check has_access which includes both direct membership and org-level access
+    return data?.has_access === true;
   } catch (error: any) {
     console.error('Error in validateTeamMembership:', error);
     return false;
@@ -79,7 +94,7 @@ export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDe
       };
     }
     
-    // Use the edge function to get detailed access info
+    // Use the improved edge function with retry logic
     const { data, error } = await supabase.functions.invoke('validate_team_access', {
       body: { 
         team_id: teamId,
@@ -119,12 +134,14 @@ export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDe
       };
     }
     
-    // Add extended properties to satisfy the interface
+    console.log('Team access details from edge function:', data);
+    
+    // Return the extended properties, with more reliable hasAccess flag
     return {
       hasAccess: data.has_access || false,
       role: data.role || null,
-      isMember: data.is_team_member || false,
-      hasOrgAccess: data.has_access || false,
+      isMember: data.is_member || false,
+      hasOrgAccess: data.has_org_access || false,
       orgRole: data.org_role || null,
       accessReason: data.access_reason || null,
       hasCrossOrgAccess: data.has_cross_org_access || false,

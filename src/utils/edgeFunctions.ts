@@ -32,10 +32,10 @@ export async function invokeEdgeFunction(
       setTimeout(() => reject(new Error(`Edge function ${functionName} timed out after ${timeoutMs}ms`)), timeoutMs);
     });
 
-    // Create function invocation promise
-    const functionPromise = supabase.functions.invoke(functionName, {
+    // Create function invocation promise with retry logic
+    const functionPromise = callWithRetry(() => supabase.functions.invoke(functionName, {
       body: params
-    });
+    }), 3, 500);
 
     // Race the promises
     const result = await Promise.race([functionPromise, timeoutPromise]) as {
@@ -48,9 +48,46 @@ export async function invokeEdgeFunction(
       throw new Error(`Edge function error: ${result.error.message || 'Unknown error'}`);
     }
 
-    return result.data;
+    return result;
   } catch (error: any) {
     console.error(`Failed to invoke edge function ${functionName}:`, error);
     throw new Error(`Edge function ${functionName} failed: ${error.message}`);
   }
+}
+
+/**
+ * Helper function to retry a function call with exponential backoff
+ */
+async function callWithRetry<T>(
+  fn: () => Promise<T>, 
+  maxRetries: number = 3, 
+  initialDelay: number = 500
+): Promise<T> {
+  let retries = 0;
+  let delay = initialDelay;
+  
+  while (true) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (retries >= maxRetries) throw error;
+      
+      // Wait for the specified delay
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Increase the delay for the next retry (exponential backoff)
+      delay *= 2;
+      retries++;
+      
+      console.log(`Retrying function call, attempt ${retries} of ${maxRetries}`);
+    }
+  }
+}
+
+/**
+ * Helper to check if a string is a valid UUID
+ */
+export function validateUuid(id: string | null | undefined): boolean {
+  if (!id) return false;
+  return isValidUuid(id);
 }

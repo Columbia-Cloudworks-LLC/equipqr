@@ -88,33 +88,35 @@ export function useTeamMembership(teamId: string | null) {
       
       console.log(`Checking detailed team access for team ${teamId}`);
       
-      // Use the enhanced team access details function with retry logic
+      // Use the enhanced team access details function with improved logic for org roles
       const accessDetails = await getTeamAccessDetails(teamId);
       
       console.log('Team access details result:', accessDetails);
       
-      // Consider both direct team membership and org manager/owner access
-      const hasMemberAccess = accessDetails.hasAccess;
+      // Use the hasAccess flag directly - it now considers both direct membership and org role access
+      const hasAccess = accessDetails.hasAccess;
       
       // Track if user has org-level access and their org role
-      setHasOrgAccess(accessDetails.hasAccess || false);
-      setOrganizationRole(accessDetails.role || null);
+      setHasOrgAccess(accessDetails.hasOrgAccess || false);
+      setOrganizationRole(accessDetails.orgRole || null);
       
-      // Check if user has manager/owner role at the org level
-      const hasOrgManagerAccess = accessDetails.hasAccess && 
-        (accessDetails.role === 'manager' || accessDetails.role === 'owner');
-      
-      // Set member status based on both team membership and org access
-      setIsMember(hasMemberAccess || hasOrgManagerAccess);
+      // Set member status based on direct membership or org access
+      setIsMember(hasAccess);
       
       // Only set access role if it's not null to prevent overriding with null
       if (accessDetails.role !== null) {
         setAccessRole(accessDetails.role);
       }
       
-      // Only show errors if both team and org access are missing
-      if (!hasMemberAccess && !hasOrgManagerAccess) {
-        setError('You are not a member of this team. This may be due to an issue during team creation.');
+      // Set additional context for debugging
+      setAccessReason(accessDetails.accessReason);
+      setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess);
+      setTeamOrgName(accessDetails.orgName);
+      setTeamDetails(accessDetails.team);
+      
+      // Only show errors if there's no access
+      if (!hasAccess) {
+        setError('You are not a member of this team and have no organization-level access. This may be due to an issue during team creation.');
       } else {
         setError(null);
       }
