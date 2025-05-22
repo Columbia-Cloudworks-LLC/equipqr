@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { getEquipmentAttributes } from "./attributesService";
+import { MemoryCache, cacheItem, getCachedItem } from "@/utils/cacheUtils";
 
 interface PermissionResponse {
   has_permission: boolean;
@@ -72,13 +73,13 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       accessResponse = { has_permission: false, reason: 'No response from permission check' };
     } else if (Array.isArray(permData)) {
       // Handle array response (unlikely but possible)
-      accessResponse = permData.length > 0 && typeof permData[0] === 'object' && 'has_permission' in permData[0]
-        ? permData[0] as PermissionResponse
+      accessResponse = permData.length > 0 && typeof permData[0] === 'object' && permData[0] !== null && 'has_permission' in permData[0]
+        ? { has_permission: !!permData[0].has_permission, reason: String(permData[0].reason || '') }
         : { has_permission: false, reason: 'Invalid response format (array)' };
-    } else if (typeof permData === 'object') {
+    } else if (typeof permData === 'object' && permData !== null) {
       // Handle object response (expected format)
       accessResponse = 'has_permission' in permData
-        ? permData as PermissionResponse
+        ? { has_permission: !!permData.has_permission, reason: String(permData.reason || '') }
         : { has_permission: false, reason: 'Invalid response format (object without has_permission)' };
     } else {
       accessResponse = { has_permission: false, reason: 'Unexpected response format: ' + typeof permData };
@@ -138,13 +139,13 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       editResponse = { has_permission: false, reason: 'No response from edit permission check' };
     } else if (Array.isArray(editData)) {
       // Handle array response (unlikely but possible)
-      editResponse = editData.length > 0 && typeof editData[0] === 'object' && 'has_permission' in editData[0]
-        ? editData[0] as PermissionResponse
+      editResponse = editData.length > 0 && typeof editData[0] === 'object' && editData[0] !== null && 'has_permission' in editData[0]
+        ? { has_permission: !!editData[0].has_permission, reason: String(editData[0].reason || '') }
         : { has_permission: false, reason: 'Invalid edit response format (array)' };
-    } else if (typeof editData === 'object') {
+    } else if (typeof editData === 'object' && editData !== null) {
       // Handle object response (expected format)
       editResponse = 'has_permission' in editData
-        ? editData as PermissionResponse
+        ? { has_permission: !!editData.has_permission, reason: String(editData.reason || '') }
         : { has_permission: false, reason: 'Invalid edit response format (object without has_permission)' };
     } else {
       editResponse = { has_permission: false, reason: 'Unexpected edit response format: ' + typeof editData };
