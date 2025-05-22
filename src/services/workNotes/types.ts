@@ -1,35 +1,16 @@
 
+/**
+ * Interface for equipment work notes
+ */
 export interface WorkNote {
   id: string;
   equipment_id: string;
-  created_at: string;
-  updated_at: string | null;
-  deleted_at: string | null;
-  note: string;
+  work_order_id?: string;
   created_by: string;
+  note: string;
+  created_at: string;
   is_public: boolean;
-  hours_worked: number | null;
-  organization_id?: string;
-  organization_name?: string;
-  is_external_org?: boolean;
-  team_name?: string;
-  team_id?: string;
-  created_by_name?: string;
-  created_by_email?: string;
-  creator?: {
-    id: string;
-    display_name: string;
-    email?: string;
-    org?: {
-      id: string;
-      name: string;
-    }
-  };
-}
-
-export interface WorkNotePermissions {
-  canCreate: boolean;
-  canManage: boolean;
-  canDelete: boolean;
-  reason?: string;
+  hours_worked?: number;
+  author?: string;
+  content?: string;
 }

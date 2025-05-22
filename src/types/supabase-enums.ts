@@ -6,6 +6,7 @@ export type UserRole = 'owner' | 'manager' | 'technician' | 'viewer' | 'member' 
 
 /**
  * Enum for equipment status values
+ * Note: While the UI shows all five options, the database currently only accepts 'active', 'inactive', 'maintenance'
  */
 export type EquipmentStatus = 'active' | 'inactive' | 'maintenance' | 'storage' | 'retired';
 

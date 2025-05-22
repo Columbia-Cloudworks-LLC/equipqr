@@ -1,4 +1,5 @@
-import { Equipment, WorkNote } from '@/types';
+import { Equipment } from '@/types';
+import { WorkNote } from '@/services/workNotes/types';
 
 export const mockEquipment: Equipment[] = [
   {
