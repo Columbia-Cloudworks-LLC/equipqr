@@ -19,9 +19,10 @@ export function formatEquipmentResponse(equipment: any[]): any[] {
     const isExternalOrg = !userOrgIds.includes(item.org_id);
     const hasNoTeam = item.team_id === null;
     
-    // Ensure org_name always has a value, even when it's missing
+    // Enhanced organization name resolution with multiple fallbacks
     const orgName = item.org_name || 
-                   (item.org?.name ? item.org.name : 'Unknown Organization');
+                   (item.org?.name ? item.org.name : 
+                    (item.organization?.name ? item.organization.name : 'Unknown Organization'));
     
     // Log organization name resolution for debugging
     console.log(`Equipment "${item.name}": org_name=${orgName}, source=${item.access_via || 'unknown'}`);

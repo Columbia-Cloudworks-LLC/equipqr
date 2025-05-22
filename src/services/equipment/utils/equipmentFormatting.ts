@@ -21,9 +21,10 @@ export function processEquipmentList(data: any[]): Equipment[] {
     // Determine if the equipment has no team explicitly
     const hasNoTeam = item.team_id === null;
     
-    // Ensure org_name always has a value
+    // Enhanced organization name resolution with multiple fallbacks
     const orgName = item.org_name || 
-                   (item.org?.name ? item.org.name : 'Unknown Organization');
+                   (item.org?.name ? item.org.name : 
+                    (item.organization?.name ? item.organization.name : 'Unknown Organization'));
     
     const processed = {
       ...item,

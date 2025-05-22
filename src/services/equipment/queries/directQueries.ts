@@ -51,6 +51,16 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
     
     let allEquipment: Equipment[] = [];
     if (targetOrgId) {
+      // Get organization name first
+      const { data: orgData, error: orgError } = await supabase
+        .from('organization')
+        .select('name')
+        .eq('id', targetOrgId)
+        .single();
+      
+      const orgName = orgData?.name || 'Unknown Organization';
+      
+      // Then get the equipment with the org name
       const { data: orgEquipment, error: orgEquipmentError } = await supabase
         .from('equipment')
         .select('*')
@@ -60,7 +70,10 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
       if (orgEquipmentError) {
         console.error('Error getting organization equipment:', orgEquipmentError);
       } else if (orgEquipment) {
-        allEquipment = [...orgEquipment.map(item => ({ ...item }))];
+        allEquipment = [...orgEquipment.map(item => ({ 
+          ...item,
+          org_name: orgName 
+        }))];
       }
     }
     
@@ -82,7 +95,7 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
         if (orgId) {
           const { data: teamsInOrg, error: teamsInOrgError } = await supabase
             .from('team')
-            .select('id')
+            .select('id, name, org_id, organization:org_id(name)')
             .in('id', teamIds)
             .eq('org_id', orgId);
           
@@ -101,31 +114,56 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
             if (teamEquipmentError) {
               console.error('Error getting team equipment:', teamEquipmentError);
             } else if (teamEquipment) {
-              // Add to equipment list, avoiding duplicates
+              // Add to equipment list, avoiding duplicates and ensuring org name
               teamEquipment.forEach(item => {
                 if (!allEquipment.some(eq => eq.id === item.id)) {
-                  allEquipment.push({ ...item });
+                  const team = teamsInOrg.find(t => t.id === item.team_id);
+                  const orgName = team?.organization?.name || 'Unknown Organization';
+                  
+                  allEquipment.push({ 
+                    ...item,
+                    team_name: team?.name,
+                    org_name: orgName
+                  });
                 }
               });
             }
           }
         } else {
-          // No org filter, get equipment from all user's teams
-          const { data: teamEquipment, error: teamEquipmentError } = await supabase
-            .from('equipment')
-            .select('*')
-            .in('team_id', teamIds)
-            .is('deleted_at', null);
+          // No org filter, get equipment from all user's teams with org details
+          // First get teams with their org details
+          const { data: teamsWithOrgs, error: teamsWithOrgsError } = await supabase
+            .from('team')
+            .select('id, name, org_id, organization:org_id(name)')
+            .in('id', teamIds);
           
-          if (teamEquipmentError) {
-            console.error('Error getting team equipment:', teamEquipmentError);
-          } else if (teamEquipment) {
-            // Add to equipment list, avoiding duplicates
-            teamEquipment.forEach(item => {
-              if (!allEquipment.some(eq => eq.id === item.id)) {
-                allEquipment.push({ ...item });
-              }
-            });
+          if (teamsWithOrgsError) {
+            console.error('Error getting teams with orgs:', teamsWithOrgsError);
+          } else if (teamsWithOrgs) {
+            // Now get equipment for these teams
+            const { data: teamEquipment, error: teamEquipmentError } = await supabase
+              .from('equipment')
+              .select('*')
+              .in('team_id', teamIds)
+              .is('deleted_at', null);
+            
+            if (teamEquipmentError) {
+              console.error('Error getting team equipment:', teamEquipmentError);
+            } else if (teamEquipment) {
+              // Add to equipment list, avoiding duplicates and ensuring org name
+              teamEquipment.forEach(item => {
+                if (!allEquipment.some(eq => eq.id === item.id)) {
+                  const team = teamsWithOrgs.find(t => t.id === item.team_id);
+                  const orgName = team?.organization?.name || 'Unknown Organization';
+                  
+                  allEquipment.push({ 
+                    ...item,
+                    team_name: team?.name,
+                    org_name: orgName
+                  });
+                }
+              });
+            }
           }
         }
       }

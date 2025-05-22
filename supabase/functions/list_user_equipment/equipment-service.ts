@@ -80,7 +80,7 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
       }
     }
 
-    // 1. Get equipment from user's teams
+    // 1. Get equipment from user's teams with improved organization data
     let teamEquipmentQuery = adminClient
       .from('team_member')
       .select(`
@@ -128,7 +128,7 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
       });
     }
     
-    // 2. Get equipment from user's organizations
+    // 2. Get equipment from user's organizations with improved organization name resolution
     let userOrgQuery = adminClient
       .from('user_profiles')
       .select(`

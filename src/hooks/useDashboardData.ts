@@ -61,7 +61,11 @@ export function useDashboardData(orgId?: string) {
     
     try {
       // Fetch equipment with organization filter if provided
-      let query = supabase.from('equipment').select('*');
+      let query = supabase.from('equipment').select(`
+        *,
+        org:org_id (name),
+        team:team_id (name, org_id)
+      `);
       
       if (effectiveOrgId) {
         query = query.eq('org_id', effectiveOrgId);
@@ -71,18 +75,25 @@ export function useDashboardData(orgId?: string) {
       
       if (error) throw error;
       
-      setEquipment(data || []);
-      setEquipmentCount(data?.length || 0);
+      // Process equipment to ensure org_name is available
+      const processedData = data ? data.map(item => ({
+        ...item,
+        org_name: item.org?.name || 'Unknown Organization',
+        team_name: item.team?.name || null
+      })) : [];
+      
+      setEquipment(processedData);
+      setEquipmentCount(processedData.length);
       
       // Calculate counts
-      const active = data?.filter(item => item.status === 'active')?.length || 0;
-      const maintenance = data?.filter(item => item.status === 'maintenance')?.length || 0;
+      const active = processedData.filter(item => item.status === 'active').length;
+      const maintenance = processedData.filter(item => item.status === 'maintenance').length;
       
       setActiveCount(active);
       setMaintenanceCount(maintenance);
       
       // Get recent equipment (last 5)
-      const recent = [...(data || [])]
+      const recent = [...processedData]
         .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
         .slice(0, 5);
       
