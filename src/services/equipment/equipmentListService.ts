@@ -6,7 +6,8 @@ import { Equipment } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "./services/authService";
 import { fetchEquipment } from "./services/fetchService";
-import { invalidateEquipmentCache, clearEquipmentCache, getEquipmentFromCache } from "./services/cacheService";
+import { invalidateEquipmentCache, clearEquipmentCache } from "./services/cacheService";
+import { getEquipmentDirectQuery } from "./queries/directQueries";
 
 /**
  * Get all equipment items including those from teams the user belongs to
@@ -32,7 +33,6 @@ export async function getEquipment(orgId?: string): Promise<Equipment[]> {
       
       if (userId) {
         console.log('Trying direct query as fallback');
-        const { getEquipmentDirectQuery } = await import("./queries/directQueries");
         return await getEquipmentDirectQuery(userId, orgId);
       }
     } catch (fallbackError) {

@@ -101,6 +101,10 @@ export function EquipmentForm({
 
   // If we have team loading errors, show them
   if (teamsError) {
+    const errorMessage = typeof teamsError === 'string' ? teamsError :
+                         teamsError instanceof Error ? teamsError.message : 
+                         'Unknown error loading teams';
+                         
     return (
       <Card>
         <CardHeader>
@@ -109,7 +113,7 @@ export function EquipmentForm({
         <CardContent>
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>
-              Error loading teams: {teamsError instanceof Error ? teamsError.message : 'Unknown error'}
+              Error loading teams: {errorMessage}
             </AlertDescription>
           </Alert>
           <Button onClick={onRetry}>Retry</Button>
@@ -179,7 +183,7 @@ export function EquipmentForm({
                 teams={teams} 
                 value={formData.team_id || 'none'}
                 onChange={(value) => handleSelectChange('team_id', value)}
-                isLoading={teamsLoading}
+                showExternalTeamAlert={true}
               />
             </div>
           </div>

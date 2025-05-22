@@ -1,5 +1,5 @@
 
-import { ArrowLeft, Info, AlertTriangle, ExclamationTriangle } from 'lucide-react';
+import { ArrowLeft, Info, AlertTriangle, AlertOctagon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,7 +21,7 @@ export function EquipmentDetailError({ error, onBackClick }: EquipmentDetailErro
   
   // Choose appropriate icon based on error type
   const ErrorIcon = isPermissionError ? AlertTriangle : 
-                    isNotFoundError ? ExclamationTriangle : Info;
+                    isNotFoundError ? AlertOctagon : Info;
   
   // Select appropriate variant based on error type
   const alertVariant = isPermissionError ? "destructive" : "warning";

@@ -1,6 +1,6 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useState, useEffect } from 'react';
 
@@ -18,9 +18,16 @@ interface TeamSelectorProps {
   value: string | null;
   onChange: (value: string) => void;
   showExternalTeamAlert?: boolean;
+  isLoading?: boolean;
 }
 
-export function EnhancedTeamSelector({ teams, value, onChange, showExternalTeamAlert = true }: TeamSelectorProps) {
+export function EnhancedTeamSelector({ 
+  teams, 
+  value, 
+  onChange, 
+  showExternalTeamAlert = true,
+  isLoading = false
+}: TeamSelectorProps) {
   const [selectedTeamIsExternal, setSelectedTeamIsExternal] = useState(false);
   const [teamsGroupedByOrg, setTeamsGroupedByOrg] = useState<{[key: string]: Team[]}>({});
   
@@ -68,9 +75,17 @@ export function EnhancedTeamSelector({ teams, value, onChange, showExternalTeamA
       <Select 
         value={value || 'none'} 
         onValueChange={handleTeamChange}
+        disabled={isLoading}
       >
         <SelectTrigger id="team_id">
-          <SelectValue placeholder="Select team (optional)" />
+          {isLoading ? (
+            <div className="flex items-center">
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <span>Loading teams...</span>
+            </div>
+          ) : (
+            <SelectValue placeholder="Select team (optional)" />
+          )}
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="none">No Team</SelectItem>
