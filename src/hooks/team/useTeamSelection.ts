@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Team } from '@/types';
+import { Team } from '@/services/team';
 
 export function useTeamSelection(teams: Team[], isChangingOrg: boolean = false) {
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');

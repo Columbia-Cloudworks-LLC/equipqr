@@ -39,6 +39,20 @@ export interface Invitation {
   } | null;
 }
 
+// Add the Team interface to the types exports
+export interface Team {
+  id: string;
+  name: string;
+  org_id: string;
+  org_name?: string;
+  is_external?: boolean;
+  role?: string;
+  has_access?: boolean;
+  created_at?: string;
+  deleted_at?: string | null;
+  members?: any[];
+}
+
 // Add the DashboardStat interface
 export interface DashboardStat {
   label: string;
