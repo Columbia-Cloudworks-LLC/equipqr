@@ -10,6 +10,11 @@ export * from './equipmentDeleteService';
 export * from './scanService';
 export * from './attributesService';
 
+// Service modules
+export * from './services/authService';
+export * from './services/cacheService';
+export * from './services/fetchService';
+
 // Caching modules
 export * from './caching/equipmentCache';
 
