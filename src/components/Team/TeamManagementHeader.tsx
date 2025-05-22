@@ -1,11 +1,12 @@
 
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { OrganizationSelector } from "@/components/Organization/OrganizationSelector";
-import { Organization } from "@/types";
+import { UserOrganization } from '@/services/organization/userOrganizations';
+import { Button } from '@/components/ui/button';
+import { Loader2, RotateCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Organization } from '@/types';
 
 interface TeamManagementHeaderProps {
-  organizations: Organization[];
+  organizations: (UserOrganization | Organization)[];
   selectedOrgId: string | undefined;
   onChange: (orgId: string) => void;
   onRefresh: () => void;
@@ -21,27 +22,53 @@ export function TeamManagementHeader({
   isLoading,
   isChangingOrg
 }: TeamManagementHeaderProps) {
+  const handleRefresh = () => {
+    if (!isLoading) {
+      onRefresh();
+    }
+  };
+
   return (
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <h1 className="text-2xl font-bold">Team Management</h1>
+    <div className="flex justify-between items-center">
+      <div>
+        <h1 className="text-2xl font-bold mb-1">Team Management</h1>
+        <p className="text-muted-foreground">
+          Create and manage teams for your organization
+        </p>
+      </div>
+
       <div className="flex items-center gap-2">
         {organizations.length > 1 && (
-          <OrganizationSelector
-            organizations={organizations}
-            selectedOrgId={selectedOrgId}
-            onChange={onChange}
-            className="w-[200px]"
-            disabled={isChangingOrg}
-          />
+          <Select
+            value={selectedOrgId}
+            onValueChange={onChange}
+            disabled={isLoading || isChangingOrg}
+          >
+            <SelectTrigger className="w-[250px]">
+              <SelectValue placeholder="Select Organization" />
+            </SelectTrigger>
+            <SelectContent>
+              {organizations.map((org) => (
+                <SelectItem key={org.id} value={org.id}>
+                  {org.name}
+                  {org.is_primary && " (Primary)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onRefresh} 
-          disabled={isLoading || isChangingOrg}
+
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={isLoading}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          {isLoading ? 'Loading...' : 'Refresh'}
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RotateCw className="h-4 w-4" />
+          )}
         </Button>
       </div>
     </div>

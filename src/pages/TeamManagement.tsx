@@ -18,6 +18,8 @@ import { TeamSelectorWithCreate } from '@/components/Team/TeamSelectorWithCreate
 import { useOrganizationSwitch } from '@/hooks/team/useOrganizationSwitch';
 import { useFilteredTeams } from '@/hooks/team/useFilteredTeams';
 import { useFilteredOrganizations } from '@/hooks/team/useFilteredOrganizations';
+import { Organization } from '@/types';
+import { UserOrganization } from '@/services/organization/userOrganizations';
 
 export default function TeamManagement() {
   const {
@@ -58,19 +60,27 @@ export default function TeamManagement() {
 
   const navigate = useNavigate();
   const { user, session, isLoading: isAuthLoading } = useAuth();
-  const { selectedOrganization } = useOrganizationSwitch(fetchTeams, setSelectedTeamId);
-
+  
   // Organization and team state management
+  const orgSwitchContext = useOrganizationSwitch(fetchTeams, setSelectedTeamId);
   const {
     selectedOrgId,
     isChangingOrg,
     handleOrganizationChange,
-    organizations: allOrganizations
-  } = useOrganizationSwitch(fetchTeams, setSelectedTeamId);
+    organizations: orgSwitchOrganizations
+  } = orgSwitchContext;
+  
+  // Get selected organization from context
+  const selectedOrganization = useMemo(() => {
+    return organizations.find(org => org.id === selectedOrgId);
+  }, [organizations, selectedOrgId]);
 
   // Filter teams and organizations
   const filteredTeams = useFilteredTeams(teams, selectedOrgId, isChangingOrg);
-  const filteredOrganizations = useFilteredOrganizations(organizations, teams, selectedOrganization);
+  
+  // Cast organizations to Organization[] to match the expected type
+  const castedOrganizations = organizations as unknown as Organization[];
+  const filteredOrganizations = useFilteredOrganizations(castedOrganizations, teams, selectedOrganization);
   
   // Track if viewing external organization teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
@@ -118,8 +128,8 @@ export default function TeamManagement() {
   
   // Determine if the user can manage teams in the selected organization
   const canManageTeamsInOrg = selectedOrganization?.role === 'owner' || 
-                              selectedOrganization?.role === 'manager' || 
-                              selectedOrganization?.role === 'admin';
+                             selectedOrganization?.role === 'manager' || 
+                             selectedOrganization?.role === 'admin';
   
   // Log state for debugging
   useEffect(() => {

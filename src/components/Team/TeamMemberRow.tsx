@@ -1,213 +1,147 @@
-
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  TableRow, 
-  TableCell 
-} from '@/components/ui/table';
+import { UserRole } from '@/types/supabase-enums';
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem
+  DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
-import { UserRole } from '@/types/supabase-enums';
-import { 
-  MoreHorizontal, 
-  UserX, 
-  Shield, 
-  Mail,
-  User,
-  UserCog
-} from 'lucide-react';
-import { TeamMember } from '@/types';
+import { Button } from '@/components/ui/button';
+import { CheckIcon, MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { TeamMember } from '@/types';
 
-interface TeamMemberRowProps {
-  member: TeamMember;
-  onRemoveMember: (id: string, teamId: string) => void;
-  onChangeRole: (id: string, role: UserRole, teamId: string) => void;
-  onResendInvite: (id: string) => void;
-  teamId: string;
-  isViewOnly?: boolean;
-  changingRoleFor: string | null;
-  removingMember: string | null;
-  resendingInvite: string | null;
-  setChangingRoleFor: (id: string | null) => void;
-  setRemovingMember: (id: string | null) => void;
-  setResendingInvite: (id: string | null) => void;
-  currentUserRole?: string;
+// Extend the TeamMember type to include additional properties needed by this component
+interface ExtendedTeamMember extends TeamMember {
+  auth_uid?: string;
+  name?: string;
 }
 
-export function TeamMemberRow({ 
-  member, 
-  onRemoveMember, 
-  onChangeRole, 
-  onResendInvite,
-  teamId,
-  isViewOnly = false,
-  changingRoleFor,
-  removingMember,
-  resendingInvite,
-  setChangingRoleFor,
-  setRemovingMember,
-  setResendingInvite,
-  currentUserRole
+interface TeamMemberRowProps {
+  member: ExtendedTeamMember;
+  canChangeRoles: boolean;
+  isCurrentUser: boolean;
+  isLastManager: boolean;
+  onChangeRole: (userId: string, role: UserRole) => void;
+  onRemoveMember: (userId: string) => void;
+}
+
+// Role configuration for the dropdown
+const ROLES = [
+  { label: 'Manager', value: 'manager' as UserRole },
+  { label: 'Technician', value: 'technician' as UserRole },
+  { label: 'Viewer', value: 'viewer' as UserRole }
+];
+
+export function TeamMemberRow({
+  member,
+  canChangeRoles,
+  isCurrentUser,
+  isLastManager,
+  onChangeRole,
+  onRemoveMember
 }: TeamMemberRowProps) {
-  const isCurrentUserManager = currentUserRole === 'manager' || currentUserRole === 'owner';
-  const isChangeInProgress = changingRoleFor === member.id;
-  const isRemoveInProgress = removingMember === member.id;
-  const isResendInProgress = resendingInvite === member.id;
+  const [isChangingRole, setIsChangingRole] = useState(false);
   
-  // Disable removing the last manager
-  const isLastManager = member.role === 'manager' && 
-                       currentUserRole === 'manager' &&
-                       member.auth_uid === localStorage.getItem('current_user_auth_id');
+  // Helper to get initials from name or email
+  const getInitials = () => {
+    if (member.display_name) {
+      return member.display_name.substring(0, 2).toUpperCase();
+    }
+    return member.email.substring(0, 2).toUpperCase();
+  };
   
-  // Format member name, showing "You" indicator for current user
-  const isCurrentUser = member.auth_uid === localStorage.getItem('current_user_auth_id');
-  const memberName = member.name || 'Unknown';
+  // Determine if this role can be changed
+  const cannotChangeRole = isLastManager && member.role === 'manager' && isCurrentUser;
   
-  const handleChangeRole = async (role: UserRole) => {
+  // Handle role change with loading state
+  const handleRoleChange = async (role: UserRole) => {
+    if (isChangingRole) return;
+    
     try {
-      setChangingRoleFor(member.id);
-      await onChangeRole(member.id, role, teamId);
-      toast.success(`Role changed to ${role}`);
-    } catch (error: any) {
-      toast.error('Failed to change role', {
-        description: error.message
-      });
+      setIsChangingRole(true);
+      await onChangeRole(member.auth_uid || member.user_id, role);
     } finally {
-      setChangingRoleFor(null);
+      setIsChangingRole(false);
     }
   };
   
-  const handleRemoveMember = async () => {
-    try {
-      setRemovingMember(member.id);
-      await onRemoveMember(member.id, teamId);
-      toast.success('Member removed from team');
-    } catch (error: any) {
-      toast.error('Failed to remove member', {
-        description: error.message
-      });
-    } finally {
-      setRemovingMember(null);
-    }
-  };
-  
-  const handleResendInvite = async () => {
-    try {
-      setResendingInvite(member.id);
-      await onResendInvite(member.id);
-      toast.success('Invitation resent');
-    } catch (error: any) {
-      toast.error('Failed to resend invitation', {
-        description: error.message
-      });
-    } finally {
-      setResendingInvite(null);
+  // Handle member removal with confirmation
+  const handleRemove = async () => {
+    if (window.confirm(`Are you sure you want to remove ${member.display_name || member.name || member.email} from the team?`)) {
+      await onRemoveMember(member.auth_uid || member.user_id);
     }
   };
 
   return (
-    <TableRow>
-      <TableCell>
-        <div className="flex items-center gap-1">
-          {memberName}
-          {isCurrentUser && (
-            <Badge variant="outline" className="ml-1 text-xs">
-              You
-            </Badge>
-          )}
+    <div className="grid grid-cols-4 items-center gap-4 py-3">
+      {/* Avatar and Member Info */}
+      <div className="col-span-1 flex items-center">
+        <Avatar className="mr-2 h-8 w-8">
+          <AvatarImage src={member.avatar_url} alt={member.display_name || member.email} />
+          <AvatarFallback>{getInitials()}</AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col">
+          <span className="font-semibold">{member.display_name || member.name || member.email}</span>
+          <span className="text-xs text-muted-foreground">{member.email}</span>
         </div>
-      </TableCell>
-      <TableCell>{member.email}</TableCell>
-      <TableCell>
-        <Badge variant={member.role === 'manager' ? 'default' : 'outline'}>
-          {member.role}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
-          Active
-        </Badge>
-      </TableCell>
-      <TableCell>
-        {!isViewOnly ? (
+      </div>
+
+      {/* Role Display */}
+      <div className="col-span-1">
+        <Badge variant="secondary">{member.role}</Badge>
+      </div>
+
+      {/* Status Display */}
+      <div className="col-span-1 text-muted-foreground">
+        {member.is_active ? 'Active' : 'Inactive'}
+      </div>
+
+      {/* Actions - Dropdown Menu */}
+      <div className="col-span-1 flex justify-end">
+        {canChangeRoles && !isCurrentUser ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
                 <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Actions</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {isCurrentUserManager && (
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger disabled={isChangeInProgress} className="flex items-center gap-2">
-                    <Shield className="h-4 w-4" />
-                    {isChangeInProgress ? 'Changing role...' : 'Change Role'}
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuRadioGroup value={member.role} onValueChange={(value: any) => handleChangeRole(value)}>
-                      <DropdownMenuRadioItem value="manager" className="flex items-center gap-2">
-                        <UserCog className="h-4 w-4" />
-                        Manager
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="technician" className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Technician
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="viewer" className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Viewer
-                      </DropdownMenuRadioItem>
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              )}
-              
-              {isCurrentUserManager && member.status === 'pending' && (
+              {ROLES.map(role => (
                 <DropdownMenuItem 
-                  onClick={handleResendInvite}
-                  disabled={isResendInProgress}
-                  className="flex items-center gap-2"
+                  key={role.value} 
+                  onClick={() => handleRoleChange(role.value)}
+                  disabled={isChangingRole || cannotChangeRole}
                 >
-                  <Mail className="h-4 w-4" />
-                  {isResendInProgress ? 'Sending...' : 'Resend Invitation'}
+                  {isChangingRole ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      {member.role === role.value && (
+                        <CheckIcon className="mr-2 h-4 w-4" />
+                      )}
+                      <span>{role.label}</span>
+                    </>
+                  )}
                 </DropdownMenuItem>
-              )}
-              
-              {isCurrentUserManager && !isLastManager && (
-                <DropdownMenuItem 
-                  onClick={handleRemoveMember}
-                  disabled={isRemoveInProgress || isLastManager}
-                  className="flex items-center gap-2 text-destructive focus:text-destructive"
-                >
-                  <UserX className="h-4 w-4" />
-                  {isRemoveInProgress ? 'Removing...' : 'Remove Member'}
-                </DropdownMenuItem>
-              )}
-              
-              {isLastManager && (
-                <DropdownMenuItem disabled className="text-gray-400 opacity-50 flex items-center gap-2">
-                  <UserX className="h-4 w-4" />
-                  Cannot remove last manager
-                </DropdownMenuItem>
-              )}
+              ))}
+              <DropdownMenuItem onClick={handleRemove}>
+                Remove Member
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <span className="text-gray-400 text-sm italic">No actions available</span>
+          <span className="text-muted-foreground">
+            {isCurrentUser ? 'You cannot change your own role' : 'No actions available'}
+          </span>
         )}
-      </TableCell>
-    </TableRow>
+      </div>
+    </div>
   );
 }

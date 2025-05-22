@@ -1,5 +1,5 @@
 
-import { Invitation as BaseInvitation } from './index';
+import { Invitation } from './index';
 
 // Export the same Invitation interface to ensure consistency
 export type { Invitation } from './index';
@@ -18,7 +18,7 @@ export interface NotificationBase {
 
 export interface InvitationNotification extends NotificationBase {
   type: 'invitation';
-  invitation: BaseInvitation;
+  invitation: Invitation;
 }
 
 export interface SystemNotification extends NotificationBase {
@@ -30,7 +30,7 @@ export type Notification = InvitationNotification | SystemNotification;
 
 // Add the NotificationsContextType
 export interface NotificationsContextType {
-  invitations: BaseInvitation[];
+  invitations: Invitation[];
   isLoading: boolean;
   hasNewNotifications: boolean;
   hasError: boolean;
