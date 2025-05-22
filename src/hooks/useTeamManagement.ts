@@ -129,7 +129,7 @@ export function useTeamManagement() {
   }, [selectedTeamId, fetchPendingInvitations]);
   
   // Enhanced delete team handler that updates selection if needed
-  const handleDeleteTeamWrapper = useCallback(async (teamId: string) => {
+  const handleDeleteTeamWrapper = useCallback(async (teamId: string): Promise<any> => {
     return handleDeleteAndUpdateSelection(handleDeleteTeam, teamId);
   }, [handleDeleteTeam, handleDeleteAndUpdateSelection]);
   

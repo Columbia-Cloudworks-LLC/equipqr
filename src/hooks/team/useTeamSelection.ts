@@ -1,38 +1,38 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Team } from '@/services/team';
 
-export function useTeamSelection(teams: Team[], isChangingOrg: boolean = false) {
+export function useTeamSelection(teams: Team[]) {
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
-
-  // Select first team if available and none is selected
-  useEffect(() => {
-    if (teams.length > 0 && !selectedTeamId) {
-      console.log('Setting selected team to:', teams[0].id);
-      setSelectedTeamId(teams[0].id);
-    } else if (teams.length > 0 && selectedTeamId && !teams.find(team => team.id === selectedTeamId)) {
-      // If currently selected team no longer exists (e.g., after deletion),
-      // select the first available team instead
-      console.log('Previously selected team not found, selecting first available team');
-      setSelectedTeamId(teams[0].id);
-    } else if (teams.length === 0) {
-      // Clear selection if there are no teams
-      setSelectedTeamId('');
-    }
-  }, [teams, selectedTeamId]);
-
-  // Enhanced delete team handler that updates selection if needed
-  const handleDeleteAndUpdateSelection = async (handleDeleteTeam: (teamId: string) => Promise<any>, teamId: string) => {
-    try {
-      // Try to delete the team
-      await handleDeleteTeam(teamId);
-      
-      // Selection will be handled by the useEffect above
-    } catch (error) {
-      // Let the error propagate up for UI handling
-      throw error;
-    }
-  };
+  
+  // Handle deletion of a team and update the selected team if needed
+  const handleDeleteAndUpdateSelection = useCallback(
+    async (
+      deleteFunction: (id: string) => Promise<any>, 
+      teamId: string
+    ): Promise<any> => {
+      try {
+        // Call the delete function and wait for the result
+        const result = await deleteFunction(teamId);
+        
+        // If the deleted team was selected, select a new team
+        if (teamId === selectedTeamId && teams.length > 1) {
+          const remainingTeams = teams.filter(team => team.id !== teamId);
+          if (remainingTeams.length > 0) {
+            setSelectedTeamId(remainingTeams[0].id);
+          } else {
+            setSelectedTeamId('');
+          }
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('Error in handleDeleteAndUpdateSelection:', error);
+        throw error;
+      }
+    },
+    [selectedTeamId, teams, setSelectedTeamId]
+  );
 
   return {
     selectedTeamId,
