@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { CheckIcon, MoreHorizontal, Loader2 } from 'lucide-react'; // Add Loader2 import
+import { CheckIcon, MoreHorizontal, Loader2 } from 'lucide-react'; // Ensure Loader2 is imported
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,6 +28,7 @@ interface TeamMemberRowProps {
   onChangeRole: (userId: string, role: UserRole) => void;
   onRemoveMember: (userId: string) => void;
   onResendInvite?: (id: string) => Promise<void>;
+  currentUserRole?: string; // Add this prop
 }
 
 // Role configuration for the dropdown
@@ -44,7 +45,8 @@ export function TeamMemberRow({
   isLastManager,
   onChangeRole,
   onRemoveMember,
-  onResendInvite
+  onResendInvite,
+  currentUserRole
 }: TeamMemberRowProps) {
   const [isChangingRole, setIsChangingRole] = useState(false);
   

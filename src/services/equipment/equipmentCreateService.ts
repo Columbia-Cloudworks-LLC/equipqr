@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { CreateEquipmentParams } from '@/types/equipment';
 import { EquipmentStatus } from '@/types/supabase-enums';
@@ -11,9 +12,10 @@ export async function createEquipment(params: CreateEquipmentParams) {
   };
 
   try {
+    // Fixed: Don't wrap object in array for single insert
     const { data, error } = await supabase
       .from('equipment')
-      .insert([processedParams])
+      .insert(processedParams) // No array wrapper here
       .select()
       .single();
 

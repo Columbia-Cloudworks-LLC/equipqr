@@ -92,12 +92,13 @@ const EquipmentFormPage = () => {
   // Create equipment mutation
   const createMutation = useMutation({
     mutationFn: (formData: Partial<Equipment>) => {
-      // Convert string status to EquipmentStatus type
+      // Convert to the expected CreateEquipmentParams type
       const processedData = {
         ...formData,
-        status: formData.status as EquipmentStatus // Cast to EquipmentStatus type
+        // Cast to string first to avoid direct assignment of string to EquipmentStatus
+        status: formData.status as string
       };
-      return createEquipment(processedData as any); // Use any to bypass the type error
+      return createEquipment(processedData as CreateEquipmentParams);
     },
     onSuccess: async (data) => {
       toast.success('Equipment added successfully');
@@ -266,7 +267,7 @@ const EquipmentFormPage = () => {
     if (isEditMode && id) {
       updateMutation.mutate({ id, data: processedData });
     } else {
-      createMutation.mutate(processedData as any); // Use any to bypass the type error
+      createMutation.mutate(processedData);
     }
   };
 
