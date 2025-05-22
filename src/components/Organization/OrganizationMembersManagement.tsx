@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { OrganizationMembersTable } from './Members/OrganizationMembersTable';
 import { useOrganizationMembers } from './Members/useOrganizationMembers';
-import { ErrorDisplay } from './Members/ErrorDisplay';
+import ErrorDisplay from './Members/ErrorDisplay';
 import { UserRole } from '@/types/supabase-enums';
 import OrganizationTabs from './Members/OrganizationTabs';
 
@@ -21,10 +21,10 @@ const OrganizationMembersManagement: React.FC<OrganizationMembersManagementProps
   
   const { 
     members, 
-    isLoading, 
+    loading, 
     error, 
-    refetch 
-  } = useOrganizationMembers(organizationId, refreshTrigger);
+    refreshData 
+  } = useOrganizationMembers(organizationId);
 
   const isOwner = userRole === 'owner';
 
@@ -37,7 +37,7 @@ const OrganizationMembersManagement: React.FC<OrganizationMembersManagementProps
 
   // If there's an error, show the error display
   if (error) {
-    return <ErrorDisplay error={error} refetch={refetch} />;
+    return <ErrorDisplay error={error} refreshData={refreshData} />;
   }
 
   return (
@@ -52,7 +52,7 @@ const OrganizationMembersManagement: React.FC<OrganizationMembersManagementProps
           members={members}
           organizationId={organizationId}
           isOwner={isOwner}
-          loading={isLoading}
+          loading={loading}
           refreshTrigger={refreshTrigger}
           onInviteSent={handleInviteSent}
         />

@@ -2,13 +2,11 @@
 import { useState, useEffect } from 'react';
 import { getOrganizationMembers } from '@/services/organization';
 import { OrganizationMember } from '@/services/organization/types';
-import { UserRole } from '@/types/supabase-enums';
 
-export function useOrganizationMembers(organizationId: string) {
+export function useOrganizationMembers(organizationId: string, refreshTrigger = 0) {
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState('members');
 
   // Fetch organization members
@@ -34,12 +32,11 @@ export function useOrganizationMembers(organizationId: string) {
   }, [organizationId, refreshTrigger]);
 
   const refreshData = () => {
-    setRefreshTrigger(prev => prev + 1);
+    // This triggers the useEffect to refetch members
   };
 
   const handleInviteSent = () => {
     setActiveTab('invitations');
-    refreshData();
   };
 
   return {
