@@ -1,7 +1,6 @@
-
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Package, Users, Home, QrCode } from "lucide-react";
+import { Package, Users, Home } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -42,11 +41,6 @@ const mainNavItems = [
     title: "Teams",
     href: "/teams",
     icon: Users,
-  },
-  {
-    title: "Scanner",
-    href: "/scanner",
-    icon: QrCode,
   },
 ];
 

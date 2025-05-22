@@ -1,13 +1,14 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout/Layout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Printer } from 'lucide-react';
+import { ArrowLeft, Printer, Smartphone } from 'lucide-react';
 import QRCodeGenerator from '@/components/Equipment/QRCodeGenerator';
 import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function EquipmentQR() {
   const { id } = useParams<{ id: string }>();
@@ -112,6 +113,43 @@ export default function EquipmentQR() {
               Scan this code to view equipment details
             </p>
           </div>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Smartphone className="mr-2 h-5 w-5" />
+                How to use QR codes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <h3 className="font-medium">Scanning Instructions:</h3>
+                <ol className="list-decimal ml-6 mt-2 space-y-2">
+                  <li>Open your device's camera app</li>
+                  <li>Point the camera at the QR code</li>
+                  <li>Tap the notification or link that appears</li>
+                  <li>View the equipment details instantly</li>
+                </ol>
+              </div>
+              
+              <div>
+                <h3 className="font-medium">Sharing Options:</h3>
+                <p className="mt-1 text-sm">
+                  Print this QR code and attach it to the physical equipment for quick access to digital records. 
+                  Anyone with appropriate permissions can scan the code to view or update information.
+                </p>
+                <Button 
+                  onClick={() => window.print()}
+                  variant="outline" 
+                  size="sm"
+                  className="mt-3"
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print QR Code
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </Layout>

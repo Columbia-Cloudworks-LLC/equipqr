@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Users, Settings, QrCode } from 'lucide-react';
+import { Package, Users, Settings } from 'lucide-react';
 
 export function QuickLinksCard() {
   return (
@@ -21,12 +21,6 @@ export function QuickLinksCard() {
           <Link to="/team">
             <Users className="mr-2 h-4 w-4" />
             Team Management
-          </Link>
-        </Button>
-        <Button variant="outline" className="w-full justify-start" asChild>
-          <Link to="/scanner">
-            <QrCode className="mr-2 h-4 w-4" />
-            Scan QR Code
           </Link>
         </Button>
         <Button variant="outline" className="w-full justify-start" asChild>
