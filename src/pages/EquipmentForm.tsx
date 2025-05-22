@@ -95,8 +95,8 @@ const EquipmentFormPage = () => {
       // Convert to the expected CreateEquipmentParams type
       const processedData = {
         ...formData,
-        // Cast to string first to avoid direct assignment of string to EquipmentStatus
-        status: formData.status as string
+        // Cast to EquipmentStatus to match the expected type in CreateEquipmentParams
+        status: formData.status as EquipmentStatus
       };
       return createEquipment(processedData as CreateEquipmentParams);
     },

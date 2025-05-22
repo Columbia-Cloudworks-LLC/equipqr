@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EquipmentStatus } from '@/types/supabase-enums';
 
 interface StatusLocationFieldsProps {
   status: string;
@@ -37,6 +38,8 @@ export function StatusLocationFields({
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
             <SelectItem value="maintenance">Maintenance</SelectItem>
+            <SelectItem value="storage">Storage</SelectItem>
+            <SelectItem value="retired">Retired</SelectItem>
           </SelectContent>
         </Select>
       </div>
