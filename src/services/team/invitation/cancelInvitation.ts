@@ -1,19 +1,15 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export async function cancelInvitation(invitationId: string): Promise<void> {
+export async function cancelInvitation(invitationId: string): Promise<any> {
   try {
-    if (!invitationId) {
-      throw new Error('Invitation ID is required');
-    }
-    
     // Get user session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
       throw new Error('Authentication required');
     }
     
-    // Get invitation details to check permissions
+    // Get invitation details to check team ID
     const { data: invitation, error: inviteError } = await supabase
       .from('team_invitations')
       .select('id, team_id')
@@ -24,7 +20,11 @@ export async function cancelInvitation(invitationId: string): Promise<void> {
       throw new Error(`Failed to get invitation: ${inviteError.message}`);
     }
     
-    // Check if user has permission to modify the team
+    if (!invitation) {
+      throw new Error('Invitation not found');
+    }
+    
+    // Check if user has permission to cancel invitations for this team
     const { data: permissionData } = await supabase.functions.invoke('check_team_role_permission', {
       body: { 
         team_id: invitation.team_id, 
@@ -36,7 +36,7 @@ export async function cancelInvitation(invitationId: string): Promise<void> {
       throw new Error('You do not have permission to cancel invitations');
     }
     
-    // Cancel the invitation
+    // Update the invitation status to 'cancelled'
     const { error: updateError } = await supabase
       .from('team_invitations')
       .update({
@@ -48,6 +48,8 @@ export async function cancelInvitation(invitationId: string): Promise<void> {
     if (updateError) {
       throw new Error(`Failed to cancel invitation: ${updateError.message}`);
     }
+    
+    return { success: true };
   } catch (error: any) {
     console.error('Error cancelling invitation:', error);
     throw error;

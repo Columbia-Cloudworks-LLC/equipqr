@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -10,6 +10,7 @@ import { resendInvite } from '@/services/team/invitation/resendInvite';
 import { inviteMember } from '@/services/team/invitation/inviteMember';
 import { getPendingInvitations } from '@/services/team/invitation/getPendingInvitations';
 import { cancelInvitation } from '@/services/team/invitation/cancelInvitation';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useTeamMembers(teamId: string | null) {
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -278,7 +279,3 @@ export function useTeamMembers(teamId: string | null) {
     handleCancelInvitation
   };
 }
-
-// Add the missing import
-import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';

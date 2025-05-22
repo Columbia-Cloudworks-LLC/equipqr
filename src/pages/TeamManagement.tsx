@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useMemo } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
@@ -155,7 +154,7 @@ export default function TeamManagement() {
   }, [teams.length, filteredTeams.length, selectedTeamId, selectedOrgId, isLoading, isMember, 
       currentUserRole, canChangeRoles, isViewerOnly, organizations, formattedOrganizations, isChangingOrg]);
 
-  // Handle team creation with selected organization
+  // Fix: Match correct argument count for handleCreateTeamWithOrg
   const handleCreateTeamWithOrg = async (name: string) => {
     return handleCreateTeam(name, selectedOrgId);
   };
@@ -185,10 +184,14 @@ export default function TeamManagement() {
   const handleInviteMemberWrapper = async (data: any): Promise<any> => {
     // Expected data format: { email: string, role: UserRole, teamId: string }
     if (data && data.email && data.role && data.teamId) {
-      return handleInviteMember(data.email, data.role, data.teamId);
+      return handleInviteMember(data);
     } else if (typeof data === 'string' && selectedTeamId) {
       // Fallback for simple email string format
-      return handleInviteMember(data, 'viewer' as UserRole, selectedTeamId);
+      return handleInviteMember({
+        email: data,
+        role: 'viewer' as UserRole,
+        teamId: selectedTeamId
+      });
     }
     console.error("Invalid data format for invite member", data);
     return Promise.reject("Invalid invite member data format");
@@ -196,14 +199,14 @@ export default function TeamManagement() {
   
   const handleChangeRoleWrapper = async (userId: string, role: string): Promise<any> => {
     if (selectedTeamId) {
-      return handleChangeRole(userId, role as UserRole, selectedTeamId);
+      return handleChangeRole(userId, role);
     }
     return Promise.reject("No team selected");
   };
   
   const handleRemoveMemberWrapper = async (userId: string): Promise<any> => {
     if (selectedTeamId) {
-      return handleRemoveMember(userId, selectedTeamId);
+      return handleRemoveMember(userId);
     }
     return Promise.reject("No team selected");
   };
