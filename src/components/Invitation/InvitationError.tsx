@@ -12,6 +12,19 @@ interface InvitationErrorProps {
 export function InvitationError({ error, suggestion }: InvitationErrorProps) {
   const navigate = useNavigate();
   
+  const handleLoginClick = () => {
+    // Get any stored invitation path
+    const invitationPath = sessionStorage.getItem('invitationPath');
+    
+    navigate('/auth', { 
+      state: { 
+        returnTo: invitationPath || '/',
+        message: 'Please sign in or create an account to accept this invitation',
+        isInvitation: true
+      } 
+    });
+  };
+  
   return (
     <div className="container mx-auto max-w-md my-12">
       <Card>
@@ -24,7 +37,10 @@ export function InvitationError({ error, suggestion }: InvitationErrorProps) {
             </CardDescription>
           )}
         </CardHeader>
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-2 w-full">
+          <Button onClick={handleLoginClick} className="w-full">
+            Sign In or Create Account
+          </Button>
           <Button variant="outline" onClick={() => navigate('/')} className="w-full">
             Go to Homepage
           </Button>

@@ -1,34 +1,48 @@
 
-import { useState } from 'react';
+import { useRef, useCallback } from 'react';
 
 /**
- * Hook for preventing duplicate invitation processing attempts
+ * Hook that prevents duplicate processing of the same invitation token
  */
 export function useDuplicateInvitationPrevention() {
-  const [processingInvitations, setProcessingInvitations] = useState<Set<string>>(new Set());
+  const processingTokensRef = useRef<Record<string, number>>({});
   
-  const checkIfProcessing = (token: string): boolean => {
-    return processingInvitations.has(token);
-  };
+  /**
+   * Check if an invitation is currently being processed
+   */
+  const checkIfProcessing = useCallback((token: string): boolean => {
+    if (!token) return false;
+    
+    const now = Date.now();
+    const processingTimestamp = processingTokensRef.current[token];
+    
+    // If token is not being processed or the processing has expired (5 minutes)
+    if (!processingTimestamp || (now - processingTimestamp > 5 * 60 * 1000)) {
+      return false;
+    }
+    
+    return true;
+  }, []);
   
-  const markAsProcessing = (token: string): void => {
-    setProcessingInvitations(prev => {
-      const newSet = new Set(prev);
-      newSet.add(token);
-      return newSet;
-    });
-  };
+  /**
+   * Mark an invitation as currently being processed
+   */
+  const markAsProcessing = useCallback((token: string): void => {
+    if (!token) return;
+    processingTokensRef.current[token] = Date.now();
+  }, []);
   
-  const clearProcessing = (token: string): void => {
-    // Use a timeout to prevent immediate retries
+  /**
+   * Clear processing state for a token
+   */
+  const clearProcessing = useCallback((token: string): void => {
+    if (!token) return;
+    
+    // Use timeout to prevent immediate re-processing
     setTimeout(() => {
-      setProcessingInvitations(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(token);
-        return newSet;
-      });
-    }, 2000);
-  };
+      delete processingTokensRef.current[token];
+    }, 1000);
+  }, []);
   
   return {
     checkIfProcessing,

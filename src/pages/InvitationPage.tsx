@@ -30,6 +30,16 @@ const InvitationPage: React.FC = () => {
   const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0);
   const [authVerified, setAuthVerified] = useState(false);
 
+  // Save invitation details to session storage when not authenticated
+  useEffect(() => {
+    if (!user && !authLoading && token) {
+      // Save the invitation path for redirection after login
+      const invitationPath = `/invitation/${token}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+      sessionStorage.setItem('invitationPath', invitationPath);
+      console.log('Saved invitation path for after login:', invitationPath);
+    }
+  }, [user, authLoading, token, searchParams]);
+
   // Improved session refresh function with specific error handling
   const refreshAuthSession = useCallback(async () => {
     try {
@@ -39,8 +49,16 @@ const InvitationPage: React.FC = () => {
       const isValid = await checkSession();
       if (!isValid) {
         console.error("No valid session found, redirecting to login");
+        // Store the current invitation URL in session storage for redirect after auth
+        const invitationPath = `/invitation/${token}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+        sessionStorage.setItem('invitationPath', invitationPath);
+        
         navigate("/auth", { 
-          state: { returnTo: `/invitation/${token}${searchParams.toString() ? '?' + searchParams.toString() : ''}` }
+          state: { 
+            returnTo: invitationPath,
+            message: "Please sign in or create an account to accept this invitation",
+            isInvitation: true
+          }
         });
         return false;
       }

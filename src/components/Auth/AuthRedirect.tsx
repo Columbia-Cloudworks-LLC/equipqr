@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -24,9 +23,16 @@ export function AuthRedirect() {
   const [repairAttempts, setRepairAttempts] = useState(0);
   
   // Get returnTo path from location state or localStorage
-  const state = location.state as { returnTo?: string; message?: string } | undefined;
+  const state = location.state as { 
+    returnTo?: string; 
+    message?: string;
+    isInvitation?: boolean;
+  } | undefined;
+  
   const storedReturnPath = localStorage.getItem('authReturnTo');
-  const returnPath = state?.returnTo || storedReturnPath || '/';
+  // Check for invitation path first, as it has priority
+  const invitationPath = sessionStorage.getItem('invitationPath');
+  const returnPath = invitationPath || state?.returnTo || storedReturnPath || '/';
   const message = state?.message;
   
   useEffect(() => {
@@ -79,6 +85,15 @@ export function AuthRedirect() {
         // Clear stored return path
         localStorage.removeItem('authReturnTo');
         
+        // Clear invitation path if it exists
+        if (invitationPath) {
+          console.log('Found invitation path, redirecting to:', invitationPath);
+          // Keep the path in storage until redirection completes
+        } else {
+          // Only clear if we're not going to an invitation
+          sessionStorage.removeItem('invitationPath');
+        }
+        
         // Force clear all caches to ensure fresh data
         clearEquipmentCache();
         clearTeamCache();
@@ -122,7 +137,7 @@ export function AuthRedirect() {
         });
       }
     }
-  }, [session, isLoading, navigate, returnPath, message, checkSession, queryClient, repairAttempts]);
+  }, [session, isLoading, navigate, returnPath, message, checkSession, queryClient, repairAttempts, invitationPath]);
 
   // Handle retry from recovery component
   const handleRetry = async () => {
