@@ -1,19 +1,17 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { TeamMember } from '@/types';
+import { useCallback, useEffect } from 'react';
 import { UserRole } from '@/types/supabase-enums';
 import { useTeams } from './useTeams';
 import { useTeamMembers } from './useTeamMembers';
 import { useTeamMembership } from './useTeamMembership';
 import { useRoleManagement } from './useRoleManagement';
-import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useTeamSelection } from './team/useTeamSelection';
+import { useTeamOperationState } from './team/useTeamOperationState';
+import { useTeamCreation } from './team/useTeamCreation';
 
 export function useTeamManagement() {
   const { organizations, selectedOrganization } = useOrganization();
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   
   // Use the smaller, focused hooks
   const { 
@@ -30,6 +28,13 @@ export function useTeamManagement() {
     handleDeleteTeam,
     getTeamEquipmentCount
   } = useTeams();
+  
+  // Use the team selection hook
+  const {
+    selectedTeamId,
+    setSelectedTeamId,
+    handleDeleteAndUpdateSelection
+  } = useTeamSelection(teams);
   
   const {
     members,
@@ -66,27 +71,23 @@ export function useTeamManagement() {
     handleUpgradeRole
   } = useRoleManagement(members, selectedTeamId, accessRole);
 
+  // Use the operation state hook for error and loading management
+  const { error, isLoading } = useTeamOperationState(
+    teamsError,
+    membersError,
+    membershipError,
+    isTeamsLoading,
+    isMembersLoading
+  );
+
+  // Use the team creation hook
+  const { handleCreateTeam } = useTeamCreation(handleCreateTeamBase);
+
   // Refresh teams when component mounts
   useEffect(() => {
     console.log('useTeamManagement: Initial teams fetch');
     fetchTeams();
   }, [fetchTeams]);
-
-  // Select first team if available and none is selected
-  useEffect(() => {
-    if (teams.length > 0 && !selectedTeamId) {
-      console.log('Setting selected team to:', teams[0].id);
-      setSelectedTeamId(teams[0].id);
-    } else if (teams.length > 0 && selectedTeamId && !teams.find(team => team.id === selectedTeamId)) {
-      // If currently selected team no longer exists (e.g., after deletion),
-      // select the first available team instead
-      console.log('Previously selected team not found, selecting first available team');
-      setSelectedTeamId(teams[0].id);
-    } else if (teams.length === 0) {
-      // Clear selection if there are no teams
-      setSelectedTeamId('');
-    }
-  }, [teams, selectedTeamId]);
 
   // Fetch team members when selectedTeamId changes
   useEffect(() => {
@@ -113,21 +114,6 @@ export function useTeamManagement() {
     }
   }, [teams.length, isTeamsLoading, retryFetchTeams]);
 
-  // Combine errors from all sources
-  useEffect(() => {
-    const combinedError = teamsError || membersError || membershipError;
-    if (combinedError) {
-      setError(combinedError);
-    } else {
-      setError(null);
-    }
-  }, [teamsError, membersError, membershipError]);
-  
-  // Combined loading state
-  useEffect(() => {
-    setIsLoading(isTeamsLoading || isMembersLoading);
-  }, [isTeamsLoading, isMembersLoading]);
-
   // Memoize functions to prevent unnecessary re-renders
   const refetchTeamMembers = useCallback(() => {
     if (selectedTeamId && selectedTeamId !== 'none') {
@@ -141,45 +127,11 @@ export function useTeamManagement() {
     }
     return Promise.resolve(); // Return a promise for compatibility
   }, [selectedTeamId, fetchPendingInvitations]);
-
-  // Enhanced create team handler that sets the selection afterwards
-  const handleCreateTeam = useCallback(async (name: string, orgId?: string) => {
-    try {
-      // Use selected organization from context if not specified
-      const targetOrgId = orgId || selectedOrganization?.id;
-      
-      if (!targetOrgId) {
-        throw new Error('No organization selected for team creation');
-      }
-      
-      const result = await handleCreateTeamBase(name, targetOrgId);
-      
-      if (result.success && result.team) {
-        setSelectedTeamId(result.team.id);
-        return result;
-      }
-      
-      return result;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error creating team:', errorMessage);
-      return { success: false, error: errorMessage };
-    }
-  }, [handleCreateTeamBase, selectedOrganization]);
   
   // Enhanced delete team handler that updates selection if needed
-  const handleDeleteAndUpdateSelection = useCallback(async (teamId: string) => {
-    try {
-      // Try to delete the team
-      await handleDeleteTeam(teamId);
-      
-      // If we just deleted the currently selected team, this will be handled
-      // in the useEffect that monitors teams and selectedTeamId
-    } catch (error) {
-      // Let the error propagate up for UI handling
-      throw error;
-    }
-  }, [handleDeleteTeam]);
+  const handleDeleteTeamWrapper = useCallback(async (teamId: string) => {
+    return handleDeleteAndUpdateSelection(handleDeleteTeam, teamId);
+  }, [handleDeleteTeam, handleDeleteAndUpdateSelection]);
   
   // Log for debugging
   useEffect(() => {
@@ -216,7 +168,7 @@ export function useTeamManagement() {
     setSelectedTeamId,
     handleCreateTeam,
     handleUpdateTeam,
-    handleDeleteTeam: handleDeleteAndUpdateSelection,
+    handleDeleteTeam: handleDeleteTeamWrapper,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
