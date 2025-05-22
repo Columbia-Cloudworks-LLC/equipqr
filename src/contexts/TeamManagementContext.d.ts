@@ -39,7 +39,7 @@ export interface TeamManagementContextType {
   handleOrganizationChange: (orgId: string) => void;
   handleCreateTeam: (name: string) => Promise<any>;
   handleUpdateTeam: (id: string, name: string) => Promise<any>;
-  handleDeleteTeam: (teamId: string) => Promise<any>;
+  handleDeleteTeam: (teamId: string) => Promise<any>; // Changed from Promise<void> to Promise<any>
   handleInviteMember: (email: string, role: UserRole, teamId: string) => Promise<any>;
   handleChangeRole: (userId: string, role: UserRole) => Promise<any>;
   handleRemoveMember: (userId: string) => Promise<any>;

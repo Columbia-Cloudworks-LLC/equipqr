@@ -1,3 +1,4 @@
+
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -5,7 +6,7 @@ import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { useTeamManagementOrgs } from '@/hooks/team/useTeamManagementOrgs';
 import { useFilteredTeams } from '@/hooks/team/useFilteredTeams';
 import { Organization } from '@/types';
-import { TeamManagementContextType } from '@/contexts/TeamManagementContext';
+import { TeamManagementContextType } from '@/contexts/TeamManagementContext.d';
 
 export function useTeamManagementPage(): {
   contextValue: TeamManagementContextType;
@@ -125,7 +126,7 @@ export function useTeamManagementPage(): {
     handleOrganizationChange,
     handleCreateTeam,
     handleUpdateTeam,
-    handleDeleteTeam,
+    handleDeleteTeam, // Now correctly aligns with the updated type
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
