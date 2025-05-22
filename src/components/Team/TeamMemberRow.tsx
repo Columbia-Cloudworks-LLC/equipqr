@@ -27,6 +27,7 @@ interface TeamMemberRowProps {
   isLastManager: boolean;
   onChangeRole: (userId: string, role: UserRole) => void;
   onRemoveMember: (userId: string) => void;
+  onResendInvite?: (id: string) => Promise<void>;
 }
 
 // Role configuration for the dropdown
@@ -42,7 +43,8 @@ export function TeamMemberRow({
   isCurrentUser,
   isLastManager,
   onChangeRole,
-  onRemoveMember
+  onRemoveMember,
+  onResendInvite
 }: TeamMemberRowProps) {
   const [isChangingRole, setIsChangingRole] = useState(false);
   

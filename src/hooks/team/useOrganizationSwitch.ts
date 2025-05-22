@@ -1,54 +1,70 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useState, useEffect, useCallback } from 'react';
 import { Organization } from '@/types';
 import { UserOrganization } from '@/services/organization/userOrganizations';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
-/**
- * Hook to manage organization switching in team management
- */
 export function useOrganizationSwitch(
-  fetchTeams: () => Promise<void>, 
-  setSelectedTeamId: (id: string) => void
+  onOrgChange: () => void,
+  onResetTeamSelection: (value: string) => void
 ) {
   const { organizations, selectedOrganization: contextSelectedOrg } = useOrganization();
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
+  const [isChangingOrg, setIsChangingOrg] = useState<boolean>(false);
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
   
-  const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(
-    contextSelectedOrg?.id
-  );
-  
-  const [isChangingOrg, setIsChangingOrg] = useState(false);
-
-  // Set initial selected org from context when organizations load
+  // Initialize selected org ID from context
   useEffect(() => {
-    if (!selectedOrgId && contextSelectedOrg?.id) {
+    if (contextSelectedOrg && contextSelectedOrg.id) {
       setSelectedOrgId(contextSelectedOrg.id);
+      setSelectedOrganization(contextSelectedOrg);
+    } else if (organizations.length > 0) {
+      // Find primary org or use the first one
+      const primaryOrg = organizations.find(org => org.is_primary) || organizations[0];
+      setSelectedOrgId(primaryOrg.id);
+      setSelectedOrganization(primaryOrg);
     }
-  }, [selectedOrgId, contextSelectedOrg]);
-
-  // Get the selected organization object
-  const selectedOrganization = organizations.find(org => org.id === selectedOrgId);
-
+  }, [contextSelectedOrg, organizations]);
+  
+  // When org ID changes, update the selected organization object
+  useEffect(() => {
+    if (selectedOrgId && organizations.length > 0) {
+      const org = organizations.find(o => o.id === selectedOrgId);
+      if (org) {
+        setSelectedOrganization(org);
+      }
+    }
+  }, [selectedOrgId, organizations]);
+  
   // Handle organization change
   const handleOrganizationChange = useCallback(async (orgId: string) => {
-    if (orgId === selectedOrgId) return;
+    if (orgId === selectedOrgId) {
+      return; // No change needed
+    }
     
     setIsChangingOrg(true);
-    setSelectedTeamId('');  // Clear selected team
-    setSelectedOrgId(orgId);
     
     try {
-      await fetchTeams();
+      // Clear team selection to prevent incorrect data display
+      onResetTeamSelection('');
+      
+      // Update selected org ID
+      setSelectedOrgId(orgId);
+      
+      // Get fresh teams data for the new organization
+      await onOrgChange();
+      
     } finally {
+      // Ensure loading state is cleared even if there's an error
       setIsChangingOrg(false);
     }
-  }, [selectedOrgId, setSelectedTeamId, fetchTeams]);
+  }, [selectedOrgId, onOrgChange, onResetTeamSelection]);
   
   return {
     selectedOrgId,
     isChangingOrg,
     handleOrganizationChange,
-    organizations,
+    organizations: organizations as UserOrganization[],
     selectedOrganization
   };
 }

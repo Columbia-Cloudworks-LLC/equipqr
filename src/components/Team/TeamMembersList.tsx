@@ -32,11 +32,20 @@ export function TeamMembersList({
     );
   }
   
+  // Create adapter functions that convert the function signatures
+  const handleRemoveMember = (userId: string) => {
+    onRemoveMember(userId, teamId);
+  };
+  
+  const handleChangeRole = (userId: string, role: UserRole) => {
+    onChangeRole(userId, role, teamId);
+  };
+  
   return (
     <TeamList
       members={members}
-      onRemoveMember={onRemoveMember}
-      onChangeRole={onChangeRole}
+      onRemoveMember={handleRemoveMember}
+      onChangeRole={handleChangeRole}
       onResendInvite={onResendInvite}
       teamId={teamId}
       isViewOnly={isViewOnly}

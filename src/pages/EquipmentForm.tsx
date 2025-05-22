@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Equipment, CreateEquipmentParams } from '@/types';
+import { EquipmentStatus } from '@/types/supabase-enums';
 import { EquipmentForm as EquipmentFormComponent } from '@/components/Equipment/EquipmentForm';
 import { Layout } from '@/components/Layout/Layout';
 import { toast } from 'sonner';
@@ -94,7 +95,7 @@ const EquipmentFormPage = () => {
       // Convert string status to EquipmentStatus type
       const processedData = {
         ...formData,
-        status: formData.status as any // This safely handles the type conversion
+        status: formData.status as EquipmentStatus // Cast to EquipmentStatus type
       };
       return createEquipment(processedData as CreateEquipmentParams);
     },

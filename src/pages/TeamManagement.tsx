@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useMemo } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
@@ -73,12 +74,17 @@ export default function TeamManagement() {
   // Filter teams and organizations
   const filteredTeams = useFilteredTeams(teams, selectedOrgId, isChangingOrg);
   
-  // Ensure we're using the correct organization types
-  const filteredOrganizations = organizations.map(org => ({
-    ...org,
+  // Convert UserOrganization[] to Organization[] to match expected types
+  const formattedOrganizations: Organization[] = organizations.map(org => ({
+    id: org.id,
+    name: org.name,
     role: org.role || 'viewer', // Ensure role is always defined
-    is_primary: !!org.is_primary
-  })) as Organization[];
+    is_primary: !!org.is_primary,
+    created_at: org.created_at,
+    updated_at: org.updated_at,
+    owner_user_id: org.owner_user_id,
+    user_id: org.user_id
+  }));
 
   // Track if viewing external organization teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;

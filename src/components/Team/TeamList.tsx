@@ -17,7 +17,7 @@ interface TeamListProps {
   members: TeamMember[];
   onRemoveMember: (userId: string) => void;
   onChangeRole: (userId: string, role: UserRole) => void;
-  onResendInvite: (id: string) => void;
+  onResendInvite: (id: string) => Promise<void>;
   teamId: string;
   isViewOnly?: boolean;
   currentUserRole?: string;
@@ -49,6 +49,21 @@ export function TeamList({
     return <TeamEmptyState isEmpty={true} />;
   }
 
+  // Calculate additional props for TeamMemberRow
+  const calculateMemberProps = (member: TeamMember) => {
+    // Determine if this is the current user
+    const isCurrentUser = member.role === currentUserRole;
+    
+    // Check if this is the last manager in the team
+    const isLastManager = member.role === 'manager' && 
+      members.filter(m => m.role === 'manager').length === 1;
+    
+    // Determine if roles can be changed
+    const canChangeRoles = !isViewOnly && ['manager', 'owner'].includes(currentUserRole || '');
+    
+    return { isCurrentUser, isLastManager, canChangeRoles };
+  };
+
   return (
     <div className="rounded-md border">
       <TeamListHeader isViewOnly={isViewOnly} />
@@ -63,24 +78,22 @@ export function TeamList({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {members.map((member) => (
-            <TeamMemberRow
-              key={member.id}
-              member={member}
-              onRemoveMember={handleRemoveMember}
-              onChangeRole={handleChangeRole}
-              onResendInvite={onResendInvite}
-              teamId={teamId}
-              isViewOnly={isViewOnly}
-              changingRoleFor={changingRoleFor}
-              removingMember={removingMember}
-              resendingInvite={resendingInvite}
-              setChangingRoleFor={setChangingRoleFor}
-              setRemovingMember={setRemovingMember}
-              setResendingInvite={setResendingInvite}
-              currentUserRole={currentUserRole}
-            />
-          ))}
+          {members.map((member) => {
+            const { isCurrentUser, isLastManager, canChangeRoles } = calculateMemberProps(member);
+            
+            return (
+              <TeamMemberRow
+                key={member.id}
+                member={member}
+                onRemoveMember={handleRemoveMember}
+                onChangeRole={handleChangeRole}
+                onResendInvite={onResendInvite}
+                isCurrentUser={isCurrentUser}
+                isLastManager={isLastManager}
+                canChangeRoles={canChangeRoles}
+              />
+            );
+          })}
         </TableBody>
       </Table>
     </div>
