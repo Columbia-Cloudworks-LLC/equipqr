@@ -1,4 +1,3 @@
-
 import { Team } from '@/services/team';
 
 export interface TeamMember {
@@ -130,6 +129,9 @@ export interface Invitation {
   team_name?: string;  // Add missing property
   org_name?: string;   // Add missing property
 }
+
+// Re-export the types from equipment.ts for consistency
+export type { CreateEquipmentParams, Equipment, EquipmentAttribute } from './equipment';
 
 // Re-export Team type for consistency
 export type { Team };

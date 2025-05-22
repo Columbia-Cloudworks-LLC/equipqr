@@ -95,9 +95,11 @@ const EquipmentFormPage = () => {
       // Convert to the expected CreateEquipmentParams type with proper status type handling
       const processedData = {
         ...formData,
-        // Convert string status to EquipmentStatus to fix the type error
+        // Make sure the status field is properly handled
         status: formData.status as EquipmentStatus
       };
+      
+      // Use the correct type from equipment module, not from index
       return createEquipment(processedData as unknown as CreateEquipmentParams);
     },
     onSuccess: async (data) => {
@@ -178,7 +180,14 @@ const EquipmentFormPage = () => {
 
   // Update equipment mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: Partial<Equipment> }) => updateEquipment(id, data),
+    mutationFn: ({ id, data }: { id: string, data: Partial<Equipment> }) => {
+      // Ensure status is typed correctly for update as well
+      const processedData = {
+        ...data,
+        status: data.status as EquipmentStatus
+      };
+      return updateEquipment(id, processedData);
+    },
     onSuccess: async (data) => {
       toast.success('Equipment updated successfully');
       
