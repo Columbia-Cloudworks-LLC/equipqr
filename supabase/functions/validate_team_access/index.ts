@@ -76,13 +76,33 @@ serve(async (req) => {
         throw new Error('Missing Supabase environment variables');
       }
       
-      const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+      console.log(`Validating team access for user ${user_id} on team ${team_id}`);
+      
+      const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: {
+          persistSession: false
+        },
+        global: {
+          headers: {
+            'x-client-info': 'edge-function:validate_team_access'
+          }
+        }
+      });
       
       // Create validator instance
       const validator = new TeamAccessValidator(adminClient);
       
       // Check access and get result
       const accessResult = await validator.validateAccess(user_id, team_id);
+      
+      console.log(`Access result for user ${user_id} on team ${team_id}:`, 
+        JSON.stringify({
+          has_access: accessResult.has_access,
+          is_member: accessResult.is_member,
+          access_reason: accessResult.access_reason,
+          role: accessResult.role
+        })
+      );
       
       return createSuccessResponse(accessResult);
       

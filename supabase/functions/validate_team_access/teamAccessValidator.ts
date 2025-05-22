@@ -1,3 +1,4 @@
+
 // Helper class to validate team access with proper organization role checking
 export class TeamAccessValidator {
   private supabase;
@@ -20,7 +21,8 @@ export class TeamAccessValidator {
         return { 
           is_member: false, 
           has_access: false,
-          access_reason: 'error_app_user_not_found'
+          access_reason: 'error_app_user_not_found',
+          error: appUserError.message
         };
       }
 
@@ -38,7 +40,8 @@ export class TeamAccessValidator {
         return { 
           is_member: false, 
           has_access: false,
-          access_reason: 'error_user_profile_not_found'
+          access_reason: 'error_user_profile_not_found',
+          error: userProfileError.message
         };
       }
 
@@ -56,7 +59,18 @@ export class TeamAccessValidator {
         return { 
           is_member: false, 
           has_access: false,
-          access_reason: 'error_team_not_found'
+          access_reason: 'error_team_not_found',
+          error: teamError.message
+        };
+      }
+
+      if (teamData.deleted_at) {
+        console.log('Team is deleted:', teamId);
+        return {
+          is_member: false,
+          has_access: false,
+          access_reason: 'team_deleted',
+          error: 'Team has been deleted'
         };
       }
 
@@ -71,6 +85,10 @@ export class TeamAccessValidator {
         .eq('team_id', teamId)
         .maybeSingle();
 
+      if (teamMembershipError) {
+        console.error('Error checking team membership:', teamMembershipError);
+      }
+
       const isTeamMember = teamMembership !== null;
       let teamMemberId = teamMembership?.id || null;
       let teamRole = null;
@@ -83,7 +101,11 @@ export class TeamAccessValidator {
           .eq('team_member_id', teamMemberId)
           .maybeSingle();
 
-        if (!roleError && roleData) {
+        if (roleError) {
+          console.error('Error getting team role:', roleError);
+        }
+
+        if (roleData) {
           teamRole = roleData.role;
         }
       }
@@ -108,10 +130,9 @@ export class TeamAccessValidator {
       // Check for same organization - critical fix here
       const hasSameOrg = userOrgId === teamOrgId;
       
-      // Check for organization manager/owner access - this is the critical fix
-      // If user is in the same org, and has manager or owner role, they should have access
-      const hasOrgManagerAccess = hasSameOrg && 
-        (orgRole === 'owner' || orgRole === 'manager');
+      // Check for organization manager/owner/admin access - these roles bypass team membership
+      const hasOrgManagerAccess = hasSameOrg && orgRole && 
+        (orgRole === 'owner' || orgRole === 'manager' || orgRole === 'admin');
       
       // Determine if user has access by either being a team member or having org manager rights
       const hasAccess = isTeamMember || hasOrgManagerAccess;
@@ -121,12 +142,27 @@ export class TeamAccessValidator {
       
       // Determine access reason for debugging
       const accessReason = this.determineAccessReason(
-        isTeamMember ? 'team_member' : null, 
+        isTeamMember, 
         teamRole, 
         orgRole,
         hasSameOrg,
-        hasCrossOrgAccess
+        hasCrossOrgAccess,
+        hasOrgManagerAccess
       );
+      
+      console.log('Team access validation result:', {
+        is_member: isTeamMember,
+        has_access: hasAccess,
+        role: highestRole,
+        org_role: orgRole,
+        team_role: teamRole,
+        has_org_access: hasSameOrg,
+        has_org_manager_access: hasOrgManagerAccess,
+        has_cross_org_access: hasCrossOrgAccess,
+        access_reason: accessReason,
+        user_org_id: userOrgId,
+        team_org_id: teamOrgId
+      });
       
       // Return comprehensive team access information
       return {
@@ -137,6 +173,7 @@ export class TeamAccessValidator {
         org_role: orgRole,
         team_role: teamRole,
         has_org_access: hasSameOrg,
+        has_org_manager_access: hasOrgManagerAccess,
         has_cross_org_access: hasCrossOrgAccess,
         access_reason: accessReason,
         team_details: teamData,
@@ -150,7 +187,8 @@ export class TeamAccessValidator {
       return { 
         is_member: false, 
         has_access: false,
-        access_reason: 'error_unexpected'
+        access_reason: 'error_unexpected',
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -168,6 +206,10 @@ export class TeamAccessValidator {
     const teamPriority = rolePriority.indexOf(teamRole);
     const orgPriority = rolePriority.indexOf(orgRole);
     
+    // If either role is not recognized, return the other one
+    if (teamPriority === -1) return orgRole;
+    if (orgPriority === -1) return teamRole;
+    
     // Lower index means higher priority
     // If org role is owner or manager, it should take precedence
     if (orgRole === 'owner' || orgRole === 'manager') {
@@ -180,19 +222,20 @@ export class TeamAccessValidator {
   
   // Helper to determine access reason
   private determineAccessReason(
-    membershipType: string | null, 
+    isTeamMember: boolean, 
     teamRole: string | null, 
     orgRole: string | null,
     hasSameOrg: boolean,
-    hasCrossOrg: boolean
+    hasCrossOrg: boolean,
+    hasOrgManagerAccess: boolean
   ): string {
     // Direct team membership takes precedence
-    if (membershipType === 'team_member') {
+    if (isTeamMember) {
       return 'team_member';
     }
     
     // If they're in the same org and user has manager/owner role
-    if (hasSameOrg && orgRole && (orgRole === 'owner' || orgRole === 'manager')) {
+    if (hasOrgManagerAccess) {
       return 'org_manager_access';
     }
     

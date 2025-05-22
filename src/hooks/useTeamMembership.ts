@@ -32,6 +32,8 @@ export function useTeamMembership(teamId: string | null) {
   const [teamDetails, setTeamDetails] = useState<any>(null);
   const [hasOrgAccess, setHasOrgAccess] = useState<boolean>(false);
   const [organizationRole, setOrganizationRole] = useState<string | null>(null);
+  const [retryTimeout, setRetryTimeout] = useState<number | null>(null);
+  const [checkAttempts, setCheckAttempts] = useState(0);
   
   // Get the current user's ID
   useEffect(() => {
@@ -58,12 +60,22 @@ export function useTeamMembership(teamId: string | null) {
     getCurrentUser();
   }, []);
 
+  // Cleanup retry timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeout !== null) {
+        clearTimeout(retryTimeout);
+      }
+    };
+  }, [retryTimeout]);
+
   // Check team membership when teamId or currentUserId changes
   useEffect(() => {
     if (teamId && teamId !== 'none' && currentUserId) {
       // Always set to true initially to avoid flashing "not a member" message
       setIsMember(true);
       setError(null);
+      setCheckAttempts(0);
       checkDetailedTeamAccess(teamId);
     } else {
       setIsMember(true); // Reset to true when no team is selected
@@ -75,6 +87,13 @@ export function useTeamMembership(teamId: string | null) {
       setError(null);
       setHasOrgAccess(false);
       setOrganizationRole(null);
+      setCheckAttempts(0);
+      
+      // Clear any pending retries
+      if (retryTimeout !== null) {
+        clearTimeout(retryTimeout);
+        setRetryTimeout(null);
+      }
     }
   }, [teamId, currentUserId, retryCount]);
 
@@ -86,7 +105,7 @@ export function useTeamMembership(teamId: string | null) {
       // Clear previous state
       setError(null);
       
-      console.log(`Checking detailed team access for team ${teamId}`);
+      console.log(`Checking detailed team access for team ${teamId}, attempt: ${checkAttempts + 1}`);
       
       // Use the enhanced team access details function with improved logic for org roles
       const accessDetails = await getTeamAccessDetails(teamId);
@@ -94,7 +113,7 @@ export function useTeamMembership(teamId: string | null) {
       console.log('Team access details result:', accessDetails);
       
       // Use the hasAccess flag directly - it now considers both direct membership and org role access
-      const hasAccess = accessDetails.hasAccess;
+      const hasAccess = accessDetails.hasAccess || false;
       
       // Track if user has org-level access and their org role
       setHasOrgAccess(accessDetails.hasOrgAccess || false);
@@ -114,6 +133,9 @@ export function useTeamMembership(teamId: string | null) {
       setTeamOrgName(accessDetails.orgName);
       setTeamDetails(accessDetails.team);
       
+      // Reset check attempts on success
+      setCheckAttempts(0);
+      
       // Only show errors if there's no access
       if (!hasAccess) {
         setError('You are not a member of this team and have no organization-level access. This may be due to an issue during team creation.');
@@ -123,9 +145,24 @@ export function useTeamMembership(teamId: string | null) {
       
     } catch (error: any) {
       console.error('Error checking team access:', error);
-      setError('Failed to verify team membership. Please try again.');
-      // On error, assume no membership to show the repair option
-      setIsMember(false);
+      
+      // Implement retry logic for network issues up to 3 attempts
+      const newAttemptCount = checkAttempts + 1;
+      setCheckAttempts(newAttemptCount);
+      
+      if (newAttemptCount < 3) {
+        console.log(`Retrying team access check in ${newAttemptCount * 1000}ms (attempt ${newAttemptCount + 1})`);
+        const timeout = setTimeout(() => {
+          checkDetailedTeamAccess(teamId);
+        }, newAttemptCount * 1000); // Exponential backoff
+        
+        setRetryTimeout(timeout as unknown as number);
+      } else {
+        // After 3 failures, show error
+        setError('Failed to verify team membership. Please try again.');
+        // On error, assume no membership to show the repair option
+        setIsMember(false);
+      }
     } finally {
       setIsCheckingAccess(false);
     }

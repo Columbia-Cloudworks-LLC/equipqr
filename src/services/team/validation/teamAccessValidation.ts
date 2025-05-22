@@ -1,204 +1,197 @@
 
+import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { TeamAccessDetails } from '@/hooks/useTeamMembership';
+import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team/validation';
 
-/**
- * Checks if the current user has access to a team
- * @param teamId - The ID of the team to check
- */
-export async function validateTeamMembership(teamId: string): Promise<boolean> {
-  try {
-    if (!teamId) {
-      return false;
-    }
-    
-    // Get the current user's auth ID
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    
-    if (!userId) {
-      return false;
-    }
-    
-    // Use improved edge function to check access
-    const { data, error } = await supabase.functions.invoke('validate_team_access', {
-      body: { 
-        team_id: teamId,
-        user_id: userId 
-      }
-    });
-    
-    if (error) {
-      console.error('Error validating team membership:', error);
-      
-      // Fallback to simple team membership check
-      const { data: membershipData, error: membershipError } = await supabase
-        .from('team_member')
-        .select('id')
-        .eq('team_id', teamId)
-        .eq('user_id', userId)
-        .maybeSingle();
+export interface TeamAccessDetails {
+  hasAccess: boolean;
+  role: string | null;
+  // Additional fields to avoid type errors
+  isMember: boolean;
+  hasOrgAccess: boolean;
+  orgRole: string | null;
+  accessReason: string | null;
+  hasCrossOrgAccess: boolean;
+  orgName: string | null;
+  team: any;
+  error?: string | null;
+}
+
+export function useTeamMembership(teamId: string | null) {
+  const [isMember, setIsMember] = useState<boolean>(true); // Optimistic initial state
+  const [isRepairingTeam, setIsRepairingTeam] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [accessReason, setAccessReason] = useState<string | null>(null);
+  const [accessRole, setAccessRole] = useState<string | null>(null);
+  const [hasCrossOrgAccess, setHasCrossOrgAccess] = useState<boolean>(false);
+  const [teamOrgName, setTeamOrgName] = useState<string | null>(null);
+  const [teamDetails, setTeamDetails] = useState<any>(null);
+  const [hasOrgAccess, setHasOrgAccess] = useState<boolean>(false);
+  const [organizationRole, setOrganizationRole] = useState<string | null>(null);
+  
+  // Get the current user's ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
         
-      if (membershipError) {
-        console.error('Error in fallback membership check:', membershipError);
-        return false;
+        if (error) {
+          console.error("Auth session error:", error);
+          return;
+        }
+        
+        if (data.session?.user) {
+          setCurrentUserId(data.session.user.id);
+        } else {
+          console.warn("No authenticated user found");
+          // Redirect to login if needed
+        }
+      } catch (err) {
+        console.error("Error getting auth session:", err);
+      }
+    };
+    
+    getCurrentUser();
+  }, []);
+
+  // Check team membership when teamId or currentUserId changes
+  useEffect(() => {
+    if (teamId && teamId !== 'none' && currentUserId) {
+      // Always set to true initially to avoid flashing "not a member" message
+      setIsMember(true);
+      setError(null);
+      checkDetailedTeamAccess(teamId);
+    } else {
+      setIsMember(true); // Reset to true when no team is selected
+      setAccessReason(null);
+      setAccessRole(null);
+      setHasCrossOrgAccess(false);
+      setTeamOrgName(null);
+      setTeamDetails(null);
+      setError(null);
+      setHasOrgAccess(false);
+      setOrganizationRole(null);
+    }
+  }, [teamId, currentUserId, retryCount]);
+
+  const checkDetailedTeamAccess = async (teamId: string) => {
+    if (isCheckingAccess) return; // Prevent concurrent checks
+    
+    try {
+      setIsCheckingAccess(true);
+      // Clear previous state
+      setError(null);
+      
+      console.log(`Checking detailed team access for team ${teamId}`);
+      
+      // Use the enhanced team access details function with improved logic for org roles
+      const accessDetails = await getTeamAccessDetails(teamId);
+      
+      console.log('Team access details result:', accessDetails);
+      
+      // Use the hasAccess flag directly - it now considers both direct membership and org role access
+      const hasAccess = accessDetails.hasAccess;
+      
+      // Track if user has org-level access and their org role
+      setHasOrgAccess(accessDetails.hasOrgAccess || false);
+      setOrganizationRole(accessDetails.orgRole || null);
+      
+      // Set member status based on direct membership or org access
+      setIsMember(hasAccess);
+      
+      // Only set access role if it's not null to prevent overriding with null
+      if (accessDetails.role !== null) {
+        setAccessRole(accessDetails.role);
       }
       
-      return !!membershipData;
-    }
-    
-    // If the edge function worked, check has_access which includes both direct membership and org-level access
-    return data?.has_access === true;
-  } catch (error: any) {
-    console.error('Error in validateTeamMembership:', error);
-    return false;
-  }
-}
-
-/**
- * Get detailed team access information
- */
-export async function getTeamAccessDetails(teamId: string): Promise<TeamAccessDetails> {
-  try {
-    if (!teamId) {
-      return {
-        hasAccess: false,
-        role: null,
-        isMember: false,
-        hasOrgAccess: false,
-        orgRole: null,
-        accessReason: null,
-        hasCrossOrgAccess: false,
-        orgName: null,
-        team: null,
-        error: 'No team ID provided'
-      };
-    }
-    
-    // Get the current user's auth ID
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    
-    if (!userId) {
-      return {
-        hasAccess: false,
-        role: null,
-        isMember: false,
-        hasOrgAccess: false,
-        orgRole: null,
-        accessReason: null,
-        hasCrossOrgAccess: false,
-        orgName: null,
-        team: null,
-        error: 'Not authenticated'
-      };
-    }
-    
-    // Use the improved edge function with retry logic
-    const { data, error } = await supabase.functions.invoke('validate_team_access', {
-      body: { 
-        team_id: teamId,
-        user_id: userId 
+      // Set additional context for debugging
+      setAccessReason(accessDetails.accessReason);
+      setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess);
+      setTeamOrgName(accessDetails.orgName);
+      setTeamDetails(accessDetails.team);
+      
+      // Only show errors if there's no access
+      if (!hasAccess) {
+        setError('You are not a member of this team and have no organization-level access. This may be due to an issue during team creation.');
+      } else {
+        setError(null);
       }
-    });
-    
-    if (error) {
+      
+    } catch (error: any) {
       console.error('Error checking team access:', error);
-      return {
-        hasAccess: false,
-        role: null,
-        isMember: false,
-        hasOrgAccess: false,
-        orgRole: null,
-        accessReason: null,
-        hasCrossOrgAccess: false,
-        orgName: null,
-        team: null,
-        error: error.message
-      };
+      setError('Failed to verify team membership. Please try again.');
+      // On error, assume no membership to show the repair option
+      setIsMember(false);
+    } finally {
+      setIsCheckingAccess(false);
     }
-    
-    // Check if data is returned and has the expected properties
-    if (!data) {
-      return {
-        hasAccess: false,
-        role: null,
-        isMember: false,
-        hasOrgAccess: false,
-        orgRole: null,
-        accessReason: null,
-        hasCrossOrgAccess: false,
-        orgName: null,
-        team: null,
-        error: 'No data returned from access check'
-      };
-    }
-    
-    console.log('Team access details from edge function:', data);
-    
-    // Return the extended properties, with more reliable hasAccess flag
-    return {
-      hasAccess: data.has_access || false,
-      role: data.role || null,
-      isMember: data.is_member || false,
-      hasOrgAccess: data.has_org_access || false,
-      orgRole: data.org_role || null,
-      accessReason: data.access_reason || null,
-      hasCrossOrgAccess: data.has_cross_org_access || false,
-      orgName: data.org_name || null,
-      team: data.team_details || null,
-      error: null
-    };
-  } catch (error: any) {
-    console.error('Error in getTeamAccessDetails:', error);
-    return {
-      hasAccess: false,
-      role: null,
-      isMember: false,
-      hasOrgAccess: false,
-      orgRole: null,
-      accessReason: null,
-      hasCrossOrgAccess: false,
-      orgName: null,
-      team: null,
-      error: error.message || 'Failed to check team access'
-    };
-  }
-}
+  };
 
-/**
- * Repair team membership by adding the current user as a manager
- */
-export async function repairTeamMembership(teamId: string): Promise<{ success: boolean, error?: string }> {
-  try {
-    if (!teamId) {
-      throw new Error('Team ID is required');
+  const handleRepairTeam = async (teamId: string) => {
+    if (!teamId) return;
+    
+    try {
+      setIsRepairingTeam(true);
+      setError(null);
+      
+      console.log(`Attempting to repair team membership for team ${teamId}`);
+      
+      // Call the repair function
+      const result = await repairTeamMembership(teamId);
+      
+      if (result && result.success) {
+        toast.success("Team membership repaired", {
+          description: "You have been added as a team manager",
+        });
+        
+        // Re-check team membership after a short delay to allow DB to update
+        setTimeout(() => {
+          if (currentUserId) {
+            console.log("Re-checking team membership after repair");
+            setRetryCount(count => count + 1); // This will trigger re-check through useEffect
+          }
+        }, 1000);
+      } else {
+        throw new Error(result?.error || "Repair failed with unknown error");
+      }
+    } catch (error: any) {
+      console.error('Error in handleRepairTeam:', error);
+      setError(`Failed to repair team: ${error.message}`);
+      toast.error("Error repairing team", {
+        description: error.message,
+      });
+    } finally {
+      setIsRepairingTeam(false);
     }
-    
-    // Get the current user's auth ID
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    
-    if (!userId) {
-      throw new Error('Authentication required');
+  };
+
+  const retryAccessCheck = useCallback(() => {
+    if (teamId && currentUserId) {
+      console.log("Manually retrying team access check");
+      setRetryCount(count => count + 1);
+      toast.info("Retrying team access check...");
     }
-    
-    // Call an edge function to handle the repair
-    const { data, error } = await supabase.functions.invoke('repair_team_membership', {
-      body: { team_id: teamId }
-    });
-    
-    if (error) {
-      throw new Error(error.message || 'Failed to repair team membership');
-    }
-    
-    if (!data || !data.success) {
-      throw new Error(data?.error || 'Failed to repair team membership');
-    }
-    
-    return { success: true };
-  } catch (error: any) {
-    console.error('Error repairing team membership:', error);
-    return { success: false, error: error.message };
-  }
+  }, [teamId, currentUserId]);
+
+  return {
+    isMember,
+    isRepairingTeam,
+    isCheckingAccess,
+    currentUserId,
+    error,
+    accessReason,
+    accessRole,
+    hasCrossOrgAccess,
+    hasOrgAccess,
+    organizationRole,
+    teamOrgName,
+    teamDetails,
+    handleRepairTeam,
+    checkTeamMembership: checkDetailedTeamAccess,
+    retryAccessCheck
+  };
 }

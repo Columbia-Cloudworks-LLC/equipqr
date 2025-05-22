@@ -1,99 +1,118 @@
 
-import { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { PlusCircle, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 interface CreateTeamButtonProps {
   onCreateTeam: (name: string) => Promise<any>;
   isCreating: boolean;
+  disabled?: boolean;
 }
 
-export function CreateTeamButton({ onCreateTeam, isCreating = false }: CreateTeamButtonProps) {
-  const [open, setOpen] = useState(false);
+export function CreateTeamButton({ onCreateTeam, isCreating, disabled = false }: CreateTeamButtonProps) {
   const [teamName, setTeamName] = useState('');
-  const [localCreating, setLocalCreating] = useState(false);
-  
-  // Combined creating state for better UX
-  const isInProgress = isCreating || localCreating;
-  
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!teamName.trim()) {
+      toast.error('Team name cannot be empty');
+      return;
+    }
     
-    if (!teamName.trim()) return;
-    
+    setIsSubmitting(true);
     try {
-      setLocalCreating(true);
-      const newTeam = await onCreateTeam(teamName);
-      
-      if (newTeam) {
-        // Close dialog only on success
-        setOpen(false);
+      const result = await onCreateTeam(teamName.trim());
+      if (result.success) {
+        toast.success('Team created successfully', {
+          description: `Team "${teamName}" has been created.`,
+        });
         setTeamName('');
+        setOpen(false);
+      } else {
+        toast.error('Failed to create team', {
+          description: result.error || 'An unknown error occurred.',
+        });
       }
-    } catch (error) {
-      console.error('Error creating team:', error);
-      // Error is handled by the parent component
+    } catch (error: any) {
+      toast.error('Error creating team', {
+        description: error.message || 'An unknown error occurred.',
+      });
     } finally {
-      setLocalCreating(false);
+      setIsSubmitting(false);
     }
   };
-  
+
   return (
-    <>
-      <Button 
-        onClick={() => setOpen(true)} 
-        variant="outline" 
-        size="sm" 
-        className="ml-2 flex items-center gap-1"
-        disabled={isInProgress}
-      >
-        <Plus className="h-4 w-4" />
-        New Team
-      </Button>
-      
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Team</DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Team Name</Label>
-                <Input
-                  id="name"
-                  placeholder="Enter team name"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  required
-                  disabled={isInProgress}
-                />
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setOpen(false)}
-                disabled={isInProgress}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isInProgress || !teamName.trim()}
-              >
-                {isInProgress ? 'Creating...' : 'Create Team'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button 
+          variant="outline" 
+          className="ml-2" 
+          disabled={isCreating || disabled}
+        >
+          {isCreating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            <>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Team
+            </>
+          )}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create a new team</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+          <div className="space-y-2">
+            <Label htmlFor="team-name">Team Name</Label>
+            <Input
+              id="team-name"
+              placeholder="Enter team name"
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setOpen(false)} 
+              className="mr-2"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Team'
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -15,13 +15,14 @@ import { UserRole } from '@/types/supabase-enums';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 
 export default function TeamManagement() {
   const { organizations, selectedOrganization, selectOrganization } = useOrganization();
   const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(
     selectedOrganization?.id
   );
+  const [isChangingOrg, setIsChangingOrg] = useState(false);
 
   const {
     members,
@@ -77,19 +78,41 @@ export default function TeamManagement() {
     }
   }, [session, isAuthLoading, navigate]);
 
-  // Update organization context when selectedOrgId changes
+  // Update organization context when selectedOrgId changes with improved state management
   useEffect(() => {
-    if (selectedOrgId && selectedOrgId !== selectedOrganization?.id) {
-      selectOrganization(selectedOrgId);
-    }
-  }, [selectedOrgId, selectOrganization, selectedOrganization]);
+    const updateOrganization = async () => {
+      if (selectedOrgId && selectedOrgId !== selectedOrganization?.id) {
+        setIsChangingOrg(true);
+        
+        try {
+          // Clear team selection first to avoid validation errors
+          setSelectedTeamId('');
+          
+          // Update the organization context
+          await selectOrganization(selectedOrgId);
+          
+          // Fetch teams for the new organization after a small delay
+          // to allow context to update fully
+          setTimeout(() => {
+            fetchTeams();
+            setIsChangingOrg(false);
+          }, 300);
+        } catch (error) {
+          console.error('Error changing organization:', error);
+          setIsChangingOrg(false);
+        }
+      }
+    };
+    
+    updateOrganization();
+  }, [selectedOrgId, selectOrganization, fetchTeams, selectedOrganization]);
 
-  // Update selectedOrgId when selectedOrganization changes
+  // Update selectedOrgId when selectedOrganization changes (feedback loop protection)
   useEffect(() => {
-    if (selectedOrganization && selectedOrgId !== selectedOrganization.id) {
+    if (selectedOrganization && !isChangingOrg && selectedOrgId !== selectedOrganization.id) {
       setSelectedOrgId(selectedOrganization.id);
     }
-  }, [selectedOrganization]);
+  }, [selectedOrganization, isChangingOrg]);
 
   // Filter teams by selected organization
   const filteredTeams = useMemo(() => {
@@ -99,8 +122,13 @@ export default function TeamManagement() {
       : teams.filter(team => !team.deleted_at);
   }, [teams, selectedOrgId]);
 
-  // When filtered teams change, ensure we select a valid team
+  // When filtered teams change, ensure we select a valid team - with improved protection against race conditions
   useEffect(() => {
+    // Skip selection changes during organization switching
+    if (isChangingOrg) {
+      return;
+    }
+    
     // If there are teams available but none selected or the selected one is invalid
     if (filteredTeams.length > 0) {
       const teamExists = filteredTeams.some(team => team.id === selectedTeamId);
@@ -117,7 +145,7 @@ export default function TeamManagement() {
         setSelectedTeamId('');
       }
     }
-  }, [filteredTeams, selectedTeamId, setSelectedTeamId]);
+  }, [filteredTeams, selectedTeamId, setSelectedTeamId, isChangingOrg]);
 
   // Determine if the user has viewer role only - check if it's 'viewer' specifically
   const isViewerOnly = isMember && currentUserRole === 'viewer';
@@ -158,10 +186,11 @@ export default function TeamManagement() {
       canChangeRoles,
       isViewerOnly,
       organizations: organizations.length,
-      filteredOrganizations: filteredOrganizations.length
+      filteredOrganizations: filteredOrganizations.length,
+      isChangingOrg
     });
   }, [teams.length, filteredTeams.length, selectedTeamId, selectedOrgId, isLoading, isMember, 
-      currentUserRole, canChangeRoles, isViewerOnly, organizations, filteredOrganizations]);
+      currentUserRole, canChangeRoles, isViewerOnly, organizations, filteredOrganizations, isChangingOrg]);
 
   // Wrapper functions to adapt the hook functions to the expected return types for TeamContent
   const handleUpdateTeamWrapper = async (id: string, name: string): Promise<void> => {
@@ -211,11 +240,16 @@ export default function TeamManagement() {
     return Promise.reject("No team selected");
   };
 
-  // Handle organization change
+  // Handle organization change with improved flow control
   const handleOrganizationChange = (orgId: string) => {
-    setSelectedOrgId(orgId);
-    // Clear selected team when changing org - the useEffect will select the first available team if any
+    if (orgId === selectedOrgId) return;
+    
+    // Set changing state and clear team selection
+    setIsChangingOrg(true);
     setSelectedTeamId('');
+    
+    // Update the selected organization ID
+    setSelectedOrgId(orgId);
   };
 
   // Handle team creation with selected organization
@@ -243,6 +277,19 @@ export default function TeamManagement() {
     return null;
   }
 
+  // Show organization switching loading state
+  if (isChangingOrg) {
+    return (
+      <Layout>
+        <div className="p-6 flex flex-col items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-lg font-medium">Switching organization...</p>
+          <p className="text-sm text-muted-foreground">Please wait while we load your teams</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
@@ -255,9 +302,15 @@ export default function TeamManagement() {
                 selectedOrgId={selectedOrgId}
                 onChange={handleOrganizationChange}
                 className="w-[200px]"
+                disabled={isChangingOrg}
               />
             )}
-            <Button variant="outline" size="sm" onClick={fetchTeams} disabled={isLoading}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={fetchTeams} 
+              disabled={isLoading || isChangingOrg}
+            >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               {isLoading ? 'Loading...' : 'Refresh'}
             </Button>
@@ -302,6 +355,7 @@ export default function TeamManagement() {
                   onChange={setSelectedTeamId}
                   placeholder="Select a team to manage"
                   hideNoTeamOption={true}
+                  disabled={isChangingOrg}
                 />
               </div>
               
@@ -310,40 +364,47 @@ export default function TeamManagement() {
                 <CreateTeamButton 
                   onCreateTeam={handleCreateTeamWithOrg}
                   isCreating={isCreatingTeam}
+                  disabled={isChangingOrg}
                 />
               )}
             </div>
             
-            <TeamContent
-              selectedTeamId={selectedTeamId}
-              members={members}
-              pendingInvitations={pendingInvitations}
-              teams={filteredTeams}
-              isLoading={isLoading}
-              isLoadingInvitations={isLoadingInvitations}
-              isCreatingTeam={isCreatingTeam}
-              isUpdatingTeam={isUpdatingTeam}
-              isDeletingTeam={isDeletingTeam}
-              isRepairingTeam={isRepairingTeam}
-              isUpgradingRole={isUpgradingRole}
-              isRequestingRole={isRequestingRole}
-              isMember={isMember}
-              currentUserRole={currentUserRole}
-              canChangeRoles={canChangeRoles}
-              onInviteMember={handleInviteMemberWrapper}
-              onChangeRole={handleChangeRoleWrapper}
-              onRemoveMember={handleRemoveMemberWrapper}
-              onResendInvite={handleResendInvite}
-              onCancelInvitation={handleCancelInvitation}
-              onCreateTeam={handleCreateTeamWithOrg}
-              onUpdateTeam={handleUpdateTeamWrapper}
-              onDeleteTeam={handleDeleteTeamWrapper}
-              onRepairTeam={handleRepairTeamWrapper}
-              onUpgradeRole={handleUpgradeRoleWrapper}
-              onRequestRoleUpgrade={handleRequestRoleUpgradeWrapper}
-              onFetchPendingInvitations={refetchPendingInvitations}
-              getTeamEquipmentCount={getTeamEquipmentCount}
-            />
+            {selectedTeamId ? (
+              <TeamContent
+                selectedTeamId={selectedTeamId}
+                members={members}
+                pendingInvitations={pendingInvitations}
+                teams={filteredTeams}
+                isLoading={isLoading}
+                isLoadingInvitations={isLoadingInvitations}
+                isCreatingTeam={isCreatingTeam}
+                isUpdatingTeam={isUpdatingTeam}
+                isDeletingTeam={isDeletingTeam}
+                isRepairingTeam={isRepairingTeam}
+                isUpgradingRole={isUpgradingRole}
+                isRequestingRole={isRequestingRole}
+                isMember={isMember}
+                currentUserRole={currentUserRole}
+                canChangeRoles={canChangeRoles}
+                onInviteMember={handleInviteMemberWrapper}
+                onChangeRole={handleChangeRoleWrapper}
+                onRemoveMember={handleRemoveMemberWrapper}
+                onResendInvite={handleResendInvite}
+                onCancelInvitation={handleCancelInvitation}
+                onCreateTeam={handleCreateTeamWithOrg}
+                onUpdateTeam={handleUpdateTeamWrapper}
+                onDeleteTeam={handleDeleteTeamWrapper}
+                onRepairTeam={handleRepairTeamWrapper}
+                onUpgradeRole={handleUpgradeRoleWrapper}
+                onRequestRoleUpgrade={handleRequestRoleUpgradeWrapper}
+                onFetchPendingInvitations={refetchPendingInvitations}
+                getTeamEquipmentCount={getTeamEquipmentCount}
+              />
+            ) : (
+              <div className="mt-6 text-center p-6 border border-dashed rounded-lg">
+                <p>Select a team from the dropdown above</p>
+              </div>
+            )}
           </>
         ) : (
           <EmptyTeamState
