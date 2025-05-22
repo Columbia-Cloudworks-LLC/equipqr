@@ -10,7 +10,7 @@ export function useTeamFunctionWrappers(
   handleResendInvite: (id: string) => Promise<void>,
   handleCancelInvitation: (id: string) => Promise<void>,
   handleCreateTeam: (name: string, orgId: string) => Promise<any>,
-  handleUpdateTeam: (id: string, name: string) => Promise<void>,
+  handleUpdateTeam: (id: string, name: string) => Promise<any>,
   handleDeleteTeam: (teamId: string) => Promise<void>,
   handleRepairTeam: (teamId: string) => Promise<void>,
   handleUpgradeRole: (teamId: string) => Promise<void>,
@@ -22,8 +22,8 @@ export function useTeamFunctionWrappers(
   }, [handleCreateTeam, selectedTeamId]);
 
   // Wrapper for team update
-  const handleUpdateTeamWrapper = useCallback(async (id: string, name: string): Promise<void> => {
-    await handleUpdateTeam(id, name);
+  const handleUpdateTeamWrapper = useCallback(async (id: string, name: string): Promise<any> => {
+    return handleUpdateTeam(id, name);
   }, [handleUpdateTeam]);
   
   // Wrapper for team deletion

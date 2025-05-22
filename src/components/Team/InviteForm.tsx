@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,8 +27,8 @@ export function InviteForm({ onInvite, onCancel, isLoading = false, teams, selec
   const [role, setRole] = useState<UserRole>('viewer');
   const [teamId, setTeamId] = useState(selectedTeamId || '');
 
-  // Update teamId when selectedTeamId changes
-  useState(() => {
+  // Update teamId when selectedTeamId changes - fix: changed useState to useEffect
+  useEffect(() => {
     if (selectedTeamId) {
       setTeamId(selectedTeamId);
     }
