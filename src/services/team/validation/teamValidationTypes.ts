@@ -20,3 +20,12 @@ export interface TeamAccessResult {
   team_name?: string | null;
   error?: string;
 }
+
+/**
+ * Result from team repair operation
+ */
+export interface RepairResult {
+  success: boolean;
+  team_member_id?: string;
+  error?: string;
+}
