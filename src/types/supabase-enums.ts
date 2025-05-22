@@ -27,10 +27,10 @@ export type MemberStatus = 'active' | 'inactive' | 'pending';
 
 /**
  * Enum for datetime format preferences
+ * Modified to match exact formats supported by the database
  */
 export type DateTimeFormat = 
   | 'MM/DD/YYYY h:mm A'     // US format
   | 'DD/MM/YYYY h:mm A'     // European format
-  | 'YYYY-MM-DD HH:mm'      // ISO-like format
-  | 'YYYY-MM-DD HH:mm:ss'   // Extended ISO format
+  | 'YYYY-MM-DD HH:mm:ss'   // ISO-like format
   | 'ISO';                  // Full ISO format
