@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { Equipment, EquipmentAttribute } from '@/types';
 import { useTeamsData } from './useTeamsData';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { UserOrganization } from '@/services/organization/userOrganizations';
 
 interface UseEquipmentFormProps {
   initialEquipment?: Equipment;

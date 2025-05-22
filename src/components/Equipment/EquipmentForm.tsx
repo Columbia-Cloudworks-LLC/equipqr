@@ -80,9 +80,10 @@ export function EquipmentForm({
 
   // If we have team loading errors, show them
   if (teamsError) {
+    // Handle the error based on its type
     const errorMessage = typeof teamsError === 'string' ? teamsError : 
-                         (teamsError instanceof Error ? teamsError.message : 
-                          'Unknown error loading teams');
+                        (teamsError instanceof Error ? teamsError.message : 
+                        'Unknown error loading teams');
     
     return <ErrorState error={teamsError} errorMessage={errorMessage} onRetry={onRetry} />;
   }

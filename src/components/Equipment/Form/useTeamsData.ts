@@ -14,7 +14,7 @@ interface Team {
 export function useTeamsData() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | Error | null>(null);
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -81,9 +81,16 @@ export function useTeamsData() {
           
           setTeams(processedTeams);
         }
-      } catch (error) {
-        console.error("Error fetching teams:", error);
-        setError(error instanceof Error ? error.message : 'Unknown error');
+      } catch (err) {
+        console.error("Error fetching teams:", err);
+        if (err instanceof Error) {
+          setError(err);
+        } else if (typeof err === 'string') {
+          setError(err);
+        } else {
+          setError('Unknown error fetching teams');
+        }
+        setTeams([]);
       } finally {
         setIsLoading(false);
       }
