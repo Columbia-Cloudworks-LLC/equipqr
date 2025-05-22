@@ -6,6 +6,7 @@ import { prepareEquipmentForUpdate, updateEquipmentInDb } from "./db/equipmentUp
 import { saveEquipmentAttributes } from "./attributesService";
 import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
 import { toast } from "sonner";
+import { invalidateEquipmentCache } from "./services/cacheService";
 
 /**
  * Update existing equipment
@@ -58,9 +59,17 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
       console.log('Saving equipment attributes:', attributes);
       const updatedAttributes = await saveEquipmentAttributes(id, attributes);
       console.log('Updated attributes:', updatedAttributes);
+      
+      // Immediately invalidate all equipment cache after successful update
+      invalidateEquipmentCache(authUserId, equipment.org_id, id);
+      
       return { ...updatedEquipment, attributes: updatedAttributes } as Equipment;
     } catch (attrError) {
       console.error('Error updating equipment attributes:', attrError);
+      
+      // Still invalidate cache even if attributes failed to update
+      invalidateEquipmentCache(authUserId, equipment.org_id, id);
+      
       // Return equipment without updated attributes on error
       return updatedEquipment as Equipment;
     }

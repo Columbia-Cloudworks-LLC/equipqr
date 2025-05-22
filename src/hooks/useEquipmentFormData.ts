@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -10,6 +9,8 @@ import { createEquipment } from '@/services/equipment/equipmentCreateService';
 import { updateEquipment } from '@/services/equipment/equipmentUpdateService';
 import { refreshEquipment, diagnoseEquipmentService } from '@/services/equipment/equipmentListService';
 import { CreateEquipmentParams } from '@/types/equipment';
+import { invalidateEquipmentCache } from '@/services/equipment/services/cacheService';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useEquipmentFormData(redirectToLogin: (message: string) => void) {
   const { id } = useParams<{ id: string }>();
@@ -48,14 +49,23 @@ export function useEquipmentFormData(redirectToLogin: (message: string) => void)
     onSuccess: async (data) => {
       toast.success('Equipment added successfully');
       
+      // Get user ID for cache invalidation
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      
       // Force refresh equipment list data
       try {
         await refreshEquipment();
+        
+        // Explicitly invalidate equipment caches
+        if (userId) {
+          invalidateEquipmentCache(userId, data?.equipment?.org_id);
+        }
       } catch (refreshError) {
         console.warn('Failed to refresh equipment list:', refreshError);
       }
       
-      // Invalidate queries to ensure data is fresh
+      // More targeted query invalidation
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       
       // Navigate to the new equipment page if we have an ID
@@ -123,15 +133,29 @@ export function useEquipmentFormData(redirectToLogin: (message: string) => void)
     onSuccess: async (data) => {
       toast.success('Equipment updated successfully');
       
+      // Get user ID for cache invalidation
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      
       // Force refresh equipment list data
       try {
         await refreshEquipment();
+        
+        // Explicitly invalidate equipment caches with more specificity
+        if (userId) {
+          invalidateEquipmentCache(userId, data?.org_id, data?.id);
+        }
       } catch (refreshError) {
         console.warn('Failed to refresh equipment list:', refreshError);
       }
       
-      // Invalidate queries to ensure data is fresh
+      // More targeted query invalidation
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      
+      // Specifically invalidate this equipment's detail query
+      if (data?.id) {
+        queryClient.invalidateQueries({ queryKey: ['equipment', data.id] });
+      }
       
       // Navigate to the updated equipment page
       navigate(`/equipment/${data.id}`);
