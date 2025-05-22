@@ -1,4 +1,3 @@
-
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +15,6 @@ export function useTeamManagementPage(): {
   const navigate = useNavigate();
   const { session, isLoading: isAuthLoading } = useAuth();
   
-  // Get team management state and functions
   const teamManagement = useTeamManagement();
   const {
     members,
@@ -54,14 +52,11 @@ export function useTeamManagementPage(): {
     getTeamEquipmentCount
   } = teamManagement;
   
-  // Organization and team state management
   const orgContext = useTeamManagementOrgs(organizations, fetchTeams, setSelectedTeamId);
   const { selectedOrgId, isChangingOrg, handleOrganizationChange, selectedOrganization } = orgContext;
   
-  // Filter teams based on selected organization
   const filteredTeams = useFilteredTeams(teams, selectedOrgId, isChangingOrg);
   
-  // Format organizations for the dropdown
   const formattedOrganizations = useMemo(() => organizations.map(org => ({
     id: org.id,
     name: org.name,
@@ -73,7 +68,6 @@ export function useTeamManagementPage(): {
     user_id: (org as any).user_id
   })), [organizations]);
 
-  // Authentication check
   useEffect(() => {
     if (!isAuthLoading && !session) {
       navigate('/auth', { 
@@ -85,7 +79,6 @@ export function useTeamManagementPage(): {
     }
   }, [session, isAuthLoading, navigate]);
 
-  // When filtered teams change, ensure we select a valid team
   useEffect(() => {
     if (isChangingOrg) {
       return;
@@ -106,7 +99,6 @@ export function useTeamManagementPage(): {
     }
   }, [filteredTeams, selectedTeamId, setSelectedTeamId, isChangingOrg]);
 
-  // Build the context value with all the state and functions
   const contextValue: TeamManagementContextType = {
     teams,
     members,
