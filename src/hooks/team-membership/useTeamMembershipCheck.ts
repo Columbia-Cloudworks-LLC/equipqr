@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from 'react';
+
+import { useCallback } from 'react';
 import { getTeamAccessDetails } from '@/services/team/validation';
 
 /**
@@ -53,7 +54,7 @@ export function useTeamMembershipCheck(
       
       // Set additional context for debugging
       setAccessReason(accessDetails.accessReason);
-      setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess);
+      setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess || false);
       setTeamOrgName(accessDetails.orgName);
       setTeamDetails(accessDetails.team);
       
@@ -62,7 +63,12 @@ export function useTeamMembershipCheck(
       
       // Only show errors if there's no access
       if (!hasAccess) {
-        setError('You are not a member of this team and have no organization-level access. This may be due to an issue during team creation.');
+        // Enhanced error message for cross-organization scenario
+        if (accessDetails.teamOrgId && accessDetails.userOrgId && accessDetails.teamOrgId !== accessDetails.userOrgId) {
+          setError(`You don't have sufficient permissions to access this team in organization "${accessDetails.orgName || 'Unknown'}". This team belongs to a different organization than your primary one.`);
+        } else {
+          setError('You are not a member of this team and have no organization-level access.');
+        }
       } else {
         setError(null);
       }

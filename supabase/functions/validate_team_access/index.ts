@@ -100,7 +100,9 @@ serve(async (req) => {
           has_access: accessResult.has_access,
           is_member: accessResult.is_member,
           access_reason: accessResult.access_reason,
-          role: accessResult.role
+          role: accessResult.role,
+          user_org_id: accessResult.user_org_id,
+          team_org_id: accessResult.team_org_id
         })
       );
       

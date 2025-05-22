@@ -1,7 +1,40 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
 import { TeamAccessResult } from './teamValidationTypes';
+
+/**
+ * Invoke an edge function with proper error handling and timeout
+ */
+async function invokeEdgeFunction(
+  functionName: string, 
+  payload: any, 
+  timeoutMs: number = 5000
+): Promise<any> {
+  return new Promise(async (resolve, reject) => {
+    // Set timeout to reject the promise if it takes too long
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`Edge function call to ${functionName} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: payload
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (error) {
+        console.error(`Edge function ${functionName} error:`, error);
+        reject(new Error(error.message || 'Unknown edge function error'));
+      } else {
+        resolve(data);
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      reject(err);
+    }
+  });
+}
 
 /**
  * Validate a user's membership in a team using our improved edge function
@@ -37,8 +70,17 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
       console.log('Team membership validation result:', data);
       
       return {
-        isValid: data?.is_member === true,
-        result: data || null
+        isValid: data?.has_access === true, // Ensure we check exact boolean true
+        result: data || null,
+        // Add diagnostics for troubleshooting
+        diagnostics: {
+          isMember: data?.is_member,
+          accessReason: data?.access_reason,
+          userOrgId: data?.user_org_id,
+          teamOrgId: data?.team_org_id,
+          role: data?.role,
+          hasCrossOrgAccess: data?.has_cross_org_access
+        }
       };
     } catch (error) {
       console.error('Team membership validation error:', error);
@@ -59,6 +101,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
         isValid: fallbackResult === true,
         result: { 
           is_member: fallbackResult === true,
+          has_access: fallbackResult === true,
           access_reason: 'fallback_check'
         } as TeamAccessResult
       };
@@ -70,6 +113,7 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
       isValid: false,
       result: {
         is_member: false,
+        has_access: false,
         access_reason: 'error_validation_failed'
       } as TeamAccessResult,
       error: error.message

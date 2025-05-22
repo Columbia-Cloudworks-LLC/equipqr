@@ -31,7 +31,7 @@ export class TeamAccessValidator {
       // Get team details
       const { data: team, error: teamError } = await this.supabase
         .from('team')
-        .select('org_id')
+        .select('org_id, name')
         .eq('id', teamId)
         .is('deleted_at', null)
         .maybeSingle();
@@ -98,51 +98,79 @@ export class TeamAccessValidator {
         }
       }
       
-      // For non-team members, check if they're in the same org
-      let orgRole = null;
-      if (!isMember && userProfile.org_id === team.org_id) {
-        // Get user's organization role
-        const { data: userRole, error: roleError } = await this.supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .eq('org_id', team.org_id)
+      // CRITICAL FIX: Check user's role in the TEAM's organization, even if it's not their primary org
+      // This allows users with roles in multiple organizations to access teams in those orgs
+      const { data: userRoleInTeamOrg, error: teamOrgRoleError } = await this.supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('org_id', team.org_id)
+        .maybeSingle();
+      
+      if (teamOrgRoleError) {
+        console.error('Error fetching user organization role in team org:', teamOrgRoleError);
+      }
+      
+      let orgRole = userRoleInTeamOrg?.role || null;
+      
+      // Log detailed diagnostic information
+      console.log('Access check details:', {
+        userId,
+        teamId,
+        userOrgId: userProfile.org_id,
+        teamOrgId: team.org_id,
+        hasCrossOrgRole: userProfile.org_id !== team.org_id && orgRole !== null,
+        isMember,
+        teamRole: role,
+        orgRole
+      });
+      
+      // Determine if user has access through organization role
+      // Important: Check if they have permission in the TEAM's organization
+      const hasOrgRoleAccess = orgRole && ['owner', 'manager'].includes(orgRole);
+      
+      // Determine access: either team member or has appropriate org role in team's org
+      const hasAccess = isMember || hasOrgRoleAccess;
+      
+      // Define access reason
+      let accessReason;
+      if (isMember) {
+        accessReason = 'team_member';
+      } else if (hasOrgRoleAccess) {
+        accessReason = 'org_role_in_teams_org';
+      } else if (userProfile.org_id === team.org_id) {
+        accessReason = 'same_org_no_access';
+      } else {
+        accessReason = 'no_access';
+      }
+      
+      // Get team organization name for UI context
+      let orgName = null;
+      if (team.org_id) {
+        const { data: orgData } = await this.supabase
+          .from('organization')
+          .select('name')
+          .eq('id', team.org_id)
           .maybeSingle();
           
-        if (roleError) throw new Error(`Error fetching user organization role: ${roleError.message}`);
-        
-        if (userRole) {
-          orgRole = userRole.role;
-          
-          // Only owners and managers in the org get access without team membership
-          // Viewers need explicit team membership
-          if (['owner', 'manager'].includes(orgRole)) {
-            role = orgRole;
-          } else {
-            // Stricter enforcement: org viewers need team membership
-            return {
-              has_access: false,
-              is_member: false,
-              access_reason: 'needs_team_membership',
-              role: orgRole,
-              user_org_id: userProfile.org_id,
-              team_org_id: team.org_id
-            };
-          }
+        if (orgData) {
+          orgName = orgData.name;
         }
       }
       
-      // Determine access
-      let hasAccess = isMember || (userProfile.org_id === team.org_id && ['owner', 'manager'].includes(orgRole));
-      let reason = isMember ? 'team_member' : (hasAccess ? 'org_role' : 'no_access');
+      // Define whether user has cross-organization access
+      const hasCrossOrgAccess = userProfile.org_id !== team.org_id && hasAccess;
       
       return {
         has_access: hasAccess,
         is_member: isMember,
-        access_reason: reason,
-        role: role,
+        access_reason: accessReason,
+        role: role || orgRole,  // Use direct role or org role
         user_org_id: userProfile.org_id,
-        team_org_id: team.org_id
+        team_org_id: team.org_id,
+        org_name: orgName,
+        team_name: team.name,
+        has_cross_org_access: hasCrossOrgAccess
       };
       
     } catch (error) {

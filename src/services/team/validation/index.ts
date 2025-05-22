@@ -1,26 +1,4 @@
 
-/**
- * Re-export all team validation service functions for backward compatibility
- */
-export { 
-  validateTeamMembership
-} from './validateTeamMembership';
-
-export { 
-  getTeamAccessDetails 
-} from './getTeamAccessDetails';
-
-export { 
-  repairTeamMembership 
-} from './teamRepair';
-
-export {
-  canAssignTeamRole
-} from './permissionChecks';
-
-// Export type definitions
-export type {
-  TeamAccessDetails,
-  TeamAccessResult,
-  RepairResult
-} from './teamValidationTypes';
+export * from './validateTeamMembership';
+export * from './teamValidationTypes';
+export * from './getTeamAccessDetails';
