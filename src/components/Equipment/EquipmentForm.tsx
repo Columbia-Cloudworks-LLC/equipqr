@@ -1,16 +1,7 @@
 
-import { useState } from 'react';
 import { Equipment } from '@/types';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { AttributesEditor } from './Attributes';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { useEquipmentForm } from './Form/useEquipmentForm';
 import { BasicInfoFields } from './Form/BasicInfoFields';
@@ -19,10 +10,11 @@ import { StatusLocationFields } from './Form/StatusLocationFields';
 import { NotesField } from './Form/NotesField';
 import { EnhancedTeamSelector } from './Form/TeamSelector';
 import { Label } from '@/components/ui/label';
-import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Loader2 } from 'lucide-react';
-import { EquipmentFormError } from './Form/EquipmentFormError';
+import { AttributesEditor } from './Attributes';
+import { FormFooter } from './Form/FormFooter';
+import { LoadingState } from './Form/LoadingState';
+import { ErrorState } from './Form/ErrorState';
+import { OrganizationSection } from './Form/OrganizationSection';
 
 interface EquipmentFormProps {
   equipment?: Equipment;
@@ -41,26 +33,12 @@ export function EquipmentForm({
 }: EquipmentFormProps) {
   // If there's an error, display the error component
   if (error) {
-    return <EquipmentFormError error={error} onRetry={onRetry} />;
+    return <ErrorState error={error} onRetry={onRetry} />;
   }
   
   // If still loading, show loading state
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Loading Equipment Data</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-center text-muted-foreground">
-              Fetching equipment details...
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <LoadingState />;
   }
   
   const {
@@ -86,6 +64,7 @@ export function EquipmentForm({
     org => org.id === selectedOrgId && !org.is_primary
   );
 
+  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -101,26 +80,11 @@ export function EquipmentForm({
 
   // If we have team loading errors, show them
   if (teamsError) {
-    // Fix TypeScript errors by properly handling the error type
     const errorMessage = typeof teamsError === 'string' ? teamsError : 
-                        (teamsError as Error)?.message || 
-                        'Unknown error loading teams';
-                         
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{equipment ? 'Edit Equipment' : 'Add New Equipment'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              Error loading teams: {errorMessage}
-            </AlertDescription>
-          </Alert>
-          <Button onClick={onRetry}>Retry</Button>
-        </CardContent>
-      </Card>
-    );
+                         (teamsError instanceof Error ? teamsError.message : 
+                          'Unknown error loading teams');
+    
+    return <ErrorState error={teamsError} errorMessage={errorMessage} onRetry={onRetry} />;
   }
 
   return (
@@ -130,27 +94,14 @@ export function EquipmentForm({
           <CardTitle>{equipment ? 'Edit Equipment' : 'Add New Equipment'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {organizations.length > 1 && !isEditing && (
-            <div className="space-y-2">
-              <Label htmlFor="org_id">Organization</Label>
-              <OrganizationSelector
-                organizations={organizations}
-                selectedOrgId={selectedOrgId}
-                onChange={(value) => handleSelectChange('org_id', value)}
-                className="w-full"
-                disabled={isEditing}
-              />
-            </div>
-          )}
-          
-          {isExternalOrg && (
-            <Alert className="bg-blue-50 border-blue-200">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                You are creating equipment for an external organization where you have management access.
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Organization Selection Section */}
+          <OrganizationSection 
+            organizations={organizations}
+            selectedOrgId={selectedOrgId}
+            isEditing={isEditing}
+            isExternalOrg={isExternalOrg}
+            onChange={(value) => handleSelectChange('org_id', value)}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Basic Info Fields */}
@@ -205,19 +156,9 @@ export function EquipmentForm({
             />
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button 
-            type="button" 
-            variant="ghost" 
-            onClick={() => window.history.back()}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Saving...' : equipment ? 'Update Equipment' : 'Add Equipment'}
-          </Button>
-        </CardFooter>
+        
+        {/* Form Footer */}
+        <FormFooter isLoading={isLoading} isEditing={isEditing} />
       </Card>
     </form>
   );
