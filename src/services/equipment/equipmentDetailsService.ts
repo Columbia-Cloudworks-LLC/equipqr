@@ -65,13 +65,27 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       throw new Error('Failed to verify access permissions');
     }
     
-    // Properly type check and cast the result
-    const accessResponse = typeof permData === 'object' ? 
-      (permData as PermissionResponse) : 
-      { has_permission: false, reason: 'Invalid response format' };
+    // Safely handle and type the permission response
+    let accessResponse: PermissionResponse;
     
-    if (!accessResponse || !accessResponse.has_permission) {
-      console.error('User does not have access to this equipment. Reason:', accessResponse?.reason);
+    if (!permData) {
+      accessResponse = { has_permission: false, reason: 'No response from permission check' };
+    } else if (Array.isArray(permData)) {
+      // Handle array response (unlikely but possible)
+      accessResponse = permData.length > 0 && typeof permData[0] === 'object' && 'has_permission' in permData[0]
+        ? permData[0] as PermissionResponse
+        : { has_permission: false, reason: 'Invalid response format (array)' };
+    } else if (typeof permData === 'object') {
+      // Handle object response (expected format)
+      accessResponse = 'has_permission' in permData
+        ? permData as PermissionResponse
+        : { has_permission: false, reason: 'Invalid response format (object without has_permission)' };
+    } else {
+      accessResponse = { has_permission: false, reason: 'Unexpected response format: ' + typeof permData };
+    }
+    
+    if (!accessResponse.has_permission) {
+      console.error('User does not have access to this equipment. Reason:', accessResponse.reason);
       throw new Error('You do not have permission to view this equipment');
     }
     
@@ -117,12 +131,26 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       // Don't throw, just default to no edit permission
     }
     
-    // Properly type check and cast the edit result
-    const editResponse = typeof editData === 'object' ? 
-      (editData as PermissionResponse) : 
-      { has_permission: false, reason: 'Invalid response format' };
+    // Safely handle and type the edit permission response
+    let editResponse: PermissionResponse;
     
-    const canEdit = editResponse?.has_permission || false;
+    if (!editData) {
+      editResponse = { has_permission: false, reason: 'No response from edit permission check' };
+    } else if (Array.isArray(editData)) {
+      // Handle array response (unlikely but possible)
+      editResponse = editData.length > 0 && typeof editData[0] === 'object' && 'has_permission' in editData[0]
+        ? editData[0] as PermissionResponse
+        : { has_permission: false, reason: 'Invalid edit response format (array)' };
+    } else if (typeof editData === 'object') {
+      // Handle object response (expected format)
+      editResponse = 'has_permission' in editData
+        ? editData as PermissionResponse
+        : { has_permission: false, reason: 'Invalid edit response format (object without has_permission)' };
+    } else {
+      editResponse = { has_permission: false, reason: 'Unexpected edit response format: ' + typeof editData };
+    }
+    
+    const canEdit = editResponse.has_permission || false;
     console.log('Edit permission check result:', editResponse);
     
     // Then fetch the attributes efficiently
