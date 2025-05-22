@@ -27,6 +27,7 @@ export interface TeamAccessDetails {
   hasCrossOrgAccess: boolean;
   orgName: string | null;
   team: any;
+  teamMemberId?: string | null;  // Added this property
   error?: string | null;
 }
 

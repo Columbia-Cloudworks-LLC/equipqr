@@ -117,7 +117,8 @@ export async function getTeamAccessDetails(teamId: string, userId?: string): Pro
         role: data?.role || null,
         orgRole: null, // We don't have this info from edge function yet
         team: data?.team || null,
-        orgName: data?.org_name || null
+        orgName: data?.org_name || null,
+        teamMemberId: data?.team_member_id || null // Use the correct property name
       };
     } catch (error) {
       console.error('Error using edge function for team access details:', error);
@@ -146,12 +147,12 @@ export async function getTeamAccessDetails(teamId: string, userId?: string): Pro
         isMember: resultRow.is_team_member === true,
         hasOrgAccess: resultRow.user_org_id === resultRow.team_org_id,
         hasCrossOrgAccess: false,
-        teamMemberId: null,
         accessReason: resultRow.access_reason || 'fallback_detailed_check',
         role: resultRow.team_role || null,
         orgRole: resultRow.is_org_owner ? 'owner' : null,
         team: null,
-        orgName: null
+        orgName: null,
+        teamMemberId: null
       };
     }
   } catch (error: any) {

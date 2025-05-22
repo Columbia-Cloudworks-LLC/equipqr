@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
 import { toast } from "sonner";
-import { canAssignTeamRole } from "./teamValidationService";
+import { canAssignTeamRole } from "./validation/permissionChecks";
 
 /**
  * Get team members with their roles
