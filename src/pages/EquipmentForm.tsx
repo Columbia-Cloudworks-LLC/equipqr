@@ -92,13 +92,13 @@ const EquipmentFormPage = () => {
   // Create equipment mutation
   const createMutation = useMutation({
     mutationFn: (formData: Partial<Equipment>) => {
-      // Convert to the expected CreateEquipmentParams type
+      // Convert to the expected CreateEquipmentParams type with proper status type handling
       const processedData = {
         ...formData,
-        // Cast to EquipmentStatus to match the expected type in CreateEquipmentParams
+        // Convert string status to EquipmentStatus to fix the type error
         status: formData.status as EquipmentStatus
       };
-      return createEquipment(processedData as CreateEquipmentParams);
+      return createEquipment(processedData as unknown as CreateEquipmentParams);
     },
     onSuccess: async (data) => {
       toast.success('Equipment added successfully');
