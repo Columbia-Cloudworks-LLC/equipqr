@@ -46,8 +46,10 @@ export function TeamList({
   // Calculate additional props for TeamMemberRow
   const calculateMemberProps = (member: TeamMember) => {
     // Determine if this is the current user by comparing user IDs
+    // Use both auth_uid and user_id with type safe checks
     const isCurrentUser = currentUserId && 
-      (member.auth_uid === currentUserId || member.user_id === currentUserId);
+      ((member.auth_uid && member.auth_uid === currentUserId) || 
+       (member.user_id === currentUserId));
     
     // Check if this is the last manager in the team
     const isLastManager = member.role === 'manager' && 
