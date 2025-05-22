@@ -5,8 +5,8 @@ import { UserRole } from '@/types/supabase-enums';
 
 interface TeamMembersListProps {
   members: TeamMember[];
-  onRemoveMember: (id: string, teamId: string) => void;
-  onChangeRole: (id: string, role: UserRole, teamId: string) => void;
+  onRemoveMember: (id: string) => void;
+  onChangeRole: (id: string, role: UserRole) => void;
   onResendInvite: (id: string) => Promise<void>;
   teamId: string;
   isViewOnly?: boolean;
@@ -34,11 +34,11 @@ export function TeamMembersList({
   
   // Create adapter functions that convert the function signatures
   const handleRemoveMember = (userId: string) => {
-    onRemoveMember(userId, teamId);
+    onRemoveMember(userId);
   };
   
   const handleChangeRole = (userId: string, role: UserRole) => {
-    onChangeRole(userId, role, teamId);
+    onChangeRole(userId, role);
   };
   
   return (

@@ -54,10 +54,9 @@ export async function resendInvite(invitationId: string): Promise<void> {
     }
     
     // Resend the email by calling the edge function
-    const { error: emailError } = await supabase.functions.invoke('send_invitation_email', {
+    const { error: emailError } = await supabase.functions.invoke('resend_team_invitation', {
       body: {
-        invitation_id: invitationId,
-        type: 'team'
+        invitation_id: invitationId
       }
     });
     

@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
 import { getTeamMembers } from '@/services/team/members/getTeamMembers';
@@ -49,17 +49,13 @@ export function useTeamMembers(teamId: string | null) {
         setIsTeamDeleted(true);
         setError('This team has been deleted. Please select another team.');
         setMembers([]);
-        toast({
-          variant: "destructive",
-          title: "Team not found",
-          description: "This team may have been deleted. Please select another team.",
+        toast.error("Team not found", {
+          description: "This team may have been deleted. Please select another team."
         });
       } else {
         setError(`Failed to load team members: ${error.message || 'Unknown error'}`);
-        toast({
-          variant: "destructive",
-          title: "Error fetching team members",
-          description: error.message || "Unknown error occurred",
+        toast.error("Error fetching team members", {
+          description: error.message || "Unknown error occurred"
         });
         setMembers([]);
       }
@@ -116,10 +112,8 @@ export function useTeamMembers(teamId: string | null) {
       
       // Don't show toasts for permission errors
       if (!error.message?.includes('permission')) {
-        toast({
-          variant: "destructive",
-          title: "Error fetching pending invitations",
-          description: error.message || "Unknown error occurred",
+        toast.error("Error fetching pending invitations", {
+          description: error.message || "Unknown error occurred"
         });
       }
       
@@ -154,21 +148,17 @@ export function useTeamMembers(teamId: string | null) {
       
       if (result.success) {
         if (result.data?.directly_added) {
-          toast({
-            title: "Member added",
-            description: `${data.email} was added directly to the team`,
+          toast.success("Member added", {
+            description: `${data.email} was added directly to the team`
           });
         } else {
-          toast({
-            title: "Invitation sent",
-            description: `Invitation email sent to ${data.email}`,
+          toast.success("Invitation sent", {
+            description: `Invitation email sent to ${data.email}`
           });
         }
       } else {
-        toast({
-          variant: "destructive",
-          title: "Invitation failed",
-          description: result.error || "Unknown error occurred",
+        toast.error("Invitation failed", {
+          description: result.error || "Unknown error occurred"
         });
       }
       
@@ -179,57 +169,55 @@ export function useTeamMembers(teamId: string | null) {
     } catch (error: any) {
       console.error('Error in handleInviteMember:', error);
       setError('Failed to send invitation. Please try again.');
-      toast({
-        variant: "destructive",
-        title: "Error sending invitation",
-        description: error.message,
+      toast.error("Error sending invitation", {
+        description: error.message
       });
     } finally {
       setIsLoading(false);
     }
   }, [fetchTeamMembers, fetchPendingInvitations, isTeamDeleted]);
 
-  const handleChangeRole = useCallback(async (id: string, role: UserRole, teamId: string) => {
+  const handleChangeRole = useCallback(async (userId: string, role: UserRole) => {
     try {
-      if (isTeamDeleted) {
+      if (!teamId || isTeamDeleted) {
         throw new Error('Cannot change roles in a deleted team');
       }
       
       setError(null);
-      await changeRole(id, role, teamId);
+      await changeRole(userId, role, teamId);
       toast.success("Role updated", {
-        description: "Team member role updated successfully",
+        description: "Team member role updated successfully"
       });
       await fetchTeamMembers();
     } catch (error: any) {
       console.error('Error in handleChangeRole:', error);
       setError('Failed to update role. Please try again.');
       toast.error("Error updating role", {
-        description: error.message,
+        description: error.message
       });
     }
-  }, [fetchTeamMembers, isTeamDeleted]);
+  }, [fetchTeamMembers, teamId, isTeamDeleted]);
 
-  const handleRemoveMember = useCallback(async (id: string, teamId: string) => {
+  const handleRemoveMember = useCallback(async (userId: string) => {
     try {
-      if (isTeamDeleted) {
+      if (!teamId || isTeamDeleted) {
         throw new Error('Cannot remove members from a deleted team');
       }
       
       setError(null);
-      await removeMember(id, teamId);
+      await removeMember(teamId, userId);
       toast.success("Member removed", {
-        description: "Team member removed successfully",
+        description: "Team member removed successfully"
       });
       await fetchTeamMembers();
     } catch (error: any) {
       console.error('Error in handleRemoveMember:', error);
       setError('Failed to remove team member. Please try again.');
       toast.error("Error removing member", {
-        description: error.message,
+        description: error.message
       });
     }
-  }, [fetchTeamMembers, isTeamDeleted]);
+  }, [fetchTeamMembers, teamId, isTeamDeleted]);
 
   const handleResendInvite = useCallback(async (id: string): Promise<void> => {
     try {
@@ -240,14 +228,14 @@ export function useTeamMembers(teamId: string | null) {
       setError(null);
       await resendInvite(id);
       toast.success("Invitation resent", {
-        description: "Invitation email has been resent",
+        description: "Invitation email has been resent"
       });
       await fetchPendingInvitations();
     } catch (error: any) {
       console.error('Error in handleResendInvite:', error);
       setError('Failed to resend invitation. Please try again.');
       toast.error("Error resending invitation", {
-        description: error.message,
+        description: error.message
       });
     }
   }, [fetchPendingInvitations, isTeamDeleted]);
@@ -261,14 +249,14 @@ export function useTeamMembers(teamId: string | null) {
       setError(null);
       await cancelInvitation(id);
       toast.success("Invitation cancelled", {
-        description: "The invitation has been cancelled",
+        description: "The invitation has been cancelled"
       });
       await fetchPendingInvitations();
     } catch (error: any) {
       console.error('Error in handleCancelInvitation:', error);
       setError('Failed to cancel invitation. Please try again.');
       toast.error("Error cancelling invitation", {
-        description: error.message,
+        description: error.message
       });
     }
   }, [fetchPendingInvitations, isTeamDeleted]);

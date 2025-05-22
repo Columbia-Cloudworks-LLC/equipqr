@@ -9,7 +9,6 @@ import { EmptyTeamState } from "./EmptyTeamState";
 import { TeamMembersList } from "./TeamMembersList";
 import { TeamInvitationsList } from "./TeamInvitationsList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 
 interface TeamContentProps {
   selectedTeamId: string;
@@ -141,6 +140,7 @@ export function TeamContent({
               currentUserRole={currentUserRole || undefined}
               onChangeRole={(id, role) => onChangeRole(id, role)}
               onRemoveMember={(id) => onRemoveMember(id)}
+              onResendInvite={onResendInvite}
             />
           </TeamMembers>
         </TabsContent>
