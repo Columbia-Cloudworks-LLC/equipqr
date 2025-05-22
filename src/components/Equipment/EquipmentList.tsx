@@ -4,6 +4,7 @@ import { EquipmentFilters } from './Filters/EquipmentFilters';
 import { EquipmentTable } from './Table/EquipmentTable';
 import { useEquipmentFilters } from './hooks/useEquipmentFilters';
 import { UserOrganization } from '@/services/organization/userOrganizations';
+import { ExportButton } from './ExportButton';
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -57,6 +58,14 @@ export function EquipmentList({
         equipment={filteredEquipment}
         isLoading={isLoading}
       />
+      
+      {/* Export Button */}
+      <div className="flex justify-end mt-4">
+        <ExportButton 
+          equipment={filteredEquipment}
+          isLoading={isLoading} 
+        />
+      </div>
     </div>
   );
 }
