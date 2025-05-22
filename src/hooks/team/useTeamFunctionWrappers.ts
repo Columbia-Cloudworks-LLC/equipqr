@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { UserRole } from '@/types/supabase-enums';
 
@@ -6,14 +7,14 @@ export function useTeamFunctionWrappers(
   handleInviteMember: (email: string, role: UserRole, teamId: string) => Promise<any>,
   handleChangeRole: (userId: string, role: UserRole) => Promise<any>,
   handleRemoveMember: (userId: string) => Promise<any>,
-  handleResendInvite: (id: string) => Promise<void>,
-  handleCancelInvitation: (id: string) => Promise<void>,
+  handleResendInvite: (id: string) => Promise<any>,
+  handleCancelInvitation: (id: string) => Promise<any>,
   handleCreateTeam: (name: string, orgId: string) => Promise<any>,
   handleUpdateTeam: (id: string, name: string) => Promise<any>,
   handleDeleteTeam: (teamId: string) => Promise<any>,
-  handleRepairTeam: (teamId: string) => Promise<void>,
-  handleUpgradeRole: (teamId: string) => Promise<void>,
-  handleRequestRoleUpgrade: (teamId: string) => Promise<void>
+  handleRepairTeam: (teamId: string) => Promise<any>,
+  handleUpgradeRole: (teamId: string) => Promise<any>,
+  handleRequestRoleUpgrade: (teamId: string) => Promise<any>
 ) {
   // Wrapper for team creation with org context
   const handleCreateTeamWithOrg = useCallback(async (name: string) => {
@@ -31,18 +32,18 @@ export function useTeamFunctionWrappers(
   }, [handleDeleteTeam]);
   
   // Wrapper for team repair
-  const handleRepairTeamWrapper = useCallback(async (): Promise<void> => {
-    await handleRepairTeam(selectedTeamId);
+  const handleRepairTeamWrapper = useCallback(async (): Promise<any> => {
+    return handleRepairTeam(selectedTeamId);
   }, [handleRepairTeam, selectedTeamId]);
   
   // Wrapper for role upgrade
-  const handleUpgradeRoleWrapper = useCallback(async (): Promise<void> => {
-    await handleUpgradeRole(selectedTeamId);
+  const handleUpgradeRoleWrapper = useCallback(async (): Promise<any> => {
+    return handleUpgradeRole(selectedTeamId);
   }, [handleUpgradeRole, selectedTeamId]);
   
   // Wrapper for role upgrade request
-  const handleRequestRoleUpgradeWrapper = useCallback(async (): Promise<void> => {
-    await handleRequestRoleUpgrade(selectedTeamId);
+  const handleRequestRoleUpgradeWrapper = useCallback(async (): Promise<any> => {
+    return handleRequestRoleUpgrade(selectedTeamId);
   }, [handleRequestRoleUpgrade, selectedTeamId]);
 
   // Wrapper for member invitation - FIXED to match expected parameter structure

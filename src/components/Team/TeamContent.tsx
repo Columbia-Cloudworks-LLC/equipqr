@@ -33,7 +33,7 @@ interface TeamContentProps {
   onCancelInvitation: (inviteId: string) => Promise<any>;
   onCreateTeam: (name: string) => Promise<any>;
   onUpdateTeam: (id: string, name: string) => Promise<any>;
-  onDeleteTeam: (teamId: string) => Promise<any>; // Updated to Promise<any>
+  onDeleteTeam: (teamId: string) => Promise<any>;
   onRepairTeam: () => Promise<any>;
   onUpgradeRole: () => Promise<any>;
   onRequestRoleUpgrade: () => Promise<any>;

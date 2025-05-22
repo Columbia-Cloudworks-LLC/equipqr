@@ -39,17 +39,17 @@ export interface TeamManagementContextType {
   handleOrganizationChange: (orgId: string) => void;
   handleCreateTeam: (name: string) => Promise<any>;
   handleUpdateTeam: (id: string, name: string) => Promise<any>;
-  handleDeleteTeam: (teamId: string) => Promise<any>; // Changed from Promise<void> to Promise<any>
+  handleDeleteTeam: (teamId: string) => Promise<any>; 
   handleInviteMember: (email: string, role: UserRole, teamId: string) => Promise<any>;
   handleChangeRole: (userId: string, role: UserRole) => Promise<any>;
   handleRemoveMember: (userId: string) => Promise<any>;
-  handleResendInvite: (id: string) => Promise<void>;
-  handleCancelInvitation: (id: string) => Promise<void>;
-  handleRepairTeam: (teamId: string) => Promise<void>;
-  handleUpgradeRole: (teamId: string) => Promise<void>;
-  handleRequestRoleUpgrade: (teamId: string) => Promise<void>;
+  handleResendInvite: (id: string) => Promise<any>;
+  handleCancelInvitation: (id: string) => Promise<any>;
+  handleRepairTeam: (teamId: string) => Promise<any>;
+  handleUpgradeRole: (teamId: string) => Promise<any>;
+  handleRequestRoleUpgrade: (teamId: string) => Promise<any>;
   refetchTeamMembers: () => void;
-  refetchPendingInvitations: () => Promise<void>;
+  refetchPendingInvitations: () => Promise<any>;
   fetchTeams: () => void;
   getTeamEquipmentCount: (teamId: string) => Promise<number>;
 }

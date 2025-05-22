@@ -121,11 +121,11 @@ export function useTeamManagement() {
     }
   }, [selectedTeamId, fetchTeamMembers]);
   
-  const refetchPendingInvitations = useCallback(() => {
+  const refetchPendingInvitations = useCallback(async () => {
     if (selectedTeamId && selectedTeamId !== 'none') {
-      fetchPendingInvitations();
+      return fetchPendingInvitations();
     }
-    return Promise.resolve(); // Return a promise for compatibility
+    return Promise.resolve();
   }, [selectedTeamId, fetchPendingInvitations]);
   
   // Enhanced delete team handler that updates selection if needed

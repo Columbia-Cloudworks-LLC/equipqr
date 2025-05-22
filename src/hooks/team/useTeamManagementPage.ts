@@ -126,7 +126,7 @@ export function useTeamManagementPage(): {
     handleOrganizationChange,
     handleCreateTeam,
     handleUpdateTeam,
-    handleDeleteTeam, // Now correctly aligns with the updated type
+    handleDeleteTeam,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
