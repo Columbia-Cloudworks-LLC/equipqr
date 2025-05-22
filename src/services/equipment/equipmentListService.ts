@@ -33,14 +33,14 @@ export async function getEquipment(orgId?: string): Promise<Equipment[]> {
     // Cache key should include org ID if filtering
     const cacheKey = orgId ? `${userId}_${orgId}` : userId;
     
-    // Always bust the cache to get fresh data while fixing the issues
+    // Always bust the cache for now to ensure we get fresh data
     bustEquipmentCache(cacheKey);
     
-    // Try the edge function first
     try {
+      // Try using the edge function
       return await getEquipmentViaEdgeFunction(userId, orgId);
     } catch (edgeFunctionError) {
-      console.warn('Edge function failed, falling back to direct query:', edgeFunctionError);
+      console.error('Edge function failed:', edgeFunctionError);
       
       // Fall back to direct query
       return await getEquipmentDirectQuery(userId, orgId);
@@ -48,29 +48,21 @@ export async function getEquipment(orgId?: string): Promise<Equipment[]> {
   } catch (error) {
     console.error('Error in getEquipment:', error);
     
-    // Show more context about the error without disrupting UI
-    if (error instanceof Error) {
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
-    }
-    
     // Fallback to direct query if there's an exception
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id;
       
       if (userId) {
+        console.log('Trying direct query as fallback');
         return await getEquipmentDirectQuery(userId, orgId);
       }
-      
-      console.warn('Returning empty equipment list due to errors');
-      return []; 
     } catch (fallbackError) {
       console.error('Equipment fallback also failed:', fallbackError);
-      
-      console.warn('Returning empty equipment list due to errors in fallback');
-      return []; 
     }
+    
+    console.warn('Returning empty equipment list due to errors');
+    return []; 
   }
 }
 

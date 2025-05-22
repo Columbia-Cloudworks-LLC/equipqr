@@ -18,16 +18,28 @@ export async function getEquipmentViaEdgeFunction(userId: string, orgId?: string
       return cachedData;
     }
     
-    // Call the edge function
-    const response = await invokeEdgeFunction('list_user_equipment', { 
+    // Prepare the payload with explicit typing
+    const payload = { 
       user_id: userId,
       org_id: orgId || null
-    });
+    };
     
-    if (!response || !response.data) {
-      console.error('Invalid response from equipment edge function:', response);
-      throw new Error('Invalid response from equipment edge function');
+    console.log("Calling list_user_equipment with payload:", payload);
+    
+    // Call the edge function with a longer timeout
+    const response = await invokeEdgeFunction('list_user_equipment', payload, 10000);
+    
+    if (!response) {
+      console.error('Empty response from equipment edge function');
+      throw new Error('No response from equipment edge function');
     }
+    
+    if (!response.data) {
+      console.error('Invalid response format from equipment edge function:', response);
+      throw new Error('Invalid response format from equipment edge function');
+    }
+    
+    console.log(`Received ${response.data.length} equipment records from edge function`);
     
     // Process the data to ensure proper formatting
     const equipmentData = processEquipmentList(response.data);

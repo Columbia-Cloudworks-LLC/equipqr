@@ -21,6 +21,9 @@ export function EquipmentTableRow({ equipment }: EquipmentTableRowProps) {
     }
   };
 
+  // Ensure organization name is never empty
+  const orgName = equipment.org_name || 'Unknown Organization';
+
   return (
     <TableRow>
       <TableCell className="font-medium">{equipment.name}</TableCell>
@@ -45,7 +48,7 @@ export function EquipmentTableRow({ equipment }: EquipmentTableRowProps) {
         <div className="flex items-center">
           <Building className="h-3.5 w-3.5 text-muted-foreground mr-1" />
           <span>
-            {equipment.org_name}
+            {orgName}
             {equipment.is_external_org && (
               <TooltipProvider>
                 <Tooltip>

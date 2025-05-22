@@ -22,6 +22,9 @@ export function EquipmentCard({ equipment, showOrgInfo = true }: EquipmentCardPr
     }
   };
 
+  // Ensure organization name is never empty
+  const orgName = equipment.org_name || 'Unknown Organization';
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -71,8 +74,8 @@ export function EquipmentCard({ equipment, showOrgInfo = true }: EquipmentCardPr
             <p className="font-medium">{equipment.location || 'Unspecified'}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Manufacturer</p>
-            <p className="font-medium">{equipment.manufacturer || 'Unspecified'}</p>
+            <p className="text-muted-foreground">Organization</p>
+            <p className="font-medium">{orgName}</p>
           </div>
         </div>
       </CardContent>

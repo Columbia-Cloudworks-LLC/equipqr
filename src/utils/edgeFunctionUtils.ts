@@ -21,6 +21,21 @@ export async function invokeEdgeFunction(
     }, timeoutMs);
     
     try {
+      console.log(`Invoking edge function ${functionName}...`);
+      
+      // Validate UUID parameters to ensure consistent type handling
+      if (payload) {
+        for (const [key, value] of Object.entries(payload)) {
+          // If the parameter key includes 'id' and the value appears to be a UUID
+          if ((key.includes('id') || key.includes('uid')) && typeof value === 'string') {
+            // Ensure it's a valid UUID to prevent type mismatches
+            if (value && !isValidUuid(value)) {
+              console.warn(`Parameter ${key} with value ${value} is not a valid UUID`);
+            }
+          }
+        }
+      }
+      
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: payload
       });
@@ -31,10 +46,12 @@ export async function invokeEdgeFunction(
         console.error(`Edge function ${functionName} error:`, error);
         reject(new Error(error.message || 'Unknown edge function error'));
       } else {
-        resolve(data);
+        console.log(`Edge function ${functionName} completed successfully`);
+        resolve({ data });
       }
     } catch (err) {
       clearTimeout(timeoutId);
+      console.error(`Exception in edge function ${functionName}:`, err);
       reject(err);
     }
   });

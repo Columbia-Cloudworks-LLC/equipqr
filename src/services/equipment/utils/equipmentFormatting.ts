@@ -21,10 +21,14 @@ export function processEquipmentList(data: any[]): Equipment[] {
     // Determine if the equipment has no team explicitly
     const hasNoTeam = item.team_id === null;
     
+    // Ensure org_name always has a value
+    const orgName = item.org_name || 
+                   (item.org?.name ? item.org.name : 'Unknown Organization');
+    
     const processed = {
       ...item,
-      team_name: item.team?.name || null,
-      org_name: item.org?.name || 'Unknown Organization',
+      team_name: item.team?.name || item.team_name || null,
+      org_name: orgName,
       is_external_org: item.is_external_org || false,
       can_edit: item.can_edit !== undefined ? item.can_edit : true,
       attributes: item.attributes || [],
@@ -32,7 +36,7 @@ export function processEquipmentList(data: any[]): Equipment[] {
     };
     
     // Log equipment details for debugging
-    console.log(`Equipment ${item.name}: team_id=${item.team_id}, has_no_team=${processed.has_no_team}`);
+    console.log(`Equipment "${item.name}": org_name=${processed.org_name}, team_id=${item.team_id}, has_no_team=${processed.has_no_team}`);
     
     return processed;
   }).filter(Boolean); // Remove any null items

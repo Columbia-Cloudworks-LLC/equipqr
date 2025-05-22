@@ -3,6 +3,9 @@
  * Process equipment data to add required fields for frontend consumption
  */
 export function formatEquipmentResponse(equipment: any[]): any[] {
+  // Log the received equipment count for debugging
+  console.log(`Formatting ${equipment.length} equipment items`);
+  
   // Create a set of unique org IDs the user has access to
   const orgIds = new Set<string>();
   equipment.forEach(item => {
@@ -16,10 +19,17 @@ export function formatEquipmentResponse(equipment: any[]): any[] {
     const isExternalOrg = !userOrgIds.includes(item.org_id);
     const hasNoTeam = item.team_id === null;
     
+    // Ensure org_name always has a value, even when it's missing
+    const orgName = item.org_name || 
+                   (item.org?.name ? item.org.name : 'Unknown Organization');
+    
+    // Log organization name resolution for debugging
+    console.log(`Equipment "${item.name}": org_name=${orgName}, source=${item.access_via || 'unknown'}`);
+    
     return {
       ...item,
       team_name: item.team?.name || item.team_name || null,
-      org_name: item.org_name || (item.org?.name ? item.org.name : 'Unknown Organization'),
+      org_name: orgName,
       is_external_org: isExternalOrg,
       can_edit: !isExternalOrg || (item.team?.org_id && userOrgIds.includes(item.team.org_id)),
       has_no_team: hasNoTeam

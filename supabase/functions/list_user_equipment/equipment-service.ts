@@ -183,6 +183,8 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
         console.error('Error getting organization name:', orgError);
       }
       
+      const orgName = orgData?.name || 'Unknown Organization';
+      
       // Then get the equipment
       const { data: orgEq, error: orgEqError } = await adminClient
         .from('equipment')
@@ -196,7 +198,7 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
         directOrgEquipment = orgEq.map(item => ({
           ...item,
           access_via: 'direct_org',
-          org_name: orgData?.name || 'Unknown Organization'
+          org_name: orgName // Ensure org name is always included
         }));
       }
     }
