@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTeamMembershipState } from './useTeamMembershipState';
 import { useTeamMembershipCheck } from './useTeamMembershipCheck';
 import { useTeamMembershipRepair } from './useTeamMembershipRepair';
+import { toast } from '@/hooks/use-toast';
 
 /**
  * Core team membership hook that combines the functionality from the specialized hooks
