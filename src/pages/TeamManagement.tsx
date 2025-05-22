@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
@@ -15,6 +14,7 @@ import { Organization } from '@/types';
 import { TeamManagementWrapper } from '@/components/Team/TeamManagementWrapper';
 import { useTeamManagementOrgs } from '@/hooks/team/useTeamManagementOrgs';
 import { useTeamFunctionWrappers } from '@/hooks/team/useTeamFunctionWrappers';
+import { UserRole } from '@/types/supabase-enums';
 
 export default function TeamManagement() {
   const {

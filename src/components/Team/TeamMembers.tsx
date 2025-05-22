@@ -1,130 +1,94 @@
 
-import { useState } from 'react';
-import { Button } from '../ui/button';
 import { TeamMembersList } from './TeamMembersList';
-import { InviteForm } from './InviteForm';
-import { PendingInvitationsList } from './PendingInvitationsList';
-import { UserPlus, RefreshCw, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { UserRole } from '@/types/supabase-enums';
-import { ReactNode } from 'react';
+import { InviteMemberButton } from './InviteMemberButton';
+import { ViewerRoleAlert } from './ViewerRoleAlert';
+import { RepairTeamAccess } from './RepairTeamAccess';
+import { MembershipAlert } from './MembershipAlert';
+import { UserPlus } from 'lucide-react';
 
 interface TeamMembersProps {
-  members: any[];
-  pendingInvitations?: any[];
-  isLoading: boolean;
-  isLoadingInvitations?: boolean;
   teamId: string;
-  teamName?: string;
-  onInviteMember?: (email: string, role: string) => void;
-  onChangeRole?: (id: string, role: string) => Promise<any>;
-  onRemoveMember?: (id: string) => Promise<any>;
-  onResendInvite?: (id: string) => Promise<void>;
-  onCancelInvitation?: (id: string) => Promise<void>;
-  onFetchPendingInvitations?: () => void;
+  teamName: string;
+  members: any[];
+  isLoading: boolean;
   currentUserRole?: string;
-  canChangeRoles?: boolean;
-  isMember?: boolean;
-  isUpgradingRole?: boolean;
-  isRequestingRole?: boolean;
-  onUpgradeRole?: () => Promise<void>;
-  onRequestRoleUpgrade?: () => Promise<void>;
-  isRepairingTeam?: boolean;
-  onRepairTeam?: () => Promise<void>;
-  children?: ReactNode;
+  isMember: boolean;
+  canChangeRoles: boolean;
+  isUpgradingRole: boolean;
+  isRequestingRole: boolean;
+  onInviteMember: (email: string, role: UserRole) => Promise<any>;
+  onChangeRole: (userId: string, role: UserRole) => Promise<any>;
+  onRemoveMember: (userId: string) => Promise<any>;
+  onUpgradeRole: () => Promise<void>;
+  onRequestRoleUpgrade: () => Promise<void>;
+  isRepairingTeam: boolean;
+  onRepairTeam: () => Promise<void>;
+  children?: React.ReactNode;
 }
 
 export function TeamMembers({
-  members,
-  pendingInvitations = [],
-  isLoading,
-  isLoadingInvitations = false,
   teamId,
   teamName,
+  members,
+  isLoading,
+  currentUserRole,
+  isMember,
+  canChangeRoles,
+  isUpgradingRole,
+  isRequestingRole,
   onInviteMember,
   onChangeRole,
   onRemoveMember,
-  onResendInvite,
-  onCancelInvitation,
-  onFetchPendingInvitations,
-  currentUserRole,
-  canChangeRoles = false,
-  isMember = true,
-  isUpgradingRole = false,
-  isRequestingRole = false,
   onUpgradeRole,
   onRequestRoleUpgrade,
-  isRepairingTeam = false,
+  isRepairingTeam,
   onRepairTeam,
-  children,
+  children
 }: TeamMembersProps) {
-  const [showInviteForm, setShowInviteForm] = useState(false);
-  
-  // Can update members if role is manager or above
-  const canManageMembers = currentUserRole === 'manager' || 
-                           currentUserRole === 'owner' || 
-                           canChangeRoles;
-  
+  // Format the onInviteMember callback to match the expected signature in TeamContent
+  const handleInviteMember = (email: string, role: UserRole) => {
+    return onInviteMember(email, role);
+  };
+
+  const isManager = currentUserRole === 'manager' || currentUserRole === 'owner';
+  const isViewerOnly = isMember && currentUserRole === 'viewer';
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          <h3 className="text-lg font-medium">Team Members</h3>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {canManageMembers && onInviteMember && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowInviteForm(!showInviteForm)}
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              {showInviteForm ? 'Cancel' : 'Invite Member'}
-            </Button>
-          )}
-          
-          {onFetchPendingInvitations && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onFetchPendingInvitations}
-              disabled={isLoadingInvitations}
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoadingInvitations ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Refresh</span>
-            </Button>
-          )}
-        </div>
-      </div>
-      
-      {showInviteForm && canManageMembers && onInviteMember && (
-        <InviteForm
-          onInvite={(email, role) => {
-            onInviteMember(email, role);
-            setShowInviteForm(false);
-          }}
-          onCancel={() => setShowInviteForm(false)}
-          teams={[{ id: teamId, name: teamName || "Current Team" }]}
+    <div className="space-y-4">
+      {!isMember && (
+        <MembershipAlert
+          teamName={teamName}
+          isRepairingTeam={isRepairingTeam}
+          onRepairTeam={onRepairTeam}
         />
       )}
       
-      <div className="space-y-4">
-        {children}
+      {isViewerOnly && (
+        <ViewerRoleAlert 
+          canUpgrade={canChangeRoles} 
+          isUpgrading={isUpgradingRole}
+          isRequesting={isRequestingRole}
+          onUpgrade={onUpgradeRole}
+          onRequest={onRequestRoleUpgrade}
+        />
+      )}
+      
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Team Members</h2>
         
-        {pendingInvitations && pendingInvitations.length > 0 && onCancelInvitation && onResendInvite && (
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">Pending Invitations</h4>
-            <PendingInvitationsList
-              invitations={pendingInvitations}
-              onResendInvite={onResendInvite}
-              onCancelInvite={onCancelInvitation}
-              isLoading={isLoadingInvitations}
-              isViewOnly={!canManageMembers}
+        {isManager && (
+          <div className="flex space-x-2">
+            <InviteMemberButton 
+              onInvite={(email, role) => onInviteMember(email, role as UserRole)}
+              teamId={teamId}
             />
           </div>
         )}
       </div>
+      
+      {children}
     </div>
   );
 }

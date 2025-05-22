@@ -48,7 +48,7 @@ export function useTeamFunctionWrappers(
 
   // Wrapper for member invitation
   const handleInviteMemberWrapper = useCallback(async (data: any): Promise<any> => {
-    if (data && data.email && data.role && data.teamId) {
+    if (data && typeof data === 'object' && 'email' in data && 'role' in data && 'teamId' in data) {
       return handleInviteMember(data.email, data.role as UserRole, data.teamId);
     } else if (typeof data === 'string' && selectedTeamId) {
       return handleInviteMember(data, 'viewer' as UserRole, selectedTeamId);

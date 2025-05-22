@@ -102,6 +102,15 @@ export function TeamContent({
   const hasInvitations = pendingInvitations && pendingInvitations.length > 0;
   
   const canManageTeam = currentUserRole === 'manager' || currentUserRole === 'owner';
+
+  // Create adapter functions to handle type conversion
+  const handleInviteMember = (email: string, role: UserRole) => {
+    return onInviteMember({ email, role, teamId: selectedTeamId });
+  };
+  
+  const handleChangeRole = (userId: string, role: UserRole) => {
+    return onChangeRole(userId, role as string);
+  };
   
   return (
     <div className="mt-4">
@@ -125,9 +134,9 @@ export function TeamContent({
             canChangeRoles={canChangeRoles}
             isUpgradingRole={isUpgradingRole}
             isRequestingRole={isRequestingRole}
-            onInviteMember={(email, role) => onInviteMember({ email, role, teamId: selectedTeamId })}
-            onChangeRole={(userId, role) => onChangeRole(userId, role)}
-            onRemoveMember={(userId) => onRemoveMember(userId)}
+            onInviteMember={handleInviteMember}
+            onChangeRole={handleChangeRole}
+            onRemoveMember={onRemoveMember}
             onUpgradeRole={() => onUpgradeRole(selectedTeamId)}
             onRequestRoleUpgrade={() => onRequestRoleUpgrade(selectedTeamId)}
             isRepairingTeam={isRepairingTeam}
@@ -138,8 +147,8 @@ export function TeamContent({
               teamId={selectedTeamId}
               isLoading={isLoading}
               currentUserRole={currentUserRole || undefined}
-              onChangeRole={(id, role) => onChangeRole(id, role)}
-              onRemoveMember={(id) => onRemoveMember(id)}
+              onChangeRole={handleChangeRole}
+              onRemoveMember={onRemoveMember}
               onResendInvite={onResendInvite}
             />
           </TeamMembers>
