@@ -79,7 +79,7 @@ export default function TeamManagement() {
   // Track if viewing external organization teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
   
-  // Function wrappers for team operations - fixed to work with correct parameter structure
+  // Function wrappers for team operations
   const functionWrappers = useTeamFunctionWrappers(
     selectedTeamId,
     handleInviteMember,

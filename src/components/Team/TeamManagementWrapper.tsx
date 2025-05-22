@@ -26,16 +26,16 @@ interface TeamManagementWrapperProps {
   isChangingOrg: boolean;
   onSelectTeam: (teamId: string) => void;
   onCreateTeam: (name: string) => Promise<any>;
-  onUpdateTeam: (id: string, name: string) => Promise<void>;
-  onDeleteTeam: (teamId: string) => Promise<void>;
-  onInviteMember: (data: any) => Promise<any>;
+  onUpdateTeam: (id: string, name: string) => Promise<any>;
+  onDeleteTeam: (teamId: string) => Promise<any>;
+  onInviteMember: (email: string, role: UserRole) => Promise<any>;
   onChangeRole: (userId: string, role: string) => Promise<any>;
   onRemoveMember: (userId: string) => Promise<any>;
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvitation: (id: string) => Promise<void>;
-  onRepairTeam: (teamId: string) => Promise<void>;
-  onUpgradeRole: (teamId: string) => Promise<void>;
-  onRequestRoleUpgrade: (teamId: string) => Promise<void>;
+  onRepairTeam: () => Promise<void>;
+  onUpgradeRole: () => Promise<void>;
+  onRequestRoleUpgrade: () => Promise<void>;
   onFetchPendingInvitations: () => Promise<any>;
   getTeamEquipmentCount: (teamId: string) => Promise<number>;
 }

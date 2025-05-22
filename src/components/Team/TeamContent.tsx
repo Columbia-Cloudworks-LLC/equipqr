@@ -1,4 +1,3 @@
-
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
 import { TeamSettings } from "./TeamSettings";
@@ -34,9 +33,9 @@ interface TeamContentProps {
   onCreateTeam: (name: string) => Promise<any>;
   onUpdateTeam: (id: string, name: string) => Promise<any>;
   onDeleteTeam: (teamId: string) => Promise<any>;
-  onRepairTeam: (teamId: string) => Promise<any>;
-  onUpgradeRole: (teamId: string) => Promise<any>;
-  onRequestRoleUpgrade: (teamId: string) => Promise<any>;
+  onRepairTeam: () => Promise<any>;
+  onUpgradeRole: () => Promise<any>;
+  onRequestRoleUpgrade: () => Promise<any>;
   onFetchPendingInvitations: () => Promise<any>;
   getTeamEquipmentCount: (teamId: string) => Promise<number>;
 }
@@ -137,10 +136,10 @@ export function TeamContent({
             onInviteMember={handleInviteMember}
             onChangeRole={handleChangeRole}
             onRemoveMember={onRemoveMember}
-            onUpgradeRole={() => onUpgradeRole(selectedTeamId)}
-            onRequestRoleUpgrade={() => onRequestRoleUpgrade(selectedTeamId)}
+            onUpgradeRole={onUpgradeRole}
+            onRequestRoleUpgrade={onRequestRoleUpgrade}
             isRepairingTeam={isRepairingTeam}
-            onRepairTeam={() => onRepairTeam(selectedTeamId)}
+            onRepairTeam={onRepairTeam}
           >
             <TeamMembersList 
               members={members}
