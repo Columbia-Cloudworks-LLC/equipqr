@@ -185,10 +185,16 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
       
       const orgName = orgData?.name || 'Unknown Organization';
       
-      // Then get the equipment
+      // Then get the equipment with team information
       const { data: orgEq, error: orgEqError } = await adminClient
         .from('equipment')
-        .select('*')
+        .select(`
+          *,
+          team:team_id (
+            id,
+            name
+          )
+        `)
         .eq('org_id', orgId)
         .is('deleted_at', null);
       
@@ -198,7 +204,8 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
         directOrgEquipment = orgEq.map(item => ({
           ...item,
           access_via: 'direct_org',
-          org_name: orgName // Ensure org name is always included
+          org_name: orgName,
+          team_name: item.team?.name || null // Include team name from the joined data
         }));
       }
     }

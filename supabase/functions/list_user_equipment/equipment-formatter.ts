@@ -24,12 +24,16 @@ export function formatEquipmentResponse(equipment: any[]): any[] {
                    (item.org?.name ? item.org.name : 
                     (item.organization?.name ? item.organization.name : 'Unknown Organization'));
     
-    // Log organization name resolution for debugging
-    console.log(`Equipment "${item.name}": org_name=${orgName}, source=${item.access_via || 'unknown'}`);
+    // Enhanced team name resolution with multiple fallbacks
+    const teamName = item.team_name || 
+                     (item.team?.name ? item.team.name : null);
+    
+    // Log organization and team name resolution for debugging
+    console.log(`Equipment "${item.name}": org_name=${orgName}, team_name=${teamName || 'None'}, source=${item.access_via || 'unknown'}`);
     
     return {
       ...item,
-      team_name: item.team?.name || item.team_name || null,
+      team_name: teamName,
       org_name: orgName,
       is_external_org: isExternalOrg,
       can_edit: !isExternalOrg || (item.team?.org_id && userOrgIds.includes(item.team.org_id)),

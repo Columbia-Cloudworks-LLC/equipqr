@@ -60,10 +60,16 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
       
       const orgName = orgData?.name || 'Unknown Organization';
       
-      // Then get the equipment with the org name
+      // Then get the equipment with team information
       const { data: orgEquipment, error: orgEquipmentError } = await supabase
         .from('equipment')
-        .select('*')
+        .select(`
+          *,
+          team:team_id (
+            id,
+            name
+          )
+        `)
         .eq('org_id', targetOrgId)
         .is('deleted_at', null);
       
@@ -72,7 +78,8 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
       } else if (orgEquipment) {
         allEquipment = [...orgEquipment.map(item => ({ 
           ...item,
-          org_name: orgName 
+          org_name: orgName,
+          team_name: item.team?.name || null
         }))];
       }
     }
@@ -107,7 +114,13 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
             // Get equipment from these teams
             const { data: teamEquipment, error: teamEquipmentError } = await supabase
               .from('equipment')
-              .select('*')
+              .select(`
+                *,
+                team:team_id (
+                  id,
+                  name
+                )
+              `)
               .in('team_id', filteredTeamIds)
               .is('deleted_at', null);
             
@@ -122,7 +135,7 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
                   
                   allEquipment.push({ 
                     ...item,
-                    team_name: team?.name,
+                    team_name: item.team?.name || team?.name,
                     org_name: orgName
                   });
                 }
@@ -140,10 +153,16 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
           if (teamsWithOrgsError) {
             console.error('Error getting teams with orgs:', teamsWithOrgsError);
           } else if (teamsWithOrgs) {
-            // Now get equipment for these teams
+            // Now get equipment for these teams with team information
             const { data: teamEquipment, error: teamEquipmentError } = await supabase
               .from('equipment')
-              .select('*')
+              .select(`
+                *,
+                team:team_id (
+                  id,
+                  name
+                )
+              `)
               .in('team_id', teamIds)
               .is('deleted_at', null);
             
@@ -158,7 +177,7 @@ export async function getEquipmentDirectQuery(userId: string, orgId?: string): P
                   
                   allEquipment.push({ 
                     ...item,
-                    team_name: team?.name,
+                    team_name: item.team?.name || team?.name,
                     org_name: orgName
                   });
                 }

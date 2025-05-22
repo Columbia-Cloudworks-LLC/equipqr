@@ -26,9 +26,13 @@ export function processEquipmentList(data: any[]): Equipment[] {
                    (item.org?.name ? item.org.name : 
                     (item.organization?.name ? item.organization.name : 'Unknown Organization'));
     
+    // Enhanced team name resolution with multiple fallbacks
+    const teamName = item.team_name || 
+                    (item.team?.name ? item.team.name : null);
+    
     const processed = {
       ...item,
-      team_name: item.team?.name || item.team_name || null,
+      team_name: teamName,
       org_name: orgName,
       is_external_org: item.is_external_org || false,
       can_edit: item.can_edit !== undefined ? item.can_edit : true,
@@ -37,7 +41,7 @@ export function processEquipmentList(data: any[]): Equipment[] {
     };
     
     // Log equipment details for debugging
-    console.log(`Equipment "${item.name}": org_name=${processed.org_name}, team_id=${item.team_id}, has_no_team=${processed.has_no_team}`);
+    console.log(`Equipment "${item.name}": org_name=${processed.org_name}, team_name=${processed.team_name || 'None'}, team_id=${item.team_id}, has_no_team=${processed.has_no_team}`);
     
     return processed;
   }).filter(Boolean); // Remove any null items
