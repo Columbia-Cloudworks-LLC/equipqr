@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
@@ -79,7 +78,7 @@ export default function TeamManagement() {
   // Track if viewing external organization teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
   
-  // Function wrappers for team operations
+  // Function wrappers for team operations with updated type to explicitly use Promise<any> instead of Promise<void>
   const functionWrappers = useTeamFunctionWrappers(
     selectedTeamId,
     handleInviteMember,
@@ -89,7 +88,7 @@ export default function TeamManagement() {
     handleCancelInvitation,
     handleCreateTeam,
     handleUpdateTeam,
-    handleDeleteTeam,
+    handleDeleteTeam as (teamId: string) => Promise<any>, // Explicitly cast to Promise<any>
     handleRepairTeam,
     handleUpgradeRole,
     handleRequestRoleUpgrade
