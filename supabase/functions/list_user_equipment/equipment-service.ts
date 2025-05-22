@@ -1,5 +1,5 @@
 
-import { createAdminClient } from "../_shared/adminClient.ts";
+import { createAdminClient } from "./adminClient.ts";
 
 interface EquipmentResult {
   success: boolean;

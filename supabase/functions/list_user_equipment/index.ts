@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders } from "./cors.ts";
 import { fetchUserEquipment } from "./equipment-service.ts";
 import { formatEquipmentResponse } from "./equipment-formatter.ts";
 
