@@ -60,8 +60,9 @@ export function TeamMembers({
       {!isMember && (
         <MembershipAlert
           teamName={teamName}
-          isRepairingTeam={isRepairingTeam}
-          onRepairTeam={onRepairTeam}
+          isRepairing={isRepairingTeam}
+          onRepair={onRepairTeam}
+          role={currentUserRole || null}
         />
       )}
       

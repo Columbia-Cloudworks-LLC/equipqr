@@ -8,14 +8,15 @@ import { UserRole } from '@/types/supabase-enums';
 
 interface InviteMemberButtonProps {
   onInvite: (email: string, role: string, teamId: string) => void;
-  teams: { id: string; name: string }[];
+  teamId: string; // Added this prop
+  teams?: { id: string; name: string }[];
 }
 
-export function InviteMemberButton({ onInvite, teams }: InviteMemberButtonProps) {
+export function InviteMemberButton({ onInvite, teamId, teams }: InviteMemberButtonProps) {
   const [open, setOpen] = useState(false);
   
-  const handleInvite = (email: string, role: UserRole, teamId: string) => {
-    onInvite(email, role, teamId);
+  const handleInvite = (email: string, role: UserRole, selectedTeamId: string = teamId) => {
+    onInvite(email, role, selectedTeamId);
     setOpen(false);
   };
   
@@ -34,7 +35,8 @@ export function InviteMemberButton({ onInvite, teams }: InviteMemberButtonProps)
         <InviteForm 
           onInvite={handleInvite} 
           onCancel={() => setOpen(false)} 
-          teams={teams}
+          teams={teams || []}
+          selectedTeamId={teamId}
         />
       </DialogContent>
     </Dialog>

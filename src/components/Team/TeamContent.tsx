@@ -26,7 +26,7 @@ interface TeamContentProps {
   isMember: boolean;
   currentUserRole: string | null;
   canChangeRoles: boolean;
-  onInviteMember: (data: any) => Promise<any>;
+  onInviteMember: (email: string, role: UserRole) => Promise<any>;
   onChangeRole: (userId: string, role: string) => Promise<any>;
   onRemoveMember: (userId: string) => Promise<any>;
   onResendInvite: (inviteId: string) => Promise<any>;
@@ -105,7 +105,7 @@ export function TeamContent({
 
   // Create adapter functions to handle type conversion
   const handleInviteMember = (email: string, role: UserRole) => {
-    return onInviteMember({ email, role, teamId: selectedTeamId });
+    return onInviteMember(email, role);
   };
   
   const handleChangeRole = (userId: string, role: UserRole) => {

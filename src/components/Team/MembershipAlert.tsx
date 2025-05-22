@@ -9,6 +9,7 @@ interface MembershipAlertProps {
     is_external_org?: boolean;
     org_name?: string;
   } | null;
+  teamName?: string;  // Added this prop
   onRepair: () => void;
   isRepairing: boolean;
   role: string | null;
@@ -21,6 +22,7 @@ interface MembershipAlertProps {
 
 export function MembershipAlert({
   team,
+  teamName,  // Added this prop
   onRepair,
   isRepairing,
   role,
@@ -30,13 +32,13 @@ export function MembershipAlert({
   isRequesting = false,
   canUpgrade = false
 }: MembershipAlertProps) {
-  if (!team) return null;
+  if (!team && !teamName) return null;
   
   // Check if viewer role
   const isViewerRole = role === 'viewer';
   
   // Check if external organization
-  const isExternalOrg = team.is_external_org;
+  const isExternalOrg = team?.is_external_org;
   
   // If viewer role, show limited access alert
   if (isViewerRole && (onUpgrade || onRequestUpgrade)) {

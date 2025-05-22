@@ -32,46 +32,34 @@ export function useTeamFunctionWrappers(
   }, [handleDeleteTeam]);
   
   // Wrapper for team repair
-  const handleRepairTeamWrapper = useCallback(async (teamId: string): Promise<void> => {
-    await handleRepairTeam(teamId);
-  }, [handleRepairTeam]);
+  const handleRepairTeamWrapper = useCallback(async (): Promise<void> => {
+    await handleRepairTeam(selectedTeamId);
+  }, [handleRepairTeam, selectedTeamId]);
   
   // Wrapper for role upgrade
-  const handleUpgradeRoleWrapper = useCallback(async (teamId: string): Promise<void> => {
-    await handleUpgradeRole(teamId);
-  }, [handleUpgradeRole]);
+  const handleUpgradeRoleWrapper = useCallback(async (): Promise<void> => {
+    await handleUpgradeRole(selectedTeamId);
+  }, [handleUpgradeRole, selectedTeamId]);
   
   // Wrapper for role upgrade request
-  const handleRequestRoleUpgradeWrapper = useCallback(async (teamId: string): Promise<void> => {
-    await handleRequestRoleUpgrade(teamId);
-  }, [handleRequestRoleUpgrade]);
+  const handleRequestRoleUpgradeWrapper = useCallback(async (): Promise<void> => {
+    await handleRequestRoleUpgrade(selectedTeamId);
+  }, [handleRequestRoleUpgrade, selectedTeamId]);
 
-  // Wrapper for member invitation
-  const handleInviteMemberWrapper = useCallback(async (data: any): Promise<any> => {
-    if (data && typeof data === 'object' && 'email' in data && 'role' in data && 'teamId' in data) {
-      return handleInviteMember(data.email, data.role as UserRole, data.teamId);
-    } else if (typeof data === 'string' && selectedTeamId) {
-      return handleInviteMember(data, 'viewer' as UserRole, selectedTeamId);
-    }
-    console.error("Invalid data format for invite member", data);
-    return Promise.reject("Invalid invite member data format");
+  // Wrapper for member invitation - FIXED to match expected parameter structure
+  const handleInviteMemberWrapper = useCallback((email: string, role: UserRole): Promise<any> => {
+    return handleInviteMember(email, role, selectedTeamId);
   }, [handleInviteMember, selectedTeamId]);
   
   // Wrapper for role change
-  const handleChangeRoleWrapper = useCallback(async (userId: string, role: string): Promise<any> => {
-    if (selectedTeamId) {
-      return handleChangeRole(userId, role as UserRole);
-    }
-    return Promise.reject("No team selected");
-  }, [handleChangeRole, selectedTeamId]);
+  const handleChangeRoleWrapper = useCallback(async (userId: string, role: UserRole): Promise<any> => {
+    return handleChangeRole(userId, role);
+  }, [handleChangeRole]);
   
   // Wrapper for member removal
   const handleRemoveMemberWrapper = useCallback(async (userId: string): Promise<any> => {
-    if (selectedTeamId) {
-      return handleRemoveMember(userId);
-    }
-    return Promise.reject("No team selected");
-  }, [handleRemoveMember, selectedTeamId]);
+    return handleRemoveMember(userId);
+  }, [handleRemoveMember]);
 
   return {
     handleCreateTeamWithOrg,
