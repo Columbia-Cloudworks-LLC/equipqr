@@ -1,4 +1,3 @@
-
 import { Team } from '@/services/team';
 
 export interface TeamMember {
@@ -127,6 +126,8 @@ export interface Invitation {
   };
   invitationType?: 'team' | 'organization';
   token?: string;
+  team_name?: string;  // Add missing property
+  org_name?: string;   // Add missing property
 }
 
 // Re-export Team type for consistency

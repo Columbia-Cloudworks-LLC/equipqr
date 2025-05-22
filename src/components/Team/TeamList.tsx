@@ -15,8 +15,8 @@ import { TeamEmptyState } from './TeamEmptyState';
 
 interface TeamListProps {
   members: TeamMember[];
-  onRemoveMember: (id: string, teamId: string) => void;
-  onChangeRole: (id: string, role: UserRole, teamId: string) => void;
+  onRemoveMember: (userId: string) => void;
+  onChangeRole: (userId: string, role: UserRole) => void;
   onResendInvite: (id: string) => void;
   teamId: string;
   isViewOnly?: boolean;
@@ -35,6 +35,15 @@ export function TeamList({
   const [changingRoleFor, setChangingRoleFor] = useState<string | null>(null);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+
+  // Create wrapper functions that match the expected signatures
+  const handleRemoveMember = (userId: string) => {
+    onRemoveMember(userId);
+  };
+
+  const handleChangeRole = (userId: string, role: UserRole) => {
+    onChangeRole(userId, role);
+  };
 
   if (!members || members.length === 0) {
     return <TeamEmptyState isEmpty={true} />;
@@ -58,8 +67,8 @@ export function TeamList({
             <TeamMemberRow
               key={member.id}
               member={member}
-              onRemoveMember={onRemoveMember}
-              onChangeRole={onChangeRole}
+              onRemoveMember={handleRemoveMember}
+              onChangeRole={handleChangeRole}
               onResendInvite={onResendInvite}
               teamId={teamId}
               isViewOnly={isViewOnly}

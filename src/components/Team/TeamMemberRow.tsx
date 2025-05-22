@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { UserRole } from '@/types/supabase-enums';
 import { 
@@ -7,7 +8,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { CheckIcon, MoreHorizontal } from 'lucide-react';
+import { CheckIcon, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Equipment, CreateEquipmentParams } from '@/types';
@@ -91,7 +90,14 @@ const EquipmentFormPage = () => {
 
   // Create equipment mutation
   const createMutation = useMutation({
-    mutationFn: (formData: Partial<Equipment>) => createEquipment(formData as CreateEquipmentParams),
+    mutationFn: (formData: Partial<Equipment>) => {
+      // Convert string status to EquipmentStatus type
+      const processedData = {
+        ...formData,
+        status: formData.status as any // This safely handles the type conversion
+      };
+      return createEquipment(processedData as CreateEquipmentParams);
+    },
     onSuccess: async (data) => {
       toast.success('Equipment added successfully');
       

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Organization } from '@/types';
 
 interface TeamManagementHeaderProps {
-  organizations: (UserOrganization | Organization)[];
+  organizations: Organization[] | UserOrganization[];
   selectedOrgId: string | undefined;
   onChange: (orgId: string) => void;
   onRefresh: () => void;

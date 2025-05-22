@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useMemo } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
@@ -67,21 +66,20 @@ export default function TeamManagement() {
     selectedOrgId,
     isChangingOrg,
     handleOrganizationChange,
-    organizations: orgSwitchOrganizations
+    organizations: orgSwitchOrganizations,
+    selectedOrganization
   } = orgSwitchContext;
   
-  // Get selected organization from context
-  const selectedOrganization = useMemo(() => {
-    return organizations.find(org => org.id === selectedOrgId);
-  }, [organizations, selectedOrgId]);
-
   // Filter teams and organizations
   const filteredTeams = useFilteredTeams(teams, selectedOrgId, isChangingOrg);
   
-  // Cast organizations to Organization[] to match the expected type
-  const castedOrganizations = organizations as unknown as Organization[];
-  const filteredOrganizations = useFilteredOrganizations(castedOrganizations, teams, selectedOrganization);
-  
+  // Ensure we're using the correct organization types
+  const filteredOrganizations = organizations.map(org => ({
+    ...org,
+    role: org.role || 'viewer', // Ensure role is always defined
+    is_primary: !!org.is_primary
+  })) as Organization[];
+
   // Track if viewing external organization teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
   
