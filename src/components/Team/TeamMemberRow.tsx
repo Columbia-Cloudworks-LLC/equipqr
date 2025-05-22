@@ -8,11 +8,12 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { CheckIcon, MoreHorizontal, Loader2 } from 'lucide-react'; // Ensure Loader2 is imported
+import { CheckIcon, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TeamMember } from '@/types';
+import { TableCell, TableRow } from '@/components/ui/table';
 
 // Extend the TeamMember type to include additional properties needed by this component
 interface ExtendedTeamMember extends TeamMember {
@@ -28,7 +29,7 @@ interface TeamMemberRowProps {
   onChangeRole: (userId: string, role: UserRole) => void;
   onRemoveMember: (userId: string) => void;
   onResendInvite?: (id: string) => Promise<void>;
-  currentUserRole?: string; // Add this prop
+  currentUserRole?: string;
 }
 
 // Role configuration for the dropdown
@@ -81,31 +82,38 @@ export function TeamMemberRow({
   };
 
   return (
-    <div className="grid grid-cols-4 items-center gap-4 py-3">
-      {/* Avatar and Member Info */}
-      <div className="col-span-1 flex items-center">
-        <Avatar className="mr-2 h-8 w-8">
-          <AvatarImage src={member.avatar_url} alt={member.display_name || member.email} />
-          <AvatarFallback>{getInitials()}</AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col">
-          <span className="font-semibold">{member.display_name || member.name || member.email}</span>
-          <span className="text-xs text-muted-foreground">{member.email}</span>
+    <TableRow>
+      {/* Name/Avatar Column */}
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={member.avatar_url} alt={member.display_name || member.email} />
+            <AvatarFallback>{getInitials()}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-semibold">{member.display_name || member.name || member.email}</span>
+            <span className="text-xs text-muted-foreground">{member.email}</span>
+          </div>
         </div>
-      </div>
+      </TableCell>
 
-      {/* Role Display */}
-      <div className="col-span-1">
+      {/* Email Column */}
+      <TableCell className="hidden md:table-cell">
+        {member.email}
+      </TableCell>
+
+      {/* Role Column */}
+      <TableCell>
         <Badge variant="secondary">{member.role}</Badge>
-      </div>
+      </TableCell>
 
-      {/* Status Display */}
-      <div className="col-span-1 text-muted-foreground">
+      {/* Status Column */}
+      <TableCell>
         {member.is_active ? 'Active' : 'Inactive'}
-      </div>
+      </TableCell>
 
-      {/* Actions - Dropdown Menu */}
-      <div className="col-span-1 flex justify-end">
+      {/* Actions Column */}
+      <TableCell className="text-right">
         {canChangeRoles && !isCurrentUser ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -142,11 +150,11 @@ export function TeamMemberRow({
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <span className="text-muted-foreground">
-            {isCurrentUser ? 'You cannot change your own role' : 'No actions available'}
+          <span className="text-muted-foreground text-sm">
+            {isCurrentUser ? 'You' : 'No actions available'}
           </span>
         )}
-      </div>
-    </div>
+      </TableCell>
+    </TableRow>
   );
 }

@@ -1,6 +1,6 @@
 
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 // Inlined from _shared/cors.ts
 const corsHeaders = {
@@ -119,7 +119,9 @@ serve(async (req) => {
         role: member.team_roles && member.team_roles.length > 0 ? 
           member.team_roles[0].role : 'viewer',
         status: 'Active',
-        auth_uid: member.app_user?.auth_uid
+        auth_uid: member.app_user?.auth_uid,
+        display_name: member.app_user?.display_name,
+        is_active: true
       }));
       
       console.log(`Found ${transformedData.length} team members using direct query`);
@@ -147,4 +149,4 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
-})
+});

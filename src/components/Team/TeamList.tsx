@@ -12,6 +12,7 @@ import {
 import { TeamMemberRow } from './TeamMemberRow';
 import { TeamListHeader } from './TeamListHeader';
 import { TeamEmptyState } from './TeamEmptyState';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TeamListProps {
   members: TeamMember[];
@@ -35,6 +36,8 @@ export function TeamList({
   const [changingRoleFor, setChangingRoleFor] = useState<string | null>(null);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+  const { session } = useAuth();
+  const currentUserId = session?.user?.id;
 
   if (!members || members.length === 0) {
     return <TeamEmptyState isEmpty={true} />;
@@ -42,8 +45,9 @@ export function TeamList({
 
   // Calculate additional props for TeamMemberRow
   const calculateMemberProps = (member: TeamMember) => {
-    // Determine if this is the current user
-    const isCurrentUser = member.role === currentUserRole;
+    // Determine if this is the current user by comparing user IDs
+    const isCurrentUser = currentUserId && 
+      (member.auth_uid === currentUserId || member.user_id === currentUserId);
     
     // Check if this is the last manager in the team
     const isLastManager = member.role === 'manager' && 
@@ -62,10 +66,10 @@ export function TeamList({
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
+            <TableHead className="hidden md:table-cell">Email</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="w-[80px]">Actions</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
