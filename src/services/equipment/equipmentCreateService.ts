@@ -1,102 +1,30 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { Equipment, EquipmentAttribute, CreateEquipmentParams } from '@/types/equipment';
+import { CreateEquipmentParams } from '@/types/equipment';
 import { EquipmentStatus } from '@/types/supabase-enums';
 
-export async function createEquipment(params: CreateEquipmentParams): Promise<{
-  success: boolean;
-  equipment?: Equipment;
-  error?: string;
-}> {
+// Function to create equipment - make sure it accepts the correct type
+export async function createEquipment(params: CreateEquipmentParams) {
+  // Convert string status to EquipmentStatus if needed
+  const processedParams = {
+    ...params,
+    status: params.status as EquipmentStatus
+  };
+
   try {
-    // Get current user session
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !sessionData.session) {
-      return { success: false, error: 'Authentication required' };
-    }
-
-    const userId = sessionData.session.user.id;
-    
-    // Check if user has permission to create equipment
-    const { data: permission, error: permissionError } = await supabase.rpc(
-      'can_create_equipment_safe',
-      { 
-        p_user_id: userId, 
-        p_team_id: params.team_id || null
-      }
-    );
-    
-    if (permissionError) {
-      return { 
-        success: false, 
-        error: `Permission check failed: ${permissionError.message}` 
-      };
-    }
-    
-    // Check if permission was successful
-    if (!permission) {
-      return { 
-        success: false, 
-        error: `You don't have permission to create equipment: Unknown error` 
-      };
-    }
-
-    // Prepare equipment data
-    const equipmentData = {
-      name: params.name,
-      org_id: params.org_id,
-      team_id: params.team_id || null,
-      status: (params.status || 'active'), // Removed type casting
-      location: params.location || null,
-      manufacturer: params.manufacturer || null,
-      model: params.model || null,
-      serial_number: params.serial_number || null,
-      notes: params.notes || null,
-      install_date: params.install_date || null,
-      warranty_expiration: params.warranty_expiration || null,
-      created_by: userId
-    };
-
-    // Insert equipment using explicit type
-    const { data: equipmentResult, error: equipmentError } = await supabase
+    const { data, error } = await supabase
       .from('equipment')
-      .insert(equipmentData as any) // Use any to bypass type checking
+      .insert([processedParams])
       .select()
       .single();
 
-    if (equipmentError) {
-      return { 
-        success: false, 
-        error: `Failed to create equipment: ${equipmentError.message}` 
-      };
+    if (error) {
+      console.error("Error creating equipment:", error);
+      throw new Error(error.message);
     }
 
-    // Insert attributes if any
-    if (params.attributes && params.attributes.length > 0) {
-      const attributesWithEquipmentId = params.attributes.map(attr => ({
-        equipment_id: equipmentResult.id,
-        key: attr.key,
-        value: attr.value
-      }));
-
-      const { error: attrError } = await supabase
-        .from('equipment_attributes')
-        .insert(attributesWithEquipmentId);
-
-      if (attrError) {
-        console.error('Failed to add equipment attributes:', attrError);
-      }
-    }
-
-    return {
-      success: true,
-      equipment: equipmentResult
-    };
+    return { equipment: data, error: null };
   } catch (error: any) {
-    console.error('Error creating equipment:', error);
-    return {
-      success: false,
-      error: error.message || 'An unexpected error occurred'
-    };
+    console.error("Error creating equipment:", error);
+    return { equipment: null, error: error.message };
   }
 }

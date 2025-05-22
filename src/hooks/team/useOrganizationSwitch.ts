@@ -11,7 +11,7 @@ export function useOrganizationSwitch(
   const { organizations, selectedOrganization: contextSelectedOrg } = useOrganization();
   const [selectedOrgId, setSelectedOrgId] = useState<string>('');
   const [isChangingOrg, setIsChangingOrg] = useState<boolean>(false);
-  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const [selectedOrganization, setSelectedOrganization] = useState<UserOrganization | null>(null);
   
   // Initialize selected org ID from context
   useEffect(() => {

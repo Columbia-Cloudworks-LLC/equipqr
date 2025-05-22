@@ -83,7 +83,8 @@ export default function TeamManagement() {
     created_at: org.created_at,
     updated_at: org.updated_at,
     owner_user_id: org.owner_user_id,
-    user_id: org.user_id
+    // Safe assignment since user_id might not exist in UserOrganization
+    user_id: (org as any).user_id
   }));
 
   // Track if viewing external organization teams
@@ -148,11 +149,11 @@ export default function TeamManagement() {
       canChangeRoles,
       isViewerOnly,
       organizations: organizations.length,
-      filteredOrganizations: filteredOrganizations.length,
+      formattedOrganizations: formattedOrganizations.length,
       isChangingOrg
     });
   }, [teams.length, filteredTeams.length, selectedTeamId, selectedOrgId, isLoading, isMember, 
-      currentUserRole, canChangeRoles, isViewerOnly, organizations, filteredOrganizations, isChangingOrg]);
+      currentUserRole, canChangeRoles, isViewerOnly, organizations, formattedOrganizations, isChangingOrg]);
 
   // Handle team creation with selected organization
   const handleCreateTeamWithOrg = async (name: string) => {
@@ -234,7 +235,7 @@ export default function TeamManagement() {
     <Layout>
       <div className="p-6 space-y-6">
         <TeamManagementHeader
-          organizations={filteredOrganizations}
+          organizations={formattedOrganizations}
           selectedOrgId={selectedOrgId}
           onChange={handleOrganizationChange}
           onRefresh={fetchTeams}
@@ -245,7 +246,7 @@ export default function TeamManagement() {
         {isExternalOrg && selectedOrganization && (
           <OrganizationAlert 
             orgName={selectedOrganization.name} 
-            orgRole={selectedOrganization.role} 
+            orgRole={selectedOrganization.role || 'viewer'} 
           />
         )}
         

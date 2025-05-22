@@ -36,15 +36,6 @@ export function TeamList({
   const [removingMember, setRemovingMember] = useState<string | null>(null);
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
 
-  // Create wrapper functions that match the expected signatures
-  const handleRemoveMember = (userId: string) => {
-    onRemoveMember(userId);
-  };
-
-  const handleChangeRole = (userId: string, role: UserRole) => {
-    onChangeRole(userId, role);
-  };
-
   if (!members || members.length === 0) {
     return <TeamEmptyState isEmpty={true} />;
   }
@@ -85,12 +76,13 @@ export function TeamList({
               <TeamMemberRow
                 key={member.id}
                 member={member}
-                onRemoveMember={handleRemoveMember}
-                onChangeRole={handleChangeRole}
+                onRemoveMember={onRemoveMember}
+                onChangeRole={onChangeRole}
                 onResendInvite={onResendInvite}
                 isCurrentUser={isCurrentUser}
                 isLastManager={isLastManager}
                 canChangeRoles={canChangeRoles}
+                currentUserRole={currentUserRole}
               />
             );
           })}
