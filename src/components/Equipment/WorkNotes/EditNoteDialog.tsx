@@ -14,7 +14,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Clock } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface EditNoteDialogProps {
   editingNote: WorkNote | null;
@@ -31,11 +32,31 @@ export function EditNoteDialog({
 }: EditNoteDialogProps) {
   if (!editingNote) return null;
   
+  // Calculate time remaining in the 24-hour window
+  let timeRemaining = '';
+  if (editingNote.created_at) {
+    const createdAt = new Date(editingNote.created_at);
+    const expiresAt = new Date(createdAt.getTime() + (24 * 60 * 60 * 1000));
+    const now = new Date();
+    
+    if (expiresAt > now) {
+      const hoursLeft = Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60));
+      const minutesLeft = Math.floor(((expiresAt.getTime() - now.getTime()) % (1000 * 60 * 60)) / (1000 * 60));
+      timeRemaining = `${hoursLeft}h ${minutesLeft}m remaining`;
+    }
+  }
+  
   return (
     <AlertDialog open={!!editingNote} onOpenChange={(open) => !open && setEditingNote(null)}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Edit Work Note</AlertDialogTitle>
+          {timeRemaining && (
+            <div className="flex items-center text-xs text-amber-600 mt-1">
+              <Clock className="h-3 w-3 mr-1" />
+              {timeRemaining}
+            </div>
+          )}
         </AlertDialogHeader>
         
         <form onSubmit={onUpdateNote} className="space-y-4">

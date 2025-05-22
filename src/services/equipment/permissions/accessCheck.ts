@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { PermissionResult } from './types';
 import { Equipment } from '@/types/equipment';
@@ -101,6 +100,28 @@ export async function checkEquipmentEditPermission(equipmentId: string): Promise
         };
       }
       throw new Error(`Error fetching equipment: ${equipmentError.message}`);
+    }
+    
+    // If equipment is unassigned (no team_id), use special check for org managers
+    if (!equipment.team_id) {
+      // Get user's role in the equipment's organization
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authUserId)
+        .eq('org_id', equipment.org_id)
+        .single();
+      
+      // Org owners and managers can edit unassigned equipment
+      if (userRoles && ['owner', 'manager'].includes(userRoles.role)) {
+        return {
+          authUserId,
+          teamId: null,
+          orgId: equipment.org_id,
+          hasPermission: true,
+          reason: 'Organization role allows editing unassigned equipment'
+        };
+      }
     }
     
     // Use RPC function to check permission - using rpc_check_equipment_permission

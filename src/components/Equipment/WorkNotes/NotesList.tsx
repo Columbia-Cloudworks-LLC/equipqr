@@ -2,41 +2,53 @@
 import React from 'react';
 import { WorkNote } from '@/services/workNotes';
 import { NoteItem } from './NoteItem';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export interface NotesListProps {
+interface NotesListProps {
   notes: WorkNote[];
   isLoading: boolean;
   canManage: boolean;
   onEditNote: (note: WorkNote) => void;
   onDeleteNote: (id: string) => void;
+  isNoteEditable: (note: WorkNote) => boolean;
 }
 
-export function NotesList({ notes, isLoading, canManage, onEditNote, onDeleteNote }: NotesListProps) {
+export function NotesList({ 
+  notes, 
+  isLoading, 
+  canManage, 
+  onEditNote, 
+  onDeleteNote,
+  isNoteEditable
+}: NotesListProps) {
+  
   if (isLoading) {
     return (
-      <div className="flex justify-center py-6">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      <div className="space-y-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
       </div>
     );
   }
   
   if (notes.length === 0) {
     return (
-      <div className="text-center py-6 text-muted-foreground">
-        No work notes for this equipment
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No work notes yet</p>
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-4">
-      {notes.map(note => (
+      {notes.map((note) => (
         <NoteItem 
           key={note.id} 
           note={note} 
           canEdit={canManage} 
-          setEditingNote={onEditNote} 
+          setEditingNote={onEditNote}
           onDeleteNote={onDeleteNote} 
+          isNoteEditable={isNoteEditable}
         />
       ))}
     </div>

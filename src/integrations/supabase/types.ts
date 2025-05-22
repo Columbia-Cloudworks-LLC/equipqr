@@ -407,6 +407,8 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          edited_at: string | null
+          edited_by: string | null
           equipment_id: string
           hours_worked: number | null
           id: string
@@ -418,6 +420,8 @@ export type Database = {
           created_at?: string
           created_by: string
           deleted_at?: string | null
+          edited_at?: string | null
+          edited_by?: string | null
           equipment_id: string
           hours_worked?: number | null
           id?: string
@@ -429,6 +433,8 @@ export type Database = {
           created_at?: string
           created_by?: string
           deleted_at?: string | null
+          edited_at?: string | null
+          edited_by?: string | null
           equipment_id?: string
           hours_worked?: number | null
           id?: string
@@ -1138,8 +1144,20 @@ export type Database = {
         Args: { p_uid: string; p_equipment_id: string }
         Returns: boolean
       }
+      can_edit_unassigned_equipment: {
+        Args: { user_id: string; equipment_id: string }
+        Returns: boolean
+      }
+      can_edit_work_note: {
+        Args: { note_id: string; user_id: string }
+        Returns: boolean
+      }
       can_insert_to_team_org: {
         Args: { p_uid: string; p_org_id: string }
+        Returns: boolean
+      }
+      can_manage_org_member_role: {
+        Args: { manager_id: string; target_user_id: string; org_id: string }
         Returns: boolean
       }
       can_manage_org_members: {
@@ -1192,6 +1210,8 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          edited_at: string | null
+          edited_by: string | null
           equipment_id: string
           hours_worked: number | null
           id: string

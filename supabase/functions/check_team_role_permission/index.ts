@@ -1,173 +1,181 @@
 
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.23.0";
 
-// Cors headers are needed for the client to receive the response
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-function createAdminClient() {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-  
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    throw new Error('Missing environment variables for Supabase connection');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceRoleKey);
-}
-
-// Helper function to get the effective role based on team and org roles
-function getEffectiveRole(teamRole: string | null, orgRole: string | null): string | null {
-  if (!teamRole && !orgRole) return null;
-  if (!teamRole) return orgRole;
-  if (!orgRole) return teamRole;
-  
-  // Define role hierarchy from highest to lowest permission level
-  const roleHierarchy = ['owner', 'admin', 'manager', 'creator', 'technician', 'viewer', 'member'];
-  
-  const teamRoleIndex = roleHierarchy.indexOf(teamRole);
-  const orgRoleIndex = roleHierarchy.indexOf(orgRole);
-  
-  // If role isn't in our hierarchy, default to the other role
-  if (teamRoleIndex === -1) return orgRole;
-  if (orgRoleIndex === -1) return teamRole;
-  
-  // Lower index = higher permission
-  return teamRoleIndex < orgRoleIndex ? teamRole : orgRole;
-}
-
+// This endpoint validates if the user can change a team member's role
 serve(async (req) => {
-  // Handle CORS preflight request
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { team_id, user_id } = await req.json();
+    // Extract params from request
+    const { auth_user_id, team_id, target_user_id, role } = await req.json();
     
-    if (!team_id || !user_id) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const supabase = createAdminClient();
-    
-    // Get team information
-    const { data: teamData, error: teamError } = await supabase
-      .from('team')
-      .select('org_id, created_by')
-      .eq('id', team_id)
-      .single();
-    
-    if (teamError || !teamData) {
-      return new Response(
-        JSON.stringify({ error: teamError?.message || 'Team not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Check if user is the team creator
-    const isTeamCreator = teamData.created_by === user_id;
-    
-    // Get user organization
-    const { data: userData, error: userError } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', user_id)
-      .single();
-    
-    if (userError) {
-      return new Response(
-        JSON.stringify({ error: userError.message }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Organization owners and managers can change roles in teams in their org
-    if (userData.org_id === teamData.org_id) {
-      const { data: orgRole, error: orgRoleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user_id)
-        .eq('org_id', userData.org_id)
-        .maybeSingle();
-      
-      if (!orgRoleError && orgRole && ['owner', 'manager'].includes(orgRole.role)) {
-        return new Response(
-          JSON.stringify({ 
-            hasPermission: true, 
-            reason: `org_role:${orgRole.role}`,
-            roleSource: 'organization'
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-    
-    // If user is the team creator, they can change roles
-    if (isTeamCreator) {
+    if (!auth_user_id || !team_id || !target_user_id) {
       return new Response(
         JSON.stringify({ 
-          hasPermission: true, 
-          reason: 'team_creator',
-          roleSource: 'creator'
+          can_change: false, 
+          reason: 'Missing required parameters' 
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
-    // Check if user is a team manager
-    const { data: appUser } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', user_id)
+    // Initialize Supabase client with admin rights to check permissions
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+    
+    // Get team details
+    const { data: team, error: teamError } = await supabaseAdmin
+      .from("team")
+      .select("org_id")
+      .eq("id", team_id)
       .single();
     
-    if (appUser?.id) {
-      const { data: teamMember } = await supabase
-        .from('team_member')
-        .select('id')
-        .eq('user_id', appUser.id)
-        .eq('team_id', team_id)
-        .maybeSingle();
+    if (teamError) {
+      return new Response(
+        JSON.stringify({ 
+          can_change: false, 
+          reason: 'Team not found or access error' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    // Get the app_user.id for the auth user and target user
+    const { data: authAppUser, error: authUserError } = await supabaseAdmin
+      .from("app_user")
+      .select("id")
+      .eq("auth_uid", auth_user_id)
+      .single();
       
-      if (teamMember?.id) {
-        const { data: teamRole } = await supabase
-          .from('team_roles')
-          .select('role')
-          .eq('team_member_id', teamMember.id)
-          .maybeSingle();
+    const { data: targetAppUser, error: targetUserError } = await supabaseAdmin
+      .from("app_user")
+      .select("id")
+      .eq("auth_uid", target_user_id)
+      .single();
+    
+    if (authUserError || targetUserError || !authAppUser || !targetAppUser) {
+      return new Response(
+        JSON.stringify({ 
+          can_change: false, 
+          reason: 'User not found' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    // Get the team member records for both users
+    const { data: authTeamMember, error: authMemberError } = await supabaseAdmin
+      .from("team_member")
+      .select("id")
+      .eq("user_id", authAppUser.id)
+      .eq("team_id", team_id)
+      .maybeSingle();
+      
+    const { data: targetTeamMember, error: targetMemberError } = await supabaseAdmin
+      .from("team_member")
+      .select("id")
+      .eq("user_id", targetAppUser.id)
+      .eq("team_id", team_id)
+      .maybeSingle();
+    
+    if (targetMemberError || !targetTeamMember) {
+      return new Response(
+        JSON.stringify({ 
+          can_change: false, 
+          reason: 'Target user is not a team member' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    // Get the auth user's team role if they're a team member
+    let authUserTeamRole = null;
+    if (authTeamMember) {
+      const { data: authRoleData, error: authRoleError } = await supabaseAdmin
+        .from("team_roles")
+        .select("role")
+        .eq("team_member_id", authTeamMember.id)
+        .maybeSingle();
         
-        if (teamRole?.role === 'manager') {
-          return new Response(
-            JSON.stringify({ 
-              hasPermission: true, 
-              reason: 'team_manager',
-              roleSource: 'team'
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
+      if (!authRoleError && authRoleData) {
+        authUserTeamRole = authRoleData.role;
       }
     }
     
-    // No permission found
+    // Get the auth user's org role
+    const { data: authOrgRole, error: authOrgRoleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", auth_user_id)
+      .eq("org_id", team.org_id)
+      .maybeSingle();
+    
+    // Get the target member's current role
+    const { data: targetRoleData, error: targetRoleError } = await supabaseAdmin
+      .from("team_roles")
+      .select("role")
+      .eq("team_member_id", targetTeamMember.id)
+      .maybeSingle();
+      
+    const targetCurrentRole = targetRoleData?.role;
+    
+    // Self-demotion check - prevent managers from changing their own role
+    if (auth_user_id === target_user_id && authUserTeamRole === 'manager') {
+      return new Response(
+        JSON.stringify({ 
+          can_change: false, 
+          reason: 'Team managers cannot change their own role' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+    
+    // Organization owners can change any role
+    if (authOrgRole?.role === 'owner') {
+      return new Response(
+        JSON.stringify({ can_change: true, reason: 'org_owner' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+    
+    // Team managers can change roles of other team members (except themselves)
+    if (authUserTeamRole === 'manager') {
+      return new Response(
+        JSON.stringify({ can_change: true, reason: 'team_manager' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+    
+    // Organization managers can change team roles
+    if (authOrgRole?.role === 'manager') {
+      return new Response(
+        JSON.stringify({ can_change: true, reason: 'org_manager' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+    
+    // Default - no permission
+    return new Response(
+      JSON.stringify({ can_change: false, reason: 'insufficient_permissions' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
+    
+  } catch (error) {
+    console.error('Error processing permission check:', error);
     return new Response(
       JSON.stringify({ 
-        hasPermission: false, 
-        reason: 'insufficient_permissions'
+        can_change: false, 
+        reason: `Error: ${error.message}` 
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

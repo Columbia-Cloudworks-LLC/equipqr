@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { NotesList } from './NotesList';
 import { AddNoteForm } from './AddNoteForm';
+import { EditNoteDialog } from './EditNoteDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Info } from 'lucide-react';
@@ -24,8 +25,13 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
     deleteNote,
     refetchNotes,
     createMutation,
+    editingNote,
+    setEditingNote,
+    updateNote,
+    handleHoursWorkedChange,
     canEdit,
-    canCreate
+    canCreate,
+    isNoteEditable
   } = useWorkNotes(equipmentId);
 
   // Setting loading state
@@ -80,13 +86,31 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
         />
       )}
       
+      <Alert variant="default" className="bg-yellow-50 border-yellow-200">
+        <Info className="h-4 w-4" />
+        <AlertTitle>Note Editing Policy</AlertTitle>
+        <AlertDescription>
+          Work notes can only be edited by their author within 24 hours of creation. After that, they become permanent records.
+        </AlertDescription>
+      </Alert>
+      
       <NotesList 
         notes={workNotes} 
         isLoading={isLoading} 
         canManage={canEdit || false} 
         onEditNote={editNote}
         onDeleteNote={deleteNote}
+        isNoteEditable={isNoteEditable}
       />
+      
+      {editingNote && (
+        <EditNoteDialog 
+          editingNote={editingNote}
+          setEditingNote={setEditingNote}
+          onUpdateNote={updateNote}
+          handleHoursWorkedChange={handleHoursWorkedChange}
+        />
+      )}
     </div>
   );
 }

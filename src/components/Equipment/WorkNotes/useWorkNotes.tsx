@@ -29,7 +29,8 @@ export function useWorkNotes(equipmentId: string) {
     editingNote,
     setEditingNote,
     updateNote: handleUpdateNote,
-    handleHoursWorkedChange
+    handleHoursWorkedChange,
+    isNoteEditable
   } = useWorkNotesState();
   
   // Handle deleting a work note
@@ -59,6 +60,7 @@ export function useWorkNotes(equipmentId: string) {
     editNote: setEditingNote,
     handleHoursWorkedChange,
     createMutation,
-    refetchNotes
+    refetchNotes,
+    isNoteEditable
   };
 }

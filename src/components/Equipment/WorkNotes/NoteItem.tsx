@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { WorkNote } from '@/services/workNotes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Edit, Trash, Building, Users } from 'lucide-react';
+import { Clock, Edit, Trash, Building, Users, History } from 'lucide-react';
 import { 
   AlertDialog,
   AlertDialogTrigger,
@@ -28,9 +28,16 @@ interface NoteItemProps {
   canEdit: boolean;
   setEditingNote: (note: WorkNote) => void;
   onDeleteNote: (id: string) => void;
+  isNoteEditable: (note: WorkNote) => boolean;
 }
 
-export function NoteItem({ note, canEdit, setEditingNote, onDeleteNote }: NoteItemProps) {
+export function NoteItem({ 
+  note, 
+  canEdit, 
+  setEditingNote, 
+  onDeleteNote, 
+  isNoteEditable 
+}: NoteItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const toggleExpand = () => {
@@ -39,6 +46,9 @@ export function NoteItem({ note, canEdit, setEditingNote, onDeleteNote }: NoteIt
 
   // Get author name from either the creator object or fallback to created_by field
   const authorName = note.creator?.display_name || note.created_by;
+  
+  // Check if this note is still within the editable window
+  const editable = isNoteEditable(note);
 
   return (
     <div 
@@ -107,19 +117,42 @@ export function NoteItem({ note, canEdit, setEditingNote, onDeleteNote }: NoteIt
               {isExpanded ? 'Show less' : 'Show more'}
             </button>
           )}
+          
+          {/* Edit history information */}
+          {note.edited_at && (
+            <div className="flex items-center mt-1 text-xs text-muted-foreground">
+              <History className="h-3 w-3 mr-1" />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <span>
+                      Edited {format(new Date(note.edited_at), 'MMM d, yyyy h:mm a')}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Note was last edited on {format(new Date(note.edited_at), 'MMMM d, yyyy h:mm a')}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
         </div>
         
         {canEdit && !note.is_external_org && (
           <div className="flex space-x-2 absolute top-3 right-3">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setEditingNote(note)}
-            >
-              <Edit className="h-4 w-4" />
-              <span className="sr-only">Edit</span>
-            </Button>
+            {/* Edit button - only show if within 24 hour window */}
+            {editable && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setEditingNote(note)}
+              >
+                <Edit className="h-4 w-4" />
+                <span className="sr-only">Edit</span>
+              </Button>
+            )}
             
+            {/* Delete button - only authors can delete their notes */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="icon">
