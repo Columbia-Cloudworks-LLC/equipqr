@@ -1,106 +1,104 @@
 
-import { Link } from 'react-router-dom';
 import { Equipment } from '@/types';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Edit, QrCode, Users } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { Users, Package, QrCode, Building, MapPin } from 'lucide-react';
+import { truncateText } from '@/utils/textUtils';
 
 interface EquipmentCardProps {
   equipment: Equipment;
-  showOrgInfo?: boolean;
 }
 
-export function EquipmentCard({ equipment, showOrgInfo = true }: EquipmentCardProps) {
+export function EquipmentCard({ equipment }: EquipmentCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
       case 'inactive': return 'bg-gray-100 text-gray-800';
       case 'maintenance': return 'bg-yellow-100 text-yellow-800';
+      case 'storage': return 'bg-blue-100 text-blue-800';
+      case 'retired': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  // Ensure organization name is never empty
-  const orgName = equipment.org_name || 'Unknown Organization';
-
   return (
-    <Card>
+    <Card className="flex flex-col h-full">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <div className="flex flex-col">
-            <CardTitle className="text-lg">{equipment.name}</CardTitle>
-            {showOrgInfo && equipment.team_name && (
-              <div className="flex items-center mt-1">
-                <Users className="h-3.5 w-3.5 text-muted-foreground mr-1" />
-                <span className="text-xs text-muted-foreground">
-                  {equipment.team_name}
-                  {equipment.is_external_org && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="outline" className="ml-2 px-1 py-0 text-[10px] h-4 bg-blue-50">
-                            External
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-xs">Equipment from another organization</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </span>
-              </div>
-            )}
-          </div>
+          <CardTitle className="text-lg leading-tight mr-2">
+            {truncateText(equipment.name, 50)}
+          </CardTitle>
           <Badge variant="outline" className={getStatusColor(equipment.status)}>
             {equipment.status}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="text-sm">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-muted-foreground">Model</p>
-            <p className="font-medium">{equipment.model || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Serial Number</p>
-            <p className="font-medium">{equipment.serial_number || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Location</p>
-            <p className="font-medium">{equipment.location || 'Unspecified'}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Organization</p>
-            <p className="font-medium">{orgName}</p>
-          </div>
-        </div>
+      
+      <CardContent className="pb-2 flex-grow">
+        <dl className="space-y-2 text-sm">
+          {equipment.model && (
+            <div className="flex items-start">
+              <dt className="w-5 mr-2 flex-shrink-0">
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </dt>
+              <dd className="flex-1 break-words">{equipment.model}</dd>
+            </div>
+          )}
+          
+          {equipment.serial_number && (
+            <div className="flex items-start">
+              <dt className="w-5 mr-2 flex-shrink-0">
+                <span className="text-xs font-semibold text-muted-foreground">#</span>
+              </dt>
+              <dd className="flex-1 break-all">{equipment.serial_number}</dd>
+            </div>
+          )}
+          
+          {equipment.team_name && (
+            <div className="flex items-start">
+              <dt className="w-5 mr-2 flex-shrink-0">
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </dt>
+              <dd className="flex-1">{truncateText(equipment.team_name, 25)}</dd>
+            </div>
+          )}
+          
+          {equipment.org_name && (
+            <div className="flex items-start">
+              <dt className="w-5 mr-2 flex-shrink-0">
+                <Building className="h-4 w-4 text-muted-foreground" />
+              </dt>
+              <dd className="flex-1">{truncateText(equipment.org_name, 25)}</dd>
+            </div>
+          )}
+          
+          {equipment.location && (
+            <div className="flex items-start">
+              <dt className="w-5 mr-2 flex-shrink-0">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+              </dt>
+              <dd className="flex-1">{truncateText(equipment.location, 30)}</dd>
+            </div>
+          )}
+        </dl>
       </CardContent>
-      <CardFooter className="flex justify-between pt-2">
-        <Button variant="ghost" size="sm" asChild>
+      
+      <CardFooter className="pt-2 gap-2 flex flex-wrap">
+        <Button size="sm" variant="outline" className="flex-1" asChild>
           <Link to={`/equipment/${equipment.id}`}>
-            <Eye className="h-4 w-4 mr-2" />
-            View
+            Details
           </Link>
         </Button>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to={`/equipment/${equipment.id}/edit`}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Link>
-        </Button>
-        <Button variant="ghost" size="sm" asChild>
+        
+        <Button size="sm" variant="ghost" className="px-2" asChild>
           <Link to={`/equipment/${equipment.id}/qr`}>
-            <QrCode className="h-4 w-4 mr-2" />
-            QR
+            <QrCode className="h-4 w-4" />
+            <span className="sr-only">QR Code</span>
           </Link>
         </Button>
       </CardFooter>
     </Card>
   );
 }
-
-export default EquipmentCard;

@@ -1,4 +1,3 @@
-
 import { SearchField } from './SearchField';
 import { StatusFilter } from './StatusFilter';
 import { TeamFilter } from './TeamFilter';
@@ -17,6 +16,7 @@ interface EquipmentFiltersProps {
   selectedOrgId?: string;
   onOrganizationChange: (orgId: string) => void;
   showOrgSelector: boolean;
+  isMobile?: boolean;
 }
 
 export function EquipmentFilters({
@@ -30,8 +30,37 @@ export function EquipmentFilters({
   organizations,
   selectedOrgId,
   onOrganizationChange,
-  showOrgSelector
+  showOrgSelector,
+  isMobile = false
 }: EquipmentFiltersProps) {
+  // For mobile, we use a stacked layout
+  if (isMobile) {
+    return (
+      <div className="flex flex-col space-y-4">
+        <SearchField value={searchQuery} onChange={onSearchChange} />
+        
+        {showOrgSelector && (
+          <OrganizationFilter 
+            organizations={organizations} 
+            selectedOrgId={selectedOrgId} 
+            onChange={onOrganizationChange} 
+            className="w-full"
+          />
+        )}
+        
+        <StatusFilter value={filterStatus} onChange={onStatusChange} className="w-full" />
+        
+        <TeamFilter 
+          value={filterTeam} 
+          onChange={onTeamChange} 
+          teams={teams}
+          className="w-full" 
+        />
+      </div>
+    );
+  }
+  
+  // For desktop, keep the existing layout
   return (
     <div className="flex flex-col space-y-3 md:space-y-0 md:flex-row md:items-center md:justify-between">
       <div className="w-full md:w-auto">

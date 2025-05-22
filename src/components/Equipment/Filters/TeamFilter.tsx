@@ -11,12 +11,13 @@ interface TeamFilterProps {
   value: string;
   onChange: (value: string) => void;
   teams: string[];
+  className?: string;
 }
 
-export function TeamFilter({ value, onChange, teams }: TeamFilterProps) {
+export function TeamFilter({ value, onChange, teams, className }: TeamFilterProps) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[140px]">
+      <SelectTrigger className={className || "w-[140px]"}>
         <SelectValue placeholder="Filter by team" />
       </SelectTrigger>
       <SelectContent>

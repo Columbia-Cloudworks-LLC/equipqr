@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Package } from 'lucide-react';
 import { Equipment } from '@/types';
 import { EquipmentList } from '@/components/Equipment/EquipmentList';
-import { EquipmentCard } from '@/components/Equipment/EquipmentCard';
 import { Layout } from '@/components/Layout/Layout';
 import { useQuery } from '@tanstack/react-query';
 import { getEquipment } from '@/services/equipment/equipmentListService';
@@ -14,9 +13,19 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+// Local storage key for view preference
+const VIEW_PREFERENCE_KEY = 'equipqr-view-preference';
 
 const EquipmentPage = () => {
-  const [view, setView] = useState<string>('list');
+  const isMobile = useIsMobile();
+  const [view, setView] = useState<string>(() => {
+    // Get saved preference or default to grid on mobile, list on desktop
+    const savedView = localStorage.getItem(VIEW_PREFERENCE_KEY);
+    return savedView || (isMobile ? 'grid' : 'list');
+  });
+
   const { user, isLoading: authLoading, checkSession } = useAuth();
   const navigate = useNavigate();
   const { organizations, selectedOrganization, selectOrganization } = useOrganization();
@@ -30,6 +39,11 @@ const EquipmentPage = () => {
       setSelectedOrgId(selectedOrganization.id);
     }
   }, [selectedOrganization]);
+
+  // Save view preference when it changes
+  useEffect(() => {
+    localStorage.setItem(VIEW_PREFERENCE_KEY, view);
+  }, [view]);
 
   // Handle organization change
   const handleOrganizationChange = (orgId: string) => {
@@ -57,11 +71,10 @@ const EquipmentPage = () => {
     refetch
   } = useQuery({
     queryKey: ['equipment', selectedOrgId],
-    // Fix: Use a proper queryFn that handles the context parameter
     queryFn: async () => {
       return getEquipment(selectedOrgId);
     },
-    enabled: !!user, // Only run the query if the user is authenticated
+    enabled: !!user,
   });
 
   // Handle auth state changes
@@ -128,7 +141,7 @@ const EquipmentPage = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="list" value={view} onValueChange={setView}>
+        <Tabs defaultValue={view} value={view} onValueChange={setView}>
           <div className="flex justify-between items-center">
             <TabsList className="hidden sm:flex">
               <TabsTrigger value="list">List View</TabsTrigger>
@@ -154,29 +167,20 @@ const EquipmentPage = () => {
               selectedOrgId={selectedOrgId}
               onOrganizationChange={handleOrganizationChange}
               showOrgSelector={showOrgSelector}
+              view="list"
             />
           </TabsContent>
           
           <TabsContent value="grid" className="mt-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-40">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : equipment.length > 0 ? (
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {equipment.map((item) => (
-                  <EquipmentCard key={item.id} equipment={item} />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-40 border border-dashed rounded-lg">
-                <Package className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No equipment found</p>
-                <Button variant="link" asChild>
-                  <Link to="/equipment/new">Add your first equipment</Link>
-                </Button>
-              </div>
-            )}
+            <EquipmentList 
+              equipment={equipment} 
+              isLoading={isLoading}
+              organizations={organizations}
+              selectedOrgId={selectedOrgId}
+              onOrganizationChange={handleOrganizationChange}
+              showOrgSelector={showOrgSelector}
+              view="grid"
+            />
           </TabsContent>
         </Tabs>
       </div>
