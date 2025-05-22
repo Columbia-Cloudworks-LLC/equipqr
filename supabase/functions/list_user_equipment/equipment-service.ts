@@ -89,6 +89,10 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
           id,
           name,
           org_id,
+          organization:org_id (
+            id,
+            name
+          ),
           equipment:equipment (
             *
           )
@@ -117,7 +121,8 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
             .map(item => ({
               ...item,
               access_via: 'team',
-              team_name: membership.team.name
+              team_name: membership.team.name,
+              org_name: membership.team.organization ? membership.team.organization.name : 'Unknown Organization'
             }))
         ];
       });
@@ -167,6 +172,18 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
     // 3. If orgId is specified and user has role/access, get direct equipment from that org
     let directOrgEquipment = [];
     if (orgId && (userRole || hasTeams)) {
+      // First, get the organization name
+      const { data: orgData, error: orgError } = await adminClient
+        .from('organization')
+        .select('name')
+        .eq('id', orgId)
+        .single();
+      
+      if (orgError) {
+        console.error('Error getting organization name:', orgError);
+      }
+      
+      // Then get the equipment
       const { data: orgEq, error: orgEqError } = await adminClient
         .from('equipment')
         .select('*')
@@ -178,7 +195,8 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
       } else if (orgEq) {
         directOrgEquipment = orgEq.map(item => ({
           ...item,
-          access_via: 'direct_org'
+          access_via: 'direct_org',
+          org_name: orgData?.name || 'Unknown Organization'
         }));
       }
     }

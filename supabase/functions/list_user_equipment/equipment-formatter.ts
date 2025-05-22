@@ -19,7 +19,7 @@ export function formatEquipmentResponse(equipment: any[]): any[] {
     return {
       ...item,
       team_name: item.team?.name || item.team_name || null,
-      org_name: item.org?.name || item.org_name || 'Unknown Organization',
+      org_name: item.org_name || (item.org?.name ? item.org.name : 'Unknown Organization'),
       is_external_org: isExternalOrg,
       can_edit: !isExternalOrg || (item.team?.org_id && userOrgIds.includes(item.team.org_id)),
       has_no_team: hasNoTeam

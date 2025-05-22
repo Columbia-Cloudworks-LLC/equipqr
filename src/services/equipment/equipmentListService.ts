@@ -33,17 +33,8 @@ export async function getEquipment(orgId?: string): Promise<Equipment[]> {
     // Cache key should include org ID if filtering
     const cacheKey = orgId ? `${userId}_${orgId}` : userId;
     
-    // Check cache first but skip if cache busting is requested
-    if (!window.localStorage.getItem('equipment_cache_bust')) {
-      const cachedEquipment = checkEquipmentCache(cacheKey);
-      if (cachedEquipment) {
-        console.log(`Using ${cachedEquipment.length} cached equipment items for user ${userId.slice(0, 8)}...`);
-        return cachedEquipment;
-      }
-    } else {
-      // Clear cache busting flag after use
-      window.localStorage.removeItem('equipment_cache_bust');
-    }
+    // Always bust the cache to get fresh data while fixing the issues
+    bustEquipmentCache(cacheKey);
     
     // Try the edge function first
     try {

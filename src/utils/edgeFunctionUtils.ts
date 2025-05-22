@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUuid } from './validationUtils';
 
 /**
  * Invoke an edge function with proper error handling and timeout

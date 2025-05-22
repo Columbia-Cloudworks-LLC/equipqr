@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkUpdatePermission } from "./permissions/updatePermissionCheck";
 import { prepareEquipmentForUpdate, updateEquipmentInDb } from "./db/equipmentUpdateDbService";
 import { saveEquipmentAttributes } from "./attributesService";
+import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
+import { toast } from "sonner";
 
 /**
  * Update existing equipment
@@ -21,8 +23,23 @@ export async function updateEquipment(id: string, equipment: Partial<Equipment>)
     console.log('Updating equipment with ID:', id);
     console.log('Auth user ID:', authUserId);
     
-    // Check access permission with one argument
-    await checkUpdatePermission(id);
+    // Check access permission using edge function for reliability
+    try {
+      const permissionCheck = await invokeEdgeFunction('check_equipment_edit_permission', {
+        user_id: authUserId,
+        equipment_id: id
+      });
+      
+      if (!permissionCheck?.can_edit) {
+        throw new Error(`Permission denied: ${permissionCheck?.reason || 'You do not have permission to edit this equipment'}`);
+      }
+      
+      console.log('Permission check passed:', permissionCheck);
+    } catch (permError) {
+      console.error('Error checking edit permission (using fallback):', permError);
+      // Fall back to regular permission check
+      await checkUpdatePermission(id);
+    }
     
     // Extract attributes before sending to database
     const attributes = equipment.attributes || [];

@@ -1,7 +1,8 @@
 
 import { Equipment } from "@/types";
-import { invokeEdgeFunction } from "@/utils/edgeFunctions";
+import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
 import { checkEquipmentCache, saveEquipmentCache } from "../caching/equipmentCache";
+import { processEquipmentList } from "../utils/equipmentFormatting";
 
 /**
  * Fetch equipment data using the edge function
@@ -28,8 +29,10 @@ export async function getEquipmentViaEdgeFunction(userId: string, orgId?: string
       throw new Error('Invalid response from equipment edge function');
     }
     
+    // Process the data to ensure proper formatting
+    const equipmentData = processEquipmentList(response.data);
+    
     // Save the results to cache
-    const equipmentData = response.data as Equipment[];
     saveEquipmentCache(cacheKey, equipmentData);
     
     return equipmentData;
