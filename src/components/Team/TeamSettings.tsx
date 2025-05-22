@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -10,20 +9,20 @@ import { Badge } from '../ui/badge';
 
 interface TeamSettingsProps {
   team: any;
-  onUpdateTeam?: (id: string, name: string) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
   isUpdating: boolean;
   isDeleting: boolean;
+  onUpdateTeam: (id: string, name: string) => Promise<any>;
+  onDelete: (teamId: string) => Promise<any>;
   currentUserRole?: string;
-  getTeamEquipmentCount?: (teamId: string) => Promise<number>;
+  getTeamEquipmentCount: (teamId: string) => Promise<number>;
 }
 
 export function TeamSettings({
   team,
-  onUpdateTeam,
-  onDelete,
   isUpdating,
   isDeleting,
+  onUpdateTeam,
+  onDelete,
   currentUserRole = 'viewer',
   getTeamEquipmentCount
 }: TeamSettingsProps) {

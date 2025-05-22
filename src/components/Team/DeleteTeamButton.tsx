@@ -8,7 +8,7 @@ import { toast } from "sonner";
 interface DeleteTeamButtonProps {
   teamId: string;
   teamName: string;
-  onDeleteTeam: (teamId: string) => Promise<void>;
+  onDeleteTeam: (teamId: string) => Promise<any>; // Changed from Promise<void> to Promise<any>
   isDeleting?: boolean;
   hasEquipment?: boolean;
   equipmentCount?: number;

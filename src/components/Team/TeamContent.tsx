@@ -1,3 +1,4 @@
+
 import { TeamMember } from "@/types";
 import { UserRole } from "@/types/supabase-enums";
 import { TeamSettings } from "./TeamSettings";
@@ -32,7 +33,7 @@ interface TeamContentProps {
   onCancelInvitation: (inviteId: string) => Promise<any>;
   onCreateTeam: (name: string) => Promise<any>;
   onUpdateTeam: (id: string, name: string) => Promise<any>;
-  onDeleteTeam: (teamId: string) => Promise<any>;
+  onDeleteTeam: (teamId: string) => Promise<any>; // Changed from Promise<void> to Promise<any>
   onRepairTeam: () => Promise<any>;
   onUpgradeRole: () => Promise<any>;
   onRequestRoleUpgrade: () => Promise<any>;

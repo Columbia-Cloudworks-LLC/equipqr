@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { UserRole } from '@/types/supabase-enums';
 
@@ -11,7 +10,7 @@ export function useTeamFunctionWrappers(
   handleCancelInvitation: (id: string) => Promise<void>,
   handleCreateTeam: (name: string, orgId: string) => Promise<any>,
   handleUpdateTeam: (id: string, name: string) => Promise<any>,
-  handleDeleteTeam: (teamId: string) => Promise<void>,
+  handleDeleteTeam: (teamId: string) => Promise<any>,
   handleRepairTeam: (teamId: string) => Promise<void>,
   handleUpgradeRole: (teamId: string) => Promise<void>,
   handleRequestRoleUpgrade: (teamId: string) => Promise<void>
@@ -27,8 +26,8 @@ export function useTeamFunctionWrappers(
   }, [handleUpdateTeam]);
   
   // Wrapper for team deletion
-  const handleDeleteTeamWrapper = useCallback(async (teamId: string): Promise<void> => {
-    await handleDeleteTeam(teamId);
+  const handleDeleteTeamWrapper = useCallback(async (teamId: string): Promise<any> => {
+    return handleDeleteTeam(teamId);
   }, [handleDeleteTeam]);
   
   // Wrapper for team repair
