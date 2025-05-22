@@ -21,15 +21,48 @@ import { EnhancedTeamSelector } from './Form/TeamSelector';
 import { Label } from '@/components/ui/label';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
+import { EquipmentFormError } from './Form/EquipmentFormError';
 
 interface EquipmentFormProps {
   equipment?: Equipment;
   onSave: (equipment: Partial<Equipment>) => void;
   isLoading?: boolean;
+  error?: Error | unknown;
+  onRetry?: () => void;
 }
 
-export function EquipmentForm({ equipment, onSave, isLoading = false }: EquipmentFormProps) {
+export function EquipmentForm({ 
+  equipment, 
+  onSave, 
+  isLoading = false,
+  error = null,
+  onRetry = () => {}
+}: EquipmentFormProps) {
+  // If there's an error, display the error component
+  if (error) {
+    return <EquipmentFormError error={error} onRetry={onRetry} />;
+  }
+  
+  // If still loading, show loading state
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading Equipment Data</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-center text-muted-foreground">
+              Fetching equipment details...
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   const {
     formData,
     teams,
@@ -65,6 +98,25 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
     
     onSave(formData);
   };
+
+  // If we have team loading errors, show them
+  if (teamsError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{equipment ? 'Edit Equipment' : 'Add New Equipment'}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              Error loading teams: {teamsError instanceof Error ? teamsError.message : 'Unknown error'}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={onRetry}>Retry</Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit}>
@@ -127,6 +179,7 @@ export function EquipmentForm({ equipment, onSave, isLoading = false }: Equipmen
                 teams={teams} 
                 value={formData.team_id || 'none'}
                 onChange={(value) => handleSelectChange('team_id', value)}
+                isLoading={teamsLoading}
               />
             </div>
           </div>

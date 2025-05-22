@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Equipment } from '@/types/equipment';
@@ -15,7 +16,7 @@ import { Info, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { resetAuthState } from '@/utils/authInterceptors';
-import { refreshEquipment } from '@/services/equipment/equipmentListService';
+import { refreshEquipment, diagnoseEquipmentService } from '@/services/equipment/equipmentListService';
 
 const EquipmentFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,7 @@ const EquipmentFormPage = () => {
   const isEditMode = !!id;
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [authError, setAuthError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Check authentication
   useEffect(() => {
@@ -66,10 +68,16 @@ const EquipmentFormPage = () => {
   }, [navigate]);
   
   // Fetch equipment data if in edit mode
-  const { data: equipment, isLoading: isFetchingEquipment, error: equipmentError } = useQuery({
-    queryKey: ['equipment', id],
+  const { 
+    data: equipment, 
+    isLoading: isFetchingEquipment, 
+    error: equipmentError,
+    refetch: refetchEquipment
+  } = useQuery({
+    queryKey: ['equipment', id, retryCount],
     queryFn: () => getEquipmentById(id as string),
     enabled: isEditMode && authStatus === 'authenticated',
+    retry: 1, // Limit auto-retries to avoid excessive loading
   });
   
   // Handle equipment fetch error
@@ -78,17 +86,24 @@ const EquipmentFormPage = () => {
       const errorMessage = equipmentError instanceof Error 
         ? equipmentError.message 
         : 'Please try again later';
-        
-      toast.error('Failed to load equipment details', {
-        description: errorMessage,
-      });
       
-      if (errorMessage.includes('permission') || errorMessage.includes('access')) {
-        // Permission error, navigate to equipment list
-        setTimeout(() => navigate('/equipment'), 1500);
+      // Only show toast for network errors, not permission errors
+      if (!errorMessage.includes('permission') && !errorMessage.includes('access')) {
+        toast.error('Failed to load equipment details', {
+          description: errorMessage,
+        });
       }
+      
+      console.error('Equipment fetch error details:', equipmentError);
+      
+      // Run diagnostics when we get errors
+      diagnoseEquipmentService().then(result => {
+        console.info('Equipment service diagnostics:', result);
+      }).catch(e => {
+        console.error('Diagnostics failed:', e);
+      });
     }
-  }, [equipmentError, navigate]);
+  }, [equipmentError]);
 
   // Create equipment mutation
   const createMutation = useMutation({
@@ -282,6 +297,13 @@ const EquipmentFormPage = () => {
     }
   };
 
+  const handleRetry = () => {
+    setRetryCount(prevCount => prevCount + 1);
+    if (isEditMode) {
+      refetchEquipment();
+    }
+  };
+
   const isLoading = authStatus === 'loading' || 
                    isFetchingEquipment || 
                    createMutation.isPending || 
@@ -375,6 +397,8 @@ const EquipmentFormPage = () => {
           equipment={equipment} 
           onSave={handleSave}
           isLoading={isLoading}
+          error={isEditMode ? equipmentError : undefined} 
+          onRetry={handleRetry}
         />
       </div>
     </Layout>
