@@ -101,9 +101,10 @@ export function EquipmentForm({
 
   // If we have team loading errors, show them
   if (teamsError) {
-    const errorMessage = typeof teamsError === 'string' ? teamsError :
-                         teamsError instanceof Error ? teamsError.message : 
-                         'Unknown error loading teams';
+    // Fix TypeScript errors by properly handling the error type
+    const errorMessage = typeof teamsError === 'string' ? teamsError : 
+                        (teamsError as Error)?.message || 
+                        'Unknown error loading teams';
                          
     return (
       <Card>
@@ -184,6 +185,7 @@ export function EquipmentForm({
                 value={formData.team_id || 'none'}
                 onChange={(value) => handleSelectChange('team_id', value)}
                 showExternalTeamAlert={true}
+                isLoading={teamsLoading}
               />
             </div>
           </div>
