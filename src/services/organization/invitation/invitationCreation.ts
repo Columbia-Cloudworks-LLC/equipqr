@@ -64,6 +64,17 @@ export async function createOrganizationInvitation(
     const { data: userEmailData } = await supabase.auth.getUser();
     const currentUserEmail = userEmailData?.user?.email || '';
     
+    // Fetch organization name
+    const { data: orgData, error: orgError } = await supabase
+      .from('organization')
+      .select('name')
+      .eq('id', organizationId)
+      .single();
+      
+    if (orgError || !orgData) {
+      throw new Error(`Failed to fetch organization details: ${orgError?.message || 'Organization not found'}`);
+    }
+    
     // Create the invitation
     const invitationData = {
       email: email.toLowerCase(),
@@ -84,11 +95,14 @@ export async function createOrganizationInvitation(
       throw new Error(`Failed to create invitation: ${error.message}`);
     }
     
-    // Send email notification (handled by database triggers or edge function)
+    // Send email notification with all required parameters
     const emailResult = await supabase.functions.invoke('send_organization_invitation_email', {
       body: { 
-        invitation_id: data.id,
-        email: email
+        email: email,
+        organization_name: orgData.name,
+        inviter_email: currentUserEmail,
+        token: token,
+        role: role
       }
     });
     
