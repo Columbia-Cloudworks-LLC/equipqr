@@ -1,3 +1,4 @@
+
 import { Equipment } from '@/types';
 import { WorkNote } from '@/services/workNotes/types';
 
@@ -234,7 +235,19 @@ export const mockWorkNotes: WorkNote[] = [
     created_at: '2023-05-15T10:30:00Z',
     author: 'John Doe',
     content: 'Detailed maintenance notes here',
-    is_public: true
+    is_public: true,
+    created_by_name: 'John Doe',
+    created_by_email: 'john.doe@example.com',
+    organization_id: 'org1',
+    organization_name: 'Acme Corp',
+    is_external_org: false,
+    team_id: 'team1',
+    team_name: 'Maintenance Team',
+    creator: {
+      id: 'user1',
+      display_name: 'John Doe',
+      email: 'john.doe@example.com'
+    }
   },
   {
     id: '2',
@@ -245,7 +258,19 @@ export const mockWorkNotes: WorkNote[] = [
     created_at: '2023-06-22T14:45:00Z',
     author: 'Jane Smith',
     content: 'Inspection report details',
-    is_public: true
+    is_public: true,
+    created_by_name: 'Jane Smith',
+    created_by_email: 'jane.smith@example.com',
+    organization_id: 'org1',
+    organization_name: 'Acme Corp',
+    is_external_org: false,
+    team_id: 'team1',
+    team_name: 'Maintenance Team',
+    creator: {
+      id: 'user2',
+      display_name: 'Jane Smith',
+      email: 'jane.smith@example.com'
+    }
   },
   {
     id: '3',
@@ -256,7 +281,23 @@ export const mockWorkNotes: WorkNote[] = [
     created_at: '2023-07-10T09:15:00Z',
     author: 'John Doe',
     content: 'Repair details and parts replaced',
-    is_public: false
+    is_public: false,
+    created_by_name: 'John Doe',
+    created_by_email: 'john.doe@example.com',
+    organization_id: 'org2',
+    organization_name: 'External Organization',
+    is_external_org: true,
+    team_id: 'team3',
+    team_name: 'Repair Team',
+    creator: {
+      id: 'user1',
+      display_name: 'John Doe',
+      email: 'john.doe@example.com',
+      org: {
+        id: 'org2',
+        name: 'External Organization'
+      }
+    }
   }
 ];
 
