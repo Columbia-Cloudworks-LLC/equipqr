@@ -6,11 +6,11 @@ import { EquipmentStatus } from '@/types/supabase-enums';
 // Function to create equipment - make sure it accepts the correct type
 export async function createEquipment(params: CreateEquipmentParams) {
   try {
-    // Convert any string status to database-compatible format
+    // Create a processed object with string status for DB compatibility
     const processedParams = {
       ...params,
-      // Ensure we're using the proper type for status
-      status: params.status
+      // Convert the status to string for database compatibility
+      status: params.status as string
     };
 
     // Fixed: Don't wrap object in array for single insert

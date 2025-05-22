@@ -1,4 +1,6 @@
+
 import { Team } from '@/services/team';
+import { Equipment, EquipmentAttribute } from './equipment';
 
 export interface TeamMember {
   id: string;
@@ -22,76 +24,6 @@ export interface Organization {
   // Added to match UserOrganization interface
   owner_user_id?: string;
   updated_at?: string;
-}
-
-// Equipment related types
-export interface Equipment {
-  id: string;
-  name: string;
-  org_id: string;
-  team_id?: string | null;
-  status: string;
-  location?: string;
-  manufacturer?: string;
-  model?: string;
-  serial_number?: string;
-  notes?: string;
-  install_date?: string | null;
-  warranty_expiration?: string | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
-  created_by: string;
-  attributes?: EquipmentAttribute[];
-  can_edit?: boolean;
-  has_no_team?: boolean;
-  team_name?: string;
-  org_name?: string;
-  is_external_org?: boolean;
-  description?: string;
-  purchase_date?: string;
-  maintenance_date?: string;
-}
-
-export interface EquipmentAttribute {
-  id: string;
-  equipment_id: string;
-  key: string;
-  value: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface WorkNote {
-  id: string;
-  equipment_id: string;
-  work_order_id?: string;
-  created_by: string;
-  note: string;
-  created_at: string;
-  is_public: boolean;
-  hours_worked?: number;
-  author?: string;
-  content?: string;
-}
-
-export interface CreateEquipmentParams {
-  name: string;
-  org_id: string;
-  team_id?: string | null;
-  status?: string;
-  location?: string;
-  manufacturer?: string;
-  model?: string;
-  serial_number?: string;
-  notes?: string;
-  install_date?: string | null;
-  warranty_expiration?: string | null;
-  attributes?: EquipmentAttribute[];
-  description?: string;
-  purchase_date?: string;
-  maintenance_date?: string;
-  created_by?: string;
 }
 
 // Dashboard related types
@@ -126,12 +58,13 @@ export interface Invitation {
   };
   invitationType?: 'team' | 'organization';
   token?: string;
-  team_name?: string;  // Add missing property
-  org_name?: string;   // Add missing property
+  team_name?: string;
+  org_name?: string;
 }
-
-// Re-export the types from equipment.ts for consistency
-export type { CreateEquipmentParams, Equipment, EquipmentAttribute } from './equipment';
 
 // Re-export Team type for consistency
 export type { Team };
+
+// Export equipment types (without redefinition)
+export type { Equipment, EquipmentAttribute } from './equipment';
+export type { CreateEquipmentParams } from './equipment';

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Equipment, CreateEquipmentParams } from '@/types';
+import { Equipment } from '@/types/equipment';
+import { CreateEquipmentParams } from '@/types/equipment';
 import { EquipmentStatus } from '@/types/supabase-enums';
 import { EquipmentForm as EquipmentFormComponent } from '@/components/Equipment/EquipmentForm';
 import { Layout } from '@/components/Layout/Layout';
@@ -95,12 +96,13 @@ const EquipmentFormPage = () => {
       // Convert to the expected CreateEquipmentParams type with proper status type handling
       const processedData = {
         ...formData,
-        // Make sure the status field is properly handled
+        // Cast the string status to EquipmentStatus for type safety
         status: formData.status as EquipmentStatus
       };
       
-      // Use the correct type from equipment module, not from index
-      return createEquipment(processedData as unknown as CreateEquipmentParams);
+      // Create a correctly typed parameter for createEquipment
+      const equipmentParams: CreateEquipmentParams = processedData as unknown as CreateEquipmentParams;
+      return createEquipment(equipmentParams);
     },
     onSuccess: async (data) => {
       toast.success('Equipment added successfully');
