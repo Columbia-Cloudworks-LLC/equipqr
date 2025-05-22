@@ -3,9 +3,12 @@
  * Re-export all team validation service functions for backward compatibility
  */
 export { 
-  validateTeamMembership, 
+  validateTeamMembership
+} from './validateTeamMembership';
+
+export { 
   getTeamAccessDetails 
-} from './teamAccessValidation';
+} from './getTeamAccessDetails';
 
 export { 
   repairTeamMembership 
