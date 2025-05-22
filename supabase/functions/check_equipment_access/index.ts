@@ -2,14 +2,14 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Inlined CORS headers from _shared/cors.ts
+// Inlined CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Inlined success response function from _shared/cors.ts
+// Inlined success response function
 function createSuccessResponse(data: any) {
   return new Response(
     JSON.stringify(data),
@@ -23,7 +23,7 @@ function createSuccessResponse(data: any) {
   );
 }
 
-// Inlined error response function from _shared/cors.ts
+// Inlined error response function
 function createErrorResponse(message: string, status: number = 400) {
   return new Response(
     JSON.stringify({ error: message }),
@@ -37,7 +37,7 @@ function createErrorResponse(message: string, status: number = 400) {
   );
 }
 
-// Inlined checkEquipmentAccess function from _shared/equipmentAccess.ts
+// Inlined checkEquipmentAccess function
 async function checkEquipmentAccess(
   userId: string, 
   equipmentId: string, 
