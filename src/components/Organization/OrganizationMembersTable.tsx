@@ -86,9 +86,7 @@ export function OrganizationMembersTable({
                       <SelectValue placeholder="Change role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="owner">Owner</SelectItem>
                       <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="technician">Technician</SelectItem>
                       <SelectItem value="viewer">Viewer</SelectItem>
                     </SelectContent>
                   </Select>

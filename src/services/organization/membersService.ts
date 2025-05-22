@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { OrganizationMember } from './types';
 import { UserRole } from '@/types/supabase-enums';
 import { toast } from 'sonner';
+import { invokeEdgeFunction } from '@/utils/edgeFunctionUtils';
 
 /**
  * Fetches all members of the specified organization
@@ -42,14 +43,13 @@ export async function updateMemberRole(
   
   try {
     // Cast the newRole to match the expected type in the database
-    const role = newRole as "owner" | "manager" | "technician" | "viewer" | "member";
+    const role = newRole as "owner" | "manager" | "viewer" | "member";
     
-    // Update the user's role in the database
+    // Update the user's role in the database - removed updated_at which doesn't exist
     const { error } = await supabase
       .from('user_roles')
       .update({ 
-        role: role, 
-        updated_at: new Date().toISOString() 
+        role: role
       })
       .eq('id', memberId);
     
