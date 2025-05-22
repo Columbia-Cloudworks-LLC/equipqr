@@ -6,12 +6,14 @@ interface OrganizationFilterProps {
   organizations: UserOrganization[];
   selectedOrgId?: string;
   onChange: (orgId: string) => void;
+  className?: string; // Added className as an optional prop
 }
 
 export function OrganizationFilter({
   organizations,
   selectedOrgId,
-  onChange
+  onChange,
+  className
 }: OrganizationFilterProps) {
   if (organizations.length <= 1) {
     return null; // Don't show filter if there's only one or no organization
@@ -23,7 +25,7 @@ export function OrganizationFilter({
       selectedOrgId={selectedOrgId}
       onChange={onChange}
       placeholder="All Organizations"
-      className="min-w-[180px] w-full md:w-[220px] lg:w-[250px] max-w-full"
+      className={className || "min-w-[180px] w-full md:w-[220px] lg:w-[250px] max-w-full"}
       maxDisplayLength={20}
     />
   );
