@@ -92,7 +92,7 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
         is_external_org: isExternalOrg,
         organization_name: isExternalOrg ? equipment.org_id : null,
         team_name: equipment.team?.name || null
-      };
+      } as WorkNote;
     }).filter(note => {
       // For technicians and higher, return all notes
       if (isTechnician) return true;
@@ -111,17 +111,36 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
  */
 export async function getWorkNoteOrganizations(equipmentId: string): Promise<any[]> {
   try {
-    const { data, error } = await supabase.rpc(
-      'get_work_note_organizations',
-      { equipment_id: equipmentId }
-    );
+    // Since we can't use the get_work_note_organizations RPC function, 
+    // we'll query the notes directly and extract organizations
+    const { data: notes, error } = await supabase
+      .from('equipment_work_notes')
+      .select(`
+        *,
+        equipment:equipment_id (
+          org_id
+        )
+      `)
+      .eq('equipment_id', equipmentId)
+      .is('deleted_at', null);
     
     if (error) {
       console.error('Error fetching work note organizations:', error);
       throw error;
     }
     
-    return data || [];
+    // Extract unique organizations from notes
+    const orgs = new Map();
+    notes?.forEach(note => {
+      if (note.equipment && note.equipment.org_id) {
+        orgs.set(note.equipment.org_id, {
+          id: note.equipment.org_id,
+          name: note.equipment.org_id // Use ID as name for now
+        });
+      }
+    });
+    
+    return Array.from(orgs.values());
   } catch (error: any) {
     console.error('Error in getWorkNoteOrganizations:', error);
     return [];

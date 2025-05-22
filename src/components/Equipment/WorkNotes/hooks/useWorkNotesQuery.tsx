@@ -36,9 +36,9 @@ export function useWorkNotesQuery(equipmentId: string) {
       const orgMap = new Map<string, Organization>();
       
       workNotes.forEach(note => {
-        if (note.organization_id && note.organization_name) {
-          orgMap.set(note.organization_id, {
-            id: note.organization_id,
+        if (note.organization_name) {
+          orgMap.set(note.organization_name, {
+            id: note.organization_name,
             name: note.organization_name,
             is_external: note.is_external_org
           });

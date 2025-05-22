@@ -1,4 +1,3 @@
-
 import { Equipment } from '@/types';
 import { WorkNote } from '@/services/workNotes/types';
 
@@ -229,74 +228,43 @@ export const mockWorkNotes: WorkNote[] = [
   {
     id: '1',
     equipment_id: '1',
-    work_order_id: 'wo1',
     created_by: 'user1',
     note: 'Replaced the filter and cleaned air intake system.',
     created_at: '2023-05-15T10:30:00Z',
-    author: 'John Doe',
-    content: 'Detailed maintenance notes here',
     is_public: true,
-    created_by_name: 'John Doe',
-    created_by_email: 'john.doe@example.com',
-    organization_id: 'org1',
     organization_name: 'Acme Corp',
     is_external_org: false,
-    team_id: 'team1',
     team_name: 'Maintenance Team',
     creator: {
-      id: 'user1',
-      display_name: 'John Doe',
-      email: 'john.doe@example.com'
+      display_name: 'John Doe'
     }
   },
   {
     id: '2',
     equipment_id: '1',
-    work_order_id: 'wo2',
     created_by: 'user2',
     note: 'Conducted routine inspection, all systems working normally.',
     created_at: '2023-06-22T14:45:00Z',
-    author: 'Jane Smith',
-    content: 'Inspection report details',
     is_public: true,
-    created_by_name: 'Jane Smith',
-    created_by_email: 'jane.smith@example.com',
-    organization_id: 'org1',
     organization_name: 'Acme Corp',
     is_external_org: false,
-    team_id: 'team1',
     team_name: 'Maintenance Team',
     creator: {
-      id: 'user2',
-      display_name: 'Jane Smith',
-      email: 'jane.smith@example.com'
+      display_name: 'Jane Smith'
     }
   },
   {
     id: '3',
     equipment_id: '2',
-    work_order_id: 'wo3',
     created_by: 'user1',
     note: 'Fixed hydraulic leak in the main system.',
     created_at: '2023-07-10T09:15:00Z',
-    author: 'John Doe',
-    content: 'Repair details and parts replaced',
     is_public: false,
-    created_by_name: 'John Doe',
-    created_by_email: 'john.doe@example.com',
-    organization_id: 'org2',
     organization_name: 'External Organization',
     is_external_org: true,
-    team_id: 'team3',
     team_name: 'Repair Team',
     creator: {
-      id: 'user1',
-      display_name: 'John Doe',
-      email: 'john.doe@example.com',
-      org: {
-        id: 'org2',
-        name: 'External Organization'
-      }
+      display_name: 'John Doe'
     }
   }
 ];
