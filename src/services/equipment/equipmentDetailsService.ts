@@ -2,7 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types";
 import { getEquipmentAttributes } from "./attributesService";
-import { invokeEdgeFunction } from "@/utils/edgeFunctionUtils";
 
 interface PermissionResponse {
   has_permission: boolean;
@@ -50,39 +49,25 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const authUserId = sessionData.session.user.id;
     console.log('Getting equipment by ID. Auth user ID:', authUserId);
     
-    // Use edge function with retry
-    const result = await invokeEdgeFunction(
-      'check_equipment_permission', 
-      {
-        user_id: authUserId,
-        equipment_id: id,
-        action: 'view'
-      },
-      10000
-    ).catch(async (error) => {
-      console.warn('Edge function failed, falling back to direct database check:', error);
-      
-      // Fall back to direct database query for permissions
-      const { data: permData, error: permError } = await supabase.rpc(
-        'rpc_check_equipment_permission',
-        { 
-          user_id: authUserId, 
-          action: 'view',
-          equipment_id: id
-        }
-      );
-      
-      if (permError) {
-        console.error('Permission check failed:', permError);
-        throw new Error('Failed to verify access permissions');
+    // Check if user has permission to access this equipment
+    // Skip the edge function and directly query the database for better performance
+    const { data: permData, error: permError } = await supabase.rpc(
+      'rpc_check_equipment_permission',
+      { 
+        user_id: authUserId, 
+        action: 'view',
+        equipment_id: id
       }
-      
-      return permData;
-    });
+    );
+    
+    if (permError) {
+      console.error('Permission check failed:', permError);
+      throw new Error('Failed to verify access permissions');
+    }
     
     // Properly type check and cast the result
-    const accessResponse: PermissionResponse = typeof result === 'object' ? 
-      (result as PermissionResponse) : 
+    const accessResponse = typeof permData === 'object' ? 
+      (permData as PermissionResponse) : 
       { has_permission: false, reason: 'Invalid response format' };
     
     if (!accessResponse || !accessResponse.has_permission) {
@@ -117,39 +102,24 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
     const userOrgId = userProfile?.org_id;
     const isExternalOrg = equipment.team?.org_id && userOrgId && equipment.team.org_id !== userOrgId;
     
-    // Check edit permissions - use the same function
-    const editResult = await invokeEdgeFunction(
-      'check_equipment_permission', 
-      {
-        user_id: authUserId,
-        equipment_id: id,
-        action: 'edit'
-      },
-      10000
-    ).catch(async (error) => {
-      console.warn('Edit permission check via edge function failed, falling back:', error);
-      
-      // Fall back to direct database query for edit permissions
-      const { data: editData, error: permError } = await supabase.rpc(
-        'rpc_check_equipment_permission',
-        { 
-          user_id: authUserId, 
-          action: 'edit',
-          equipment_id: id
-        }
-      );
-      
-      if (permError) {
-        console.error('Edit permission check failed:', permError);
-        return { has_permission: false };
+    // Check edit permissions - use direct database query for better performance
+    const { data: editData, error: editPermError } = await supabase.rpc(
+      'rpc_check_equipment_permission',
+      { 
+        user_id: authUserId, 
+        action: 'edit',
+        equipment_id: id
       }
-      
-      return editData;
-    });
+    );
+    
+    if (editPermError) {
+      console.error('Edit permission check failed:', editPermError);
+      // Don't throw, just default to no edit permission
+    }
     
     // Properly type check and cast the edit result
-    const editResponse: PermissionResponse = typeof editResult === 'object' ? 
-      (editResult as PermissionResponse) : 
+    const editResponse = typeof editData === 'object' ? 
+      (editData as PermissionResponse) : 
       { has_permission: false, reason: 'Invalid response format' };
     
     const canEdit = editResponse?.has_permission || false;

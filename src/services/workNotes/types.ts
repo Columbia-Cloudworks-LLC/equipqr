@@ -14,6 +14,9 @@ export interface WorkNote {
   creator?: {
     display_name?: string;
   };
+  editor?: {
+    display_name?: string;
+  };
   is_external_org?: boolean;
   organization_name?: string;
   team_name?: string;
