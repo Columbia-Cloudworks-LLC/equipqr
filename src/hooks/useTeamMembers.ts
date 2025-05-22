@@ -136,8 +136,8 @@ export function useTeamMembers(teamId: string | null) {
     }
   }, [teamId, retryCount, fetchTeamMembers]);
 
-  // Only show the implementation for handleInviteMember, other functions follow the same pattern
-  const handleInviteMember = useCallback(async (data: { email: string, role: UserRole, teamId: string }) => {
+  // Modified to accept three separate parameters instead of data object
+  const handleInviteMember = useCallback(async (email: string, role: UserRole, teamId: string) => {
     try {
       if (isTeamDeleted) {
         throw new Error('Cannot invite members to a deleted team');
@@ -145,16 +145,16 @@ export function useTeamMembers(teamId: string | null) {
       
       setIsLoading(true);
       setError(null);
-      const result = await inviteMember(data.email, data.role, data.teamId);
+      const result = await inviteMember(email, role, teamId);
       
       if (result.success) {
         if (result.data?.directly_added) {
           toast.success("Member added", {
-            description: `${data.email} was added directly to the team`
+            description: `${email} was added directly to the team`
           });
         } else {
           toast.success("Invitation sent", {
-            description: `Invitation email sent to ${data.email}`
+            description: `Invitation email sent to ${email}`
           });
         }
       } else {

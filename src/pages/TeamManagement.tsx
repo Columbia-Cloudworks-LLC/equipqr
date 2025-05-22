@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo } from 'react';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
@@ -78,7 +79,7 @@ export default function TeamManagement() {
   // Track if viewing external organization teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
   
-  // Function wrappers for team operations
+  // Function wrappers for team operations - fixed to work with correct parameter structure
   const functionWrappers = useTeamFunctionWrappers(
     selectedTeamId,
     handleInviteMember,
@@ -153,6 +154,15 @@ export default function TeamManagement() {
     );
   }
 
+  // Fix the error handling for role upgrade functions - don't pass any parameters
+  const handleRoleUpgrade = () => {
+    return functionWrappers.handleUpgradeRoleWrapper();
+  };
+  
+  const handleRoleUpgradeRequest = () => {
+    return functionWrappers.handleRequestRoleUpgradeWrapper();
+  };
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
@@ -176,10 +186,7 @@ export default function TeamManagement() {
           error={error} 
           onRetry={selectedTeamId ? refetchTeamMembers : fetchTeams} 
           onUpgradeRole={isViewerOnly ? 
-            (canChangeRoles ? 
-              () => functionWrappers.handleUpgradeRoleWrapper(selectedTeamId) : 
-              () => functionWrappers.handleRequestRoleUpgradeWrapper(selectedTeamId)
-            ) : undefined}
+            (canChangeRoles ? handleRoleUpgrade : handleRoleUpgradeRequest) : undefined}
           isViewer={isViewerOnly}
           canDirectlyUpgrade={canChangeRoles}
           isRequestingUpgrade={isRequestingRole}

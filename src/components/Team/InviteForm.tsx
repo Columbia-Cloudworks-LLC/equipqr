@@ -19,12 +19,20 @@ interface InviteFormProps {
   onCancel?: () => void;
   isLoading?: boolean;
   teams: { id: string; name: string }[];
+  selectedTeamId?: string; // Added this prop
 }
 
-export function InviteForm({ onInvite, onCancel, isLoading = false, teams }: InviteFormProps) {
+export function InviteForm({ onInvite, onCancel, isLoading = false, teams, selectedTeamId }: InviteFormProps) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole>('viewer');
-  const [teamId, setTeamId] = useState('');
+  const [teamId, setTeamId] = useState(selectedTeamId || '');
+
+  // Update teamId when selectedTeamId changes
+  useState(() => {
+    if (selectedTeamId) {
+      setTeamId(selectedTeamId);
+    }
+  }, [selectedTeamId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
