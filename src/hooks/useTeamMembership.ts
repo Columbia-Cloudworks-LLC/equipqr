@@ -1,22 +1,12 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { validateTeamMembership, repairTeamMembership, getTeamAccessDetails } from '@/services/team/validation';
-
-export interface TeamAccessDetails {
-  hasAccess: boolean;
-  role: string | null;
-  // Additional fields to avoid type errors
-  isMember: boolean;
-  hasOrgAccess: boolean;
-  orgRole: string | null;
-  accessReason: string | null;
-  hasCrossOrgAccess: boolean;
-  orgName: string | null;
-  team: any;
-  error?: string | null;
-}
+import { 
+  validateTeamMembership, 
+  repairTeamMembership, 
+  getTeamAccessDetails, 
+  TeamAccessDetails 
+} from '@/services/team/validation';
 
 export function useTeamMembership(teamId: string | null) {
   const [isMember, setIsMember] = useState<boolean>(true); // Optimistic initial state
@@ -108,7 +98,7 @@ export function useTeamMembership(teamId: string | null) {
       console.log(`Checking detailed team access for team ${teamId}, attempt: ${checkAttempts + 1}`);
       
       // Use the enhanced team access details function with improved logic for org roles
-      const accessDetails = await getTeamAccessDetails(teamId);
+      const accessDetails = await getTeamAccessDetails(teamId, currentUserId);
       
       console.log('Team access details result:', accessDetails);
       

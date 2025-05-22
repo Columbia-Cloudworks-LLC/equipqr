@@ -15,3 +15,9 @@ export {
   canAssignTeamRole
 } from './permissionChecks';
 
+// Export type definitions
+export type {
+  TeamAccessDetails,
+  TeamAccessResult,
+  RepairResult
+} from './teamValidationTypes';
