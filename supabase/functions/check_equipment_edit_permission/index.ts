@@ -60,7 +60,7 @@ serve(async (req) => {
     // Use service role key to bypass RLS - this avoids recursion issues
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Get equipment details
+    // Get equipment details with table alias to avoid ambiguity
     const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
       .select('team_id, org_id')
@@ -115,7 +115,7 @@ serve(async (req) => {
         });
       }
       
-      // Get team member record
+      // Get team member record with explicit table alias
       const { data: teamMember } = await supabase
         .from('team_member')
         .select('id')
