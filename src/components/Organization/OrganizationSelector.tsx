@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/select';
 import { UserOrganization } from '@/services/organization/userOrganizations';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { truncateText } from '@/utils/textUtils';
 
 interface OrganizationSelectorProps {
   organizations: UserOrganization[];
@@ -23,6 +24,7 @@ interface OrganizationSelectorProps {
   showRoleBadges?: boolean;
   filterViewerOrgs?: boolean;
   showSetDefault?: boolean;
+  maxDisplayLength?: number;
 }
 
 export function OrganizationSelector({
@@ -36,7 +38,8 @@ export function OrganizationSelector({
   className = "w-[200px]",
   showRoleBadges = true,
   filterViewerOrgs = false,
-  showSetDefault = false
+  showSetDefault = false,
+  maxDisplayLength = 20
 }: OrganizationSelectorProps) {
   // Filter out organizations where user is just a viewer with no teams if requested
   const filteredOrgs = filterViewerOrgs 
@@ -57,6 +60,14 @@ export function OrganizationSelector({
     return a.name.localeCompare(b.name);
   });
 
+  // Get the selected organization object for display
+  const selectedOrg = selectedOrgId ? sortedOrgs.find(org => org.id === selectedOrgId) : undefined;
+  
+  // Get display name (truncated if needed)
+  const getDisplayName = (name: string) => {
+    return truncateText(name, maxDisplayLength);
+  };
+
   // Handler for setting an organization as default
   const handleSetDefault = async (e: React.MouseEvent, orgId: string) => {
     e.stopPropagation();
@@ -66,72 +77,90 @@ export function OrganizationSelector({
   };
 
   return (
-    <Select 
-      value={selectedOrgId} 
-      onValueChange={onChange}
-      disabled={disabled}
-    >
-      <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {sortedOrgs.map((org) => (
-          <SelectItem key={org.id} value={org.id} className="flex justify-between items-center">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center">
-                <Building className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                {org.name}
-                {showRoleBadges && (
-                  <div className="ml-2 flex gap-1">
-                    {org.id === defaultOrgId && (
-                      <Badge variant="outline" className="px-1 py-0 text-[10px] h-4 bg-green-50 border-green-200 text-green-700">
-                        Default
-                      </Badge>
-                    )}
-                    {org.is_primary && (
-                      <Badge variant="outline" className="px-1 py-0 text-[10px] h-4 bg-blue-50 border-blue-200 text-blue-700">
-                        Primary
-                      </Badge>
-                    )}
-                    {!org.is_primary && org.role && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge variant="outline" className="px-1 py-0 text-[10px] h-4 bg-gray-50 border-gray-200">
-                              {org.role}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Your role in this organization</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
+    <TooltipProvider>
+      <Select 
+        value={selectedOrgId} 
+        onValueChange={onChange}
+        disabled={disabled}
+      >
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SelectTrigger className={className}>
+              <SelectValue placeholder={placeholder}>
+                {selectedOrg && (
+                  <div className="flex items-center">
+                    <Building className="h-3.5 w-3.5 mr-2 text-muted-foreground shrink-0" />
+                    <span className="truncate">{getDisplayName(selectedOrg.name)}</span>
                   </div>
                 )}
+              </SelectValue>
+            </SelectTrigger>
+          </TooltipTrigger>
+          {selectedOrg && (
+            <TooltipContent side="top">
+              <p>{selectedOrg.name}</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+        <SelectContent className="min-w-[220px] max-w-[350px]">
+          {sortedOrgs.map((org) => (
+            <SelectItem key={org.id} value={org.id} className="flex justify-between items-center">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center flex-wrap gap-1">
+                  <Building className="h-3.5 w-3.5 mr-2 text-muted-foreground shrink-0" />
+                  <span className="break-words">{org.name}</span>
+                  {showRoleBadges && (
+                    <div className="flex gap-1 flex-wrap ml-1">
+                      {org.id === defaultOrgId && (
+                        <Badge variant="outline" className="px-1 py-0 text-[10px] h-4 bg-green-50 border-green-200 text-green-700">
+                          Default
+                        </Badge>
+                      )}
+                      {org.is_primary && (
+                        <Badge variant="outline" className="px-1 py-0 text-[10px] h-4 bg-blue-50 border-blue-200 text-blue-700">
+                          Primary
+                        </Badge>
+                      )}
+                      {!org.is_primary && org.role && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="px-1 py-0 text-[10px] h-4 bg-gray-50 border-gray-200">
+                                {org.role}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">Your role in this organization</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {showSetDefault && org.id !== defaultOrgId && onSetDefault && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button 
+                          className="ml-2 p-1 rounded-sm hover:bg-accent hover:text-accent-foreground" 
+                          onClick={(e) => handleSetDefault(e, org.id)}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Set as default</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
-              
-              {showSetDefault && org.id !== defaultOrgId && onSetDefault && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button 
-                        className="ml-2 p-1 rounded-sm hover:bg-accent hover:text-accent-foreground" 
-                        onClick={(e) => handleSetDefault(e, org.id)}
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs">Set as default</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </TooltipProvider>
   );
 }

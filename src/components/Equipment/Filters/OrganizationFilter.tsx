@@ -23,7 +23,8 @@ export function OrganizationFilter({
       selectedOrgId={selectedOrgId}
       onChange={onChange}
       placeholder="All Organizations"
-      className="min-w-[200px] max-w-xs"
+      className="min-w-[180px] w-full md:w-[220px] lg:w-[250px] max-w-full"
+      maxDisplayLength={20}
     />
   );
 }

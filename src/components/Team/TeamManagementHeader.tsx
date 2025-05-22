@@ -2,8 +2,8 @@
 import { UserOrganization } from '@/services/organization/userOrganizations';
 import { Button } from '@/components/ui/button';
 import { Loader2, RotateCw } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Organization } from '@/types';
+import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 
 interface TeamManagementHeaderProps {
   organizations: Organization[] | UserOrganization[];
@@ -29,7 +29,7 @@ export function TeamManagementHeader({
   };
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
         <h1 className="text-2xl font-bold mb-1">Team Management</h1>
         <p className="text-muted-foreground">
@@ -37,25 +37,16 @@ export function TeamManagementHeader({
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
         {organizations.length > 1 && (
-          <Select
-            value={selectedOrgId}
-            onValueChange={onChange}
+          <OrganizationSelector
+            organizations={organizations as UserOrganization[]}
+            selectedOrgId={selectedOrgId}
+            onChange={onChange}
             disabled={isLoading || isChangingOrg}
-          >
-            <SelectTrigger className="w-[250px]">
-              <SelectValue placeholder="Select Organization" />
-            </SelectTrigger>
-            <SelectContent>
-              {organizations.map((org) => (
-                <SelectItem key={org.id} value={org.id}>
-                  {org.name}
-                  {org.is_primary && " (Primary)"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            className="w-full sm:w-[220px] md:w-[250px] lg:w-[280px] mb-2 sm:mb-0"
+            maxDisplayLength={22}
+          />
         )}
 
         <Button
@@ -63,6 +54,7 @@ export function TeamManagementHeader({
           size="icon"
           onClick={handleRefresh}
           disabled={isLoading}
+          className="sm:ml-2"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

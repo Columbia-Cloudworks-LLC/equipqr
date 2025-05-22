@@ -115,7 +115,7 @@ const Index = () => {
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-2">
             {showOrgSelector && (
               <OrganizationSelector
                 organizations={organizations}
@@ -124,26 +124,28 @@ const Index = () => {
                 onChange={handleOrganizationChange}
                 onSetDefault={handleSetDefaultOrg}
                 showSetDefault={true}
-                className="w-[200px] mr-2"
+                className="w-full sm:w-[200px] md:w-[250px] lg:w-[300px] mb-2 sm:mb-0 sm:mr-2"
+                maxDisplayLength={25}
               />
             )}
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={refreshDashboardData} 
-              disabled={isRefreshing}
-              className="mr-2"
-              title="Refresh dashboard data"
-            >
-              <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Refresh data</span>
-            </Button>
-            <Button asChild>
-              <Link to="/equipment/new">
-                <Package className="mr-2 h-4 w-4" />
-                Add Equipment
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={refreshDashboardData} 
+                disabled={isRefreshing}
+                title="Refresh dashboard data"
+              >
+                <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="sr-only">Refresh data</span>
+              </Button>
+              <Button asChild>
+                <Link to="/equipment/new">
+                  <Package className="mr-2 h-4 w-4" />
+                  Add Equipment
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
 

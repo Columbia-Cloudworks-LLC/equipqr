@@ -33,8 +33,10 @@ export function EquipmentFilters({
   showOrgSelector
 }: EquipmentFiltersProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
-      <SearchField value={searchQuery} onChange={onSearchChange} />
+    <div className="flex flex-col space-y-3 md:space-y-0 md:flex-row md:items-center md:justify-between">
+      <div className="w-full md:w-auto">
+        <SearchField value={searchQuery} onChange={onSearchChange} />
+      </div>
       
       <div className="flex flex-wrap items-center gap-2">
         {showOrgSelector && (
