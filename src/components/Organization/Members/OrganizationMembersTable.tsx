@@ -87,19 +87,23 @@ export function OrganizationMembersTable({
               <TableCell className="capitalize">{member.role}</TableCell>
               {isOwner && (
                 <TableCell>
-                  <Select
-                    value={member.role}
-                    onValueChange={(value) => handleRoleChange(member.id, value as UserRole)}
-                    disabled={updatingRole[member.id]}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Change role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {member.role === 'owner' ? (
+                    <span className="text-muted-foreground">Cannot modify owner</span>
+                  ) : (
+                    <Select
+                      value={member.role}
+                      onValueChange={(value) => handleRoleChange(member.id, value as UserRole)}
+                      disabled={updatingRole[member.id]}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Change role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </TableCell>
               )}
             </TableRow>
