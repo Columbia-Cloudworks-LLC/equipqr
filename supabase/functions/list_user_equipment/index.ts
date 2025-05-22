@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
-import { fetchUserEquipment } from "./equipment-service.ts";
+import { fetchUserEquipment } from "./services/equipmentDataService.ts";
 import { formatEquipmentResponse } from "./equipment-formatter.ts";
 
 serve(async (req: Request) => {
