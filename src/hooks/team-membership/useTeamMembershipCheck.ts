@@ -1,6 +1,5 @@
-
 import { useCallback, useEffect } from 'react';
-import { getTeamAccessDetails, TeamAccessDetails } from '@/services/team/validation';
+import { getTeamAccessDetails } from '@/services/team/validation';
 
 /**
  * Hook to handle team membership checks

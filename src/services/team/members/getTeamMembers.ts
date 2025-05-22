@@ -22,16 +22,22 @@ export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
       throw new Error(teamError?.message || 'Team not found');
     }
 
-    // Call RPC function to get team members with roles
-    const { data: members, error: membersError } = await supabase
-      .rpc('get_team_members_with_roles', { _team_id: teamId });
+    // Call Edge function to get team members instead of RPC
+    const { data, error } = await supabase.functions.invoke('get_team_members', {
+      body: { team_id: teamId }
+    });
 
-    if (membersError) {
-      console.error('Error fetching team members:', membersError);
-      throw new Error('Failed to load team members');
+    if (error) {
+      console.error('Error invoking get_team_members function:', error);
+      throw new Error(error.message || 'Failed to load team members');
     }
 
-    return members || [];
+    if (!Array.isArray(data)) {
+      console.error('Unexpected response format from get_team_members function', data);
+      throw new Error('Invalid response format from server');
+    }
+
+    return data;
   } catch (error: any) {
     console.error('Error in getTeamMembers:', error);
     throw error;

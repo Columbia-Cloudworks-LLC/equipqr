@@ -1,255 +1,128 @@
 
-// Helper class to validate team access with proper organization role checking
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+
+interface TeamAccessResult {
+  is_member: boolean;
+  has_access: boolean;
+  role: string | null;
+  org_role: string | null;
+  team_role: string | null;
+  has_org_access: boolean;
+  has_org_manager_access: boolean;
+  has_cross_org_access: boolean;
+  access_reason: string;
+  user_org_id: string | null;
+  team_org_id: string | null;
+}
+
 export class TeamAccessValidator {
-  private supabase;
+  constructor(private readonly supabase: SupabaseClient) {}
 
-  constructor(supabaseClient: any) {
-    this.supabase = supabaseClient;
-  }
+  async validateAccess(userId: string, teamId: string): Promise<TeamAccessResult> {
+    // Initialize the result object with defaults
+    const result: TeamAccessResult = {
+      is_member: false,
+      has_access: false,
+      role: null, 
+      org_role: null,
+      team_role: null,
+      has_org_access: false,
+      has_org_manager_access: false,
+      has_cross_org_access: false,
+      access_reason: 'none',
+      user_org_id: null,
+      team_org_id: null
+    };
 
-  async validateAccess(userId: string, teamId: string) {
     try {
-      // Get app_user ID for team membership checks
-      const { data: appUserData, error: appUserError } = await this.supabase
-        .from('app_user')
-        .select('id')
-        .eq('auth_uid', userId)
-        .single();
-
-      if (appUserError) {
-        console.error('Error getting app_user ID:', appUserError);
-        return { 
-          is_member: false, 
-          has_access: false,
-          access_reason: 'error_app_user_not_found',
-          error: appUserError.message
-        };
-      }
-
-      const appUserId = appUserData.id;
-
       // Get user's organization ID
-      const { data: userProfile, error: userProfileError } = await this.supabase
+      const { data: userProfile } = await this.supabase
         .from('user_profiles')
         .select('org_id')
         .eq('id', userId)
         .single();
+        
+      result.user_org_id = userProfile?.org_id || null;
 
-      if (userProfileError) {
-        console.error('Error getting user profile:', userProfileError);
-        return { 
-          is_member: false, 
-          has_access: false,
-          access_reason: 'error_user_profile_not_found',
-          error: userProfileError.message
-        };
-      }
-
-      const userOrgId = userProfile.org_id;
-
-      // Get team details
-      const { data: teamData, error: teamError } = await this.supabase
+      // Get team's organization ID
+      const { data: teamData } = await this.supabase
         .from('team')
-        .select('*, org:org_id(id, name)')
+        .select('org_id')
         .eq('id', teamId)
         .single();
+        
+      result.team_org_id = teamData?.org_id || null;
 
-      if (teamError) {
-        console.error('Error getting team details:', teamError);
-        return { 
-          is_member: false, 
-          has_access: false,
-          access_reason: 'error_team_not_found',
-          error: teamError.message
-        };
+      // If either the user or team doesn't exist, return early
+      if (!result.user_org_id || !result.team_org_id) {
+        return result;
       }
 
-      if (teamData.deleted_at) {
-        console.log('Team is deleted:', teamId);
-        return {
-          is_member: false,
-          has_access: false,
-          access_reason: 'team_deleted',
-          error: 'Team has been deleted'
-        };
-      }
-
-      const teamOrgId = teamData.org_id;
-      const teamOrgName = teamData.org?.name;
+      // Check if user is in the same organization as the team
+      result.has_org_access = result.user_org_id === result.team_org_id;
       
-      // Check if user is a direct team member
-      const { data: teamMembership, error: teamMembershipError } = await this.supabase
-        .from('team_member')
-        .select('id')
-        .eq('user_id', appUserId)
-        .eq('team_id', teamId)
-        .maybeSingle();
-
-      if (teamMembershipError) {
-        console.error('Error checking team membership:', teamMembershipError);
-      }
-
-      const isTeamMember = teamMembership !== null;
-      let teamMemberId = teamMembership?.id || null;
-      let teamRole = null;
-
-      // If direct team member, get role
-      if (isTeamMember && teamMemberId) {
-        const { data: roleData, error: roleError } = await this.supabase
-          .from('team_roles')
-          .select('role')
-          .eq('team_member_id', teamMemberId)
-          .maybeSingle();
-
-        if (roleError) {
-          console.error('Error getting team role:', roleError);
-        }
-
-        if (roleData) {
-          teamRole = roleData.role;
-        }
-      }
-
-      // Check user's organization role
-      const { data: orgRoleData, error: orgRoleError } = await this.supabase
+      // Get user's organization role
+      const { data: userRoleData } = await this.supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .eq('org_id', teamOrgId)
-        .maybeSingle();
+        .eq('org_id', result.team_org_id)
+        .single();
+        
+      result.org_role = userRoleData?.role || null;
+      
+      // Check if user has manager access in the organization
+      result.has_org_manager_access = result.org_role === 'owner' || result.org_role === 'manager';
 
-      if (orgRoleError) {
-        console.error('Error getting org role:', orgRoleError);
+      // Get app_user ID for this auth user
+      const { data: appUserData } = await this.supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', userId)
+        .single();
+        
+      if (appUserData?.id) {
+        // Check if user is a team member
+        const { data: teamMember } = await this.supabase
+          .from('team_member')
+          .select('id')
+          .eq('user_id', appUserData.id)
+          .eq('team_id', teamId)
+          .single();
+          
+        result.is_member = !!teamMember?.id;
+        
+        if (result.is_member) {
+          // Get team role
+          const { data: roleData } = await this.supabase
+            .from('team_roles')
+            .select('role')
+            .eq('team_member_id', teamMember.id)
+            .single();
+            
+          result.team_role = roleData?.role || null;
+          
+          result.access_reason = 'team_member';
+        }
+      }
+      
+      // Determine if user has cross-organization access
+      result.has_cross_org_access = result.is_member && !result.has_org_access;
+      
+      // Determine overall access and effective role
+      result.has_access = result.is_member || result.has_org_access;
+      result.role = result.team_role || result.org_role;
+      
+      // Set access reason if not already set
+      if (result.access_reason === 'none' && result.has_org_access) {
+        result.access_reason = 'same_org';
       }
 
-      const orgRole = orgRoleData?.role || null;
-      
-      // Is this a cross-org access situation?
-      const hasCrossOrgAccess = userOrgId !== teamOrgId && isTeamMember;
-      
-      // Check for same organization - critical fix here
-      const hasSameOrg = userOrgId === teamOrgId;
-      
-      // Check for organization manager/owner/admin access - these roles bypass team membership
-      const hasOrgManagerAccess = hasSameOrg && orgRole && 
-        (orgRole === 'owner' || orgRole === 'manager' || orgRole === 'admin');
-      
-      // Determine if user has access by either being a team member or having org manager rights
-      const hasAccess = isTeamMember || hasOrgManagerAccess;
-      
-      // Determine the higher priority role (team role or org role)
-      const highestRole = this.getHigherRole(teamRole, orgRole);
-      
-      // Determine access reason for debugging
-      const accessReason = this.determineAccessReason(
-        isTeamMember, 
-        teamRole, 
-        orgRole,
-        hasSameOrg,
-        hasCrossOrgAccess,
-        hasOrgManagerAccess
-      );
-      
-      console.log('Team access validation result:', {
-        is_member: isTeamMember,
-        has_access: hasAccess,
-        role: highestRole,
-        org_role: orgRole,
-        team_role: teamRole,
-        has_org_access: hasSameOrg,
-        has_org_manager_access: hasOrgManagerAccess,
-        has_cross_org_access: hasCrossOrgAccess,
-        access_reason: accessReason,
-        user_org_id: userOrgId,
-        team_org_id: teamOrgId
-      });
-      
-      // Return comprehensive team access information
-      return {
-        is_member: isTeamMember,
-        has_access: hasAccess,
-        team_member_id: teamMemberId,
-        role: highestRole,
-        org_role: orgRole,
-        team_role: teamRole,
-        has_org_access: hasSameOrg,
-        has_org_manager_access: hasOrgManagerAccess,
-        has_cross_org_access: hasCrossOrgAccess,
-        access_reason: accessReason,
-        team_details: teamData,
-        org_name: teamOrgName,
-        user_org_id: userOrgId,
-        team_org_id: teamOrgId
-      };
+      return result;
       
     } catch (error) {
-      console.error('Unexpected error in validateAccess:', error);
-      return { 
-        is_member: false, 
-        has_access: false,
-        access_reason: 'error_unexpected',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
+      console.error('Error validating team access:', error);
+      return result;
     }
-  }
-  
-  // Helper to get higher priority role between team and org roles
-  private getHigherRole(teamRole: string | null, orgRole: string | null): string | null {
-    // Role priority from highest to lowest
-    const rolePriority = ['owner', 'manager', 'admin', 'creator', 'technician', 'viewer'];
-    
-    // If only one role exists, return it
-    if (!teamRole) return orgRole;
-    if (!orgRole) return teamRole;
-    
-    // Find the priority index for each role
-    const teamPriority = rolePriority.indexOf(teamRole);
-    const orgPriority = rolePriority.indexOf(orgRole);
-    
-    // If either role is not recognized, return the other one
-    if (teamPriority === -1) return orgRole;
-    if (orgPriority === -1) return teamRole;
-    
-    // Lower index means higher priority
-    // If org role is owner or manager, it should take precedence
-    if (orgRole === 'owner' || orgRole === 'manager') {
-      return orgRole;
-    }
-    
-    // Otherwise, return the higher priority role (lower index)
-    return teamPriority < orgPriority ? teamRole : orgRole;
-  }
-  
-  // Helper to determine access reason
-  private determineAccessReason(
-    isTeamMember: boolean, 
-    teamRole: string | null, 
-    orgRole: string | null,
-    hasSameOrg: boolean,
-    hasCrossOrg: boolean,
-    hasOrgManagerAccess: boolean
-  ): string {
-    // Direct team membership takes precedence
-    if (isTeamMember) {
-      return 'team_member';
-    }
-    
-    // If they're in the same org and user has manager/owner role
-    if (hasOrgManagerAccess) {
-      return 'org_manager_access';
-    }
-    
-    // Same org but no direct team membership
-    if (hasSameOrg) {
-      return 'same_org';
-    }
-    
-    // Cross-org access via team
-    if (hasCrossOrg) {
-      return 'cross_org_team';
-    }
-    
-    // Default - no clear reason for access
-    return 'none';
   }
 }

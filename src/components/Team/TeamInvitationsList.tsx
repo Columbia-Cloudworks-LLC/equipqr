@@ -1,5 +1,7 @@
 
 import { PendingInvitationsList } from './PendingInvitationsList';
+import { Button } from '../ui/button';
+import { RefreshCw } from 'lucide-react';
 
 interface TeamInvitationsListProps {
   invitations: any[];
@@ -48,7 +50,3 @@ export function TeamInvitationsList({
     </div>
   );
 }
-
-// Missing import for the Button component
-import { Button } from '../ui/button';
-import { RefreshCw } from 'lucide-react';
