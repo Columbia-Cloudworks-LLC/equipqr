@@ -1232,6 +1232,7 @@ export type Database = {
           email: string
           role: string
           status: string
+          auth_uid: string
         }[]
       }
       get_team_org: {
