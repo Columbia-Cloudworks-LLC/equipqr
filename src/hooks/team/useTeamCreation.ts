@@ -2,7 +2,10 @@
 import { useCallback } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
-export function useTeamCreation(handleCreateTeamBase: (name: string, orgId?: string) => Promise<any>) {
+export function useTeamCreation(
+  handleCreateTeamBase: (name: string, orgId?: string) => Promise<any>,
+  setSelectedTeamId?: (teamId: string) => void
+) {
   const { selectedOrganization } = useOrganization();
 
   // Enhanced create team handler that sets the selection afterwards
@@ -17,13 +20,20 @@ export function useTeamCreation(handleCreateTeamBase: (name: string, orgId?: str
       
       const result = await handleCreateTeamBase(name, targetOrgId);
       
+      // If team creation was successful and we have a team ID, select it
+      if (result && (result.id || result.team?.id) && setSelectedTeamId) {
+        const newTeamId = result.id || result.team?.id;
+        console.log(`useTeamCreation: Auto-selecting newly created team: ${newTeamId}`);
+        setSelectedTeamId(newTeamId);
+      }
+      
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error creating team:', errorMessage);
       return { success: false, error: errorMessage };
     }
-  }, [handleCreateTeamBase, selectedOrganization]);
+  }, [handleCreateTeamBase, selectedOrganization, setSelectedTeamId]);
 
   return {
     handleCreateTeam

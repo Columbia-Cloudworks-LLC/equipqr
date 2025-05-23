@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect } from 'react';
 import { UserRole } from '@/types/supabase-enums';
 import { useTeams } from './useTeams';
@@ -80,8 +79,8 @@ export function useTeamManagement() {
     isMembersLoading
   );
 
-  // Use the team creation hook
-  const { handleCreateTeam } = useTeamCreation(handleCreateTeamBase);
+  // Use the team creation hook with team selection capability
+  const { handleCreateTeam } = useTeamCreation(handleCreateTeamBase, setSelectedTeamId);
 
   // Refresh teams when component mounts
   useEffect(() => {
