@@ -13,6 +13,24 @@ export async function validateOrganizationInvitation(token: string): Promise<Val
     
     console.log(`Validating organization invitation token: ${token.substring(0, 8)}...`);
     
+    try {
+      // First try using the edge function for validation (most reliable)
+      const { data: validationData, error: validationError } = await supabase.functions.invoke('validate_org_invitation', {
+        body: { token }
+      });
+      
+      if (validationError) {
+        console.warn('Edge function validation failed, falling back to direct query:', validationError);
+      } else if (validationData) {
+        console.log('Organization invitation validation via edge function:', validationData.valid);
+        return validationData;
+      }
+    } catch (edgeFunctionError) {
+      console.warn('Error calling validation edge function:', edgeFunctionError);
+      // Continue to fallback method
+    }
+    
+    // Fallback: direct query if edge function fails
     // Get the invitation by token - check both 'sent' and 'pending' statuses for compatibility
     const { data, error } = await supabase
       .from('organization_invitations')
@@ -27,7 +45,7 @@ export async function validateOrganizationInvitation(token: string): Promise<Val
     }
     
     // Check if the invitation has expired
-    if (new Date(data.expires_at) < new Date()) {
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
       return { valid: false, error: 'This invitation has expired' };
     }
     

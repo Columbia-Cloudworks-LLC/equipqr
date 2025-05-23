@@ -27,6 +27,17 @@ const debouncedValidateOrg = debounce(async (token: string) => {
   return await cachedValidateOrgInvitation(token);
 }, 800);
 
+/**
+ * Attempts to detect the invitation type by the token format or length
+ * This is a fallback when the type isn't explicitly specified
+ */
+const detectInvitationType = (token: string): 'team' | 'organization' => {
+  // Add specific detection logic if needed
+  // For now, we'll use a simple approach, assuming organization tokens might have different patterns
+  // This should be enhanced with actual token pattern detection if there are reliable patterns
+  return 'team'; // Default to team if we can't detect
+};
+
 export function useInvitationValidation(token: string | undefined, invitationType: string = 'team') {
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
@@ -34,6 +45,18 @@ export function useInvitationValidation(token: string | undefined, invitationTyp
   const [invitation, setInvitation] = useState<any>(null);
   const [rateLimited, setRateLimited] = useState(false);
   const { user, isLoading: isAuthLoading } = useAuth();
+  const [detectedType, setDetectedType] = useState<'team' | 'organization'>(
+    invitationType === 'organization' ? 'organization' : 'team'
+  );
+  const [attemptedValidations, setAttemptedValidations] = useState<Record<string, boolean>>({});
+  
+  useEffect(() => {
+    // Normalize and store the invitation type from props
+    const normalizedType = invitationType === 'organization' ? 'organization' : 'team';
+    setDetectedType(normalizedType);
+    
+    console.log(`useInvitationValidation: Using invitation type: ${normalizedType} (provided: ${invitationType})`);
+  }, [invitationType]);
   
   useEffect(() => {
     const validateToken = async () => {
@@ -46,28 +69,40 @@ export function useInvitationValidation(token: string | undefined, invitationTyp
           setError('No invitation token provided');
           return;
         }
+
+        console.log(`Validating invitation with token: ${token.substring(0, 8)}... as type: ${detectedType}`);
+        
+        // Record that we've attempted validation with this type
+        setAttemptedValidations(prev => ({ ...prev, [detectedType]: true }));
         
         try {
-          if (invitationType === 'organization') {
+          let validationResult;
+          
+          if (detectedType === 'organization') {
             // Handle organization invitation
-            const { valid, invitation, error } = await debouncedValidateOrg(token);
-            
-            if (!valid) {
-              setError(error || 'Invalid invitation');
-            } else {
-              setInvitation(invitation);
-              setIsValid(true);
-            }
+            validationResult = await debouncedValidateOrg(token);
           } else {
             // Handle team invitation
-            const { valid, invitation, error } = await debouncedValidateTeam(token);
-            
-            if (!valid) {
-              setError(error || 'Invalid invitation');
-            } else {
-              setInvitation(invitation);
-              setIsValid(true);
+            validationResult = await debouncedValidateTeam(token);
+          }
+          
+          const { valid, invitation, error } = validationResult;
+          
+          if (!valid) {
+            // If validation fails and we haven't tried the other type yet,
+            // let's try the alternate type as a fallback
+            if (!attemptedValidations[detectedType === 'team' ? 'organization' : 'team']) {
+              const alternateType = detectedType === 'team' ? 'organization' : 'team';
+              console.log(`First validation attempt failed. Trying alternate type: ${alternateType}`);
+              
+              setDetectedType(alternateType);
+              return; // Exit and let the useEffect run again with the new type
             }
+            
+            setError(error || 'Invalid invitation');
+          } else {
+            setInvitation(invitation);
+            setIsValid(true);
           }
         } catch (error: any) {
           console.error('Error validating invitation:', error);
@@ -77,6 +112,20 @@ export function useInvitationValidation(token: string | undefined, invitationTyp
               error.message?.toLowerCase().includes('rate limit')) {
             setRateLimited(true);
             setError('Too many requests. Please try again in a moment.');
+          } else if (error.status === 406) {
+            // 406 Not Acceptable often means we're using the wrong endpoint
+            console.warn('Received 406 error - might be using wrong invitation type');
+            
+            // Try the other invitation type if we haven't already
+            if (!attemptedValidations[detectedType === 'team' ? 'organization' : 'team']) {
+              const alternateType = detectedType === 'team' ? 'organization' : 'team';
+              console.log(`Received 406 error. Trying alternate type: ${alternateType}`);
+              
+              setDetectedType(alternateType);
+              return; // Exit and let the useEffect run again with the new type
+            }
+            
+            setError('Invalid invitation format');
           } else {
             setError(error.message || 'An error occurred validating the invitation');
           }
@@ -87,7 +136,7 @@ export function useInvitationValidation(token: string | undefined, invitationTyp
     };
 
     validateToken();
-  }, [token, invitationType]);
+  }, [token, detectedType, attemptedValidations]);
   
   return {
     isValidating,
@@ -96,6 +145,7 @@ export function useInvitationValidation(token: string | undefined, invitationTyp
     invitation,
     isAuthLoading,
     user,
-    rateLimited
+    rateLimited,
+    invitationType: detectedType
   };
 }

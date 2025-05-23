@@ -13,6 +13,7 @@ interface SessionHandlerProps {
   sessionCheckAttempt: number;
   setSessionCheckAttempt: React.Dispatch<React.SetStateAction<number>>;
   setAuthVerified: (verified: boolean) => void;
+  invitationType?: string;
 }
 
 // Create a debounced session check function
@@ -27,24 +28,63 @@ export function SessionHandler({
   setWaitingForAuth,
   sessionCheckAttempt,
   setSessionCheckAttempt,
-  setAuthVerified
+  setAuthVerified,
+  invitationType = 'team'
 }: SessionHandlerProps) {
   const { user, isLoading: authLoading } = useAuth();
   const [checkingSession, setCheckingSession] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   // Save invitation details to session storage when not authenticated
   useEffect(() => {
     if (!user && !authLoading && token) {
       // Save the invitation path for redirection after login
-      const invitationPath = `/invitation/${token}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+      const typeParam = invitationType === 'organization' ? '?type=organization' : '';
+      const invitationPath = `/invitation/${token}${typeParam}${typeParam ? '&' : '?'}${searchParams.toString()}`;
       sessionStorage.setItem('invitationPath', invitationPath);
+      sessionStorage.setItem('invitationType', invitationType);
       console.log('Saved invitation path for after login:', invitationPath);
     }
-  }, [user, authLoading, token, searchParams]);
+  }, [user, authLoading, token, searchParams, invitationType]);
+
+  // Initial session check when component mounts
+  useEffect(() => {
+    const performInitialCheck = async () => {
+      if (!initialCheckDone && !authLoading) {
+        console.log('Performing initial session check');
+        try {
+          setCheckingSession(true);
+          
+          // First check if we have a valid session
+          const isValid = await debouncedSessionCheck();
+          
+          console.log('Initial session check result:', { isValid, user: !!user });
+          
+          // If we have both a valid session and user, authentication is verified
+          if (isValid && user) {
+            console.log('Initial check: User authenticated and session valid');
+            setWaitingForAuth(false);
+            setAuthVerified(true);
+          } else if (!user) {
+            // No user but session might be valid - we're waiting for auth
+            console.log('Initial check: No user, waiting for authentication');
+            setWaitingForAuth(true);
+          }
+        } catch (error) {
+          console.error('Error during initial session check:', error);
+        } finally {
+          setInitialCheckDone(true);
+          setCheckingSession(false);
+        }
+      }
+    };
+    
+    performInitialCheck();
+  }, [user, authLoading, initialCheckDone, setWaitingForAuth, setAuthVerified]);
 
   // Check session validity periodically with exponential backoff when waiting for auth
   useEffect(() => {
-    if (waitingForAuth && sessionCheckAttempt < 5 && !checkingSession) {
+    if (waitingForAuth && sessionCheckAttempt < 5 && !checkingSession && initialCheckDone) {
       const delay = Math.min(1000 * Math.pow(2, sessionCheckAttempt), 16000); // Exponential backoff with 16s max
       console.log(`Scheduling session check attempt ${sessionCheckAttempt + 1} in ${delay}ms`);
       
@@ -70,7 +110,7 @@ export function SessionHandler({
       
       return () => clearTimeout(checkSessionTimeout);
     }
-  }, [waitingForAuth, sessionCheckAttempt, setSessionCheckAttempt, setWaitingForAuth, setAuthVerified, checkingSession]);
+  }, [waitingForAuth, sessionCheckAttempt, setSessionCheckAttempt, setWaitingForAuth, setAuthVerified, checkingSession, initialCheckDone]);
 
   return null;
 }

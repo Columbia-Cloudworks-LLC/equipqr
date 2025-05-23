@@ -13,16 +13,20 @@ import { SessionHandler } from '../components/Invitation/SessionHandler';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
+import { InvitationType } from '@/types/invitations';
 
 const InvitationPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const [searchParams] = useSearchParams();
-  const invitationType = searchParams.get('type') || 'team';
+  const typeParam = searchParams.get('type');
+  const invitationType = typeParam === 'organization' ? 'organization' : 'team';
   const navigate = useNavigate();
   const { refreshNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
   const { handleInvitationError } = useInvitationError();
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastAttemptType, setLastAttemptType] = useState<InvitationType | null>(null);
   
   // Custom hooks
   const { 
@@ -32,8 +36,9 @@ const InvitationPage: React.FC = () => {
     invitation, 
     isAuthLoading, 
     user, 
-    rateLimited: validationRateLimited 
-  } = useInvitationValidation(token || '');
+    rateLimited: validationRateLimited,
+    invitationType: detectedType
+  } = useInvitationValidation(token || '', invitationType);
   
   const { 
     acceptInvitation, 
@@ -51,6 +56,11 @@ const InvitationPage: React.FC = () => {
     refreshAuthSession, redirectToAuth
   } = useInvitationProcessing();
 
+  // Log detected invitation type changes
+  useEffect(() => {
+    console.log(`InvitationPage: Detected invitation type is ${detectedType}`);
+  }, [detectedType]);
+  
   // Handle rate limiting detection
   useEffect(() => {
     // Check from both sources if we're rate limited
@@ -73,7 +83,8 @@ const InvitationPage: React.FC = () => {
       hasAcceptError: Boolean(acceptError),
       invitation,
       isAuthenticated: !!user,
-      isRateLimited
+      isRateLimited,
+      detectedType
     });
     
     // When the page loads, check if we need to wait for authentication
@@ -90,7 +101,7 @@ const InvitationPage: React.FC = () => {
       refreshAuthSession();
     }
   }, [token, invitationType, isValidating, isValid, error, isAuthLoading, 
-      isAccepting, acceptError, invitation, user, waitingForAuth, refreshAuthSession, authVerified]);
+      isAccepting, acceptError, invitation, user, waitingForAuth, refreshAuthSession, authVerified, detectedType]);
 
   // Combine errors for display
   useEffect(() => {
@@ -135,8 +146,9 @@ const InvitationPage: React.FC = () => {
       
       // Save invitation info and redirect to login
       if (token) {
-        const invitationPath = `/invitation/${token}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
-        redirectToAuth(invitationPath, invitationType);
+        const typeParam = detectedType === 'organization' ? '?type=organization' : '';
+        const invitationPath = `/invitation/${token}${typeParam}`;
+        redirectToAuth(invitationPath, detectedType);
       }
       return;
     }
@@ -144,6 +156,7 @@ const InvitationPage: React.FC = () => {
     try {
       // Reset rate limited state before attempting acceptance
       setIsRateLimited(false);
+      setLastAttemptType(detectedType);
       
       // Force a session refresh before accepting the invitation
       const refreshSuccessful = await refreshAuthSession();
@@ -152,13 +165,14 @@ const InvitationPage: React.FC = () => {
         throw new Error("Could not refresh your authentication session. Please try logging out and in again.");
       }
       
-      console.log(`Accepting invitation: ${token?.substring(0, 8)}... (Type: ${invitationType})`);
-      console.log(`Current user: ${user?.email}, Invitation for: ${invitation.email}`);
+      console.log(`Accepting invitation: ${token?.substring(0, 8)}... (Type: ${detectedType})`);
       
-      // Convert string type to InvitationType
-      const inviteType = invitationType === 'organization' ? 'organization' : 'team';
+      if (invitation && invitation.email && user.email) {
+        console.log(`Current user: ${user.email}, Invitation for: ${invitation.email}`);
+      }
       
-      const result = await acceptInvitation(token || '', inviteType);
+      // Use the detected type for acceptance
+      const result = await acceptInvitation(token || '', detectedType);
       
       if (result && result.success) {
         console.log("Invitation accepted successfully:", result);
@@ -180,7 +194,7 @@ const InvitationPage: React.FC = () => {
             console.log("Data refreshed successfully after invitation acceptance");
             
             // Navigate to the appropriate page based on invitation type
-            if (invitationType === 'organization') {
+            if (detectedType === 'organization') {
               navigate('/organization');
             } else {
               navigate('/teams');
@@ -203,6 +217,37 @@ const InvitationPage: React.FC = () => {
         // Check if this was a rate limit error
         if (result.error?.includes('rate limit') || result.error?.includes('too many requests')) {
           setIsRateLimited(true);
+        }
+        
+        // If this is likely a wrong type error, try the other type
+        if (retryCount < 1 && 
+            (result.error?.includes('not found') || 
+             result.error?.includes('invalid') ||
+             result.error?.includes('406'))) {
+          
+          const alternateType = detectedType === 'team' ? 'organization' : 'team';
+          setRetryCount(count => count + 1);
+          
+          console.log(`Trying alternate invitation type: ${alternateType}`);
+          setTimeout(() => {
+            acceptInvitation(token || '', alternateType)
+              .then(altResult => {
+                if (altResult && altResult.success) {
+                  console.log("Invitation accepted successfully with alternate type:", altResult);
+                  setAcceptedSuccessfully(true);
+                  toast.success("Invitation accepted successfully!");
+                  
+                  if (alternateType === 'organization') {
+                    navigate('/organization');
+                  } else {
+                    navigate('/teams');
+                  }
+                }
+              })
+              .catch(altError => {
+                console.error("Alternative acceptance also failed:", altError);
+              });
+          }, 1000);
         }
       }
     } catch (error: any) {
@@ -242,6 +287,7 @@ const InvitationPage: React.FC = () => {
         sessionCheckAttempt={sessionCheckAttempt}
         setSessionCheckAttempt={setSessionCheckAttempt}
         setAuthVerified={setAuthVerified}
+        invitationType={invitationType}
       />
       
       {/* Render appropriate UI based on invitation state */}
@@ -251,7 +297,7 @@ const InvitationPage: React.FC = () => {
           suggestion="You'll need to sign in or create an account before accepting this invitation."
           isAuthError={true}
           token={token}
-          invitationType={invitationType}
+          invitationType={detectedType}
         />
       ) : isRateLimited ? (
         <RateLimitedState onRetry={handleRetryAfterRateLimit} />
@@ -263,7 +309,7 @@ const InvitationPage: React.FC = () => {
         <InvalidInvitation />
       ) : (
         <InvitationContent 
-          invitationType={invitationType === 'organization' ? 'organization' : 'team'}
+          invitationType={detectedType}
           invitationDetails={invitation} 
           onAccept={handleAcceptInvitation}
           token={token || ''}

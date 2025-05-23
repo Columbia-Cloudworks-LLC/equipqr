@@ -43,6 +43,8 @@ export function useInvitationAcceptance() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AcceptanceResult | null>(null);
   const [rateLimited, setRateLimited] = useState(false);
+  const [lastAcceptedToken, setLastAcceptedToken] = useState<string | null>(null);
+  const [attemptedTypes, setAttemptedTypes] = useState<Record<string, boolean>>({});
   
   /**
    * Validate invitation token format
@@ -93,12 +95,22 @@ export function useInvitationAcceptance() {
       return { success: false, error: errorMsg };
     }
     
+    // Prevent duplicate acceptance attempts for the same token
+    if (lastAcceptedToken === token) {
+      const warningMsg = 'This invitation has already been processed';
+      console.warn(warningMsg);
+      return { success: false, error: warningMsg };
+    }
+    
     // Validate token format
     if (!validateTokenFormat(token)) {
       const errorMsg = 'Invalid invitation token format';
       setError(errorMsg);
       return { success: false, error: errorMsg };
     }
+    
+    // Record that we've attempted this type for this token
+    setAttemptedTypes(prev => ({...prev, [`${token}_${type}`]: true}));
     
     try {
       setIsAccepting(true);
@@ -168,12 +180,28 @@ export function useInvitationAcceptance() {
             };
           }
           
+          // Check if this might be an error due to wrong invitation type
+          if (teamError?.message?.includes('not found') || 
+              teamError?.message?.includes('invalid') ||
+              teamError?.status === 406) {
+            
+            // Only try the alternate type if we haven't tried it already
+            if (!attemptedTypes[`${token}_${type === 'team' ? 'organization' : 'team'}`]) {
+              console.warn('Error might indicate wrong invitation type. Consider trying alternate type.');
+            }
+          }
+          
           console.error('Error accepting team invitation:', teamError);
           return { 
             success: false, 
             error: teamError.message || 'Failed to process team invitation' 
           };
         }
+      }
+      
+      // Mark this token as processed if successful
+      if (acceptanceResult.success) {
+        setLastAcceptedToken(token);
       }
       
       // Store the result
@@ -211,6 +239,13 @@ export function useInvitationAcceptance() {
     error,
     result,
     rateLimited,
-    clearError: () => setError(null)
+    clearError: () => setError(null),
+    resetState: () => {
+      setError(null);
+      setResult(null);
+      setRateLimited(false);
+      setLastAcceptedToken(null);
+      setAttemptedTypes({});
+    }
   };
 }
