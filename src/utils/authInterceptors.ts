@@ -1,7 +1,9 @@
 
 // Compatibility layer for existing code
 // This file re-exports the refactored auth utilities
-import { authService, sessionManager, storageManager } from '@/services/auth/AuthService';
+import { authService } from '@/services/auth/AuthService';
+import { sessionManager } from '@/services/auth/SessionManager';
+import { storageManager } from '@/services/auth/StorageManager';
 
 // Re-export deprecated functions for backward compatibility
 export { resetAuthState, performFullAuthReset } from './auth/authReset';

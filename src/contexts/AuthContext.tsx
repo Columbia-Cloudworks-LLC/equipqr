@@ -2,7 +2,7 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth as useAuthHook } from '@/hooks/useAuth';
 
 interface AuthContextType {
   supabaseClient: typeof supabase;
@@ -16,6 +16,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData?: any) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   resetAuthSystem: () => Promise<void>;
+  repairSession: () => Promise<boolean>; // Add the missing property
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => {},
   resetPassword: async () => {},
   resetAuthSystem: async () => {},
+  repairSession: async () => false, // Initialize the missing property
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -44,8 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetPassword, 
     signOut, 
     checkSession,
-    resetAuthSystem
-  } = useAuth();
+    resetAuthSystem,
+    repairSession // Add the repairSession property
+  } = useAuthHook();
 
   const value: AuthContextType = {
     supabaseClient: supabase,
@@ -59,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     checkSession,
     resetAuthSystem,
+    repairSession // Add the property to the context value
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,8 +1,8 @@
 
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { sessionManager } from './SessionManager';
-import { storageManager } from './StorageManager';
+import { SessionManager } from './SessionManager';
+import { StorageManager } from './StorageManager';
 import { toast } from 'sonner';
 
 // Define authentication event types
@@ -16,6 +16,10 @@ export type AuthEventType =
 
 // Define event listener type
 export type AuthEventListener = (event: AuthEventType, session: Session | null) => void;
+
+// Create singleton instances - now exported
+export const sessionManager = new SessionManager();
+export const storageManager = new StorageManager();
 
 /**
  * The central authentication service that provides unified
