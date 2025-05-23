@@ -74,7 +74,7 @@ export function TeamMemberCard({
           <div className="flex justify-between items-start">
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-base truncate">
-                {member.name || member.display_name || 'Unknown User'}
+                {member.display_name || 'Unknown User'}
                 {isCurrentUser && <span className="text-muted-foreground ml-2">(You)</span>}
               </h4>
               <p className="text-sm text-muted-foreground truncate">{member.email}</p>
