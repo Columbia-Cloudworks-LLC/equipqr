@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useInvitationAcceptance } from './useInvitationAcceptance';
 
 /**
  * Hook for handling invitation processing related logic
@@ -16,6 +17,7 @@ export function useInvitationProcessing() {
   const [authVerified, setAuthVerified] = useState(false);
   const navigate = useNavigate();
   const { user, checkSession } = useAuth();
+  const { acceptInvitation } = useInvitationAcceptance();
 
   /**
    * Refreshes the auth session to ensure valid tokens for API calls
@@ -55,6 +57,46 @@ export function useInvitationProcessing() {
   }, [checkSession]);
 
   /**
+   * Process an invitation token of a specific type
+   */
+  const processInvitation = useCallback(async (token: string, invitationType: 'team' | 'organization' = 'team') => {
+    if (!user) {
+      const errorMsg = 'You must be logged in to accept invitations';
+      toast.error(errorMsg);
+      return { success: false, error: errorMsg };
+    }
+
+    try {
+      // Refresh the auth session before processing
+      const sessionRefreshed = await refreshAuthSession();
+      if (!sessionRefreshed) {
+        const errorMsg = 'Failed to refresh authentication session';
+        toast.error(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+      
+      console.log(`Processing ${invitationType} invitation with token: ${token.substring(0, 8)}...`);
+      
+      // Use the acceptance hook to process the invitation
+      const result = await acceptInvitation(token, invitationType);
+      
+      if (result && result.success) {
+        setAcceptedSuccessfully(true);
+        console.log('Invitation accepted successfully:', result);
+        return result;
+      } else {
+        console.error('Failed to accept invitation:', result?.error);
+        setProcessingError(result?.error || 'Failed to process invitation');
+        return result || { success: false, error: 'Unknown error occurred' };
+      }
+    } catch (error: any) {
+      console.error('Error processing invitation:', error);
+      setProcessingError(error.message || 'An unexpected error occurred');
+      return { success: false, error: error.message || 'An unexpected error occurred' };
+    }
+  }, [user, refreshAuthSession, acceptInvitation]);
+
+  /**
    * Redirects to auth page with invitation context
    */
   const redirectToAuth = useCallback((invitationPath: string, invitationType: string = 'team') => {
@@ -85,5 +127,6 @@ export function useInvitationProcessing() {
     setAuthVerified,
     refreshAuthSession,
     redirectToAuth,
+    processInvitation
   };
 }

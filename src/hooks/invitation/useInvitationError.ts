@@ -1,11 +1,69 @@
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
+interface UseInvitationErrorProps {
+  onReset?: () => void;
+  maxAttempts?: number;
+}
+
 /**
- * Hook for handling invitation-specific errors
+ * Hook for handling invitation-specific errors with retry functionality
  */
-export function useInvitationError() {
+export function useInvitationError(props?: UseInvitationErrorProps) {
+  const { onReset, maxAttempts = 3 } = props || {};
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryingIn, setRetryingIn] = useState(0);
+  const [retryTimeout, setRetryTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Clear any existing error state and timers
+  const clearError = useCallback(() => {
+    setErrorMessage(null);
+    setIsRetrying(false);
+    setRetryingIn(0);
+    
+    if (retryTimeout) {
+      clearTimeout(retryTimeout);
+    }
+  }, [retryTimeout]);
+
+  // Handle retry logic
+  const scheduleRetry = useCallback(() => {
+    if (retryCount >= maxAttempts) {
+      setIsRetrying(false);
+      return;
+    }
+
+    const nextRetryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+    setRetryingIn(nextRetryDelay / 1000);
+    setIsRetrying(true);
+
+    const timer = setTimeout(() => {
+      setIsRetrying(false);
+      if (onReset) {
+        onReset();
+      }
+    }, nextRetryDelay);
+
+    setRetryTimeout(timer);
+    setRetryCount(prev => prev + 1);
+  }, [retryCount, maxAttempts, onReset]);
+
+  // Process and display an error, optionally initiating a retry
+  const handleError = useCallback((error: any, shouldRetry: boolean = false) => {
+    const message = typeof error === 'string' ? error : error?.message || 'An unexpected error occurred';
+    setErrorMessage(message);
+    
+    if (shouldRetry) {
+      scheduleRetry();
+    }
+    
+    return message;
+  }, [scheduleRetry]);
+
+  // Handle invitation-specific errors
   const handleInvitationError = useCallback((error: any): string => {
     // Extract the most meaningful error message
     let errorMessage = '';
@@ -44,6 +102,11 @@ export function useInvitationError() {
   }, []);
   
   return {
+    errorMessage,
+    isRetrying,
+    retryingIn,
+    handleError,
+    clearError,
     handleInvitationError
   };
 }

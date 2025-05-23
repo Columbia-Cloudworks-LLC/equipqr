@@ -4,7 +4,7 @@ import { useNotificationsSafe } from './useNotificationsSafe';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPendingInvitationsForUser } from '@/services/team/notificationService';
-import { useInvitationError } from './useInvitationError';
+import { useInvitationError } from './invitation/useInvitationError';
 
 // Constants for throttling and caching
 const REFRESH_THROTTLE_MS = 5000; // 5 seconds minimum between refreshes
@@ -20,7 +20,7 @@ export function useInvitationsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false); // Prevent concurrent refreshes
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Use our error handling hook
+  // Use our enhanced error handling hook
   const { 
     errorMessage, 
     isRetrying, 
@@ -28,8 +28,7 @@ export function useInvitationsPage() {
     handleError, 
     clearError 
   } = useInvitationError({
-    onReset: handleResetAndRefresh,
-    maxAttempts: 3
+    onReset: handleResetAndRefresh
   });
   
   // Combined loading state
@@ -122,7 +121,8 @@ export function useInvitationsPage() {
   }, [isNotificationsLoading, invitations, user, authLoading, handleError, isRetrying, lastRefreshTime, isDirectLoading, directInvitations]);
   
   // Combined reset and refresh function with debounce
-  async function handleResetAndRefresh() {
+  // Define the function here to avoid the initialization loop
+  function handleResetAndRefresh() {
     const now = Date.now();
     
     // Prevent rapid fires of reset & refresh
@@ -144,17 +144,21 @@ export function useInvitationsPage() {
       resetDismissedNotifications();
       
       // Then refresh data
-      await Promise.all([
+      Promise.all([
         refreshNotifications(),
         refreshOrganizations()
-      ]);
-      
-      console.log("MyInvitations: Full data refresh completed");
-      clearError();
+      ]).then(() => {
+        console.log("MyInvitations: Full data refresh completed");
+        clearError();
+      }).catch((error: any) => {
+        console.error("MyInvitations: Error in handleResetAndRefresh:", error);
+        handleError(error.message || 'Failed to refresh data', true);
+      }).finally(() => {
+        setIsRefreshing(false);
+      });
     } catch (error: any) {
       console.error("MyInvitations: Error in handleResetAndRefresh:", error);
       handleError(error.message || 'Failed to refresh data', true);
-    } finally {
       setIsRefreshing(false);
     }
   }

@@ -42,7 +42,7 @@ export function SessionHandler({
       
       const checkSessionTimeout = setTimeout(async () => {
         const { data } = await supabase.auth.getSession();
-        setSessionCheckAttempt(prev => prev + 1);
+        setSessionCheckAttempt((prev: number) => prev + 1); // Fixed type here
         
         if (data.session) {
           console.log('Session detected - can proceed with invitation');
