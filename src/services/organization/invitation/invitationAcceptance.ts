@@ -11,15 +11,29 @@ export interface InvitationAcceptanceResult {
 }
 
 /**
+ * Validates the invitation token format
+ */
+const validateToken = (token: string): boolean => {
+  if (!token || typeof token !== 'string' || token.length < 10) {
+    console.error(`Invalid token format: ${typeof token}, length: ${token?.length}`);
+    return false;
+  }
+  return true;
+};
+
+/**
  * Handles accepting an organization invitation
  */
 export async function acceptOrganizationInvitation(token: string): Promise<InvitationAcceptanceResult> {
   try {
-    if (!token) {
-      throw new Error('Invalid invitation token');
+    console.log(`Starting invitation acceptance for token: ${token?.substring(0, 8)}... (length: ${token?.length})`);
+    
+    if (!validateToken(token)) {
+      throw new Error('Invalid invitation token format');
     }
     
     // Validate the token using the edge function
+    console.log('Validating invitation token...');
     const { data: validationData, error: validationError } = await supabase
       .functions
       .invoke('validate_org_invitation', {
@@ -31,19 +45,30 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
       throw new Error(validationError.message || 'Failed to validate invitation');
     }
     
+    console.log('Validation response:', validationData);
+    
     if (!validationData?.valid) {
       throw new Error(validationData?.error || 'Invalid or expired invitation');
     }
     
     // Get current user's auth ID
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Error getting session:', sessionError);
+      throw new Error('Failed to get user session. Please try logging in again.');
+    }
+    
     const userId = sessionData?.session?.user?.id;
     
     if (!userId) {
       throw new Error('Authentication required. Please login first.');
     }
     
+    console.log('User authenticated:', userId);
+    
     // Accept the invitation in the database
+    console.log('Accepting invitation in database...');
     const { data: acceptData, error: acceptError } = await supabase
       .from('organization_invitations')
       .update({
@@ -51,28 +76,21 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
         accepted_at: new Date().toISOString()
       })
       .eq('token', token)
-      .eq('status', 'pending')
-      .select('id, org_id, role')
+      .or('status.eq.pending,status.eq.sent')
+      .select('id, org_id, role, organization:org_id(id, name)')
       .single();
     
     if (acceptError) {
+      console.error('Error accepting invitation:', acceptError);
       throw new Error(acceptError.message || 'Failed to accept invitation');
     }
     
     if (!acceptData?.org_id) {
+      console.error('Invalid invitation data:', acceptData);
       throw new Error('Invalid invitation data');
     }
     
-    // Get organization details
-    const { data: orgData, error: orgError } = await supabase
-      .from('organization')
-      .select('name')
-      .eq('id', acceptData.org_id)
-      .single();
-    
-    if (orgError) {
-      console.error('Error fetching organization:', orgError);
-    }
+    console.log('Invitation accepted:', acceptData);
     
     // Create a new user role in the organization
     const role = acceptData.role as UserRole;
@@ -88,13 +106,16 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
       });
     
     if (roleError) {
+      console.error('Error assigning role:', roleError);
       throw new Error(roleError.message || 'Failed to assign role');
     }
+    
+    console.log('User role created successfully');
     
     return {
       success: true,
       organizationId: acceptData.org_id,
-      organizationName: orgData?.name
+      organizationName: acceptData.organization?.name
     };
   } catch (error: any) {
     console.error('Error accepting organization invitation:', error);

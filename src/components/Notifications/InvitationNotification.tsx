@@ -31,6 +31,15 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const isTeamInvitation = invitation.invitationType === 'team' || invitation.team !== null;
   const isOrgInvitation = invitation.invitationType === 'organization' || invitation.organization !== null;
   
+  // Validate token format
+  const validateTokenFormat = (token: string): boolean => {
+    if (!token || typeof token !== 'string' || token.length < 10) {
+      console.error(`Invalid token format in invitation: type=${typeof token}, length=${token?.length}`);
+      return false;
+    }
+    return true;
+  };
+  
   // Safely get the name of the entity the user is being invited to join
   let entityName = 'Unknown';
   let orgName = invitation?.org_name;
@@ -45,6 +54,13 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const handleAccept = useCallback(async () => {
     if (!user) {
       toast.error("You must be logged in to accept invitations");
+      return;
+    }
+    
+    // Validate token format first
+    if (!validateTokenFormat(invitation.token)) {
+      setError("Invalid invitation token format");
+      toast.error("Invalid invitation token format");
       return;
     }
     
@@ -99,7 +115,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
         
         refreshWithRetry();
         
-        toast.success(`Successfully joined the ${isOrgInvitation ? 'organization' : 'team'}`);
+        toast.success(`Successfully joined ${isOrgInvitation ? 'the organization' : 'the team'}: ${result.entityName || entityName}`);
         
         // Navigate to the relevant page
         if (isOrgInvitation) {
@@ -119,7 +135,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
     } finally {
       setIsAccepting(false);
     }
-  }, [invitation.token, isOrgInvitation, user, acceptInvitation, onAccept, refreshNotifications, refreshOrganizations, navigate, checkSession]);
+  }, [invitation.token, isOrgInvitation, user, acceptInvitation, onAccept, refreshNotifications, refreshOrganizations, navigate, checkSession, entityName]);
   
   const handleViewDetails = useCallback(() => {
     const queryParam = isOrgInvitation ? '?type=organization' : '';

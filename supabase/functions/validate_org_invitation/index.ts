@@ -28,6 +28,8 @@ serve(async (req) => {
     
     // Extract authorization header - this contains the user's JWT token
     const authHeader = req.headers.get('Authorization');
+    console.log(`Auth header present: ${!!authHeader}, header length: ${authHeader?.length || 0}`);
+    
     if (!authHeader) {
       console.error('Missing Authorization header');
       return new Response(
@@ -49,17 +51,37 @@ serve(async (req) => {
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
     // Parse the request body to get the invitation token
-    const requestData = await req.json();
-    const { token } = requestData as RequestBody;
+    let requestData: RequestBody;
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      console.error('Error parsing request JSON:', parseError);
+      return new Response(
+        JSON.stringify({ valid: false, error: 'Invalid request format' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const { token } = requestData;
     
     if (!token) {
+      console.error('Missing token in request');
       return new Response(
         JSON.stringify({ valid: false, error: 'Missing invitation token' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+
+    // Validate token format - check if it's the expected length and format
+    if (typeof token !== 'string' || token.length < 10) {
+      console.error(`Invalid token format: ${typeof token}, length: ${token?.length}`);
+      return new Response(
+        JSON.stringify({ valid: false, error: 'Invalid token format' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
     
-    console.log(`Validating organization invitation token: ${token.substring(0, 8)}...`);
+    console.log(`Validating organization invitation token: ${token.substring(0, 8)}... (length: ${token.length})`);
     
     // Query the invitation - use admin client to bypass RLS
     const { data: invitation, error } = await adminClient
@@ -67,25 +89,36 @@ serve(async (req) => {
       .select('*, organization:org_id(name)')
       .eq('token', token)
       .or('status.eq.sent,status.eq.pending')
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('Error fetching invitation:', error);
       return new Response(
-        JSON.stringify({ valid: false, error: 'Failed to validate invitation' }),
+        JSON.stringify({ valid: false, error: 'Failed to validate invitation: Database error' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     
     if (!invitation) {
+      console.error('No invitation found with token:', token.substring(0, 8));
       return new Response(
-        JSON.stringify({ valid: false, error: 'Invalid or expired invitation' }),
+        JSON.stringify({ valid: false, error: 'Invalid or expired invitation token' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
     
+    console.log('Found invitation:', JSON.stringify({
+      id: invitation.id,
+      email: invitation.email,
+      status: invitation.status,
+      org_id: invitation.org_id,
+      org_name: invitation.organization?.name,
+      expires_at: invitation.expires_at
+    }));
+    
     // Check if the invitation has expired
-    if (new Date(invitation.expires_at) < new Date()) {
+    if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
+      console.error('Invitation has expired:', invitation.expires_at);
       return new Response(
         JSON.stringify({ valid: false, error: 'This invitation has expired' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 410 }
@@ -101,6 +134,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
+    
+    console.log(`Current user: ${userData.user.email}, invitation for: ${invitation.email}`);
     
     // Check if invitation is for the current user
     if (userData.user.email && userData.user.email.toLowerCase() !== invitation.email.toLowerCase()) {

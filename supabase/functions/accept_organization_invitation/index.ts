@@ -2,7 +2,7 @@
 import { serve } from 'https://deno.land/std@0.131.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Define the CORS headers directly in this file instead of importing from a shared module
+// Define the CORS headers directly in this file
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -41,15 +41,10 @@ serve(async (req) => {
       );
     }
     
-    // Extract the JWT token from the Authorization header
-    const token = authHeader.replace('Bearer ', '');
-    console.log(`JWT token extracted, first 10 chars: ${token.substring(0, 10)}...`);
-    
     // Create an admin client for operations that require bypassing RLS
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
     // Create a client with the user's auth token
-    // This approach is more direct than using getSession
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
@@ -89,18 +84,38 @@ serve(async (req) => {
       const currentUser = userResponse.user;
       console.log(`User authenticated: ${currentUser.id} (${currentUser.email})`);
       
-      // Parse request body
-      const requestData = await req.json();
-      const { token: invitationToken } = requestData as RequestBody;
+      // Parse request body with error handling
+      let requestData: RequestBody;
+      try {
+        requestData = await req.json();
+      } catch (parseError) {
+        console.error('Error parsing request body:', parseError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid request format' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      
+      const { token: invitationToken } = requestData;
       
       if (!invitationToken) {
+        console.error('Missing token in request');
         return new Response(
           JSON.stringify({ success: false, error: 'Missing invitation token' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
 
-      console.log(`Processing organization invitation token: ${invitationToken.substring(0, 8)}...`);
+      // Validate token format
+      if (typeof invitationToken !== 'string' || invitationToken.length < 10) {
+        console.error(`Invalid token format: ${typeof invitationToken}, length: ${invitationToken?.length}`);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid token format' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      console.log(`Processing organization invitation token: ${invitationToken.substring(0, 8)}... (length: ${invitationToken.length})`);
       
       // Fetch invitation details using admin client to bypass RLS
       // Check for both 'sent' and 'pending' statuses to handle any inconsistency
@@ -128,7 +143,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             success: false,
-            error: 'Invalid or expired invitation'
+            error: 'Invalid or expired invitation token'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
         );
@@ -150,7 +165,7 @@ serve(async (req) => {
       }
 
       // Check if the invitation has expired
-      if (new Date(invitation.expires_at) < new Date()) {
+      if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
         console.error('Invitation has expired:', invitation.expires_at);
         return new Response(
           JSON.stringify({ success: false, error: 'This invitation has expired' }),
@@ -164,7 +179,7 @@ serve(async (req) => {
         .select('id, role')
         .eq('org_id', invitation.org_id)
         .eq('user_id', currentUser.id)
-        .single();
+        .maybeSingle();
         
       if (existingRoleError && !existingRoleError.message.includes('No rows found')) {
         console.error('Error checking existing role:', existingRoleError);
@@ -197,78 +212,89 @@ serve(async (req) => {
 
       console.log('Adding user to organization with role:', invitation.role);
       
-      // Begin a transaction to add the user to the organization
-      // 1. Add the user to user_roles
-      const { error: roleError } = await adminClient
-        .from('user_roles')
-        .insert({
-          user_id: currentUser.id,
-          org_id: invitation.org_id,
-          role: invitation.role,
-          assigned_by: invitation.created_by
-        });
+      try {
+        // Begin a transaction to add the user to the organization
+        // 1. Add the user to user_roles
+        const { error: roleError } = await adminClient
+          .from('user_roles')
+          .insert({
+            user_id: currentUser.id,
+            org_id: invitation.org_id,
+            role: invitation.role,
+            assigned_by: invitation.created_by
+          });
 
-      if (roleError) {
-        console.error('Error assigning role:', roleError);
+        if (roleError) {
+          console.error('Error assigning role:', roleError);
+          return new Response(
+            JSON.stringify({ 
+              success: false,
+              error: `Failed to assign role: ${roleError.message}` 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
+        // 2. Update user_profiles if they don't have an org_id set
+        const { data: profile, error: profileError } = await adminClient
+          .from('user_profiles')
+          .select('org_id')
+          .eq('id', currentUser.id)
+          .single();
+        
+        if (profileError && !profileError.message.includes('No rows found')) {
+          console.error('Error checking user profile:', profileError);
+        }
+        
+        if (profile && !profile.org_id) {
+          const { error: updateProfileError } = await adminClient
+            .from('user_profiles')
+            .update({ org_id: invitation.org_id })
+            .eq('id', currentUser.id);
+            
+          if (updateProfileError) {
+            console.error('Error updating user profile:', updateProfileError);
+          }
+        }
+
+        // 3. Mark the invitation as accepted
+        const { error: updateError } = await adminClient
+          .from('organization_invitations')
+          .update({ 
+            status: 'accepted', 
+            accepted_at: new Date().toISOString() 
+          })
+          .eq('id', invitation.id);
+          
+        if (updateError) {
+          console.error('Error updating invitation status:', updateError);
+          // Not critical as the user is already added to the organization
+        }
+
+        console.log('Successfully added user to organization');
+        
+        // Return success
         return new Response(
           JSON.stringify({ 
-            success: false,
-            error: `Failed to assign role: ${roleError.message}` 
+            success: true, 
+            message: `Welcome to ${invitation.organization?.name || 'your new organization'}!`,
+            data: {
+              organization: invitation.organization,
+              role: invitation.role
+            }
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      } catch (transactionError: any) {
+        console.error('Error in transaction:', transactionError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Failed to process invitation: ${transactionError.message}` 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
-
-      // 2. Update user_profiles if they don't have an org_id set
-      const { data: profile, error: profileError } = await adminClient
-        .from('user_profiles')
-        .select('org_id')
-        .eq('id', currentUser.id)
-        .single();
-      
-      if (profileError && !profileError.message.includes('No rows found')) {
-        console.error('Error checking user profile:', profileError);
-      }
-      
-      if (profile && !profile.org_id) {
-        const { error: updateProfileError } = await adminClient
-          .from('user_profiles')
-          .update({ org_id: invitation.org_id })
-          .eq('id', currentUser.id);
-          
-        if (updateProfileError) {
-          console.error('Error updating user profile:', updateProfileError);
-        }
-      }
-
-      // 3. Mark the invitation as accepted
-      const { error: updateError } = await adminClient
-        .from('organization_invitations')
-        .update({ 
-          status: 'accepted', 
-          accepted_at: new Date().toISOString() 
-        })
-        .eq('id', invitation.id);
-        
-      if (updateError) {
-        console.error('Error updating invitation status:', updateError);
-        // Not critical as the user is already added to the organization
-      }
-
-      console.log('Successfully added user to organization');
-      
-      // Return success
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: `Welcome to ${invitation.organization?.name || 'your new organization'}!`,
-          data: {
-            organization: invitation.organization,
-            role: invitation.role
-          }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
     } catch (tokenError: any) {
       console.error('Error verifying auth token:', tokenError);
       return new Response(

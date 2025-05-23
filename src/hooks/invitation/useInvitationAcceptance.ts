@@ -1,9 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { acceptOrganizationInvitation } from '@/services/organization/invitation/invitationAcceptance';
 import { acceptInvitation as acceptTeamInvitation } from '@/services/team/invitation/acceptInvitation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { retry } from '@/utils/edgeFunctions/retry';
 
 export type InvitationType = 'team' | 'organization';
 
@@ -20,11 +21,49 @@ export function useInvitationAcceptance() {
   const [result, setResult] = useState<AcceptanceResult | null>(null);
   
   /**
+   * Validate invitation token format
+   */
+  const validateTokenFormat = (token: string): boolean => {
+    // Check if token is a string with reasonable length (at least 10 chars)
+    if (typeof token !== 'string' || token.length < 10) {
+      console.error(`Invalid token format: type=${typeof token}, length=${token?.length}`);
+      return false;
+    }
+    return true;
+  };
+  
+  /**
+   * Call edge function with retries
+   */
+  const callEdgeFunctionWithRetry = async (functionName: string, payload: any) => {
+    return await retry(
+      async () => {
+        const { data, error } = await supabase.functions.invoke(functionName, {
+          body: payload
+        });
+        
+        if (error) throw new Error(error.message || 'Edge function error');
+        return data;
+      },
+      3, // Number of retries
+      1000 // Initial delay in ms
+    );
+  };
+
+  /**
    * Accept an invitation based on its type (team or organization)
    */
   const acceptInvitation = async (token: string, type: InvitationType = 'team'): Promise<AcceptanceResult> => {
     if (!token) {
       const errorMsg = 'Invalid invitation token';
+      console.error(errorMsg);
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    }
+    
+    // Validate token format
+    if (!validateTokenFormat(token)) {
+      const errorMsg = 'Invalid invitation token format';
       setError(errorMsg);
       return { success: false, error: errorMsg };
     }
@@ -33,20 +72,19 @@ export function useInvitationAcceptance() {
       setIsAccepting(true);
       setError(null);
       
-      console.log(`Accepting ${type} invitation with token: ${token.substring(0, 8)}...`);
+      console.log(`Accepting ${type} invitation with token: ${token.substring(0, 8)}... (length: ${token.length})`);
       
       let acceptanceResult: AcceptanceResult;
       
       // Call the appropriate acceptance function based on invitation type
       if (type === 'organization') {
-        // For organization invitations, use either the edge function or direct function
         try {
-          // Try using the edge function first
-          const { data, error } = await supabase.functions.invoke('accept_organization_invitation', {
-            body: { token }
-          });
+          console.log('Calling accept_organization_invitation edge function');
           
-          if (error) throw new Error(error.message);
+          // Try using the edge function with retry logic
+          const data = await callEdgeFunctionWithRetry('accept_organization_invitation', { token });
+          
+          console.log('Edge function response:', data);
           
           acceptanceResult = {
             success: data.success,
@@ -54,10 +92,13 @@ export function useInvitationAcceptance() {
             entityId: data.data?.organization?.id,
             entityName: data.data?.organization?.name
           };
-        } catch (edgeFunctionError) {
+        } catch (edgeFunctionError: any) {
           console.warn('Edge function failed, falling back to direct function:', edgeFunctionError);
+          
           // Fall back to the direct function
           const orgResult = await acceptOrganizationInvitation(token);
+          console.log('Direct function result:', orgResult);
+          
           acceptanceResult = {
             success: orgResult.success,
             error: orgResult.error,
@@ -66,13 +107,25 @@ export function useInvitationAcceptance() {
           };
         }
       } else {
-        const teamResult = await acceptTeamInvitation(token);
-        acceptanceResult = {
-          success: !!teamResult?.teamId,
-          error: teamResult instanceof Error ? teamResult.message : undefined,
-          entityId: teamResult?.teamId,
-          entityName: teamResult?.teamName
-        };
+        // Team invitations
+        try {
+          console.log('Processing team invitation');
+          const teamResult = await acceptTeamInvitation(token);
+          console.log('Team invitation result:', teamResult);
+          
+          acceptanceResult = {
+            success: !!teamResult?.teamId,
+            error: teamResult instanceof Error ? teamResult.message : undefined,
+            entityId: teamResult?.teamId,
+            entityName: teamResult?.teamName
+          };
+        } catch (teamError: any) {
+          console.error('Error accepting team invitation:', teamError);
+          return { 
+            success: false, 
+            error: teamError.message || 'Failed to process team invitation' 
+          };
+        }
       }
       
       // Store the result
@@ -80,8 +133,10 @@ export function useInvitationAcceptance() {
       
       if (acceptanceResult.success) {
         const entityName = acceptanceResult.entityName || (type === 'organization' ? 'the organization' : 'the team');
+        console.log(`Successfully joined ${entityName}`);
         toast.success(`Successfully joined ${entityName}`);
       } else if (acceptanceResult.error) {
+        console.error(`Failed to accept ${type} invitation:`, acceptanceResult.error);
         setError(acceptanceResult.error);
         toast.error(`Failed to accept invitation: ${acceptanceResult.error}`);
       }
