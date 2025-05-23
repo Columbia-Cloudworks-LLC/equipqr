@@ -1,9 +1,10 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { acceptInvitation, validateInvitationToken } from '@/services/team/invitationService';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { validateOrganizationInvitation } from '@/services/organization/invitation';
+import { acceptOrganizationInvitation } from '@/services/organization/invitation';
 
 export function useOrganizationInvitation() {
   const [isValidating, setIsValidating] = useState(false);
@@ -22,7 +23,8 @@ export function useOrganizationInvitation() {
       setIsValidating(true);
       setValidationError(null);
       
-      const details = await validateInvitationToken(token);
+      // Use organization-specific validation
+      const details = await validateOrganizationInvitation(token);
       
       if (!details || !details.valid) {
         setValidationError(details?.error || 'This invitation is no longer valid.');
@@ -49,8 +51,8 @@ export function useOrganizationInvitation() {
     try {
       setIsAccepting(true);
       
-      // Call without type argument that was causing the error
-      const result: any = await acceptInvitation(token);
+      // Use organization-specific acceptance
+      const result = await acceptOrganizationInvitation(token);
       
       if (result.success) {
         toast.success('Invitation accepted!', {
@@ -60,7 +62,7 @@ export function useOrganizationInvitation() {
         // Refresh the auth session to get updated permissions
         await supabase.auth.refreshSession();
         
-        // Navigate to teams page or dashboard
+        // Navigate to dashboard
         navigate('/dashboard');
         return result;
       } else {

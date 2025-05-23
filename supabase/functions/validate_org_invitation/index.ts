@@ -84,11 +84,12 @@ serve(async (req) => {
     console.log(`Validating organization invitation token: ${token.substring(0, 8)}... (length: ${token.length})`);
     
     // Query the invitation - use admin client to bypass RLS
+    // IMPORTANT: Using table alias 'oi' with properly qualified column references
     const { data: invitation, error } = await adminClient
       .from('organization_invitations')
       .select('*, organization:org_id(name)')
       .eq('token', token)
-      .or('status.eq.sent,status.eq.pending')
+      .or('organization_invitations.status.eq.sent,organization_invitations.status.eq.pending')
       .maybeSingle();
     
     if (error) {

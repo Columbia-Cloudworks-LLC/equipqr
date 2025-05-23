@@ -37,11 +37,12 @@ export async function validateInvitationToken(token: string) {
     }
     
     // Direct database query as fallback
+    // IMPORTANT: Using proper table aliasing with explicit table references
     const { data, error } = await supabase
       .from('team_invitations')
       .select('*, team:team_id(id, name)')
-      .eq('token', token)
-      .eq('status', 'pending')
+      .eq('team_invitations.token', token)
+      .eq('team_invitations.status', 'pending')
       .single();
       
     if (error || !data) {
@@ -64,7 +65,7 @@ export async function validateInvitationToken(token: string) {
     if (!data.team || !data.team.name) {
       console.warn("Team information missing in invitation:", data);
       
-      // Try to fetch team information separately
+      // Try to fetch team information separately with proper table referencing
       const { data: teamData, error: teamError } = await supabase
         .from('team')
         .select('name')

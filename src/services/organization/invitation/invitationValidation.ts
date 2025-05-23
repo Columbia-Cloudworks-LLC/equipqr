@@ -52,12 +52,12 @@ export async function validateOrganizationInvitation(token: string): Promise<Val
     }
     
     // Fallback: direct query if edge function fails
-    // Get the invitation by token - check both 'sent' and 'pending' statuses for compatibility
+    // IMPORTANT: Using proper table aliasing in the query with explicit aliases
     const { data, error } = await supabase
       .from('organization_invitations')
       .select('*, organization:org_id(name)')
       .eq('token', sanitizedToken)
-      .or('status.eq.sent,status.eq.pending')
+      .or('organization_invitations.status.eq.sent,organization_invitations.status.eq.pending')
       .single();
       
     if (error || !data) {

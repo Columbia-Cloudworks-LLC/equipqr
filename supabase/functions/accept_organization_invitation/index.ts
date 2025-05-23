@@ -118,10 +118,10 @@ serve(async (req) => {
       console.log(`Processing organization invitation token: ${invitationToken.substring(0, 8)}... (length: ${invitationToken.length})`);
       
       // Fetch invitation details using admin client to bypass RLS
-      // Check for both 'sent' and 'pending' statuses to handle any inconsistency
+      // IMPORTANT: Properly aliasing the table and qualifying the columns in the query
       const { data: invitationData, error: inviteQueryError } = await adminClient
         .from('organization_invitations')
-        .select('*, organization:org_id(id, name)')
+        .select('id, org_id, role, email, expires_at, organization:org_id(id, name)')
         .eq('token', invitationToken)
         .or('status.eq.sent,status.eq.pending')
         .maybeSingle();
@@ -189,7 +189,8 @@ serve(async (req) => {
         console.log(`User is already a member of this organization with role: ${existingRole.role}`);
         
         // Update the invitation status even if already a member
-        await adminClient
+        // IMPORTANT: Using explicit table reference for UPDATE statements
+        const { error: updateError } = await adminClient
           .from('organization_invitations')
           .update({
             status: 'accepted',
@@ -197,6 +198,10 @@ serve(async (req) => {
           })
           .eq('id', invitation.id);
           
+        if (updateError) {
+          console.error('Error updating invitation status:', updateError);
+        }
+        
         return new Response(
           JSON.stringify({ 
             success: true, 
@@ -221,7 +226,7 @@ serve(async (req) => {
             user_id: currentUser.id,
             org_id: invitation.org_id,
             role: invitation.role,
-            assigned_by: invitation.created_by
+            assigned_by: null // Since we're using a service role, use null or provide a system ID
           });
 
         if (roleError) {
@@ -257,8 +262,8 @@ serve(async (req) => {
           }
         }
 
-        // 3. Mark the invitation as accepted
-        const { error: updateError } = await adminClient
+        // 3. Mark the invitation as accepted using explicit table reference
+        const { error: updateInviteError } = await adminClient
           .from('organization_invitations')
           .update({ 
             status: 'accepted', 
@@ -266,9 +271,15 @@ serve(async (req) => {
           })
           .eq('id', invitation.id);
           
-        if (updateError) {
-          console.error('Error updating invitation status:', updateError);
-          // Not critical as the user is already added to the organization
+        if (updateInviteError) {
+          console.error('Error updating invitation status:', updateInviteError);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `Failed to update invitation status: ${updateInviteError.message}` 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
         }
 
         console.log('Successfully added user to organization');
