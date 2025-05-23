@@ -132,7 +132,7 @@ export const InvitationContainer: React.FC<InvitationContainerProps> = ({
       isValid,
       hasError: Boolean(error),
       isAuthLoading,
-      isAccepting,
+      isAccepting: acceptingInvitation,
       hasAcceptError: Boolean(acceptError),
       invitation,
       isAuthenticated: !!user,
