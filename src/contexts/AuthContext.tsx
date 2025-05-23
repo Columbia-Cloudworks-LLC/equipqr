@@ -16,7 +16,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData?: any) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   resetAuthSystem: () => Promise<void>;
-  repairSession: () => Promise<boolean>; // Add the missing property
+  repairSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -31,11 +31,11 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => {},
   resetPassword: async () => {},
   resetAuthSystem: async () => {},
-  repairSession: async () => false, // Initialize the missing property
+  repairSession: async () => false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Get authentication state and methods using our new unified hook
+  // Get authentication state and methods using our simplified hook
   const { 
     user, 
     session, 
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut, 
     checkSession,
     resetAuthSystem,
-    repairSession // Add the repairSession property
+    repairSession
   } = useAuthHook();
 
   const value: AuthContextType = {
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     checkSession,
     resetAuthSystem,
-    repairSession // Add the property to the context value
+    repairSession
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

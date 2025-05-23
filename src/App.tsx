@@ -1,35 +1,32 @@
 
-import React from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import AppRoutes from './AppRoutes';
+import { BrowserRouter as Router } from 'react-router-dom';
+import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './contexts/AuthContext';
-import { OrganizationProvider } from './contexts/OrganizationContext';
-import { NotificationsProvider } from './contexts/NotificationsContext';
-
-import './App.css';
+import AppRoutes from './AppRoutes';
+import { ThemeProvider } from './providers/ThemeProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1 minute
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
     },
   },
 });
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
+    <ThemeProvider defaultTheme="light" storageKey="equipqr-theme">
+      <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <OrganizationProvider>
-            <NotificationsProvider>
-              <AppRoutes />
-            </NotificationsProvider>
-          </OrganizationProvider>
+          <Router>
+            <AppRoutes />
+            <Toaster position="top-right" />
+          </Router>
         </AuthProvider>
-      </Router>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

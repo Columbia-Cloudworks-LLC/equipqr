@@ -3,7 +3,6 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
-import { AuthRedirect } from './components/Auth/AuthRedirect';
 
 // Pages
 import Index from './pages/Index';
@@ -28,7 +27,15 @@ const AppRoutes = () => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold mb-4">Loading</h2>
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Initializing application...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -4,9 +4,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoginForm } from '@/components/Auth/LoginForm';
 import { SignUpForm } from '@/components/Auth/SignUpForm';
-import { AuthRedirect } from '@/components/Auth/AuthRedirect';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, Info } from 'lucide-react';
@@ -15,8 +14,10 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { signInWithGoogle, resetAuthSystem } = useAuth();
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const { signInWithGoogle, resetAuthSystem, user, session } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Extract state information
   const state = location.state as { 
@@ -29,6 +30,18 @@ export default function Auth() {
   const message = state?.message;
   const isInvitation = state?.isInvitation;
   const invitationType = state?.invitationType;
+  const returnTo = state?.returnTo || localStorage.getItem('authReturnTo') || '/';
+  
+  // If user is already authenticated, redirect them
+  useEffect(() => {
+    if (user && session && isInitialized) {
+      console.log("Auth page: User already authenticated, redirecting to", returnTo);
+      navigate(returnTo, { replace: true });
+    } else {
+      // Mark as initialized after first check
+      setIsInitialized(true);
+    }
+  }, [user, session, navigate, returnTo, isInitialized]);
   
   // Check for invitation in session storage and set the tab appropriately
   useEffect(() => {
@@ -50,6 +63,7 @@ export default function Auth() {
       // AuthRedirect will handle navigation once authenticated
     } catch (error) {
       // Error handled in auth context
+      console.error("Google sign-in error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +75,10 @@ export default function Auth() {
     toast.success("Authentication system reset", {
       description: "All authentication data has been cleared. Please try signing in again."
     });
+    
+    // Reset redirect count to prevent redirect loops
+    sessionStorage.removeItem('authRedirectCount');
+    setIsInitialized(false);
   };
 
   // Get page title and description based on invitation context
@@ -86,11 +104,13 @@ export default function Auth() {
 
   const pageContent = getPageContent();
 
+  // Don't render anything if redirecting
+  if (user && session && isInitialized) {
+    return null;
+  }
+
   return (
     <div className="bg-background min-h-screen">
-      {/* Add the AuthRedirect component to handle redirects */}
-      <AuthRedirect />
-      
       {/* Simple header with logo */}
       <header className="border-b bg-background/95 backdrop-blur p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">

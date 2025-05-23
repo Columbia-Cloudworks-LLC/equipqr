@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthRecovery } from './AuthRecovery';
 import { AuthLoadingState } from './AuthLoadingState';
-import { completeAuthVerification } from '@/utils/auth/sessionVerification';
 
 /**
  * Component to handle authentication redirects
@@ -15,7 +14,7 @@ import { completeAuthVerification } from '@/utils/auth/sessionVerification';
 export function AuthRedirect() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, session, isLoading } = useAuth();
+  const { user, session, isLoading, checkSession } = useAuth();
   const queryClient = useQueryClient();
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
@@ -37,19 +36,27 @@ export function AuthRedirect() {
   const returnPath = invitationPath || state?.returnTo || storedReturnPath || '/';
   const message = state?.message;
   
-  useEffect(() => {
-    // Show loading state after a short delay
-    // This prevents flashing for fast auth processes
-    const timer = setTimeout(() => {
-      if (isLoading || authStatus !== 'success') {
-        setShowLoading(true);
-      }
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [isLoading, authStatus]);
+  // Only proceed with redirect logic when on a non-auth page or explicitly requested
+  const shouldPerformRedirect = !location.pathname.includes('/auth') || (state && state.returnTo);
   
   useEffect(() => {
+    // Only show loading state after a short delay
+    // This prevents flashing for fast auth processes
+    const timer = setTimeout(() => {
+      if ((isLoading || authStatus !== 'success') && shouldPerformRedirect) {
+        setShowLoading(true);
+      }
+    }, 500); // Increased from 300ms to 500ms to reduce flicker
+    
+    return () => clearTimeout(timer);
+  }, [isLoading, authStatus, shouldPerformRedirect]);
+  
+  useEffect(() => {
+    // Skip redirect logic when on auth pages unless explicitly requested via state
+    if (!shouldPerformRedirect) {
+      return;
+    }
+
     // Helper to handle a successful authentication
     const handleAuthenticated = async () => {
       console.log(`User is authenticated, verifying session before redirecting to ${returnPath}`);
@@ -57,42 +64,25 @@ export function AuthRedirect() {
       setVerificationStep('Testing API access with current session');
       
       try {
-        // Show loading state since we're processing post-auth steps
-        setShowLoading(true);
-        
-        // Use enhanced verification with API call test
-        const isValidSession = await completeAuthVerification(false);
+        // Use direct session check
+        const isValidSession = await checkSession();
         
         if (!isValidSession) {
           console.error('Session API verification failed in AuthRedirect');
           
-          // Increment attempt counter and try repairing
+          // Increment attempt counter
           setVerificationAttempt(prev => prev + 1);
           
-          if (verificationAttempt >= 3) {
-            // After 3 attempts, show recovery UI
+          if (verificationAttempt >= 2) {
+            // After 2 attempts, show recovery UI
             setRecoveryError('Session could not be verified after multiple attempts');
             setShowRecovery(true);
             setAuthStatus('error');
             return;
           }
           
-          // Try to repair session
-          setAuthStatus('repairing');
-          setVerificationStep('Attempting to repair authentication tokens');
-          
-          const repaired = await completeAuthVerification(true);
-          if (repaired) {
-            toast.success('Authentication restored', {
-              description: 'Your session has been repaired and is now valid'
-            });
-          } else {
-            // Still not valid after repair
-            setRecoveryError('Session remains invalid after repair attempts');
-            setShowRecovery(true);
-            setAuthStatus('error');
-            return;
-          }
+          setAuthStatus('error');
+          return;
         }
         
         // Clear stored return path
@@ -145,7 +135,8 @@ export function AuthRedirect() {
     }
   }, [
     session, isLoading, navigate, returnPath, message, 
-    queryClient, invitationPath, verificationAttempt
+    queryClient, invitationPath, verificationAttempt, checkSession,
+    shouldPerformRedirect, location.pathname
   ]);
 
   // Handle retry from recovery component
@@ -171,7 +162,7 @@ export function AuthRedirect() {
   }
   
   // Show the loading state if we're still working
-  if (showLoading) {
+  if (showLoading && shouldPerformRedirect) {
     return (
       <AuthLoadingState 
         status={authStatus}
