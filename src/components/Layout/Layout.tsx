@@ -21,7 +21,7 @@ export function Layout({ children }: LayoutProps) {
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Navbar />
-          <main className="flex-1 overflow-auto p-2 md:p-4">
+          <main className={`flex-1 p-2 md:p-4 ${isMobile ? 'overflow-y-auto' : 'overflow-auto'}`}>
             {children}
           </main>
           <footer className="border-t py-2 px-4 text-xs text-center text-muted-foreground bg-background/80">
