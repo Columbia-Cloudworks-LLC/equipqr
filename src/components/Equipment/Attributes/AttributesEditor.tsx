@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useAttributePermissions } from './useAttributePermissions';
 import { AttributeItem } from './AttributeItem';
 import { AddAttributeForm } from './AddAttributeForm';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AttributesEditorProps {
   attributes: EquipmentAttribute[];
@@ -22,6 +23,7 @@ export function AttributesEditor({
   equipmentId
 }: AttributesEditorProps) {
   const { canEdit, isCheckingPermission, permissionCheckError } = useAttributePermissions(equipmentId, readOnly);
+  const isMobile = useIsMobile();
 
   const handleUpdateAttribute = (index: number, field: 'key' | 'value', value: string) => {
     if (readOnly || !canEdit) return;
@@ -69,9 +71,9 @@ export function AttributesEditor({
       </div>
 
       {/* List of existing attributes */}
-      <div className="space-y-2">
+      <div className={cn("space-y-3", isMobile ? "space-y-4" : "space-y-2")}>
         {attributes.length === 0 && (
-          <div className="text-sm text-muted-foreground italic">
+          <div className="text-sm text-muted-foreground italic p-4 text-center bg-muted/30 rounded-lg">
             No custom attributes
           </div>
         )}
