@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 interface SessionHandlerProps {
   token: string | undefined;
-  searchParams: URLSearchParams;
+  searchParams: URLSearchParams | null;
   waitingForAuth: boolean;
   setWaitingForAuth: (waiting: boolean) => void;
   sessionCheckAttempt: number;
@@ -25,18 +25,33 @@ export function SessionHandler({
   setAuthVerified,
   invitationType = 'team'
 }: SessionHandlerProps) {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, repairSession } = useAuth();
   const [checkingSession, setCheckingSession] = useState(false);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const [sessionVerified, setSessionVerified] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const [sessionRepairAttempted, setSessionRepairAttempted] = useState(false);
+
+  // Debug information
+  useEffect(() => {
+    console.log('SessionHandler state:', {
+      token: token?.substring(0, 8) + '...',
+      waitingForAuth,
+      authLoading,
+      user: user?.email || 'none',
+      sessionCheckAttempt,
+      initialCheckDone,
+      sessionVerified,
+      sessionRepairAttempted
+    });
+  }, [token, waitingForAuth, authLoading, user, sessionCheckAttempt, initialCheckDone, sessionVerified, sessionRepairAttempted]);
 
   // Save invitation details to session storage when not authenticated
   useEffect(() => {
     if (!user && !authLoading && token) {
       // Save the invitation path for redirection after login
       const typeParam = invitationType === 'organization' ? '?type=organization' : '';
-      const invitationPath = `/invitation/${token}${typeParam}${typeParam ? '&' : '?'}${searchParams.toString()}`;
+      const invitationPath = `/invitation/${token}${typeParam}${typeParam ? '&' : '?'}${searchParams?.toString() || ''}`;
       sessionStorage.setItem('invitationPath', invitationPath);
       sessionStorage.setItem('invitationType', invitationType);
       console.log('Saved invitation path for after login:', invitationPath);
@@ -72,6 +87,23 @@ export function SessionHandler({
                 description: 'Please try signing out and in again'
               });
             }
+            
+            // Try to repair the session if this is our first attempt
+            if (!sessionRepairAttempted) {
+              console.log('Attempting to repair session');
+              const repaired = await repairSession();
+              setSessionRepairAttempted(true);
+              
+              if (repaired) {
+                console.log('Session repair successful');
+                // Force reload to ensure we have the latest session
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1000);
+                return;
+              }
+            }
+            
             setWaitingForAuth(true);
             setCheckingSession(false);
             setInitialCheckDone(true);
@@ -106,7 +138,7 @@ export function SessionHandler({
     };
     
     performInitialCheck();
-  }, [user, authLoading, initialCheckDone, setWaitingForAuth, setAuthVerified, lastRefreshTime]);
+  }, [user, authLoading, initialCheckDone, setWaitingForAuth, setAuthVerified, lastRefreshTime, repairSession, sessionRepairAttempted]);
 
   // Check session validity periodically with exponential backoff when waiting for auth
   useEffect(() => {
@@ -131,7 +163,16 @@ export function SessionHandler({
           
           if (error) {
             console.error('Error refreshing session:', error);
+            
+            // If we haven't tried repairing yet, try now
+            if (sessionCheckAttempt >= 2 && !sessionRepairAttempted) {
+              console.log('Multiple session check failures, attempting repair');
+              await repairSession();
+              setSessionRepairAttempted(true);
+            }
+            
             setCheckingSession(false);
+            setSessionCheckAttempt(prev => prev + 1);
             return;
           }
           
@@ -169,7 +210,7 @@ export function SessionHandler({
       
       return () => clearTimeout(checkSessionTimeout);
     }
-  }, [waitingForAuth, sessionCheckAttempt, setSessionCheckAttempt, setWaitingForAuth, setAuthVerified, checkingSession, initialCheckDone, sessionVerified, lastRefreshTime]);
+  }, [waitingForAuth, sessionCheckAttempt, setSessionCheckAttempt, setWaitingForAuth, setAuthVerified, checkingSession, initialCheckDone, sessionVerified, lastRefreshTime, repairSession, sessionRepairAttempted]);
 
   return null;
 }

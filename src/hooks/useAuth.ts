@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -235,7 +234,7 @@ export function useAuth() {
     }
   }, []);
 
-  // Function to repair session - simple implementation
+  // Function to repair session - implementation improved
   const repairSession = useCallback(async () => {
     try {
       console.log('useAuth: Attempting to repair session');
@@ -243,24 +242,53 @@ export function useAuth() {
       // First check if we have a session
       const { data: sessionData } = await supabase.auth.getSession();
       
-      if (!sessionData?.session) {
-        console.log('useAuth: No session to repair');
+      // Get project ID from project URL
+      const projectRef = "oxeheowbfsshpyldlskb";
+      
+      // Refresh session storage keys
+      const sessionKey = `sb-${projectRef}-auth-token`;
+      const codeVerifierKey = `sb-${projectRef}-auth-token-code-verifier`;
+      const legacySessionKey = "supabase.auth.token";
+      
+      console.log(`Checking storage for session keys: ${sessionKey}, ${legacySessionKey}`);
+      
+      // Look for any traces of session
+      const localStorageSession = localStorage.getItem(sessionKey);
+      const localLegacySession = localStorage.getItem(legacySessionKey);
+      
+      if (!sessionData?.session && !localStorageSession && !localLegacySession) {
+        console.log('useAuth: No session data found to repair');
         return false;
       }
       
-      // Try to refresh the token
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error('useAuth: Failed to refresh token:', error);
-        return false;
+      // If session exists but is not in proper state, try to refresh
+      try {
+        console.log('useAuth: Attempting to refresh session token');
+        const { data, error } = await supabase.auth.refreshSession();
+        
+        if (error) {
+          console.error('useAuth: Failed to refresh token:', error);
+          return false;
+        }
+        
+        if (data?.session) {
+          console.log('useAuth: Session successfully refreshed');
+          setSession(data.session);
+          setUser(data.session.user);
+          return true;
+        }
+      } catch (refreshError) {
+        console.error('useAuth: Error during token refresh:', refreshError);
       }
       
-      if (data?.session) {
-        console.log('useAuth: Session successfully refreshed');
-        setSession(data.session);
-        setUser(data.session.user);
-        return true;
+      // Last resort - explicit signout and let user sign in again
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+        console.log('useAuth: Signed out locally to reset auth state');
+        setSession(null);
+        setUser(null);
+      } catch (signOutError) {
+        console.error('useAuth: Error during cleanup signout:', signOutError);
       }
       
       return false;

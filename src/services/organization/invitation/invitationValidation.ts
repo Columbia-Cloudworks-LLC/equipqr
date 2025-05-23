@@ -6,7 +6,7 @@ import { sanitizeToken } from '@/services/invitation/tokenUtils';
 /**
  * Validate an organization invitation token
  */
-export async function validateOrganizationInvitation(token: string): Promise<ValidationResult> {
+export async function validateOrganizationInvitation(token: string): Promise<ValidationResult & { rateLimit?: boolean }> {
   try {
     // Sanitize and validate token format
     const sanitizedToken = sanitizeToken(token);
@@ -24,12 +24,30 @@ export async function validateOrganizationInvitation(token: string): Promise<Val
       
       if (validationError) {
         console.warn('Edge function validation failed, falling back to direct query:', validationError);
+        
+        // Check for rate limit
+        if (validationError.message?.includes('429') || validationError.status === 429) {
+          return { 
+            valid: false, 
+            error: 'Too many requests. Please try again in a moment.', 
+            rateLimit: true 
+          };
+        }
       } else if (validationData) {
         console.log('Organization invitation validation via edge function:', validationData.valid);
-        return validationData;
+        return { ...validationData, rateLimit: false };
       }
-    } catch (edgeFunctionError) {
+    } catch (edgeFunctionError: any) {
       console.warn('Error calling validation edge function:', edgeFunctionError);
+      
+      // Check for rate limit
+      if (edgeFunctionError.message?.includes('429') || edgeFunctionError.status === 429) {
+        return { 
+          valid: false, 
+          error: 'Too many requests. Please try again in a moment.', 
+          rateLimit: true 
+        };
+      }
       // Continue to fallback method
     }
     
@@ -56,6 +74,16 @@ export async function validateOrganizationInvitation(token: string): Promise<Val
     return { valid: true, invitation: data };
   } catch (error: any) {
     console.error('Error in validateOrganizationInvitation:', error);
+    
+    // Check for rate limit
+    if (error.message?.includes('429') || error.status === 429) {
+      return { 
+        valid: false, 
+        error: 'Too many requests. Please try again in a moment.', 
+        rateLimit: true 
+      };
+    }
+    
     return { valid: false, error: error.message || 'Failed to validate invitation' };
   }
 }

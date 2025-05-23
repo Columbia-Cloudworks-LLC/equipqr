@@ -3,30 +3,9 @@ import { useEffect, useState } from 'react';
 import { validateInvitationToken } from '@/services/team/invitation';
 import { validateOrganizationInvitation } from '@/services/organization/invitation/invitationValidation';
 import { useAuth } from '@/contexts/AuthContext';
-import { debounce, withCache } from '@/utils/edgeFunctions/retry';
+import { debounce } from '@/utils/edgeFunctions/retry';
 import { detectInvitationType, sanitizeToken } from '@/services/invitation/tokenUtils';
-
-// Create cached validation functions to prevent excessive API calls
-const cachedValidateTeamInvitation = withCache(
-  validateInvitationToken,
-  (token) => `team_invitation_${token}`,
-  60000 // Cache for 1 minute
-);
-
-const cachedValidateOrgInvitation = withCache(
-  validateOrganizationInvitation,
-  (token) => `org_invitation_${token}`,
-  60000 // Cache for 1 minute
-);
-
-// Create debounced validation functions to prevent rate limiting
-const debouncedValidateTeam = debounce(async (token: string) => {
-  return await cachedValidateTeamInvitation(token);
-}, 800);
-
-const debouncedValidateOrg = debounce(async (token: string) => {
-  return await cachedValidateOrgInvitation(token);
-}, 800);
+import { toast } from 'sonner';
 
 export function useInvitationValidation(token: string | undefined, invitationType: string = 'team') {
   const [isValidating, setIsValidating] = useState(true);
@@ -34,127 +13,174 @@ export function useInvitationValidation(token: string | undefined, invitationTyp
   const [error, setError] = useState<string | null>(null);
   const [invitation, setInvitation] = useState<any>(null);
   const [rateLimited, setRateLimited] = useState(false);
-  const { user, isLoading: isAuthLoading } = useAuth();
   const [detectedType, setDetectedType] = useState<'team' | 'organization'>(
     invitationType === 'organization' ? 'organization' : 'team'
   );
   const [attemptedValidations, setAttemptedValidations] = useState<Record<string, boolean>>({});
-  const [autoDetecting, setAutoDetecting] = useState(false);
-  
+  const [validationAttempts, setValidationAttempts] = useState(0);
+  const { user, isLoading: isAuthLoading, session, checkSession } = useAuth();
+
+  // Debug logging for troubleshooting
   useEffect(() => {
-    // Normalize and store the invitation type from props
-    const normalizedType = invitationType === 'organization' ? 'organization' : 'team';
-    setDetectedType(normalizedType);
+    console.log('Invitation validation state:', {
+      token: token ? `${token.substring(0, 8)}...` : 'none',
+      detectedType,
+      isValidating,
+      isAuthLoading,
+      user: user ? 'authenticated' : 'unauthenticated',
+      hasSession: !!session,
+      validationAttempts
+    });
+  }, [token, detectedType, isValidating, isAuthLoading, user, session, validationAttempts]);
+
+  // Force session check when component loads
+  useEffect(() => {
+    const verifySession = async () => {
+      if (!isAuthLoading && token) {
+        console.log('Explicitly checking session validity before validation');
+        const isValid = await checkSession();
+        console.log('Session check result:', isValid ? 'valid' : 'invalid');
+      }
+    };
     
-    console.log(`useInvitationValidation: Using invitation type: ${normalizedType} (provided: ${invitationType})`);
-  }, [invitationType]);
-  
+    verifySession();
+  }, [token, isAuthLoading, checkSession]);
+
+  // Reset state when token changes
   useEffect(() => {
-    const validateToken = async () => {
+    if (token) {
+      console.log(`Resetting validation state for token: ${token.substring(0, 8)}...`);
+      setIsValidating(true);
+      setError(null);
+      setInvitation(null);
+      setRateLimited(false);
+      setAttemptedValidations({});
+      setValidationAttempts(0);
+      
+      // Set initial type based on URL parameter
+      setDetectedType(invitationType === 'organization' ? 'organization' : 'team');
+    }
+  }, [token, invitationType]);
+
+  // Main validation effect
+  useEffect(() => {
+    if (!token || isAuthLoading) return;
+    
+    // Don't try to validate if we've already tried too many times
+    if (validationAttempts > 3) {
+      console.warn('Too many validation attempts, giving up');
+      if (!error) setError('Unable to validate invitation after multiple attempts');
+      setIsValidating(false);
+      return;
+    }
+
+    // Check if we've already attempted this type
+    if (attemptedValidations[detectedType]) {
+      console.log(`Already attempted ${detectedType} validation`);
+      return;
+    }
+    
+    const validateInvitation = async () => {
       try {
         setIsValidating(true);
-        setError(null);
-        setRateLimited(false);
         
-        // Sanitize and validate token format
+        // Sanitize token
         const sanitizedToken = sanitizeToken(token);
         if (!sanitizedToken) {
-          setError('Invalid invitation token format');
+          setError('Invalid invitation format');
+          setIsValidating(false);
           return;
         }
-
-        console.log(`Validating invitation with token: ${sanitizedToken.substring(0, 8)}... as type: ${detectedType}`);
         
-        // Record that we've attempted validation with this type
-        setAttemptedValidations(prev => ({ ...prev, [detectedType]: true }));
+        // Log authentication state before validation
+        console.log('Auth state before validation:', {
+          hasUser: !!user,
+          userId: user?.id,
+          tokenPresent: !!session?.access_token,
+          expiresAt: session?.expires_at ? new Date(session?.expires_at * 1000).toISOString() : 'unknown'
+        });
         
-        // If we're not sure about the type, try to auto-detect it
-        if (!autoDetecting && !attemptedValidations['auto-detected']) {
-          setAutoDetecting(true);
-          
-          try {
-            const detectedInvType = await detectInvitationType(sanitizedToken);
-            
-            if (detectedInvType) {
-              console.log(`Auto-detected invitation type: ${detectedInvType}`);
-              setAttemptedValidations(prev => ({ ...prev, 'auto-detected': true }));
-              
-              // Only switch if the detected type is different
-              if (detectedInvType !== detectedType) {
-                setDetectedType(detectedInvType);
-                setAutoDetecting(false);
-                return; // Exit and let the useEffect run again with the new type
-              }
-            }
-          } catch (detectionError) {
-            console.error('Error auto-detecting invitation type:', detectionError);
-          }
-          
-          setAutoDetecting(false);
+        console.log(`Validating ${detectedType} invitation with token: ${sanitizedToken.substring(0, 8)}...`);
+        
+        // Record that we're attempting this validation type
+        setAttemptedValidations(prev => ({...prev, [detectedType]: true}));
+        setValidationAttempts(prev => prev + 1);
+        
+        let result;
+        if (detectedType === 'organization') {
+          result = await validateOrganizationInvitation(sanitizedToken);
+        } else {
+          result = await validateInvitationToken(sanitizedToken);
         }
         
-        try {
-          let validationResult;
+        console.log(`${detectedType} validation result:`, result);
+        
+        if (result.valid && result.invitation) {
+          setIsValid(true);
+          setInvitation(result.invitation);
+          setError(null);
+          console.log('Invitation validated successfully:', result.invitation);
+        } else if (result.rateLimit) {
+          console.warn('Rate limit detected during validation');
+          setRateLimited(true);
+          setError('Too many requests. Please try again in a moment.');
           
-          if (detectedType === 'organization') {
-            // Handle organization invitation
-            validationResult = await debouncedValidateOrg(sanitizedToken);
-          } else {
-            // Handle team invitation
-            validationResult = await debouncedValidateTeam(sanitizedToken);
-          }
+          // Show rate limit toast
+          toast.warning('Rate limit reached', {
+            description: 'Please wait a moment before trying again'
+          });
+        } else {
+          console.warn('Invitation validation failed:', result.error);
+          setError(result.error || 'Invalid invitation');
           
-          const { valid, invitation, error } = validationResult;
-          
-          if (!valid) {
-            // If validation fails and we haven't tried the other type yet,
-            // let's try the alternate type as a fallback
-            if (!attemptedValidations[detectedType === 'team' ? 'organization' : 'team']) {
-              const alternateType = detectedType === 'team' ? 'organization' : 'team';
-              console.log(`First validation attempt failed. Trying alternate type: ${alternateType}`);
+          // If first validation fails, try to detect the type and try again with the other type
+          if (validationAttempts === 0) {
+            try {
+              console.log('First validation failed, attempting to auto-detect invitation type');
+              const detectedInvType = await detectInvitationType(sanitizedToken);
               
-              setDetectedType(alternateType);
-              return; // Exit and let the useEffect run again with the new type
+              if (detectedInvType && detectedInvType !== detectedType) {
+                console.log(`Auto-detected different invitation type: ${detectedInvType}, retrying validation`);
+                setDetectedType(detectedInvType);
+                return; // Exit and let the useEffect run again with the new type
+              }
+            } catch (err) {
+              console.error('Error detecting invitation type:', err);
             }
-            
-            setError(error || 'Invalid invitation');
-          } else {
-            setInvitation(invitation);
-            setIsValid(true);
           }
-        } catch (error: any) {
-          console.error('Error validating invitation:', error);
           
-          // Check if this is a rate limit error
-          if (error.message?.includes('429') || error.status === 429 || 
-              error.message?.toLowerCase().includes('rate limit')) {
-            setRateLimited(true);
-            setError('Too many requests. Please try again in a moment.');
-          } else if (error.status === 406) {
-            // 406 Not Acceptable often means we're using the wrong endpoint
-            console.warn('Received 406 error - might be using wrong invitation type');
-            
-            // Try the other invitation type if we haven't already
-            if (!attemptedValidations[detectedType === 'team' ? 'organization' : 'team']) {
-              const alternateType = detectedType === 'team' ? 'organization' : 'team';
-              console.log(`Received 406 error. Trying alternate type: ${alternateType}`);
-              
-              setDetectedType(alternateType);
-              return; // Exit and let the useEffect run again with the new type
-            }
-            
-            setError('Invalid invitation format');
-          } else {
-            setError(error.message || 'An error occurred validating the invitation');
+          // If we've tried both types and still failed, show a final error
+          if (attemptedValidations['team'] && attemptedValidations['organization']) {
+            console.error('Validation failed for both invitation types');
+            setError('Invalid or expired invitation. Please request a new invitation.');
           }
+        }
+      } catch (err: any) {
+        console.error('Error during validation:', err);
+        
+        // Check for rate limiting
+        if (err.message?.includes('429') || err.status === 429 || 
+            err.message?.toLowerCase().includes('rate limit')) {
+          setRateLimited(true);
+          setError('Too many requests. Please try again in a moment.');
+          toast.warning('Rate limit reached', {
+            description: 'Please wait a moment before trying again'
+          });
+        } else {
+          setError(err.message || 'An error occurred validating the invitation');
         }
       } finally {
         setIsValidating(false);
       }
     };
 
-    validateToken();
-  }, [token, detectedType, attemptedValidations, autoDetecting]);
+    // Use a small timeout to ensure auth state is fully loaded
+    const timer = setTimeout(() => {
+      validateInvitation();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [token, detectedType, isAuthLoading, user, session, attemptedValidations, validationAttempts, checkSession]);
   
   return {
     isValidating,

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvitationValidation } from '@/hooks/invitation/useInvitationValidation';
@@ -11,6 +12,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 import { InvitationType } from '@/types/invitations';
 import { useInvitationState } from './useInvitationState';
+import { supabase } from '@/integrations/supabase/client';
 
 interface InvitationContainerProps {
   token: string;
@@ -64,6 +66,26 @@ export const InvitationContainer: React.FC<InvitationContainerProps> = ({
     refreshAuthSession, redirectToAuth
   } = useInvitationProcessing();
 
+  // Debug component state
+  useEffect(() => {
+    console.log('InvitationContainer: Current state', {
+      token: token.substring(0, 8) + '...',
+      initialType: initialInvitationType,
+      detectedType,
+      isValidating,
+      isValid,
+      hasError: !!error || !!processingError,
+      error: error || processingError,
+      isAuthLoading,
+      user: user ? `${user.email} (${user.id.substring(0, 8)}...)` : 'not authenticated',
+      waitingForAuth,
+      authVerified,
+      isRateLimited
+    });
+  }, [token, initialInvitationType, detectedType, isValidating, isValid, 
+      error, processingError, isAuthLoading, user, waitingForAuth, 
+      authVerified, isRateLimited]);
+
   // Log detected invitation type changes
   useEffect(() => {
     console.log(`InvitationContainer: Detected invitation type is ${detectedType}`);
@@ -77,6 +99,30 @@ export const InvitationContainer: React.FC<InvitationContainerProps> = ({
       setIsRateLimited(false);
     }
   }, [validationRateLimited, acceptRateLimited, setIsRateLimited]);
+
+  // Force refresh auth session on mount
+  useEffect(() => {
+    const forceSessionRefresh = async () => {
+      try {
+        console.log('InvitationContainer: Forcing auth session refresh on mount');
+        // Get the current session first
+        const { data: currentSession } = await supabase.auth.getSession();
+        
+        if (currentSession?.session) {
+          console.log('Active session found, refreshing tokens');
+          await supabase.auth.refreshSession();
+          setAuthVerified(true);
+        } else {
+          console.log('No active session found');
+          setWaitingForAuth(true);
+        }
+      } catch (err) {
+        console.error('Error refreshing session:', err);
+      }
+    };
+    
+    forceSessionRefresh();
+  }, []);
 
   // Session handling for invitation
   useEffect(() => {
@@ -146,7 +192,7 @@ export const InvitationContainer: React.FC<InvitationContainerProps> = ({
   }, [acceptedSuccessfully, refreshNotifications, refreshOrganizations]);
 
   // Handle invitation acceptance
-  const handleAcceptInvitation = async () => {
+  const handleAcceptInvitation = async (token: string, type?: string) => {
     if (!user) {
       toast.error("You must be logged in to accept invitations");
       setWaitingForAuth(true);
@@ -164,6 +210,7 @@ export const InvitationContainer: React.FC<InvitationContainerProps> = ({
       setLastAttemptType(detectedType);
       
       // Force a session refresh before accepting the invitation
+      console.log('Refreshing authentication session before accepting invitation');
       const refreshSuccessful = await refreshAuthSession();
       
       if (!refreshSuccessful) {
@@ -281,7 +328,7 @@ export const InvitationContainer: React.FC<InvitationContainerProps> = ({
     // Wait a moment before retrying
     setTimeout(() => {
       if (isValid && invitation) {
-        handleAcceptInvitation();
+        handleAcceptInvitation(token, detectedType);
       } else {
         // Refresh the page to start over
         window.location.reload();

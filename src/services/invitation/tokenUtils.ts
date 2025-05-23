@@ -1,18 +1,18 @@
 
-import { supabase } from '@/integrations/supabase/client';
-
 /**
- * Validates and sanitizes invitation tokens
+ * Clean and validate the invitation token format
+ * @param token Raw token from URL
+ * @returns Sanitized token or null if invalid
  */
 export function sanitizeToken(token: string | undefined): string | null {
   if (!token) return null;
   
-  // Remove any whitespace and non-alphanumeric characters
-  const sanitized = token.trim();
+  // Remove any whitespace and unwanted characters
+  const sanitized = token.trim().replace(/[^\w-]/g, '');
   
-  // Check if token meets minimum length requirement
-  if (sanitized.length < 10) {
-    console.error(`Invalid token format: length=${sanitized.length}`);
+  // Basic validation - must be at least 16 chars and alphanumeric+dash
+  if (sanitized.length < 16 || !/^[\w-]+$/.test(sanitized)) {
+    console.warn('Invalid token format:', sanitized.substring(0, 8) + '...');
     return null;
   }
   
@@ -20,71 +20,105 @@ export function sanitizeToken(token: string | undefined): string | null {
 }
 
 /**
- * Helper to detect invitation type based on token characteristics
+ * Detect whether a token is for a team or organization invitation
+ * based on probing both endpoints
+ * @param token The invitation token
+ * @returns 'team' | 'organization' or null if can't be determined
  */
 export async function detectInvitationType(token: string): Promise<'team' | 'organization' | null> {
   try {
-    if (!token || token.length < 10) return null;
+    const { supabase } = await import('@/integrations/supabase/client');
     
-    console.log(`Attempting to detect invitation type for token: ${token.substring(0, 8)}...`);
-    
-    // First try team invitation
-    const { data: teamCheck, error: teamError } = await supabase
-      .from('team_invitations')
-      .select('id, token')
-      .eq('token', token)
-      .limit(1)
-      .maybeSingle();
-    
-    if (teamCheck && !teamError) {
-      console.log('Detected token type: team invitation');
-      return 'team';
+    // Try organization invitation first (more reliable edge function)
+    try {
+      console.log(`Attempting to detect if token ${token.substring(0, 8)}... is an organization invitation`);
+      const { data, error } = await supabase.functions.invoke('validate_org_invitation', {
+        body: { token, checkOnly: true }
+      });
+      
+      if (!error && data?.valid) {
+        console.log('Token detected as organization invitation');
+        return 'organization';
+      }
+    } catch (err) {
+      console.log('Organization detection failed, will try team next');
     }
     
-    // Then try organization invitation
-    const { data: orgCheck, error: orgError } = await supabase
-      .from('organization_invitations')
-      .select('id, token')
-      .eq('token', token)
-      .limit(1)
-      .maybeSingle();
-    
-    if (orgCheck && !orgError) {
-      console.log('Detected token type: organization invitation');
-      return 'organization';
+    // Try team invitation detection
+    try {
+      console.log(`Attempting to detect if token ${token.substring(0, 8)}... is a team invitation`);
+      const { data, error } = await supabase
+        .from('team_invitations')
+        .select('id')
+        .eq('token', token)
+        .maybeSingle();
+        
+      if (!error && data) {
+        console.log('Token detected as team invitation');
+        return 'team';
+      }
+    } catch (err) {
+      console.log('Team detection failed');
     }
     
-    console.log('Could not determine token type from database');
+    console.warn('Could not reliably detect invitation type');
     return null;
   } catch (error) {
-    console.error('Error detecting invitation type:', error);
+    console.error('Error in detectInvitationType:', error);
     return null;
   }
 }
 
 /**
- * Check if the current session is valid and user is authenticated
+ * Validate that the current session can be used for invitation operations
  */
 export async function validateSessionForInvitation(): Promise<boolean> {
   try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    console.log('Validating session for invitation operations');
+    
+    // Get current session
     const { data, error } = await supabase.auth.getSession();
     
-    if (error || !data?.session?.user) {
+    if (error) {
+      console.error('Error getting session:', error);
       return false;
     }
     
-    // Verify that the session has a valid token that hasn't expired
-    const session = data.session;
-    const now = Math.floor(Date.now() / 1000);
-    
-    if (session.expires_at && session.expires_at < now) {
-      console.log('Session token has expired');
+    if (!data?.session) {
+      console.warn('No session found');
       return false;
     }
     
-    return true;
-  } catch (error) {
-    console.error('Error validating session:', error);
+    // Check token validity by making a simple profile request
+    try {
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', data.session.user.id)
+        .single();
+      
+      if (profileError) {
+        console.warn('Profile request failed with existing token:', profileError);
+        
+        // Try refreshing the token
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          return false;
+        }
+        
+        return true;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error validating session:', err);
+      return false;
+    }
+  } catch (err) {
+    console.error('Unexpected error in validateSessionForInvitation:', err);
     return false;
   }
 }
