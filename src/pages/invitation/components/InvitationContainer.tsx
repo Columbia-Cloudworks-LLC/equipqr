@@ -1,14 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvitationValidation } from '@/hooks/invitation/useInvitationValidation';
 import { useInvitationAcceptance } from '@/hooks/invitation/useInvitationAcceptance';
 import { useInvitationProcessing } from '@/hooks/invitation/useInvitationProcessing';
 import { useInvitationError } from '@/hooks/invitation/useInvitationError';
-import { InvitationContent } from '@/components/Invitation/InvitationContent';
-import { InvalidInvitation } from '@/components/Invitation/InvalidInvitation';
-import { InvitationError } from '@/components/Invitation/InvitationError';
-import { InvitationValidating, RateLimitedState } from '@/components/Invitation/InvitationStatus';
+import { InvitationStateRenderer } from './InvitationStateRenderer';
 import { SessionHandler } from '@/components/Invitation/SessionHandler';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { useOrganization } from '@/contexts/OrganizationContext';
