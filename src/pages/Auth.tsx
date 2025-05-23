@@ -9,6 +9,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, Info } from 'lucide-react';
+import { AppConfig } from '@/config/app';
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -114,10 +115,10 @@ export default function Auth() {
       {/* Simple header with logo */}
       <header className="border-b bg-background/95 backdrop-blur p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold">equipqr</h1>
+          <h1 className="text-xl font-bold">{AppConfig.name}</h1>
         </div>
         
-        <div className="text-sm text-muted-foreground">v1.1</div>
+        <div className="text-sm text-muted-foreground">{AppConfig.version}</div>
       </header>
 
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] px-4 py-8">

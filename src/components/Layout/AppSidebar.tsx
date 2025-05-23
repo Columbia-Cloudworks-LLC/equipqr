@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Package, Users, Home } from "lucide-react";
@@ -24,6 +25,7 @@ import {
 
 import { useSidebar } from "@/components/ui/sidebar/sidebar-context";
 import { cn } from "@/lib/utils";
+import { AppConfig } from "@/config/app";
 
 // Navigation items for the sidebar
 const mainNavItems = [
@@ -63,7 +65,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b-slate-700">
         <div className="flex items-center gap-2 px-2 w-full">
           <Package className="h-6 w-6 text-primary shrink-0" />
-          {!isCollapsed && <h1 className="text-lg font-semibold text-white truncate">equipqr</h1>}
+          {!isCollapsed && <h1 className="text-lg font-semibold text-white truncate">{AppConfig.name}</h1>}
         </div>
       </SidebarHeader>
       
@@ -102,9 +104,9 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         <div className={cn("text-xs text-slate-400 mb-6", isCollapsed ? "text-center" : "")}>
           {isCollapsed ? (
-            <p className="truncate">v1.1</p>
+            <p className="truncate">{AppConfig.version}</p>
           ) : (
-            <p>EquipQR v1.1</p>
+            <p>{AppConfig.name} {AppConfig.version}</p>
           )}
         </div>
       </SidebarFooter>
