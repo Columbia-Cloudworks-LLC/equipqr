@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client'; // Add the missing import here
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AuthCallback() {
   const { user, isLoading, resetAuthSystem } = useAuth();
@@ -58,7 +57,6 @@ export default function AuthCallback() {
         
         // Reset redirect count on successful login
         sessionStorage.removeItem('authRedirectCount');
-        toast.success('Logged in successfully');
         
         // Wait a moment to show success state before redirecting
         setTimeout(() => {
@@ -93,7 +91,6 @@ export default function AuthCallback() {
           setError("Authentication failed after multiple attempts. Try clearing your browser cache or using a different browser.");
           setStatus('error');
         } else {
-          toast.error('Authentication failed');
           navigate('/auth');
         }
       }

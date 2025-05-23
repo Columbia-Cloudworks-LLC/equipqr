@@ -10,19 +10,32 @@ export type ToastType = 'default' | 'success' | 'info' | 'warning' | 'destructiv
 export interface ToastOptions extends Omit<ExternalToast, 'type'> {
   title?: string;
   description?: string;
+  // Enable toast grouping by default
+  id?: string; // Used for grouping similar toasts
 }
+
+// Toast configuration - will be used app-wide
+const toastConfig: ExternalToast = {
+  duration: 4000,
+  closeButton: true,
+  position: 'top-right',
+  className: 'toast-notification',
+};
 
 // Function to display a toast notification
 const showToast = (options: ToastOptions) => {
   const { title, description, ...rest } = options;
   
+  // Always merge with default config
+  const fullConfig = { ...toastConfig, ...rest };
+  
   if (title && description) {
     sonnerToast(title, {
       description,
-      ...rest
+      ...fullConfig
     });
   } else if (title) {
-    sonnerToast(title, rest);
+    sonnerToast(title, fullConfig);
   }
 };
 
@@ -33,19 +46,19 @@ export const toast = {
   
   // Type-specific convenience methods
   default: (title: string, options?: Omit<ToastOptions, 'title'>) => 
-    sonnerToast(title, options),
+    sonnerToast(title, { ...toastConfig, ...options }),
   
   success: (title: string, options?: Omit<ToastOptions, 'title'>) => 
-    sonnerToast.success(title, options),
+    sonnerToast.success(title, { ...toastConfig, ...options }),
   
   info: (title: string, options?: Omit<ToastOptions, 'title'>) => 
-    sonnerToast.info(title, options),
+    sonnerToast.info(title, { ...toastConfig, ...options }),
   
   warning: (title: string, options?: Omit<ToastOptions, 'title'>) => 
-    sonnerToast.warning(title, options),
+    sonnerToast.warning(title, { ...toastConfig, ...options }),
   
   error: (title: string, options?: Omit<ToastOptions, 'title'>) => 
-    sonnerToast.error(title, options),
+    sonnerToast.error(title, { ...toastConfig, ...options }),
   
   // Re-export sonner's native methods
   dismiss: sonnerToast.dismiss,

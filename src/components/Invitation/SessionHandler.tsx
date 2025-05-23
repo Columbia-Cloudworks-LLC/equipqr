@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SessionHandlerProps {
@@ -72,9 +71,6 @@ export function SessionHandler({
           }
         } catch (error) {
           console.error('Error during initial session check:', error);
-          toast.error('Authentication Error', {
-            description: 'There was a problem verifying your session. Please try logging in again.'
-          });
         } finally {
           setInitialCheckDone(true);
           setCheckingSession(false);

@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 interface SignInFormProps {
   email: string;
@@ -25,7 +24,7 @@ export function SignInForm({ email, setEmail, handleGoogleSignIn, isLoading }: S
     try {
       await signIn(email, password);
       // Don't navigate here - let the auth state change handler handle it
-      toast.success("Successfully signed in");
+      // Don't show toast here - handled in AuthService
     } catch (error) {
       // Error is already handled in the auth context
     }

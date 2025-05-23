@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 /**
  * Unified hook for authentication functionality
@@ -75,13 +74,8 @@ export function useAuth() {
       });
       
       if (error) {
-        toast.error("Failed to sign in", {
-          description: error.message
-        });
         throw error;
       }
-      
-      toast.success("Successfully signed in");
       
       return data.session;
     } catch (error) {
@@ -112,14 +106,10 @@ export function useAuth() {
 
       if (error) {
         console.error('useAuth: Google sign-in error:', error);
-        toast.error("Failed to sign in with Google", {
-          description: error.message
-        });
         throw error;
       }
     } catch (error) {
       console.error('useAuth: Error during Google sign-in:', error);
-      toast.error("An unexpected error occurred");
       throw error;
     } finally {
       setIsLoading(false);
@@ -141,15 +131,8 @@ export function useAuth() {
 
       if (error) {
         console.error('useAuth: Sign-up error:', error);
-        toast.error("Failed to create account", {
-          description: error.message
-        });
         throw error;
       }
-      
-      toast.success("Account created successfully", {
-        description: "Please check your email for verification instructions"
-      });
     } catch (error) {
       console.error('useAuth: Error during sign-up:', error);
       throw error;
@@ -167,13 +150,8 @@ export function useAuth() {
 
       if (error) {
         console.error('useAuth: Password reset error:', error);
-        toast.error("Failed to send password reset email", {
-          description: error.message
-        });
         throw error;
       }
-      
-      toast.success("Password reset email sent");
     } catch (error) {
       console.error('useAuth: Error during password reset:', error);
       throw error;
@@ -203,7 +181,6 @@ export function useAuth() {
       
     } catch (error) {
       console.error('useAuth: Error during sign-out:', error);
-      toast.error("There was an issue during sign out");
       
       // Even if server-side logout fails, ensure client-side state is reset
       setUser(null);

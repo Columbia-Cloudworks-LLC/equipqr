@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthRecovery } from './AuthRecovery';
@@ -73,11 +72,6 @@ export function AuthRedirect() {
       
       // Add a slight delay to show the success state
       setTimeout(() => {
-        // Show success message
-        toast.success('Authenticated', {
-          description: message || 'You are now signed in'
-        });
-        
         // Navigate to the return path
         navigate(returnPath, { 
           replace: true,
@@ -96,9 +90,6 @@ export function AuthRedirect() {
         handleAuthenticated();
       } else if (message) {
         // Show the message for unauthenticated users
-        toast.error('Authentication Required', {
-          description: message
-        });
       }
     }
   }, [

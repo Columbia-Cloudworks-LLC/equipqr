@@ -164,10 +164,6 @@ export class AuthService {
         throw error;
       }
       
-      if (data.session) {
-        toast.success("Successfully signed in");
-      }
-      
       return data.session;
     } catch (error) {
       console.error('AuthService: Error during sign-in:', error);
@@ -293,6 +289,7 @@ export class AuthService {
           await supabase.auth.signOut({ scope: 'global' });
         } else {
           console.log('AuthService: Sign-out completed successfully');
+          toast.success("Signed out successfully");
         }
       } catch (checkError) {
         console.error('AuthService: Error checking session after signOut:', checkError);
