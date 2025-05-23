@@ -21,7 +21,7 @@ export function useWorkNotesQuery(equipmentId: string) {
     isLoading, 
     error,
     refetch: refetchNotes,
-    isError  // Make sure isError is extracted from the useQuery result
+    isError  // Ensure isError is extracted from the useQuery result
   } = useQuery({
     queryKey: ['workNotes', equipmentId],
     queryFn: () => retry(() => getWorkNotes(equipmentId), 3),
