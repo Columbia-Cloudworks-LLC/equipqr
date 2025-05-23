@@ -1,6 +1,8 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuthMethods } from './useAuthMethods';
 
 /**
  * Unified hook for authentication functionality
@@ -9,6 +11,7 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const authMethods = useAuthMethods();
 
   // Initialize auth state and set up listener
   useEffect(() => {
@@ -61,178 +64,6 @@ export function useAuth() {
       return false;
     }
   }, [session]);
-
-  // Sign in with email and password - simplified
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password 
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      return data.session;
-    } catch (error) {
-      console.error('useAuth: Error during sign-in:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Sign in with Google OAuth - simplified
-  const signInWithGoogle = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const callbackUrl = `${window.location.origin}/auth/callback`;
-      
-      console.log("useAuth: Google sign-in using callback URL:", callbackUrl);
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: callbackUrl,
-          queryParams: {
-            prompt: 'select_account'
-          }
-        },
-      });
-
-      if (error) {
-        console.error('useAuth: Google sign-in error:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('useAuth: Error during Google sign-in:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-  
-  // Sign up - simplified
-  const signUp = useCallback(async (email: string, password: string, userData?: any) => {
-    try {
-      setIsLoading(true);
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: userData || {}
-        }
-      });
-
-      if (error) {
-        console.error('useAuth: Sign-up error:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('useAuth: Error during sign-up:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Reset password - simplified
-  const resetPassword = useCallback(async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-
-      if (error) {
-        console.error('useAuth: Password reset error:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('useAuth: Error during password reset:', error);
-      throw error;
-    }
-  }, []);
-
-  // Sign out - simplified but thorough
-  const signOut = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      
-      console.log('useAuth: Starting sign-out process');
-      
-      // First try explicit sign out - both local and global
-      await supabase.auth.signOut({ scope: 'global' });
-      
-      // Reset state
-      setUser(null);
-      setSession(null);
-      
-      console.log('useAuth: Sign-out completed');
-      
-      // Clear any auth-related storage
-      localStorage.removeItem('authReturnTo');
-      sessionStorage.removeItem('invitationPath');
-      sessionStorage.removeItem('authRedirectCount');
-      
-    } catch (error) {
-      console.error('useAuth: Error during sign-out:', error);
-      
-      // Even if server-side logout fails, ensure client-side state is reset
-      setUser(null);
-      setSession(null);
-      
-      // Throw the error for upstream handling if needed
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Complete auth reset - useful for troubleshooting  
-  const resetAuthSystem = useCallback(async () => {
-    try {
-      console.log('useAuth: Performing complete auth system reset');
-      
-      // Clear auth state
-      setUser(null);
-      setSession(null);
-      
-      // First try explicit sign out
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (e) {
-        console.error('useAuth: Error during explicit sign-out in reset:', e);
-      }
-      
-      // Clear all Supabase-related storage
-      const projectRef = "oxeheowbfsshpyldlskb";
-      const keys = [
-        `sb-${projectRef}-auth-token`,
-        `sb-${projectRef}-auth-token-code-verifier`,
-        "supabase.auth.token"
-      ];
-      
-      keys.forEach(key => {
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
-      });
-      
-      // Clear all other auth-related storage
-      localStorage.removeItem('authReturnTo');
-      sessionStorage.removeItem('authRedirectCount');
-      sessionStorage.removeItem('invitationPath');
-      
-      console.log('useAuth: Auth system reset complete');
-    } catch (error) {
-      console.error('useAuth: Error during auth system reset:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
   // Function to repair session - implementation improved
   const repairSession = useCallback(async () => {
@@ -298,15 +129,57 @@ export function useAuth() {
     }
   }, []);
 
+  // Complete auth reset - useful for troubleshooting  
+  const resetAuthSystem = useCallback(async () => {
+    try {
+      console.log('useAuth: Performing complete auth system reset');
+      
+      // Clear auth state
+      setUser(null);
+      setSession(null);
+      
+      // First try explicit sign out
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (e) {
+        console.error('useAuth: Error during explicit sign-out in reset:', e);
+      }
+      
+      // Clear all Supabase-related storage
+      const projectRef = "oxeheowbfsshpyldlskb";
+      const keys = [
+        `sb-${projectRef}-auth-token`,
+        `sb-${projectRef}-auth-token-code-verifier`,
+        "supabase.auth.token"
+      ];
+      
+      keys.forEach(key => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
+      
+      // Clear all other auth-related storage
+      localStorage.removeItem('authReturnTo');
+      sessionStorage.removeItem('authRedirectCount');
+      sessionStorage.removeItem('invitationPath');
+      
+      console.log('useAuth: Auth system reset complete');
+    } catch (error) {
+      console.error('useAuth: Error during auth system reset:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     user,
     session,
     isLoading,
-    signIn,
-    signInWithGoogle,
-    signOut,
-    signUp,
-    resetPassword,
+    signIn: authMethods.signIn,
+    signInWithGoogle: authMethods.signInWithGoogle,
+    signOut: authMethods.signOut,
+    signUp: authMethods.signUp,
+    resetPassword: authMethods.resetPassword,
     checkSession,
     repairSession,
     resetAuthSystem

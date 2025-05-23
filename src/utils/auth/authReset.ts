@@ -1,20 +1,34 @@
 
-import { authService } from '@/services/auth/AuthService';
-
 /**
- * Reset all authentication state
- * @deprecated Use authService.resetAuthSystem() instead
+ * Reset auth state
  */
-export function resetAuthState(): void {
-  console.warn('resetAuthState is deprecated, use authService.resetAuthSystem() instead');
-  authService.resetAuthSystem();
+export function resetAuthState() {
+  // Clear auth-related storage
+  localStorage.removeItem('authReturnTo');
+  sessionStorage.removeItem('invitationPath');
+  sessionStorage.removeItem('authRedirectCount');
 }
 
 /**
- * Perform a comprehensive auth system reset and cleanup
- * @deprecated Use authService.resetAuthSystem() instead
+ * Perform a full reset of the auth system including storage cleanup
  */
-export function performFullAuthReset(): void {
-  console.warn('performFullAuthReset is deprecated, use authService.resetAuthSystem() instead');
-  authService.resetAuthSystem();
+export function performFullAuthReset() {
+  resetAuthState();
+  
+  // Clear all Supabase-related storage
+  const projectRef = "oxeheowbfsshpyldlskb";
+  const keys = [
+    `sb-${projectRef}-auth-token`,
+    `sb-${projectRef}-auth-token-code-verifier`,
+    "supabase.auth.token"
+  ];
+  
+  keys.forEach(key => {
+    try {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    } catch (e) {
+      console.error(`Error clearing ${key}:`, e);
+    }
+  });
 }

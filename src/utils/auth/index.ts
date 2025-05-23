@@ -6,4 +6,3 @@ export { storageManager } from '@/services/auth/StorageManager';
 
 // For backward compatibility
 export { resetAuthState, performFullAuthReset } from './authReset';
-
