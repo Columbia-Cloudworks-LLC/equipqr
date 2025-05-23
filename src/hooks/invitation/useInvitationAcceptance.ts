@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { acceptOrganizationInvitation } from '@/services/organization/invitation/invitationAcceptance';
 import { acceptInvitation as acceptTeamInvitation } from '@/services/team/invitation/acceptInvitation';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export type InvitationType = 'team' | 'organization';
@@ -38,13 +39,32 @@ export function useInvitationAcceptance() {
       
       // Call the appropriate acceptance function based on invitation type
       if (type === 'organization') {
-        const orgResult = await acceptOrganizationInvitation(token);
-        acceptanceResult = {
-          success: orgResult.success,
-          error: orgResult.error,
-          entityId: orgResult.organizationId,
-          entityName: orgResult.organizationName
-        };
+        // For organization invitations, use either the edge function or direct function
+        try {
+          // Try using the edge function first
+          const { data, error } = await supabase.functions.invoke('accept_organization_invitation', {
+            body: { token }
+          });
+          
+          if (error) throw new Error(error.message);
+          
+          acceptanceResult = {
+            success: data.success,
+            error: data.error,
+            entityId: data.data?.organization?.id,
+            entityName: data.data?.organization?.name
+          };
+        } catch (edgeFunctionError) {
+          console.warn('Edge function failed, falling back to direct function:', edgeFunctionError);
+          // Fall back to the direct function
+          const orgResult = await acceptOrganizationInvitation(token);
+          acceptanceResult = {
+            success: orgResult.success,
+            error: orgResult.error,
+            entityId: orgResult.organizationId,
+            entityName: orgResult.organizationName
+          };
+        }
       } else {
         const teamResult = await acceptTeamInvitation(token);
         acceptanceResult = {

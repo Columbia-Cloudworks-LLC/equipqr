@@ -71,3 +71,11 @@ import_map = "import_map.json"
 [functions.check_invitation_status]
 verify_jwt = true
 import_map = "import_map.json"
+
+[functions.validate_org_invitation]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.accept_organization_invitation]
+verify_jwt = true
+import_map = "import_map.json"

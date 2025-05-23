@@ -19,7 +19,7 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
       throw new Error('Invalid invitation token');
     }
     
-    // Validate the token first
+    // Validate the token using the edge function
     const { data: validationData, error: validationError } = await supabase
       .functions
       .invoke('validate_org_invitation', {
