@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getAppUserId } from "@/utils/authUtils";
+import { toast } from "sonner";
 
 /**
  * Create a new team
@@ -17,9 +18,33 @@ export async function createTeam(name: string, orgId: string) {
     
     // Get the auth user ID
     const authUserId = sessionData.session.user.id;
+    console.log(`Auth user ID: ${authUserId}`);
     
     // Get the corresponding app_user.id for the auth user
-    const appUserId = await getAppUserId(authUserId);
+    let appUserId = await getAppUserId(authUserId);
+    
+    // If appUserId is null, try a direct fallback query
+    if (!appUserId) {
+      console.log('Primary app_user ID lookup failed, trying fallback lookup...');
+      const { data: appUserData, error: appUserError } = await supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', authUserId)
+        .maybeSingle();
+      
+      if (appUserError) {
+        console.error('Fallback app_user query error:', appUserError);
+      } else if (appUserData) {
+        appUserId = appUserData.id;
+        console.log(`Fallback found app_user.id: ${appUserId}`);
+      }
+    }
+    
+    // Final check to ensure we have an app_user ID
+    if (!appUserId) {
+      console.error(`Cannot find app_user record for auth_uid: ${authUserId}`);
+      throw new Error('User account not properly set up. Please try logging out and back in.');
+    }
     
     // Validate the organization exists before attempting to create a team
     const { data: orgData, error: orgError } = await supabase
@@ -34,6 +59,7 @@ export async function createTeam(name: string, orgId: string) {
     }
     
     console.log(`Organization validated: ${orgId}`);
+    console.log(`Using app_user ID for team creation: ${appUserId}`);
     
     // Create the team
     const { data, error } = await supabase
@@ -51,8 +77,10 @@ export async function createTeam(name: string, orgId: string) {
       
       // Provide more specific error messages based on error codes
       if (error.code === '23503') { // Foreign key violation
-        if (error.details?.includes('org_id')) {
-          throw new Error(`Organization with ID ${orgId} does not exist. Please ensure you have a valid organization before creating a team.`);
+        if (error.details?.includes('created_by')) {
+          throw new Error(`User ID mismatch. Please try logging out and back in.`);
+        } else if (error.details?.includes('org_id')) {
+          throw new Error(`Organization with ID ${orgId} does not exist.`);
         }
       }
       

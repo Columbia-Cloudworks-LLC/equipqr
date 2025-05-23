@@ -38,25 +38,39 @@ export function CreateTeamButton({ onCreateTeam, isCreating, disabled = false }:
     setIsSubmitting(true);
     try {
       const result = await onCreateTeam(teamName.trim());
-      if (result.success) {
+      
+      // Check for successful result or legacy API response shape
+      if (result?.id || result?.success) {
         toast.success('Team created successfully', {
           description: `Team "${teamName}" has been created.`,
         });
         setTeamName('');
         setOpen(false);
       } else {
-        // Enhanced error handling - provide more specific information
-        const errorMessage = result.error || 'An unknown error occurred.';
-        setError(errorMessage);
+        // Handle unexpected response format
+        setError('Unexpected response from server. Please try again.');
         toast.error('Failed to create team', {
-          description: errorMessage,
+          description: 'Server returned an unexpected response',
         });
       }
     } catch (error: any) {
-      const errorMessage = error.message || 'An unknown error occurred.';
-      setError(errorMessage);
+      // Extract most meaningful error message
+      const errorMessage = error.message || 
+                          error.error?.message || 
+                          error.details || 
+                          'An unknown error occurred.';
+      
+      // Special handling for common errors
+      let userFriendlyMessage = errorMessage;
+      
+      if (errorMessage.includes('foreign key constraint') || 
+          errorMessage.includes('not present in table')) {
+        userFriendlyMessage = 'Your user account needs reconnecting. Please try logging out and back in.';
+      }
+      
+      setError(userFriendlyMessage);
       toast.error('Error creating team', {
-        description: errorMessage,
+        description: userFriendlyMessage,
       });
       console.error('Team creation error details:', error);
     } finally {

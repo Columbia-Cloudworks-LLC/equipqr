@@ -7,8 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export async function getAppUserId(authUid: string): Promise<string | null> {
   try {
-    // FIXED: Use explicit UUID casting for auth_uid comparison
-    // This ensures the query compares UUID to UUID, not string to UUID
+    // Log the input for debugging
+    console.log(`Getting app_user.id for auth.uid: ${authUid}`);
+    
+    // Cast UUID explicitly to ensure proper comparison
     const { data, error } = await supabase
       .from('app_user')
       .select('id')
@@ -19,8 +21,14 @@ export async function getAppUserId(authUid: string): Promise<string | null> {
       console.error('Error fetching app_user ID:', error);
       return null;
     }
-
-    return data?.id || null;
+    
+    if (!data) {
+      console.error(`No app_user found for auth_uid: ${authUid}`);
+      return null;
+    }
+    
+    console.log(`Found app_user.id: ${data.id} for auth_uid: ${authUid}`);
+    return data.id;
   } catch (error) {
     console.error('Unexpected error in getAppUserId:', error);
     return null;
