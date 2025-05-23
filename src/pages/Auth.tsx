@@ -82,6 +82,11 @@ export default function Auth() {
     setIsInitialized(false);
   };
 
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as 'login' | 'signup');
+  };
+
   // Get page title and description based on invitation context
   const getPageContent = () => {
     if (isInvitation) {
@@ -143,7 +148,7 @@ export default function Auth() {
               </Alert>
             )}
             
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -157,6 +162,7 @@ export default function Auth() {
                   setEmail={setEmail}
                   handleGoogleSignIn={handleGoogleSignIn}
                   isLoading={isLoading}
+                  onBackToLogin={() => setActiveTab('login')}
                 />
               </TabsContent>
             </Tabs>

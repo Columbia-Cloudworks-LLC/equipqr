@@ -1,23 +1,33 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardContent, CardFooter } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { SignUpConfirmation } from "./SignUpConfirmation";
 
 interface SignUpFormProps {
   email: string;
   setEmail: (email: string) => void;
   handleGoogleSignIn: () => Promise<void>;
   isLoading: boolean;
+  onBackToLogin: () => void;
 }
 
-export function SignUpForm({ email, setEmail, handleGoogleSignIn, isLoading }: SignUpFormProps) {
+export function SignUpForm({ 
+  email, 
+  setEmail, 
+  handleGoogleSignIn, 
+  isLoading, 
+  onBackToLogin 
+}: SignUpFormProps) {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [organizationName, setOrganizationName] = useState("");
+  const [signUpComplete, setSignUpComplete] = useState(false);
   const { signUp } = useAuth();
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -35,10 +45,18 @@ export function SignUpForm({ email, setEmail, handleGoogleSignIn, isLoading }: S
         job_title: jobTitle,
         organization_name: organizationName,
       });
+      
+      // Show the confirmation screen
+      setSignUpComplete(true);
     } catch (error) {
       // Error is already handled in the auth context
     }
   };
+
+  // If signup is complete, show the confirmation screen
+  if (signUpComplete) {
+    return <SignUpConfirmation email={email} onBackToLogin={onBackToLogin} />;
+  }
 
   return (
     <form onSubmit={handleSignUp}>
