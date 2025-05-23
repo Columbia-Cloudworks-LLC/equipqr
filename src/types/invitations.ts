@@ -29,6 +29,7 @@ export interface AcceptanceResult {
   teamId?: string;
   teamName?: string;
   role?: string;
+  entityName?: string; // Add this property
 }
 
 export interface ValidationResult {

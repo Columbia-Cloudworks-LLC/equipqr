@@ -1,4 +1,3 @@
-
 /**
  * Debounce function to avoid rapid-fire API calls
  */
@@ -75,4 +74,34 @@ export async function retry<T>(
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
+}
+
+/**
+ * Cache function to avoid redundant API calls
+ * Stores results with a key generated from the function arguments
+ */
+export function withCache<T, Args extends any[]>(
+  fn: (...args: Args) => Promise<T>,
+  keyGenerator: (...args: Args) => string,
+  expiryMs: number = 60000 // Default cache for 1 minute
+): (...args: Args) => Promise<T> {
+  const cache: Record<string, { data: T; timestamp: number }> = {};
+  
+  return async (...args: Args): Promise<T> => {
+    const cacheKey = keyGenerator(...args);
+    const now = Date.now();
+    const cachedItem = cache[cacheKey];
+    
+    // Return cached item if it exists and hasn't expired
+    if (cachedItem && now - cachedItem.timestamp < expiryMs) {
+      console.log(`Cache hit for ${cacheKey}`);
+      return cachedItem.data;
+    }
+    
+    // Otherwise, call the function and cache the result
+    console.log(`Cache miss for ${cacheKey}, fetching...`);
+    const result = await fn(...args);
+    cache[cacheKey] = { data: result, timestamp: now };
+    return result;
+  };
 }

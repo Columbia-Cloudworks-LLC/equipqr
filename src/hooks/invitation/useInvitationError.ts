@@ -83,6 +83,9 @@ export function useInvitationError({
     }
   }, [retryCount, onReset]);
 
+  // Add the missing handleInvitationError method as an alias to handleError
+  const handleInvitationError = handleError;
+
   const handleRetry = useCallback(() => {
     setIsRetrying(true);
     
@@ -109,6 +112,7 @@ export function useInvitationError({
     retryCount,
     handleError,
     clearError,
-    handleRetry
+    handleRetry,
+    handleInvitationError // Export the alias
   };
 }

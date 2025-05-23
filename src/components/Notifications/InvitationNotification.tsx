@@ -108,7 +108,12 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
         
         refreshWithRetry();
         
-        toast.success(`Successfully joined ${isOrgInvitation ? 'the organization' : 'the team'}: ${result.entityName || entityName}`);
+        // Get the display name correctly depending on invitation type
+        const displayName = isOrgInvitation 
+          ? result.organizationName || entityName 
+          : result.teamName || entityName;
+        
+        toast.success(`Successfully joined ${isOrgInvitation ? 'the organization' : 'the team'}: ${displayName}`);
         
         // Navigate to the relevant page after a short delay to allow UI updates
         setTimeout(() => {
