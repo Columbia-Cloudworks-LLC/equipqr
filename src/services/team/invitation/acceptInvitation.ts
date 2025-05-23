@@ -62,24 +62,29 @@ export async function acceptInvitation(token: string) {
         
       if (existingAcl?.id) {
         // Update the existing ACL entry to remove expiration (make permanent)
+        // but ensure it's only "viewer" access for team invitations
         await supabase
           .from('organization_acl')
-          .update({ expires_at: null })
+          .update({ 
+            expires_at: null,
+            role: 'viewer' // Always viewer for team invitations
+          })
           .eq('id', existingAcl.id);
           
-        console.log('Updated existing organization access to permanent');
+        console.log('Updated existing organization access to permanent viewer');
       } else {
-        // Create a permanent ACL entry (no expiration)
+        // Create a permanent ACL entry with viewer access only
+        // Team invitations should never grant organization manager privileges
         await supabase
           .from('organization_acl')
           .insert({
             org_id: team.org_id,
             subject_id: currentUserId,
             subject_type: 'user',
-            role: invitation.role === 'manager' ? 'manager' : 'viewer'
+            role: 'viewer' // Always viewer regardless of team role
           });
           
-        console.log('Added permanent organization access for user');
+        console.log('Added permanent organization viewer access for user');
       }
     }
     
