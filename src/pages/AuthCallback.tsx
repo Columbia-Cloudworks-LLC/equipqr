@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { completeAuthVerification } from '@/utils/auth/sessionVerification';
 
 export default function AuthCallback() {
   const { user, isLoading, resetAuthSystem } = useAuth();
@@ -34,10 +33,10 @@ export default function AuthCallback() {
       setStatus('verifying');
       
       try {
-        // Verify session with actual API call
-        const isValid = await completeAuthVerification(true, false);
+        // Try a direct check with Supabase
+        const { data } = await supabase.auth.getSession();
         
-        if (!isValid) {
+        if (!data?.session) {
           if (verificationAttempts < 3) {
             // Try a few more times with increasing delay
             console.log(`Verification attempt ${verificationAttempts + 1} failed, retrying...`);

@@ -10,51 +10,17 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading, checkSession, resetAuthSystem } = useAuth();
-  const [isSessionValid, setIsSessionValid] = useState<boolean | null>(null);
-  const [isChecking, setIsChecking] = useState(true);
+  const { user, isLoading } = useAuth();
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    const validateSession = async () => {
-      try {
-        // If still loading, wait
-        if (isLoading) return;
+    // Simple check: if not loading and no user, redirect to auth
+    if (!isLoading && !user) {
+      console.log("ProtectedRoute: No user found, redirecting to login");
         
-        // If no user, session is invalid
-        if (!user) {
-          console.log("ProtectedRoute: No user found, marking session as invalid");
-          setIsSessionValid(false);
-          setIsChecking(false);
-          return;
-        }
-        
-        // If we're on a reload (not coming from auth page), check the session
-        const isValid = await checkSession();
-          
-        console.log("ProtectedRoute: Session validation result:", isValid);
-        setIsSessionValid(isValid);
-      } catch (err) {
-        console.error("ProtectedRoute: Error checking session:", err);
-        // On error, assume session is invalid for security
-        setIsSessionValid(false);
-      } finally {
-        setIsChecking(false);
-      }
-    };
-    
-    validateSession();
-  }, [user, isLoading, checkSession]);
-
-  useEffect(() => {
-    // Only redirect if explicitly not valid and not still checking
-    if (!isLoading && !isSessionValid && isSessionValid !== null && !isChecking) {
-      // If we're showing recovery, don't redirect
-      if (showRecovery) return;
-      
       // When redirecting to login, pass the current path as state
       const currentPath = location.pathname + location.search + location.hash;
       console.log("ProtectedRoute: Redirecting unauthorized user to /auth with returnTo:", currentPath);
@@ -67,21 +33,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         replace: true
       });
     }
-  }, [isSessionValid, isLoading, isChecking, navigate, location, showRecovery]);
+  }, [user, isLoading, navigate, location]);
 
   // Handle retry from recovery component
   const handleRetry = async () => {
     setShowRecovery(false);
-    setIsChecking(true);
     
-    // Force refresh the session check
-    const isValid = await checkSession();
-    if (isValid) {
-      setIsSessionValid(true);
-    } else {
-      // If still not valid, redirect to login
-      navigate("/auth", { replace: true });
-    }
+    // Force refresh by navigating to auth page
+    navigate("/auth", { replace: true });
   };
 
   // If showing recovery UI
@@ -97,7 +56,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // Show loading state when authenticating
-  if (isLoading || isChecking || isSessionValid === null) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
@@ -111,6 +70,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // If the session is valid, render the protected content
-  return <>{children}</>;
+  // If user is authenticated, render the protected content
+  return user ? <>{children}</> : null;
 }

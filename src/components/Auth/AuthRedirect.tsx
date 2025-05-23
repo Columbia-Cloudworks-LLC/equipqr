@@ -14,14 +14,12 @@ import { AuthLoadingState } from './AuthLoadingState';
 export function AuthRedirect() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, session, isLoading, checkSession } = useAuth();
+  const { user, session, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
-  const [verificationAttempt, setVerificationAttempt] = useState(0);
-  const [authStatus, setAuthStatus] = useState<'processing' | 'verifying' | 'repairing' | 'success' | 'error'>('processing');
+  const [authStatus, setAuthStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [showLoading, setShowLoading] = useState(false);
-  const [verificationStep, setVerificationStep] = useState<string | undefined>();
   
   // Get returnTo path from location state or localStorage
   const state = location.state as { 
@@ -59,72 +57,42 @@ export function AuthRedirect() {
 
     // Helper to handle a successful authentication
     const handleAuthenticated = async () => {
-      console.log(`User is authenticated, verifying session before redirecting to ${returnPath}`);
-      setAuthStatus('verifying');
-      setVerificationStep('Testing API access with current session');
+      console.log(`User is authenticated, redirecting to ${returnPath}`);
       
-      try {
-        // Use direct session check
-        const isValidSession = await checkSession();
+      // Clear stored return path
+      localStorage.removeItem('authReturnTo');
+      
+      // Brief success state before redirecting
+      setAuthStatus('success');
+      
+      // Force invalidate queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['invitations'] });
+      
+      // Add a slight delay to show the success state
+      setTimeout(() => {
+        // Show success message
+        toast.success('Authenticated', {
+          description: message || 'You are now signed in'
+        });
         
-        if (!isValidSession) {
-          console.error('Session API verification failed in AuthRedirect');
-          
-          // Increment attempt counter
-          setVerificationAttempt(prev => prev + 1);
-          
-          if (verificationAttempt >= 2) {
-            // After 2 attempts, show recovery UI
-            setRecoveryError('Session could not be verified after multiple attempts');
-            setShowRecovery(true);
-            setAuthStatus('error');
-            return;
+        // Navigate to the return path
+        navigate(returnPath, { 
+          replace: true,
+          state: { 
+            fromAuth: true,
+            refreshSession: true
           }
-          
-          setAuthStatus('error');
-          return;
-        }
-        
-        // Clear stored return path
-        localStorage.removeItem('authReturnTo');
-        
-        // Brief success state before redirecting
-        setAuthStatus('success');
-        
-        // Force invalidate queries to ensure fresh data
-        queryClient.invalidateQueries({ queryKey: ['equipment'] });
-        queryClient.invalidateQueries({ queryKey: ['teams'] });
-        queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        queryClient.invalidateQueries({ queryKey: ['invitations'] });
-        
-        // Add a slight delay to show the success state
-        setTimeout(() => {
-          // Show success message
-          toast.success('Authenticated', {
-            description: message || 'You are now signed in'
-          });
-          
-          // Navigate to the return path
-          navigate(returnPath, { 
-            replace: true,
-            state: { 
-              fromAuth: true,
-              refreshSession: true
-            }
-          });
-        }, 1000);
-      } catch (error) {
-        console.error('Error handling authentication redirect:', error);
-        setRecoveryError('Failed to complete sign-in process due to a technical error');
-        setShowRecovery(true);
-        setAuthStatus('error');
-      }
+        });
+      }, 500);
     };
     
     // Only proceed after auth state is determined
     if (!isLoading) {
       if (session) {
-        // User is authenticated, verify session before redirecting
+        // User is authenticated, redirect
         handleAuthenticated();
       } else if (message) {
         // Show the message for unauthenticated users
@@ -135,14 +103,12 @@ export function AuthRedirect() {
     }
   }, [
     session, isLoading, navigate, returnPath, message, 
-    queryClient, invitationPath, verificationAttempt, checkSession,
-    shouldPerformRedirect, location.pathname
+    queryClient, invitationPath, shouldPerformRedirect, location.pathname
   ]);
 
   // Handle retry from recovery component
   const handleRetry = async () => {
     setShowRecovery(false);
-    setVerificationAttempt(0);
     setAuthStatus('processing');
     
     // Force refresh auth state by reloading the page
@@ -169,16 +135,10 @@ export function AuthRedirect() {
         message={
           authStatus === 'processing' 
             ? 'Setting up your account and checking invitations...' 
-            : authStatus === 'verifying'
-              ? 'Verifying your authentication with the server...'
-              : authStatus === 'repairing'
-                ? 'Repairing authentication tokens...'
-                : 'Sign in successful! Redirecting you now...'
+            : 'Sign in successful! Redirecting you now...'
         }
         userEmail={user?.email}
         errorMessage={recoveryError || undefined}
-        verificationStep={verificationStep}
-        verificationAttempt={verificationAttempt + 1}
       />
     );
   }
