@@ -3,7 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { sessionManager } from './SessionManager';
 import { storageManager } from './StorageManager';
-import { authEventManager, AuthEventType } from './AuthEvents';
+import { authEventManager, AuthEventType, AuthEventListener } from './AuthEvents';
 import { authMethods } from './AuthMethods';
 import { authSignOut } from './AuthSignOut';
 
@@ -75,7 +75,7 @@ export class AuthService {
   /**
    * Add an event listener
    */
-  public addEventListener(listener: typeof authEventManager.addEventListener) {
+  public addEventListener(listener: AuthEventListener): () => void {
     return authEventManager.addEventListener(listener);
   }
 
