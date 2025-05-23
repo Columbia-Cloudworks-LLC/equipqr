@@ -14,7 +14,8 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { user_id, org_id } = await req.json();
+    const requestBody = await req.json();
+    const { user_id, org_id } = requestBody;
     
     if (!user_id) {
       return new Response(
@@ -24,6 +25,10 @@ serve(async (req: Request) => {
     }
 
     console.log(`Fetching dashboard data for user: ${user_id}${org_id ? `, org: ${org_id}` : ''}`);
+    
+    if (!org_id) {
+      console.warn("No org_id provided in request - data will be limited");
+    }
     
     // Create admin client for database operations
     const adminClient = createAdminClient();
@@ -58,16 +63,22 @@ serve(async (req: Request) => {
         teamsCount: teamsResult.teams.length,
         equipmentCount: equipmentResult.success ? equipmentResult.equipment.length : 0,
         invitationsCount: invitationsResult.success ? invitationsResult.invitations.length : 0,
+        requestParams: {
+          user_id: user_id,
+          org_id: org_id
+        }
       }
     };
     
     // Include errors if any service failed
     if (!equipmentResult.success) {
       response.metadata.equipmentError = equipmentResult.error;
+      console.error("Equipment error:", equipmentResult.error);
     }
     
     if (!invitationsResult.success) {
       response.metadata.invitationsError = invitationsResult.error;
+      console.error("Invitations error:", invitationsResult.error);
     }
 
     return new Response(

@@ -40,7 +40,9 @@ export async function fetchUserEquipment(supabase: any, userId: string, orgId?: 
       };
     }
     
-    // Check user's access to the organization - use user_roles table instead of organization_members
+    console.log(`Found app_user: ${appUser.id} for auth user ${userId}`);
+    
+    // Check user's access to the organization directly using user_roles table
     const { data: orgAccess, error: orgError } = await supabase
       .from('user_roles')
       .select('role')
@@ -48,13 +50,28 @@ export async function fetchUserEquipment(supabase: any, userId: string, orgId?: 
       .eq('org_id', orgId)
       .single();
     
+    if (orgError) {
+      console.log(`User has no direct role in org ${orgId}, checking team access`);
+    } else {
+      console.log(`User has role ${orgAccess?.role} in org ${orgId}`);
+    }
+    
     // Check team access using proper join structure
     const { data: teamAccess, error: teamError } = await supabase
       .from('team')
-      .select('id')
+      .select(`
+        id,
+        name,
+        team_member!inner(user_id, id)
+      `)
       .eq('org_id', orgId)
-      .eq('team_member.user_id', appUser.id) // Use proper join based on app_user ID
-      .limit(1);
+      .eq('team_member.user_id', appUser.id);
+    
+    if (teamError) {
+      console.error('Error checking team access:', teamError);
+    } else {
+      console.log(`User is member of ${teamAccess?.length || 0} teams in org ${orgId}`);
+    }
     
     const hasOrgAccess = !orgError && orgAccess;
     const hasTeamAccess = !teamError && teamAccess && teamAccess.length > 0;
@@ -70,6 +87,8 @@ export async function fetchUserEquipment(supabase: any, userId: string, orgId?: 
     }
     
     // Get equipment with mandatory organization filter
+    console.log(`Querying equipment where org_id = ${orgId} and deleted_at is null`);
+    
     const { data: equipment, error } = await supabase
       .from('equipment')
       .select(`
@@ -90,6 +109,9 @@ export async function fetchUserEquipment(supabase: any, userId: string, orgId?: 
     }
     
     console.log(`Found ${equipment?.length || 0} equipment records for org ${orgId}`);
+    if (equipment?.length > 0) {
+      console.log(`First equipment item: ${JSON.stringify(equipment[0].id)} - ${equipment[0].name}`);
+    }
     
     // Process equipment to ensure org_name is available
     const processedData = equipment ? equipment.map((item: any) => ({
@@ -102,7 +124,7 @@ export async function fetchUserEquipment(supabase: any, userId: string, orgId?: 
       success: true, 
       equipment: processedData
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in fetchUserEquipment:', error);
     return { 
       success: false, 

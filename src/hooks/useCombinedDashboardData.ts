@@ -28,9 +28,23 @@ export function useCombinedDashboardData(orgId?: string) {
   // Only fetch data when we have an authenticated session and a selected organization
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['dashboardData', orgId, session?.user?.id],
-    queryFn: () => {
+    queryFn: async () => {
+      if (!orgId) {
+        console.error('getDashboardData called without orgId');
+        return { 
+          teams: [], 
+          equipment: [], 
+          invitations: [], 
+          metadata: {
+            error: 'Missing organization ID'
+          }
+        };
+      }
+      
       console.log(`Executing dashboard data fetch for org: ${orgId}`);
-      return getDashboardData(orgId);
+      const result = await getDashboardData(orgId);
+      console.log(`Dashboard data fetch completed. Teams: ${result.teams?.length || 0}, Equipment: ${result.equipment?.length || 0}`);
+      return result;
     },
     enabled: !!session && !!orgId && isOrgReady,
     staleTime: 1000 * 60 * 5, // 5 minutes
