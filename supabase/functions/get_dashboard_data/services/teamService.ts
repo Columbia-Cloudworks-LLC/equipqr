@@ -15,46 +15,84 @@ export async function fetchUserTeams(supabase: any, userId: string, orgId?: stri
   try {
     console.log(`Fetching teams for user: ${userId}${orgId ? `, filtered by org: ${orgId}` : ''}`);
     
+    // Get app_user ID for this auth user
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', userId)
+      .single();
+    
+    if (appUserError || !appUser) {
+      console.error('Error fetching app_user:', appUserError);
+      return { 
+        success: false, 
+        teams: [],
+        error: appUserError?.message || 'Failed to fetch app_user'
+      };
+    }
+    
     // Build the query for teams
     let query = supabase
-      .from('teams')
+      .from('team')
       .select(`
         *,
-        team_members!inner(user_id, role),
-        org:org_id(*)
-      `)
-      .eq('team_members.user_id', userId);
+        org:org_id (*)
+      `);
     
     // Add org filter if provided
     if (orgId) {
       query = query.eq('org_id', orgId);
     }
     
-    const { data: teams, error } = await query;
+    const { data: teams, error: teamsError } = await query;
     
-    if (error) {
-      console.error('Error fetching teams:', error);
+    if (teamsError) {
+      console.error('Error fetching teams:', teamsError);
       return { 
         success: false, 
         teams: [],
-        error: error.message || 'Failed to fetch teams'
+        error: teamsError.message || 'Failed to fetch teams'
       };
     }
     
-    // Process teams to add role and other derived fields
-    const processedTeams = teams.map((team: any) => {
-      // Get the user's role in the team
-      const memberInfo = team.team_members.find((member: any) => member.user_id === userId);
-      
-      return {
-        ...team,
-        role: memberInfo ? memberInfo.role : 'viewer',
-        org_name: team.org ? team.org.name : 'Unknown Organization',
-        is_external: team.org ? team.org.owner_user_id !== userId : false
+    // Get team memberships for this user
+    const { data: teamMemberships, error: membershipError } = await supabase
+      .from('team_member')
+      .select(`
+        team_id,
+        team_roles (role)
+      `)
+      .eq('user_id', appUser.id);
+    
+    if (membershipError) {
+      console.error('Error fetching team memberships:', membershipError);
+      return { 
+        success: false, 
+        teams: [],
+        error: membershipError.message || 'Failed to fetch team memberships'
       };
+    }
+    
+    // Create membership lookup map
+    const membershipMap = new Map();
+    teamMemberships?.forEach((membership: any) => {
+      const role = membership.team_roles?.[0]?.role || 'viewer';
+      membershipMap.set(membership.team_id, role);
     });
     
-    return { success: true, teams: processedTeams };
+    // Process teams to add role and other derived fields
+    const userTeams = teams
+      .filter((team: any) => membershipMap.has(team.id))
+      .map((team: any) => {
+        return {
+          ...team,
+          role: membershipMap.get(team.id),
+          org_name: team.org ? team.org.name : 'Unknown Organization',
+          is_external: team.org ? team.org.owner_user_id !== appUser.id : false
+        };
+      });
+    
+    return { success: true, teams: userTeams };
   } catch (error) {
     console.error('Error in fetchUserTeams:', error);
     return { 
