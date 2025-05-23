@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from './components/ui/toaster';
 import { AuthProvider } from './contexts/AuthContext';
+import { OrganizationProvider } from './contexts/OrganizationContext';
 import AppRoutes from './AppRoutes';
 import { ThemeProvider } from './providers/ThemeProvider';
 
@@ -20,10 +21,12 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="equipqr-theme">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Router>
-            <AppRoutes />
-            <Toaster />
-          </Router>
+          <OrganizationProvider>
+            <Router>
+              <AppRoutes />
+              <Toaster />
+            </Router>
+          </OrganizationProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>
