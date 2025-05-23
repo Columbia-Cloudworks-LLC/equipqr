@@ -1,8 +1,9 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { sessionManager } from '@/services/auth/SessionManager';
+import { debounce } from '@/utils/edgeFunctions/retry';
 
 interface SessionHandlerProps {
   token: string | undefined;
@@ -14,6 +15,11 @@ interface SessionHandlerProps {
   setAuthVerified: (verified: boolean) => void;
 }
 
+// Create a debounced session check function
+const debouncedSessionCheck = debounce(async () => {
+  return await sessionManager.checkSession();
+}, 1000);
+
 export function SessionHandler({
   token,
   searchParams,
@@ -24,6 +30,7 @@ export function SessionHandler({
   setAuthVerified
 }: SessionHandlerProps) {
   const { user, isLoading: authLoading } = useAuth();
+  const [checkingSession, setCheckingSession] = useState(false);
 
   // Save invitation details to session storage when not authenticated
   useEffect(() => {
@@ -37,25 +44,33 @@ export function SessionHandler({
 
   // Check session validity periodically with exponential backoff when waiting for auth
   useEffect(() => {
-    if (waitingForAuth && sessionCheckAttempt < 5) {
-      const delay = Math.min(2000 * Math.pow(2, sessionCheckAttempt), 16000); // Exponential backoff with 16s max
+    if (waitingForAuth && sessionCheckAttempt < 5 && !checkingSession) {
+      const delay = Math.min(1000 * Math.pow(2, sessionCheckAttempt), 16000); // Exponential backoff with 16s max
       console.log(`Scheduling session check attempt ${sessionCheckAttempt + 1} in ${delay}ms`);
       
       const checkSessionTimeout = setTimeout(async () => {
-        // Use our new sessionManager to check for a session
-        const isValid = await sessionManager.checkSession();
-        setSessionCheckAttempt(prev => prev + 1);
-        
-        if (isValid) {
-          console.log('Session detected - can proceed with invitation');
-          setWaitingForAuth(false);
-          setAuthVerified(true);
+        try {
+          setCheckingSession(true);
+          
+          // Use our debounced session check to prevent rate limits
+          const isValid = await debouncedSessionCheck();
+          setSessionCheckAttempt(prev => prev + 1);
+          
+          if (isValid) {
+            console.log('Session detected - can proceed with invitation');
+            setWaitingForAuth(false);
+            setAuthVerified(true);
+          }
+        } catch (error) {
+          console.error('Error checking session:', error);
+        } finally {
+          setCheckingSession(false);
         }
       }, delay);
       
       return () => clearTimeout(checkSessionTimeout);
     }
-  }, [waitingForAuth, sessionCheckAttempt, setSessionCheckAttempt, setWaitingForAuth, setAuthVerified]);
+  }, [waitingForAuth, sessionCheckAttempt, setSessionCheckAttempt, setWaitingForAuth, setAuthVerified, checkingSession]);
 
   return null;
 }

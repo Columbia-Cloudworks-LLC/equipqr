@@ -4,7 +4,7 @@ import { acceptOrganizationInvitation } from '@/services/organization/invitation
 import { acceptInvitation as acceptTeamInvitation } from '@/services/team/invitation/acceptInvitation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { retry } from '@/utils/edgeFunctions/retry';
+import { retry, debounce, withCache } from '@/utils/edgeFunctions/retry';
 
 export type InvitationType = 'team' | 'organization';
 
@@ -15,10 +15,34 @@ export interface AcceptanceResult {
   entityName?: string;
 }
 
+// Create a debounced version of the edge function call
+const debouncedEdgeFunction = debounce(async (functionName: string, payload: any) => {
+  const { data, error } = await supabase.functions.invoke(functionName, {
+    body: payload
+  });
+  
+  if (error) throw new Error(error.message || 'Edge function error');
+  return data;
+}, 800);
+
+// Create a cached version of token validation
+const cachedValidateToken = withCache(
+  async (token: string, type: string) => {
+    const functionName = type === 'organization' 
+      ? 'validate_org_invitation' 
+      : 'validate_invitation';
+      
+    return debouncedEdgeFunction(functionName, { token });
+  },
+  (token, type) => `${type}_validation_${token}`,
+  60000 // 1 minute TTL
+);
+
 export function useInvitationAcceptance() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AcceptanceResult | null>(null);
+  const [rateLimited, setRateLimited] = useState(false);
   
   /**
    * Validate invitation token format
@@ -33,21 +57,29 @@ export function useInvitationAcceptance() {
   };
   
   /**
-   * Call edge function with retries
+   * Call edge function with retries and rate limit handling
    */
   const callEdgeFunctionWithRetry = async (functionName: string, payload: any) => {
-    return await retry(
-      async () => {
-        const { data, error } = await supabase.functions.invoke(functionName, {
-          body: payload
-        });
-        
-        if (error) throw new Error(error.message || 'Edge function error');
-        return data;
-      },
-      3, // Number of retries
-      1000 // Initial delay in ms
-    );
+    try {
+      setRateLimited(false);
+      
+      return await retry(
+        async () => debouncedEdgeFunction(functionName, payload),
+        3, // Number of retries
+        1000, // Initial delay in ms
+        (error) => {
+          const isRateLimit = error?.message?.includes('429') || error?.status === 429;
+          if (isRateLimit) setRateLimited(true);
+          return isRateLimit;
+        }
+      );
+    } catch (error: any) {
+      if (error?.message?.includes('429') || error?.status === 429) {
+        setRateLimited(true);
+        throw new Error('Rate limit exceeded. Please try again in a few moments.');
+      }
+      throw error;
+    }
   };
 
   /**
@@ -95,6 +127,13 @@ export function useInvitationAcceptance() {
         } catch (edgeFunctionError: any) {
           console.warn('Edge function failed, falling back to direct function:', edgeFunctionError);
           
+          if (rateLimited) {
+            return { 
+              success: false, 
+              error: 'You have made too many requests. Please wait a moment and try again.' 
+            };
+          }
+          
           // Fall back to the direct function
           const orgResult = await acceptOrganizationInvitation(token);
           console.log('Direct function result:', orgResult);
@@ -120,6 +159,15 @@ export function useInvitationAcceptance() {
             entityName: teamResult?.teamName
           };
         } catch (teamError: any) {
+          // Check if this was a rate limit error
+          if (teamError?.message?.includes('429') || teamError?.status === 429) {
+            setRateLimited(true);
+            return { 
+              success: false, 
+              error: 'You have made too many requests. Please wait a moment and try again.' 
+            };
+          }
+          
           console.error('Error accepting team invitation:', teamError);
           return { 
             success: false, 
@@ -162,6 +210,7 @@ export function useInvitationAcceptance() {
     isAccepting,
     error,
     result,
+    rateLimited,
     clearError: () => setError(null)
   };
 }

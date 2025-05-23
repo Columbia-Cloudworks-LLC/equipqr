@@ -5,6 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInvitationAcceptance } from './useInvitationAcceptance';
+import { debounce } from '@/utils/edgeFunctions/retry';
+
+// Create debounced version of the session refresh
+const debouncedRefreshSession = debounce(async () => {
+  const { data, error } = await supabase.auth.refreshSession();
+  if (error) throw error;
+  return data;
+}, 1500);
 
 /**
  * Hook for handling invitation processing related logic
@@ -15,6 +23,7 @@ export function useInvitationProcessing() {
   const [waitingForAuth, setWaitingForAuth] = useState(false);
   const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0);
   const [authVerified, setAuthVerified] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const navigate = useNavigate();
   const { user, checkSession } = useAuth();
   const { acceptInvitation } = useInvitationAcceptance();
@@ -24,37 +33,56 @@ export function useInvitationProcessing() {
    */
   const refreshAuthSession = useCallback(async () => {
     try {
+      if (isRefreshing) {
+        console.log("Auth session refresh already in progress");
+        return false;
+      }
+      
+      setIsRefreshing(true);
       console.log("Forcing auth session refresh");
       
       // First, check if we have a valid session
       const isValid = await checkSession();
       if (!isValid) {
         console.error("No valid session found, redirecting to login");
+        setIsRefreshing(false);
         return false;
       }
       
-      // Then refresh to get a new token
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error) {
-        console.error("Error refreshing session:", error);
-        toast.error("Authentication error", {
-          description: "Could not refresh your session. Please try logging out and in again."
-        });
+      // Then refresh to get a new token using debounced function
+      try {
+        const { session } = await debouncedRefreshSession();
+        
+        if (session) {
+          console.log("Session refreshed successfully, token:", session.access_token.substring(0, 10) + '...');
+          setAuthVerified(true);
+          setIsRefreshing(false);
+          return true;
+        }
+      } catch (refreshError: any) {
+        if (refreshError.message?.includes('429') || refreshError.status === 429) {
+          console.warn('Rate limit detected during session refresh');
+          toast.warning("Rate limit detected", {
+            description: "Please wait a moment before trying again"
+          });
+        } else {
+          console.error("Error refreshing session:", refreshError);
+          toast.error("Authentication error", {
+            description: "Could not refresh your session. Please try logging out and in again."
+          });
+        }
+        setIsRefreshing(false);
         return false;
       }
       
-      if (data.session) {
-        console.log("Session refreshed successfully, token:", data.session.access_token.substring(0, 10) + '...');
-        setAuthVerified(true);
-        return true;
-      }
-      
+      setIsRefreshing(false);
       return false;
     } catch (err) {
       console.error("Error in refreshAuthSession:", err);
+      setIsRefreshing(false);
       return false;
     }
-  }, [checkSession]);
+  }, [checkSession, isRefreshing]);
 
   /**
    * Process an invitation token of a specific type
@@ -127,6 +155,7 @@ export function useInvitationProcessing() {
     setAuthVerified,
     refreshAuthSession,
     redirectToAuth,
-    processInvitation
+    processInvitation,
+    isRefreshing
   };
 }

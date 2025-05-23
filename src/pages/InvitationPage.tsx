@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useInvitationValidation } from '../hooks/invitation/useInvitationValidation';
 import { useInvitationAcceptance } from '../hooks/invitation/useInvitationAcceptance';
@@ -8,7 +8,7 @@ import { useInvitationError } from '../hooks/invitation/useInvitationError';
 import { InvalidInvitation } from '../components/Invitation/InvalidInvitation';
 import { InvitationContent } from '../components/Invitation/InvitationContent';
 import { InvitationError } from '../components/Invitation/InvitationError';
-import { InvitationValidating } from '../components/Invitation/InvitationStatus';
+import { InvitationValidating, RateLimitedState } from '../components/Invitation/InvitationStatus';
 import { SessionHandler } from '../components/Invitation/SessionHandler';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -22,10 +22,26 @@ const InvitationPage: React.FC = () => {
   const { refreshNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
   const { handleInvitationError } = useInvitationError();
+  const [isRateLimited, setIsRateLimited] = useState(false);
   
   // Custom hooks
-  const { isValidating, isValid, error, invitation, isAuthLoading, user } = useInvitationValidation(token || '');
-  const { acceptInvitation, isAccepting, error: acceptError } = useInvitationAcceptance();
+  const { 
+    isValidating, 
+    isValid, 
+    error, 
+    invitation, 
+    isAuthLoading, 
+    user, 
+    rateLimited: validationRateLimited 
+  } = useInvitationValidation(token || '');
+  
+  const { 
+    acceptInvitation, 
+    isAccepting, 
+    error: acceptError, 
+    rateLimited: acceptRateLimited 
+  } = useInvitationAcceptance();
+  
   const {
     processingError, setProcessingError,
     acceptedSuccessfully, setAcceptedSuccessfully,
@@ -34,6 +50,16 @@ const InvitationPage: React.FC = () => {
     authVerified, setAuthVerified,
     refreshAuthSession, redirectToAuth
   } = useInvitationProcessing();
+
+  // Handle rate limiting detection
+  useEffect(() => {
+    // Check from both sources if we're rate limited
+    if (validationRateLimited || acceptRateLimited) {
+      setIsRateLimited(true);
+    } else {
+      setIsRateLimited(false);
+    }
+  }, [validationRateLimited, acceptRateLimited]);
 
   // Session handling for invitation
   useEffect(() => {
@@ -46,7 +72,8 @@ const InvitationPage: React.FC = () => {
       isAccepting,
       hasAcceptError: Boolean(acceptError),
       invitation,
-      isAuthenticated: !!user
+      isAuthenticated: !!user,
+      isRateLimited
     });
     
     // When the page loads, check if we need to wait for authentication
@@ -115,6 +142,9 @@ const InvitationPage: React.FC = () => {
     }
 
     try {
+      // Reset rate limited state before attempting acceptance
+      setIsRateLimited(false);
+      
       // Force a session refresh before accepting the invitation
       const refreshSuccessful = await refreshAuthSession();
       
@@ -169,12 +199,36 @@ const InvitationPage: React.FC = () => {
       } else {
         console.error("Invitation acceptance failed:", result);
         setProcessingError(result.error || "Failed to accept invitation. Please try again.");
+        
+        // Check if this was a rate limit error
+        if (result.error?.includes('rate limit') || result.error?.includes('too many requests')) {
+          setIsRateLimited(true);
+        }
       }
     } catch (error: any) {
       console.error('Error in handleAcceptInvitation:', error);
       handleInvitationError(error);
       setProcessingError(error.message || "An unexpected error occurred");
+      
+      // Check for rate limiting
+      if (error.message?.includes('429') || error.message?.toLowerCase().includes('rate limit')) {
+        setIsRateLimited(true);
+      }
     }
+  };
+
+  // Function to handle manual retry after rate limiting
+  const handleRetryAfterRateLimit = () => {
+    setIsRateLimited(false);
+    // Wait a moment before retrying
+    setTimeout(() => {
+      if (isValid && invitation) {
+        handleAcceptInvitation();
+      } else {
+        // Refresh the page to start over
+        window.location.reload();
+      }
+    }, 2000);
   };
 
   // Render session handler (invisible component that manages session state)
@@ -195,7 +249,12 @@ const InvitationPage: React.FC = () => {
         <InvitationError 
           error="Please login to accept this invitation" 
           suggestion="You'll need to sign in or create an account before accepting this invitation."
+          isAuthError={true}
+          token={token}
+          invitationType={invitationType}
         />
+      ) : isRateLimited ? (
+        <RateLimitedState onRetry={handleRetryAfterRateLimit} />
       ) : isValidating || isAuthLoading ? (
         <InvitationValidating />
       ) : processingError ? (

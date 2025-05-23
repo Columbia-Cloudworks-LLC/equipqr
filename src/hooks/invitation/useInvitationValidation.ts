@@ -1,74 +1,101 @@
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { validateInvitationToken } from '@/services/team/invitation';
-import { validateOrganizationInvitation } from '@/services/organization/invitation';
+import { validateOrganizationInvitation } from '@/services/organization/invitation/invitationValidation';
 import { useAuth } from '@/contexts/AuthContext';
+import { debounce, withCache } from '@/utils/edgeFunctions/retry';
 
-export function useInvitationValidation(token: string) {
+// Create cached validation functions to prevent excessive API calls
+const cachedValidateTeamInvitation = withCache(
+  validateInvitationToken,
+  (token) => `team_invitation_${token}`,
+  60000 // Cache for 1 minute
+);
+
+const cachedValidateOrgInvitation = withCache(
+  validateOrganizationInvitation,
+  (token) => `org_invitation_${token}`,
+  60000 // Cache for 1 minute
+);
+
+// Create debounced validation functions to prevent rate limiting
+const debouncedValidateTeam = debounce(async (token: string) => {
+  return await cachedValidateTeamInvitation(token);
+}, 800);
+
+const debouncedValidateOrg = debounce(async (token: string) => {
+  return await cachedValidateOrgInvitation(token);
+}, 800);
+
+export function useInvitationValidation(token: string | undefined, invitationType: string = 'team') {
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invitation, setInvitation] = useState<any>(null);
-  const { user, isLoading } = useAuth();
-
+  const [rateLimited, setRateLimited] = useState(false);
+  const { user, isLoading: isAuthLoading } = useAuth();
+  
   useEffect(() => {
     const validateToken = async () => {
       try {
         setIsValidating(true);
+        setError(null);
+        setRateLimited(false);
+        
         if (!token) {
-          setError("Invalid invitation token");
-          setIsValid(false);
+          setError('No invitation token provided');
           return;
         }
         
-        console.log(`Validating invitation token: ${token.substring(0, 8)}...`);
-        
-        // Try team invitation first
-        const teamResult = await validateInvitationToken(token);
-        if (teamResult.valid) {
-          console.log("Valid team invitation found:", teamResult.invitation);
-          setInvitation(teamResult.invitation);
-          setIsValid(true);
-          return;
+        try {
+          if (invitationType === 'organization') {
+            // Handle organization invitation
+            const { valid, invitation, error } = await debouncedValidateOrg(token);
+            
+            if (!valid) {
+              setError(error || 'Invalid invitation');
+            } else {
+              setInvitation(invitation);
+              setIsValid(true);
+            }
+          } else {
+            // Handle team invitation
+            const { valid, invitation, error } = await debouncedValidateTeam(token);
+            
+            if (!valid) {
+              setError(error || 'Invalid invitation');
+            } else {
+              setInvitation(invitation);
+              setIsValid(true);
+            }
+          }
+        } catch (error: any) {
+          console.error('Error validating invitation:', error);
+          
+          // Check if this is a rate limit error
+          if (error.message?.includes('429') || error.status === 429 || 
+              error.message?.toLowerCase().includes('rate limit')) {
+            setRateLimited(true);
+            setError('Too many requests. Please try again in a moment.');
+          } else {
+            setError(error.message || 'An error occurred validating the invitation');
+          }
         }
-        
-        // If not a team invitation, try organization invitation
-        const orgResult = await validateOrganizationInvitation(token);
-        if (orgResult.valid) {
-          console.log("Valid organization invitation found:", orgResult.invitation);
-          setInvitation(orgResult.invitation);
-          setIsValid(true);
-          return;
-        }
-        
-        // No valid invitation found
-        console.error("No valid invitation found");
-        setError(teamResult.error || orgResult.error || "Invalid invitation");
-        setIsValid(false);
-      } catch (error: any) {
-        console.error("Error validating invitation:", error);
-        setError(error.message || "An error occurred while validating the invitation");
-        setIsValid(false);
       } finally {
         setIsValidating(false);
       }
     };
 
     validateToken();
-  }, [token]);
-
-  // Update auth loading state when auth context loading changes
-  useEffect(() => {
-    setIsAuthLoading(isLoading);
-  }, [isLoading]);
-
+  }, [token, invitationType]);
+  
   return {
     isValidating,
     isValid,
     error,
     invitation,
     isAuthLoading,
-    user
+    user,
+    rateLimited
   };
 }
