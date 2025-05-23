@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -171,11 +170,16 @@ export function useAuth() {
     }
   }, []);
 
+  // Modified signIn to pass through the Session
+  const signIn = useCallback(async (email: string, password: string): Promise<Session | null> => {
+    return await authMethods.signIn(email, password);
+  }, [authMethods]);
+
   return {
     user,
     session,
     isLoading,
-    signIn: authMethods.signIn,
+    signIn,
     signInWithGoogle: authMethods.signInWithGoogle,
     signOut: authMethods.signOut,
     signUp: authMethods.signUp,

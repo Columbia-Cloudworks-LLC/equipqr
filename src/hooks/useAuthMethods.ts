@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getSiteUrl, getAuthCallbackUrl } from '@/utils/authCallbackUtils';
 import { resetAuthState, performFullAuthReset } from '@/utils/auth';
+import { Session } from '@supabase/supabase-js';
 
 /**
  * Custom hook providing authentication methods
@@ -48,9 +49,9 @@ export function useAuthMethods() {
   /**
    * Sign in with email and password
    */
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<Session | null> => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
@@ -64,6 +65,7 @@ export function useAuthMethods() {
       }
       
       toast.success("Successfully signed in");
+      return data.session;
     } catch (error) {
       console.error('Unexpected error during sign-in:', error);
       throw error;
