@@ -3,18 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/supabase-enums';
 import { toast } from 'sonner';
 import { sanitizeToken } from '@/services/invitation/tokenUtils';
-
-export interface InvitationAcceptanceResult {
-  success: boolean;
-  error?: string;
-  organizationId?: string;
-  organizationName?: string;
-}
+import { AcceptanceResult } from '@/types/invitations';
 
 /**
  * Handles accepting an organization invitation
  */
-export async function acceptOrganizationInvitation(token: string): Promise<InvitationAcceptanceResult> {
+export async function acceptOrganizationInvitation(token: string): Promise<AcceptanceResult> {
   try {
     // Sanitize the token
     const sanitizedToken = sanitizeToken(token);
@@ -107,7 +101,11 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
     return {
       success: true,
       organizationId: acceptData.org_id,
-      organizationName: acceptData.organization?.name
+      organizationName: acceptData.organization?.name,
+      // Include other properties expected in AcceptanceResult with undefined values
+      teamId: undefined,
+      teamName: undefined,
+      role: role
     };
   } catch (error: any) {
     console.error('Error accepting organization invitation:', error);

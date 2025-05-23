@@ -110,8 +110,8 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
         
         // Get the display name correctly depending on invitation type
         const displayName = isOrgInvitation 
-          ? result.organizationName || entityName 
-          : result.teamName || entityName;
+          ? (result.organizationName || entityName)
+          : (result.teamName || entityName);
         
         toast.success(`Successfully joined ${isOrgInvitation ? 'the organization' : 'the team'}: ${displayName}`);
         

@@ -6,13 +6,14 @@ import { acceptInvitation as acceptTeamInvitation } from '@/services/team/invita
 import { acceptOrganizationInvitation } from '@/services/organization/invitation/invitationAcceptance';
 import { retry } from '@/utils/edgeFunctions/retry';
 import { sanitizeToken } from '@/services/invitation/tokenUtils';
+import { AcceptanceResult } from '@/types/invitations';
 
 export function useInvitationAcceptance() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rateLimited, setRateLimited] = useState(false);
 
-  const acceptInvitation = async (token: string, invitationType: 'team' | 'organization' = 'team') => {
+  const acceptInvitation = async (token: string, invitationType: 'team' | 'organization' = 'team'): Promise<AcceptanceResult> => {
     if (!token) {
       setError('No invitation token provided');
       return { success: false, error: 'No invitation token provided' };
@@ -77,11 +78,15 @@ export function useInvitationAcceptance() {
             description: `You have joined ${result.teamName || 'the team'}`
           });
           
+          // Return a consistent type that matches AcceptanceResult
           return {
             success: true,
             teamId: result.teamId,
             teamName: result.teamName,
-            role: result.role
+            role: result.role,
+            // Include organizationName as null for type consistency
+            organizationName: undefined,
+            organizationId: undefined
           };
         } catch (teamError: any) {
           // Check for rate limiting
