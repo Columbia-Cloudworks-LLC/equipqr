@@ -16,7 +16,9 @@ export function DateFields({
   // Convert string dates to Date objects for the DatePicker
   const parseDate = (dateStr: string | null | undefined): Date | undefined => {
     if (!dateStr) return undefined;
-    const date = new Date(dateStr);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    // Create date using local timezone (month is 0-indexed in JS Date)
+    const date = new Date(year, month - 1, day);
     return !isNaN(date.getTime()) ? date : undefined;
   };
 
