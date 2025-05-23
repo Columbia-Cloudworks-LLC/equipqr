@@ -52,8 +52,10 @@ export function TeamManagementView() {
   } = useTeamManagementContext();
 
   // Function wrappers for team operations
+  // Pass selectedOrgId as the second parameter to useTeamFunctionWrappers
   const functionWrappers = useTeamFunctionWrappers(
     selectedTeamId,
+    selectedOrgId || '', // Ensure selectedOrgId is passed correctly
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,

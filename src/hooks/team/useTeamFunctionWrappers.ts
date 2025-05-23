@@ -4,6 +4,7 @@ import { UserRole } from '@/types/supabase-enums';
 
 export function useTeamFunctionWrappers(
   selectedTeamId: string,
+  selectedOrgId: string, // Added organization ID parameter
   handleInviteMember: (email: string, role: UserRole, teamId: string) => Promise<any>,
   handleChangeRole: (userId: string, role: UserRole) => Promise<any>,
   handleRemoveMember: (userId: string) => Promise<any>,
@@ -16,10 +17,11 @@ export function useTeamFunctionWrappers(
   handleUpgradeRole: (teamId: string) => Promise<any>,
   handleRequestRoleUpgrade: (teamId: string) => Promise<any>
 ) {
-  // Wrapper for team creation with org context
+  // Wrapper for team creation with org context - FIX: use selectedOrgId instead of selectedTeamId
   const handleCreateTeamWithOrg = useCallback(async (name: string) => {
-    return handleCreateTeam(name, selectedTeamId);
-  }, [handleCreateTeam, selectedTeamId]);
+    console.log(`Creating team with name: ${name}, organization ID: ${selectedOrgId}`);
+    return handleCreateTeam(name, selectedOrgId);
+  }, [handleCreateTeam, selectedOrgId]);
 
   // Wrapper for team update
   const handleUpdateTeamWrapper = useCallback(async (id: string, name: string): Promise<any> => {

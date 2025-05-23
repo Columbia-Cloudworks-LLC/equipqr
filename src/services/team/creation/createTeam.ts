@@ -5,11 +5,12 @@ import { getAppUserId } from "@/utils/authUtils";
 /**
  * Create a new team
  */
-export async function createTeam(name: string) {
+export async function createTeam(name: string, orgId: string) {
   try {
-    console.log(`Creating new team: ${name}`);
+    console.log(`Creating new team: ${name} in organization: ${orgId}`);
+    
     // Get the current user's ID
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
       throw new Error('User must be logged in to create a team');
     }
@@ -20,30 +21,26 @@ export async function createTeam(name: string) {
     // Get the corresponding app_user.id for the auth user
     const appUserId = await getAppUserId(authUserId);
     
-    // Get the user's organization ID
-    const { data: userProfile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', authUserId)
+    // Validate the organization exists before attempting to create a team
+    const { data: orgData, error: orgError } = await supabase
+      .from('organization')
+      .select('id')
+      .eq('id', orgId)
       .single();
       
-    if (profileError) {
-      console.error('Error fetching user profile:', profileError);
-      throw profileError;
+    if (orgError || !orgData) {
+      console.error('Organization validation error:', orgError);
+      throw new Error(`Invalid organization ID: ${orgId}. Organization might not exist.`);
     }
     
-    if (!userProfile?.org_id) {
-      throw new Error('User does not have an organization assigned');
-    }
-    
-    console.log(`Creating team under organization: ${userProfile.org_id}`);
+    console.log(`Organization validated: ${orgId}`);
     
     // Create the team
     const { data, error } = await supabase
       .from('team')
       .insert({
         name,
-        org_id: userProfile.org_id,
+        org_id: orgId,
         created_by: appUserId // Use the app_user.id instead of the auth.uid
       })
       .select()
@@ -51,6 +48,14 @@ export async function createTeam(name: string) {
       
     if (error) {
       console.error('Error creating team:', error);
+      
+      // Provide more specific error messages based on error codes
+      if (error.code === '23503') { // Foreign key violation
+        if (error.details?.includes('org_id')) {
+          throw new Error(`Organization with ID ${orgId} does not exist. Please ensure you have a valid organization before creating a team.`);
+        }
+      }
+      
       throw error;
     }
     
