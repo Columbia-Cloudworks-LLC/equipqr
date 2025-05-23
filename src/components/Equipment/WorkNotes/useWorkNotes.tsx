@@ -13,6 +13,7 @@ export function useWorkNotes(equipmentId: string) {
     organizations,
     isLoading,
     error,
+    isError,  // Added the isError property from the query
     refetchNotes 
   } = useWorkNotesQuery(equipmentId);
 
@@ -50,6 +51,7 @@ export function useWorkNotes(equipmentId: string) {
     organizations,
     isLoading,
     error,
+    isError,  // Make sure to include isError in the returned object
     canEdit,
     canCreate,
     editingNote,
