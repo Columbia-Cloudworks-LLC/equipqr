@@ -1,48 +1,76 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Home, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
-export const InvalidInvitation = () => {
+interface InvalidInvitationProps {
+  onRetry?: () => void;
+  errorMessage?: string;
+}
+
+export function InvalidInvitation({ onRetry, errorMessage }: InvalidInvitationProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/10 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="border-b bg-muted/20">
-          <CardTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-5 w-5" />
-            Invalid Invitation
-          </CardTitle>
+    <div className="container mx-auto max-w-md my-12">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-destructive">Invalid Invitation</CardTitle>
+          <CardDescription>
+            {errorMessage || "This invitation link is invalid or has expired."}
+          </CardDescription>
         </CardHeader>
-        <CardContent className="pt-6 pb-4 space-y-6">
-          <div className="space-y-2">
-            <h3 className="font-medium">This invitation link is invalid or has expired</h3>
-            <p className="text-muted-foreground text-sm">
-              The invitation may have been canceled, already accepted, or has expired.
-              Please contact the person who invited you to request a new invitation.
-            </p>
-          </div>
-          
-          <div className="flex flex-col space-y-2">
-            <Button
-              onClick={() => navigate('/my-invitations')}
-              className="w-full"
-            >
-              View My Invitations
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/')}
-              className="w-full"
-            >
-              Return to Dashboard
-            </Button>
-          </div>
+        <CardContent className="text-sm text-muted-foreground">
+          <p>
+            The invitation link you're trying to use may have been:
+          </p>
+          <ul className="list-disc list-inside my-2 space-y-1">
+            <li>Already accepted</li>
+            <li>Expired</li>
+            <li>Incorrectly copied</li>
+            <li>Revoked by the sender</li>
+          </ul>
+          <p>
+            Please contact the person who invited you for a new invitation.
+          </p>
         </CardContent>
+        <CardFooter className="flex flex-col gap-2 w-full">
+          {onRetry && (
+            <Button 
+              onClick={onRetry} 
+              variant="default"
+              className="w-full flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </Button>
+          )}
+          
+          {!user && (
+            <Button 
+              onClick={() => navigate('/auth')} 
+              variant="outline"
+              className="w-full flex items-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign In
+            </Button>
+          )}
+          
+          <Button 
+            onClick={() => navigate('/')} 
+            variant={user ? 'outline' : 'secondary'}
+            className="w-full flex items-center gap-2"
+          >
+            <Home className="h-4 w-4" />
+            Go to Homepage
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
-};
+}

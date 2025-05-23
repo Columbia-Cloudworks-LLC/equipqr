@@ -1,112 +1,114 @@
 
-import { useCallback, useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface UseInvitationErrorProps {
   onReset?: () => void;
-  maxAttempts?: number;
+  initialErrorMessage?: string | null;
 }
 
-/**
- * Hook for handling invitation-specific errors with retry functionality
- */
-export function useInvitationError(props?: UseInvitationErrorProps) {
-  const { onReset, maxAttempts = 3 } = props || {};
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+export function useInvitationError({ 
+  onReset, 
+  initialErrorMessage = null
+}: UseInvitationErrorProps = {}) {
+  const [errorMessage, setErrorMessage] = useState<string | null>(initialErrorMessage);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [retryingIn, setRetryingIn] = useState(0);
-  const [retryTimeout, setRetryTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [retryTimer, setRetryTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Clear any existing error state and timers
+  // Clean up any timers when component unmounts
+  useEffect(() => {
+    return () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+    };
+  }, [retryTimer]);
+
   const clearError = useCallback(() => {
     setErrorMessage(null);
     setIsRetrying(false);
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      setRetryTimer(null);
+    }
     setRetryingIn(0);
+    setRetryCount(0);
+  }, [retryTimer]);
+
+  const handleError = useCallback((error: Error | string, shouldAutoRetry = false) => {
+    const errorMsg = typeof error === 'string' ? error : error.message;
+    setErrorMessage(errorMsg);
     
-    if (retryTimeout) {
-      clearTimeout(retryTimeout);
+    // Show error toast
+    toast.error('Error with invitation', {
+      description: errorMsg,
+      duration: 5000
+    });
+    
+    // Implement auto-retry with increasing delay if requested
+    if (shouldAutoRetry && retryCount < 3) {
+      const nextRetryCount = retryCount + 1;
+      setRetryCount(nextRetryCount);
+      
+      // Calculate delay with exponential backoff
+      const delay = Math.min(2000 * Math.pow(2, nextRetryCount - 1), 10000);
+      
+      // Set up countdown timer
+      setIsRetrying(true);
+      setRetryingIn(Math.floor(delay / 1000));
+      
+      const countdownInterval = setInterval(() => {
+        setRetryingIn(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      // Schedule the retry
+      const timer = setTimeout(() => {
+        setIsRetrying(false);
+        if (onReset) {
+          onReset();
+        }
+        clearInterval(countdownInterval);
+      }, delay);
+      
+      // Store the timer for cleanup
+      setRetryTimer(timer);
     }
-  }, [retryTimeout]);
+  }, [retryCount, onReset]);
 
-  // Handle retry logic
-  const scheduleRetry = useCallback(() => {
-    if (retryCount >= maxAttempts) {
-      setIsRetrying(false);
-      return;
-    }
-
-    const nextRetryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
-    setRetryingIn(nextRetryDelay / 1000);
+  const handleRetry = useCallback(() => {
     setIsRetrying(true);
-
-    const timer = setTimeout(() => {
-      setIsRetrying(false);
-      if (onReset) {
+    
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+    }
+    
+    if (onReset) {
+      // Small delay to show loading state
+      const timer = setTimeout(() => {
+        setIsRetrying(false);
         onReset();
-      }
-    }, nextRetryDelay);
-
-    setRetryTimeout(timer);
-    setRetryCount(prev => prev + 1);
-  }, [retryCount, maxAttempts, onReset]);
-
-  // Process and display an error, optionally initiating a retry
-  const handleError = useCallback((error: any, shouldRetry: boolean = false) => {
-    const message = typeof error === 'string' ? error : error?.message || 'An unexpected error occurred';
-    setErrorMessage(message);
-    
-    if (shouldRetry) {
-      scheduleRetry();
-    }
-    
-    return message;
-  }, [scheduleRetry]);
-
-  // Handle invitation-specific errors
-  const handleInvitationError = useCallback((error: any): string => {
-    // Extract the most meaningful error message
-    let errorMessage = '';
-    
-    if (typeof error === 'string') {
-      errorMessage = error;
-    } else if (error instanceof Error) {
-      errorMessage = error.message || 'Failed to process invitation';
-    } else if (error && typeof error === 'object') {
-      // Handle API error objects that might have message or error properties
-      errorMessage = 
-        error.message || 
-        (error.error && typeof error.error === 'string' ? error.error : '') || 
-        JSON.stringify(error);
+      }, 500);
+      setRetryTimer(timer);
     } else {
-      errorMessage = 'Failed to process invitation';
+      setIsRetrying(false);
     }
-    
-    // Handle common invitation errors with friendly messages
-    if (errorMessage.includes('invalid') || errorMessage.includes('expired')) {
-      toast.error('This invitation link is invalid or has expired');
-    } else if (errorMessage.includes('session') || errorMessage.includes('login')) {
-      toast.error('Please log in to accept this invitation');
-    } else if (errorMessage.includes('email mismatch')) {
-      toast.error('This invitation was sent to a different email address');
-    } else if (errorMessage.includes('already a member')) {
-      toast.error('You are already a member of this organization or team');
-    } else if (errorMessage.includes('not found')) {
-      toast.error('The invitation could not be found. It may have been deleted or already accepted');
-    } else {
-      toast.error(errorMessage);
-    }
-    
-    console.error('Invitation processing error:', error);
-    return errorMessage;
-  }, []);
-  
+  }, [onReset, retryTimer]);
+
   return {
     errorMessage,
     isRetrying,
     retryingIn,
+    retryCount,
     handleError,
     clearError,
-    handleInvitationError
+    handleRetry
   };
 }

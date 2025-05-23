@@ -1,251 +1,115 @@
 
-import { useState, useCallback } from 'react';
-import { acceptOrganizationInvitation } from '@/services/organization/invitation/invitationAcceptance';
-import { acceptInvitation as acceptTeamInvitation } from '@/services/team/invitation/acceptInvitation';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { retry, debounce, withCache } from '@/utils/edgeFunctions/retry';
-
-export type InvitationType = 'team' | 'organization';
-
-export interface AcceptanceResult {
-  success: boolean;
-  error?: string;
-  entityId?: string; 
-  entityName?: string;
-}
-
-// Create a debounced version of the edge function call
-const debouncedEdgeFunction = debounce(async (functionName: string, payload: any) => {
-  const { data, error } = await supabase.functions.invoke(functionName, {
-    body: payload
-  });
-  
-  if (error) throw new Error(error.message || 'Edge function error');
-  return data;
-}, 800);
-
-// Create a cached version of token validation
-const cachedValidateToken = withCache(
-  async (token: string, type: string) => {
-    const functionName = type === 'organization' 
-      ? 'validate_org_invitation' 
-      : 'validate_invitation';
-      
-    return debouncedEdgeFunction(functionName, { token });
-  },
-  (token, type) => `${type}_validation_${token}`,
-  60000 // 1 minute TTL
-);
+import { acceptInvitation as acceptTeamInvitation } from '@/services/team/invitation/acceptInvitation';
+import { acceptOrganizationInvitation } from '@/services/organization/invitation/invitationAcceptance';
+import { retry } from '@/utils/edgeFunctions/retry';
+import { sanitizeToken } from '@/services/invitation/tokenUtils';
 
 export function useInvitationAcceptance() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<AcceptanceResult | null>(null);
   const [rateLimited, setRateLimited] = useState(false);
-  const [lastAcceptedToken, setLastAcceptedToken] = useState<string | null>(null);
-  const [attemptedTypes, setAttemptedTypes] = useState<Record<string, boolean>>({});
-  
-  /**
-   * Validate invitation token format
-   */
-  const validateTokenFormat = (token: string): boolean => {
-    // Check if token is a string with reasonable length (at least 10 chars)
-    if (typeof token !== 'string' || token.length < 10) {
-      console.error(`Invalid token format: type=${typeof token}, length=${token?.length}`);
-      return false;
-    }
-    return true;
-  };
-  
-  /**
-   * Call edge function with retries and rate limit handling
-   */
-  const callEdgeFunctionWithRetry = async (functionName: string, payload: any) => {
-    try {
-      setRateLimited(false);
-      
-      return await retry(
-        async () => debouncedEdgeFunction(functionName, payload),
-        3, // Number of retries
-        1000, // Initial delay in ms
-        (error) => {
-          const isRateLimit = error?.message?.includes('429') || error?.status === 429;
-          if (isRateLimit) setRateLimited(true);
-          return isRateLimit;
-        }
-      );
-    } catch (error: any) {
-      if (error?.message?.includes('429') || error?.status === 429) {
-        setRateLimited(true);
-        throw new Error('Rate limit exceeded. Please try again in a few moments.');
-      }
-      throw error;
-    }
-  };
 
-  /**
-   * Accept an invitation based on its type (team or organization)
-   */
-  const acceptInvitation = async (token: string, type: InvitationType = 'team'): Promise<AcceptanceResult> => {
+  const acceptInvitation = async (token: string, invitationType: 'team' | 'organization' = 'team') => {
     if (!token) {
-      const errorMsg = 'Invalid invitation token';
-      console.error(errorMsg);
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
+      setError('No invitation token provided');
+      return { success: false, error: 'No invitation token provided' };
     }
-    
-    // Prevent duplicate acceptance attempts for the same token
-    if (lastAcceptedToken === token) {
-      const warningMsg = 'This invitation has already been processed';
-      console.warn(warningMsg);
-      return { success: false, error: warningMsg };
+
+    // Sanitize and validate token format
+    const sanitizedToken = sanitizeToken(token);
+    if (!sanitizedToken) {
+      setError('Invalid token format');
+      return { success: false, error: 'Invalid token format' };
     }
-    
-    // Validate token format
-    if (!validateTokenFormat(token)) {
-      const errorMsg = 'Invalid invitation token format';
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    }
-    
-    // Record that we've attempted this type for this token
-    setAttemptedTypes(prev => ({...prev, [`${token}_${type}`]: true}));
-    
+
     try {
       setIsAccepting(true);
       setError(null);
+      setRateLimited(false);
       
-      console.log(`Accepting ${type} invitation with token: ${token.substring(0, 8)}... (length: ${token.length})`);
+      console.log(`Accepting ${invitationType} invitation with token: ${sanitizedToken.substring(0, 8)}...`);
       
-      let acceptanceResult: AcceptanceResult;
+      // Get current session to check if we're authenticated
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
-      // Call the appropriate acceptance function based on invitation type
-      if (type === 'organization') {
+      if (sessionError || !sessionData?.session?.user?.id) {
+        throw new Error('Authentication required. Please sign in before accepting this invitation.');
+      }
+      
+      // Process the invitation based on type
+      if (invitationType === 'organization') {
         try {
-          console.log('Calling accept_organization_invitation edge function');
+          // Use retry with exponential backoff for organization invitations
+          const result = await retry(
+            async () => acceptOrganizationInvitation(sanitizedToken),
+            2, // Max 2 retries
+            1000, // Initial delay 1 second
+            (error: any) => error?.message?.includes('429') || error?.status === 429 // Check for rate limits
+          );
           
-          // Try using the edge function with retry logic
-          const data = await callEdgeFunctionWithRetry('accept_organization_invitation', { token });
-          
-          console.log('Edge function response:', data);
-          
-          acceptanceResult = {
-            success: data.success,
-            error: data.error,
-            entityId: data.data?.organization?.id,
-            entityName: data.data?.organization?.name
-          };
-        } catch (edgeFunctionError: any) {
-          console.warn('Edge function failed, falling back to direct function:', edgeFunctionError);
-          
-          if (rateLimited) {
-            return { 
-              success: false, 
-              error: 'You have made too many requests. Please wait a moment and try again.' 
-            };
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to accept organization invitation');
           }
           
-          // Fall back to the direct function
-          const orgResult = await acceptOrganizationInvitation(token);
-          console.log('Direct function result:', orgResult);
+          toast.success('Organization invitation accepted!', {
+            description: `Welcome to ${result.organizationName || 'the organization'}`
+          });
           
-          acceptanceResult = {
-            success: orgResult.success,
-            error: orgResult.error,
-            entityId: orgResult.organizationId,
-            entityName: orgResult.organizationName
-          };
+          return result;
+        } catch (orgError: any) {
+          // Check for rate limiting
+          if (orgError.message?.includes('429') || orgError.status === 429) {
+            console.warn('Rate limit detected when accepting organization invitation');
+            setRateLimited(true);
+            throw new Error('Rate limit exceeded. Please try again in a moment.');
+          }
+          throw orgError;
         }
       } else {
-        // Team invitations
+        // Team invitation
         try {
-          console.log('Processing team invitation');
-          const teamResult = await acceptTeamInvitation(token);
-          console.log('Team invitation result:', teamResult);
+          const result = await acceptTeamInvitation(sanitizedToken);
           
-          acceptanceResult = {
-            success: !!teamResult?.teamId,
-            error: teamResult instanceof Error ? teamResult.message : undefined,
-            entityId: teamResult?.teamId,
-            entityName: teamResult?.teamName
+          toast.success('Team invitation accepted!', {
+            description: `You have joined ${result.teamName || 'the team'}`
+          });
+          
+          return {
+            success: true,
+            teamId: result.teamId,
+            teamName: result.teamName,
+            role: result.role
           };
         } catch (teamError: any) {
-          // Check if this was a rate limit error
-          if (teamError?.message?.includes('429') || teamError?.status === 429) {
+          // Check for rate limiting
+          if (teamError.message?.includes('429') || teamError.status === 429) {
+            console.warn('Rate limit detected when accepting team invitation');
             setRateLimited(true);
-            return { 
-              success: false, 
-              error: 'You have made too many requests. Please wait a moment and try again.' 
-            };
+            throw new Error('Rate limit exceeded. Please try again in a moment.');
           }
-          
-          // Check if this might be an error due to wrong invitation type
-          if (teamError?.message?.includes('not found') || 
-              teamError?.message?.includes('invalid') ||
-              teamError?.status === 406) {
-            
-            // Only try the alternate type if we haven't tried it already
-            if (!attemptedTypes[`${token}_${type === 'team' ? 'organization' : 'team'}`]) {
-              console.warn('Error might indicate wrong invitation type. Consider trying alternate type.');
-            }
-          }
-          
-          console.error('Error accepting team invitation:', teamError);
-          return { 
-            success: false, 
-            error: teamError.message || 'Failed to process team invitation' 
-          };
+          throw teamError;
         }
       }
-      
-      // Mark this token as processed if successful
-      if (acceptanceResult.success) {
-        setLastAcceptedToken(token);
-      }
-      
-      // Store the result
-      setResult(acceptanceResult);
-      
-      if (acceptanceResult.success) {
-        const entityName = acceptanceResult.entityName || (type === 'organization' ? 'the organization' : 'the team');
-        console.log(`Successfully joined ${entityName}`);
-        toast.success(`Successfully joined ${entityName}`);
-      } else if (acceptanceResult.error) {
-        console.error(`Failed to accept ${type} invitation:`, acceptanceResult.error);
-        setError(acceptanceResult.error);
-        toast.error(`Failed to accept invitation: ${acceptanceResult.error}`);
-      }
-      
-      return acceptanceResult;
     } catch (error: any) {
-      const errorMsg = error.message || 'An unexpected error occurred';
-      console.error(`Error accepting ${type} invitation:`, error);
-      setError(errorMsg);
-      toast.error(`Failed to accept invitation: ${errorMsg}`);
+      console.error(`Error accepting ${invitationType} invitation:`, error);
+      setError(error.message || `Failed to accept ${invitationType} invitation`);
       
       return {
         success: false,
-        error: errorMsg
+        error: error.message || `Failed to accept ${invitationType} invitation`
       };
     } finally {
       setIsAccepting(false);
     }
   };
-  
+
   return {
     acceptInvitation,
     isAccepting,
     error,
-    result,
-    rateLimited,
-    clearError: () => setError(null),
-    resetState: () => {
-      setError(null);
-      setResult(null);
-      setRateLimited(false);
-      setLastAcceptedToken(null);
-      setAttemptedTypes({});
-    }
+    rateLimited
   };
 }
