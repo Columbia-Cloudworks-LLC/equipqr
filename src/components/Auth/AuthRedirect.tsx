@@ -2,10 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { clearEquipmentCache } from '@/services/equipment/equipmentListService';
-import { clearTeamCache } from '@/services/team/retrieval/teamCache';
 import { useQueryClient } from '@tanstack/react-query';
-import { repairSessionStorage } from '@/utils/storage';
 import { AuthRecovery } from './AuthRecovery';
 
 /**
@@ -15,7 +12,7 @@ import { AuthRecovery } from './AuthRecovery';
 export function AuthRedirect() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, session, isLoading, checkSession } = useAuth();
+  const { user, session, isLoading, checkSession, repairSession } = useAuth();
   const queryClient = useQueryClient();
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
@@ -41,9 +38,6 @@ export function AuthRedirect() {
       console.log(`User is authenticated, redirecting to ${returnPath}`);
       
       try {
-        // First attempt to repair any storage inconsistencies
-        await repairSessionStorage();
-        
         // Validate session before redirecting
         const isValidSession = await checkSession();
         
@@ -57,11 +51,11 @@ export function AuthRedirect() {
             return;
           }
           
-          // Try to repair storage
+          // Try to repair session
           setIsRepairing(true);
           setRepairAttempts(prev => prev + 1);
           
-          const repaired = await repairSessionStorage();
+          const repaired = await repairSession();
           if (repaired) {
             toast.info('Authentication storage was repaired, checking session again');
             // Re-check session after repair
@@ -85,7 +79,7 @@ export function AuthRedirect() {
         // Clear stored return path
         localStorage.removeItem('authReturnTo');
         
-        // Clear invitation path if it exists
+        // Handle invitation path
         if (invitationPath) {
           console.log('Found invitation path, redirecting to:', invitationPath);
           // Keep the path in storage until redirection completes
@@ -94,26 +88,22 @@ export function AuthRedirect() {
           sessionStorage.removeItem('invitationPath');
         }
         
-        // Force clear all caches to ensure fresh data
-        clearEquipmentCache();
-        clearTeamCache();
+        // Force invalidate queries to ensure fresh data
         queryClient.invalidateQueries({ queryKey: ['equipment'] });
         queryClient.invalidateQueries({ queryKey: ['teams'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        
-        console.log('Cleared all caches before redirecting from auth');
         
         // Show success message
         toast.success('Authenticated', {
           description: message || 'You are now signed in'
         });
         
-        // Include state to indicate coming from auth (useful for equipment form)
+        // Navigate to the return path
         navigate(returnPath, { 
           replace: true,
           state: { 
             fromAuth: true,
-            refreshSession: true // Add flag to indicate session should be refreshed
+            refreshSession: true
           }
         });
       } catch (error) {
@@ -137,7 +127,11 @@ export function AuthRedirect() {
         });
       }
     }
-  }, [session, isLoading, navigate, returnPath, message, checkSession, queryClient, repairAttempts, invitationPath]);
+  }, [
+    session, isLoading, navigate, returnPath, message, 
+    checkSession, queryClient, repairAttempts, invitationPath,
+    repairSession
+  ]);
 
   // Handle retry from recovery component
   const handleRetry = async () => {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,7 +7,6 @@ import { SignUpForm } from '@/components/Auth/SignUpForm';
 import { AuthRedirect } from '@/components/Auth/AuthRedirect';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
-import { performFullAuthReset } from '@/utils/authInterceptors';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, Info } from 'lucide-react';
@@ -15,7 +15,7 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, resetAuthSystem } = useAuth();
   const location = useLocation();
   
   // Extract state information
@@ -57,7 +57,7 @@ export default function Auth() {
 
   // Handle troubleshooting button click
   const handleTroubleshooting = () => {
-    performFullAuthReset();
+    resetAuthSystem();
     toast.success("Authentication system reset", {
       description: "All authentication data has been cleared. Please try signing in again."
     });

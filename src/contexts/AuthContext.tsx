@@ -1,13 +1,8 @@
 
-import { createContext, useContext } from 'react';
-import {
-  Session,
-  SupabaseClient,
-} from '@supabase/supabase-js';
-import { Database } from '@/integrations/supabase/types';
+import { createContext, useContext, ReactNode } from 'react';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuthState } from '@/hooks/useAuthState';
-import { useAuthMethods } from '@/hooks/useAuthMethods';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AuthContextType {
   supabaseClient: typeof supabase;
@@ -17,9 +12,10 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   checkSession: () => Promise<boolean>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<Session | null>;
   signUp: (email: string, password: string, userData?: any) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  resetAuthSystem: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,17 +26,26 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => {},
   signOut: async () => {},
   checkSession: async () => false,
-  signIn: async () => {},
+  signIn: async () => null,
   signUp: async () => {},
   resetPassword: async () => {},
+  resetAuthSystem: async () => {},
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Get authentication state
-  const { user, session, isLoading, checkSession } = useAuthState();
-  
-  // Get authentication methods
-  const { signInWithGoogle, signIn, signUp, resetPassword, signOut } = useAuthMethods();
+export function AuthProvider({ children }: { children: ReactNode }) {
+  // Get authentication state and methods using our new unified hook
+  const { 
+    user, 
+    session, 
+    isLoading, 
+    signInWithGoogle, 
+    signIn, 
+    signUp, 
+    resetPassword, 
+    signOut, 
+    checkSession,
+    resetAuthSystem
+  } = useAuth();
 
   const value: AuthContextType = {
     supabaseClient: supabase,
@@ -53,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetPassword,
     signOut,
     checkSession,
+    resetAuthSystem,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

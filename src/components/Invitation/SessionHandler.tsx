@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { sessionManager } from '@/services/auth/SessionManager';
 
 interface SessionHandlerProps {
   token: string | undefined;
@@ -41,10 +42,11 @@ export function SessionHandler({
       console.log(`Scheduling session check attempt ${sessionCheckAttempt + 1} in ${delay}ms`);
       
       const checkSessionTimeout = setTimeout(async () => {
-        const { data } = await supabase.auth.getSession();
-        setSessionCheckAttempt(prev => prev + 1); // Fixed: Using proper setState callback syntax
+        // Use our new sessionManager to check for a session
+        const isValid = await sessionManager.checkSession();
+        setSessionCheckAttempt(prev => prev + 1);
         
-        if (data.session) {
+        if (isValid) {
           console.log('Session detected - can proceed with invitation');
           setWaitingForAuth(false);
           setAuthVerified(true);

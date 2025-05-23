@@ -3,7 +3,7 @@ import React from 'react';
 import { Layout } from '@/components/Layout/Layout';
 import { useInvitationsPage } from '@/hooks/useInvitationsPage';
 
-// Import the new component files
+// Import the components
 import { ErrorAlert } from '@/components/Invitations/ErrorAlert';
 import { AuthRequired } from '@/components/Invitations/AuthRequired';
 import { PageHeader } from '@/components/Invitations/PageHeader';
@@ -31,6 +31,17 @@ export default function MyInvitations() {
   // Split invitations by type
   const teamInvitations = displayInvitations.filter(inv => inv.invitationType === 'team' || inv.team);
   const orgInvitations = displayInvitations.filter(inv => inv.invitationType === 'organization' || inv.organization);
+
+  // Wrap callbacks in Promise-returning functions
+  const handleAccept = async () => {
+    await handleAcceptInvitation();
+    return Promise.resolve();
+  };
+
+  const handleDecline = async () => {
+    await handleResetAndRefresh();
+    return Promise.resolve();
+  };
 
   // Show authentication required message if not logged in
   if (!user && !authLoading) {
@@ -66,14 +77,14 @@ export default function MyInvitations() {
                 
                 <OrganizationInvitationsCard
                   invitations={orgInvitations}
-                  onAccept={() => Promise.resolve(handleAcceptInvitation())}
-                  onDecline={() => Promise.resolve(handleResetAndRefresh())}
+                  onAccept={handleAccept}
+                  onDecline={handleDecline}
                 />
                 
                 <TeamInvitationsCard
                   invitations={teamInvitations}
-                  onAccept={() => Promise.resolve(handleAcceptInvitation())}
-                  onDecline={() => Promise.resolve(handleResetAndRefresh())}
+                  onAccept={handleAccept}
+                  onDecline={handleDecline}
                 />
               </div>
             ) : (
