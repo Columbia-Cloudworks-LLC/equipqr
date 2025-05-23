@@ -1,5 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { retry } from '@/utils/edgeFunctions/retry';
+import { toast } from 'sonner';
 
 // In-memory cache to prevent excessive edge function calls
 let dashboardCache: {
@@ -26,6 +28,22 @@ document.addEventListener('visibilitychange', () => {
  */
 export async function getDashboardData(orgId?: string, forceRefresh = false) {
   try {
+    if (!orgId) {
+      console.warn('getDashboardData called without orgId - returning empty data');
+      return {
+        teams: [],
+        equipment: [],
+        invitations: [],
+        metadata: {
+          timestamp: Date.now(),
+          teamsCount: 0,
+          equipmentCount: 0,
+          invitationsCount: 0,
+          reason: 'no_org_id'
+        }
+      };
+    }
+    
     const now = Date.now();
     const isDebounced = now - lastFetchTime < DEBOUNCE_TIME;
     
@@ -58,14 +76,26 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
     const { data: sessionData } = await supabase.auth.getSession();
     
     if (!sessionData.session) {
-      throw new Error('User not authenticated');
+      console.warn('User not authenticated when fetching dashboard data');
+      return {
+        teams: [],
+        equipment: [],
+        invitations: [],
+        metadata: {
+          timestamp: Date.now(),
+          teamsCount: 0,
+          equipmentCount: 0,
+          invitationsCount: 0,
+          reason: 'not_authenticated'
+        }
+      };
     }
     
     const userId = sessionData.session.user.id;
     lastFetchTime = now;
     
     // Call the edge function with retry logic
-    console.log(`Fetching dashboard data from edge function for org: ${orgId || 'none'}`);
+    console.log(`Fetching dashboard data from edge function for org: ${orgId}`);
     const { data, error } = await retry(
       async () => {
         return supabase.functions.invoke('get_dashboard_data', {
@@ -81,6 +111,7 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
     
     if (error) {
       console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
       throw error;
     }
     
@@ -105,7 +136,19 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
       return dashboardCache.data;
     }
     
-    throw error;
+    // Return empty data structure on error with no cache
+    return {
+      teams: [],
+      equipment: [],
+      invitations: [],
+      metadata: {
+        timestamp: Date.now(),
+        teamsCount: 0,
+        equipmentCount: 0,
+        invitationsCount: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    };
   }
 }
 

@@ -9,13 +9,15 @@ import { InvitationAlert } from '@/components/Dashboard/InvitationAlert';
 import { RecentEquipmentSection } from '@/components/Dashboard/RecentEquipmentSection';
 import { TeamsSection } from '@/components/Dashboard/TeamsSection';
 import { QuickLinksCard } from '@/components/Dashboard/QuickLinksCard';
-import { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCombinedDashboardData } from '@/hooks/useCombinedDashboardData';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card } from '@/components/ui/card';
 
 const Index = () => {
+  const { user, session } = useAuth();
   const { 
     organizations, 
     selectedOrganization, 
@@ -79,8 +81,11 @@ const Index = () => {
 
   const showOrgSelector = organizations.length > 1;
   
-  // Show appropriate loading state when organization data is loading
+  // Check if we're in a loading state
   const isLoading = isOrgLoading || isDashboardLoading || !isOrgReady;
+  
+  // Check for initial auth loading state
+  const showInitialAuthLoading = !session && !user;
 
   return (
     <Layout>
@@ -123,7 +128,15 @@ const Index = () => {
           </div>
         </div>
 
-        {isLoading ? (
+        {showInitialAuthLoading ? (
+          <Card className="p-8 text-center">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+              <h3 className="text-lg font-medium mb-2">Initializing Dashboard</h3>
+              <p className="text-muted-foreground">Verifying authentication and loading your data...</p>
+            </div>
+          </Card>
+        ) : isLoading ? (
           // Skeleton loading state for dashboard stats
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
             {[1, 2, 3, 4].map((i) => (
@@ -142,20 +155,24 @@ const Index = () => {
         )}
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <RecentEquipmentSection 
-            recentEquipment={recentEquipment}
-            isLoading={isEquipmentLoading || !isOrgReady}
-            isError={isEquipmentError}
-          />
-          
-          <TeamsSection
-            teams={teams}
-            isLoading={isTeamsLoading || !isOrgReady}
-            isError={isTeamsError}
-            onRefresh={refetchDashboard}
-          />
-          
-          <QuickLinksCard />
+          {!showInitialAuthLoading && (
+            <>
+              <RecentEquipmentSection 
+                recentEquipment={recentEquipment}
+                isLoading={isEquipmentLoading || !isOrgReady}
+                isError={isEquipmentError}
+              />
+              
+              <TeamsSection
+                teams={teams}
+                isLoading={isTeamsLoading || !isOrgReady}
+                isError={isTeamsError}
+                onRefresh={refetchDashboard}
+              />
+              
+              <QuickLinksCard />
+            </>
+          )}
         </div>
       </div>
     </Layout>
