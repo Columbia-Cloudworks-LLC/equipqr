@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { LegalPage } from '@/components/Legal/LegalPage';
 import { 
@@ -9,7 +8,7 @@ import {
   Copyright, 
   CreditCard, 
   Ban, 
-  Scales, 
+  Scale, 
   RefreshCw, 
   Gavel 
 } from 'lucide-react';
@@ -193,7 +192,7 @@ export default function TermsOfService() {
         <Card id="liability" className="overflow-hidden border-l-4 border-l-primary">
           <CardContent className="pt-6">
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-primary">
-              <Scales className="h-6 w-6" />
+              <Scale className="h-6 w-6" />
               8. Limitation of Liability
             </h2>
             <p className="text-muted-foreground leading-relaxed">
@@ -256,7 +255,7 @@ export default function TermsOfService() {
             { id: "intellectual-property", title: "Intellectual Property", icon: Copyright },
             { id: "subscription", title: "Subscription and Billing", icon: CreditCard },
             { id: "termination", title: "Termination", icon: Ban },
-            { id: "liability", title: "Limitation of Liability", icon: Scales },
+            { id: "liability", title: "Limitation of Liability", icon: Scale },
             { id: "changes", title: "Changes to Terms", icon: RefreshCw },
             { id: "governing-law", title: "Governing Law", icon: Gavel }
           ].map((section) => (
