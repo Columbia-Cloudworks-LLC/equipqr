@@ -4,12 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, X, Loader2 } from 'lucide-react';
+import { Check, X, Loader2, ExternalLink } from 'lucide-react';
 import { Invitation } from '@/types/notifications';
 import { useInvitationAcceptance } from '@/hooks/useInvitationAcceptance';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { sanitizeToken } from '@/services/invitation/tokenUtils';
 
 interface InvitationNotificationProps {
   invitation: Invitation;
@@ -31,15 +32,6 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   const isTeamInvitation = invitation.invitationType === 'team' || invitation.team !== null;
   const isOrgInvitation = invitation.invitationType === 'organization' || invitation.organization !== null;
   
-  // Validate token format
-  const validateTokenFormat = (token: string): boolean => {
-    if (!token || typeof token !== 'string' || token.length < 10) {
-      console.error(`Invalid token format in invitation: type=${typeof token}, length=${token?.length}`);
-      return false;
-    }
-    return true;
-  };
-  
   // Safely get the name of the entity the user is being invited to join
   let entityName = 'Unknown';
   let orgName = invitation?.org_name;
@@ -57,8 +49,9 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
       return;
     }
     
-    // Validate token format first
-    if (!validateTokenFormat(invitation.token)) {
+    // Sanitize token
+    const sanitizedToken = sanitizeToken(invitation.token);
+    if (!sanitizedToken) {
       setError("Invalid invitation token format");
       toast.error("Invalid invitation token format");
       return;
@@ -72,19 +65,19 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
       const sessionValid = await checkSession();
       if (!sessionValid) {
         toast.error("Your session has expired. Please log in again.");
-        navigate('/login');
+        navigate('/auth');
         return;
       }
       
       // Log what we're doing
-      console.log(`InvitationNotification: Accepting invitation: ${invitation.token.substring(0, 8)}... (Type: ${isOrgInvitation ? 'organization' : 'team'})`);
+      console.log(`InvitationNotification: Accepting invitation: ${sanitizedToken.substring(0, 8)}... (Type: ${isOrgInvitation ? 'organization' : 'team'})`);
       console.log('Current auth state:', { email: user?.email });
       
       // Explicitly use correct invitation type
       const invitationType = isOrgInvitation ? 'organization' : 'team';
       
       // Use the updated acceptInvitation hook that handles both invitation types
-      const result = await acceptInvitation(invitation.token, invitationType);
+      const result = await acceptInvitation(sanitizedToken, invitationType);
       
       if (result && result.success) {
         console.log("InvitationNotification: Invitation accepted successfully:", result);
@@ -117,12 +110,14 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
         
         toast.success(`Successfully joined ${isOrgInvitation ? 'the organization' : 'the team'}: ${result.entityName || entityName}`);
         
-        // Navigate to the relevant page
-        if (isOrgInvitation) {
-          navigate('/organization');
-        } else {
-          navigate('/teams');
-        }
+        // Navigate to the relevant page after a short delay to allow UI updates
+        setTimeout(() => {
+          if (isOrgInvitation) {
+            navigate('/organization');
+          } else {
+            navigate('/teams');
+          }
+        }, 500);
       } else {
         console.error("InvitationNotification: Invitation acceptance failed:", result);
         setError(result?.error || "Failed to accept invitation. Please try again.");
@@ -138,8 +133,14 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
   }, [invitation.token, isOrgInvitation, user, acceptInvitation, onAccept, refreshNotifications, refreshOrganizations, navigate, checkSession, entityName]);
   
   const handleViewDetails = useCallback(() => {
-    const queryParam = isOrgInvitation ? '?type=organization' : '';
-    navigate(`/invitation/${invitation.token}${queryParam}`);
+    // Ensure token is sanitized before using in URL
+    const sanitizedToken = sanitizeToken(invitation.token);
+    if (sanitizedToken) {
+      const queryParam = isOrgInvitation ? '?type=organization' : '';
+      navigate(`/invitation/${sanitizedToken}${queryParam}`);
+    } else {
+      toast.error("Invalid invitation token");
+    }
   }, [invitation.token, isOrgInvitation, navigate]);
   
   const handleDismiss = useCallback(() => {
@@ -215,6 +216,7 @@ export function InvitationNotification({ invitation, onAccept, onDecline }: Invi
             className="w-full"
             onClick={handleViewDetails}
           >
+            <ExternalLink className="mr-2 h-4 w-4" />
             View Details
           </Button>
         </div>

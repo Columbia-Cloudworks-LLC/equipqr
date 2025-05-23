@@ -4,6 +4,7 @@ import { validateInvitationToken } from '@/services/team/invitation';
 import { validateOrganizationInvitation } from '@/services/organization/invitation/invitationValidation';
 import { useAuth } from '@/contexts/AuthContext';
 import { debounce, withCache } from '@/utils/edgeFunctions/retry';
+import { detectInvitationType, sanitizeToken } from '@/services/invitation/tokenUtils';
 
 // Create cached validation functions to prevent excessive API calls
 const cachedValidateTeamInvitation = withCache(
@@ -27,17 +28,6 @@ const debouncedValidateOrg = debounce(async (token: string) => {
   return await cachedValidateOrgInvitation(token);
 }, 800);
 
-/**
- * Attempts to detect the invitation type by the token format or length
- * This is a fallback when the type isn't explicitly specified
- */
-const detectInvitationType = (token: string): 'team' | 'organization' => {
-  // Add specific detection logic if needed
-  // For now, we'll use a simple approach, assuming organization tokens might have different patterns
-  // This should be enhanced with actual token pattern detection if there are reliable patterns
-  return 'team'; // Default to team if we can't detect
-};
-
 export function useInvitationValidation(token: string | undefined, invitationType: string = 'team') {
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
@@ -49,6 +39,7 @@ export function useInvitationValidation(token: string | undefined, invitationTyp
     invitationType === 'organization' ? 'organization' : 'team'
   );
   const [attemptedValidations, setAttemptedValidations] = useState<Record<string, boolean>>({});
+  const [autoDetecting, setAutoDetecting] = useState(false);
   
   useEffect(() => {
     // Normalize and store the invitation type from props
@@ -65,25 +56,52 @@ export function useInvitationValidation(token: string | undefined, invitationTyp
         setError(null);
         setRateLimited(false);
         
-        if (!token) {
-          setError('No invitation token provided');
+        // Sanitize and validate token format
+        const sanitizedToken = sanitizeToken(token);
+        if (!sanitizedToken) {
+          setError('Invalid invitation token format');
           return;
         }
 
-        console.log(`Validating invitation with token: ${token.substring(0, 8)}... as type: ${detectedType}`);
+        console.log(`Validating invitation with token: ${sanitizedToken.substring(0, 8)}... as type: ${detectedType}`);
         
         // Record that we've attempted validation with this type
         setAttemptedValidations(prev => ({ ...prev, [detectedType]: true }));
+        
+        // If we're not sure about the type, try to auto-detect it
+        if (!autoDetecting && !attemptedValidations['auto-detected']) {
+          setAutoDetecting(true);
+          
+          try {
+            const detectedInvType = await detectInvitationType(sanitizedToken);
+            
+            if (detectedInvType) {
+              console.log(`Auto-detected invitation type: ${detectedInvType}`);
+              setAttemptedValidations(prev => ({ ...prev, 'auto-detected': true }));
+              
+              // Only switch if the detected type is different
+              if (detectedInvType !== detectedType) {
+                setDetectedType(detectedInvType);
+                setAutoDetecting(false);
+                return; // Exit and let the useEffect run again with the new type
+              }
+            }
+          } catch (detectionError) {
+            console.error('Error auto-detecting invitation type:', detectionError);
+          }
+          
+          setAutoDetecting(false);
+        }
         
         try {
           let validationResult;
           
           if (detectedType === 'organization') {
             // Handle organization invitation
-            validationResult = await debouncedValidateOrg(token);
+            validationResult = await debouncedValidateOrg(sanitizedToken);
           } else {
             // Handle team invitation
-            validationResult = await debouncedValidateTeam(token);
+            validationResult = await debouncedValidateTeam(sanitizedToken);
           }
           
           const { valid, invitation, error } = validationResult;
@@ -136,7 +154,7 @@ export function useInvitationValidation(token: string | undefined, invitationTyp
     };
 
     validateToken();
-  }, [token, detectedType, attemptedValidations]);
+  }, [token, detectedType, attemptedValidations, autoDetecting]);
   
   return {
     isValidating,

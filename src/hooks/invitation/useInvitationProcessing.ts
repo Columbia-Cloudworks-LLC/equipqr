@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInvitationAcceptance } from './useInvitationAcceptance';
 import { debounce } from '@/utils/edgeFunctions/retry';
+import { validateSessionForInvitation, sanitizeToken } from '@/services/invitation/tokenUtils';
 
 // Create debounced version of the session refresh
 const debouncedRefreshSession = debounce(async () => {
@@ -41,8 +42,9 @@ export function useInvitationProcessing() {
       setIsRefreshing(true);
       console.log("Forcing auth session refresh");
       
-      // First, check if we have a valid session
-      const isValid = await checkSession();
+      // Use the improved session validator
+      const isValid = await validateSessionForInvitation();
+      
       if (!isValid) {
         console.error("No valid session found, redirecting to login");
         setIsRefreshing(false);
@@ -93,6 +95,14 @@ export function useInvitationProcessing() {
       toast.error(errorMsg);
       return { success: false, error: errorMsg };
     }
+    
+    // Sanitize the token first
+    const sanitizedToken = sanitizeToken(token);
+    if (!sanitizedToken) {
+      const errorMsg = 'Invalid invitation token format';
+      toast.error(errorMsg);
+      return { success: false, error: errorMsg };
+    }
 
     try {
       // Refresh the auth session before processing
@@ -103,10 +113,10 @@ export function useInvitationProcessing() {
         return { success: false, error: errorMsg };
       }
       
-      console.log(`Processing ${invitationType} invitation with token: ${token.substring(0, 8)}...`);
+      console.log(`Processing ${invitationType} invitation with token: ${sanitizedToken.substring(0, 8)}...`);
       
       // Use the acceptance hook to process the invitation
-      const result = await acceptInvitation(token, invitationType);
+      const result = await acceptInvitation(sanitizedToken, invitationType);
       
       if (result && result.success) {
         setAcceptedSuccessfully(true);

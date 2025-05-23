@@ -1,22 +1,25 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ValidationResult } from './types';
+import { sanitizeToken } from '@/services/invitation/tokenUtils';
 
 /**
  * Validate an organization invitation token
  */
 export async function validateOrganizationInvitation(token: string): Promise<ValidationResult> {
   try {
-    if (!token) {
-      return { valid: false, error: 'Invalid token' };
+    // Sanitize and validate token format
+    const sanitizedToken = sanitizeToken(token);
+    if (!sanitizedToken) {
+      return { valid: false, error: 'Invalid token format' };
     }
     
-    console.log(`Validating organization invitation token: ${token.substring(0, 8)}...`);
+    console.log(`Validating organization invitation token: ${sanitizedToken.substring(0, 8)}...`);
     
+    // Try using the edge function for validation (most reliable)
     try {
-      // First try using the edge function for validation (most reliable)
       const { data: validationData, error: validationError } = await supabase.functions.invoke('validate_org_invitation', {
-        body: { token }
+        body: { token: sanitizedToken }
       });
       
       if (validationError) {
@@ -35,7 +38,7 @@ export async function validateOrganizationInvitation(token: string): Promise<Val
     const { data, error } = await supabase
       .from('organization_invitations')
       .select('*, organization:org_id(name)')
-      .eq('token', token)
+      .eq('token', sanitizedToken)
       .or('status.eq.sent,status.eq.pending')
       .single();
       

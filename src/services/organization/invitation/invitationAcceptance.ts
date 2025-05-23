@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/supabase-enums';
 import { toast } from 'sonner';
+import { sanitizeToken } from '@/services/invitation/tokenUtils';
 
 export interface InvitationAcceptanceResult {
   success: boolean;
@@ -11,33 +12,24 @@ export interface InvitationAcceptanceResult {
 }
 
 /**
- * Validates the invitation token format
- */
-const validateToken = (token: string): boolean => {
-  if (!token || typeof token !== 'string' || token.length < 10) {
-    console.error(`Invalid token format: ${typeof token}, length: ${token?.length}`);
-    return false;
-  }
-  return true;
-};
-
-/**
  * Handles accepting an organization invitation
  */
 export async function acceptOrganizationInvitation(token: string): Promise<InvitationAcceptanceResult> {
   try {
-    console.log(`Starting invitation acceptance for token: ${token?.substring(0, 8)}... (length: ${token?.length})`);
-    
-    if (!validateToken(token)) {
+    // Sanitize the token
+    const sanitizedToken = sanitizeToken(token);
+    if (!sanitizedToken) {
       throw new Error('Invalid invitation token format');
     }
+    
+    console.log(`Starting invitation acceptance for token: ${sanitizedToken.substring(0, 8)}...`);
     
     // Validate the token using the edge function
     console.log('Validating invitation token...');
     const { data: validationData, error: validationError } = await supabase
       .functions
       .invoke('validate_org_invitation', {
-        body: { token }
+        body: { token: sanitizedToken }
       });
     
     if (validationError) {
@@ -75,7 +67,7 @@ export async function acceptOrganizationInvitation(token: string): Promise<Invit
         status: 'accepted',
         accepted_at: new Date().toISOString()
       })
-      .eq('token', token)
+      .eq('token', sanitizedToken)
       .or('status.eq.pending,status.eq.sent')
       .select('id, org_id, role, organization:org_id(id, name)')
       .single();

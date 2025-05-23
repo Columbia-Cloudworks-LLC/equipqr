@@ -1,9 +1,11 @@
+
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthRecovery } from './AuthRecovery';
+import { AuthLoadingState } from './AuthLoadingState';
 
 /**
  * Component to handle authentication redirects
@@ -18,6 +20,8 @@ export function AuthRedirect() {
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
   const [isRepairing, setIsRepairing] = useState(false);
   const [repairAttempts, setRepairAttempts] = useState(0);
+  const [authStatus, setAuthStatus] = useState<'processing' | 'success' | 'error'>('processing');
+  const [showLoading, setShowLoading] = useState(false);
   
   // Get returnTo path from location state or localStorage
   const state = location.state as { 
@@ -33,11 +37,27 @@ export function AuthRedirect() {
   const message = state?.message;
   
   useEffect(() => {
+    // Show loading state after a short delay
+    // This prevents flashing for fast auth processes
+    const timer = setTimeout(() => {
+      if (isLoading || isRepairing) {
+        setShowLoading(true);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [isLoading, isRepairing]);
+  
+  useEffect(() => {
     // Helper to handle a successful authentication
     const handleAuthenticated = async () => {
       console.log(`User is authenticated, redirecting to ${returnPath}`);
+      setAuthStatus('processing');
       
       try {
+        // Show loading state since we're processing post-auth steps
+        setShowLoading(true);
+        
         // Validate session before redirecting
         const isValidSession = await checkSession();
         
@@ -48,6 +68,7 @@ export function AuthRedirect() {
           if (repairAttempts > 0) {
             setRecoveryError('Authentication session could not be validated even after repair attempts');
             setShowRecovery(true);
+            setAuthStatus('error');
             return;
           }
           
@@ -64,6 +85,7 @@ export function AuthRedirect() {
               // Still not valid after repair
               setRecoveryError('Session remains invalid after storage repair');
               setShowRecovery(true);
+              setAuthStatus('error');
               return;
             }
           } else {
@@ -72,6 +94,7 @@ export function AuthRedirect() {
               description: 'There was an issue with your authentication. Please try signing in again.'
             });
             setShowRecovery(true);
+            setAuthStatus('error');
             return;
           }
         }
@@ -79,37 +102,36 @@ export function AuthRedirect() {
         // Clear stored return path
         localStorage.removeItem('authReturnTo');
         
-        // Handle invitation path
-        if (invitationPath) {
-          console.log('Found invitation path, redirecting to:', invitationPath);
-          // Keep the path in storage until redirection completes
-        } else {
-          // Only clear if we're not going to an invitation
-          sessionStorage.removeItem('invitationPath');
-        }
+        // Brief success state before redirecting
+        setAuthStatus('success');
         
         // Force invalidate queries to ensure fresh data
         queryClient.invalidateQueries({ queryKey: ['equipment'] });
         queryClient.invalidateQueries({ queryKey: ['teams'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['invitations'] });
         
-        // Show success message
-        toast.success('Authenticated', {
-          description: message || 'You are now signed in'
-        });
-        
-        // Navigate to the return path
-        navigate(returnPath, { 
-          replace: true,
-          state: { 
-            fromAuth: true,
-            refreshSession: true
-          }
-        });
+        // Add a slight delay to show the success state
+        setTimeout(() => {
+          // Show success message
+          toast.success('Authenticated', {
+            description: message || 'You are now signed in'
+          });
+          
+          // Navigate to the return path
+          navigate(returnPath, { 
+            replace: true,
+            state: { 
+              fromAuth: true,
+              refreshSession: true
+            }
+          });
+        }, 1000);
       } catch (error) {
         console.error('Error handling authentication redirect:', error);
         setRecoveryError('Failed to complete sign-in process due to a technical error');
         setShowRecovery(true);
+        setAuthStatus('error');
       } finally {
         setIsRepairing(false);
       }
@@ -137,6 +159,7 @@ export function AuthRedirect() {
   const handleRetry = async () => {
     setShowRecovery(false);
     setRepairAttempts(prev => prev + 1);
+    setAuthStatus('processing');
     
     // Force refresh auth state
     await checkSession();
@@ -154,6 +177,22 @@ export function AuthRedirect() {
     );
   }
   
-  // Return null since this is just a redirect component
+  // Show the loading state if we're still working
+  if (showLoading) {
+    return (
+      <AuthLoadingState 
+        status={authStatus}
+        message={
+          authStatus === 'processing' 
+            ? 'Setting up your account and checking invitations...' 
+            : 'Sign in successful! Redirecting you now...'
+        }
+        userEmail={user?.email}
+        errorMessage={recoveryError || undefined}
+      />
+    );
+  }
+  
+  // Return null when not showing UI components
   return null;
 }

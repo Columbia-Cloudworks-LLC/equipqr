@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { sessionManager } from '@/services/auth/SessionManager';
 import { debounce } from '@/utils/edgeFunctions/retry';
+import { validateSessionForInvitation } from '@/services/invitation/tokenUtils';
+import { toast } from 'sonner';
 
 interface SessionHandlerProps {
   token: string | undefined;
@@ -55,8 +57,8 @@ export function SessionHandler({
         try {
           setCheckingSession(true);
           
-          // First check if we have a valid session
-          const isValid = await debouncedSessionCheck();
+          // First check if we have a valid session using the more reliable validator
+          const isValid = await validateSessionForInvitation();
           
           console.log('Initial session check result:', { isValid, user: !!user });
           
@@ -69,9 +71,29 @@ export function SessionHandler({
             // No user but session might be valid - we're waiting for auth
             console.log('Initial check: No user, waiting for authentication');
             setWaitingForAuth(true);
+          } else {
+            // User exists but session might be invalid
+            console.log('Initial check: User exists but session may be invalid');
+            // Try to refresh the session
+            try {
+              const { data } = await supabase.auth.refreshSession();
+              if (data.session) {
+                console.log('Session refreshed successfully');
+                setWaitingForAuth(false);
+                setAuthVerified(true);
+              } else {
+                setWaitingForAuth(true);
+              }
+            } catch (refreshError) {
+              console.error('Error refreshing session:', refreshError);
+              setWaitingForAuth(true);
+            }
           }
         } catch (error) {
           console.error('Error during initial session check:', error);
+          toast.error('Authentication Error', {
+            description: 'There was a problem verifying your session. Please try logging in again.'
+          });
         } finally {
           setInitialCheckDone(true);
           setCheckingSession(false);
@@ -92,8 +114,8 @@ export function SessionHandler({
         try {
           setCheckingSession(true);
           
-          // Use our debounced session check to prevent rate limits
-          const isValid = await debouncedSessionCheck();
+          // Use our improved session validator
+          const isValid = await validateSessionForInvitation();
           setSessionCheckAttempt(prev => prev + 1);
           
           if (isValid) {
