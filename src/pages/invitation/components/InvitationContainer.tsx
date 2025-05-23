@@ -51,10 +51,10 @@ export const InvitationContainer: React.FC<InvitationContainerProps> = ({
   } = useInvitationValidation(token, initialInvitationType);
   
   const { 
-    acceptInvitation, 
-    isAccepting, 
+    acceptingInvitation, 
     error: acceptError,
-    rateLimited: acceptRateLimited 
+    isRateLimited: acceptRateLimited,
+    acceptInvitation 
   } = useInvitationAcceptance();
   
   const {
@@ -154,7 +154,7 @@ export const InvitationContainer: React.FC<InvitationContainerProps> = ({
       refreshAuthSession();
     }
   }, [token, initialInvitationType, isValidating, isValid, error, isAuthLoading, 
-      isAccepting, acceptError, invitation, user, waitingForAuth, refreshAuthSession, authVerified, detectedType]);
+      acceptingInvitation, acceptError, invitation, user, waitingForAuth, refreshAuthSession, authVerified, detectedType]);
 
   // Combine errors for display
   useEffect(() => {

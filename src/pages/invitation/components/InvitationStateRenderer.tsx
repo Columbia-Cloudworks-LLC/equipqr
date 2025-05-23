@@ -17,7 +17,7 @@ interface InvitationStateRendererProps {
   token: string;
   detectedType: InvitationType;
   onRetry: () => void;
-  onAccept: (token: string, type?: string) => Promise<any>;  // Updated type to match expected function signature
+  onAccept: (token: string, type?: string) => Promise<any>;
 }
 
 export const InvitationStateRenderer: React.FC<InvitationStateRendererProps> = ({
