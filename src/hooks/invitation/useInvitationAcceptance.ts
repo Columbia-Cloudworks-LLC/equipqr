@@ -4,9 +4,9 @@ import { acceptOrganizationInvitation } from '@/services/organization/invitation
 import { acceptInvitation as acceptTeamInvitation } from '@/services/team/invitation/acceptInvitation';
 import { toast } from 'sonner';
 
-type InvitationType = 'team' | 'organization';
+export type InvitationType = 'team' | 'organization';
 
-interface AcceptanceResult {
+export interface AcceptanceResult {
   success: boolean;
   error?: string;
   entityId?: string; 

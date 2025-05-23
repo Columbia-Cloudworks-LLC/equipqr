@@ -23,7 +23,7 @@ const InvitationPage: React.FC = () => {
   const { user, isLoading: authLoading, checkSession } = useAuth();
   
   const { isValidating, isValid, error, invitation, isAuthLoading } = useInvitationValidation(token || '');
-  const { acceptInvitation, isAccepting, acceptError } = useInvitationAcceptance();
+  const { acceptInvitation, isAccepting, error: acceptError } = useInvitationAcceptance();
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [acceptedSuccessfully, setAcceptedSuccessfully] = useState(false);
   const [waitingForAuth, setWaitingForAuth] = useState(false);
@@ -210,12 +210,15 @@ const InvitationPage: React.FC = () => {
       console.log(`Accepting invitation: ${token?.substring(0, 8)}... (Type: ${invitationType})`);
       console.log(`Current user: ${user?.email}, Invitation for: ${invitation.email}`);
       
-      const result = await acceptInvitation(token || '', invitationType);
+      // Convert string type to InvitationType
+      const inviteType = invitationType === 'organization' ? 'organization' : 'team';
+      
+      const result = await acceptInvitation(token || '', inviteType);
       
       if (result && result.success) {
         console.log("Invitation accepted successfully:", result);
         setAcceptedSuccessfully(true);
-        toast.success(result.message || "Invitation accepted successfully!");
+        toast.success("Invitation accepted successfully!");
         
         // Explicitly refresh data with retry logic
         let refreshAttempts = 0;
