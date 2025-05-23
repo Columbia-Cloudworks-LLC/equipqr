@@ -10,7 +10,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { performFullAuthReset } from '@/utils/authInterceptors';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Mail } from 'lucide-react';
+import { Mail, Info } from 'lucide-react';
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -24,16 +24,22 @@ export default function Auth() {
     returnTo?: string; 
     message?: string;
     isInvitation?: boolean;
+    invitationType?: 'team' | 'organization';
   } | undefined;
   
   const message = state?.message;
   const isInvitation = state?.isInvitation;
+  const invitationType = state?.invitationType;
   
   // Check for invitation in session storage and set the tab appropriately
   useEffect(() => {
+    // Try to get invitation details from session storage
     const invitationPath = sessionStorage.getItem('invitationPath');
-    if (invitationPath || isInvitation) {
-      // If there's an invitation pending, default to signup tab for new users
+    const invitationType = sessionStorage.getItem('invitationType');
+
+    // If there's an invitation pending (either from state or session storage), default to signup tab for new users
+    if ((invitationPath || isInvitation) && !document.cookie.includes('sb-')) {
+      // Only switch to signup if there's no auth cookie, suggesting this is a new user
       setActiveTab('signup');
     }
   }, [isInvitation]);
@@ -58,6 +64,29 @@ export default function Auth() {
     });
   };
 
+  // Get page title and description based on invitation context
+  const getPageContent = () => {
+    if (isInvitation) {
+      const entityType = state?.invitationType || sessionStorage.getItem('invitationType') || 'team';
+      
+      return {
+        title: `Accept ${entityType.charAt(0).toUpperCase() + entityType.slice(1)} Invitation`,
+        description: `Sign in or create an account to accept your ${entityType} invitation`,
+        message: message || `You need to sign in or create an account to accept this ${entityType} invitation`
+      };
+    }
+    
+    return {
+      title: 'Welcome to EquipQR',
+      description: activeTab === 'login' 
+        ? 'Sign in to your account to continue' 
+        : 'Create an account to get started',
+      message
+    };
+  };
+
+  const pageContent = getPageContent();
+
   return (
     <div className="bg-background min-h-screen">
       {/* Add the AuthRedirect component to handle redirects */}
@@ -76,21 +105,21 @@ export default function Auth() {
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl">
-              {isInvitation ? 'Accept Invitation' : 'Welcome to EquipQR'}
+              {pageContent.title}
             </CardTitle>
             <CardDescription>
-              {isInvitation 
-                ? 'Sign in or create an account to accept your invitation' 
-                : activeTab === 'login' 
-                  ? 'Sign in to your account to continue' 
-                  : 'Create an account to get started'}
+              {pageContent.description}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {message && (
+            {pageContent.message && (
               <Alert className="mb-4">
-                <Mail className="h-4 w-4 mr-2" />
-                <AlertDescription>{message}</AlertDescription>
+                {isInvitation ? (
+                  <Info className="h-4 w-4 mr-2" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                <AlertDescription>{pageContent.message}</AlertDescription>
               </Alert>
             )}
             
