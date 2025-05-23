@@ -94,8 +94,10 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
     const userId = sessionData.session.user.id;
     lastFetchTime = now;
     
+    // Enhanced logging to debug API calls
+    console.log(`Fetching dashboard data from edge function for user: ${userId}, org: ${orgId}`);
+    
     // Call the edge function with retry logic
-    console.log(`Fetching dashboard data from edge function for org: ${orgId}`);
     const { data, error } = await retry(
       async () => {
         return supabase.functions.invoke('get_dashboard_data', {
@@ -116,8 +118,12 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
     }
     
     if (!data) {
+      console.error('No data returned from dashboard edge function');
       throw new Error('No data returned from dashboard edge function');
     }
+    
+    // Log successful response for debugging
+    console.log(`Dashboard data received: ${data.teams?.length || 0} teams, ${data.equipment?.length || 0} equipment items`);
     
     // Update cache
     dashboardCache = {

@@ -14,8 +14,13 @@ export function useCombinedDashboardData(orgId?: string) {
   // Only set orgReady to true when we have both a session and an orgId
   useEffect(() => {
     if (session && orgId) {
+      console.log(`Organization and session are ready. OrgId: ${orgId}, UserId: ${session.user.id}`);
       setIsOrgReady(true);
     } else {
+      const missingParts = [];
+      if (!session) missingParts.push('session');
+      if (!orgId) missingParts.push('orgId');
+      console.log(`Waiting for ${missingParts.join(' and ')} before fetching dashboard data`);
       setIsOrgReady(false);
     }
   }, [session, orgId]);
@@ -23,7 +28,10 @@ export function useCombinedDashboardData(orgId?: string) {
   // Only fetch data when we have an authenticated session and a selected organization
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['dashboardData', orgId, session?.user?.id],
-    queryFn: () => getDashboardData(orgId),
+    queryFn: () => {
+      console.log(`Executing dashboard data fetch for org: ${orgId}`);
+      return getDashboardData(orgId);
+    },
     enabled: !!session && !!orgId && isOrgReady,
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
@@ -31,8 +39,18 @@ export function useCombinedDashboardData(orgId?: string) {
   });
 
   // Handle data processing and calculated stats
-  const teams = useMemo(() => data?.teams || [], [data]);
-  const equipment = useMemo(() => data?.equipment || [], [data]);
+  const teams = useMemo(() => {
+    const result = data?.teams || [];
+    console.log(`Dashboard data contains ${result.length} teams`);
+    return result;
+  }, [data]);
+  
+  const equipment = useMemo(() => {
+    const result = data?.equipment || [];
+    console.log(`Dashboard data contains ${result.length} equipment items`);
+    return result;
+  }, [data]);
+  
   const invitations = useMemo(() => data?.invitations || [], [data]);
 
   // Calculate equipment stats
@@ -57,8 +75,10 @@ export function useCombinedDashboardData(orgId?: string) {
   // Refetch dashboard data
   const refetchDashboard = () => {
     if (isOrgReady) {
+      console.log('Manually refetching dashboard data');
       return refetch();
     }
+    console.log('Cannot refetch: organization or session not ready');
     return Promise.resolve();
   };
 
@@ -78,6 +98,7 @@ export function useCombinedDashboardData(orgId?: string) {
     isInvitationsError: isError,
     isOrgReady,
     isRefreshing: isFetching,
-    refetchDashboard
+    refetchDashboard,
+    metadata: data?.metadata
   };
 }

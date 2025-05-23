@@ -25,33 +25,35 @@ export async function fetchUserEquipment(supabase: any, userId: string, orgId?: 
     console.log(`Fetching equipment for user ${userId} filtered by orgId: ${orgId}`);
     
     // First get app_user ID for this auth user
-    const { data: userProfile, error: userError } = await supabase
-      .from('user_profiles')
+    const { data: appUser, error: userError } = await supabase
+      .from('app_user')
       .select('id')
-      .eq('id', userId)
+      .eq('auth_uid', userId)
       .single();
     
-    if (userError || !userProfile) {
+    if (userError || !appUser) {
+      console.error('Error fetching app_user:', userError);
       return { 
         success: false, 
         equipment: [],
-        error: "Could not find user profile" 
+        error: userError?.message || "Could not find app_user record" 
       };
     }
     
-    // Check user's access to the organization
+    // Check user's access to the organization - use user_roles table instead of organization_members
     const { data: orgAccess, error: orgError } = await supabase
-      .from('organization_members')
+      .from('user_roles')
       .select('role')
       .eq('user_id', userId)
       .eq('org_id', orgId)
       .single();
     
+    // Check team access using proper join structure
     const { data: teamAccess, error: teamError } = await supabase
-      .from('teams')
+      .from('team')
       .select('id')
       .eq('org_id', orgId)
-      .eq('team_members.user_id', userId)
+      .eq('team_member.user_id', appUser.id) // Use proper join based on app_user ID
       .limit(1);
     
     const hasOrgAccess = !orgError && orgAccess;
@@ -59,6 +61,7 @@ export async function fetchUserEquipment(supabase: any, userId: string, orgId?: 
     
     // If user has no role in this org and no teams, they don't have access to its equipment
     if (!hasOrgAccess && !hasTeamAccess) {
+      console.log(`User ${userId} has no access to organization ${orgId}`);
       return { 
         success: true, 
         equipment: [], 
@@ -78,12 +81,15 @@ export async function fetchUserEquipment(supabase: any, userId: string, orgId?: 
       .is('deleted_at', null);
     
     if (error) {
+      console.error('Error fetching equipment:', error);
       return { 
         success: false, 
         equipment: [],
         error: error.message || "Failed to fetch equipment data"
       };
     }
+    
+    console.log(`Found ${equipment?.length || 0} equipment records for org ${orgId}`);
     
     // Process equipment to ensure org_name is available
     const processedData = equipment ? equipment.map((item: any) => ({

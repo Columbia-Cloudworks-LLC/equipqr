@@ -35,6 +35,11 @@ serve(async (req: Request) => {
       fetchUserInvitations(adminClient, user_id)
     ]);
     
+    // Log result counts for debugging
+    console.log(`Teams result: ${teamsResult.success ? 'success' : 'failure'}, count: ${teamsResult.teams?.length || 0}`);
+    console.log(`Equipment result: ${equipmentResult.success ? 'success' : 'failure'}, count: ${equipmentResult.equipment?.length || 0}`);
+    console.log(`Invitations result: ${invitationsResult.success ? 'success' : 'failure'}, count: ${invitationsResult.invitations?.length || 0}`);
+    
     // Handle potential errors from any of the services
     if (!teamsResult.success) {
       return new Response(

@@ -31,7 +31,7 @@ export async function fetchUserTeams(supabase: any, userId: string, orgId?: stri
       };
     }
     
-    // Build the query for teams
+    // Build the query for teams - use correct table name 'team' instead of 'teams'
     let query = supabase
       .from('team')
       .select(`
@@ -55,7 +55,7 @@ export async function fetchUserTeams(supabase: any, userId: string, orgId?: stri
       };
     }
     
-    // Get team memberships for this user
+    // Get team memberships for this user using correct table name 'team_member'
     const { data: teamMemberships, error: membershipError } = await supabase
       .from('team_member')
       .select(`
@@ -73,6 +73,8 @@ export async function fetchUserTeams(supabase: any, userId: string, orgId?: stri
       };
     }
     
+    console.log(`Found ${teamMemberships?.length || 0} team memberships and ${teams?.length || 0} total teams`);
+    
     // Create membership lookup map
     const membershipMap = new Map();
     teamMemberships?.forEach((membership: any) => {
@@ -81,6 +83,7 @@ export async function fetchUserTeams(supabase: any, userId: string, orgId?: stri
     });
     
     // Process teams to add role and other derived fields
+    // Only include teams where the user is a member
     const userTeams = teams
       .filter((team: any) => membershipMap.has(team.id))
       .map((team: any) => {
@@ -91,6 +94,8 @@ export async function fetchUserTeams(supabase: any, userId: string, orgId?: stri
           is_external: team.org ? team.org.owner_user_id !== appUser.id : false
         };
       });
+    
+    console.log(`Returning ${userTeams.length} teams the user is member of`);
     
     return { success: true, teams: userTeams };
   } catch (error) {
