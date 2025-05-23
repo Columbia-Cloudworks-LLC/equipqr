@@ -1,6 +1,6 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { createTeam } from '@/services/team/creation/createTeam';
 
 interface Team {
   id: string;
@@ -134,54 +134,25 @@ export function useTeams() {
     fetchTeams();
   }, [fetchTeams]);
 
-  // Implement team CRUD operations
+  // Updated to use the proper service layer createTeam function
   const handleCreateTeam = useCallback(async (name: string, orgId?: string) => {
     try {
       setIsCreatingTeam(true);
       setError(null);
       
-      // Implementation of team creation logic
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData?.session?.user?.id;
+      console.log(`useTeams: Creating team "${name}" with orgId: ${orgId}`);
       
-      if (!userId) {
-        throw new Error('Authentication required');
-      }
+      // Use the service layer function that properly handles auth/app_user ID conversion
+      const result = await createTeam(name, orgId || '');
       
-      // If orgId is provided, use it. Otherwise, get user's primary organization
-      let targetOrgId = orgId;
+      console.log('useTeams: Team creation result:', result);
       
-      if (!targetOrgId) {
-        const { data: userData, error: userError } = await supabase
-          .from('user_profiles')
-          .select('org_id')
-          .eq('id', userId)
-          .single();
-
-        if (userError || !userData) {
-          throw new Error('Failed to get user organization');
-        }
-        
-        targetOrgId = userData.org_id;
-      }
-
-      const { data: teamData, error: createError } = await supabase
-        .from('team')
-        .insert({
-          name, 
-          org_id: targetOrgId,
-          created_by: userId
-        })
-        .select();
-
-      if (createError) {
-        throw createError;
-      }
-
+      // Refresh the teams list after successful creation
       await fetchTeams();
-      return { success: true, team: teamData?.[0] };
+      
+      return { success: true, team: result };
     } catch (error) {
-      console.error('Failed to create team:', error);
+      console.error('useTeams: Failed to create team:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(errorMessage);
       return { success: false, error: errorMessage };
