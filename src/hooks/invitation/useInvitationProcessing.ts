@@ -1,70 +1,89 @@
 
-import { useState } from 'react';
-import { useSessionValidation } from './useSessionValidation';
-import { useOrganizationInvitation } from './useOrganizationInvitation';
-import { useTeamInvitation } from './useTeamInvitation';
-import { useDuplicateInvitationPrevention } from './useDuplicateInvitationPrevention';
-import { useInvitationError } from './useInvitationError';
+import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
- * Combined hook for processing invitations with duplicate prevention
+ * Hook for handling invitation processing related logic
  */
 export function useInvitationProcessing() {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const { ensureValidSession, isValidating } = useSessionValidation();
-  const orgInvitation = useOrganizationInvitation();
-  const teamInvitation = useTeamInvitation();
-  const { checkIfProcessing, markAsProcessing, clearProcessing } = useDuplicateInvitationPrevention();
-  const { handleInvitationError } = useInvitationError();
-  
-  const processInvitation = async (token: string, type?: string): Promise<any> => {
-    // Prevent duplicate processing of the same invitation
-    if (checkIfProcessing(token)) {
-      toast.info(`This invitation is already being processed`);
-      return null;
-    }
-    
+  const [processingError, setProcessingError] = useState<string | null>(null);
+  const [acceptedSuccessfully, setAcceptedSuccessfully] = useState(false);
+  const [waitingForAuth, setWaitingForAuth] = useState(false);
+  const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0);
+  const [authVerified, setAuthVerified] = useState(false);
+  const navigate = useNavigate();
+  const { user, checkSession } = useAuth();
+
+  /**
+   * Refreshes the auth session to ensure valid tokens for API calls
+   */
+  const refreshAuthSession = useCallback(async () => {
     try {
-      // Mark as processing
-      markAsProcessing(token);
-      setIsProcessing(true);
-      setError(null);
+      console.log("Forcing auth session refresh");
       
-      // Verify we have a valid session before proceeding
-      const hasSession = await ensureValidSession();
-      if (!hasSession) {
-        throw new Error('No authenticated session found. Please login and try again.');
+      // First, check if we have a valid session
+      const isValid = await checkSession();
+      if (!isValid) {
+        console.error("No valid session found, redirecting to login");
+        return false;
       }
       
-      // Normalize invitation type to ensure consistent handling
-      const invitationType = type === 'organization' ? 'organization' : 'team';
-      
-      console.log(`Processing ${invitationType} invitation with token: ${token.substring(0, 8)}...`);
-      
-      // Process the invitation based on type
-      if (invitationType === 'organization') {
-        return await orgInvitation.handleAcceptInvitation(token);
-      } else {
-        return await teamInvitation.acceptInvitation(token);
+      // Then refresh to get a new token
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) {
+        console.error("Error refreshing session:", error);
+        toast.error("Authentication error", {
+          description: "Could not refresh your session. Please try logging out and in again."
+        });
+        return false;
       }
-    } catch (error: any) {
-      const errorMessage = handleInvitationError(error);
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setIsProcessing(false);
       
-      // Clear processing state after a delay
-      clearProcessing(token);
+      if (data.session) {
+        console.log("Session refreshed successfully, token:", data.session.access_token.substring(0, 10) + '...');
+        setAuthVerified(true);
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error("Error in refreshAuthSession:", err);
+      return false;
     }
-  };
-  
+  }, [checkSession]);
+
+  /**
+   * Redirects to auth page with invitation context
+   */
+  const redirectToAuth = useCallback((invitationPath: string, invitationType: string = 'team') => {
+    // Store the current invitation URL in session storage for redirect after auth
+    sessionStorage.setItem('invitationPath', invitationPath);
+    sessionStorage.setItem('invitationType', invitationType);
+    
+    navigate("/auth", { 
+      state: { 
+        returnTo: invitationPath,
+        message: "Please sign in or create an account to accept this invitation",
+        isInvitation: true,
+        invitationType
+      }
+    });
+  }, [navigate]);
+
   return {
-    processInvitation,
-    isProcessing: isProcessing || isValidating || orgInvitation.isAccepting || teamInvitation.isProcessing,
-    error: error || orgInvitation.validationError || teamInvitation.error
+    processingError,
+    setProcessingError,
+    acceptedSuccessfully,
+    setAcceptedSuccessfully,
+    waitingForAuth,
+    setWaitingForAuth,
+    sessionCheckAttempt,
+    setSessionCheckAttempt,
+    authVerified,
+    setAuthVerified,
+    refreshAuthSession,
+    redirectToAuth,
   };
 }

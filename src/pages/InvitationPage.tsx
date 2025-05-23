@@ -1,16 +1,17 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { useInvitationValidation } from '../hooks/useInvitationValidation';
-import { useInvitationAcceptance } from '../hooks/useInvitationAcceptance';
+import { useInvitationValidation } from '../hooks/invitation/useInvitationValidation';
+import { useInvitationAcceptance } from '../hooks/invitation/useInvitationAcceptance';
+import { useInvitationProcessing } from '../hooks/invitation/useInvitationProcessing';
+import { useInvitationError } from '../hooks/invitation/useInvitationError';
 import { InvalidInvitation } from '../components/Invitation/InvalidInvitation';
 import { InvitationContent } from '../components/Invitation/InvitationContent';
 import { InvitationError } from '../components/Invitation/InvitationError';
 import { InvitationValidating } from '../components/Invitation/InvitationStatus';
+import { SessionHandler } from '../components/Invitation/SessionHandler';
 import { useNotificationsSafe } from '@/hooks/useNotificationsSafe';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const InvitationPage: React.FC = () => {
@@ -20,72 +21,21 @@ const InvitationPage: React.FC = () => {
   const navigate = useNavigate();
   const { refreshNotifications } = useNotificationsSafe();
   const { refreshOrganizations } = useOrganization();
-  const { user, isLoading: authLoading, checkSession } = useAuth();
+  const { handleInvitationError } = useInvitationError();
   
-  const { isValidating, isValid, error, invitation, isAuthLoading } = useInvitationValidation(token || '');
+  // Custom hooks
+  const { isValidating, isValid, error, invitation, isAuthLoading, user } = useInvitationValidation(token || '');
   const { acceptInvitation, isAccepting, error: acceptError } = useInvitationAcceptance();
-  const [processingError, setProcessingError] = useState<string | null>(null);
-  const [acceptedSuccessfully, setAcceptedSuccessfully] = useState(false);
-  const [waitingForAuth, setWaitingForAuth] = useState(false);
-  const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0);
-  const [authVerified, setAuthVerified] = useState(false);
+  const {
+    processingError, setProcessingError,
+    acceptedSuccessfully, setAcceptedSuccessfully,
+    waitingForAuth, setWaitingForAuth,
+    sessionCheckAttempt, setSessionCheckAttempt,
+    authVerified, setAuthVerified,
+    refreshAuthSession, redirectToAuth
+  } = useInvitationProcessing();
 
-  // Save invitation details to session storage when not authenticated
-  useEffect(() => {
-    if (!user && !authLoading && token) {
-      // Save the invitation path for redirection after login
-      const invitationPath = `/invitation/${token}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
-      sessionStorage.setItem('invitationPath', invitationPath);
-      console.log('Saved invitation path for after login:', invitationPath);
-    }
-  }, [user, authLoading, token, searchParams]);
-
-  // Improved session refresh function with specific error handling
-  const refreshAuthSession = useCallback(async () => {
-    try {
-      console.log("Forcing auth session refresh");
-      
-      // First, check if we have a valid session
-      const isValid = await checkSession();
-      if (!isValid) {
-        console.error("No valid session found, redirecting to login");
-        // Store the current invitation URL in session storage for redirect after auth
-        const invitationPath = `/invitation/${token}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
-        sessionStorage.setItem('invitationPath', invitationPath);
-        
-        navigate("/auth", { 
-          state: { 
-            returnTo: invitationPath,
-            message: "Please sign in or create an account to accept this invitation",
-            isInvitation: true
-          }
-        });
-        return false;
-      }
-      
-      // Then refresh to get a new token
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error) {
-        console.error("Error refreshing session:", error);
-        toast.error("Authentication error", {
-          description: "Could not refresh your session. Please try logging out and in again."
-        });
-        return false;
-      }
-      
-      if (data.session) {
-        console.log("Session refreshed successfully, token:", data.session.access_token.substring(0, 10) + '...');
-        setAuthVerified(true);
-        return true;
-      }
-      
-      return false;
-    } catch (err) {
-      console.error("Error in refreshAuthSession:", err);
-      return false;
-    }
-  }, [checkSession, navigate, token, searchParams]);
-
+  // Session handling for invitation
   useEffect(() => {
     console.log(`Invitation page loaded for token: ${token?.substring(0, 8)}... (Type: ${invitationType})`);
     console.log('Invitation status:', {
@@ -100,7 +50,7 @@ const InvitationPage: React.FC = () => {
     });
     
     // When the page loads, check if we need to wait for authentication
-    if (!user && !authLoading) {
+    if (!user && !isAuthLoading) {
       console.log("User not authenticated but invitation exists - waiting for authentication");
       setWaitingForAuth(true);
     } else if (user && waitingForAuth) {
@@ -108,33 +58,12 @@ const InvitationPage: React.FC = () => {
       setWaitingForAuth(false);
       // Force a session refresh when the user becomes authenticated
       refreshAuthSession();
-    } else if (user && !authVerified && !authLoading) {
+    } else if (user && !authVerified && !isAuthLoading) {
       // If user is logged in but we haven't verified the auth yet
       refreshAuthSession();
     }
   }, [token, invitationType, isValidating, isValid, error, isAuthLoading, 
-      isAccepting, acceptError, invitation, user, authLoading, waitingForAuth, refreshAuthSession, authVerified]);
-
-  // Check session validity periodically with exponential backoff when waiting for auth
-  useEffect(() => {
-    if (waitingForAuth && sessionCheckAttempt < 5) {
-      const delay = Math.min(2000 * Math.pow(2, sessionCheckAttempt), 16000); // Exponential backoff with 16s max
-      console.log(`Scheduling session check attempt ${sessionCheckAttempt + 1} in ${delay}ms`);
-      
-      const checkSessionTimeout = setTimeout(async () => {
-        const { data } = await supabase.auth.getSession();
-        setSessionCheckAttempt(prev => prev + 1);
-        
-        if (data.session) {
-          console.log('Session detected - can proceed with invitation');
-          setWaitingForAuth(false);
-          setAuthVerified(true);
-        }
-      }, delay);
-      
-      return () => clearTimeout(checkSessionTimeout);
-    }
-  }, [waitingForAuth, sessionCheckAttempt]);
+      isAccepting, acceptError, invitation, user, waitingForAuth, refreshAuthSession, authVerified]);
 
   // Combine errors for display
   useEffect(() => {
@@ -145,7 +74,7 @@ const InvitationPage: React.FC = () => {
     } else {
       setProcessingError(null);
     }
-  }, [error, acceptError]);
+  }, [error, acceptError, setProcessingError]);
 
   // Refresh notifications after successful invitation validation
   useEffect(() => {
@@ -171,31 +100,17 @@ const InvitationPage: React.FC = () => {
     }
   }, [acceptedSuccessfully, refreshNotifications, refreshOrganizations]);
 
-  if (waitingForAuth) {
-    return (
-      <InvitationError 
-        error="Please login to accept this invitation" 
-        suggestion="You'll need to sign in or create an account before accepting this invitation."
-      />
-    );
-  }
-
-  if (isValidating || isAuthLoading || authLoading) {
-    return <InvitationValidating />;
-  }
-
-  if (processingError) {
-    return <InvitationError error={processingError} />;
-  }
-
-  if (!isValid || !invitation) {
-    return <InvalidInvitation />;
-  }
-
+  // Handle invitation acceptance
   const handleAcceptInvitation = async () => {
     if (!user) {
       toast.error("You must be logged in to accept invitations");
       setWaitingForAuth(true);
+      
+      // Save invitation info and redirect to login
+      if (token) {
+        const invitationPath = `/invitation/${token}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+        redirectToAuth(invitationPath, invitationType);
+      }
       return;
     }
 
@@ -257,17 +172,45 @@ const InvitationPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error in handleAcceptInvitation:', error);
+      handleInvitationError(error);
       setProcessingError(error.message || "An unexpected error occurred");
     }
   };
 
+  // Render session handler (invisible component that manages session state)
   return (
-    <InvitationContent 
-      invitationType={invitationType === 'organization' ? 'organization' : 'team'}
-      invitationDetails={invitation} 
-      onAccept={handleAcceptInvitation}
-      token={token || ''}
-    />
+    <>
+      <SessionHandler
+        token={token}
+        searchParams={searchParams}
+        waitingForAuth={waitingForAuth}
+        setWaitingForAuth={setWaitingForAuth}
+        sessionCheckAttempt={sessionCheckAttempt}
+        setSessionCheckAttempt={setSessionCheckAttempt}
+        setAuthVerified={setAuthVerified}
+      />
+      
+      {/* Render appropriate UI based on invitation state */}
+      {waitingForAuth ? (
+        <InvitationError 
+          error="Please login to accept this invitation" 
+          suggestion="You'll need to sign in or create an account before accepting this invitation."
+        />
+      ) : isValidating || isAuthLoading ? (
+        <InvitationValidating />
+      ) : processingError ? (
+        <InvitationError error={processingError} />
+      ) : !isValid || !invitation ? (
+        <InvalidInvitation />
+      ) : (
+        <InvitationContent 
+          invitationType={invitationType === 'organization' ? 'organization' : 'team'}
+          invitationDetails={invitation} 
+          onAccept={handleAcceptInvitation}
+          token={token || ''}
+        />
+      )}
+    </>
   );
 };
 
