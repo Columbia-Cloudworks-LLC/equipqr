@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -162,9 +161,12 @@ export default function Auth() {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-center">
+          <CardFooter className="flex flex-col items-center gap-2">
             <p className="text-xs text-center text-muted-foreground">
-              By continuing, you agree to our Terms of Service and Privacy Policy.
+              By continuing, you agree to our{' '}
+              <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>{' '}
+              and{' '}
+              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
             </p>
           </CardFooter>
         </Card>

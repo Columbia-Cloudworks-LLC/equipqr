@@ -5,6 +5,7 @@ import {
 } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { Navbar } from './Navbar';
+import { Link } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,15 @@ export function Layout({ children }: LayoutProps) {
           <main className="flex-1 overflow-auto p-2 md:p-4">
             {children}
           </main>
+          <footer className="border-t py-2 px-4 text-xs text-center text-muted-foreground bg-background/80">
+            <div className="flex justify-center gap-4">
+              <Link to="/terms" className="hover:text-primary hover:underline">Terms of Service</Link>
+              <Link to="/privacy" className="hover:text-primary hover:underline">Privacy Policy</Link>
+            </div>
+            <div className="mt-1">
+              © {new Date().getFullYear()} Columbia Cloudworks LLC. All rights reserved.
+            </div>
+          </footer>
         </div>
       </div>
     </SidebarProvider>
