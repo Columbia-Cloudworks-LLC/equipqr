@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { InvitationDetails } from './InvitationDetails';
+import { useInvitationAcceptance } from './hooks';
 
 interface InvitationContentProps {
   invitationType: 'team' | 'organization';
@@ -18,19 +19,11 @@ export function InvitationContent({
   onAccept,
   token
 }: InvitationContentProps) {
-  const navigate = useNavigate();
-  const [processing, setProcessing] = useState(false);
-  
-  const handleAccept = async () => {
-    setProcessing(true);
-    try {
-      await onAccept(token, invitationType);
-    } catch (error) {
-      console.error('Error accepting invitation:', error);
-    } finally {
-      setProcessing(false);
-    }
-  };
+  const { processing, handleAccept, handleDecline } = useInvitationAcceptance({
+    onAccept,
+    token,
+    invitationType
+  });
   
   return (
     <div className="container mx-auto max-w-md my-12">
@@ -46,34 +39,10 @@ export function InvitationContent({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="text-sm">
-              <div className="font-medium">Invited by:</div>
-              <div>{invitationDetails.invited_by_email || 'A member'}</div>
-            </div>
-            <div className="text-sm">
-              <div className="font-medium">Role:</div>
-              <div className="capitalize">{invitationDetails.role}</div>
-            </div>
-            {invitationType === 'organization' && (
-              <div className="text-sm">
-                <div className="font-medium">Organization:</div>
-                <div>{invitationDetails.organization?.name || invitationDetails.org_name || 'Unknown'}</div>
-              </div>
-            )}
-            {invitationType === 'team' && (
-              <div className="text-sm">
-                <div className="font-medium">Team:</div>
-                <div>{invitationDetails.team?.name || invitationDetails.team_name || 'Unknown'}</div>
-              </div>
-            )}
-            {invitationType === 'team' && invitationDetails.org_name && (
-              <div className="text-sm">
-                <div className="font-medium">Organization:</div>
-                <div>{invitationDetails.org_name}</div>
-              </div>
-            )}
-          </div>
+          <InvitationDetails 
+            invitationType={invitationType} 
+            invitationDetails={invitationDetails} 
+          />
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button 
@@ -90,7 +59,7 @@ export function InvitationContent({
           </Button>
           <Button 
             variant="outline" 
-            onClick={() => navigate('/')} 
+            onClick={handleDecline} 
             disabled={processing}
             className="w-full"
           >
