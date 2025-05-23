@@ -1,7 +1,9 @@
 
 import { PendingInvitationsList } from './PendingInvitationsList';
+import { InvitationCard } from './InvitationCard';
 import { Button } from '../ui/button';
 import { RefreshCw } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TeamInvitationsListProps {
   invitations: any[];
@@ -22,6 +24,16 @@ export function TeamInvitationsList({
   teamId,
   onRefresh
 }: TeamInvitationsListProps) {
+  const isMobile = useIsMobile();
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -40,13 +52,35 @@ export function TeamInvitationsList({
         )}
       </div>
       
-      <PendingInvitationsList
-        invitations={invitations}
-        onResendInvite={onResend}
-        onCancelInvite={onCancel}
-        isLoading={isLoading}
-        isViewOnly={isViewOnly}
-      />
+      {/* Mobile card layout */}
+      {isMobile ? (
+        <div className="space-y-3">
+          {invitations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No pending invitations.
+            </div>
+          ) : (
+            invitations.map((invitation) => (
+              <InvitationCard
+                key={invitation.id}
+                invitation={invitation}
+                onResend={onResend}
+                onCancel={onCancel}
+                isViewOnly={isViewOnly}
+              />
+            ))
+          )}
+        </div>
+      ) : (
+        /* Desktop table layout (existing) */
+        <PendingInvitationsList
+          invitations={invitations}
+          onResendInvite={onResend}
+          onCancelInvite={onCancel}
+          isLoading={isLoading}
+          isViewOnly={isViewOnly}
+        />
+      )}
     </div>
   );
 }

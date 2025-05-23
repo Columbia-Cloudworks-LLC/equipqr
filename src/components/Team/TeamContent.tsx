@@ -9,6 +9,7 @@ import { EmptyTeamState } from "./EmptyTeamState";
 import { TeamMembersList } from "./TeamMembersList";
 import { TeamInvitationsList } from "./TeamInvitationsList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TeamContentProps {
   selectedTeamId: string;
@@ -71,6 +72,7 @@ export function TeamContent({
   onFetchPendingInvitations,
   getTeamEquipmentCount
 }: TeamContentProps) {
+  const isMobile = useIsMobile();
 
   // Find the current team in the teams list
   const selectedTeam = teams.find(team => team.id === selectedTeamId);
@@ -115,15 +117,27 @@ export function TeamContent({
   return (
     <div className="mt-4">
       <Tabs defaultValue="members">
-        <TabsList>
-          <TabsTrigger value="members">Members</TabsTrigger>
-          <TabsTrigger value="invitations" disabled={!canManageTeam}>
-            Invitations {hasInvitations ? `(${pendingInvitations.length})` : ''}
+        <TabsList className={`${isMobile ? 'w-full' : ''}`}>
+          <TabsTrigger value="members" className={`${isMobile ? 'flex-1' : ''}`}>
+            Members
           </TabsTrigger>
-          <TabsTrigger value="settings" disabled={!canManageTeam}>Settings</TabsTrigger>
+          <TabsTrigger 
+            value="invitations" 
+            disabled={!canManageTeam}
+            className={`${isMobile ? 'flex-1' : ''}`}
+          >
+            {isMobile ? 'Invites' : 'Invitations'} {hasInvitations ? `(${pendingInvitations.length})` : ''}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="settings" 
+            disabled={!canManageTeam}
+            className={`${isMobile ? 'flex-1' : ''}`}
+          >
+            Settings
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="members">
+        <TabsContent value="members" className={`${isMobile ? 'px-0' : ''}`}>
           <TeamMembers
             teamId={selectedTeamId}
             teamName={selectedTeam?.name || 'Unknown Team'}
@@ -154,7 +168,7 @@ export function TeamContent({
           </TeamMembers>
         </TabsContent>
         
-        <TabsContent value="invitations">
+        <TabsContent value="invitations" className={`${isMobile ? 'px-0' : ''}`}>
           <TeamInvitationsList 
             invitations={pendingInvitations}
             teamId={selectedTeamId}
@@ -166,7 +180,7 @@ export function TeamContent({
           />
         </TabsContent>
         
-        <TabsContent value="settings">
+        <TabsContent value="settings" className={`${isMobile ? 'px-0' : ''}`}>
           <TeamSettings 
             team={selectedTeam}
             isUpdating={isUpdatingTeam}
