@@ -16,7 +16,7 @@ export function Layout({ children }: LayoutProps) {
   
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className="flex h-screen w-full bg-background">
+      <div className={`flex w-full bg-background ${isMobile ? 'min-h-screen flex-col' : 'h-screen'}`}>
         {/* AppSidebar will now be part of the flex layout on desktop */}
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -24,7 +24,8 @@ export function Layout({ children }: LayoutProps) {
           <main className={`flex-1 p-2 md:p-4 ${isMobile ? '' : 'overflow-auto'}`}>
             {children}
           </main>
-          <footer className="border-t py-2 px-4 text-xs text-center text-muted-foreground bg-background/80">
+          {/* Footer positioning adjusted for mobile */}
+          <footer className={`border-t py-2 px-4 text-xs text-center text-muted-foreground bg-background/80 ${isMobile ? 'mt-auto' : ''}`}>
             <div className="flex justify-center gap-4">
               <Link to="/terms" className="hover:text-primary hover:underline">Terms of Service</Link>
               <Link to="/privacy" className="hover:text-primary hover:underline">Privacy Policy</Link>
