@@ -9,7 +9,7 @@ interface SessionHandlerProps {
   waitingForAuth: boolean;
   setWaitingForAuth: (waiting: boolean) => void;
   sessionCheckAttempt: number;
-  setSessionCheckAttempt: (attempt: number) => void;
+  setSessionCheckAttempt: React.Dispatch<React.SetStateAction<number>>;
   setAuthVerified: (verified: boolean) => void;
 }
 
@@ -42,7 +42,7 @@ export function SessionHandler({
       
       const checkSessionTimeout = setTimeout(async () => {
         const { data } = await supabase.auth.getSession();
-        setSessionCheckAttempt((prev: number) => prev + 1); // Fixed type here
+        setSessionCheckAttempt(prev => prev + 1); // Fixed: Using proper setState callback syntax
         
         if (data.session) {
           console.log('Session detected - can proceed with invitation');

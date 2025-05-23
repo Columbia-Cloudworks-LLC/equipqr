@@ -66,14 +66,14 @@ export default function MyInvitations() {
                 
                 <OrganizationInvitationsCard
                   invitations={orgInvitations}
-                  onAccept={handleAcceptInvitation}
-                  onDecline={() => handleResetAndRefresh()}
+                  onAccept={() => Promise.resolve(handleAcceptInvitation())}
+                  onDecline={() => Promise.resolve(handleResetAndRefresh())}
                 />
                 
                 <TeamInvitationsCard
                   invitations={teamInvitations}
-                  onAccept={handleAcceptInvitation}
-                  onDecline={() => handleResetAndRefresh()}
+                  onAccept={() => Promise.resolve(handleAcceptInvitation())}
+                  onDecline={() => Promise.resolve(handleResetAndRefresh())}
                 />
               </div>
             ) : (
