@@ -5,9 +5,10 @@ import { AddNoteForm } from './AddNoteForm';
 import { EditNoteDialog } from './EditNoteDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Info } from 'lucide-react';
+import { Info, AlertCircle } from 'lucide-react';
 import { useWorkNotes } from './useWorkNotes';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface WorkNotesProps {
   equipmentId: string;
@@ -19,16 +20,16 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
   const { 
     workNotes, 
     isLoading, 
-    error, 
-    addNote, 
-    editNote,
-    deleteNote,
+    error,
+    isError,
     refetchNotes,
     createMutation,
     editingNote,
     setEditingNote,
     updateNote,
     handleHoursWorkedChange,
+    deleteNote,
+    addNote,
     canEdit,
     canCreate,
     isNoteEditable
@@ -47,9 +48,7 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
   // Handle work notes data fetching error
   useEffect(() => {
     if (error) {
-      toast.error('Failed to load work notes', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred'
-      });
+      console.error('Work notes error:', error);
     }
   }, [error]);
 
@@ -79,6 +78,24 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
         </Alert>
       )}
       
+      {isError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error loading work notes</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2">
+            <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="self-start"
+              onClick={() => refetchNotes()}
+            >
+              Try Again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {canCreate && (
         <AddNoteForm 
           onAddNote={addNote} 
@@ -98,7 +115,7 @@ export function WorkNotes({ equipmentId }: WorkNotesProps) {
         notes={workNotes} 
         isLoading={isLoading} 
         canManage={canEdit || false} 
-        onEditNote={editNote}
+        onEditNote={setEditingNote}
         onDeleteNote={deleteNote}
         isNoteEditable={isNoteEditable}
       />

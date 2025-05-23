@@ -20,7 +20,10 @@ export function useWorkNotesMutations(equipmentId: string) {
       toast.success('Work note added successfully');
     },
     onError: (error: any) => {
-      toast.error('Failed to add work note', { description: error.message });
+      console.error('Failed to add work note:', error);
+      toast.error('Failed to add work note', { 
+        description: error.message || 'Please try again or contact support'
+      });
     }
   });
   
@@ -33,7 +36,10 @@ export function useWorkNotesMutations(equipmentId: string) {
       toast.success('Work note updated successfully');
     },
     onError: (error: any) => {
-      toast.error('Failed to update work note', { description: error.message });
+      console.error('Failed to update work note:', error);
+      toast.error('Failed to update work note', { 
+        description: error.message || 'Please try again or contact support'
+      });
     }
   });
   
@@ -45,13 +51,28 @@ export function useWorkNotesMutations(equipmentId: string) {
       toast.success('Work note deleted successfully');
     },
     onError: (error: any) => {
-      toast.error('Failed to delete work note', { description: error.message });
+      console.error('Failed to delete work note:', error);
+      toast.error('Failed to delete work note', { 
+        description: error.message || 'Please try again or contact support'
+      });
     }
   });
   
   // Handle adding a new work note
   const handleAddNote = (note: string, isPublic: boolean, hoursWorked: string) => {
     const hours = hoursWorked ? parseFloat(hoursWorked) : null;
+    
+    // Validation
+    if (!note.trim()) {
+      toast.error('Note content is required');
+      return;
+    }
+    
+    // Ensure hours is a valid number
+    if (hoursWorked && isNaN(parseFloat(hoursWorked))) {
+      toast.error('Hours worked must be a valid number');
+      return;
+    }
     
     createMutation.mutate({
       equipment_id: equipmentId,

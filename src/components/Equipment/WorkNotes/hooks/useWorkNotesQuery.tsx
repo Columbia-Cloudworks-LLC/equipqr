@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getWorkNotes, WorkNote } from '@/services/workNotes';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 // Organization type for filtering
 export interface Organization {
@@ -18,14 +19,20 @@ export function useWorkNotesQuery(equipmentId: string) {
     data: workNotes = [], 
     isLoading, 
     error,
-    refetch: refetchNotes 
+    refetch: refetchNotes,
+    isError
   } = useQuery({
     queryKey: ['workNotes', equipmentId],
     queryFn: () => getWorkNotes(equipmentId),
     staleTime: 60000, // Consider data fresh for 1 minute
+    retry: 3, // Retry 3 times before considering it failed
+    retryDelay: (attempt) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30000), // Exponential backoff with a 30s max
     meta: {
       onError: (err: Error) => {
         console.error('Error fetching work notes:', err);
+        toast.error('Failed to load work notes', {
+          description: err.message || 'An unknown error occurred'
+        });
       }
     }
   });
@@ -60,6 +67,7 @@ export function useWorkNotesQuery(equipmentId: string) {
     organizations,
     isLoading,
     error,
+    isError,
     refetchNotes
   };
 }

@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { WorkNote } from './types';
+import { retry } from '@/utils/edgeFunctions/retry';
 
 /**
  * Fetch work notes for a specific piece of equipment
@@ -60,27 +61,35 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       isTechnician = ['technician', 'manager', 'admin', 'owner'].includes(role);
     }
     
-    // Get all notes with user details and edit history
-    const { data: notes, error } = await supabase
-      .from('equipment_work_notes')
-      .select(`
-        *,
-        creator:created_by (
-          display_name
-        ),
-        editor:edited_by (
-          display_name
-        )
-      `)
-      .eq('equipment_id', equipmentId)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+    // Use retry logic for the critical query
+    const fetchNotes = async () => {
+      // Use explicit join paths to avoid relying on implicit foreign keys
+      const { data: notes, error } = await supabase
+        .from('equipment_work_notes')
+        .select(`
+          *,
+          creator:created_by (
+            display_name
+          ),
+          editor:edited_by (
+            display_name
+          )
+        `)
+        .eq('equipment_id', equipmentId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching work notes:', error);
+        throw error;
+      }
+      
+      return notes || [];
+    };
     
-    if (error) {
-      console.error('Error fetching work notes:', error);
-      throw error;
-    }
-
+    // Try to fetch with retry logic (3 attempts with exponential backoff)
+    const notes = await retry(() => fetchNotes(), 3, 1000);
+    
     // Filter notes based on access level
     return notes.map(note => {
       // Enrich note with additional context
@@ -102,7 +111,15 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
     });
   } catch (error: any) {
     console.error('Error in getWorkNotes:', error);
-    throw new Error(`Failed to fetch work notes: ${error.message}`);
+    
+    // Provide more detailed error message
+    if (error.message?.includes('JoinForeignKeyError')) {
+      throw new Error('Failed to fetch work notes: Database relation error. Please contact support.');
+    } else if (error.message?.includes('permission denied')) {
+      throw new Error('You do not have permission to view these work notes');
+    } else {
+      throw new Error(`Failed to fetch work notes: ${error.message}`);
+    }
   }
 }
 

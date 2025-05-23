@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { WorkNote } from './types';
 import { toast } from 'sonner';
+import { retry } from '@/utils/edgeFunctions/retry';
 
 /**
  * Create a new work note for a piece of equipment
@@ -20,27 +21,45 @@ export async function createWorkNote(
       throw new Error('You must be logged in to create work notes');
     }
     
-    const { data, error } = await supabase
-      .from('equipment_work_notes')
-      .insert({
-        equipment_id: equipmentId,
-        note,
-        created_by: userId,
-        is_public: isPublic,
-        hours_worked: hoursWorked
-      })
-      .select('*')
-      .single();
+    // Create the work note with retry logic
+    const createNote = async () => {
+      const { data, error } = await supabase
+        .from('equipment_work_notes')
+        .insert({
+          equipment_id: equipmentId,
+          note,
+          created_by: userId,
+          is_public: isPublic,
+          hours_worked: hoursWorked
+        })
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('Error creating work note:', error);
+        throw error;
+      }
+      
+      return data;
+    };
     
-    if (error) {
-      console.error('Error creating work note:', error);
-      throw error;
-    }
-    
-    return data;
+    // Use retry for network resilience
+    return await retry(() => createNote(), 2, 1000);
   } catch (error) {
     console.error('Error in createWorkNote:', error);
-    throw new Error(`Failed to create work note: ${error.message}`);
+    
+    // Enhanced error messages based on error type
+    if (error instanceof Error) {
+      if (error.message.includes('foreign key constraint')) {
+        throw new Error('Failed to create work note: Database constraint error');
+      } else if (error.message.includes('permission denied')) {
+        throw new Error('You do not have permission to create work notes for this equipment');
+      } else {
+        throw new Error(`Failed to create work note: ${error.message}`);
+      }
+    } else {
+      throw new Error('Failed to create work note: Unknown error');
+    }
   }
 }
 
@@ -83,22 +102,27 @@ export async function updateWorkNote(
       edited_by: userId
     };
     
-    const { data, error } = await supabase
-      .from('equipment_work_notes')
-      .update(safeUpdates)
-      .eq('id', noteId)
-      .select('*')
-      .single();
+    // Update with retry logic
+    const updateNote = async () => {
+      const { data, error } = await supabase
+        .from('equipment_work_notes')
+        .update(safeUpdates)
+        .eq('id', noteId)
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('Error updating work note:', error);
+        throw error;
+      }
+      
+      return data;
+    };
     
-    if (error) {
-      console.error('Error updating work note:', error);
-      throw error;
-    }
-    
-    return data;
+    return await retry(() => updateNote(), 2, 1000);
   } catch (error) {
     console.error('Error in updateWorkNote:', error);
-    throw new Error(`Failed to update work note: ${error.message}`);
+    throw new Error(`Failed to update work note: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -131,17 +155,22 @@ export async function deleteWorkNote(noteId: string): Promise<void> {
       throw new Error('You can only delete your own work notes');
     }
     
-    const { error } = await supabase
-      .from('equipment_work_notes')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', noteId);
+    // Delete with retry logic
+    const deleteNote = async () => {
+      const { error } = await supabase
+        .from('equipment_work_notes')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', noteId);
+      
+      if (error) {
+        console.error('Error deleting work note:', error);
+        throw error;
+      }
+    };
     
-    if (error) {
-      console.error('Error deleting work note:', error);
-      throw error;
-    }
+    await retry(() => deleteNote(), 2, 1000);
   } catch (error) {
     console.error('Error in deleteWorkNote:', error);
-    throw new Error(`Failed to delete work note: ${error.message}`);
+    throw new Error(`Failed to delete work note: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
