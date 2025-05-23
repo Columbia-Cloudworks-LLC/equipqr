@@ -48,6 +48,12 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
       setError(null);
       
       console.log("OrganizationContext: Fetching organizations...");
+      
+      if (!user) {
+        console.log('OrganizationContext: No user, skipping org fetch');
+        return [];
+      }
+      
       // Always force refresh when explicitly called
       const orgs = await getAllUserOrganizations(true);
       
@@ -111,10 +117,15 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     }
   };
 
-  // Load organizations on mount and when refreshCounter changes
+  // Load organizations when user changes or refresh is triggered
   useEffect(() => {
     if (user) {
       fetchOrganizations();
+    } else {
+      // Reset state when user is not available
+      setOrganizations([]);
+      setSelectedOrganization(null);
+      setDefaultOrganizationId(null);
     }
   }, [refreshCounter, user]);
 

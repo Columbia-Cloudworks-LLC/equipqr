@@ -18,17 +18,28 @@ export function useDashboardData(orgId?: string) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isTeamsLoading, setIsTeamsLoading] = useState<boolean>(true);
   const [isEquipmentLoading, setIsEquipmentLoading] = useState<boolean>(true);
+  const [isOrgReady, setIsOrgReady] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isTeamsError, setIsTeamsError] = useState<boolean>(false);
   const [isEquipmentError, setIsEquipmentError] = useState<boolean>(false);
+  
   const { user } = useAuth();
-  const { selectedOrganization } = useOrganization();
+  const { selectedOrganization, isLoading: isOrgLoading } = useOrganization();
 
   // Filter by provided org ID or selected organization
   const effectiveOrgId = orgId || selectedOrganization?.id;
 
+  useEffect(() => {
+    // Set organization ready state when organization data is loaded and an organization is selected
+    if (!isOrgLoading && selectedOrganization) {
+      setIsOrgReady(true);
+    } else {
+      setIsOrgReady(false);
+    }
+  }, [isOrgLoading, selectedOrganization]);
+
   const fetchTeams = useCallback(async () => {
-    if (!user) return;
+    if (!user || !effectiveOrgId) return;
     
     setIsTeamsLoading(true);
     setIsTeamsError(false);
@@ -36,9 +47,9 @@ export function useDashboardData(orgId?: string) {
     try {
       // Fetch teams
       const teamsData = await getTeams();
-      const filteredTeams = effectiveOrgId
-        ? teamsData.filter((team) => team.org_id === effectiveOrgId)
-        : teamsData;
+      
+      // IMPORTANT: Only process teams for the specified organization
+      const filteredTeams = teamsData.filter((team) => team.org_id === effectiveOrgId);
       
       setTeams(filteredTeams);
       setTeamCount(filteredTeams.length);
@@ -54,24 +65,22 @@ export function useDashboardData(orgId?: string) {
   }, [user, effectiveOrgId]);
 
   const fetchEquipment = useCallback(async () => {
-    if (!user) return;
+    if (!user || !effectiveOrgId) return;
     
     setIsEquipmentLoading(true);
     setIsEquipmentError(false);
     
     try {
-      // Fetch equipment with organization filter if provided
-      let query = supabase.from('equipment').select(`
+      // Fetch equipment with mandatory organization filter
+      const query = supabase.from('equipment').select(`
         *,
         org:org_id (name),
         team:team_id (name, org_id)
-      `);
+      `)
+      .eq('org_id', effectiveOrgId)
+      .is('deleted_at', null);
       
-      if (effectiveOrgId) {
-        query = query.eq('org_id', effectiveOrgId);
-      }
-      
-      const { data, error } = await query.is('deleted_at', null);
+      const { data, error } = await query;
       
       if (error) throw error;
       
@@ -149,10 +158,16 @@ export function useDashboardData(orgId?: string) {
       }
     };
 
-    if (user) {
+    // Only fetch data when user is authenticated AND organization is ready
+    // This prevents showing unfiltered data during the authentication/org selection process
+    if (user && isOrgReady && effectiveOrgId) {
+      console.log(`Dashboard: fetching data for org ${effectiveOrgId}`);
       fetchData();
+    } else if (!effectiveOrgId && user) {
+      console.log('Dashboard: waiting for organization selection');
+      setIsLoading(true);
     }
-  }, [user, effectiveOrgId, fetchTeams, fetchEquipment, fetchInvitations]);
+  }, [user, isOrgReady, effectiveOrgId, fetchTeams, fetchEquipment, fetchInvitations]);
 
   return {
     teamCount,
@@ -164,6 +179,7 @@ export function useDashboardData(orgId?: string) {
     isLoading,
     isTeamsLoading,
     isEquipmentLoading,
+    isOrgReady,
     error,
     isTeamsError,
     isEquipmentError,

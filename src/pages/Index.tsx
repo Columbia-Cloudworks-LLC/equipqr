@@ -14,6 +14,7 @@ import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Prevent rapid refreshes of dashboard data
 const REFRESH_THROTTLE_MS = 10000; // 10 seconds
@@ -27,7 +28,8 @@ const Index = () => {
     selectedOrganization, 
     selectOrganization, 
     defaultOrganizationId,
-    setDefaultOrganization
+    setDefaultOrganization,
+    isLoading: isOrgLoading
   } = useOrganization();
   
   const { 
@@ -39,12 +41,15 @@ const Index = () => {
     isTeamsLoading,
     isEquipmentError,
     isTeamsError,
+    isOrgReady,
     invitations,
     equipment,
     refetchTeams,
-    refetchEquipment
+    refetchEquipment,
+    isLoading: isDashboardLoading
   } = useDashboardData(selectedOrganization?.id);
 
+  // Only calculate stats when data is loaded and organization is ready
   const stats: DashboardStat[] = [
     {
       label: 'Total Equipment',
@@ -107,6 +112,9 @@ const Index = () => {
   };
 
   const showOrgSelector = organizations.length > 1;
+  
+  // Show appropriate loading state when organization data is loading
+  const isLoading = isOrgLoading || isDashboardLoading || !isOrgReady;
 
   return (
     <Layout>
@@ -133,7 +141,7 @@ const Index = () => {
                 variant="outline" 
                 size="icon" 
                 onClick={refreshDashboardData} 
-                disabled={isRefreshing}
+                disabled={isRefreshing || isLoading}
                 title="Refresh dashboard data"
               >
                 <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -149,18 +157,34 @@ const Index = () => {
           </div>
         </div>
 
-        <DashboardStats stats={stats} />
+        {isLoading ? (
+          // Skeleton loading state for dashboard stats
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="p-4 border rounded-lg shadow-sm">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                </div>
+                <Skeleton className="h-8 w-16 mt-2" />
+                <Skeleton className="h-3 w-20 mt-2" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <DashboardStats stats={stats} />
+        )}
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <RecentEquipmentSection 
             recentEquipment={recentEquipment}
-            isLoading={isEquipmentLoading}
+            isLoading={isEquipmentLoading || !isOrgReady}
             isError={isEquipmentError}
           />
           
           <TeamsSection
             teams={teams}
-            isLoading={isTeamsLoading} 
+            isLoading={isTeamsLoading || !isOrgReady}
             isError={isTeamsError}
             onRefresh={refetchTeams}
           />

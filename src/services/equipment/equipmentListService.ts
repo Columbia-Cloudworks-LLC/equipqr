@@ -15,13 +15,19 @@ import { getEquipmentDirectQuery } from "./queries/directQueries";
  */
 export async function getEquipment(orgId?: string): Promise<Equipment[]> {
   try {
+    // If no orgId is provided, return empty array to prevent unfiltered data fetch
+    if (!orgId) {
+      console.warn('getEquipment called without an organization ID - returning empty array');
+      return [];
+    }
+    
     const userId = await getCurrentUserId();
     console.log('Authenticated user ID:', userId);
     
     // Always invalidate cache for now to ensure we get fresh data
     invalidateEquipmentCache(userId, orgId);
     
-    // Fetch equipment data
+    // Fetch equipment data with mandatory organization filtering
     return await fetchEquipment(userId, orgId);
   } catch (error) {
     console.error('Error in getEquipment:', error);
@@ -31,7 +37,7 @@ export async function getEquipment(orgId?: string): Promise<Equipment[]> {
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id;
       
-      if (userId) {
+      if (userId && orgId) {
         console.log('Trying direct query as fallback');
         return await getEquipmentDirectQuery(userId, orgId);
       }
@@ -49,6 +55,12 @@ export async function getEquipment(orgId?: string): Promise<Equipment[]> {
  */
 export async function refreshEquipment(orgId?: string): Promise<Equipment[]> {
   try {
+    // If no orgId is provided, return empty array to prevent unfiltered data fetch
+    if (!orgId) {
+      console.warn('refreshEquipment called without an organization ID - returning empty array');
+      return [];
+    }
+    
     // Get current user ID
     const userId = await getCurrentUserId();
     
@@ -72,8 +84,8 @@ export async function refreshEquipment(orgId?: string): Promise<Equipment[]> {
       console.error('Authentication issue refreshing equipment data');
     }
     
-    // Rethrow to allow the component to handle the error
-    throw error;
+    // Return empty array instead of throwing to provide graceful degradation
+    return [];
   }
 }
 
@@ -112,8 +124,17 @@ export async function diagnoseEquipmentService(): Promise<{ status: string, auth
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData?.session?.user) {
-        await getEquipmentDirectQuery(sessionData.session.user.id);
-        directQueryWorks = true;
+        // Get user's organization first to avoid unfiltered query
+        const { data: userProfile } = await supabase
+          .from('user_profiles')
+          .select('org_id')
+          .eq('id', sessionData.session.user.id)
+          .single();
+          
+        if (userProfile?.org_id) {
+          await getEquipmentDirectQuery(sessionData.session.user.id, userProfile.org_id);
+          directQueryWorks = true;
+        }
       }
     } catch (e) {
       console.error('Direct query test failed:', e);
