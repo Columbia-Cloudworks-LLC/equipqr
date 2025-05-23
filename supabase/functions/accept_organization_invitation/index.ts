@@ -123,7 +123,7 @@ serve(async (req) => {
         .from('organization_invitations')
         .select('id, org_id, role, email, expires_at, organization:org_id(id, name)')
         .eq('token', invitationToken)
-        .or('status.eq.sent,status.eq.pending')
+        .or('status.in.(sent,pending)')
         .maybeSingle();
         
       if (inviteQueryError) {

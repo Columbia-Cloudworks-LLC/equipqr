@@ -57,7 +57,7 @@ export async function validateOrganizationInvitation(token: string): Promise<Val
       .from('organization_invitations')
       .select('*, organization:org_id(name)')
       .eq('token', sanitizedToken)
-      .or('organization_invitations.status.eq.sent,organization_invitations.status.eq.pending')
+      .or('status.eq.sent,status.eq.pending')
       .single();
       
     if (error || !data) {

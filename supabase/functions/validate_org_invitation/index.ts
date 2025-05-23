@@ -89,7 +89,7 @@ serve(async (req) => {
       .from('organization_invitations')
       .select('*, organization:org_id(name)')
       .eq('token', token)
-      .or('organization_invitations.status.eq.sent,organization_invitations.status.eq.pending')
+      .or('status.in.(sent,pending)')
       .maybeSingle();
     
     if (error) {
