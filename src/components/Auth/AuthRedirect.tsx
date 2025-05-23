@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthRecovery } from './AuthRecovery';
 import { AuthLoadingState } from './AuthLoadingState';
+import { completeAuthVerification } from '@/utils/auth/sessionVerification';
 
 /**
  * Component to handle authentication redirects
@@ -14,14 +15,14 @@ import { AuthLoadingState } from './AuthLoadingState';
 export function AuthRedirect() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, session, isLoading, checkSession, repairSession } = useAuth();
+  const { user, session, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
-  const [isRepairing, setIsRepairing] = useState(false);
-  const [repairAttempts, setRepairAttempts] = useState(0);
-  const [authStatus, setAuthStatus] = useState<'processing' | 'success' | 'error'>('processing');
+  const [verificationAttempt, setVerificationAttempt] = useState(0);
+  const [authStatus, setAuthStatus] = useState<'processing' | 'verifying' | 'repairing' | 'success' | 'error'>('processing');
   const [showLoading, setShowLoading] = useState(false);
+  const [verificationStep, setVerificationStep] = useState<string | undefined>();
   
   // Get returnTo path from location state or localStorage
   const state = location.state as { 
@@ -40,59 +41,54 @@ export function AuthRedirect() {
     // Show loading state after a short delay
     // This prevents flashing for fast auth processes
     const timer = setTimeout(() => {
-      if (isLoading || isRepairing) {
+      if (isLoading || authStatus !== 'success') {
         setShowLoading(true);
       }
     }, 300);
     
     return () => clearTimeout(timer);
-  }, [isLoading, isRepairing]);
+  }, [isLoading, authStatus]);
   
   useEffect(() => {
     // Helper to handle a successful authentication
     const handleAuthenticated = async () => {
-      console.log(`User is authenticated, redirecting to ${returnPath}`);
-      setAuthStatus('processing');
+      console.log(`User is authenticated, verifying session before redirecting to ${returnPath}`);
+      setAuthStatus('verifying');
+      setVerificationStep('Testing API access with current session');
       
       try {
         // Show loading state since we're processing post-auth steps
         setShowLoading(true);
         
-        // Validate session before redirecting
-        const isValidSession = await checkSession();
+        // Use enhanced verification with API call test
+        const isValidSession = await completeAuthVerification(false);
         
         if (!isValidSession) {
-          console.error('Session validation failed in AuthRedirect');
+          console.error('Session API verification failed in AuthRedirect');
           
-          // If we've already attempted repair, show recovery UI
-          if (repairAttempts > 0) {
-            setRecoveryError('Authentication session could not be validated even after repair attempts');
+          // Increment attempt counter and try repairing
+          setVerificationAttempt(prev => prev + 1);
+          
+          if (verificationAttempt >= 3) {
+            // After 3 attempts, show recovery UI
+            setRecoveryError('Session could not be verified after multiple attempts');
             setShowRecovery(true);
             setAuthStatus('error');
             return;
           }
           
           // Try to repair session
-          setIsRepairing(true);
-          setRepairAttempts(prev => prev + 1);
+          setAuthStatus('repairing');
+          setVerificationStep('Attempting to repair authentication tokens');
           
-          const repaired = await repairSession();
+          const repaired = await completeAuthVerification(true);
           if (repaired) {
-            toast.info('Authentication storage was repaired, checking session again');
-            // Re-check session after repair
-            const isValidAfterRepair = await checkSession();
-            if (!isValidAfterRepair) {
-              // Still not valid after repair
-              setRecoveryError('Session remains invalid after storage repair');
-              setShowRecovery(true);
-              setAuthStatus('error');
-              return;
-            }
-          } else {
-            // No repairs made
-            toast.error('Session Error', {
-              description: 'There was an issue with your authentication. Please try signing in again.'
+            toast.success('Authentication restored', {
+              description: 'Your session has been repaired and is now valid'
             });
+          } else {
+            // Still not valid after repair
+            setRecoveryError('Session remains invalid after repair attempts');
             setShowRecovery(true);
             setAuthStatus('error');
             return;
@@ -132,15 +128,13 @@ export function AuthRedirect() {
         setRecoveryError('Failed to complete sign-in process due to a technical error');
         setShowRecovery(true);
         setAuthStatus('error');
-      } finally {
-        setIsRepairing(false);
       }
     };
     
     // Only proceed after auth state is determined
     if (!isLoading) {
       if (session) {
-        // User is authenticated, redirect them
+        // User is authenticated, verify session before redirecting
         handleAuthenticated();
       } else if (message) {
         // Show the message for unauthenticated users
@@ -151,18 +145,17 @@ export function AuthRedirect() {
     }
   }, [
     session, isLoading, navigate, returnPath, message, 
-    checkSession, queryClient, repairAttempts, invitationPath,
-    repairSession
+    queryClient, invitationPath, verificationAttempt
   ]);
 
   // Handle retry from recovery component
   const handleRetry = async () => {
     setShowRecovery(false);
-    setRepairAttempts(prev => prev + 1);
+    setVerificationAttempt(0);
     setAuthStatus('processing');
     
-    // Force refresh auth state
-    await checkSession();
+    // Force refresh auth state by reloading the page
+    window.location.href = '/auth';
   };
   
   // If showing recovery UI
@@ -185,10 +178,16 @@ export function AuthRedirect() {
         message={
           authStatus === 'processing' 
             ? 'Setting up your account and checking invitations...' 
-            : 'Sign in successful! Redirecting you now...'
+            : authStatus === 'verifying'
+              ? 'Verifying your authentication with the server...'
+              : authStatus === 'repairing'
+                ? 'Repairing authentication tokens...'
+                : 'Sign in successful! Redirecting you now...'
         }
         userEmail={user?.email}
         errorMessage={recoveryError || undefined}
+        verificationStep={verificationStep}
+        verificationAttempt={verificationAttempt + 1}
       />
     );
   }

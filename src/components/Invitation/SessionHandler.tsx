@@ -1,11 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { sessionManager } from '@/services/auth/SessionManager';
 import { debounce } from '@/utils/edgeFunctions/retry';
 import { validateSessionForInvitation } from '@/services/invitation/tokenUtils';
 import { toast } from 'sonner';
+import { completeAuthVerification } from '@/utils/auth/sessionVerification';
 
 interface SessionHandlerProps {
   token: string | undefined;
@@ -20,7 +19,8 @@ interface SessionHandlerProps {
 
 // Create a debounced session check function
 const debouncedSessionCheck = debounce(async () => {
-  return await sessionManager.checkSession();
+  // Use our enhanced verification that tests with an actual API call
+  return await completeAuthVerification(true);
 }, 1000);
 
 export function SessionHandler({
@@ -36,6 +36,7 @@ export function SessionHandler({
   const { user, isLoading: authLoading } = useAuth();
   const [checkingSession, setCheckingSession] = useState(false);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const [sessionVerified, setSessionVerified] = useState(false);
 
   // Save invitation details to session storage when not authenticated
   useEffect(() => {
@@ -53,39 +54,36 @@ export function SessionHandler({
   useEffect(() => {
     const performInitialCheck = async () => {
       if (!initialCheckDone && !authLoading) {
-        console.log('Performing initial session check');
+        console.log('Performing initial session check with API call verification');
         try {
           setCheckingSession(true);
           
-          // First check if we have a valid session using the more reliable validator
-          const isValid = await validateSessionForInvitation();
+          // First check if we have a valid session using our enhanced verification
+          const isValid = await completeAuthVerification();
           
-          console.log('Initial session check result:', { isValid, user: !!user });
+          console.log('Initial API-verified session check result:', { isValid, user: !!user });
           
           // If we have both a valid session and user, authentication is verified
           if (isValid && user) {
             console.log('Initial check: User authenticated and session valid');
             setWaitingForAuth(false);
             setAuthVerified(true);
+            setSessionVerified(true);
           } else if (!user) {
             // No user but session might be valid - we're waiting for auth
             console.log('Initial check: No user, waiting for authentication');
             setWaitingForAuth(true);
           } else {
-            // User exists but session might be invalid
-            console.log('Initial check: User exists but session may be invalid');
-            // Try to refresh the session
-            try {
-              const { data } = await supabase.auth.refreshSession();
-              if (data.session) {
-                console.log('Session refreshed successfully');
-                setWaitingForAuth(false);
-                setAuthVerified(true);
-              } else {
-                setWaitingForAuth(true);
-              }
-            } catch (refreshError) {
-              console.error('Error refreshing session:', refreshError);
+            console.log('Initial check: User exists but API verification failed, attempting repair');
+            // Use our repair functionality
+            const repairResult = await completeAuthVerification(true, true);
+            
+            if (repairResult) {
+              console.log('Session repaired successfully');
+              setWaitingForAuth(false);
+              setAuthVerified(true);
+              setSessionVerified(true);
+            } else {
               setWaitingForAuth(true);
             }
           }
@@ -106,25 +104,26 @@ export function SessionHandler({
 
   // Check session validity periodically with exponential backoff when waiting for auth
   useEffect(() => {
-    if (waitingForAuth && sessionCheckAttempt < 5 && !checkingSession && initialCheckDone) {
+    if (waitingForAuth && sessionCheckAttempt < 5 && !checkingSession && initialCheckDone && !sessionVerified) {
       const delay = Math.min(1000 * Math.pow(2, sessionCheckAttempt), 16000); // Exponential backoff with 16s max
-      console.log(`Scheduling session check attempt ${sessionCheckAttempt + 1} in ${delay}ms`);
+      console.log(`Scheduling API-verified session check attempt ${sessionCheckAttempt + 1} in ${delay}ms`);
       
       const checkSessionTimeout = setTimeout(async () => {
         try {
           setCheckingSession(true);
           
-          // Use our improved session validator
-          const isValid = await validateSessionForInvitation();
+          // Use our API-verified session check
+          const isValid = await debouncedSessionCheck();
           setSessionCheckAttempt(prev => prev + 1);
           
           if (isValid) {
-            console.log('Session detected - can proceed with invitation');
+            console.log('Session API verification successful - can proceed with invitation');
             setWaitingForAuth(false);
             setAuthVerified(true);
+            setSessionVerified(true);
           }
         } catch (error) {
-          console.error('Error checking session:', error);
+          console.error('Error checking session with API call:', error);
         } finally {
           setCheckingSession(false);
         }
@@ -132,7 +131,7 @@ export function SessionHandler({
       
       return () => clearTimeout(checkSessionTimeout);
     }
-  }, [waitingForAuth, sessionCheckAttempt, setSessionCheckAttempt, setWaitingForAuth, setAuthVerified, checkingSession, initialCheckDone]);
+  }, [waitingForAuth, sessionCheckAttempt, setSessionCheckAttempt, setWaitingForAuth, setAuthVerified, checkingSession, initialCheckDone, sessionVerified]);
 
   return null;
 }

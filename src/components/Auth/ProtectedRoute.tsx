@@ -4,18 +4,21 @@ import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { AuthRecovery } from "./AuthRecovery";
+import { completeAuthVerification } from "@/utils/auth/sessionVerification";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading, checkSession, resetAuthSystem } = useAuth();
+  const { user, isLoading, resetAuthSystem } = useAuth();
   const [isSessionValid, setIsSessionValid] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [redirectCount, setRedirectCount] = useState(0);
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [isRepairing, setIsRepairing] = useState(false);
+  const [repairAttempts, setRepairAttempts] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,14 +44,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           return;
         }
         
-        // Check if session is valid
-        const isValid = await checkSession();
-        console.log("ProtectedRoute: Session check result:", isValid);
+        // Check if session is valid using enhanced verification
+        console.log("ProtectedRoute: Checking session with API call verification");
+        setIsRepairing(true);
+        const isValid = await completeAuthVerification(true, false);
+        setIsRepairing(false);
+        
+        console.log("ProtectedRoute: Session verification result:", isValid);
         
         setIsSessionValid(isValid);
           
         if (!isValid) {
-          console.warn("ProtectedRoute: Session invalid");
+          console.warn("ProtectedRoute: Session invalid after API verification");
           
           // If redirect count is high, show recovery instead of redirecting again
           if (redirectCount >= 2) {
@@ -58,10 +65,28 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
             return;
           }
           
-          // If session is invalid but we have a user, attempt token reset
+          // If session is invalid but we have a user, attempt full reset
           if (user && !isValid) {
-            console.warn("ProtectedRoute: Session invalid with user present, resetting tokens");
+            console.warn("ProtectedRoute: Session invalid with user present, resetting auth system");
+            setIsRepairing(true);
+            setRepairAttempts(prev => prev + 1);
+            
+            if (repairAttempts < 2) {
+              // Try repairing with our enhanced verification
+              const repaired = await completeAuthVerification(true, true);
+              
+              if (repaired) {
+                console.log("ProtectedRoute: Session successfully repaired");
+                setIsSessionValid(true);
+                setIsChecking(false);
+                setIsRepairing(false);
+                return;
+              }
+            }
+            
+            // If repair failed or too many attempts, reset auth system
             await resetAuthSystem();
+            setIsRepairing(false);
           }
         }
       } catch (err) {
@@ -78,7 +103,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     };
     
     validateSession();
-  }, [user, isLoading, checkSession, redirectCount, resetAuthSystem]);
+  }, [user, isLoading, redirectCount, resetAuthSystem, repairAttempts]);
 
   useEffect(() => {
     if (!isLoading && !isSessionValid && isSessionValid !== null && !isChecking) {
@@ -123,7 +148,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     setIsChecking(true);
     
     // Force refresh the session check
-    const isValid = await checkSession();
+    const isValid = await completeAuthVerification(true, true);
     if (isValid) {
       setIsSessionValid(true);
     } else {
@@ -145,12 +170,15 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // Show loading state when authenticating
-  if (isLoading || isChecking || isSessionValid === null) {
+  if (isLoading || isChecking || isRepairing || isSessionValid === null) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold mb-4">Loading</h2>
+          <h2 className="text-2xl font-semibold mb-4">Verifying Authentication</h2>
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">
+            {isRepairing ? "Repairing session..." : "Checking your login status..."}
+          </p>
         </div>
       </div>
     );
