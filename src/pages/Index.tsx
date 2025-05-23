@@ -9,20 +9,13 @@ import { InvitationAlert } from '@/components/Dashboard/InvitationAlert';
 import { RecentEquipmentSection } from '@/components/Dashboard/RecentEquipmentSection';
 import { TeamsSection } from '@/components/Dashboard/TeamsSection';
 import { QuickLinksCard } from '@/components/Dashboard/QuickLinksCard';
-import { useDashboardData } from '@/hooks/useDashboardData';
-import { useState, useRef } from 'react';
-import { toast } from 'sonner';
+import { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Prevent rapid refreshes of dashboard data
-const REFRESH_THROTTLE_MS = 10000; // 10 seconds
+import { useCombinedDashboardData } from '@/hooks/useCombinedDashboardData';
 
 const Index = () => {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const lastRefreshTime = useRef<number>(0);
-  
   const { 
     organizations, 
     selectedOrganization, 
@@ -44,10 +37,10 @@ const Index = () => {
     isOrgReady,
     invitations,
     equipment,
-    refetchTeams,
-    refetchEquipment,
+    isRefreshing,
+    refetchDashboard,
     isLoading: isDashboardLoading
-  } = useDashboardData(selectedOrganization?.id);
+  } = useCombinedDashboardData(selectedOrganization?.id);
 
   // Only calculate stats when data is loaded and organization is ready
   const stats: DashboardStat[] = [
@@ -75,33 +68,6 @@ const Index = () => {
       icon: Users,
     },
   ];
-
-  // Function to refresh all dashboard data with throttling
-  const refreshDashboardData = async () => {
-    const now = Date.now();
-    
-    // Prevent refreshing too frequently
-    if (now - lastRefreshTime.current < REFRESH_THROTTLE_MS) {
-      toast.info('Please wait a moment before refreshing again');
-      return;
-    }
-    
-    setIsRefreshing(true);
-    lastRefreshTime.current = now;
-    
-    try {
-      await Promise.all([
-        refetchEquipment(),
-        refetchTeams()
-      ]);
-      toast.success('Dashboard data refreshed');
-    } catch (error) {
-      console.error('Failed to refresh dashboard data:', error);
-      toast.error('Failed to refresh dashboard data');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   const handleOrganizationChange = (orgId: string) => {
     selectOrganization(orgId);
@@ -140,7 +106,7 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={refreshDashboardData} 
+                onClick={refetchDashboard} 
                 disabled={isRefreshing || isLoading}
                 title="Refresh dashboard data"
               >
@@ -186,7 +152,7 @@ const Index = () => {
             teams={teams}
             isLoading={isTeamsLoading || !isOrgReady}
             isError={isTeamsError}
-            onRefresh={refetchTeams}
+            onRefresh={refetchDashboard}
           />
           
           <QuickLinksCard />
