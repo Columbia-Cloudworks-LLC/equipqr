@@ -1,14 +1,16 @@
+
+import { TeamSelector } from './TeamSelector';
+import { TeamContent } from './TeamContent';
+import { CreateTeamButton } from './CreateTeamButton';
 import { UserRole } from '@/types/supabase-enums';
-import { TeamSelectorWithCreate } from '@/components/Team/TeamSelectorWithCreate';
-import { TeamContent } from '@/components/Team/TeamContent';
-import { Organization } from '@/types';
 import { Team } from '@/services/team';
+import { Organization } from '@/types';
 
 interface TeamManagementWrapperProps {
   filteredTeams: Team[];
   selectedTeamId: string;
   selectedOrgId?: string;
-  selectedOrganization: Organization | null;
+  selectedOrganization?: Organization | null;
   members: any[];
   pendingInvitations: any[];
   isLoading: boolean;
@@ -26,7 +28,7 @@ interface TeamManagementWrapperProps {
   onSelectTeam: (teamId: string) => void;
   onCreateTeam: (name: string) => Promise<any>;
   onUpdateTeam: (id: string, name: string) => Promise<any>;
-  onDeleteTeam: (teamId: string) => Promise<any>; // Explicitly use Promise<any>
+  onDeleteTeam: (teamId: string) => Promise<any>;
   onInviteMember: (email: string, role: UserRole) => Promise<any>;
   onChangeRole: (userId: string, role: string) => Promise<any>;
   onRemoveMember: (userId: string) => Promise<any>;
@@ -73,32 +75,29 @@ export function TeamManagementWrapper({
   onFetchPendingInvitations,
   getTeamEquipmentCount
 }: TeamManagementWrapperProps) {
-  // Determine if the user can manage teams in the selected organization
-  const canManageTeamsInOrg = selectedOrganization?.role === 'owner' || 
-                             selectedOrganization?.role === 'manager' || 
-                             selectedOrganization?.role === 'admin';
-
-  if (filteredTeams.length === 0) {
-    return (
-      <div className="mt-6 text-center p-6 border border-dashed rounded-lg">
-        <p>No teams available in this organization</p>
-      </div>
-    );
-  }
+  const hasCreatePermission = selectedOrganization?.role === 'owner' || 
+                             selectedOrganization?.role === 'manager' ||
+                             selectedOrganization?.is_primary;
 
   return (
-    <>
-      <TeamSelectorWithCreate 
-        teams={filteredTeams}
-        selectedTeamId={selectedTeamId}
-        onSelectTeam={onSelectTeam}
-        onCreateTeam={onCreateTeam}
-        isCreatingTeam={isCreatingTeam}
-        isChangingOrg={isChangingOrg}
-        showCreateButton={canManageTeamsInOrg}
-      />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <TeamSelector
+          teams={filteredTeams}
+          selectedTeamId={selectedTeamId}
+          onSelectTeam={onSelectTeam}
+          isChangingOrg={isChangingOrg}
+        />
+        
+        {hasCreatePermission && (
+          <CreateTeamButton
+            onCreateTeam={onCreateTeam}
+            isCreatingTeam={isCreatingTeam}
+          />
+        )}
+      </div>
       
-      {selectedTeamId ? (
+      {selectedTeamId && (
         <TeamContent
           selectedTeamId={selectedTeamId}
           members={members}
@@ -129,11 +128,7 @@ export function TeamManagementWrapper({
           onFetchPendingInvitations={onFetchPendingInvitations}
           getTeamEquipmentCount={getTeamEquipmentCount}
         />
-      ) : (
-        <div className="mt-6 text-center p-6 border border-dashed rounded-lg">
-          <p>Select a team from the dropdown above</p>
-        </div>
       )}
-    </>
+    </div>
   );
 }

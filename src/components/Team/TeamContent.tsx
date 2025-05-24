@@ -116,6 +116,7 @@ export function TeamContent({
               teamId={selectedTeamId}
               teamName={teamName}
               members={members}
+              teams={teams}
               isLoading={isLoading}
               currentUserRole={currentUserRole}
               isMember={isMember}
@@ -154,6 +155,7 @@ export function TeamContent({
             teamId={selectedTeamId}
             teamName={teamName}
             members={members}
+            teams={teams}
             isLoading={isLoading}
             currentUserRole={currentUserRole}
             isMember={isMember}

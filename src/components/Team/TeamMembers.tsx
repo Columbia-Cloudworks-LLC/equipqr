@@ -7,11 +7,13 @@ import { ViewerRoleAlert } from './ViewerRoleAlert';
 import { RepairTeamAccess } from './RepairTeamAccess';
 import { MembershipAlert } from './MembershipAlert';
 import { UserPlus } from 'lucide-react';
+import { Team } from '@/services/team';
 
 interface TeamMembersProps {
   teamId: string;
   teamName: string;
   members: any[];
+  teams: Team[];
   isLoading: boolean;
   currentUserRole?: string;
   isMember: boolean;
@@ -32,6 +34,7 @@ export function TeamMembers({
   teamId,
   teamName,
   members,
+  teams,
   isLoading,
   currentUserRole,
   isMember,
@@ -84,6 +87,7 @@ export function TeamMembers({
             <InviteMemberButton 
               onInvite={(email, role) => onInviteMember(email, role as UserRole)}
               teamId={teamId}
+              teams={teams}
             />
           </div>
         )}
