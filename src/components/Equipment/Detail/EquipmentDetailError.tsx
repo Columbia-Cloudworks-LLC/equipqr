@@ -1,15 +1,15 @@
 
 import { ArrowLeft, Info, AlertTriangle, AlertOctagon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface EquipmentDetailErrorProps {
   error: Error | null;
-  onBackClick: () => void;
+  onBackClick: () => string;
 }
 
-export function EquipmentDetailError({ error, onBackClick }: EquipmentDetailErrorProps) {
+export function EquipmentDetailError({ error }: EquipmentDetailErrorProps) {
   const navigate = useNavigate();
   
   // Determine error type to show appropriate message and icon
@@ -39,9 +39,11 @@ export function EquipmentDetailError({ error, onBackClick }: EquipmentDetailErro
   return (
     <div className="flex-1 p-6 space-y-4">
       <div className="flex justify-start">
-        <Button variant="ghost" onClick={onBackClick}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+        <Button variant="ghost" asChild>
+          <Link to="/equipment">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Equipment
+          </Link>
         </Button>
       </div>
       

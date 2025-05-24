@@ -1,21 +1,20 @@
 
 import { ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-interface EquipmentDetailLoadingProps {
-  onBackClick: () => void;
-}
-
-export function EquipmentDetailLoading({ onBackClick }: EquipmentDetailLoadingProps) {
+export function EquipmentDetailLoading() {
   return (
     <div className="flex-1 p-4 sm:p-6 space-y-4">
       <div className="flex justify-start">
-        <Button variant="ghost" onClick={onBackClick}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+        <Button variant="ghost" asChild>
+          <Link to="/equipment">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Equipment
+          </Link>
         </Button>
       </div>
       

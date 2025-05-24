@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout/Layout';
 import { Button } from '@/components/ui/button';
 import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
@@ -14,7 +14,6 @@ import { EquipmentDetailContent } from '@/components/Equipment/Detail/EquipmentD
 
 export default function EquipmentDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const location = useLocation();
   const [canEdit, setCanEdit] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("details");
@@ -66,7 +65,7 @@ export default function EquipmentDetail() {
     }
   }, [equipment, id, scanRecorded, location.search]);
 
-  const handleBackClick = () => navigate(-1);
+  const handleBackClick = () => '/equipment';
 
   if (isLoading) {
     return (
@@ -88,9 +87,11 @@ export default function EquipmentDetail() {
     <Layout>
       <div className="flex-1 p-6 space-y-6">
         <div className="flex justify-start">
-          <Button variant="ghost" onClick={handleBackClick}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+          <Button variant="ghost" asChild>
+            <Link to="/equipment">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Equipment
+            </Link>
           </Button>
         </div>
         
