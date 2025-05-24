@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -53,13 +52,9 @@ export function TeamMemberCard({
 
   // Helper function to get a display name with proper fallback
   const getDisplayName = () => {
-    // Priority: display_name > name > email username > 'Unknown User'
+    // Priority: display_name > email username > 'Unknown User'
     if (member.display_name?.trim()) {
       return member.display_name.trim();
-    }
-    
-    if (member.name?.trim()) {
-      return member.name.trim();
     }
     
     if (member.email?.trim()) {
