@@ -1,11 +1,15 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { createAdminClient } from "./adminClient.ts";
-import { corsHeaders } from "./cors.ts";
 import { fetchUserTeams } from "./services/teamService.ts";
 import { fetchUserEquipment } from "./services/equipmentService.ts";
 import { fetchUserInvitations } from "./services/invitationService.ts";
+
+// CORS headers for cross-origin requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req: Request) => {
   // Handle CORS preflight request
