@@ -13,6 +13,7 @@ import { updateOrganization } from '@/services/organization';
 import { OwnershipTransferSection } from '@/components/Organization/OwnershipTransferSection';
 import { Layout } from '@/components/Layout/Layout';
 import OrganizationMembersManagement from '@/components/Organization/OrganizationMembersManagement';
+import { UserRole } from '@/types/supabase-enums';
 
 export default function OrganizationSettings() {
   const navigate = useNavigate();
@@ -82,8 +83,8 @@ export default function OrganizationSettings() {
     );
   }
   
-  // Determine user role in the organization
-  const userRole = selectedOrganization.role || 'viewer';
+  // Safely cast the role to UserRole, defaulting to 'viewer' if undefined or invalid
+  const userRole: UserRole = (selectedOrganization.role as UserRole) || 'viewer';
   
   return (
     <Layout>
