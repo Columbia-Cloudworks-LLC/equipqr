@@ -37,6 +37,11 @@ export function useTeamFunctionWrappers(
     return handleUpdateTeam(teamId, data.name);
   }, [handleUpdateTeam]);
 
+  // New wrapper for context - takes (id, name) and converts to (id, { name })
+  const handleUpdateTeamContextWrapper = useCallback(async (id: string, name: string) => {
+    return handleUpdateTeam(id, name);
+  }, [handleUpdateTeam]);
+
   const handleDeleteTeamWrapper = useCallback(async (teamId: string) => {
     return handleDeleteTeam(teamId);
   }, [handleDeleteTeam]);
@@ -62,6 +67,7 @@ export function useTeamFunctionWrappers(
     handleRemoveMemberWrapper,
     handleCreateTeamWithOrg,
     handleUpdateTeamWrapper,
+    handleUpdateTeamContextWrapper, // New wrapper for context compatibility
     handleDeleteTeamWrapper,
     handleRepairTeamWrapper,
     handleUpgradeRoleWrapper,

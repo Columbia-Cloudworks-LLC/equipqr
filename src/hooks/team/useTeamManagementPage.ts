@@ -143,7 +143,7 @@ export function useTeamManagementPage(): {
     setSelectedTeamId,
     handleOrganizationChange,
     handleCreateTeam: teamFunctionWrappers.handleCreateTeamWithOrg,
-    handleUpdateTeam: teamFunctionWrappers.handleUpdateTeamWrapper,
+    handleUpdateTeam: teamFunctionWrappers.handleUpdateTeamContextWrapper, // Use the correct wrapper
     handleDeleteTeam: teamFunctionWrappers.handleDeleteTeamWrapper,
     handleInviteMember: teamFunctionWrappers.handleInviteMemberWrapper,
     handleChangeRole: teamFunctionWrappers.handleChangeRoleWrapper,
