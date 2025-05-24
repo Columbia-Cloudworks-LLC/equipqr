@@ -1,3 +1,4 @@
+
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -149,7 +150,7 @@ export function useTeamManagementPage(): {
     handleRemoveMember: teamFunctionWrappers.handleRemoveMemberWrapper,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper, // Fixed: Now uses the zero-parameter wrapper
+    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper, // Fixed: Use the wrapper with zero parameters
     handleUpgradeRole: teamFunctionWrappers.handleUpgradeRoleWrapper,
     handleRequestRoleUpgrade: teamFunctionWrappers.handleRequestRoleUpgradeWrapper,
     refetchTeamMembers,
