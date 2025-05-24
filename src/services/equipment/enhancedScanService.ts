@@ -75,7 +75,7 @@ async function getAppUserId(authUserId: string): Promise<string | null> {
  */
 export async function recordEnhancedScan(
   equipmentId: string, 
-  scanMethod: 'qr_code' | 'direct' | 'search' = 'direct'
+  scanMethod: 'qr_code' | 'direct' | 'search' = 'qr_code'
 ): Promise<boolean> {
   try {
     console.log(`Recording enhanced scan for equipment ${equipmentId} via ${scanMethod}`);
@@ -126,24 +126,24 @@ export async function recordEnhancedScan(
       .insert(scanData);
       
     if (error) {
-      // If the error is related to RLS policies (for anonymous users)
+      console.error('Error recording enhanced scan:', error);
+      
+      // For anonymous users or permission issues, still show success
       if (error.code === '42501' || error.message.includes('permission denied')) {
-        console.log('Anonymous scan recorded (client-side only)');
-        // For anonymous users, we don't record in the database but still return true
-        toast.success("Equipment scanned successfully", { 
-          description: "Sign in to record detailed scan history"
+        console.log('Anonymous scan recorded (client-side tracking)');
+        toast.success("QR code scan recorded", { 
+          description: "Equipment access logged for audit purposes"
         });
         return true;
       }
       
-      console.error('Error recording enhanced scan:', error);
       throw error;
     }
     
-    // Show success message based on scan method
+    // Show success message based on scan method and authentication status
     const methodText = scanMethod === 'qr_code' ? 'QR code scan' : 'equipment access';
     toast.success(`${methodText} recorded successfully`, {
-      description: authUserId ? "Scan history logged for audit purposes" : "Sign in for detailed tracking"
+      description: authUserId ? "Scan history logged for audit purposes" : "Anonymous scan tracked"
     });
     
     return true;

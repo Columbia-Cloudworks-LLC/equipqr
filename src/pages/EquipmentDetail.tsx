@@ -49,16 +49,22 @@ export default function EquipmentDetail() {
     }
   }, [error, equipment]);
 
-  // Record scan when equipment is loaded
+  // Record scan ONLY when coming from QR code
   useEffect(() => {
     if (equipment && id && !scanRecorded) {
-      // Determine scan method based on referrer
-      const scanMethod = location.state?.fromQR ? 'qr_code' : 'direct';
+      // Check URL search params for QR source
+      const urlParams = new URLSearchParams(location.search);
+      const isFromQr = urlParams.get('source') === 'qr';
       
-      recordEnhancedScan(id, scanMethod);
-      setScanRecorded(true);
+      if (isFromQr) {
+        console.log('QR code scan detected, recording scan');
+        recordEnhancedScan(id, 'qr_code');
+        setScanRecorded(true);
+      } else {
+        console.log('Direct access detected, no scan recorded');
+      }
     }
-  }, [equipment, id, scanRecorded, location.state]);
+  }, [equipment, id, scanRecorded, location.search]);
 
   const handleBackClick = () => navigate(-1);
 

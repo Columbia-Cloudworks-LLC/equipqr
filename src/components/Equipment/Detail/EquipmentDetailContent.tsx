@@ -1,3 +1,4 @@
+
 import { Equipment } from '@/types';
 import QRCodeGenerator from '../QRCodeGenerator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +26,11 @@ export function EquipmentDetailContent({
   activeTab,
   setActiveTab
 }: EquipmentDetailContentProps) {
+  // Generate QR URL with source tracking parameter
+  const getQrUrl = () => {
+    return `${window.location.origin}/equipment/${id}?source=qr`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap justify-between items-start gap-2">
@@ -133,7 +139,7 @@ export function EquipmentDetailContent({
                 </CardHeader>
                 <CardContent className="flex justify-center">
                   <QRCodeGenerator
-                    value={`${window.location.origin}/equipment/${id}`}
+                    value={getQrUrl()}
                     equipmentName={equipment.name}
                   />
                 </CardContent>

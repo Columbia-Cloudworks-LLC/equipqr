@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout/Layout';
@@ -35,9 +34,9 @@ export default function EquipmentQR() {
 
   // Generate the full URL for the equipment with QR tracking
   const getEquipmentQrUrl = () => {
-    // Use window.location to dynamically build the URL
+    // Use window.location to dynamically build the URL with QR source parameter
     const baseUrl = `${window.location.protocol}//${window.location.host}`;
-    return `${baseUrl}/equipment/${id}?from=qr`;
+    return `${baseUrl}/equipment/${id}?source=qr`;
   };
 
   if (isLoading) {
