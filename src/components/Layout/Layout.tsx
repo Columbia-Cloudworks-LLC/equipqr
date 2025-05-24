@@ -16,14 +16,14 @@ export function Layout({ children }: LayoutProps) {
   
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className={`flex w-full bg-background ${isMobile ? 'min-h-screen flex-col' : 'min-h-screen'}`}>
+      <div className="flex w-full min-h-screen bg-background">
         <AppSidebar />
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col min-h-screen">
           <Navbar />
-          <main className="flex-1 p-2 md:p-4">
+          <main className="flex-1 p-2 md:p-4 overflow-auto">
             {children}
           </main>
-          <footer className="border-t py-2 px-4 text-xs text-center text-muted-foreground bg-background/80 mt-auto">
+          <footer className="border-t py-2 px-4 text-xs text-center text-muted-foreground bg-background/80 flex-shrink-0">
             <div className="flex justify-center gap-4">
               <Link to="/terms" className="hover:text-primary hover:underline">Terms of Service</Link>
               <Link to="/privacy" className="hover:text-primary hover:underline">Privacy Policy</Link>
