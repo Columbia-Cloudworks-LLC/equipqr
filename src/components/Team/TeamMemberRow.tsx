@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TeamMember } from '@/types';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { getHierarchicalStatus, getStatusBadgeColorClasses } from '@/utils/teamMemberHierarchy';
 
 // Extend the TeamMember type to include additional properties needed by this component
 interface ExtendedTeamMember extends TeamMember {
@@ -83,16 +84,9 @@ export function TeamMemberRow({
     }
   };
 
-  // Get member status based on their relationship to the team
-  const getMemberStatus = () => {
-    if (member.is_org_manager) {
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Org Manager</Badge>;
-    }
-    if (member.status === 'pending' || member.status === 'Pending') {
-      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
-    }
-    return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Team Member</Badge>;
-  };
+  // Get hierarchical status and styling
+  const hierarchicalStatus = getHierarchicalStatus(member);
+  const statusColorClasses = getStatusBadgeColorClasses(hierarchicalStatus);
 
   return (
     <TableRow>
@@ -105,7 +99,6 @@ export function TeamMemberRow({
           </Avatar>
           <div className="flex flex-col">
             <span className="font-semibold">{member.display_name || member.email}</span>
-            {/* Removed the duplicate email display here since we have a dedicated email column */}
           </div>
         </div>
       </TableCell>
@@ -120,9 +113,11 @@ export function TeamMemberRow({
         <Badge variant="secondary">{member.role}</Badge>
       </TableCell>
 
-      {/* Status Column - Now shows member type instead of active/inactive */}
+      {/* Status Column - Shows hierarchical status */}
       <TableCell>
-        {getMemberStatus()}
+        <Badge variant="outline" className={cn("border", statusColorClasses)}>
+          {hierarchicalStatus}
+        </Badge>
       </TableCell>
 
       {/* Actions Column */}

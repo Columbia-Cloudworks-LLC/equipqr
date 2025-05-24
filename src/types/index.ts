@@ -14,7 +14,7 @@ export interface TeamMember {
   status?: string;
   auth_uid?: string;
   joined_at?: string;
-  // Properties for org managers
+  // Properties for org managers and hierarchy
   org_role?: string;
   is_org_manager?: boolean;
 }

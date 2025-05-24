@@ -26,7 +26,7 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
       return teamMembers; // Return just team members if we can't get org info
     }
     
-    // Use the existing database function to get organization members
+    // Use the existing database function to get organization members with specific roles
     const { data: orgMembersData, error: orgError } = await supabase
       .rpc('get_organization_members', { org_id: team.org_id });
     
@@ -50,7 +50,7 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
     // Filter org members to only include managers/owners who aren't already team members
     const orgManagerMembers: TeamMember[] = orgMembersData
       .filter(orgMember => 
-        ['owner', 'manager'].includes(orgMember.role) && 
+        ['owner', 'manager', 'admin'].includes(orgMember.role) && 
         !existingMemberUserIds.has(orgMember.user_id)
       )
       .map(orgMember => ({
@@ -67,13 +67,36 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
         is_org_manager: true // Flag to identify these as org-level managers
       } as TeamMember & { org_role: string; is_org_manager: boolean }));
     
+    // Now enhance existing team members with their organization roles
+    const enhancedTeamMembers = await Promise.all(
+      teamMembers.map(async (member) => {
+        // Get organization role for this member
+        const { data: orgRole, error: orgRoleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', member.auth_uid || member.user_id)
+          .eq('org_id', team.org_id)
+          .single();
+        
+        if (orgRoleError) {
+          console.log(`No org role found for user ${member.auth_uid || member.user_id}:`, orgRoleError);
+        }
+        
+        return {
+          ...member,
+          org_role: orgRole?.role || null,
+          is_org_manager: false
+        };
+      })
+    );
+    
     // Combine team members with org managers, sorting so org managers appear after regular members
     const combinedMembers = [
-      ...teamMembers,
+      ...enhancedTeamMembers,
       ...orgManagerMembers
     ];
     
-    console.log(`Combined ${teamMembers.length} team members with ${orgManagerMembers.length} org managers`);
+    console.log(`Combined ${enhancedTeamMembers.length} team members with ${orgManagerMembers.length} org managers`);
     
     return combinedMembers;
   } catch (error) {

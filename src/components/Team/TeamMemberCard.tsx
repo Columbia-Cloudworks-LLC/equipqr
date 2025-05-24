@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MoreVertical, Mail, Shield, Trash2, Building } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+import { getHierarchicalStatus, getStatusBadgeColorClasses } from '@/utils/teamMemberHierarchy';
 
 interface TeamMemberCardProps {
   member: TeamMember & { org_role?: string; is_org_manager?: boolean };
@@ -67,15 +69,9 @@ export function TeamMemberCard({
     return 'Unknown User';
   };
 
-  const getStatusBadge = () => {
-    if (member.is_org_manager) {
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Org Manager</Badge>;
-    }
-    if (member.status === 'pending' || member.status === 'Pending') {
-      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
-    }
-    return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Team Member</Badge>;
-  };
+  // Get hierarchical status and styling
+  const hierarchicalStatus = getHierarchicalStatus(member);
+  const statusColorClasses = getStatusBadgeColorClasses(hierarchicalStatus);
 
   const getRoleBadge = () => {
     const variant = member.role === 'manager' || member.role === 'owner' ? 'default' : 'secondary';
@@ -143,7 +139,9 @@ export function TeamMemberCard({
 
           {/* Status and Role badges */}
           <div className="flex items-center gap-2 flex-wrap">
-            {getStatusBadge()}
+            <Badge variant="outline" className={cn("border", statusColorClasses)}>
+              {hierarchicalStatus}
+            </Badge>
             {getRoleBadge()}
             {getOrgManagerBadge()}
           </div>
