@@ -26,6 +26,7 @@ export default function AppRoutes() {
       <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/" />} />
       <Route path="/profile" element={user ? <Profile /> : <Navigate to="/auth" />} />
       <Route path="/teams" element={user ? <TeamManagement /> : <Navigate to="/auth" />} />
+      <Route path="/organization" element={user ? <OrganizationSettings /> : <Navigate to="/auth" />} />
       <Route path="/settings/organization" element={user ? <OrganizationSettings /> : <Navigate to="/auth" />} />
       <Route path="/equipment" element={user ? <Equipment /> : <Navigate to="/auth" />} />
       <Route path="/equipment/new" element={user ? <EquipmentForm /> : <Navigate to="/auth" />} />
