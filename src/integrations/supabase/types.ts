@@ -543,31 +543,53 @@ export type Database = {
         Row: {
           created_at: string
           deleted_at: string | null
+          frozen_at: string | null
           id: string
           name: string
           owner_user_id: string | null
+          pending_transfer_to: string | null
+          status: string
+          transfer_deadline: string | null
+          transfer_initiated_at: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           deleted_at?: string | null
+          frozen_at?: string | null
           id?: string
           name: string
           owner_user_id?: string | null
+          pending_transfer_to?: string | null
+          status?: string
+          transfer_deadline?: string | null
+          transfer_initiated_at?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           deleted_at?: string | null
+          frozen_at?: string | null
           id?: string
           name?: string
           owner_user_id?: string | null
+          pending_transfer_to?: string | null
+          status?: string
+          transfer_deadline?: string | null
+          transfer_initiated_at?: string | null
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "organization_owner_user_id_fkey"
             columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_pending_transfer_to_fkey"
+            columns: ["pending_transfer_to"]
             isOneToOne: false
             referencedRelation: "app_user"
             referencedColumns: ["id"]
@@ -658,6 +680,83 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_transfers: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          expires_at: string
+          from_user_id: string
+          id: string
+          initiated_at: string
+          initiated_by: string
+          org_id: string
+          rejected_at: string | null
+          status: string
+          to_user_id: string
+          transfer_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          expires_at?: string
+          from_user_id: string
+          id?: string
+          initiated_at?: string
+          initiated_by: string
+          org_id: string
+          rejected_at?: string | null
+          status?: string
+          to_user_id: string
+          transfer_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          expires_at?: string
+          from_user_id?: string
+          id?: string
+          initiated_at?: string
+          initiated_by?: string
+          org_id?: string
+          rejected_at?: string | null
+          status?: string
+          to_user_id?: string
+          transfer_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_transfers_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_transfers_initiated_by_fkey"
+            columns: ["initiated_by"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_transfers_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
             referencedColumns: ["id"]
           },
         ]
@@ -916,12 +1015,16 @@ export type Database = {
           datetime_format_preference:
             | Database["public"]["Enums"]["datetime_format"]
             | null
+          deactivated_at: string | null
+          deactivation_reason: string | null
           default_org_id: string | null
           display_name: string | null
           id: string
+          is_deactivated: boolean
           job_title: string | null
           org_id: string
           phone_number: string | null
+          reactivation_deadline: string | null
           timezone: string | null
           updated_at: string
         }
@@ -931,12 +1034,16 @@ export type Database = {
           datetime_format_preference?:
             | Database["public"]["Enums"]["datetime_format"]
             | null
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           default_org_id?: string | null
           display_name?: string | null
           id: string
+          is_deactivated?: boolean
           job_title?: string | null
           org_id: string
           phone_number?: string | null
+          reactivation_deadline?: string | null
           timezone?: string | null
           updated_at?: string
         }
@@ -946,12 +1053,16 @@ export type Database = {
           datetime_format_preference?:
             | Database["public"]["Enums"]["datetime_format"]
             | null
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           default_org_id?: string | null
           display_name?: string | null
           id?: string
+          is_deactivated?: boolean
           job_title?: string | null
           org_id?: string
           phone_number?: string | null
+          reactivation_deadline?: string | null
           timezone?: string | null
           updated_at?: string
         }
@@ -1267,6 +1378,10 @@ export type Database = {
         Args: { _user_id: string; _team_id: string; _required_roles: string[] }
         Returns: boolean
       }
+      freeze_organization: {
+        Args: { p_org_id: string }
+        Returns: boolean
+      }
       gen_invitation_token: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1311,6 +1426,16 @@ export type Database = {
           is_public: boolean
           note: string
           updated_at: string
+        }[]
+      }
+      get_org_managers: {
+        Args: { p_org_id: string }
+        Returns: {
+          user_id: string
+          display_name: string
+          email: string
+          role: string
+          is_current_user: boolean
         }[]
       }
       get_org_role: {
@@ -1407,6 +1532,10 @@ export type Database = {
         Args: { _user_id: string; _team_id: string; _role: string }
         Returns: boolean
       }
+      is_only_manager_in_org: {
+        Args: { p_user_id: string; p_org_id: string }
+        Returns: boolean
+      }
       is_org_member: {
         Args: { p_auth_user_id: string; p_org_id: string }
         Returns: boolean
@@ -1417,6 +1546,10 @@ export type Database = {
       }
       is_using_service_role: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      reactivate_organization: {
+        Args: { p_org_id: string }
         Returns: boolean
       }
       rpc_check_equipment_permission: {
@@ -1435,6 +1568,10 @@ export type Database = {
       simplified_equipment_create_permission: {
         Args: { p_user_id: string; p_team_id?: string }
         Returns: Json
+      }
+      soft_delete_organization: {
+        Args: { p_org_id: string }
+        Returns: boolean
       }
       test_equipment_permission_flow: {
         Args: { auth_user_id: string; team_id?: string }
