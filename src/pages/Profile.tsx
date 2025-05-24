@@ -5,7 +5,7 @@ import { ProfileLoadingState } from '@/components/Profile/LoadingState';
 import { useProfileData } from '@/hooks/profile/useProfileData';
 
 export default function Profile() {
-  const { profileData, isLoading, userId } = useProfileData();
+  const { profileData, isLoading, userId, userOrgId } = useProfileData();
 
   return (
     <Layout>
@@ -19,11 +19,16 @@ export default function Profile() {
 
         {isLoading ? (
           <ProfileLoadingState />
-        ) : profileData && userId ? (
-          <ProfileForm initialValues={profileData} userId={userId} />
+        ) : profileData && userId && userOrgId ? (
+          <ProfileForm initialValues={profileData} userId={userId} userOrgId={userOrgId} />
         ) : (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">Unable to load profile data</p>
+            <p className="text-muted-foreground">
+              {!userOrgId 
+                ? "Organization data not found. Please contact support." 
+                : "Unable to load profile data"
+              }
+            </p>
           </div>
         )}
       </div>

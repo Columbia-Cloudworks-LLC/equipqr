@@ -10,6 +10,7 @@ export function useProfileData() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<ProfileFormValues | null>(null);
+  const [userOrgId, setUserOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -29,6 +30,8 @@ export function useProfileData() {
           console.error('Error fetching profile:', error);
           // If no profile found, create default values from auth user
           if (error.code === 'PGRST116') {
+            // We need to get the user's org_id before we can create a profile
+            // For now, set default values without org_id
             setProfileData({
               email: user.email,
               display_name: user.user_metadata?.full_name || user.user_metadata?.display_name || '',
@@ -37,6 +40,8 @@ export function useProfileData() {
               datetime_format_preference: 'MM/DD/YYYY h:mm A',
               phone_number: '',
             });
+            // We'll need the org_id for saving, but we don't have it yet for new users
+            setUserOrgId(null);
           } else {
             toast.error('Failed to load your profile information');
           }
@@ -52,6 +57,7 @@ export function useProfileData() {
             datetime_format_preference: data.datetime_format_preference || 'MM/DD/YYYY h:mm A',
             phone_number: data.phone_number || '',
           });
+          setUserOrgId(data.org_id);
         }
       } catch (error) {
         console.error('Error:', error);
@@ -67,6 +73,7 @@ export function useProfileData() {
   return {
     profileData,
     isLoading,
-    userId: user?.id
+    userId: user?.id,
+    userOrgId
   };
 }

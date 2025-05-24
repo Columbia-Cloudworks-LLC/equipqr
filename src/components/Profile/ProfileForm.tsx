@@ -15,9 +15,10 @@ import { DeactivateAccountSection } from "./DeactivateAccountSection";
 interface ProfileFormProps {
   initialValues: ProfileFormValues;
   userId: string;
+  userOrgId: string;
 }
 
-export function ProfileForm({ initialValues, userId }: ProfileFormProps) {
+export function ProfileForm({ initialValues, userId, userOrgId }: ProfileFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   
   const form = useForm<ProfileFormValues>({
@@ -30,13 +31,20 @@ export function ProfileForm({ initialValues, userId }: ProfileFormProps) {
       return;
     }
     
+    if (!userOrgId) {
+      toast.error("User organization not found");
+      return;
+    }
+    
     setIsSaving(true);
     try {
       console.log("Updating profile for user:", userId);
       console.log("With values:", values);
+      console.log("User org ID:", userOrgId);
       
       const updates = {
-        id: userId, // Include the ID for upsert
+        id: userId,
+        org_id: userOrgId, // Include the required org_id
         display_name: values.display_name,
         job_title: values.job_title,
         timezone: values.timezone,
