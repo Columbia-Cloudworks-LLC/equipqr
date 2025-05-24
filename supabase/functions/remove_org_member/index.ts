@@ -22,7 +22,18 @@ serve(async (req) => {
     )
 
     // Get the session or user object
-    const authHeader = req.headers.get('Authorization')!
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('No authorization header provided')
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
+    }
+
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
 
@@ -47,9 +58,24 @@ serve(async (req) => {
       )
     }
 
-    const { org_id, user_id } = await req.json()
+    let requestBody;
+    try {
+      requestBody = await req.json()
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
+    }
+
+    const { org_id, user_id } = requestBody
 
     if (!org_id || !user_id) {
+      console.error('Missing required parameters:', { org_id, user_id })
       return new Response(
         JSON.stringify({ error: 'Missing org_id or user_id' }),
         { 
@@ -79,9 +105,11 @@ serve(async (req) => {
       )
     }
 
-    if (!data.success) {
+    if (!data || !data.success) {
+      const errorMsg = data?.error || 'Unknown database error'
+      console.error('Database function returned error:', errorMsg)
       return new Response(
-        JSON.stringify({ error: data.error }),
+        JSON.stringify({ error: errorMsg }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -105,7 +133,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Function error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error: ' + (error?.message || 'Unknown error') }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -13,7 +13,7 @@ export function useTeamFunctionWrappers(
   handleCreateTeam: (name: string) => Promise<any>,
   handleUpdateTeam: (id: string, name: string) => Promise<any>,
   handleDeleteTeam: (teamId: string) => Promise<any>,
-  handleRepairTeam: () => Promise<void>,
+  handleRepairTeam: (teamId: string) => Promise<void>,
   handleUpgradeRole: () => Promise<void>,
   handleRequestRoleUpgrade: () => Promise<void>
 ) {
@@ -42,8 +42,10 @@ export function useTeamFunctionWrappers(
   }, [handleDeleteTeam]);
 
   const handleRepairTeamWrapper = useCallback(async () => {
-    return handleRepairTeam();
-  }, [handleRepairTeam]);
+    if (selectedTeamId) {
+      return handleRepairTeam(selectedTeamId);
+    }
+  }, [handleRepairTeam, selectedTeamId]);
 
   const handleUpgradeRoleWrapper = useCallback(async () => {
     return handleUpgradeRole();

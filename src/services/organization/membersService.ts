@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { OrganizationMember } from './types';
 import { UserRole } from '@/types/supabase-enums';
@@ -76,6 +77,13 @@ export async function removeMember(
   userId: string
 ): Promise<boolean> {
   try {
+    if (!organizationId || !userId) {
+      toast.error("Error", {
+        description: "Invalid organization or user ID"
+      });
+      return false;
+    }
+
     const result = await removeOrganizationMember(organizationId, userId);
     
     if (result.success) {
@@ -90,9 +98,23 @@ export async function removeMember(
       }
       return true;
     } else {
-      toast.error("Failed to remove member", {
-        description: result.error || "Unknown error occurred"
-      });
+      const errorMessage = result.error || "Unknown error occurred";
+      console.error('Failed to remove member:', errorMessage);
+      
+      // Show user-friendly error messages
+      if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
+        toast.error("Permission denied", {
+          description: "You don't have permission to remove this member"
+        });
+      } else if (errorMessage.includes('not found')) {
+        toast.error("Member not found", {
+          description: "The member may have already been removed"
+        });
+      } else {
+        toast.error("Failed to remove member", {
+          description: errorMessage
+        });
+      }
       return false;
     }
   } catch (error) {

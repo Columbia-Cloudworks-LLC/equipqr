@@ -19,6 +19,13 @@ export async function removeOrganizationMember(
   try {
     console.log(`Attempting to remove user ${userId} from organization ${organizationId}`);
     
+    if (!organizationId || !userId) {
+      return {
+        success: false,
+        error: 'Missing organization ID or user ID'
+      };
+    }
+
     const { data, error } = await supabase.functions.invoke('remove_org_member', {
       body: {
         org_id: organizationId,
@@ -28,11 +35,24 @@ export async function removeOrganizationMember(
 
     if (error) {
       console.error('Error removing organization member:', error);
-      throw new Error(error.message);
+      return {
+        success: false,
+        error: error.message || 'Failed to communicate with server'
+      };
+    }
+
+    if (!data) {
+      return {
+        success: false,
+        error: 'No response from server'
+      };
     }
 
     if (!data.success) {
-      throw new Error(data.error || 'Failed to remove organization member');
+      return {
+        success: false,
+        error: data.error || 'Failed to remove organization member'
+      };
     }
 
     console.log('Organization member removed successfully:', data);
