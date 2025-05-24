@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,8 @@ export function useAuthenticationCheck() {
   const { user, isLoading, checkSession } = useAuth();
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [authError, setAuthError] = useState<string | null>(null);
+  const lastCheckTime = useRef<number>(0);
+  const checkCooldown = 30000; // 30 seconds cooldown between checks
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -30,8 +32,17 @@ export function useAuthenticationCheck() {
           return;
         }
         
+        // Implement cooldown for session validation to prevent aggressive checking
+        const now = Date.now();
+        if (now - lastCheckTime.current < checkCooldown) {
+          console.log('Session check on cooldown, assuming valid session');
+          setAuthStatus('authenticated');
+          return;
+        }
+        
         // Then validate the session
         const isValid = await checkSession();
+        lastCheckTime.current = now;
         
         if (isValid) {
           console.log('Valid session found, user is authenticated');
@@ -43,9 +54,17 @@ export function useAuthenticationCheck() {
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        setAuthStatus('unauthenticated');
+        // Don't immediately redirect on errors - could be temporary network issues
         setAuthError('There was a problem verifying your authentication status.');
-        handleUnauthenticated();
+        
+        // Only redirect if we definitely have no user
+        if (!user) {
+          setAuthStatus('unauthenticated');
+          handleUnauthenticated();
+        } else {
+          // Give benefit of doubt if we have a user object
+          setAuthStatus('authenticated');
+        }
       }
     };
     

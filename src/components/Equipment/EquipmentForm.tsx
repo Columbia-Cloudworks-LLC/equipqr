@@ -15,6 +15,8 @@ import { FormFooter } from './Form/FormFooter';
 import { LoadingState } from './Form/LoadingState';
 import { ErrorState } from './Form/ErrorState';
 import { OrganizationSection } from './Form/OrganizationSection';
+import { DraftRestorationAlert } from './Form/DraftRestorationAlert';
+import { AutoSaveIndicator } from './Form/AutoSaveIndicator';
 
 interface EquipmentFormProps {
   equipment?: Equipment;
@@ -49,10 +51,16 @@ export function EquipmentForm({
     selectedTeamIsExternal,
     organizations,
     selectedOrgId,
+    showDraftAlert,
+    lastSaved,
+    isAutoSaving,
     handleChange,
     handleSelectChange,
     handleDateChange,
     handleAttributesChange,
+    handleAcceptDraft,
+    handleRejectDraft,
+    handleFormSubmit,
     validate
   } = useEquipmentForm({ initialEquipment: equipment });
   
@@ -75,6 +83,9 @@ export function EquipmentForm({
       return;
     }
     
+    // Clear persisted data on successful submission
+    handleFormSubmit();
+    
     onSave(formData);
   };
 
@@ -91,10 +102,24 @@ export function EquipmentForm({
   return (
     <form onSubmit={handleSubmit}>
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{equipment ? 'Edit Equipment' : 'Add New Equipment'}</CardTitle>
+          <AutoSaveIndicator 
+            isAutoSaving={isAutoSaving} 
+            lastSaved={lastSaved}
+            className="text-xs"
+          />
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Draft Restoration Alert */}
+          {showDraftAlert && (
+            <DraftRestorationAlert
+              onAccept={handleAcceptDraft}
+              onReject={handleRejectDraft}
+              lastSaved={lastSaved || undefined}
+            />
+          )}
+
           {/* Organization Selection Section */}
           <OrganizationSection 
             organizations={organizations}

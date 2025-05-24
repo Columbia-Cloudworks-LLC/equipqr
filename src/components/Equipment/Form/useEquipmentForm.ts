@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Equipment, EquipmentAttribute } from '@/types';
 import { useTeamsData } from './useTeamsData';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useFormPersistence } from '@/hooks/useFormPersistence';
 
 interface UseEquipmentFormProps {
   initialEquipment?: Equipment;
@@ -28,6 +29,55 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     org_id: initialEquipment?.org_id || selectedOrgId,
     attributes: initialEquipment?.attributes || []
   });
+
+  // Set up form persistence - only for new equipment (not edits)
+  const isEditing = !!initialEquipment?.id;
+  const persistenceKey = isEditing ? `edit_${initialEquipment.id}` : 'new_equipment';
+  
+  const {
+    loadPersistedData,
+    clearPersistedData,
+    handleFormSubmit,
+    lastSaved,
+    isAutoSaving
+  } = useFormPersistence(formData, {
+    key: persistenceKey,
+    debounceMs: 2000, // Save every 2 seconds when typing stops
+    clearOnSubmit: true
+  });
+
+  // State for draft restoration
+  const [showDraftAlert, setShowDraftAlert] = useState(false);
+  const [draftData, setDraftData] = useState<Partial<Equipment> | null>(null);
+
+  // Load persisted data on mount (only for new equipment)
+  useEffect(() => {
+    if (!isEditing) {
+      const persistedData = loadPersistedData();
+      if (persistedData && Object.keys(persistedData).some(key => persistedData[key])) {
+        setDraftData(persistedData);
+        setShowDraftAlert(true);
+      }
+    }
+  }, [isEditing, loadPersistedData]);
+
+  // Handle draft restoration
+  const handleAcceptDraft = () => {
+    if (draftData) {
+      setFormData(draftData);
+      if (draftData.org_id) {
+        setSelectedOrgId(draftData.org_id);
+      }
+    }
+    setShowDraftAlert(false);
+    setDraftData(null);
+  };
+
+  const handleRejectDraft = () => {
+    clearPersistedData();
+    setShowDraftAlert(false);
+    setDraftData(null);
+  };
 
   // Update org_id in form data when selectedOrgId changes
   useEffect(() => {
@@ -107,9 +157,6 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
       return 'Please select an organization';
     }
     
-    // Date validation - already handled by the DatePicker component
-    // which provides null for empty dates, or valid date strings
-    
     return null;
   };
 
@@ -121,10 +168,16 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     selectedTeamIsExternal,
     organizations,
     selectedOrgId,
+    showDraftAlert,
+    lastSaved,
+    isAutoSaving,
     handleChange,
     handleSelectChange,
     handleDateChange,
     handleAttributesChange,
+    handleAcceptDraft,
+    handleRejectDraft,
+    handleFormSubmit,
     validate
   };
 }
