@@ -65,12 +65,10 @@ export default function EquipmentDetail() {
     }
   }, [equipment, id, scanRecorded, location.search]);
 
-  const handleBackClick = () => '/equipment';
-
   if (isLoading) {
     return (
       <Layout>
-        <EquipmentDetailLoading onBackClick={handleBackClick} />
+        <EquipmentDetailLoading />
       </Layout>
     );
   }
@@ -78,7 +76,7 @@ export default function EquipmentDetail() {
   if (isError || !equipment) {
     return (
       <Layout>
-        <EquipmentDetailError error={error as Error} onBackClick={handleBackClick} />
+        <EquipmentDetailError error={error as Error} />
       </Layout>
     );
   }
