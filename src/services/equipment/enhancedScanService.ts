@@ -48,6 +48,29 @@ export interface ScanHistoryRecord {
 }
 
 /**
+ * Get app_user ID from auth user ID
+ */
+async function getAppUserId(authUserId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', authUserId)
+      .single();
+    
+    if (error) {
+      console.error('Error getting app_user ID:', error);
+      return null;
+    }
+    
+    return data?.id || null;
+  } catch (error) {
+    console.error('Error in getAppUserId:', error);
+    return null;
+  }
+}
+
+/**
  * Record an enhanced scan event with comprehensive device and audit information
  */
 export async function recordEnhancedScan(
@@ -59,7 +82,16 @@ export async function recordEnhancedScan(
     
     // Get current user session
     const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
+    const authUserId = sessionData?.session?.user?.id;
+    
+    // Convert auth user ID to app_user ID if user is authenticated
+    let appUserId: string | null = null;
+    if (authUserId) {
+      appUserId = await getAppUserId(authUserId);
+      if (!appUserId) {
+        console.warn('Could not find app_user record for authenticated user');
+      }
+    }
     
     // Collect device information
     const deviceInfo = getDeviceInfo();
@@ -70,7 +102,7 @@ export async function recordEnhancedScan(
     // Create enhanced scan record
     const scanData: EnhancedScanData = {
       equipment_id: equipmentId,
-      scanned_by_user_id: userId,
+      scanned_by_user_id: appUserId, // Use app_user ID instead of auth user ID
       user_agent: deviceInfo.userAgent,
       device_type: deviceInfo.deviceType,
       browser_name: deviceInfo.browserName,
@@ -111,7 +143,7 @@ export async function recordEnhancedScan(
     // Show success message based on scan method
     const methodText = scanMethod === 'qr_code' ? 'QR code scan' : 'equipment access';
     toast.success(`${methodText} recorded successfully`, {
-      description: userId ? "Scan history logged for audit purposes" : "Sign in for detailed tracking"
+      description: authUserId ? "Scan history logged for audit purposes" : "Sign in for detailed tracking"
     });
     
     return true;
