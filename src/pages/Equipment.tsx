@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Package } from 'lucide-react';
 import { Equipment } from '@/types';
 import { EquipmentList } from '@/components/Equipment/EquipmentList';
@@ -13,19 +12,8 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useIsMobile } from '@/hooks/use-mobile';
-
-// Local storage key for view preference
-const VIEW_PREFERENCE_KEY = 'equipqr-view-preference';
 
 const EquipmentPage = () => {
-  const isMobile = useIsMobile();
-  const [view, setView] = useState<string>(() => {
-    // Get saved preference or default to grid on mobile, list on desktop
-    const savedView = localStorage.getItem(VIEW_PREFERENCE_KEY);
-    return savedView || (isMobile ? 'grid' : 'list');
-  });
-
   const { user, isLoading: authLoading, checkSession } = useAuth();
   const navigate = useNavigate();
   const { organizations, selectedOrganization, selectOrganization } = useOrganization();
@@ -39,11 +27,6 @@ const EquipmentPage = () => {
       setSelectedOrgId(selectedOrganization.id);
     }
   }, [selectedOrganization]);
-
-  // Save view preference when it changes
-  useEffect(() => {
-    localStorage.setItem(VIEW_PREFERENCE_KEY, view);
-  }, [view]);
 
   // Handle organization change
   const handleOrganizationChange = (orgId: string) => {
@@ -141,48 +124,14 @@ const EquipmentPage = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue={view} value={view} onValueChange={setView}>
-          <div className="flex justify-between items-center">
-            <TabsList className="hidden sm:flex">
-              <TabsTrigger value="list">List View</TabsTrigger>
-              <TabsTrigger value="grid">Grid View</TabsTrigger>
-            </TabsList>
-            <div className="sm:hidden w-full">
-              <select 
-                className="w-full p-2 border rounded-md bg-background"
-                value={view}
-                onChange={(e) => setView(e.target.value)}
-              >
-                <option value="list">List View</option>
-                <option value="grid">Grid View</option>
-              </select>
-            </div>
-          </div>
-          
-          <TabsContent value="list" className="mt-4">
-            <EquipmentList 
-              equipment={equipment} 
-              isLoading={isLoading}
-              organizations={organizations}
-              selectedOrgId={selectedOrgId}
-              onOrganizationChange={handleOrganizationChange}
-              showOrgSelector={showOrgSelector}
-              view="list"
-            />
-          </TabsContent>
-          
-          <TabsContent value="grid" className="mt-4">
-            <EquipmentList 
-              equipment={equipment} 
-              isLoading={isLoading}
-              organizations={organizations}
-              selectedOrgId={selectedOrgId}
-              onOrganizationChange={handleOrganizationChange}
-              showOrgSelector={showOrgSelector}
-              view="grid"
-            />
-          </TabsContent>
-        </Tabs>
+        <EquipmentList 
+          equipment={equipment} 
+          isLoading={isLoading}
+          organizations={organizations}
+          selectedOrgId={selectedOrgId}
+          onOrganizationChange={handleOrganizationChange}
+          showOrgSelector={showOrgSelector}
+        />
       </div>
     </Layout>
   );

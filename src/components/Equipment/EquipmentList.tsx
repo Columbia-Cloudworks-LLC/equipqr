@@ -16,7 +16,6 @@ interface EquipmentListProps {
   selectedOrgId?: string;
   onOrganizationChange?: (orgId: string) => void;
   showOrgSelector?: boolean;
-  view: string;
 }
 
 export function EquipmentList({ 
@@ -25,8 +24,7 @@ export function EquipmentList({
   organizations = [],
   selectedOrgId,
   onOrganizationChange = () => {},
-  showOrgSelector = false,
-  view
+  showOrgSelector = false
 }: EquipmentListProps) {
   const isMobile = useIsMobile();
   
@@ -89,14 +87,9 @@ export function EquipmentList({
         />
       )}
       
-      {/* Content based on view type */}
-      {view === 'list' ? (
-        <EquipmentTable 
-          equipment={filteredEquipment}
-          isLoading={isLoading}
-        />
-      ) : (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {/* Responsive content - automatically switch based on screen size */}
+      {isMobile ? (
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="border rounded-lg p-4 h-48 animate-pulse bg-muted/30"></div>
@@ -111,6 +104,11 @@ export function EquipmentList({
             </div>
           )}
         </div>
+      ) : (
+        <EquipmentTable 
+          equipment={filteredEquipment}
+          isLoading={isLoading}
+        />
       )}
       
       {/* Export Button */}
