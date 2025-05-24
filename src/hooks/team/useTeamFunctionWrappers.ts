@@ -5,7 +5,7 @@ import { UserRole } from '@/types/supabase-enums';
 export function useTeamFunctionWrappers(
   selectedTeamId: string,
   selectedOrgId: string,
-  handleInviteMember: (email: string, role: UserRole) => Promise<any>,
+  handleInviteMember: (email: string, role: UserRole, teamId: string) => Promise<any>,
   handleChangeRole: (userId: string, role: string) => Promise<any>,
   handleRemoveMember: (userId: string) => Promise<any>,
   handleResendInvite: (id: string) => Promise<void>,
@@ -17,9 +17,9 @@ export function useTeamFunctionWrappers(
   handleUpgradeRole: () => Promise<void>,
   handleRequestRoleUpgrade: () => Promise<void>
 ) {
-  const handleInviteMemberWrapper = useCallback(async (email: string, role: UserRole, teamId: string) => {
-    return handleInviteMember(email, role);
-  }, [handleInviteMember]);
+  const handleInviteMemberWrapper = useCallback(async (email: string, role: UserRole) => {
+    return handleInviteMember(email, role, selectedTeamId);
+  }, [handleInviteMember, selectedTeamId]);
 
   const handleChangeRoleWrapper = useCallback(async (userId: string, role: UserRole) => {
     return handleChangeRole(userId, role);
