@@ -1,3 +1,4 @@
+
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,7 +45,7 @@ export function useTeamManagementPage(): {
     handleRemoveMember,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam,
+    handleRepairTeam, // Now this is already a zero-parameter function
     handleUpgradeRole,
     handleRequestRoleUpgrade,
     refetchTeamMembers,
@@ -58,7 +59,7 @@ export function useTeamManagementPage(): {
   
   const filteredTeams = useFilteredTeams(teams, selectedOrgId, isChangingOrg);
   
-  // Use the wrapper functions to get the correct signatures - Fixed: Pass original function
+  // Use the wrapper functions to get the correct signatures
   const teamFunctionWrappers = useTeamFunctionWrappers(
     selectedTeamId,
     selectedOrgId || '',
@@ -70,7 +71,7 @@ export function useTeamManagementPage(): {
     handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam,
-    handleRepairTeam, // Fixed: Pass the original function, let the wrapper handle the conversion
+    handleRepairTeam, // Now passing the zero-parameter function
     handleUpgradeRole,
     handleRequestRoleUpgrade
   );
@@ -149,7 +150,7 @@ export function useTeamManagementPage(): {
     handleRemoveMember: teamFunctionWrappers.handleRemoveMemberWrapper,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper, // Now correctly uses the wrapper
+    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper,
     handleUpgradeRole: teamFunctionWrappers.handleUpgradeRoleWrapper,
     handleRequestRoleUpgrade: teamFunctionWrappers.handleRequestRoleUpgradeWrapper,
     refetchTeamMembers,

@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect } from 'react';
 import { UserRole } from '@/types/supabase-enums';
 import { useTeams } from './useTeams';
@@ -56,7 +57,7 @@ export function useTeamManagement() {
     currentUserId,
     accessRole,
     error: membershipError,
-    handleRepairTeam,
+    handleRepairTeam: handleRepairTeamBase,
     retryAccessCheck
   } = useTeamMembership(selectedTeamId);
   
@@ -81,6 +82,14 @@ export function useTeamManagement() {
 
   // Use the team creation hook with team selection capability
   const { handleCreateTeam } = useTeamCreation(handleCreateTeamBase, setSelectedTeamId);
+
+  // Create zero-parameter wrapper for handleRepairTeam
+  const handleRepairTeamWrapper = useCallback(async () => {
+    if (!selectedTeamId) {
+      return { success: false, error: "No team selected for repair" };
+    }
+    return await handleRepairTeamBase(selectedTeamId);
+  }, [selectedTeamId, handleRepairTeamBase]);
 
   // Refresh teams when component mounts
   useEffect(() => {
@@ -173,7 +182,7 @@ export function useTeamManagement() {
     handleRemoveMember,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam,
+    handleRepairTeam: handleRepairTeamWrapper, // Return the zero-parameter wrapper
     handleUpgradeRole,
     handleRequestRoleUpgrade,
     refetchTeamMembers,
