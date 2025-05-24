@@ -39,6 +39,30 @@ export function useOrganizationMembers(organizationId: string, refreshTrigger = 
     setActiveTab('invitations');
   };
 
+  // Function to update a specific member's role immediately in the UI
+  const updateMemberRole = (memberId: string, newRole: string) => {
+    setMembers(prevMembers => 
+      prevMembers.map(member => 
+        member.id === memberId 
+          ? { ...member, role: newRole }
+          : member
+      )
+    );
+  };
+
+  // Function to refresh members data from server
+  const refreshMembers = async () => {
+    if (!organizationId) return;
+    
+    try {
+      const membersData = await getOrganizationMembers(organizationId);
+      setMembers(membersData);
+    } catch (error: any) {
+      console.error('Error refreshing organization members:', error);
+      setError('Failed to refresh organization members.');
+    }
+  };
+
   return {
     members,
     loading,
@@ -48,6 +72,8 @@ export function useOrganizationMembers(organizationId: string, refreshTrigger = 
     setActiveTab,
     refreshData,
     handleInviteSent,
-    setMembers
+    setMembers,
+    updateMemberRole,
+    refreshMembers
   };
 }

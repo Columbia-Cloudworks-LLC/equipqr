@@ -23,8 +23,10 @@ const OrganizationMembersManagement: React.FC<OrganizationMembersManagementProps
     members, 
     loading, 
     error, 
-    refreshData 
-  } = useOrganizationMembers(organizationId);
+    refreshData,
+    updateMemberRole,
+    refreshMembers
+  } = useOrganizationMembers(organizationId, refreshTrigger);
 
   const isOwner = userRole === 'owner';
 
@@ -33,6 +35,16 @@ const OrganizationMembersManagement: React.FC<OrganizationMembersManagementProps
     setRefreshTrigger(prev => prev + 1);
     // Switch to invitations tab after sending an invitation
     setActiveTab('invitations');
+  };
+
+  const handleMemberRoleUpdate = (memberId: string, newRole: string) => {
+    // Update the member role immediately in the UI
+    updateMemberRole(memberId, newRole);
+  };
+
+  const handleRefreshMembers = async () => {
+    // Refresh members data from server
+    await refreshMembers();
   };
 
   // If there's an error, show the error display
@@ -55,6 +67,8 @@ const OrganizationMembersManagement: React.FC<OrganizationMembersManagementProps
           loading={loading}
           refreshTrigger={refreshTrigger}
           onInviteSent={handleInviteSent}
+          onMemberRoleUpdate={handleMemberRoleUpdate}
+          onRefreshMembers={handleRefreshMembers}
         />
       </CardContent>
     </Card>

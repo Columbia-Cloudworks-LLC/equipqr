@@ -15,6 +15,8 @@ interface OrganizationTabsProps {
   loading: boolean;
   refreshTrigger: number;
   onInviteSent: () => void;
+  onMemberRoleUpdate?: (memberId: string, newRole: string) => void;
+  onRefreshMembers?: () => Promise<void>;
 }
 
 const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
@@ -25,7 +27,9 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   isOwner,
   loading,
   refreshTrigger,
-  onInviteSent
+  onInviteSent,
+  onMemberRoleUpdate,
+  onRefreshMembers
 }) => {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -39,7 +43,9 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
         <OrganizationMembersTable 
           members={members} 
           isOwner={isOwner} 
-          loading={loading} 
+          loading={loading}
+          onMemberRoleUpdate={onMemberRoleUpdate}
+          onRefreshMembers={onRefreshMembers}
         />
       </TabsContent>
       

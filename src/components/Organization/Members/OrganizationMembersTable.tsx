@@ -20,6 +20,8 @@ interface OrganizationMembersTableProps {
   loading: boolean;
   refreshTrigger?: number;
   setRefreshTrigger?: (trigger: number) => void;
+  onMemberRoleUpdate?: (memberId: string, newRole: string) => void;
+  onRefreshMembers?: () => Promise<void>;
 }
 
 export function OrganizationMembersTable({
@@ -27,12 +29,19 @@ export function OrganizationMembersTable({
   isOwner, 
   loading, 
   refreshTrigger = 0,
-  setRefreshTrigger
+  setRefreshTrigger,
+  onMemberRoleUpdate,
+  onRefreshMembers
 }: OrganizationMembersTableProps) {
   const [updatingRole, setUpdatingRole] = useState<Record<string, boolean>>({});
 
   const handleRoleChange = async (memberId: string, newRole: UserRole) => {
     setUpdatingRole(prev => ({ ...prev, [memberId]: true }));
+    
+    // Optimistically update the UI immediately
+    if (onMemberRoleUpdate) {
+      onMemberRoleUpdate(memberId, newRole);
+    }
     
     try {
       const success = await updateMemberRole(memberId, newRole);
@@ -41,9 +50,17 @@ export function OrganizationMembersTable({
         toast.success('Role updated', {
           description: 'Member role has been updated successfully'
         });
-        // Trigger a refresh of the members list if the prop exists
-        if (setRefreshTrigger) {
+        
+        // Refresh the data from server to ensure consistency
+        if (onRefreshMembers) {
+          await onRefreshMembers();
+        } else if (setRefreshTrigger) {
           setRefreshTrigger(refreshTrigger + 1);
+        }
+      } else {
+        // If update failed, refresh to revert optimistic update
+        if (onRefreshMembers) {
+          await onRefreshMembers();
         }
       }
     } catch (error: any) {
@@ -51,6 +68,11 @@ export function OrganizationMembersTable({
       toast.error('Error', {
         description: error.message || 'Failed to update member role'
       });
+      
+      // Refresh data to revert optimistic update on error
+      if (onRefreshMembers) {
+        await onRefreshMembers();
+      }
     } finally {
       setUpdatingRole(prev => ({ ...prev, [memberId]: false }));
     }
