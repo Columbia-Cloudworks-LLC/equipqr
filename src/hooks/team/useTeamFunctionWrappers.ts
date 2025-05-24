@@ -13,9 +13,9 @@ export function useTeamFunctionWrappers(
   handleCreateTeam: (name: string, orgId?: string) => Promise<any>,
   handleUpdateTeam: (id: string, name: string) => Promise<any>,
   handleDeleteTeam: (teamId: string) => Promise<any>,
-  handleRepairTeam: () => Promise<void>,
-  handleUpgradeRole: () => Promise<void>,
-  handleRequestRoleUpgrade: () => Promise<void>
+  handleRepairTeam: (teamId: string) => Promise<void>,
+  handleUpgradeRole: (teamId: string) => Promise<void>,
+  handleRequestRoleUpgrade: (teamId: string) => Promise<void>
 ) {
   
   // Enhanced team creation with proper organization context
@@ -59,19 +59,29 @@ export function useTeamFunctionWrappers(
     return handleDeleteTeam(teamId);
   }, [handleDeleteTeam, selectedOrgId]);
 
+  // Updated wrappers that handle teamId internally
   const handleRepairTeamWrapper = useCallback(async () => {
+    if (!selectedTeamId) {
+      throw new Error('No team selected');
+    }
     console.log(`Repairing team access for team ${selectedTeamId} in org ${selectedOrgId}`);
-    return handleRepairTeam();
+    return handleRepairTeam(selectedTeamId);
   }, [handleRepairTeam, selectedTeamId, selectedOrgId]);
 
   const handleUpgradeRoleWrapper = useCallback(async () => {
+    if (!selectedTeamId) {
+      throw new Error('No team selected');
+    }
     console.log(`Upgrading role for team ${selectedTeamId} in org ${selectedOrgId}`);
-    return handleUpgradeRole();
+    return handleUpgradeRole(selectedTeamId);
   }, [handleUpgradeRole, selectedTeamId, selectedOrgId]);
 
   const handleRequestRoleUpgradeWrapper = useCallback(async () => {
+    if (!selectedTeamId) {
+      throw new Error('No team selected');
+    }
     console.log(`Requesting role upgrade for team ${selectedTeamId} in org ${selectedOrgId}`);
-    return handleRequestRoleUpgrade();
+    return handleRequestRoleUpgrade(selectedTeamId);
   }, [handleRequestRoleUpgrade, selectedTeamId, selectedOrgId]);
 
   return {

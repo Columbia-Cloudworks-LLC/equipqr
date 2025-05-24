@@ -79,21 +79,6 @@ export function TeamManagementView() {
   // Check if we're viewing an external organization's teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
 
-  // Fixed wrapper functions that properly handle parameters
-  const handleRoleUpgrade = () => {
-    if (selectedTeamId) {
-      return functionWrappers.handleUpgradeRoleWrapper();
-    }
-    return Promise.resolve();
-  };
-  
-  const handleRoleUpgradeRequest = () => {
-    if (selectedTeamId) {
-      return functionWrappers.handleRequestRoleUpgradeWrapper();
-    }
-    return Promise.resolve();
-  };
-
   // Fix the retry function to not pass parameters
   const handleRetry = () => {
     if (selectedTeamId) {
@@ -125,7 +110,7 @@ export function TeamManagementView() {
         error={error} 
         onRetry={handleRetry}
         onUpgradeRole={isViewerOnly ? 
-          (canChangeRoles ? handleRoleUpgrade : handleRoleUpgradeRequest) : undefined}
+          (canChangeRoles ? functionWrappers.handleUpgradeRoleWrapper : functionWrappers.handleRequestRoleUpgradeWrapper) : undefined}
         isViewer={isViewerOnly}
         canDirectlyUpgrade={canChangeRoles}
         isRequestingUpgrade={isRequestingRole}
