@@ -59,7 +59,7 @@ export function useTeamManagementPage(): {
   
   const filteredTeams = useFilteredTeams(teams, selectedOrgId, isChangingOrg);
   
-  // Use the wrapper functions to get the correct signatures
+  // Use the wrapper functions to get the correct signatures - Fixed parameter order
   const teamFunctionWrappers = useTeamFunctionWrappers(
     selectedTeamId,
     selectedOrgId || '',
@@ -71,7 +71,7 @@ export function useTeamManagementPage(): {
     handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam,
-    handleRepairTeam,
+    handleRepairTeam, // This is the original function that expects teamId
     handleUpgradeRole,
     handleRequestRoleUpgrade
   );
@@ -143,14 +143,14 @@ export function useTeamManagementPage(): {
     setSelectedTeamId,
     handleOrganizationChange,
     handleCreateTeam: teamFunctionWrappers.handleCreateTeamWithOrg,
-    handleUpdateTeam: teamFunctionWrappers.handleUpdateTeamContextWrapper, // Use the correct wrapper
+    handleUpdateTeam: teamFunctionWrappers.handleUpdateTeamContextWrapper,
     handleDeleteTeam: teamFunctionWrappers.handleDeleteTeamWrapper,
     handleInviteMember: teamFunctionWrappers.handleInviteMemberWrapper,
     handleChangeRole: teamFunctionWrappers.handleChangeRoleWrapper,
     handleRemoveMember: teamFunctionWrappers.handleRemoveMemberWrapper,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper, // Fixed: Use the zero-parameter wrapper
+    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper, // Fixed: Now uses the zero-parameter wrapper
     handleUpgradeRole: teamFunctionWrappers.handleUpgradeRoleWrapper,
     handleRequestRoleUpgrade: teamFunctionWrappers.handleRequestRoleUpgradeWrapper,
     refetchTeamMembers,
