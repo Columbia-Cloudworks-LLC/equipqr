@@ -8,7 +8,6 @@ export * from './update/updateTeam';
 // Be specific in re-exporting to avoid ambiguity
 export { 
   validateTeamMembership,
-  repairTeamMembership,
   getTeamAccessDetails,
   canAssignTeamRole
 } from './validation';

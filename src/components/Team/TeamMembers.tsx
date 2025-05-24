@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { UserRole } from '@/types/supabase-enums';
 import { InviteMemberButton } from './InviteMemberButton';
 import { ViewerRoleAlert } from './ViewerRoleAlert';
-import { RepairTeamAccess } from './RepairTeamAccess';
 import { MembershipAlert } from './MembershipAlert';
 import { UserPlus } from 'lucide-react';
 import { Team } from '@/services/team';
@@ -27,8 +26,6 @@ interface TeamMembersProps {
   onRemoveMember: (userId: string) => Promise<any>;
   onUpgradeRole: () => Promise<void>;
   onRequestRoleUpgrade: () => Promise<void>;
-  isRepairingTeam: boolean;
-  onRepairTeam: () => Promise<void>;
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvitation: (id: string) => Promise<void>;
   children?: React.ReactNode;
@@ -51,8 +48,6 @@ export function TeamMembers({
   onRemoveMember,
   onUpgradeRole,
   onRequestRoleUpgrade,
-  isRepairingTeam,
-  onRepairTeam,
   onResendInvite,
   onCancelInvitation,
   children
@@ -79,8 +74,6 @@ export function TeamMembers({
       {!isMember && (
         <MembershipAlert
           teamName={teamName}
-          isRepairing={isRepairingTeam}
-          onRepair={onRepairTeam}
           role={currentUserRole || null}
         />
       )}

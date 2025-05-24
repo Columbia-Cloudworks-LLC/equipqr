@@ -24,7 +24,6 @@ export function TeamManagementView() {
     isCreatingTeam,
     isUpdatingTeam,
     isDeletingTeam,
-    isRepairingTeam,
     isUpgradingRole,
     isRequestingRole,
     isMember,
@@ -42,7 +41,6 @@ export function TeamManagementView() {
     handleRemoveMember,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam,
     handleUpgradeRole,
     handleRequestRoleUpgrade,
     refetchTeamMembers,
@@ -63,7 +61,6 @@ export function TeamManagementView() {
     handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam,
-    handleRepairTeam,
     handleUpgradeRole,
     handleRequestRoleUpgrade
   );
@@ -134,7 +131,6 @@ export function TeamManagementView() {
           isCreatingTeam={isCreatingTeam}
           isUpdatingTeam={isUpdatingTeam}
           isDeletingTeam={isDeletingTeam}
-          isRepairingTeam={isRepairingTeam}
           isUpgradingRole={isUpgradingRole}
           isRequestingRole={isRequestingRole}
           isMember={isMember}
@@ -150,7 +146,6 @@ export function TeamManagementView() {
           onRemoveMember={functionWrappers.handleRemoveMemberWrapper}
           onResendInvite={handleResendInvite}
           onCancelInvitation={handleCancelInvitation}
-          onRepairTeam={functionWrappers.handleRepairTeamWrapper}
           onUpgradeRole={functionWrappers.handleUpgradeRoleWrapper}
           onRequestRoleUpgrade={functionWrappers.handleRequestRoleUpgradeWrapper}
           onFetchPendingInvitations={refetchPendingInvitations}

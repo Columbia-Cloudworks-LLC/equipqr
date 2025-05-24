@@ -35,7 +35,6 @@ export {
 // Re-export team validation functions
 export {
   validateTeamMembership,
-  repairTeamMembership,
   getTeamAccessDetails,
   canAssignTeamRole
 } from './validation';
