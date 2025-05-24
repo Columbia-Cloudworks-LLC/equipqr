@@ -27,14 +27,26 @@ export function useProfileData() {
           
         if (error) {
           console.error('Error fetching profile:', error);
-          toast.error('Failed to load your profile information');
+          // If no profile found, create default values from auth user
+          if (error.code === 'PGRST116') {
+            setProfileData({
+              email: user.email,
+              display_name: user.user_metadata?.full_name || user.user_metadata?.display_name || '',
+              job_title: '',
+              timezone: 'UTC',
+              datetime_format_preference: 'MM/DD/YYYY h:mm A',
+              phone_number: '',
+            });
+          } else {
+            toast.error('Failed to load your profile information');
+          }
           return;
         }
         
         if (data) {
           setProfileData({
             email: user.email,
-            display_name: data.display_name || '',
+            display_name: data.display_name || user.user_metadata?.full_name || user.user_metadata?.display_name || '',
             job_title: data.job_title || '',
             timezone: data.timezone || 'UTC',
             datetime_format_preference: data.datetime_format_preference || 'MM/DD/YYYY h:mm A',
