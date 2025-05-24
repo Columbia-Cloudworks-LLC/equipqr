@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { useTeamManagementOrgs } from '@/hooks/team/useTeamManagementOrgs';
 import { useFilteredTeams } from '@/hooks/team/useFilteredTeams';
+import { useTeamFunctionWrappers } from '@/hooks/team/useTeamFunctionWrappers';
 import { Organization } from '@/types';
 import { TeamManagementContextType } from '@/contexts/TeamManagementContext.d';
 
@@ -57,6 +58,23 @@ export function useTeamManagementPage(): {
   const { selectedOrgId, isChangingOrg, handleOrganizationChange, selectedOrganization } = orgContext;
   
   const filteredTeams = useFilteredTeams(teams, selectedOrgId, isChangingOrg);
+  
+  // Use the wrapper functions to get the correct signatures
+  const teamFunctionWrappers = useTeamFunctionWrappers(
+    selectedTeamId,
+    selectedOrgId || '',
+    handleInviteMember,
+    handleChangeRole,
+    handleRemoveMember,
+    handleResendInvite,
+    handleCancelInvitation,
+    handleCreateTeam,
+    handleUpdateTeam,
+    handleDeleteTeam,
+    handleRepairTeam,
+    handleUpgradeRole,
+    handleRequestRoleUpgrade
+  );
   
   const formattedOrganizations = useMemo(() => organizations.map(org => ({
     id: org.id,
@@ -124,17 +142,17 @@ export function useTeamManagementPage(): {
     error,
     setSelectedTeamId,
     handleOrganizationChange,
-    handleCreateTeam,
-    handleUpdateTeam,
-    handleDeleteTeam,
-    handleInviteMember,
-    handleChangeRole,
-    handleRemoveMember,
+    handleCreateTeam: teamFunctionWrappers.handleCreateTeamWithOrg,
+    handleUpdateTeam: teamFunctionWrappers.handleUpdateTeamWrapper,
+    handleDeleteTeam: teamFunctionWrappers.handleDeleteTeamWrapper,
+    handleInviteMember: teamFunctionWrappers.handleInviteMemberWrapper,
+    handleChangeRole: teamFunctionWrappers.handleChangeRoleWrapper,
+    handleRemoveMember: teamFunctionWrappers.handleRemoveMemberWrapper,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam, // This now accepts teamId parameter as expected
-    handleUpgradeRole,
-    handleRequestRoleUpgrade,
+    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper,
+    handleUpgradeRole: teamFunctionWrappers.handleUpgradeRoleWrapper,
+    handleRequestRoleUpgrade: teamFunctionWrappers.handleRequestRoleUpgradeWrapper,
     refetchTeamMembers,
     refetchPendingInvitations,
     fetchTeams,
