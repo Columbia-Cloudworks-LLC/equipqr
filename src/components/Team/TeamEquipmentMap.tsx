@@ -93,7 +93,6 @@ export function TeamEquipmentMap({ teamId, teamName }: TeamEquipmentMapProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Fleet Map */}
         <FleetMap
           equipment={equipment}
           height="400px"
@@ -106,6 +105,14 @@ export function TeamEquipmentMap({ teamId, teamName }: TeamEquipmentMapProps) {
           <div className="text-center py-4 text-muted-foreground">
             <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>No equipment found for this team</p>
+          </div>
+        )}
+
+        {equipment.length > 0 && equipmentWithLocationCount === 0 && (
+          <div className="text-center py-4 text-muted-foreground">
+            <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No equipment has location data yet</p>
+            <p className="text-sm">Location will be updated when equipment is scanned with GPS enabled</p>
           </div>
         )}
       </CardContent>

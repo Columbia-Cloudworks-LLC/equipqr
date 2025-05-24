@@ -28,7 +28,7 @@ export function DashboardEquipmentMap({ equipment, isLoading }: DashboardEquipme
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
-            Equipment Locations
+            Fleet Map
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -44,7 +44,7 @@ export function DashboardEquipmentMap({ equipment, isLoading }: DashboardEquipme
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
-            Equipment Locations
+            Fleet Map
           </CardTitle>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -63,7 +63,6 @@ export function DashboardEquipmentMap({ equipment, isLoading }: DashboardEquipme
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Fleet Map */}
         <FleetMap
           equipment={equipment}
           height="500px"

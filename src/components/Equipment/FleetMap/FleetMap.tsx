@@ -2,9 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { MapPin, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Equipment } from '@/types';
 import { getDisplayLocation } from '@/services/equipment/locationService';
@@ -36,6 +34,11 @@ export function FleetMap({
     const location = getDisplayLocation(item);
     return location.hasLocation && location.coordinates;
   });
+
+  // If no equipment with location, return null to let parent handle empty state
+  if (equipmentWithLocation.length === 0) {
+    return null;
+  }
 
   // Fetch Mapbox token
   useEffect(() => {
@@ -188,88 +191,60 @@ export function FleetMap({
     });
   }, [selectedEquipmentId]);
 
-  // If no equipment with location, return null to let parent handle empty state
-  if (equipmentWithLocation.length === 0) {
-    return null;
-  }
-
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Fleet Map
-            {teamId && <Badge variant="outline">Team View</Badge>}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 text-center">
+      <div className="flex items-center justify-center p-8" style={{ height }}>
+        <div className="text-center">
           <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
           <h3 className="font-medium mb-1">Loading Map</h3>
           <p className="text-sm text-muted-foreground">
             Initializing map configuration...
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Fleet Map
-            {teamId && <Badge variant="outline">Team View</Badge>}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 text-center">
-          <MapPin className="h-8 w-8 mx-auto mb-2 text-red-400" />
+      <div className="flex items-center justify-center p-8 text-center" style={{ height }}>
+        <div>
+          <div className="h-8 w-8 mx-auto mb-2 text-red-400">⚠️</div>
           <h3 className="font-medium mb-1 text-red-600">Map Unavailable</h3>
           <p className="text-sm text-muted-foreground">{error}</p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Fleet Map
-          {teamId && <Badge variant="outline">Team View</Badge>}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div 
-          ref={mapContainer} 
-          style={{ height }}
-          className="w-full"
-        />
-        <div className="p-4 border-t bg-muted/30">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              Showing {equipmentWithLocation.length} of {equipment.length} equipment with location data
-            </span>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-xs">Active</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <span className="text-xs">Maintenance</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-                <span className="text-xs">Retired</span>
-              </div>
+    <div className="space-y-4">
+      <div 
+        ref={mapContainer} 
+        style={{ height }}
+        className="w-full rounded-lg"
+      />
+      <div className="p-4 border-t bg-muted/30 rounded-b-lg">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">
+            Showing {equipmentWithLocation.length} of {equipment.length} equipment with location data
+          </span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="text-xs">Active</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <span className="text-xs">Maintenance</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+              <span className="text-xs">Retired</span>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
