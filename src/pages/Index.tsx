@@ -103,7 +103,7 @@ const Index = () => {
   // RENDER LOGIC - ALL HOOKS HAVE BEEN CALLED ABOVE
   return (
     <Layout>
-      <div className="flex-1 space-y-3">
+      <div className="space-y-3 max-w-full">
         <InvitationAlert invitations={invitations} />
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
@@ -200,7 +200,7 @@ const Index = () => {
           </div>
         )}
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 pb-4">
           {!showInitialAuthLoading && (
             <>
               <RecentEquipmentSection 
