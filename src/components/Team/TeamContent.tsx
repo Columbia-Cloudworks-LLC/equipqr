@@ -25,8 +25,6 @@ interface TeamContentProps {
   onDeleteTeam: (teamId: string) => Promise<any>;
   onUpgradeRole: () => Promise<void>;
   onRequestRoleUpgrade: () => Promise<void>;
-  isRepairingTeam: boolean;
-  onRepairTeam: () => Promise<void>;
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvitation: (id: string) => Promise<void>;
   getTeamEquipmentCount: (teamId: string) => Promise<number>;
@@ -50,8 +48,6 @@ export function TeamContent({
   onDeleteTeam,
   onUpgradeRole,
   onRequestRoleUpgrade,
-  isRepairingTeam,
-  onRepairTeam,
   onResendInvite,
   onCancelInvitation,
   getTeamEquipmentCount
@@ -104,8 +100,6 @@ export function TeamContent({
             onRemoveMember={onRemoveMember}
             onUpgradeRole={onUpgradeRole}
             onRequestRoleUpgrade={onRequestRoleUpgrade}
-            isRepairingTeam={isRepairingTeam}
-            onRepairTeam={onRepairTeam}
             onResendInvite={onResendInvite}
             onCancelInvitation={onCancelInvitation}
           />

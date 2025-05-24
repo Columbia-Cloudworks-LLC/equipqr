@@ -18,7 +18,6 @@ interface TeamManagementWrapperProps {
   isCreatingTeam: boolean;
   isUpdatingTeam: boolean;
   isDeletingTeam: boolean;
-  isRepairingTeam: boolean;
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
   isMember: boolean;
@@ -34,7 +33,6 @@ interface TeamManagementWrapperProps {
   onRemoveMember: (userId: string) => Promise<any>;
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvitation: (id: string) => Promise<void>;
-  onRepairTeam: () => Promise<void>;
   onUpgradeRole: () => Promise<void>;
   onRequestRoleUpgrade: () => Promise<void>;
   onFetchPendingInvitations: () => Promise<any>;
@@ -53,7 +51,6 @@ export function TeamManagementWrapper({
   isCreatingTeam,
   isUpdatingTeam,
   isDeletingTeam,
-  isRepairingTeam,
   isUpgradingRole,
   isRequestingRole,
   isMember,
@@ -69,7 +66,6 @@ export function TeamManagementWrapper({
   onRemoveMember,
   onResendInvite,
   onCancelInvitation,
-  onRepairTeam,
   onUpgradeRole,
   onRequestRoleUpgrade,
   onFetchPendingInvitations,
@@ -143,8 +139,6 @@ export function TeamManagementWrapper({
         onDeleteTeam={onDeleteTeam}
         onUpgradeRole={onUpgradeRole}
         onRequestRoleUpgrade={onRequestRoleUpgrade}
-        isRepairingTeam={isRepairingTeam}
-        onRepairTeam={onRepairTeam}
         onResendInvite={onResendInvite}
         onCancelInvitation={onCancelInvitation}
         getTeamEquipmentCount={getTeamEquipmentCount}
