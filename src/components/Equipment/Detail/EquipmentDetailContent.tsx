@@ -34,23 +34,24 @@ export function EquipmentDetailContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap justify-between items-start gap-2">
-        <div>
-          <h1 className="text-3xl font-bold">{equipment.name}</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-start">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold break-words">{equipment.name}</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             {equipment.manufacturer ? `${equipment.manufacturer} · ` : ''}
             {equipment.model || 'No model'}
             {equipment.serial_number ? ` · ${equipment.serial_number}` : ''}
           </p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 lg:flex-nowrap lg:shrink-0">
           {canEdit && (
             <>
-              <Button asChild size="sm">
+              <Button asChild size="sm" className="flex-1 sm:flex-none">
                 <Link to={`/equipment/${id}/edit`}>
                   <Edit className="mr-2 h-4 w-4" />
-                  Edit
+                  <span className="hidden sm:inline">Edit</span>
+                  <span className="sm:hidden">Edit</span>
                 </Link>
               </Button>
               <DuplicateEquipmentButton 
@@ -65,9 +66,10 @@ export function EquipmentDetailContent({
               />
             </>
           )}
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none">
             <Link to={`/equipment/${id}/qr`}>
-              View QR Code
+              <span className="hidden sm:inline">View QR Code</span>
+              <span className="sm:hidden">QR</span>
             </Link>
           </Button>
         </div>
