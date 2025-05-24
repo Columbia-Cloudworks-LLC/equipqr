@@ -45,7 +45,7 @@ export interface TeamManagementContextType {
   handleRemoveMember: (userId: string) => Promise<any>;
   handleResendInvite: (id: string) => Promise<any>;
   handleCancelInvitation: (id: string) => Promise<any>;
-  handleRepairTeam: () => Promise<any>; // Fixed: Changed to zero-parameter function
+  handleRepairTeam: () => Promise<any>; // Fixed: Correct zero-parameter signature with Promise<any> return type
   handleUpgradeRole: () => Promise<any>;
   handleRequestRoleUpgrade: () => Promise<any>;
   refetchTeamMembers: () => void;

@@ -46,7 +46,7 @@ export function useTeamFunctionWrappers(
     return handleDeleteTeam(teamId);
   }, [handleDeleteTeam]);
 
-  // Fixed: This wrapper now has the correct zero-parameter signature with proper error handling
+  // Fixed: This wrapper now has the correct zero-parameter signature with proper return type
   const handleRepairTeamWrapper = useCallback(async (): Promise<any> => {
     try {
       if (!selectedTeamId) {
