@@ -1252,7 +1252,7 @@ export type Database = {
         }[]
       }
       get_team_member_role_safe: {
-        Args: { p_user_id: string; p_team_id: string }
+        Args: { auth_user_id: string; team_id_param: string }
         Returns: string
       }
       get_team_members_with_roles: {
@@ -1305,7 +1305,7 @@ export type Database = {
         Returns: string
       }
       get_user_org_id_safe: {
-        Args: { auth_uid: string }
+        Args: { user_id_param: string }
         Returns: string
       }
       get_user_role: {
@@ -1365,12 +1365,24 @@ export type Database = {
         Args: { _user_id: string; _org_id: string }
         Returns: boolean
       }
+      user_belongs_to_org_safe: {
+        Args: { user_id_param: string; org_id_param: string }
+        Returns: boolean
+      }
       user_belongs_to_team: {
         Args: { _user_id: string; _team_id: string }
         Returns: boolean
       }
       user_has_role_in_team: {
         Args: { _user_id: string; _team_id: string; _roles: string[] }
+        Returns: boolean
+      }
+      user_has_role_safe: {
+        Args: {
+          user_id_param: string
+          org_id_param: string
+          role_param: string
+        }
         Returns: boolean
       }
       user_has_technician_or_above_in_org: {

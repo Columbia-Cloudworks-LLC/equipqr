@@ -51,6 +51,26 @@ export function TeamMemberCard({
     }
   };
 
+  // Helper function to get a display name with proper fallback
+  const getDisplayName = () => {
+    // Priority: display_name > name > email username > 'Unknown User'
+    if (member.display_name?.trim()) {
+      return member.display_name.trim();
+    }
+    
+    if (member.name?.trim()) {
+      return member.name.trim();
+    }
+    
+    if (member.email?.trim()) {
+      // Extract username from email as fallback
+      const emailUsername = member.email.split('@')[0];
+      return emailUsername || 'Unknown User';
+    }
+    
+    return 'Unknown User';
+  };
+
   const getStatusBadge = () => {
     if (member.status === 'pending') {
       return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
@@ -74,10 +94,10 @@ export function TeamMemberCard({
           <div className="flex justify-between items-start">
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-base truncate">
-                {member.display_name || 'Unknown User'}
+                {getDisplayName()}
                 {isCurrentUser && <span className="text-muted-foreground ml-2">(You)</span>}
               </h4>
-              <p className="text-sm text-muted-foreground truncate">{member.email}</p>
+              <p className="text-sm text-muted-foreground truncate">{member.email || 'No email'}</p>
             </div>
             
             {canChangeRoles && (
