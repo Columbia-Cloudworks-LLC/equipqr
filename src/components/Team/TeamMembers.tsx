@@ -90,6 +90,17 @@ export function TeamMembers({
       </div>
       
       {children}
+      
+      <TeamMembersList
+        members={members}
+        onRemoveMember={onRemoveMember}
+        onChangeRole={onChangeRole}
+        onResendInvite={async () => {}} // This will be handled by pending invitations
+        teamId={teamId}
+        isViewOnly={!canChangeRoles}
+        isLoading={isLoading}
+        currentUserRole={currentUserRole}
+      />
     </div>
   );
 }
