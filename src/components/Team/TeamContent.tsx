@@ -64,6 +64,10 @@ export function TeamContent({
     return onUpdateTeam(teamId, { name });
   };
 
+  const handleDeleteTeam = (teamId: string) => {
+    return onDeleteTeam(teamId);
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="members" className="w-full">
@@ -115,7 +119,7 @@ export function TeamContent({
           <TeamSettings
             team={selectedTeam}
             onUpdateTeam={handleUpdateTeam}
-            onDeleteTeam={onDeleteTeam}
+            onDelete={handleDeleteTeam}
             currentUserRole={currentUserRole}
             canChangeRoles={canChangeRoles}
             getTeamEquipmentCount={getTeamEquipmentCount}
