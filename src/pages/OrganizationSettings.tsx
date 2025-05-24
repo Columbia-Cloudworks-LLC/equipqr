@@ -13,12 +13,18 @@ import { updateOrganization } from '@/services/organization';
 import { OwnershipTransferSection } from '@/components/Organization/OwnershipTransferSection';
 import { Layout } from '@/components/Layout/Layout';
 import OrganizationMembersManagement from '@/components/Organization/OrganizationMembersManagement';
+import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { UserRole } from '@/types/supabase-enums';
 
 export default function OrganizationSettings() {
   const navigate = useNavigate();
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { selectedOrganization, refreshOrganizations } = useOrganization();
+  const { 
+    organizations, 
+    selectedOrganization, 
+    selectOrganization, 
+    refreshOrganizations 
+  } = useOrganization();
   
   const [name, setName] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -59,6 +65,10 @@ export default function OrganizationSettings() {
       setIsUpdating(false);
     }
   };
+
+  const handleOrganizationChange = (orgId: string) => {
+    selectOrganization(orgId);
+  };
   
   if (isAuthLoading) {
     return (
@@ -89,11 +99,27 @@ export default function OrganizationSettings() {
   return (
     <Layout>
       <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Organization Settings</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your organization details and members.
-          </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Organization Settings</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your organization details and members.
+            </p>
+          </div>
+          
+          {organizations.length > 1 && (
+            <div className="flex flex-col items-end gap-2">
+              <span className="text-sm text-muted-foreground">Switch Organization</span>
+              <OrganizationSelector
+                organizations={organizations}
+                selectedOrgId={selectedOrganization.id}
+                onChange={handleOrganizationChange}
+                className="w-full sm:w-[280px]"
+                showRoleBadges={true}
+                maxDisplayLength={25}
+              />
+            </div>
+          )}
         </div>
         
         <Card>
