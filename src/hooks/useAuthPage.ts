@@ -16,6 +16,8 @@ export function useAuthPage() {
   const [email, setEmail] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [shouldRedirect, setShouldRedirect] = useState<boolean>(false);
+  
   const { signInWithGoogle, resetAuthSystem, user, session } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,17 +29,6 @@ export function useAuthPage() {
   const isInvitation = state?.isInvitation;
   const invitationType = state?.invitationType;
   const returnTo = state?.returnTo || localStorage.getItem('authReturnTo') || '/';
-  
-  // If user is already authenticated, redirect them
-  useEffect(() => {
-    if (user && session && isInitialized) {
-      console.log("Auth page: User already authenticated, redirecting to", returnTo);
-      navigate(returnTo, { replace: true });
-    } else {
-      // Mark as initialized after first check
-      setIsInitialized(true);
-    }
-  }, [user, session, navigate, returnTo, isInitialized]);
   
   // Check for invitation in session storage and set the tab appropriately
   useEffect(() => {
@@ -51,6 +42,33 @@ export function useAuthPage() {
       setActiveTab('signup');
     }
   }, [isInvitation]);
+  
+  // Handle authentication check and redirect logic
+  useEffect(() => {
+    const checkAndRedirect = async () => {
+      // Mark as initialized after first check
+      if (!isInitialized) {
+        setIsInitialized(true);
+        return;
+      }
+      
+      // Check if user is already authenticated and should be redirected
+      if (user && session) {
+        console.log("Auth page: User already authenticated, setting redirect flag");
+        setShouldRedirect(true);
+      }
+    };
+    
+    checkAndRedirect();
+  }, [user, session, isInitialized]);
+  
+  // Handle the actual redirect in a separate effect to avoid early returns
+  useEffect(() => {
+    if (shouldRedirect && isInitialized) {
+      console.log("Auth page: Redirecting to", returnTo);
+      navigate(returnTo, { replace: true });
+    }
+  }, [shouldRedirect, isInitialized, navigate, returnTo]);
   
   const handleGoogleSignIn = async () => {
     try {
@@ -75,6 +93,7 @@ export function useAuthPage() {
     // Reset redirect count to prevent redirect loops
     sessionStorage.removeItem('authRedirectCount');
     setIsInitialized(false);
+    setShouldRedirect(false);
   };
 
   // Handle tab change
