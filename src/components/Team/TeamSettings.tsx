@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,28 +10,30 @@ import { Badge } from '../ui/badge';
 
 interface TeamSettingsProps {
   team: any;
-  isUpdating: boolean;
-  isDeleting: boolean;
+  isUpdating?: boolean;
+  isDeleting?: boolean;
   onUpdateTeam: (id: string, name: string) => Promise<any>;
   onDelete: (teamId: string) => Promise<any>;
   currentUserRole?: string;
+  canChangeRoles: boolean;
   getTeamEquipmentCount: (teamId: string) => Promise<number>;
 }
 
 export function TeamSettings({
   team,
-  isUpdating,
-  isDeleting,
+  isUpdating = false,
+  isDeleting = false,
   onUpdateTeam,
   onDelete,
   currentUserRole = 'viewer',
+  canChangeRoles,
   getTeamEquipmentCount
 }: TeamSettingsProps) {
   const [equipmentCount, setEquipmentCount] = useState<number | null>(null);
   const [isLoadingCount, setIsLoadingCount] = useState(false);
   
   // Manager+ can edit team settings
-  const canEditTeam = currentUserRole === 'manager' || currentUserRole === 'owner';
+  const canEditTeam = canChangeRoles && (currentUserRole === 'manager' || currentUserRole === 'owner');
   
   // Only load equipment count when user triggers delete action
   const checkEquipmentCount = async () => {

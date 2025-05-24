@@ -17,7 +17,7 @@ export function useTeamFunctionWrappers(
   handleUpgradeRole: () => Promise<void>,
   handleRequestRoleUpgrade: () => Promise<void>
 ) {
-  const handleInviteMemberWrapper = useCallback(async (email: string, role: UserRole) => {
+  const handleInviteMemberWrapper = useCallback(async (email: string, role: UserRole, teamId: string) => {
     return handleInviteMember(email, role);
   }, [handleInviteMember]);
 
