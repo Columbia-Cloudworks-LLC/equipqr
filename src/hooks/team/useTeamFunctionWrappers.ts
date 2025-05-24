@@ -13,7 +13,7 @@ export function useTeamFunctionWrappers(
   handleCreateTeam: (name: string) => Promise<any>,
   handleUpdateTeam: (id: string, name: string) => Promise<any>,
   handleDeleteTeam: (teamId: string) => Promise<any>,
-  handleRepairTeam: (teamId: string) => Promise<any>,
+  handleRepairTeam: (teamId: string) => Promise<any>, // Fixed: Accept the correct signature
   handleUpgradeRole: () => Promise<void>,
   handleRequestRoleUpgrade: () => Promise<void>
 ) {
@@ -46,17 +46,12 @@ export function useTeamFunctionWrappers(
     return handleDeleteTeam(teamId);
   }, [handleDeleteTeam]);
 
-  // Fixed: This wrapper now has the correct zero-parameter signature with proper return type
+  // Fixed: This wrapper converts the (teamId: string) signature to () signature
   const handleRepairTeamWrapper = useCallback(async (): Promise<any> => {
-    try {
-      if (!selectedTeamId) {
-        throw new Error('No team selected for repair');
-      }
-      return await handleRepairTeam(selectedTeamId);
-    } catch (error) {
-      console.error('Error in handleRepairTeamWrapper:', error);
-      throw error;
+    if (!selectedTeamId) {
+      throw new Error('No team selected for repair');
     }
+    return handleRepairTeam(selectedTeamId);
   }, [handleRepairTeam, selectedTeamId]);
 
   const handleUpgradeRoleWrapper = useCallback(async (): Promise<any> => {
