@@ -3,6 +3,7 @@ import { Equipment, EquipmentAttribute } from '@/types';
 import { getEquipmentById } from './equipmentDetailsService';
 import { createEquipment } from './equipmentCreateService';
 import { saveEquipmentAttributes } from './attributesService';
+import { getCurrentUserId } from './services/authService';
 
 /**
  * Generate a unique name for duplicated equipment using Windows-style naming
@@ -39,6 +40,9 @@ export async function duplicateEquipment(equipmentId: string): Promise<{ equipme
   try {
     console.log('Starting equipment duplication for ID:', equipmentId);
     
+    // Get current user ID first
+    const currentUserId = await getCurrentUserId();
+    
     // Get the original equipment with all its details
     const originalEquipment = await getEquipmentById(equipmentId);
     
@@ -49,7 +53,7 @@ export async function duplicateEquipment(equipmentId: string): Promise<{ equipme
     // Generate a unique name for the duplicate
     const duplicateName = await generateDuplicateName(originalEquipment.name, originalEquipment.org_id);
     
-    // Prepare the data for the new equipment (exclude fields that shouldn't be copied)
+    // Prepare the data for the new equipment (include all required fields)
     const duplicateData = {
       name: duplicateName,
       org_id: originalEquipment.org_id,
@@ -62,7 +66,7 @@ export async function duplicateEquipment(equipmentId: string): Promise<{ equipme
       notes: originalEquipment.notes,
       install_date: originalEquipment.install_date,
       warranty_expiration: originalEquipment.warranty_expiration,
-      // created_by will be set automatically by the createEquipment service
+      created_by: currentUserId, // Add the required created_by field
     };
     
     console.log('Creating duplicate equipment with data:', duplicateData);

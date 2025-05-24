@@ -1,4 +1,3 @@
-
 import { EquipmentStatus } from "./supabase-enums";
 
 export interface Equipment {
@@ -69,5 +68,7 @@ export interface EquipmentFormValues {
   maintenance_date?: string;
 }
 
-// Export CreateEquipmentParams type
-export type CreateEquipmentParams = Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'can_edit' | 'has_no_team' | 'team_name' | 'org_name' | 'is_external_org'>;
+// Export CreateEquipmentParams type - ensure it includes created_by
+export type CreateEquipmentParams = Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'can_edit' | 'has_no_team' | 'team_name' | 'org_name' | 'is_external_org'> & {
+  created_by: string; // Explicitly require created_by
+};

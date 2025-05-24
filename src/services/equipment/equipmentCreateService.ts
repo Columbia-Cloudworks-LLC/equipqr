@@ -6,6 +6,11 @@ import { EquipmentStatus } from '@/types/supabase-enums';
 // Function to create equipment - make sure it accepts the correct type
 export async function createEquipment(params: CreateEquipmentParams) {
   try {
+    // Ensure created_by is provided
+    if (!params.created_by) {
+      throw new Error('created_by field is required');
+    }
+
     // Create a processed object with specific status values for DB compatibility
     const processedParams = {
       ...params,
@@ -15,10 +20,10 @@ export async function createEquipment(params: CreateEquipmentParams) {
 
     console.log('Processed params for equipment creation:', processedParams);
 
-    // Fixed: Don't wrap object in array for single insert
+    // Insert the equipment record
     const { data, error } = await supabase
       .from('equipment')
-      .insert(processedParams) // No array wrapper here
+      .insert(processedParams)
       .select()
       .single();
 
