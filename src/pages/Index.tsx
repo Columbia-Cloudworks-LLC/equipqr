@@ -2,7 +2,7 @@
 import { DashboardStat } from '@/types';
 import { DashboardStats } from '@/components/Dashboard/DashboardStats';
 import { Layout } from '@/components/Layout/Layout';
-import { Package, Users, Settings, RefreshCcw } from 'lucide-react';
+import { Package, Users, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { InvitationAlert } from '@/components/Dashboard/InvitationAlert';
@@ -107,24 +107,12 @@ const Index = () => {
                 maxDisplayLength={25}
               />
             )}
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={refetchDashboard} 
-                disabled={isRefreshing || isLoading}
-                title="Refresh dashboard data"
-              >
-                <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="sr-only">Refresh data</span>
-              </Button>
-              <Button asChild>
-                <Link to="/equipment/new">
-                  <Package className="mr-2 h-4 w-4" />
-                  Add Equipment
-                </Link>
-              </Button>
-            </div>
+            <Button asChild>
+              <Link to="/equipment/new">
+                <Package className="mr-2 h-4 w-4" />
+                Add Equipment
+              </Link>
+            </Button>
           </div>
         </div>
 
