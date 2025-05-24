@@ -150,7 +150,7 @@ export function useTeamManagementPage(): {
     handleRemoveMember: teamFunctionWrappers.handleRemoveMemberWrapper,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper,
+    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper, // Fixed: Use the zero-parameter wrapper
     handleUpgradeRole: teamFunctionWrappers.handleUpgradeRoleWrapper,
     handleRequestRoleUpgrade: teamFunctionWrappers.handleRequestRoleUpgradeWrapper,
     refetchTeamMembers,
