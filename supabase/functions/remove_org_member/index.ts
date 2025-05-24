@@ -87,7 +87,7 @@ serve(async (req) => {
 
     console.log(`Attempting to remove user ${user_id} from organization ${org_id} by ${user.id}`)
 
-    // Validate that the organization exists and user has permission
+    // Validate that the organization exists
     const { data: orgCheck, error: orgError } = await supabaseClient
       .from('organizations')
       .select('id')
@@ -105,48 +105,71 @@ serve(async (req) => {
       )
     }
 
-    // Call the database function to remove the organization member
-    const { data, error } = await supabaseClient.rpc('remove_organization_member', {
-      p_org_id: org_id,
-      p_user_id: user_id,
-      p_removed_by: user.id
-    })
+    // Check if the database function exists before calling it
+    try {
+      const { data, error } = await supabaseClient.rpc('remove_organization_member', {
+        p_org_id: org_id,
+        p_user_id: user_id,
+        p_removed_by: user.id
+      })
 
-    if (error) {
-      console.error('Database error:', error)
+      if (error) {
+        console.error('Database function error:', error)
+        
+        // Handle specific database errors
+        if (error.message?.includes('function') && error.message?.includes('does not exist')) {
+          return new Response(
+            JSON.stringify({ error: 'Database function not available. Please contact support.' }),
+            { 
+              status: 501,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            },
+          )
+        }
+        
+        return new Response(
+          JSON.stringify({ error: error.message || 'Database operation failed' }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
+        )
+      }
+
+      if (!data || !data.success) {
+        const errorMsg = data?.error || 'Unknown database error'
+        console.error('Database function returned error:', errorMsg)
+        return new Response(
+          JSON.stringify({ error: errorMsg }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
+        )
+      }
+
+      console.log(`Successfully removed user from organization. Teams removed: ${data.teams_removed}`)
+
       return new Response(
-        JSON.stringify({ error: error.message || 'Database operation failed' }),
+        JSON.stringify({ 
+          success: true,
+          message: data.message || 'Member removed successfully',
+          teams_removed: data.teams_removed || 0
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
+    } catch (dbError) {
+      console.error('Database operation failed:', dbError)
+      return new Response(
+        JSON.stringify({ error: 'Database operation failed: ' + (dbError?.message || 'Unknown error') }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         },
       )
     }
-
-    if (!data || !data.success) {
-      const errorMsg = data?.error || 'Unknown database error'
-      console.error('Database function returned error:', errorMsg)
-      return new Response(
-        JSON.stringify({ error: errorMsg }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
-    }
-
-    console.log(`Successfully removed user from organization. Teams removed: ${data.teams_removed}`)
-
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        message: data.message || 'Member removed successfully',
-        teams_removed: data.teams_removed || 0
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
 
   } catch (error) {
     console.error('Function error:', error)

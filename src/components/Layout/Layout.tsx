@@ -20,10 +20,10 @@ export function Layout({ children }: LayoutProps) {
         <AppSidebar />
         <div className="flex flex-1 flex-col min-h-screen">
           <Navbar />
-          <main className="flex-1 p-4 md:p-6">
+          <main className="flex-1 p-4 md:p-6 min-h-0">
             {children}
           </main>
-          <footer className="border-t py-3 px-4 text-xs text-center text-muted-foreground bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
+          <footer className="border-t py-3 px-4 text-xs text-center text-muted-foreground bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0 mt-auto">
             <div className="flex justify-center gap-4 mb-1">
               <Link to="/terms" className="hover:text-primary hover:underline transition-colors">Terms of Service</Link>
               <Link to="/privacy" className="hover:text-primary hover:underline transition-colors">Privacy Policy</Link>

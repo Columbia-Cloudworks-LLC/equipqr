@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,34 +18,68 @@ export function useAuth() {
     console.log('useAuth: Initializing auth state');
     setIsLoading(true);
     
-    // IMPORTANT: First set up the auth state listener before checking session
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('useAuth: Auth state change event:', event);
+    // Set up the auth state listener first
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('useAuth: Auth state change event:', event, session ? 'Has session' : 'No session');
+      
+      // Update state synchronously
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+      
+      // Handle specific events
+      if (event === 'SIGNED_OUT') {
+        console.log('useAuth: User signed out, clearing state');
+        setSession(null);
+        setUser(null);
+      } else if (event === 'SIGNED_IN' && session) {
+        console.log('useAuth: User signed in successfully');
+        setSession(session);
+        setUser(session.user);
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        console.log('useAuth: Token refreshed successfully');
+        setSession(session);
+        setUser(session.user);
+      }
     });
     
     // Then check for an existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('useAuth: Initial session check:', session ? 'Has session' : 'No session');
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
+    const initializeSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('useAuth: Error getting initial session:', error);
+        } else {
+          console.log('useAuth: Initial session check:', session ? 'Has session' : 'No session');
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      } catch (error) {
+        console.error('useAuth: Error during session initialization:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initializeSession();
     
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
 
-  // Check session validity - simplified
+  // Check session validity with better error handling
   const checkSession = useCallback(async () => {
     try {
       console.log('useAuth: Checking session validity');
-      const { data } = await supabase.auth.getSession();
-      const isValid = !!data?.session;
+      const { data, error } = await supabase.auth.getSession();
       
+      if (error) {
+        console.error('useAuth: Session check error:', error);
+        return false;
+      }
+      
+      const isValid = !!data?.session;
       console.log('useAuth: Session valid:', isValid);
       
       // Update state if needed
@@ -52,7 +87,7 @@ export function useAuth() {
         setSession(data.session);
         setUser(data.session?.user ?? null);
       } else if (!isValid && session) {
-        // Session is not valid but we have one locally - reset state
+        console.log('useAuth: Session invalid, clearing state');
         setSession(null);
         setUser(null);
       }
@@ -64,71 +99,56 @@ export function useAuth() {
     }
   }, [session]);
 
-  // Function to repair session - implementation improved
+  // Function to repair session with improved logic
   const repairSession = useCallback(async () => {
     try {
       console.log('useAuth: Attempting to repair session');
       
       // First check if we have a session
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData, error } = await supabase.auth.getSession();
       
-      // Get project ID from project URL
-      const projectRef = "oxeheowbfsshpyldlskb";
-      
-      // Refresh session storage keys
-      const sessionKey = `sb-${projectRef}-auth-token`;
-      const codeVerifierKey = `sb-${projectRef}-auth-token-code-verifier`;
-      const legacySessionKey = "supabase.auth.token";
-      
-      console.log(`Checking storage for session keys: ${sessionKey}, ${legacySessionKey}`);
-      
-      // Look for any traces of session
-      const localStorageSession = localStorage.getItem(sessionKey);
-      const localLegacySession = localStorage.getItem(legacySessionKey);
-      
-      if (!sessionData?.session && !localStorageSession && !localLegacySession) {
-        console.log('useAuth: No session data found to repair');
+      if (error) {
+        console.error('useAuth: Error getting session for repair:', error);
         return false;
       }
       
-      // If session exists but is not in proper state, try to refresh
-      try {
-        console.log('useAuth: Attempting to refresh session token');
-        const { data, error } = await supabase.auth.refreshSession();
+      if (!sessionData?.session) {
+        console.log('useAuth: No session data found to repair');
         
-        if (error) {
-          console.error('useAuth: Failed to refresh token:', error);
-          return false;
+        // Try to refresh session if we have a refresh token
+        try {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError) {
+            console.error('useAuth: Failed to refresh session:', refreshError);
+            return false;
+          }
+          
+          if (refreshData?.session) {
+            console.log('useAuth: Session successfully refreshed');
+            setSession(refreshData.session);
+            setUser(refreshData.session.user);
+            return true;
+          }
+        } catch (refreshError) {
+          console.error('useAuth: Error during session refresh:', refreshError);
         }
         
-        if (data?.session) {
-          console.log('useAuth: Session successfully refreshed');
-          setSession(data.session);
-          setUser(data.session.user);
-          return true;
-        }
-      } catch (refreshError) {
-        console.error('useAuth: Error during token refresh:', refreshError);
+        return false;
       }
       
-      // Last resort - explicit signout and let user sign in again
-      try {
-        await supabase.auth.signOut({ scope: 'local' });
-        console.log('useAuth: Signed out locally to reset auth state');
-        setSession(null);
-        setUser(null);
-      } catch (signOutError) {
-        console.error('useAuth: Error during cleanup signout:', signOutError);
-      }
-      
-      return false;
+      // Session exists, validate it
+      console.log('useAuth: Session found, validating');
+      setSession(sessionData.session);
+      setUser(sessionData.session.user);
+      return true;
     } catch (error) {
       console.error('useAuth: Error during session repair:', error);
       return false;
     }
   }, []);
 
-  // Complete auth reset - useful for troubleshooting  
+  // Complete auth reset
   const resetAuthSystem = useCallback(async () => {
     try {
       console.log('useAuth: Performing complete auth system reset');
@@ -137,14 +157,14 @@ export function useAuth() {
       setUser(null);
       setSession(null);
       
-      // First try explicit sign out
+      // Sign out from Supabase
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (e) {
         console.error('useAuth: Error during explicit sign-out in reset:', e);
       }
       
-      // Clear all Supabase-related storage
+      // Clear storage
       const projectRef = "oxeheowbfsshpyldlskb";
       const keys = [
         `sb-${projectRef}-auth-token`,
@@ -157,7 +177,7 @@ export function useAuth() {
         sessionStorage.removeItem(key);
       });
       
-      // Clear all other auth-related storage
+      // Clear auth-related storage
       localStorage.removeItem('authReturnTo');
       sessionStorage.removeItem('authRedirectCount');
       sessionStorage.removeItem('invitationPath');

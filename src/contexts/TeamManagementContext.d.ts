@@ -34,7 +34,7 @@ export interface TeamManagementContextType {
   // Error handling
   error: string | null;
   
-  // Functions
+  // Functions - Fixed signatures to match actual implementations
   setSelectedTeamId: (teamId: string) => void;
   handleOrganizationChange: (orgId: string) => void;
   handleCreateTeam: (name: string) => Promise<any>;
@@ -45,7 +45,7 @@ export interface TeamManagementContextType {
   handleRemoveMember: (userId: string) => Promise<any>;
   handleResendInvite: (id: string) => Promise<any>;
   handleCancelInvitation: (id: string) => Promise<any>;
-  handleRepairTeam: () => Promise<any>; // Fixed: No parameters
+  handleRepairTeam: (teamId: string) => Promise<any>; // Fixed: Accept teamId parameter
   handleUpgradeRole: () => Promise<any>;
   handleRequestRoleUpgrade: () => Promise<any>;
   refetchTeamMembers: () => void;

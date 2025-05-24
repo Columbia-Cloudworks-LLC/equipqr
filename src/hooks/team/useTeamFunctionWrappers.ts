@@ -41,7 +41,7 @@ export function useTeamFunctionWrappers(
     return handleDeleteTeam(teamId);
   }, [handleDeleteTeam]);
 
-  // Fix: Make this wrapper take no parameters to match the expected signature
+  // Fixed: This wrapper now passes the selectedTeamId to match the expected signature
   const handleRepairTeamWrapper = useCallback(async () => {
     if (selectedTeamId) {
       return handleRepairTeam(selectedTeamId);
