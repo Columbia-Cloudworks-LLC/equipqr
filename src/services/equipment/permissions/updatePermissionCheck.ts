@@ -9,15 +9,12 @@ import { checkEquipmentEditPermission } from './accessCheck';
  */
 export async function checkUpdatePermission(equipmentId: string): Promise<PermissionResult> {
   try {
-    // Get current user session first
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
       throw new Error('User must be logged in to update equipment');
     }
     
-    const authUserId = sessionData.session.user.id;
-    
-    // Check if user has permission to edit this equipment
+    // Use the unified edit permission check
     const permissionResult = await checkEquipmentEditPermission(equipmentId);
     
     if (!permissionResult.hasPermission) {

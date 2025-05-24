@@ -22,19 +22,34 @@ export async function canAssignTeamRole(teamId: string, role: string) {
     
     const userId = sessionData.session.user.id;
     
-    // Use our new DB function through RPC call
-    const { data, error } = await supabase.rpc('can_assign_team_role', {
-      p_auth_user_id: userId,
-      p_team_id: teamId,
-      p_role: role
+    // Use the unified permissions function to check team management
+    const { data, error } = await supabase.functions.invoke('permissions', {
+      body: {
+        userId,
+        resource: 'team',
+        action: 'manage_members',
+        resourceId: teamId
+      }
     });
     
     if (error) {
       console.error('Error checking role assignment permission:', error);
-      return false;
+      // Fallback to original RPC call
+      const { data: fallbackData, error: fallbackError } = await supabase.rpc('can_assign_team_role', {
+        p_auth_user_id: userId,
+        p_team_id: teamId,
+        p_role: role
+      });
+      
+      if (fallbackError) {
+        console.error('Fallback role assignment check failed:', fallbackError);
+        return false;
+      }
+      
+      return fallbackData || false;
     }
     
-    return data || false;
+    return data?.has_permission || false;
   } catch (error) {
     console.error('Error in canAssignTeamRole:', error);
     return false;

@@ -1,10 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { TeamAccessResult } from './teamValidationTypes';
-import { invokeEdgeFunction } from '@/utils/edgeFunctionUtils';
 
 /**
- * Validate a user's membership in a team using our improved edge function
+ * Validate a user's membership in a team using the unified permissions function
  * @param teamId The team ID to validate
  * @param userId Optional user ID (defaults to current user)
  * @returns Object with validation results 
@@ -27,29 +26,17 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
     
     console.log(`Validating team membership for user ${userId} in team ${teamId}`);
     
-    // Use the shared edge function utility to prevent duplicating code
-    try {
-      const data = await invokeEdgeFunction('validate_team_access', {
-        team_id: teamId,
-        user_id: userId
-      }, 10000) as TeamAccessResult; // 10 second timeout
-      
-      console.log('Team membership validation result:', data);
-      
-      return {
-        isValid: data?.has_access === true, // Ensure we check exact boolean true
-        result: data || null,
-        // Add diagnostics for troubleshooting
-        diagnostics: {
-          isMember: data?.is_member,
-          accessReason: data?.access_reason,
-          userOrgId: data?.user_org_id,
-          teamOrgId: data?.team_org_id,
-          role: data?.role,
-          hasCrossOrgAccess: data?.has_cross_org_access
-        }
-      };
-    } catch (error) {
+    // Use the unified permissions function
+    const { data, error } = await supabase.functions.invoke('permissions', {
+      body: {
+        userId,
+        resource: 'team',
+        action: 'read',
+        resourceId: teamId
+      }
+    });
+    
+    if (error) {
       console.error('Team membership validation error:', error);
       
       // Fallback to direct query if edge function fails
@@ -73,9 +60,33 @@ export async function validateTeamMembership(teamId: string, userId?: string) {
         } as TeamAccessResult
       };
     }
+    
+    console.log('Team membership validation result:', data);
+    
+    const result: TeamAccessResult = {
+      is_member: data?.details?.is_member || false,
+      has_access: data?.has_permission || false,
+      access_reason: data?.reason || 'unknown',
+      user_org_id: data?.details?.user_org_id,
+      team_org_id: data?.details?.team_org_id,
+      role: data?.role,
+      has_cross_org_access: data?.details?.user_org_id !== data?.details?.team_org_id
+    };
+    
+    return {
+      isValid: data?.has_permission === true,
+      result,
+      diagnostics: {
+        isMember: result.is_member,
+        accessReason: result.access_reason,
+        userOrgId: result.user_org_id,
+        teamOrgId: result.team_org_id,
+        role: result.role,
+        hasCrossOrgAccess: result.has_cross_org_access
+      }
+    };
   } catch (error: any) {
     console.error('Error in validateTeamMembership:', error);
-    // Return a safe default to prevent breaking the UI
     return {
       isValid: false,
       result: {

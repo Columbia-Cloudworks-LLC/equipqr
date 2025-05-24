@@ -8,7 +8,6 @@ import { PermissionResult } from './types';
  */
 export async function checkCreatePermission(teamId?: string | null): Promise<PermissionResult> {
   try {
-    // Get current user session
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
       throw new Error('User must be logged in to create equipment');
@@ -16,34 +15,31 @@ export async function checkCreatePermission(teamId?: string | null): Promise<Per
     
     const authUserId = sessionData.session.user.id;
     
-    // Call the edge function to check permission
-    const { data, error } = await supabase.functions.invoke('check_equipment_create_permission', {
-      body: { 
-        user_id: authUserId, 
-        team_id: teamId || null 
+    const { data, error } = await supabase.functions.invoke('permissions', {
+      body: {
+        userId: authUserId,
+        resource: 'equipment',
+        action: 'create',
+        targetId: teamId || null
       }
     });
     
     if (error) {
-      throw new Error(`Permission check failed: ${error.message}`);
-    }
-    
-    if (!data || !data.can_create) {
       return {
         authUserId,
         teamId: teamId || null,
         orgId: null,
         hasPermission: false,
-        reason: data?.reason || 'Permission denied'
+        reason: `Permission check failed: ${error.message}`
       };
     }
     
     return {
       authUserId,
       teamId: teamId || null,
-      orgId: data.org_id,
-      hasPermission: true,
-      reason: data.reason || 'Permission granted'
+      orgId: data?.org_id || null,
+      hasPermission: data?.has_permission || false,
+      reason: data?.reason || 'Permission check completed'
     };
   } catch (error: any) {
     console.error('Error checking create permission:', error);

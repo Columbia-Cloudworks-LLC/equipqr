@@ -2,22 +2,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface PermissionResponse {
-  has_permission: boolean;
-  reason?: string;
-}
-
 /**
  * Soft delete equipment
  */
 export async function deleteEquipment(id: string): Promise<boolean> {
   try {
-    // Validate input
     if (!id) {
       throw new Error('Equipment ID is required');
     }
     
-    // Get the current user's auth ID
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -32,25 +25,25 @@ export async function deleteEquipment(id: string): Promise<boolean> {
     const authUserId = sessionData.session.user.id;
     console.log('Deleting equipment:', id, 'User:', authUserId);
     
-    // Check access using edge function to avoid RLS recursion
-    const { data: accessCheck, error: accessError } = await supabase.functions.invoke('check_equipment_permission', {
-      body: { 
-        user_id: authUserId,
-        equipment_id: id,
-        action: 'edit'
+    // Check access using unified permissions function
+    const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('permissions', {
+      body: {
+        userId: authUserId,
+        resource: 'equipment',
+        action: 'delete',
+        resourceId: id
       }
     });
     
-    if (accessError) {
-      console.error('Error checking equipment access:', accessError);
-      throw new Error(`Access check failed: ${accessError.message}`);
+    if (permissionError) {
+      console.error('Error checking equipment access:', permissionError);
+      throw new Error(`Access check failed: ${permissionError.message}`);
     }
     
-    const response = accessCheck as PermissionResponse;
-    console.log('Permission check response:', response);
+    console.log('Permission check response:', permissionCheck);
     
-    if (!response || !response.has_permission) {
-      const reason = response?.reason || 'unknown';
+    if (!permissionCheck || !permissionCheck.has_permission) {
+      const reason = permissionCheck?.reason || 'unknown';
       console.error('Access denied:', reason);
       throw new Error('You do not have permission to delete this equipment');
     }
