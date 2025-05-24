@@ -7,6 +7,7 @@ export * from './equipmentDetailsService';
 export * from './equipmentListService';
 export * from './equipmentUpdateService';
 export * from './equipmentDeleteService';
+export * from './equipmentDuplicationService';
 export * from './scanService';
 export * from './attributesService';
 

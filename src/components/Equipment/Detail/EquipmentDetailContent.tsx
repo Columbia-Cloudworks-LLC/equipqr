@@ -9,7 +9,8 @@ import { Edit } from 'lucide-react';
 import { WorkNotes } from '../WorkNotes';
 import { AttributesList } from '../Attributes';
 import { ScanHistory } from '../ScanHistory/ScanHistory';
-import { DeleteEquipmentButton } from './DeleteEquipmentButton'; 
+import { DeleteEquipmentButton } from './DeleteEquipmentButton';
+import { DuplicateEquipmentButton } from './DuplicateEquipmentButton';
 
 interface EquipmentDetailContentProps {
   equipment: Equipment;
@@ -52,6 +53,11 @@ export function EquipmentDetailContent({
                   Edit
                 </Link>
               </Button>
+              <DuplicateEquipmentButton 
+                equipmentId={id}
+                equipmentName={equipment.name}
+                canDuplicate={canEdit}
+              />
               <DeleteEquipmentButton 
                 equipmentId={id} 
                 equipmentName={equipment.name}
