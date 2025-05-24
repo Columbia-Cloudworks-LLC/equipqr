@@ -84,15 +84,15 @@ export function TeamManagementWrapper({
       <div className="flex justify-between items-center">
         <TeamSelector
           teams={filteredTeams}
-          selectedTeamId={selectedTeamId}
-          onSelectTeam={onSelectTeam}
-          isChangingOrg={isChangingOrg}
+          value={selectedTeamId}
+          onChange={onSelectTeam}
+          disabled={isChangingOrg}
         />
         
         {hasCreatePermission && (
           <CreateTeamButton
             onCreateTeam={onCreateTeam}
-            isCreatingTeam={isCreatingTeam}
+            isCreating={isCreatingTeam}
           />
         )}
       </div>
