@@ -14,8 +14,15 @@ import { TeamListHeader } from './TeamListHeader';
 import { TeamEmptyState } from './TeamEmptyState';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface UnifiedMember extends TeamMember {
+  status: 'active' | 'pending';
+  invitation_id?: string;
+  invitation_email?: string;
+  invitation_role?: string;
+}
+
 interface TeamListProps {
-  members: TeamMember[];
+  members: UnifiedMember[];
   onRemoveMember: (userId: string) => void;
   onChangeRole: (userId: string, role: UserRole) => void;
   onResendInvite: (id: string) => Promise<void>;
@@ -44,16 +51,24 @@ export function TeamList({
   }
 
   // Calculate additional props for TeamMemberRow
-  const calculateMemberProps = (member: TeamMember) => {
+  const calculateMemberProps = (member: UnifiedMember) => {
+    // For pending invitations, never treat as current user
+    if (member.status === 'pending') {
+      return { 
+        isCurrentUser: false, 
+        isLastManager: false, 
+        canChangeRoles: !isViewOnly && ['manager', 'owner'].includes(currentUserRole || '') 
+      };
+    }
+    
     // Determine if this is the current user by comparing user IDs
-    // Use both auth_uid and user_id with type safe checks
     const isCurrentUser = currentUserId && 
       ((member.auth_uid && member.auth_uid === currentUserId) || 
        (member.user_id === currentUserId));
     
-    // Check if this is the last manager in the team
-    const isLastManager = member.role === 'manager' && 
-      members.filter(m => m.role === 'manager').length === 1;
+    // Check if this is the last manager in the team (only count active members)
+    const activeManagers = members.filter(m => m.status === 'active' && m.role === 'manager');
+    const isLastManager = member.role === 'manager' && activeManagers.length === 1;
     
     // Determine if roles can be changed
     const canChangeRoles = !isViewOnly && ['manager', 'owner'].includes(currentUserRole || '');

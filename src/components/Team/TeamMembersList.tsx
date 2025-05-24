@@ -6,8 +6,15 @@ import { UserRole } from '@/types/supabase-enums';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface UnifiedMember extends TeamMember {
+  status: 'active' | 'pending';
+  invitation_id?: string;
+  invitation_email?: string;
+  invitation_role?: string;
+}
+
 interface TeamMembersListProps {
-  members: TeamMember[];
+  members: UnifiedMember[];
   onRemoveMember: (id: string) => void;
   onChangeRole: (id: string, role: UserRole) => void;
   onResendInvite: (id: string) => Promise<void>;
@@ -53,12 +60,12 @@ export function TeamMembersList({
       <div className="space-y-3">
         {members.map((member) => {
           // Calculate member-specific props
-          const isCurrentUser = currentUserId && 
+          const isCurrentUser = member.status === 'active' && currentUserId && 
             ((member.auth_uid && member.auth_uid === currentUserId) || 
              (member.user_id === currentUserId));
           
-          const isLastManager = member.role === 'manager' && 
-            members.filter(m => m.role === 'manager').length === 1;
+          const activeManagers = members.filter(m => m.status === 'active' && m.role === 'manager');
+          const isLastManager = member.role === 'manager' && activeManagers.length === 1;
           
           const canChangeRoles = !isViewOnly && ['manager', 'owner'].includes(currentUserRole || '');
 
@@ -80,7 +87,7 @@ export function TeamMembersList({
     );
   }
   
-  // Desktop table layout (existing)
+  // Desktop table layout
   return (
     <TeamList
       members={members}

@@ -1,160 +1,89 @@
 
-import { UserRole } from '@/types/supabase-enums';
 import { TeamMembers } from './TeamMembers';
 import { TeamSettings } from './TeamSettings';
-import { MembershipAlert } from './MembershipAlert';
-import { ViewerRoleAlert } from './ViewerRoleAlert';
-import { RepairTeamAccess } from './RepairTeamAccess';
 import { TeamEquipmentMap } from './TeamEquipmentMap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Users, Settings, Map } from 'lucide-react';
 import { Team } from '@/services/team';
+import { UserRole } from '@/types/supabase-enums';
 
 interface TeamContentProps {
-  selectedTeamId: string;
+  selectedTeam: Team;
+  teams: Team[];
   members: any[];
   pendingInvitations: any[];
-  teams: Team[];
   isLoading: boolean;
-  isLoadingInvitations: boolean;
-  isCreatingTeam: boolean;
-  isUpdatingTeam: boolean;
-  isDeletingTeam: boolean;
-  isRepairingTeam: boolean;
+  currentUserRole?: string;
+  isMember: boolean;
+  canChangeRoles: boolean;
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
-  isMember: boolean;
-  currentUserRole: string | null;
-  canChangeRoles: boolean;
-  onInviteMember: (email: string, role: UserRole) => Promise<any>;
-  onChangeRole: (userId: string, role: string) => Promise<any>;
+  onInviteMember: (email: string, role: UserRole, teamId: string) => Promise<any>;
+  onChangeRole: (userId: string, role: UserRole) => Promise<any>;
   onRemoveMember: (userId: string) => Promise<any>;
-  onResendInvite: (id: string) => Promise<void>;
-  onCancelInvitation: (id: string) => Promise<void>;
-  onCreateTeam: (name: string) => Promise<any>;
-  onUpdateTeam: (id: string, name: string) => Promise<any>;
+  onUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>;
   onDeleteTeam: (teamId: string) => Promise<any>;
-  onRepairTeam: () => Promise<void>;
   onUpgradeRole: () => Promise<void>;
   onRequestRoleUpgrade: () => Promise<void>;
-  onFetchPendingInvitations: () => Promise<any>;
+  isRepairingTeam: boolean;
+  onRepairTeam: () => Promise<void>;
+  onResendInvite: (id: string) => Promise<void>;
+  onCancelInvitation: (id: string) => Promise<void>;
   getTeamEquipmentCount: (teamId: string) => Promise<number>;
 }
 
 export function TeamContent({
-  selectedTeamId,
+  selectedTeam,
+  teams,
   members,
   pendingInvitations,
-  teams,
   isLoading,
-  isLoadingInvitations,
-  isCreatingTeam,
-  isUpdatingTeam,
-  isDeletingTeam,
-  isRepairingTeam,
+  currentUserRole,
+  isMember,
+  canChangeRoles,
   isUpgradingRole,
   isRequestingRole,
-  isMember,
-  currentUserRole,
-  canChangeRoles,
   onInviteMember,
   onChangeRole,
   onRemoveMember,
-  onResendInvite,
-  onCancelInvitation,
-  onCreateTeam,
   onUpdateTeam,
   onDeleteTeam,
-  onRepairTeam,
   onUpgradeRole,
   onRequestRoleUpgrade,
-  onFetchPendingInvitations,
+  isRepairingTeam,
+  onRepairTeam,
+  onResendInvite,
+  onCancelInvitation,
   getTeamEquipmentCount
 }: TeamContentProps) {
-  const selectedTeam = teams.find(team => team.id === selectedTeamId);
-  const teamName = selectedTeam?.name || 'Unknown Team';
-
-  if (!isMember && currentUserRole !== 'owner' && currentUserRole !== 'manager') {
-    return (
-      <div className="space-y-4">
-        <MembershipAlert 
-          teamName={teamName}
-          onRepair={onRepairTeam}
-          isRepairing={isRepairingTeam}
-          role={currentUserRole}
-        />
-        <RepairTeamAccess 
-          selectedTeamId={selectedTeamId}
-          onRepairTeam={onRepairTeam}
-          isRepairingTeam={isRepairingTeam}
-          teamDetails={selectedTeam}
-        />
-      </div>
-    );
-  }
-
-  const isViewerOnly = isMember && currentUserRole === 'viewer';
-
-  if (isViewerOnly) {
-    return (
-      <div className="space-y-4">
-        <ViewerRoleAlert
-          canUpgrade={canChangeRoles}
-          isUpgrading={isUpgradingRole}
-          isRequesting={isRequestingRole}
-          onUpgrade={onUpgradeRole}
-          onRequest={onRequestRoleUpgrade}
-        />
-        
-        <Tabs defaultValue="members" className="w-full">
-          <TabsList>
-            <TabsTrigger value="members">Team Members</TabsTrigger>
-            <TabsTrigger value="locations">Equipment Locations</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="members">
-            <TeamMembers
-              teamId={selectedTeamId}
-              teamName={teamName}
-              members={members}
-              teams={teams}
-              isLoading={isLoading}
-              currentUserRole={currentUserRole}
-              isMember={isMember}
-              canChangeRoles={false}
-              isUpgradingRole={isUpgradingRole}
-              isRequestingRole={isRequestingRole}
-              onInviteMember={onInviteMember}
-              onChangeRole={onChangeRole}
-              onRemoveMember={onRemoveMember}
-              onUpgradeRole={onUpgradeRole}
-              onRequestRoleUpgrade={onRequestRoleUpgrade}
-              isRepairingTeam={isRepairingTeam}
-              onRepairTeam={onRepairTeam}
-            />
-          </TabsContent>
-          
-          <TabsContent value="locations">
-            <TeamEquipmentMap teamId={selectedTeamId} teamName={teamName} />
-          </TabsContent>
-        </Tabs>
-      </div>
-    );
-  }
+  const handleInviteMember = (email: string, role: UserRole) => {
+    return onInviteMember(email, role, selectedTeam.id);
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Tabs defaultValue="members" className="w-full">
-        <TabsList>
-          <TabsTrigger value="members">Team Members</TabsTrigger>
-          <TabsTrigger value="locations">Equipment Locations</TabsTrigger>
-          <TabsTrigger value="settings">Team Settings</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="members" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Members
+          </TabsTrigger>
+          <TabsTrigger value="map" className="flex items-center gap-2">
+            <Map className="h-4 w-4" />
+            Equipment Map
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Settings
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="members">
+        <TabsContent value="members" className="mt-6">
           <TeamMembers
-            teamId={selectedTeamId}
-            teamName={teamName}
+            teamId={selectedTeam.id}
+            teamName={selectedTeam.name}
             members={members}
+            pendingInvitations={pendingInvitations}
             teams={teams}
             isLoading={isLoading}
             currentUserRole={currentUserRole}
@@ -162,28 +91,29 @@ export function TeamContent({
             canChangeRoles={canChangeRoles}
             isUpgradingRole={isUpgradingRole}
             isRequestingRole={isRequestingRole}
-            onInviteMember={onInviteMember}
+            onInviteMember={handleInviteMember}
             onChangeRole={onChangeRole}
             onRemoveMember={onRemoveMember}
             onUpgradeRole={onUpgradeRole}
             onRequestRoleUpgrade={onRequestRoleUpgrade}
             isRepairingTeam={isRepairingTeam}
             onRepairTeam={onRepairTeam}
+            onResendInvite={onResendInvite}
+            onCancelInvitation={onCancelInvitation}
           />
         </TabsContent>
         
-        <TabsContent value="locations">
-          <TeamEquipmentMap teamId={selectedTeamId} teamName={teamName} />
+        <TabsContent value="map" className="mt-6">
+          <TeamEquipmentMap teamId={selectedTeam.id} />
         </TabsContent>
         
-        <TabsContent value="settings">
+        <TabsContent value="settings" className="mt-6">
           <TeamSettings
             team={selectedTeam}
-            isUpdating={isUpdatingTeam}
-            isDeleting={isDeletingTeam}
             onUpdateTeam={onUpdateTeam}
-            onDelete={onDeleteTeam}
+            onDeleteTeam={onDeleteTeam}
             currentUserRole={currentUserRole}
+            canChangeRoles={canChangeRoles}
             getTeamEquipmentCount={getTeamEquipmentCount}
           />
         </TabsContent>

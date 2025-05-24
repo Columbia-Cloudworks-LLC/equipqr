@@ -1,24 +1,33 @@
 
-import { useState } from 'react';
-import { TeamMember } from '@/types';
-import { UserRole } from '@/types/supabase-enums';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreVertical, Mail, Shield, Trash2, Building } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
-import { getHierarchicalStatus, getStatusBadgeColorClasses } from '@/utils/teamMemberHierarchy';
+import { Badge } from '@/components/ui/badge';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, Mail, Trash2, UserCheck } from 'lucide-react';
+import { UserRole } from '@/types/supabase-enums';
+import { TeamMember } from '@/types';
+import { useState } from 'react';
+
+interface UnifiedMember extends TeamMember {
+  status: 'active' | 'pending';
+  invitation_id?: string;
+  invitation_email?: string;
+  invitation_role?: string;
+}
 
 interface TeamMemberCardProps {
-  member: TeamMember & { org_role?: string; is_org_manager?: boolean };
+  member: UnifiedMember;
   onRemoveMember: (userId: string) => void;
   onChangeRole: (userId: string, role: UserRole) => void;
   onResendInvite: (id: string) => Promise<void>;
-  isCurrentUser?: boolean;
-  isLastManager?: boolean;
-  canChangeRoles?: boolean;
+  isCurrentUser: boolean;
+  isLastManager: boolean;
+  canChangeRoles: boolean;
   currentUserRole?: string;
 }
 
@@ -27,156 +36,158 @@ export function TeamMemberCard({
   onRemoveMember,
   onChangeRole,
   onResendInvite,
-  isCurrentUser = false,
-  isLastManager = false,
-  canChangeRoles = false,
+  isCurrentUser,
+  isLastManager,
+  canChangeRoles,
   currentUserRole
 }: TeamMemberCardProps) {
   const [isChangingRole, setIsChangingRole] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
   const [isResending, setIsResending] = useState(false);
 
-  const handleRoleChange = async (newRole: UserRole) => {
-    setIsChangingRole(true);
+  const handleRemove = async () => {
+    if (isRemoving) return;
+    setIsRemoving(true);
     try {
-      await onChangeRole(member.user_id || member.id, newRole);
+      if (member.status === 'pending' && member.invitation_id) {
+        await onRemoveMember(member.invitation_id);
+      } else {
+        await onRemoveMember(member.user_id);
+      }
     } finally {
-      setIsChangingRole(false);
+      setIsRemoving(false);
     }
   };
 
   const handleResendInvite = async () => {
+    if (isResending || !member.invitation_id) return;
     setIsResending(true);
     try {
-      await onResendInvite(member.id);
+      await onResendInvite(member.invitation_id);
     } finally {
       setIsResending(false);
     }
   };
 
-  // Helper function to get a display name with proper fallback
-  const getDisplayName = () => {
-    // Priority: display_name > email username > 'Unknown User'
-    if (member.display_name?.trim()) {
-      return member.display_name.trim();
+  const handleRoleChange = async (newRole: UserRole) => {
+    if (isChangingRole || member.status === 'pending') return;
+    setIsChangingRole(true);
+    try {
+      await onChangeRole(member.user_id, newRole);
+    } finally {
+      setIsChangingRole(false);
     }
+  };
+
+  const getStatusBadge = () => {
+    if (member.status === 'pending') {
+      return <Badge variant="secondary">Invitation Pending</Badge>;
+    }
+    return <Badge variant="default">Active</Badge>;
+  };
+
+  const getRoleBadge = (role: string) => {
+    const roleColors = {
+      owner: 'bg-purple-100 text-purple-800',
+      manager: 'bg-blue-100 text-blue-800', 
+      technician: 'bg-green-100 text-green-800',
+      viewer: 'bg-gray-100 text-gray-800'
+    };
     
-    if (member.email?.trim()) {
-      // Extract username from email as fallback
-      const emailUsername = member.email.split('@')[0];
-      return emailUsername || 'Unknown User';
-    }
-    
-    return 'Unknown User';
+    return (
+      <Badge className={roleColors[role] || roleColors.viewer}>
+        {role}
+      </Badge>
+    );
   };
 
-  // Get hierarchical status and styling
-  const hierarchicalStatus = getHierarchicalStatus(member);
-  const statusColorClasses = getStatusBadgeColorClasses(hierarchicalStatus);
+  const canRemove = canChangeRoles && !isLastManager && 
+    (member.status === 'pending' || !isCurrentUser);
 
-  const getRoleBadge = () => {
-    const variant = member.role === 'manager' || member.role === 'owner' ? 'default' : 'secondary';
-    return <Badge variant={variant} className="capitalize">{member.role}</Badge>;
-  };
-
-  const getOrgManagerBadge = () => {
-    if (member.is_org_manager) {
-      return (
-        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
-          <Building className="h-3 w-3" />
-          Org {member.org_role}
-        </Badge>
-      );
-    }
-    return null;
-  };
-
-  // Organization managers cannot be removed or have their roles changed
-  const isOrgManager = member.is_org_manager;
-  const canRemove = canChangeRoles && !isCurrentUser && !isLastManager && !isOrgManager;
-  const canChangeRole = canChangeRoles && !isCurrentUser && member.status !== 'pending' && !isOrgManager;
+  const canChangeRole = canChangeRoles && member.status === 'active' && 
+    !isLastManager && !isCurrentUser;
 
   return (
-    <Card className="p-4">
-      <CardContent className="p-0">
-        <div className="space-y-3">
-          {/* Header with name and actions */}
-          <div className="flex justify-between items-start">
-            <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-base truncate">
-                {getDisplayName()}
-                {isCurrentUser && <span className="text-muted-foreground ml-2">(You)</span>}
-              </h4>
-              <p className="text-sm text-muted-foreground truncate">{member.email || 'No email available'}</p>
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="font-medium truncate">
+                {member.display_name || member.email?.split('@')[0] || 'Unknown'}
+              </h3>
+              {member.status === 'pending' && (
+                <span className="text-xs text-muted-foreground">
+                  (Invited)
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground truncate mb-2">
+              {member.email || member.invitation_email || 'N/A'}
+            </p>
+            <div className="flex items-center gap-2 mb-3">
+              {getRoleBadge(member.role)}
+              {getStatusBadge()}
             </div>
             
-            {canChangeRoles && !isOrgManager && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-white border shadow-lg">
-                  {member.status === 'pending' && (
-                    <DropdownMenuItem onClick={handleResendInvite} disabled={isResending}>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Resend Invite
-                    </DropdownMenuItem>
-                  )}
-                  {canRemove && (
-                    <DropdownMenuItem 
-                      onClick={() => onRemoveMember(member.user_id || member.id)}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Remove
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {member.status === 'pending' && canChangeRoles && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResendInvite}
+                disabled={isResending}
+                className="w-full mb-2"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {isResending ? 'Sending...' : 'Resend Invitation'}
+              </Button>
             )}
           </div>
-
-          {/* Status and Role badges */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="outline" className={cn("border", statusColorClasses)}>
-              {hierarchicalStatus}
-            </Badge>
-            {getRoleBadge()}
-            {getOrgManagerBadge()}
-          </div>
-
-          {/* Organization manager info */}
-          {isOrgManager && (
-            <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded">
-              This person has {member.org_role} access to all teams in this organization.
-              Their role cannot be changed here.
-            </div>
-          )}
-
-          {/* Role selector for active members */}
-          {canChangeRole && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Shield className="h-4 w-4" />
-                <span>Change Role</span>
-              </div>
-              <Select 
-                value={member.role} 
-                onValueChange={handleRoleChange}
-                disabled={isChangingRole}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white border shadow-lg">
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="technician">Technician</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canChangeRole && (
+                <>
+                  <DropdownMenuItem 
+                    onClick={() => handleRoleChange('manager' as UserRole)}
+                    disabled={isChangingRole || member.role === 'manager'}
+                  >
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    Make Manager
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleRoleChange('technician' as UserRole)}
+                    disabled={isChangingRole || member.role === 'technician'}
+                  >
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    Make Technician
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleRoleChange('viewer' as UserRole)}
+                    disabled={isChangingRole || member.role === 'viewer'}
+                  >
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    Make Viewer
+                  </DropdownMenuItem>
+                </>
+              )}
+              {canRemove && (
+                <DropdownMenuItem 
+                  onClick={handleRemove}
+                  disabled={isRemoving}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {member.status === 'pending' ? 'Cancel Invitation' : 'Remove Member'}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>

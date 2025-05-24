@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
@@ -134,8 +135,9 @@ export function useTeamMembers(teamId: string | null) {
   useEffect(() => {
     if (teamId) {
       fetchTeamMembers();
+      fetchPendingInvitations();
     }
-  }, [teamId, retryCount, fetchTeamMembers]);
+  }, [teamId, retryCount, fetchTeamMembers, fetchPendingInvitations]);
 
   // Modified to accept three separate parameters instead of data object
   const handleInviteMember = useCallback(async (email: string, role: UserRole, teamId: string) => {

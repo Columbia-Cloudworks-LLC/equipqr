@@ -8,11 +8,13 @@ import { RepairTeamAccess } from './RepairTeamAccess';
 import { MembershipAlert } from './MembershipAlert';
 import { UserPlus } from 'lucide-react';
 import { Team } from '@/services/team';
+import { useUnifiedTeamMembers } from '@/hooks/team/useUnifiedTeamMembers';
 
 interface TeamMembersProps {
   teamId: string;
   teamName: string;
   members: any[];
+  pendingInvitations: any[];
   teams: Team[];
   isLoading: boolean;
   currentUserRole?: string;
@@ -27,6 +29,8 @@ interface TeamMembersProps {
   onRequestRoleUpgrade: () => Promise<void>;
   isRepairingTeam: boolean;
   onRepairTeam: () => Promise<void>;
+  onResendInvite: (id: string) => Promise<void>;
+  onCancelInvitation: (id: string) => Promise<void>;
   children?: React.ReactNode;
 }
 
@@ -34,6 +38,7 @@ export function TeamMembers({
   teamId,
   teamName,
   members,
+  pendingInvitations,
   teams,
   isLoading,
   currentUserRole,
@@ -48,11 +53,22 @@ export function TeamMembers({
   onRequestRoleUpgrade,
   isRepairingTeam,
   onRepairTeam,
+  onResendInvite,
+  onCancelInvitation,
   children
 }: TeamMembersProps) {
-  // Format the onInviteMember callback to match the expected signature in TeamContent
-  const handleInviteMember = (email: string, role: UserRole) => {
-    return onInviteMember(email, role);
+  // Use the unified members hook to merge active members and pending invitations
+  const unifiedMembers = useUnifiedTeamMembers({ members, pendingInvitations });
+
+  // Handle remove member - need to distinguish between canceling invitations and removing members
+  const handleRemoveMember = async (id: string) => {
+    // Check if this is a pending invitation
+    const member = unifiedMembers.find(m => m.id === id);
+    if (member?.status === 'pending' && member.invitation_id) {
+      await onCancelInvitation(member.invitation_id);
+    } else {
+      await onRemoveMember(id);
+    }
   };
 
   const isManager = currentUserRole === 'manager' || currentUserRole === 'owner';
@@ -80,7 +96,13 @@ export function TeamMembers({
       )}
       
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Team Members</h2>
+        <div>
+          <h2 className="text-xl font-semibold">Team Members</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {unifiedMembers.filter(m => m.status === 'active').length} active members, {' '}
+            {unifiedMembers.filter(m => m.status === 'pending').length} pending invitations
+          </p>
+        </div>
         
         {isManager && (
           <div className="flex space-x-2">
@@ -96,10 +118,10 @@ export function TeamMembers({
       {children}
       
       <TeamMembersList
-        members={members}
-        onRemoveMember={onRemoveMember}
+        members={unifiedMembers}
+        onRemoveMember={handleRemoveMember}
         onChangeRole={onChangeRole}
-        onResendInvite={async () => {}} // This will be handled by pending invitations
+        onResendInvite={onResendInvite}
         teamId={teamId}
         isViewOnly={!canChangeRoles}
         isLoading={isLoading}
