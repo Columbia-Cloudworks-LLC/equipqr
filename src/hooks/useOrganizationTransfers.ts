@@ -54,11 +54,8 @@ export function useOrganizationTransfers() {
           *,
           organization:org_id(name),
           from_user:from_user_id(
-            auth_uid,
-            app_user!inner(
-              auth_uid,
-              user_profiles!inner(display_name)
-            )
+            display_name:user_profiles!inner(display_name),
+            email:app_user!inner(email)
           )
         `)
         .eq('to_user_id', appUser.id)
@@ -66,7 +63,26 @@ export function useOrganizationTransfers() {
         .gt('expires_at', new Date().toISOString());
 
       if (error) throw error;
-      setTransfers(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData: OrganizationTransfer[] = (data || []).map(item => ({
+        id: item.id,
+        org_id: item.org_id,
+        from_user_id: item.from_user_id,
+        status: item.status,
+        initiated_at: item.initiated_at,
+        expires_at: item.expires_at,
+        transfer_reason: item.transfer_reason,
+        organization: {
+          name: item.organization?.name || 'Unknown Organization'
+        },
+        from_user: {
+          display_name: item.from_user?.display_name || 'Unknown User',
+          email: item.from_user?.email || 'unknown@example.com'
+        }
+      }));
+      
+      setTransfers(transformedData);
     } catch (error) {
       console.error('Error fetching transfers:', error);
     } finally {
