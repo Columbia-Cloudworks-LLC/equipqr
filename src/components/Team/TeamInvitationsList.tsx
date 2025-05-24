@@ -1,8 +1,6 @@
 
 import { PendingInvitationsList } from './PendingInvitationsList';
 import { InvitationCard } from './InvitationCard';
-import { Button } from '../ui/button';
-import { RefreshCw } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TeamInvitationsListProps {
@@ -38,18 +36,6 @@ export function TeamInvitationsList({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-medium">Pending Invitations</h3>
-        
-        {onRefresh && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span className="ml-2">Refresh</span>
-          </Button>
-        )}
       </div>
       
       {/* Mobile card layout */}

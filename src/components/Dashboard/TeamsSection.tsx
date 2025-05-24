@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, RefreshCw } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TeamCard } from './TeamCard';
 
@@ -37,14 +37,6 @@ export function TeamsSection({ teams, isLoading, isError, onRefresh }: TeamsSect
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            title="Refresh teams"
-            onClick={handleRefresh}
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/teams">View all</Link>
           </Button>
