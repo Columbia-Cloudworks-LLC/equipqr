@@ -69,17 +69,15 @@ export function useOrganizationTransfers() {
       // Get from_user details separately to avoid relationship ambiguity
       const transfersWithUsers = await Promise.all(
         (data || []).map(async (transfer) => {
-          const { data: fromUser, error: fromUserError } = await supabase
+          // First get the app_user record to get the auth_uid
+          const { data: appUserRecord, error: appUserError } = await supabase
             .from('app_user')
-            .select(`
-              email,
-              user_profiles!inner(display_name)
-            `)
+            .select('auth_uid')
             .eq('id', transfer.from_user_id)
             .single();
 
-          if (fromUserError) {
-            console.error('Error fetching from user:', fromUserError);
+          if (appUserError || !appUserRecord) {
+            console.error('Error fetching app user record:', appUserError);
             return {
               ...transfer,
               from_user: {
@@ -89,11 +87,20 @@ export function useOrganizationTransfers() {
             };
           }
 
+          // Then get the user profile using the auth_uid
+          const { data: userProfile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('display_name')
+            .eq('id', appUserRecord.auth_uid)
+            .single();
+
+          const profileDisplayName = userProfile?.display_name || 'Unknown User';
+
           return {
             ...transfer,
             from_user: {
-              display_name: fromUser?.user_profiles?.display_name || 'Unknown User',
-              email: fromUser?.email || 'unknown@example.com'
+              display_name: profileDisplayName,
+              email: appUserRecord.auth_uid ? 'user@example.com' : 'unknown@example.com'
             }
           };
         })
