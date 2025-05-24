@@ -13,7 +13,7 @@ import { DeleteEquipmentButton } from './DeleteEquipmentButton';
 import { DuplicateEquipmentButton } from './DuplicateEquipmentButton';
 import { LocationDisplay } from './LocationDisplay';
 import { toggleLocationOverride } from '@/services/equipment/locationService';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface EquipmentDetailContentProps {
@@ -32,7 +32,13 @@ export function EquipmentDetailContent({
   setActiveTab
 }: EquipmentDetailContentProps) {
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+  const [localLocationOverride, setLocalLocationOverride] = useState(equipment.location_override);
   const queryClient = useQueryClient();
+
+  // Sync local state with equipment data when it changes
+  useEffect(() => {
+    setLocalLocationOverride(equipment.location_override);
+  }, [equipment.location_override]);
 
   // Generate QR URL with source tracking parameter
   const getQrUrl = () => {
@@ -40,17 +46,28 @@ export function EquipmentDetailContent({
   };
 
   const handleLocationOverrideToggle = async () => {
+    const newOverrideState = !localLocationOverride;
+    
+    // Optimistically update the UI immediately
+    setLocalLocationOverride(newOverrideState);
     setIsUpdatingLocation(true);
+    
     try {
       const success = await toggleLocationOverride(
         id, 
-        !equipment.location_override
+        newOverrideState
       );
       
       if (success) {
-        // Refresh the equipment data
+        // Refresh the equipment data to sync with server
         queryClient.invalidateQueries({ queryKey: ['equipment', id] });
+      } else {
+        // Revert optimistic update on failure
+        setLocalLocationOverride(!newOverrideState);
       }
+    } catch (error) {
+      // Revert optimistic update on error
+      setLocalLocationOverride(!newOverrideState);
     } finally {
       setIsUpdatingLocation(false);
     }
@@ -155,10 +172,11 @@ export function EquipmentDetailContent({
               </Card>
 
               <LocationDisplay
-                equipment={equipment}
+                equipment={{ ...equipment, location_override: localLocationOverride }}
                 onViewOnMap={handleViewOnMap}
                 onToggleOverride={canEdit ? handleLocationOverrideToggle : undefined}
                 canEdit={canEdit}
+                isUpdating={isUpdatingLocation}
               />
               
               {equipment.attributes && equipment.attributes.length > 0 && (

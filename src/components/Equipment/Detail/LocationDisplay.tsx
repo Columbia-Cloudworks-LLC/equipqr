@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, User, Target, Settings } from 'lucide-react';
+import { MapPin, Clock, Settings, Target, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Equipment } from '@/types';
 
@@ -11,13 +11,15 @@ interface LocationDisplayProps {
   onViewOnMap?: () => void;
   onToggleOverride?: () => void;
   canEdit?: boolean;
+  isUpdating?: boolean;
 }
 
 export function LocationDisplay({ 
   equipment, 
   onViewOnMap, 
   onToggleOverride, 
-  canEdit = false 
+  canEdit = false,
+  isUpdating = false
 }: LocationDisplayProps) {
   const hasLastScanLocation = equipment.last_scan_latitude && equipment.last_scan_longitude;
   const hasManualLocation = equipment.location;
@@ -125,8 +127,17 @@ export function LocationDisplay({
                 </Button>
               )}
               {onToggleOverride && (
-                <Button onClick={onToggleOverride} variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
+                <Button 
+                  onClick={onToggleOverride} 
+                  variant="outline" 
+                  size="sm"
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Settings className="h-4 w-4 mr-2" />
+                  )}
                   {isLocationOverride ? 'Resume Auto Tracking' : 'Override Location'}
                 </Button>
               )}
