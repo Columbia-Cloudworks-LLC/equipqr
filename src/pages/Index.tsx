@@ -3,7 +3,7 @@ import { DashboardStat } from '@/types';
 import { DashboardStats } from '@/components/Dashboard/DashboardStats';
 import { DashboardEquipmentMap } from '@/components/Dashboard/DashboardEquipmentMap';
 import { Layout } from '@/components/Layout/Layout';
-import { Package, Users, Settings } from 'lucide-react';
+import { Package, Users, Settings, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { InvitationAlert } from '@/components/Dashboard/InvitationAlert';
@@ -16,6 +16,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCombinedDashboardData } from '@/hooks/useCombinedDashboardData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Index = () => {
   const { user, session } = useAuth();
@@ -77,10 +79,22 @@ const Index = () => {
   };
 
   const handleSetDefaultOrg = async (orgId: string) => {
-    return await setDefaultOrganization(orgId);
+    const success = await setDefaultOrganization(orgId);
+    if (success) {
+      toast.success('Default organization updated');
+    }
+    return success;
+  };
+
+  const handleQuickSetDefault = async () => {
+    if (selectedOrganization?.id) {
+      await handleSetDefaultOrg(selectedOrganization.id);
+    }
   };
 
   const showOrgSelector = organizations.length > 1;
+  const isCurrentOrgDefault = selectedOrganization?.id === defaultOrganizationId;
+  const showQuickDefaultButton = showOrgSelector && !isCurrentOrgDefault;
   
   // Check if we're in a loading state
   const isLoading = isOrgLoading || isDashboardLoading || !isOrgReady;
@@ -97,16 +111,39 @@ const Index = () => {
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <div className="flex flex-col sm:flex-row items-center gap-2">
             {showOrgSelector && (
-              <OrganizationSelector
-                organizations={organizations}
-                selectedOrgId={selectedOrganization?.id}
-                defaultOrgId={defaultOrganizationId}
-                onChange={handleOrganizationChange}
-                onSetDefault={handleSetDefaultOrg}
-                showSetDefault={true}
-                className="w-full sm:w-[200px] md:w-[250px] lg:w-[300px] mb-2 sm:mb-0 sm:mr-2"
-                maxDisplayLength={25}
-              />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className={`flex-1 ${isCurrentOrgDefault ? 'ring-2 ring-primary/20 rounded-md' : ''}`}>
+                  <OrganizationSelector
+                    organizations={organizations}
+                    selectedOrgId={selectedOrganization?.id}
+                    defaultOrgId={defaultOrganizationId}
+                    onChange={handleOrganizationChange}
+                    onSetDefault={handleSetDefaultOrg}
+                    showSetDefault={true}
+                    className="w-full sm:w-[200px] md:w-[250px] lg:w-[300px]"
+                    maxDisplayLength={25}
+                  />
+                </div>
+                {showQuickDefaultButton && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleQuickSetDefault}
+                          className="shrink-0 h-9 w-9 p-0"
+                        >
+                          <Star className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Set as default organization</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             )}
             <Button asChild>
               <Link to="/equipment/new">
@@ -116,6 +153,19 @@ const Index = () => {
             </Button>
           </div>
         </div>
+
+        {showOrgSelector && (
+          <div className="text-sm text-muted-foreground">
+            {isCurrentOrgDefault ? (
+              <div className="flex items-center gap-1">
+                <Star className="h-3 w-3 fill-current text-primary" />
+                <span>This is your default organization</span>
+              </div>
+            ) : (
+              <span>Click the star to make this your default organization</span>
+            )}
+          </div>
+        )}
 
         {showInitialAuthLoading ? (
           <Card className="p-8 text-center">
