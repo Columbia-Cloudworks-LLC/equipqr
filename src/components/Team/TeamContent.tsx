@@ -105,15 +105,11 @@ export function TeamContent({
           onRequest={onRequestRoleUpgrade}
         />
         
-        <Tabs defaultValue="locations" className="w-full">
+        <Tabs defaultValue="members" className="w-full">
           <TabsList>
-            <TabsTrigger value="locations">Equipment Locations</TabsTrigger>
             <TabsTrigger value="members">Team Members</TabsTrigger>
+            <TabsTrigger value="locations">Equipment Locations</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="locations">
-            <TeamEquipmentMap teamId={selectedTeamId} teamName={teamName} />
-          </TabsContent>
           
           <TabsContent value="members">
             <TeamMembers
@@ -135,6 +131,10 @@ export function TeamContent({
               onRepairTeam={onRepairTeam}
             />
           </TabsContent>
+          
+          <TabsContent value="locations">
+            <TeamEquipmentMap teamId={selectedTeamId} teamName={teamName} />
+          </TabsContent>
         </Tabs>
       </div>
     );
@@ -142,16 +142,12 @@ export function TeamContent({
 
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="locations" className="w-full">
+      <Tabs defaultValue="members" className="w-full">
         <TabsList>
-          <TabsTrigger value="locations">Equipment Locations</TabsTrigger>
           <TabsTrigger value="members">Team Members</TabsTrigger>
+          <TabsTrigger value="locations">Equipment Locations</TabsTrigger>
           <TabsTrigger value="settings">Team Settings</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="locations">
-          <TeamEquipmentMap teamId={selectedTeamId} teamName={teamName} />
-        </TabsContent>
         
         <TabsContent value="members">
           <TeamMembers
@@ -172,6 +168,10 @@ export function TeamContent({
             isRepairingTeam={isRepairingTeam}
             onRepairTeam={onRepairTeam}
           />
+        </TabsContent>
+        
+        <TabsContent value="locations">
+          <TeamEquipmentMap teamId={selectedTeamId} teamName={teamName} />
         </TabsContent>
         
         <TabsContent value="settings">
