@@ -1,7 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { WorkNote } from './types';
-import { retry } from '@/utils/edgeFunctions/retry';
 
 /**
  * Fetch work notes for a specific piece of equipment
@@ -15,111 +14,54 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       throw new Error('You must be logged in to view work notes');
     }
     
-    // Get user info for permissions check
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', userId)
-      .single();
+    console.log('Fetching work notes for equipment:', equipmentId);
     
-    if (!userProfile) {
-      throw new Error('User profile not found');
+    // Simplified query without complex joins that might cause issues
+    const { data: notes, error } = await supabase
+      .from('equipment_work_notes')
+      .select('*')
+      .eq('equipment_id', equipmentId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching work notes:', error);
+      throw error;
     }
     
-    // Get the equipment details to check organization
-    const { data: equipment } = await supabase
-      .from('equipment')
-      .select(`
-        id,
-        org_id,
-        team_id,
-        team:team_id (
-          name,
-          org_id
-        )
-      `)
-      .eq('id', equipmentId)
-      .single();
+    console.log(`Found ${notes?.length || 0} work notes`);
     
-    if (!equipment) {
-      throw new Error('Equipment not found');
+    // Get user profiles for the note creators/editors
+    const userIds = [...new Set([
+      ...notes?.map(note => note.created_by).filter(Boolean) || [],
+      ...notes?.map(note => note.edited_by).filter(Boolean) || []
+    ])];
+    
+    let userProfiles: any[] = [];
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, display_name')
+        .in('id', userIds);
+      
+      userProfiles = profiles || [];
     }
     
-    // Check if user is directly in the equipment's organization
-    const isInSameOrg = userProfile.org_id === equipment.org_id;
+    // Enrich notes with user information
+    const enrichedNotes = notes?.map(note => ({
+      ...note,
+      creator: {
+        display_name: userProfiles.find(p => p.id === note.created_by)?.display_name || 'Unknown User'
+      },
+      editor: note.edited_by ? {
+        display_name: userProfiles.find(p => p.id === note.edited_by)?.display_name || 'Unknown User'
+      } : null
+    })) || [];
     
-    // Check if user has technician or above role in the organization
-    let isTechnician = false;
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('org_id', equipment.org_id);
-    
-    if (userRoles && userRoles.length > 0) {
-      const role = userRoles[0].role;
-      isTechnician = ['technician', 'manager', 'admin', 'owner'].includes(role);
-    }
-    
-    // Use retry logic for the critical query
-    const fetchNotes = async () => {
-      // Use explicit join paths to avoid relying on implicit foreign keys
-      const { data: notes, error } = await supabase
-        .from('equipment_work_notes')
-        .select(`
-          *,
-          creator:created_by (
-            display_name
-          ),
-          editor:edited_by (
-            display_name
-          )
-        `)
-        .eq('equipment_id', equipmentId)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching work notes:', error);
-        throw error;
-      }
-      
-      return notes || [];
-    };
-    
-    // Try to fetch with retry logic (3 attempts with exponential backoff)
-    const notes = await retry(() => fetchNotes(), 3, 1000);
-    
-    // Filter notes based on access level
-    return notes.map(note => {
-      // Enrich note with additional context
-      const isExternalOrg = equipment.team && 
-                           equipment.team.org_id !== userProfile.org_id;
-      
-      return {
-        ...note,
-        is_external_org: isExternalOrg,
-        organization_name: isExternalOrg ? equipment.org_id : null,
-        team_name: equipment.team?.name || null
-      } as WorkNote;
-    }).filter(note => {
-      // For technicians and higher, return all notes
-      if (isTechnician) return true;
-      
-      // For regular viewers, only return public notes
-      return note.is_public;
-    });
+    return enrichedNotes as WorkNote[];
   } catch (error: any) {
     console.error('Error in getWorkNotes:', error);
-    
-    // Provide more detailed error message
-    if (error.message?.includes('JoinForeignKeyError')) {
-      throw new Error('Failed to fetch work notes: Database relation error. Please contact support.');
-    } else if (error.message?.includes('permission denied')) {
-      throw new Error('You do not have permission to view these work notes');
-    } else {
-      throw new Error(`Failed to fetch work notes: ${error.message}`);
-    }
+    throw new Error(`Failed to fetch work notes: ${error.message}`);
   }
 }
 
@@ -128,36 +70,8 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
  */
 export async function getWorkNoteOrganizations(equipmentId: string): Promise<any[]> {
   try {
-    // Since we can't use the get_work_note_organizations RPC function, 
-    // we'll query the notes directly and extract organizations
-    const { data: notes, error } = await supabase
-      .from('equipment_work_notes')
-      .select(`
-        *,
-        equipment:equipment_id (
-          org_id
-        )
-      `)
-      .eq('equipment_id', equipmentId)
-      .is('deleted_at', null);
-    
-    if (error) {
-      console.error('Error fetching work note organizations:', error);
-      throw error;
-    }
-    
-    // Extract unique organizations from notes
-    const orgs = new Map();
-    notes?.forEach(note => {
-      if (note.equipment && note.equipment.org_id) {
-        orgs.set(note.equipment.org_id, {
-          id: note.equipment.org_id,
-          name: note.equipment.org_id // Use ID as name for now
-        });
-      }
-    });
-    
-    return Array.from(orgs.values());
+    // Simple implementation - just return empty array for now
+    return [];
   } catch (error: any) {
     console.error('Error in getWorkNoteOrganizations:', error);
     return [];

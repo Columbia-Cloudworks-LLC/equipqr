@@ -1,8 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { WorkNote } from './types';
-import { toast } from 'sonner';
-import { retry } from '@/utils/edgeFunctions/retry';
 
 /**
  * Create a new work note for a piece of equipment
@@ -21,34 +19,29 @@ export async function createWorkNote(
       throw new Error('You must be logged in to create work notes');
     }
     
-    // Create the work note with retry logic
-    const createNote = async () => {
-      const { data, error } = await supabase
-        .from('equipment_work_notes')
-        .insert({
-          equipment_id: equipmentId,
-          note,
-          created_by: userId,
-          is_public: isPublic,
-          hours_worked: hoursWorked
-        })
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('Error creating work note:', error);
-        throw error;
-      }
-      
-      return data;
-    };
+    console.log('Creating work note for equipment:', equipmentId);
     
-    // Use retry for network resilience
-    return await retry(() => createNote(), 2, 1000);
+    const { data, error } = await supabase
+      .from('equipment_work_notes')
+      .insert({
+        equipment_id: equipmentId,
+        note,
+        created_by: userId,
+        is_public: isPublic,
+        hours_worked: hoursWorked
+      })
+      .select('*')
+      .single();
+    
+    if (error) {
+      console.error('Error creating work note:', error);
+      throw error;
+    }
+    
+    return data;
   } catch (error) {
     console.error('Error in createWorkNote:', error);
     
-    // Enhanced error messages based on error type
     if (error instanceof Error) {
       if (error.message.includes('foreign key constraint')) {
         throw new Error('Failed to create work note: Database constraint error');
@@ -71,7 +64,6 @@ export async function updateWorkNote(
   updates: Partial<WorkNote>
 ): Promise<WorkNote> {
   try {
-    // Get current user session
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     
@@ -79,21 +71,31 @@ export async function updateWorkNote(
       throw new Error('You must be logged in to update work notes');
     }
 
-    // First check if user can edit this note (24 hour window & author check)
-    const { data: canEdit, error: permissionError } = await supabase.rpc(
-      'can_edit_work_note',
-      { note_id: noteId, user_id: userId }
-    );
+    // Check if user can edit this note (simplified version)
+    const { data: existingNote } = await supabase
+      .from('equipment_work_notes')
+      .select('created_by, created_at')
+      .eq('id', noteId)
+      .single();
     
-    if (permissionError) {
-      throw new Error(`Permission check failed: ${permissionError.message}`);
+    if (!existingNote) {
+      throw new Error('Work note not found');
     }
     
-    if (!canEdit) {
-      throw new Error('You can only edit your own notes within 24 hours of creation');
+    if (existingNote.created_by !== userId) {
+      throw new Error('You can only edit your own notes');
     }
     
-    // Don't allow updating certain fields
+    // Check 24-hour window
+    const createdAt = new Date(existingNote.created_at);
+    const now = new Date();
+    const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursSinceCreation > 24) {
+      throw new Error('You can only edit notes within 24 hours of creation');
+    }
+    
+    // Safe updates
     const safeUpdates = {
       note: updates.note,
       is_public: updates.is_public,
@@ -102,24 +104,19 @@ export async function updateWorkNote(
       edited_by: userId
     };
     
-    // Update with retry logic
-    const updateNote = async () => {
-      const { data, error } = await supabase
-        .from('equipment_work_notes')
-        .update(safeUpdates)
-        .eq('id', noteId)
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('Error updating work note:', error);
-        throw error;
-      }
-      
-      return data;
-    };
+    const { data, error } = await supabase
+      .from('equipment_work_notes')
+      .update(safeUpdates)
+      .eq('id', noteId)
+      .select('*')
+      .single();
     
-    return await retry(() => updateNote(), 2, 1000);
+    if (error) {
+      console.error('Error updating work note:', error);
+      throw error;
+    }
+    
+    return data;
   } catch (error) {
     console.error('Error in updateWorkNote:', error);
     throw new Error(`Failed to update work note: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -131,7 +128,6 @@ export async function updateWorkNote(
  */
 export async function deleteWorkNote(noteId: string): Promise<void> {
   try {
-    // Get current user session
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     
@@ -155,20 +151,15 @@ export async function deleteWorkNote(noteId: string): Promise<void> {
       throw new Error('You can only delete your own work notes');
     }
     
-    // Delete with retry logic
-    const deleteNote = async () => {
-      const { error } = await supabase
-        .from('equipment_work_notes')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', noteId);
-      
-      if (error) {
-        console.error('Error deleting work note:', error);
-        throw error;
-      }
-    };
+    const { error } = await supabase
+      .from('equipment_work_notes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', noteId);
     
-    await retry(() => deleteNote(), 2, 1000);
+    if (error) {
+      console.error('Error deleting work note:', error);
+      throw error;
+    }
   } catch (error) {
     console.error('Error in deleteWorkNote:', error);
     throw new Error(`Failed to delete work note: ${error instanceof Error ? error.message : 'Unknown error'}`);
