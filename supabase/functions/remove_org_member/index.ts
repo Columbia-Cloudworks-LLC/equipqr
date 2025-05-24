@@ -87,6 +87,24 @@ serve(async (req) => {
 
     console.log(`Attempting to remove user ${user_id} from organization ${org_id} by ${user.id}`)
 
+    // Validate that the organization exists and user has permission
+    const { data: orgCheck, error: orgError } = await supabaseClient
+      .from('organizations')
+      .select('id')
+      .eq('id', org_id)
+      .single()
+
+    if (orgError || !orgCheck) {
+      console.error('Organization not found or error:', orgError)
+      return new Response(
+        JSON.stringify({ error: 'Organization not found' }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
+    }
+
     // Call the database function to remove the organization member
     const { data, error } = await supabaseClient.rpc('remove_organization_member', {
       p_org_id: org_id,
@@ -97,7 +115,7 @@ serve(async (req) => {
     if (error) {
       console.error('Database error:', error)
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: error.message || 'Database operation failed' }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -122,8 +140,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: data.message,
-        teams_removed: data.teams_removed
+        message: data.message || 'Member removed successfully',
+        teams_removed: data.teams_removed || 0
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -132,7 +132,7 @@ export function useTeamManagementPage(): {
     handleRemoveMember,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam,
+    handleRepairTeam, // This now matches the expected signature
     handleUpgradeRole,
     handleRequestRoleUpgrade,
     refetchTeamMembers,

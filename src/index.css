@@ -56,6 +56,17 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Prevent horizontal overflow */
+  html, body {
+    overflow-x: hidden;
+  }
+  
+  /* Ensure proper scrolling behavior */
+  body {
+    overflow-y: auto;
   }
 }
 
@@ -68,6 +79,18 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  
+  /* Fix layout issues */
+  .layout-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .main-content {
+    flex: 1;
+    min-height: 0; /* Important for flexbox children */
   }
 }
 
@@ -102,4 +125,18 @@
 
 .progress-bar-value {
   @apply absolute inset-y-0 left-0 bg-primary transition-all duration-300 ease-in-out;
+}
+
+/* Fix for sidebar layout issues */
+[data-sidebar="sidebar"] {
+  border-right: 1px solid hsl(var(--border));
+}
+
+/* Ensure proper spacing in team management */
+.team-management-container {
+  @apply space-y-6 max-w-full;
+}
+
+.team-management-container > * {
+  @apply w-full;
 }
