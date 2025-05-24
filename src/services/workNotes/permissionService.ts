@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { WorkNotePermissions } from "./types";
+import { checkAccessPermission, checkEquipmentEditPermission } from '@/services/equipment/permissions/accessCheck';
 
 /**
  * Check if user can create work notes for specific equipment
@@ -14,9 +15,9 @@ export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> 
       return false;
     }
     
-    // With RLS disabled, any authenticated user can create notes
-    // In production, you'd want to check equipment access permissions here
-    return true;
+    // Check if user has access to the equipment
+    const accessResult = await checkAccessPermission(equipmentId);
+    return accessResult.hasPermission;
   } catch (error) {
     console.error("Error checking create permissions:", error);
     return false;
@@ -36,9 +37,9 @@ export async function canManageWorkNotes(equipmentId: string): Promise<boolean> 
       return false;
     }
     
-    // With RLS disabled, any authenticated user can manage notes
-    // In production, you'd want to check equipment access permissions here
-    return true;
+    // Check if user has edit permissions on the equipment
+    const editResult = await checkEquipmentEditPermission(equipmentId);
+    return editResult.hasPermission;
   } catch (error) {
     console.error("Error checking manage permissions:", error);
     return false;

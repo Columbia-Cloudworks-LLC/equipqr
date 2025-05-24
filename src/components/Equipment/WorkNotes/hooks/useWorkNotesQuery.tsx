@@ -15,13 +15,13 @@ export interface Organization {
 export function useWorkNotesQuery(equipmentId: string) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   
-  // Fetch work notes with a reasonable staleTime to avoid excessive refetching
+  // Fetch work notes with proper permission filtering
   const { 
     data: workNotes = [], 
     isLoading, 
     error,
     refetch: refetchNotes,
-    isError  // Ensure isError is extracted from the useQuery result
+    isError
   } = useQuery({
     queryKey: ['workNotes', equipmentId],
     queryFn: () => retry(() => getWorkNotes(equipmentId), 3),
@@ -57,9 +57,10 @@ export function useWorkNotesQuery(equipmentId: string) {
     }
   }, [workNotes]);
 
-  // Filter notes based on public/private status
+  // All notes returned are already filtered by permissions in the service layer
+  // So publicNotes and allNotes are the same for permission-filtered results
   const publicNotes = workNotes.filter(note => note.is_public);
-  const allNotes = workNotes;
+  const allNotes = workNotes; // Already filtered by permissions in service
   
   return {
     workNotes,
@@ -68,7 +69,7 @@ export function useWorkNotesQuery(equipmentId: string) {
     organizations,
     isLoading,
     error,
-    isError,  // Make sure to include isError in the returned object
+    isError,
     refetchNotes
   };
 }

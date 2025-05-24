@@ -1,9 +1,10 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { WorkNote } from './types';
+import { checkAccessPermission } from '@/services/equipment/permissions/accessCheck';
 
 /**
- * Fetch work notes for a specific piece of equipment
+ * Fetch work notes for a specific piece of equipment with proper access control
  */
 export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
   try {
@@ -16,20 +17,49 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
     
     console.log('Fetching work notes for equipment:', equipmentId);
     
-    // Simplified query without complex joins that might cause issues
-    const { data: notes, error } = await supabase
+    // Check user's permission level for this equipment
+    const permissionResult = await checkAccessPermission(equipmentId);
+    
+    if (!permissionResult.hasPermission) {
+      throw new Error('You do not have permission to view work notes for this equipment');
+    }
+    
+    // Check if user has management permissions (can see private notes)
+    const { data: managePermissionData, error: managePermissionError } = await supabase.functions.invoke('permissions', {
+      body: {
+        userId: userId,
+        resource: 'equipment',
+        action: 'edit',
+        resourceId: equipmentId
+      }
+    });
+    
+    const canManageEquipment = !managePermissionError && managePermissionData?.has_permission;
+    
+    // Fetch work notes - filter based on permissions
+    let query = supabase
       .from('equipment_work_notes')
       .select('*')
       .eq('equipment_id', equipmentId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
     
+    // If user cannot manage equipment, only show public notes
+    if (!canManageEquipment) {
+      console.log('User is viewer - filtering to public notes only');
+      query = query.eq('is_public', true);
+    } else {
+      console.log('User has management permissions - showing all notes');
+    }
+    
+    const { data: notes, error } = await query;
+    
     if (error) {
       console.error('Error fetching work notes:', error);
       throw error;
     }
     
-    console.log(`Found ${notes?.length || 0} work notes`);
+    console.log(`Found ${notes?.length || 0} work notes (filtered for permissions)`);
     
     // Get user profiles for the note creators/editors
     const userIds = [...new Set([
