@@ -6,7 +6,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface EquipmentDetailErrorProps {
   error: Error | null;
-  onBackClick: () => string;
 }
 
 export function EquipmentDetailError({ error }: EquipmentDetailErrorProps) {
