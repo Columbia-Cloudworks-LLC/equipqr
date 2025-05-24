@@ -52,10 +52,9 @@ export function TeamManagementView() {
   } = useTeamManagementContext();
 
   // Function wrappers for team operations
-  // Pass selectedOrgId as the second parameter to useTeamFunctionWrappers
   const functionWrappers = useTeamFunctionWrappers(
     selectedTeamId,
-    selectedOrgId || '', // Ensure selectedOrgId is passed correctly
+    selectedOrgId || '',
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
@@ -63,7 +62,7 @@ export function TeamManagementView() {
     handleCancelInvitation,
     handleCreateTeam,
     handleUpdateTeam,
-    handleDeleteTeam as (teamId: string) => Promise<any>, // Explicitly cast to Promise<any>
+    handleDeleteTeam,
     handleRepairTeam,
     handleUpgradeRole,
     handleRequestRoleUpgrade
@@ -80,7 +79,7 @@ export function TeamManagementView() {
   // Check if we're viewing an external organization's teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
 
-  // Fix the error handling for role upgrade functions - don't pass any parameters
+  // Fixed wrapper functions that don't take parameters
   const handleRoleUpgrade = () => {
     return functionWrappers.handleUpgradeRoleWrapper();
   };

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -5,11 +6,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreVertical, Mail, Shield, Trash2 } from 'lucide-react';
+import { MoreVertical, Mail, Shield, Trash2, Building } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface TeamMemberCardProps {
-  member: TeamMember;
+  member: TeamMember & { org_role?: string; is_org_manager?: boolean };
   onRemoveMember: (userId: string) => void;
   onChangeRole: (userId: string, role: UserRole) => void;
   onResendInvite: (id: string) => Promise<void>;
@@ -78,8 +79,22 @@ export function TeamMemberCard({
     return <Badge variant={variant} className="capitalize">{member.role}</Badge>;
   };
 
-  const canRemove = canChangeRoles && !isCurrentUser && !isLastManager;
-  const canChangeRole = canChangeRoles && !isCurrentUser && member.status !== 'pending';
+  const getOrgManagerBadge = () => {
+    if (member.is_org_manager) {
+      return (
+        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+          <Building className="h-3 w-3" />
+          Org {member.org_role}
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  // Organization managers cannot be removed or have their roles changed
+  const isOrgManager = member.is_org_manager;
+  const canRemove = canChangeRoles && !isCurrentUser && !isLastManager && !isOrgManager;
+  const canChangeRole = canChangeRoles && !isCurrentUser && member.status !== 'pending' && !isOrgManager;
 
   return (
     <Card className="p-4">
@@ -95,7 +110,7 @@ export function TeamMemberCard({
               <p className="text-sm text-muted-foreground truncate">{member.email || 'No email'}</p>
             </div>
             
-            {canChangeRoles && (
+            {canChangeRoles && !isOrgManager && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -124,10 +139,19 @@ export function TeamMemberCard({
           </div>
 
           {/* Status and Role badges */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {getStatusBadge()}
             {getRoleBadge()}
+            {getOrgManagerBadge()}
           </div>
+
+          {/* Organization manager info */}
+          {isOrgManager && (
+            <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded">
+              This person has {member.org_role} access to all teams in this organization.
+              Their role cannot be changed here.
+            </div>
+          )}
 
           {/* Role selector for active members */}
           {canChangeRole && (

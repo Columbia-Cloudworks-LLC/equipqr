@@ -1,9 +1,8 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
-import { getTeamMembers } from '@/services/team/members/getTeamMembers';
+import { getTeamMembersWithOrgManagers } from '@/services/team/members/getTeamMembersWithOrgManagers';
 import { changeRole } from '@/services/team/members/changeRole';
 import { removeMember } from '@/services/team/members/removeMember';
 import { resendInvite } from '@/services/team/invitation/resendInvite';
@@ -35,9 +34,11 @@ export function useTeamMembers(teamId: string | null) {
       setIsLoading(true);
       setError(null);
       setIsTeamDeleted(false);
-      console.log(`Fetching members for team ${teamId}`);
-      const data = await getTeamMembers(teamId);
-      console.log('Fetched team members:', data);
+      console.log(`Fetching members for team ${teamId} with org managers`);
+      
+      // Use the enhanced function that includes org managers
+      const data = await getTeamMembersWithOrgManagers(teamId);
+      console.log('Fetched team members with org managers:', data);
       setMembers(data || []);
     } catch (error: any) {
       console.error('Error in fetchTeamMembers:', error);

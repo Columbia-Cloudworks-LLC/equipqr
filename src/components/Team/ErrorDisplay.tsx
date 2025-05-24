@@ -1,7 +1,7 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, ArrowUp, MessageSquare } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ArrowUp, MessageSquare, Info } from 'lucide-react';
 
 interface ErrorDisplayProps {
   error: string | null;
@@ -27,24 +27,42 @@ export function ErrorDisplay({
   const isOrgOwnerError = error.includes('organization') && error.includes('owner');
   const isTeamMemberError = error.includes('not a member');
 
+  // Check if this looks like organization-level access that should be transparent
+  const isOrgAccessScenario = error.includes('organization-level access') || 
+    (error.includes('You are managing teams') && error.includes('manager access'));
+
   // Better error messaging for organization context
   const getErrorMessage = () => {
+    if (isOrgAccessScenario) {
+      return null; // Don't show an error for expected org access scenarios
+    }
+    
     if (isOrgOwnerError) {
-      return "There seems to be an issue with organization-level permissions. As an organization owner, you should have access to manage all teams in your organization.";
+      return "As an organization owner, you have full access to manage teams. The member list includes both direct team members and organization managers who have authority over this team.";
     }
     
     if (isTeamMemberError && !isViewer) {
-      return "You don't appear to be a member of this team, but you may have organization-level access. Try refreshing to reload your permissions.";
+      return "You have organization-level access to this team. Organization managers are shown in the member list to provide transparency about team authority.";
     }
     
     return error;
   };
 
+  const errorMessage = getErrorMessage();
+  
+  // Don't render the error display if this is expected org access behavior
+  if (!errorMessage) {
+    return null;
+  }
+
+  // Use Info variant for organization access messages instead of destructive
+  const isInfoMessage = isOrgOwnerError || (isTeamMemberError && !isViewer);
+  
   const getActionButtons = () => {
     const buttons = [];
     
     // Always show retry button for permission errors
-    if (isPermissionError) {
+    if (isPermissionError && !isInfoMessage) {
       buttons.push(
         <Button 
           key="retry"
@@ -60,7 +78,7 @@ export function ErrorDisplay({
     }
     
     // Role upgrade options for viewers
-    if (isViewer && onUpgradeRole) {
+    if (isViewer && onUpgradeRole && !isInfoMessage) {
       if (canDirectlyUpgrade) {
         buttons.push(
           <Button 
@@ -97,10 +115,10 @@ export function ErrorDisplay({
   const actionButtons = getActionButtons();
 
   return (
-    <Alert variant="destructive" className="mb-4">
-      <AlertTriangle className="h-4 w-4" />
+    <Alert variant={isInfoMessage ? "default" : "destructive"} className="mb-4">
+      {isInfoMessage ? <Info className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
       <AlertDescription className="flex items-center justify-between">
-        <span>{getErrorMessage()}</span>
+        <span>{errorMessage}</span>
         {actionButtons.length > 0 && (
           <div className="flex gap-2 ml-4">
             {actionButtons}
