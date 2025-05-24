@@ -3,8 +3,11 @@ import React, { useState } from 'react';
 import { OrganizationMember } from '@/services/organization/types';
 import { UserRole } from '@/types/supabase-enums';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateMemberRole } from '@/services/organization/membersService';
+import { updateMemberRole, removeMember } from '@/services/organization/membersService';
 import {
   Table,
   TableBody,
@@ -18,6 +21,7 @@ interface OrganizationMembersTableProps {
   members: OrganizationMember[];
   isOwner: boolean;
   loading: boolean;
+  organizationId: string;
   refreshTrigger?: number;
   setRefreshTrigger?: (trigger: number) => void;
   onMemberRoleUpdate?: (memberId: string, newRole: string) => void;
@@ -28,12 +32,14 @@ export function OrganizationMembersTable({
   members, 
   isOwner, 
   loading, 
+  organizationId,
   refreshTrigger = 0,
   setRefreshTrigger,
   onMemberRoleUpdate,
   onRefreshMembers
 }: OrganizationMembersTableProps) {
   const [updatingRole, setUpdatingRole] = useState<Record<string, boolean>>({});
+  const [removingMember, setRemovingMember] = useState<Record<string, boolean>>({});
 
   const handleRoleChange = async (memberId: string, newRole: UserRole) => {
     setUpdatingRole(prev => ({ ...prev, [memberId]: true }));
@@ -78,6 +84,30 @@ export function OrganizationMembersTable({
     }
   };
 
+  const handleRemoveMember = async (userId: string) => {
+    setRemovingMember(prev => ({ ...prev, [userId]: true }));
+    
+    try {
+      const success = await removeMember(organizationId, userId);
+      
+      if (success) {
+        // Refresh the data from server
+        if (onRefreshMembers) {
+          await onRefreshMembers();
+        } else if (setRefreshTrigger) {
+          setRefreshTrigger(refreshTrigger + 1);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error removing member:', error);
+      toast.error('Error', {
+        description: error.message || 'Failed to remove member'
+      });
+    } finally {
+      setRemovingMember(prev => ({ ...prev, [userId]: false }));
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading members...</div>;
   }
@@ -109,23 +139,62 @@ export function OrganizationMembersTable({
               <TableCell className="capitalize">{member.role}</TableCell>
               {isOwner && (
                 <TableCell>
-                  {member.role === 'owner' ? (
-                    <span className="text-muted-foreground">Cannot modify owner</span>
-                  ) : (
-                    <Select
-                      value={member.role}
-                      onValueChange={(value) => handleRoleChange(member.id, value as UserRole)}
-                      disabled={updatingRole[member.id]}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Change role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {member.role === 'owner' ? (
+                      <span className="text-muted-foreground">Cannot modify owner</span>
+                    ) : (
+                      <>
+                        <Select
+                          value={member.role}
+                          onValueChange={(value) => handleRoleChange(member.id, value as UserRole)}
+                          disabled={updatingRole[member.id] || removingMember[member.id]}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Change role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="manager">Manager</SelectItem>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={updatingRole[member.id] || removingMember[member.id]}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              {removingMember[member.id] ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove Organization Member</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove {member.name || member.email} from this organization? 
+                                This will also remove them from all teams within the organization. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleRemoveMember(member.user_id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Remove Member
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               )}
             </TableRow>

@@ -5,6 +5,7 @@ export * from './membersService';
 export * from './invitationService';
 export * from './userOrganizations';
 export * from './types';
+export * from './removeOrgMember';
 
 // Re-export invitation service
 export * from './invitation';

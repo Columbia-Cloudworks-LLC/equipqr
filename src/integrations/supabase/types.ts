@@ -1573,6 +1573,10 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: boolean
       }
+      remove_organization_member: {
+        Args: { p_org_id: string; p_user_id: string; p_removed_by: string }
+        Returns: Json
+      }
       rpc_check_equipment_permission: {
         Args: {
           user_id: string

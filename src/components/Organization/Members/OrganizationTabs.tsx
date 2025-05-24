@@ -44,6 +44,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           members={members} 
           isOwner={isOwner} 
           loading={loading}
+          organizationId={organizationId}
           onMemberRoleUpdate={onMemberRoleUpdate}
           onRefreshMembers={onRefreshMembers}
         />
