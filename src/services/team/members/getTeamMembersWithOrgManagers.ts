@@ -3,13 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { TeamMember } from '@/types';
 import { getTeamMembers } from './getTeamMembers';
 
-interface OrgManager {
-  user_id: string;
-  role: string;
-  display_name?: string;
-  email?: string;
-}
-
 /**
  * Get team members enhanced with organization managers who aren't already team members
  * This provides transparency about who has management authority over the team
@@ -33,28 +26,20 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
       return teamMembers; // Return just team members if we can't get org info
     }
     
-    // Get organization managers/owners with their profile data
-    const { data: orgManagersData, error: orgError } = await supabase
-      .from('user_roles')
-      .select(`
-        user_id, 
-        role,
-        user_profiles!inner(id, display_name, email)
-      `)
-      .eq('org_id', team.org_id)
-      .in('role', ['owner', 'manager']);
+    // Use the existing database function to get organization members
+    const { data: orgMembersData, error: orgError } = await supabase
+      .rpc('get_organization_members', { org_id: team.org_id });
     
     if (orgError) {
-      console.error('Error fetching org managers:', orgError);
+      console.error('Error fetching org members:', orgError);
       return teamMembers; // Return just team members if org query fails
     }
     
-    if (!orgManagersData || orgManagersData.length === 0) {
+    if (!orgMembersData || orgMembersData.length === 0) {
       return teamMembers;
     }
     
     // Create a map of existing team member user IDs for deduplication
-    // Check both user_id and auth_uid to catch all possible duplicates
     const existingMemberUserIds = new Set(
       teamMembers
         .map(member => [member.user_id, member.auth_uid])
@@ -62,29 +47,25 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
         .filter(Boolean)
     );
     
-    // Process org managers who aren't already team members
-    const orgManagerMembers: TeamMember[] = orgManagersData
-      .filter(manager => !existingMemberUserIds.has(manager.user_id))
-      .map(manager => {
-        // Access the joined user_profiles data
-        const profile = Array.isArray(manager.user_profiles) 
-          ? manager.user_profiles[0] 
-          : manager.user_profiles;
-        
-        return {
-          id: `org-${manager.user_id}`, // Use a special ID prefix to identify org managers
-          team_id: teamId,
-          user_id: manager.user_id,
-          auth_uid: manager.user_id, // For org managers, user_id is the auth_uid
-          joined_at: new Date().toISOString(), // Use current time as placeholder
-          display_name: profile?.display_name || 'Unknown Manager',
-          email: profile?.email || 'No email available',
-          role: manager.role, // Use their org role as their effective team role
-          status: 'Org Manager', // Clear status for org managers
-          org_role: manager.role, // Store the original org role
-          is_org_manager: true // Flag to identify these as org-level managers
-        } as TeamMember & { org_role: string; is_org_manager: boolean };
-      });
+    // Filter org members to only include managers/owners who aren't already team members
+    const orgManagerMembers: TeamMember[] = orgMembersData
+      .filter(orgMember => 
+        ['owner', 'manager'].includes(orgMember.role) && 
+        !existingMemberUserIds.has(orgMember.user_id)
+      )
+      .map(orgMember => ({
+        id: `org-${orgMember.user_id}`, // Use a special ID prefix to identify org managers
+        team_id: teamId,
+        user_id: orgMember.user_id,
+        auth_uid: orgMember.user_id, // For org managers, user_id is the auth_uid
+        joined_at: new Date().toISOString(), // Use current time as placeholder
+        display_name: orgMember.name || 'Unknown Manager',
+        email: orgMember.email || 'No email available',
+        role: orgMember.role, // Use their org role as their effective team role
+        status: 'Org Manager', // Clear status for org managers
+        org_role: orgMember.role, // Store the original org role
+        is_org_manager: true // Flag to identify these as org-level managers
+      } as TeamMember & { org_role: string; is_org_manager: boolean }));
     
     // Combine team members with org managers, sorting so org managers appear after regular members
     const combinedMembers = [
