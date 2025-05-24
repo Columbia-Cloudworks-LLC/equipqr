@@ -49,7 +49,7 @@ export function useTeamManagementPage(): {
     refetchTeamMembers,
     refetchPendingInvitations,
     fetchTeams,
-    getTeamEquipmentCount
+    getTeamEquipmentCount: getTeamEquipmentCountBase
   } = teamManagement;
   
   const orgContext = useTeamManagementOrgs(organizations, fetchTeams, setSelectedTeamId);
@@ -118,6 +118,10 @@ export function useTeamManagementPage(): {
     return handleDeleteTeamBase(selectedTeamId);
   };
 
+  const wrappedGetTeamEquipmentCount = async (teamId: string) => {
+    return getTeamEquipmentCountBase(teamId);
+  };
+
   const wrappedRefetchPendingInvitations = async () => {
     return refetchPendingInvitations();
   };
@@ -158,7 +162,7 @@ export function useTeamManagementPage(): {
     refetchTeamMembers,
     refetchPendingInvitations: wrappedRefetchPendingInvitations,
     fetchTeams,
-    getTeamEquipmentCount
+    getTeamEquipmentCount: wrappedGetTeamEquipmentCount
   };
 
   return {
