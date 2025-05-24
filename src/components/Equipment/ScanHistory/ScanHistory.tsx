@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,7 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
   const [deviceFilter, setDeviceFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('list');
+  const [highlightedRecordId, setHighlightedRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     loadScanHistory();
@@ -119,9 +119,9 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
     return <Badge variant={variant}>{text}</Badge>;
   };
 
-  const showLocationOnMap = (latitude: number, longitude: number) => {
-    // For individual location view, we can enhance this later
-    console.log(`Show location: ${latitude}, ${longitude}`);
+  const showLocationOnMap = (recordId: string) => {
+    setHighlightedRecordId(recordId);
+    setActiveTab('map');
   };
 
   if (loading) {
@@ -292,7 +292,7 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
                             <>
                               <MapPin className="h-3 w-3" />
                               <button
-                                onClick={() => showLocationOnMap(record.latitude!, record.longitude!)}
+                                onClick={() => showLocationOnMap(record.id)}
                                 className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
                               >
                                 {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
@@ -321,7 +321,12 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
         </TabsContent>
 
         <TabsContent value="map" className="mt-4">
-          <LocationMap scanRecords={filteredHistory} height="500px" />
+          <LocationMap 
+            scanRecords={filteredHistory} 
+            height="500px" 
+            highlightedRecordId={highlightedRecordId}
+            onRecordHighlighted={setHighlightedRecordId}
+          />
         </TabsContent>
       </Tabs>
     </div>

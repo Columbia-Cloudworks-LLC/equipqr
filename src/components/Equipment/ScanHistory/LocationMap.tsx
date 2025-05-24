@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -12,11 +11,19 @@ import type { ScanHistoryRecord } from '@/services/equipment/enhancedScanService
 interface LocationMapProps {
   scanRecords: ScanHistoryRecord[];
   height?: string;
+  highlightedRecordId?: string | null;
+  onRecordHighlighted?: (recordId: string | null) => void;
 }
 
-export function LocationMap({ scanRecords, height = '400px' }: LocationMapProps) {
+export function LocationMap({ 
+  scanRecords, 
+  height = '400px', 
+  highlightedRecordId, 
+  onRecordHighlighted 
+}: LocationMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const markers = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const [mapboxToken, setMapboxToken] = useState('');
   const [showTokenInput, setShowTokenInput] = useState(true);
   const [tokenSaved, setTokenSaved] = useState(false);
@@ -64,6 +71,10 @@ export function LocationMap({ scanRecords, height = '400px' }: LocationMapProps)
     map.current.on('load', () => {
       if (!map.current) return;
 
+      // Clear existing markers
+      markers.current.forEach(marker => marker.remove());
+      markers.current.clear();
+
       // Add markers for each scan location
       const bounds = new mapboxgl.LngLatBounds();
       
@@ -98,7 +109,16 @@ export function LocationMap({ scanRecords, height = '400px' }: LocationMapProps)
         const popup = new mapboxgl.Popup({ offset: 25 })
           .setHTML(popupContent);
 
-        marker.setPopup(popup).addTo(map.current!);
+        marker.setPopup(popup);
+        marker.addTo(map.current!);
+        
+        // Store marker reference
+        markers.current.set(record.id, marker);
+
+        // Add click handler to notify parent component
+        marker.getElement().addEventListener('click', () => {
+          onRecordHighlighted?.(record.id);
+        });
       });
 
       // Fit map to show all markers
@@ -112,9 +132,30 @@ export function LocationMap({ scanRecords, height = '400px' }: LocationMapProps)
 
     // Cleanup
     return () => {
+      markers.current.forEach(marker => marker.remove());
+      markers.current.clear();
       map.current?.remove();
     };
-  }, [tokenSaved, mapboxToken, recordsWithLocation]);
+  }, [tokenSaved, mapboxToken, recordsWithLocation, onRecordHighlighted]);
+
+  // Handle highlighting specific record
+  useEffect(() => {
+    if (!highlightedRecordId || !map.current) return;
+
+    const marker = markers.current.get(highlightedRecordId);
+    if (marker) {
+      // Center map on highlighted marker
+      const lngLat = marker.getLngLat();
+      map.current.flyTo({
+        center: [lngLat.lng, lngLat.lat],
+        zoom: 15,
+        duration: 1000
+      });
+
+      // Open popup for highlighted marker
+      marker.togglePopup();
+    }
+  }, [highlightedRecordId]);
 
   if (recordsWithLocation.length === 0) {
     return (
