@@ -58,15 +58,7 @@ export function useOrganizationTransfers() {
           initiated_at,
           expires_at,
           transfer_reason,
-          organization:org_id(name),
-          from_user_profile:from_user_id(
-            app_user!inner(
-              email,
-              user_profiles!inner(
-                display_name
-              )
-            )
-          )
+          organization:org_id(name)
         `)
         .eq('to_user_id', appUser.id)
         .eq('status', 'pending')
@@ -74,23 +66,40 @@ export function useOrganizationTransfers() {
 
       if (error) throw error;
 
-      // Transform the data to match the expected interface
-      const transformedData = data?.map(item => ({
-        id: item.id,
-        org_id: item.org_id,
-        from_user_id: item.from_user_id,
-        status: item.status,
-        initiated_at: item.initiated_at,
-        expires_at: item.expires_at,
-        transfer_reason: item.transfer_reason,
-        organization: item.organization,
-        from_user: {
-          display_name: item.from_user_profile?.app_user?.user_profiles?.display_name || 'Unknown User',
-          email: item.from_user_profile?.app_user?.email || 'unknown@example.com'
-        }
-      })) || [];
+      // Get from_user details separately to avoid relationship ambiguity
+      const transfersWithUsers = await Promise.all(
+        (data || []).map(async (transfer) => {
+          const { data: fromUser, error: fromUserError } = await supabase
+            .from('app_user')
+            .select(`
+              email,
+              user_profiles!inner(display_name)
+            `)
+            .eq('id', transfer.from_user_id)
+            .single();
 
-      setTransfers(transformedData);
+          if (fromUserError) {
+            console.error('Error fetching from user:', fromUserError);
+            return {
+              ...transfer,
+              from_user: {
+                display_name: 'Unknown User',
+                email: 'unknown@example.com'
+              }
+            };
+          }
+
+          return {
+            ...transfer,
+            from_user: {
+              display_name: fromUser?.user_profiles?.display_name || 'Unknown User',
+              email: fromUser?.email || 'unknown@example.com'
+            }
+          };
+        })
+      );
+
+      setTransfers(transfersWithUsers);
     } catch (error) {
       console.error('Error fetching transfers:', error);
     } finally {

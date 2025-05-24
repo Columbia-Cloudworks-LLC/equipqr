@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { DeactivateAccountSection } from '@/components/Profile/DeactivateAccountSection';
@@ -34,16 +35,9 @@ export default function Profile() {
       if (error) {
         throw error;
       }
-      toast({
-        title: "Success!",
-        description: "Your profile has been updated.",
-      })
+      toast.success("Your profile has been updated.");
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: error.message,
-      })
+      toast.error(error.message);
     } finally {
       setIsLoading(false);
     }

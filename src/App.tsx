@@ -14,7 +14,7 @@ function App() {
     <BrowserRouter>
       <ThemeProvider defaultTheme="light" storageKey="equipqr-theme">
         <QueryClientProvider>
-          <Toaster position="top-right" />
+          <Toaster />
           <AuthProvider>
             <OrganizationProvider>
               <NotificationsProvider>
