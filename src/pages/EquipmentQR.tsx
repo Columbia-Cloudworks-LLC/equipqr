@@ -33,11 +33,11 @@ export default function EquipmentQR() {
     }
   }, [error]);
 
-  // Generate the full URL for the equipment
+  // Generate the full URL for the equipment with QR tracking
   const getEquipmentQrUrl = () => {
     // Use window.location to dynamically build the URL
     const baseUrl = `${window.location.protocol}//${window.location.host}`;
-    return `${baseUrl}/equipment/${id}`;
+    return `${baseUrl}/equipment/${id}?from=qr`;
   };
 
   if (isLoading) {
@@ -110,7 +110,7 @@ export default function EquipmentQR() {
             />
             
             <p className="text-center text-sm text-muted-foreground mt-2">
-              Scan this code to view equipment details
+              Scan this code to view equipment details and log access
             </p>
           </div>
 
@@ -118,25 +118,25 @@ export default function EquipmentQR() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Smartphone className="mr-2 h-5 w-5" />
-                How to use QR codes
+                Audit & Check-in Instructions
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <h3 className="font-medium">Scanning Instructions:</h3>
+                <h3 className="font-medium">For Field Technicians:</h3>
                 <ol className="list-decimal ml-6 mt-2 space-y-2">
-                  <li>Open your device's camera app</li>
-                  <li>Point the camera at the QR code</li>
-                  <li>Tap the notification or link that appears</li>
-                  <li>View the equipment details instantly</li>
+                  <li>Scan the QR code when arriving at equipment location</li>
+                  <li>Your device information and location will be logged automatically</li>
+                  <li>This creates an audit trail proving you were on-site</li>
+                  <li>Managers can verify attendance through scan history</li>
                 </ol>
               </div>
               
               <div>
-                <h3 className="font-medium">Sharing Options:</h3>
+                <h3 className="font-medium">Scanning Instructions:</h3>
                 <p className="mt-1 text-sm">
-                  Print this QR code and attach it to the physical equipment for quick access to digital records. 
-                  Anyone with appropriate permissions can scan the code to view or update information.
+                  Open your device's camera app, point at the QR code, and tap the notification.
+                  The scan will be recorded with timestamp, device info, and location data for audit purposes.
                 </p>
                 <Button 
                   onClick={() => window.print()}

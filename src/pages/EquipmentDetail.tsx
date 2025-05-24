@@ -1,9 +1,10 @@
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from '@/components/Layout/Layout';
 import { Button } from '@/components/ui/button';
 import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
+import { recordEnhancedScan } from '@/services/equipment/enhancedScanService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
@@ -14,8 +15,10 @@ import { EquipmentDetailContent } from '@/components/Equipment/Detail/EquipmentD
 export default function EquipmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [canEdit, setCanEdit] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("details");
+  const [scanRecorded, setScanRecorded] = useState(false);
   
   const {
     data: equipment,
@@ -45,6 +48,17 @@ export default function EquipmentDetail() {
       setCanEdit(!equipment.is_external_org || equipment.can_edit);
     }
   }, [error, equipment]);
+
+  // Record scan when equipment is loaded
+  useEffect(() => {
+    if (equipment && id && !scanRecorded) {
+      // Determine scan method based on referrer
+      const scanMethod = location.state?.fromQR ? 'qr_code' : 'direct';
+      
+      recordEnhancedScan(id, scanMethod);
+      setScanRecorded(true);
+    }
+  }, [equipment, id, scanRecorded, location.state]);
 
   const handleBackClick = () => navigate(-1);
 

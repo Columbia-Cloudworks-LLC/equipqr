@@ -664,25 +664,70 @@ export type Database = {
       }
       scan_history: {
         Row: {
+          browser_name: string | null
+          browser_version: string | null
+          device_fingerprint: string | null
+          device_type: string | null
           equipment_id: string
           id: string
+          language: string | null
+          latitude: number | null
+          location_accuracy: number | null
+          longitude: number | null
+          operating_system: string | null
+          referrer_url: string | null
+          scan_method: string | null
           scanned_by_user_id: string | null
           scanned_from_ip: unknown | null
+          screen_resolution: string | null
+          session_id: string | null
+          timezone: string | null
           ts: string
+          user_agent: string | null
         }
         Insert: {
+          browser_name?: string | null
+          browser_version?: string | null
+          device_fingerprint?: string | null
+          device_type?: string | null
           equipment_id: string
           id?: string
+          language?: string | null
+          latitude?: number | null
+          location_accuracy?: number | null
+          longitude?: number | null
+          operating_system?: string | null
+          referrer_url?: string | null
+          scan_method?: string | null
           scanned_by_user_id?: string | null
           scanned_from_ip?: unknown | null
+          screen_resolution?: string | null
+          session_id?: string | null
+          timezone?: string | null
           ts?: string
+          user_agent?: string | null
         }
         Update: {
+          browser_name?: string | null
+          browser_version?: string | null
+          device_fingerprint?: string | null
+          device_type?: string | null
           equipment_id?: string
           id?: string
+          language?: string | null
+          latitude?: number | null
+          location_accuracy?: number | null
+          longitude?: number | null
+          operating_system?: string | null
+          referrer_url?: string | null
+          scan_method?: string | null
           scanned_by_user_id?: string | null
           scanned_from_ip?: unknown | null
+          screen_resolution?: string | null
+          session_id?: string | null
+          timezone?: string | null
           ts?: string
+          user_agent?: string | null
         }
         Relationships: [
           {
@@ -1178,6 +1223,10 @@ export type Database = {
         Args: { p_user_id: string; p_org_id: string }
         Returns: boolean
       }
+      can_view_scan_history: {
+        Args: { p_user_id: string; p_equipment_id: string }
+        Returns: boolean
+      }
       check_equipment_create_permission: {
         Args: { p_user_id: string; p_team_id?: string; p_org_id?: string }
         Returns: {
@@ -1217,6 +1266,32 @@ export type Database = {
       gen_invitation_token: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_equipment_scan_history: {
+        Args: { p_equipment_id: string; p_user_id: string; p_limit?: number }
+        Returns: {
+          id: string
+          ts: string
+          scanned_by_user_id: string
+          scanned_from_ip: unknown
+          user_agent: string
+          device_type: string
+          browser_name: string
+          browser_version: string
+          operating_system: string
+          screen_resolution: string
+          latitude: number
+          longitude: number
+          location_accuracy: number
+          session_id: string
+          referrer_url: string
+          scan_method: string
+          device_fingerprint: string
+          timezone: string
+          language: string
+          user_display_name: string
+          user_org_name: string
+        }[]
       }
       get_equipment_work_notes: {
         Args: { equipment_id: string }

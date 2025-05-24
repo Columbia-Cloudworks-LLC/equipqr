@@ -1,4 +1,3 @@
-
 import { Equipment } from '@/types';
 import QRCodeGenerator from '../QRCodeGenerator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { Edit } from 'lucide-react';
 import { WorkNotes } from '../WorkNotes';
 import { AttributesList } from '../Attributes';
+import { ScanHistory } from '../ScanHistory/ScanHistory';
 import { DeleteEquipmentButton } from './DeleteEquipmentButton'; 
 
 interface EquipmentDetailContentProps {
@@ -65,7 +65,9 @@ export function EquipmentDetailContent({
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="notes">Work Notes</TabsTrigger>
+          <TabsTrigger value="scan-history">Scan History</TabsTrigger>
         </TabsList>
+        
         <TabsContent value="details" className="space-y-4 mt-2">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
@@ -142,6 +144,10 @@ export function EquipmentDetailContent({
         
         <TabsContent value="notes">
           <WorkNotes equipmentId={id} />
+        </TabsContent>
+        
+        <TabsContent value="scan-history">
+          <ScanHistory equipmentId={id} />
         </TabsContent>
       </Tabs>
     </div>
