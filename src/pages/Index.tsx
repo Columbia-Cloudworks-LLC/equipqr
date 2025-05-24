@@ -1,6 +1,7 @@
 
 import { DashboardStat } from '@/types';
 import { DashboardStats } from '@/components/Dashboard/DashboardStats';
+import { DashboardEquipmentMap } from '@/components/Dashboard/DashboardEquipmentMap';
 import { Layout } from '@/components/Layout/Layout';
 import { Package, Users, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -140,6 +141,16 @@ const Index = () => {
           </div>
         ) : (
           <DashboardStats stats={stats} />
+        )}
+
+        {/* Prominent Equipment Map - Full Width */}
+        {!showInitialAuthLoading && (
+          <div className="grid gap-3">
+            <DashboardEquipmentMap 
+              equipment={equipment}
+              isLoading={isEquipmentLoading || !isOrgReady}
+            />
+          </div>
         )}
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
