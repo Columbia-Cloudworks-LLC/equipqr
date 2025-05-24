@@ -22,8 +22,8 @@ export function generateEquipmentCsv(equipment: any[]): string {
   equipment.forEach(item => {
     if (!item) return;
     
-    // Create a full URL to the equipment detail page
-    const url = `${baseUrl}/equipment/${item.id}`;
+    // Create a full URL to the equipment detail page with QR scan tracking parameter
+    const url = `${baseUrl}/equipment/${item.id}?source=qr`;
     
     // Escape potential CSV-breaking characters in fields
     const title = escapeCsvField(item.name || "");
