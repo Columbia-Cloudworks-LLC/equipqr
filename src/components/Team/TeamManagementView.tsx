@@ -7,8 +7,6 @@ import { AuthLoadingState } from '@/components/Team/AuthLoadingState';
 import { OrgSwitcherLoading } from '@/components/Team/OrgSwitcherLoading';
 import { TeamManagementWrapper } from '@/components/Team/TeamManagementWrapper';
 import { useTeamManagementContext } from '@/contexts/TeamManagementContext';
-import { UserRole } from '@/types/supabase-enums';
-import { useTeamFunctionWrappers } from '@/hooks/team/useTeamFunctionWrappers';
 
 export function TeamManagementView() {
   const {
@@ -49,22 +47,6 @@ export function TeamManagementView() {
     getTeamEquipmentCount
   } = useTeamManagementContext();
 
-  // Function wrappers for team operations
-  const functionWrappers = useTeamFunctionWrappers(
-    selectedTeamId,
-    selectedOrgId || '',
-    handleInviteMember,
-    handleChangeRole,
-    handleRemoveMember,
-    handleResendInvite,
-    handleCancelInvitation,
-    handleCreateTeam,
-    handleUpdateTeam,
-    handleDeleteTeam,
-    handleUpgradeRole,
-    handleRequestRoleUpgrade
-  );
-  
   // Determine if the user has viewer role only
   const isViewerOnly = isMember && currentUserRole === 'viewer';
 
@@ -107,7 +89,7 @@ export function TeamManagementView() {
         error={error} 
         onRetry={handleRetry}
         onUpgradeRole={isViewerOnly ? 
-          (canChangeRoles ? functionWrappers.handleUpgradeRoleWrapper : functionWrappers.handleRequestRoleUpgradeWrapper) : undefined}
+          (canChangeRoles ? handleUpgradeRole : handleRequestRoleUpgrade) : undefined}
         isViewer={isViewerOnly}
         canDirectlyUpgrade={canChangeRoles}
         isRequestingUpgrade={isRequestingRole}
@@ -138,22 +120,22 @@ export function TeamManagementView() {
           canChangeRoles={canChangeRoles}
           isChangingOrg={isChangingOrg}
           onSelectTeam={setSelectedTeamId}
-          onCreateTeam={functionWrappers.handleCreateTeamWithOrg}
-          onUpdateTeam={functionWrappers.handleUpdateTeamWrapper}
-          onDeleteTeam={functionWrappers.handleDeleteTeamWrapper}
-          onInviteMember={functionWrappers.handleInviteMemberWrapper}
-          onChangeRole={functionWrappers.handleChangeRoleWrapper}
-          onRemoveMember={functionWrappers.handleRemoveMemberWrapper}
+          onCreateTeam={handleCreateTeam}
+          onUpdateTeam={handleUpdateTeam}
+          onDeleteTeam={handleDeleteTeam}
+          onInviteMember={handleInviteMember}
+          onChangeRole={handleChangeRole}
+          onRemoveMember={handleRemoveMember}
           onResendInvite={handleResendInvite}
           onCancelInvitation={handleCancelInvitation}
-          onUpgradeRole={functionWrappers.handleUpgradeRoleWrapper}
-          onRequestRoleUpgrade={functionWrappers.handleRequestRoleUpgradeWrapper}
+          onUpgradeRole={handleUpgradeRole}
+          onRequestRoleUpgrade={handleRequestRoleUpgrade}
           onFetchPendingInvitations={refetchPendingInvitations}
           getTeamEquipmentCount={getTeamEquipmentCount}
         />
       ) : (
         <EmptyTeamState
-          onCreateTeam={functionWrappers.handleCreateTeamWithOrg}
+          onCreateTeam={handleCreateTeam}
           isCreatingTeam={isCreatingTeam}
           userRole={selectedOrganization?.role || undefined}
           organizationName={selectedOrganization?.name}

@@ -5,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { useTeamManagementOrgs } from '@/hooks/team/useTeamManagementOrgs';
 import { useFilteredTeams } from '@/hooks/team/useFilteredTeams';
-import { useTeamFunctionWrappers } from '@/hooks/team/useTeamFunctionWrappers';
 import { Organization } from '@/types';
 import { TeamManagementContextType } from '@/contexts/TeamManagementContext.d';
 
@@ -56,22 +55,6 @@ export function useTeamManagementPage(): {
   const { selectedOrgId, isChangingOrg, handleOrganizationChange, selectedOrganization } = orgContext;
   
   const filteredTeams = useFilteredTeams(teams, selectedOrgId, isChangingOrg);
-  
-  // Use the wrapper functions to get the correct signatures
-  const teamFunctionWrappers = useTeamFunctionWrappers(
-    selectedTeamId,
-    selectedOrgId || '',
-    handleInviteMember,
-    handleChangeRole,
-    handleRemoveMember,
-    handleResendInvite,
-    handleCancelInvitation,
-    handleCreateTeam,
-    handleUpdateTeam,
-    handleDeleteTeam,
-    handleUpgradeRole,
-    handleRequestRoleUpgrade
-  );
   
   const formattedOrganizations = useMemo(() => organizations.map(org => ({
     id: org.id,
@@ -138,16 +121,16 @@ export function useTeamManagementPage(): {
     error,
     setSelectedTeamId,
     handleOrganizationChange,
-    handleCreateTeam: teamFunctionWrappers.handleCreateTeamWithOrg,
-    handleUpdateTeam: teamFunctionWrappers.handleUpdateTeamContextWrapper,
-    handleDeleteTeam: teamFunctionWrappers.handleDeleteTeamWrapper,
-    handleInviteMember: teamFunctionWrappers.handleInviteMemberWrapper,
-    handleChangeRole: teamFunctionWrappers.handleChangeRoleWrapper,
-    handleRemoveMember: teamFunctionWrappers.handleRemoveMemberWrapper,
+    handleCreateTeam,
+    handleUpdateTeam,
+    handleDeleteTeam,
+    handleInviteMember,
+    handleChangeRole,
+    handleRemoveMember,
     handleResendInvite,
     handleCancelInvitation,
-    handleUpgradeRole: teamFunctionWrappers.handleUpgradeRoleWrapper,
-    handleRequestRoleUpgrade: teamFunctionWrappers.handleRequestRoleUpgradeWrapper,
+    handleUpgradeRole,
+    handleRequestRoleUpgrade,
     refetchTeamMembers,
     refetchPendingInvitations,
     fetchTeams,
