@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +22,6 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
   const [canView, setCanView] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [deviceFilter, setDeviceFilter] = useState('all');
-  const [methodFilter, setMethodFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('list');
   const [highlightedRecordId, setHighlightedRecordId] = useState<string | null>(null);
 
@@ -31,7 +31,7 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
 
   useEffect(() => {
     applyFilters();
-  }, [scanHistory, searchTerm, deviceFilter, methodFilter]);
+  }, [scanHistory, searchTerm, deviceFilter]);
 
   const loadScanHistory = async () => {
     try {
@@ -70,18 +70,13 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
       filtered = filtered.filter(record => record.device_type === deviceFilter);
     }
 
-    // Scan method filter
-    if (methodFilter !== 'all') {
-      filtered = filtered.filter(record => record.scan_method === methodFilter);
-    }
-
     setFilteredHistory(filtered);
   };
 
   const exportToCSV = () => {
     const csvContent = [
       // Headers
-      ['Timestamp', 'User', 'Organization', 'Device Type', 'Browser', 'OS', 'Scan Method', 'Location', 'Session ID'].join(','),
+      ['Timestamp', 'User', 'Organization', 'Device Type', 'Browser', 'OS', 'Location', 'Session ID'].join(','),
       // Data rows
       ...filteredHistory.map(record => [
         new Date(record.ts).toISOString(),
@@ -90,7 +85,6 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
         record.device_type || 'Unknown',
         `${record.browser_name || 'Unknown'} ${record.browser_version || ''}`.trim(),
         record.operating_system || 'Unknown',
-        record.scan_method || 'direct',
         record.latitude && record.longitude ? `${record.latitude}, ${record.longitude}` : 'Not available',
         record.session_id || 'Unknown'
       ].map(field => `"${field}"`).join(','))
@@ -113,10 +107,16 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
     }
   };
 
-  const getScanMethodBadge = (method?: string) => {
-    const variant = method === 'qr_code' ? 'default' : 'secondary';
-    const text = method === 'qr_code' ? 'QR Code' : method === 'search' ? 'Search' : 'Direct';
-    return <Badge variant={variant}>{text}</Badge>;
+  const formatDeviceInfo = (record: ScanHistoryRecord) => {
+    const parts = [];
+    if (record.device_type) parts.push(record.device_type);
+    if (record.browser_name) {
+      const browser = record.browser_version 
+        ? `${record.browser_name} ${record.browser_version}`
+        : record.browser_name;
+      parts.push(browser);
+    }
+    return parts.join(' • ');
   };
 
   const showLocationOnMap = (recordId: string) => {
@@ -130,7 +130,7 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
         <div className="h-8 w-1/3 bg-gray-200 animate-pulse rounded"></div>
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-20 bg-gray-200 animate-pulse rounded"></div>
+            <div key={i} className="h-24 bg-gray-200 animate-pulse rounded"></div>
           ))}
         </div>
       </div>
@@ -184,18 +184,6 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
               <SelectItem value="desktop">Desktop</SelectItem>
             </SelectContent>
           </Select>
-
-          <Select value={methodFilter} onValueChange={setMethodFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Methods</SelectItem>
-              <SelectItem value="qr_code">QR Code</SelectItem>
-              <SelectItem value="direct">Direct</SelectItem>
-              <SelectItem value="search">Search</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         <Button onClick={exportToCSV} variant="outline" size="sm" disabled={filteredHistory.length === 0}>
@@ -207,7 +195,7 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
       {/* Results Summary */}
       <div className="flex justify-between items-center text-sm text-muted-foreground">
         <span>
-          Showing {filteredHistory.length} of {scanHistory.length} scan records
+          Showing {filteredHistory.length} of {scanHistory.length} QR code scans
         </span>
         {recordsWithLocation.length > 0 && (
           <span>
@@ -241,7 +229,7 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
                   <h3 className="font-medium">No Scan History</h3>
                   <p className="text-sm text-muted-foreground">
                     {scanHistory.length === 0 
-                      ? "No scans recorded for this equipment yet."
+                      ? "No QR code scans recorded for this equipment yet."
                       : "No scans match your current filters."
                     }
                   </p>
@@ -251,69 +239,95 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
           ) : (
             <div className="space-y-3">
               {filteredHistory.map((record) => (
-                <Card key={record.id} className="p-4">
-                  <div className="space-y-3">
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
+                <Card key={record.id} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    {/* Primary Information - User, Org, Time */}
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex-shrink-0">
                           {getDeviceIcon(record.device_type)}
-                          <div>
-                            <div className="font-medium text-sm">
-                              {record.user_display_name || 'Anonymous User'}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {record.user_org_name || 'Unknown Organization'}
-                            </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-base">
+                            {record.user_display_name || 'Anonymous User'}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {record.user_org_name || 'Unknown Organization'}
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
-                        {getScanMethodBadge(record.scan_method)}
-                        <span className="text-xs text-muted-foreground">
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-sm font-medium">
                           {formatDistanceToNow(new Date(record.ts), { addSuffix: true })}
-                        </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(record.ts).toLocaleDateString()} {new Date(record.ts).toLocaleTimeString()}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Device Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <div className="text-muted-foreground">Device & Browser</div>
-                        <div>{record.device_type} • {record.browser_name} {record.browser_version}</div>
-                        <div className="text-xs text-muted-foreground">{record.operating_system}</div>
+                    {/* Secondary Information - Device, Location, Technical */}
+                    <div className="space-y-2 border-t pt-3">
+                      {/* Device Information */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Device</span>
+                          <span className="text-sm">
+                            {formatDeviceInfo(record)}
+                          </span>
+                        </div>
+                        
+                        {record.operating_system && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">OS</span>
+                            <span className="text-sm">{record.operating_system}</span>
+                          </div>
+                        )}
                       </div>
-                      
-                      <div>
-                        <div className="text-muted-foreground">Location & Time</div>
-                        <div className="flex items-center gap-1">
-                          {record.latitude && record.longitude ? (
-                            <>
-                              <MapPin className="h-3 w-3" />
-                              <button
-                                onClick={() => showLocationOnMap(record.id)}
-                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                              >
-                                {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
-                              </button>
-                            </>
-                          ) : (
-                            <span className="text-xs">Location not available</span>
+
+                      {/* Location Information */}
+                      {record.latitude && record.longitude && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Location</span>
+                          <button
+                            onClick={() => showLocationOnMap(record.id)}
+                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
+                          </button>
+                          {record.timezone && (
+                            <span className="text-xs text-muted-foreground">({record.timezone})</span>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">{record.timezone}</div>
-                      </div>
-                      
-                      <div>
-                        <div className="text-muted-foreground">Session Info</div>
-                        <div className="text-xs font-mono">{record.session_id?.slice(0, 8)}...</div>
-                        <div className="text-xs text-muted-foreground">
-                          {record.screen_resolution} • {record.language}
-                        </div>
+                      )}
+
+                      {/* Technical Details */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
+                        {record.session_id && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium uppercase tracking-wide">Session</span>
+                            <span className="font-mono">{record.session_id.slice(0, 8)}...</span>
+                          </div>
+                        )}
+                        
+                        {record.screen_resolution && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium uppercase tracking-wide">Screen</span>
+                            <span>{record.screen_resolution}</span>
+                          </div>
+                        )}
+                        
+                        {record.language && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium uppercase tracking-wide">Language</span>
+                            <span>{record.language}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  </CardContent>
                 </Card>
               ))}
             </div>
