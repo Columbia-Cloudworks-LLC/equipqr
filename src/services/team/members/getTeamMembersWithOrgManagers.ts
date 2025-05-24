@@ -49,8 +49,24 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
       return teamMembers;
     }
     
-    // Get user profiles for the org managers
-    const managerUserIds = orgManagersData.map(m => m.user_id);
+    // Create a map of existing team member user IDs for deduplication
+    // Check both user_id and auth_uid to catch all possible duplicates
+    const existingMemberUserIds = new Set(
+      teamMembers
+        .map(member => [member.user_id, member.auth_uid])
+        .flat()
+        .filter(Boolean)
+    );
+    
+    // Get user profiles for org managers who aren't already team members
+    const managerUserIds = orgManagersData
+      .filter(manager => !existingMemberUserIds.has(manager.user_id))
+      .map(m => m.user_id);
+    
+    if (managerUserIds.length === 0) {
+      return teamMembers; // No new managers to add
+    }
+    
     const { data: userProfiles, error: profilesError } = await supabase
       .from('user_profiles')
       .select('id, display_name')
@@ -60,13 +76,6 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
       console.error('Error fetching user profiles:', profilesError);
       // Continue without profile data rather than failing completely
     }
-    
-    // Create a map of existing team member user IDs for deduplication
-    const existingMemberUserIds = new Set(
-      teamMembers
-        .map(member => member.user_id)
-        .filter(Boolean)
-    );
     
     // Process org managers who aren't already team members
     const orgManagerMembers: TeamMember[] = orgManagersData
