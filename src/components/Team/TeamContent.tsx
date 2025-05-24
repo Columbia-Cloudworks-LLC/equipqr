@@ -18,11 +18,11 @@ interface TeamContentProps {
   canChangeRoles: boolean;
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
-  onInviteMember: (email: string, role: UserRole, teamId: string) => Promise<any>;
+  onInviteMember: (email: string, role: UserRole) => Promise<any>;
   onChangeRole: (userId: string, role: UserRole) => Promise<any>;
   onRemoveMember: (userId: string) => Promise<any>;
   onUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>;
-  onDeleteTeam: (teamId: string) => Promise<any>;
+  onDeleteTeam: () => Promise<any>;
   onUpgradeRole: () => Promise<void>;
   onRequestRoleUpgrade: () => Promise<void>;
   onResendInvite: (id: string) => Promise<void>;
@@ -53,15 +53,15 @@ export function TeamContent({
   getTeamEquipmentCount
 }: TeamContentProps) {
   const handleInviteMember = (email: string, role: UserRole) => {
-    return onInviteMember(email, role, selectedTeam.id);
+    return onInviteMember(email, role);
   };
 
   const handleUpdateTeam = (teamId: string, name: string) => {
     return onUpdateTeam(teamId, { name });
   };
 
-  const handleDeleteTeam = (teamId: string) => {
-    return onDeleteTeam(teamId);
+  const handleDeleteTeam = () => {
+    return onDeleteTeam();
   };
 
   return (

@@ -33,13 +33,13 @@ export interface TeamManagementContextType {
   // Error handling
   error: string | null;
   
-  // Functions
+  // Functions with corrected signatures
   setSelectedTeamId: (teamId: string) => void;
   handleOrganizationChange: (orgId: string) => void;
   handleCreateTeam: (name: string) => Promise<any>;
-  handleUpdateTeam: (id: string, name: string) => Promise<any>;
-  handleDeleteTeam: (teamId: string) => Promise<any>; 
-  handleInviteMember: (email: string, role: UserRole, teamId: string) => Promise<any>;
+  handleUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>;
+  handleDeleteTeam: () => Promise<any>; 
+  handleInviteMember: (email: string, role: UserRole) => Promise<any>;
   handleChangeRole: (userId: string, role: UserRole) => Promise<any>;
   handleRemoveMember: (userId: string) => Promise<any>;
   handleResendInvite: (id: string) => Promise<any>;

@@ -27,7 +27,7 @@ interface TeamManagementWrapperProps {
   onSelectTeam: (teamId: string) => void;
   onCreateTeam: (name: string) => Promise<any>;
   onUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>;
-  onDeleteTeam: (teamId: string) => Promise<any>;
+  onDeleteTeam: () => Promise<any>;
   onInviteMember: (email: string, role: UserRole) => Promise<any>;
   onChangeRole: (userId: string, role: string) => Promise<any>;
   onRemoveMember: (userId: string) => Promise<any>;

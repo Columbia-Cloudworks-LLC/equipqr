@@ -7,6 +7,7 @@ import { useTeamManagementOrgs } from '@/hooks/team/useTeamManagementOrgs';
 import { useFilteredTeams } from '@/hooks/team/useFilteredTeams';
 import { Organization } from '@/types';
 import { TeamManagementContextType } from '@/contexts/TeamManagementContext.d';
+import { UserRole } from '@/types/supabase-enums';
 
 export function useTeamManagementPage(): {
   contextValue: TeamManagementContextType;
@@ -36,9 +37,9 @@ export function useTeamManagementPage(): {
     error,
     setSelectedTeamId,
     handleCreateTeam,
-    handleUpdateTeam,
-    handleDeleteTeam,
-    handleInviteMember,
+    handleUpdateTeam: handleUpdateTeamBase,
+    handleDeleteTeam: handleDeleteTeamBase,
+    handleInviteMember: handleInviteMemberBase,
     handleChangeRole,
     handleRemoveMember,
     handleResendInvite,
@@ -98,6 +99,29 @@ export function useTeamManagementPage(): {
     }
   }, [filteredTeams, selectedTeamId, setSelectedTeamId, isChangingOrg]);
 
+  // Create wrapper functions to match the expected signatures
+  const wrappedHandleUpdateTeam = async (teamId: string, data: { name: string }) => {
+    return handleUpdateTeamBase(teamId, data.name);
+  };
+
+  const wrappedHandleInviteMember = async (email: string, role: UserRole) => {
+    if (!selectedTeamId) {
+      throw new Error('No team selected');
+    }
+    return handleInviteMemberBase(email, role, selectedTeamId);
+  };
+
+  const wrappedHandleDeleteTeam = async () => {
+    if (!selectedTeamId) {
+      throw new Error('No team selected');
+    }
+    return handleDeleteTeamBase(selectedTeamId);
+  };
+
+  const wrappedRefetchPendingInvitations = async () => {
+    return refetchPendingInvitations();
+  };
+
   const contextValue: TeamManagementContextType = {
     teams,
     members,
@@ -122,9 +146,9 @@ export function useTeamManagementPage(): {
     setSelectedTeamId,
     handleOrganizationChange,
     handleCreateTeam,
-    handleUpdateTeam,
-    handleDeleteTeam,
-    handleInviteMember,
+    handleUpdateTeam: wrappedHandleUpdateTeam,
+    handleDeleteTeam: wrappedHandleDeleteTeam,
+    handleInviteMember: wrappedHandleInviteMember,
     handleChangeRole,
     handleRemoveMember,
     handleResendInvite,
@@ -132,7 +156,7 @@ export function useTeamManagementPage(): {
     handleUpgradeRole,
     handleRequestRoleUpgrade,
     refetchTeamMembers,
-    refetchPendingInvitations,
+    refetchPendingInvitations: wrappedRefetchPendingInvitations,
     fetchTeams,
     getTeamEquipmentCount
   };
