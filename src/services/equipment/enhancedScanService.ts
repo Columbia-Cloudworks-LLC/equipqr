@@ -27,7 +27,7 @@ export interface ScanHistoryRecord {
   id: string;
   ts: string;
   scanned_by_user_id?: string;
-  scanned_from_ip?: string;
+  scanned_from_ip?: unknown; // Database returns unknown type for inet
   user_agent?: string;
   device_type?: string;
   browser_name?: string;
