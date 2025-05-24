@@ -3,7 +3,6 @@ import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTeamMembershipState } from './useTeamMembershipState';
 import { useTeamMembershipCheck } from './useTeamMembershipCheck';
-import { useTeamMembershipRepair } from './useTeamMembershipRepair';
 import { toast } from '@/hooks/use-toast';
 
 /**
@@ -30,14 +29,6 @@ export function useTeamMembershipCore(teamId: string | null) {
     state.setOrganizationRole,
     state.setCheckAttempts,
     state.setRetryTimeout
-  );
-  
-  // Get team membership repair functionality
-  const { handleRepairTeam } = useTeamMembershipRepair(
-    state.currentUserId,
-    state.setIsRepairingTeam,
-    state.setError,
-    state.setRetryCount
   );
   
   // Get the current user's ID
@@ -113,7 +104,6 @@ export function useTeamMembershipCore(teamId: string | null) {
   // Return combined state and functions from all specialized hooks
   return {
     ...state,
-    handleRepairTeam,
     checkTeamMembership: checkDetailedTeamAccess,
     retryAccessCheck
   };

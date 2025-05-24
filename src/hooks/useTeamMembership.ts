@@ -1,6 +1,5 @@
 
 import { useTeamMembershipCore } from './team-membership';
-import { toast } from 'sonner';
 
 /**
  * Hook for handling team membership operations
@@ -12,7 +11,6 @@ export function useTeamMembership(teamId: string | null) {
   return {
     // Member status
     isMember: membership.isMember,
-    isRepairingTeam: membership.isRepairingTeam,
     isCheckingAccess: membership.isCheckingAccess,
     
     // User info
@@ -31,7 +29,6 @@ export function useTeamMembership(teamId: string | null) {
     teamDetails: membership.teamDetails,
     
     // Functions
-    handleRepairTeam: membership.handleRepairTeam,
     checkTeamMembership: membership.checkTeamMembership,
     retryAccessCheck: membership.retryAccessCheck
   };

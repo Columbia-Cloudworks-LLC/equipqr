@@ -21,7 +21,6 @@ export interface TeamManagementContextType {
   isCreatingTeam: boolean;
   isUpdatingTeam: boolean;
   isDeletingTeam: boolean;
-  isRepairingTeam: boolean;
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
   isMember: boolean;
@@ -34,7 +33,7 @@ export interface TeamManagementContextType {
   // Error handling
   error: string | null;
   
-  // Functions - Fixed signatures to match actual implementations
+  // Functions
   setSelectedTeamId: (teamId: string) => void;
   handleOrganizationChange: (orgId: string) => void;
   handleCreateTeam: (name: string) => Promise<any>;
@@ -45,7 +44,6 @@ export interface TeamManagementContextType {
   handleRemoveMember: (userId: string) => Promise<any>;
   handleResendInvite: (id: string) => Promise<any>;
   handleCancelInvitation: (id: string) => Promise<any>;
-  handleRepairTeam: () => Promise<any>; // Fixed: Correct zero-parameter signature with Promise<any> return type
   handleUpgradeRole: () => Promise<any>;
   handleRequestRoleUpgrade: () => Promise<any>;
   refetchTeamMembers: () => void;

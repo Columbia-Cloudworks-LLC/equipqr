@@ -29,7 +29,6 @@ export function useTeamManagementPage(): {
     isCreatingTeam,
     isUpdatingTeam,
     isDeletingTeam,
-    isRepairingTeam,
     isUpgradingRole,
     isRequestingRole,
     isMember,
@@ -45,7 +44,6 @@ export function useTeamManagementPage(): {
     handleRemoveMember,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam, // Now this is already a zero-parameter function
     handleUpgradeRole,
     handleRequestRoleUpgrade,
     refetchTeamMembers,
@@ -71,7 +69,6 @@ export function useTeamManagementPage(): {
     handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam,
-    handleRepairTeam, // Now passing the zero-parameter function
     handleUpgradeRole,
     handleRequestRoleUpgrade
   );
@@ -132,7 +129,6 @@ export function useTeamManagementPage(): {
     isCreatingTeam,
     isUpdatingTeam,
     isDeletingTeam,
-    isRepairingTeam,
     isUpgradingRole,
     isRequestingRole,
     isMember,
@@ -150,7 +146,6 @@ export function useTeamManagementPage(): {
     handleRemoveMember: teamFunctionWrappers.handleRemoveMemberWrapper,
     handleResendInvite,
     handleCancelInvitation,
-    handleRepairTeam: teamFunctionWrappers.handleRepairTeamWrapper,
     handleUpgradeRole: teamFunctionWrappers.handleUpgradeRoleWrapper,
     handleRequestRoleUpgrade: teamFunctionWrappers.handleRequestRoleUpgradeWrapper,
     refetchTeamMembers,
