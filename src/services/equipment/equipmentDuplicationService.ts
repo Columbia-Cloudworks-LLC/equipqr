@@ -3,7 +3,39 @@ import { Equipment, EquipmentAttribute } from '@/types';
 import { getEquipmentById } from './equipmentDetailsService';
 import { createEquipment } from './equipmentCreateService';
 import { saveEquipmentAttributes } from './attributesService';
-import { getCurrentUserId } from './services/authService';
+
+/**
+ * Get the app_user ID for the current authenticated user
+ */
+async function getCurrentAppUserId(): Promise<string> {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError) {
+    console.error('Error getting auth session:', sessionError);
+    throw new Error('Failed to authenticate user');
+  }
+  
+  if (!sessionData?.session?.user) {
+    console.error('User is not authenticated');
+    throw new Error('User must be logged in to duplicate equipment');
+  }
+
+  const authUserId = sessionData.session.user.id;
+  
+  // Get the app_user ID that corresponds to this auth user
+  const { data: appUser, error: appUserError } = await supabase
+    .from('app_user')
+    .select('id')
+    .eq('auth_uid', authUserId)
+    .single();
+    
+  if (appUserError || !appUser) {
+    console.error('Error finding app_user record:', appUserError);
+    throw new Error('User profile not found');
+  }
+  
+  return appUser.id;
+}
 
 /**
  * Generate a unique name for duplicated equipment using Windows-style naming
@@ -40,8 +72,8 @@ export async function duplicateEquipment(equipmentId: string): Promise<{ equipme
   try {
     console.log('Starting equipment duplication for ID:', equipmentId);
     
-    // Get current user ID first
-    const currentUserId = await getCurrentUserId();
+    // Get current app_user ID (not auth user ID)
+    const currentAppUserId = await getCurrentAppUserId();
     
     // Get the original equipment with all its details
     const originalEquipment = await getEquipmentById(equipmentId);
@@ -66,7 +98,7 @@ export async function duplicateEquipment(equipmentId: string): Promise<{ equipme
       notes: originalEquipment.notes,
       install_date: originalEquipment.install_date,
       warranty_expiration: originalEquipment.warranty_expiration,
-      created_by: currentUserId, // Add the required created_by field
+      created_by: currentAppUserId, // Use app_user.id, not auth.users.id
     };
     
     console.log('Creating duplicate equipment with data:', duplicateData);
