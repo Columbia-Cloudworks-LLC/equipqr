@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Index = () => {
+  // ALL HOOKS MUST BE CALLED FIRST - BEFORE ANY CONDITIONAL LOGIC
   const { user, session } = useAuth();
   const { 
     organizations, 
@@ -47,7 +48,7 @@ const Index = () => {
     isLoading: isDashboardLoading
   } = useCombinedDashboardData(selectedOrganization?.id);
 
-  // Only calculate stats when data is loaded and organization is ready
+  // DERIVED STATE AND HANDLERS - AFTER ALL HOOKS
   const stats: DashboardStat[] = [
     {
       label: 'Total Equipment',
@@ -92,16 +93,14 @@ const Index = () => {
     }
   };
 
+  // COMPUTED VALUES
   const showOrgSelector = organizations.length > 1;
   const isCurrentOrgDefault = selectedOrganization?.id === defaultOrganizationId;
   const showQuickDefaultButton = showOrgSelector && !isCurrentOrgDefault;
-  
-  // Check if we're in a loading state
   const isLoading = isOrgLoading || isDashboardLoading || !isOrgReady;
-  
-  // Check for initial auth loading state
   const showInitialAuthLoading = !session && !user;
 
+  // RENDER LOGIC - ALL HOOKS HAVE BEEN CALLED ABOVE
   return (
     <Layout>
       <div className="flex-1 space-y-3">
@@ -176,7 +175,6 @@ const Index = () => {
             </div>
           </Card>
         ) : isLoading ? (
-          // Skeleton loading state for dashboard stats
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="p-4 border rounded-lg shadow-sm">
@@ -193,7 +191,6 @@ const Index = () => {
           <DashboardStats stats={stats} />
         )}
 
-        {/* Prominent Equipment Map - Full Width */}
         {!showInitialAuthLoading && (
           <div className="grid gap-3">
             <DashboardEquipmentMap 
