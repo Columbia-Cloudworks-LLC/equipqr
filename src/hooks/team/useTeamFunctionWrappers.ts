@@ -11,7 +11,7 @@ export function useTeamFunctionWrappers(
   handleResendInvite: (id: string) => Promise<void>,
   handleCancelInvitation: (id: string) => Promise<void>,
   handleCreateTeam: (name: string) => Promise<any>,
-  handleUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>,
+  handleUpdateTeam: (id: string, name: string) => Promise<any>,
   handleDeleteTeam: (teamId: string) => Promise<any>,
   handleRepairTeam: () => Promise<void>,
   handleUpgradeRole: () => Promise<void>,
@@ -34,12 +34,7 @@ export function useTeamFunctionWrappers(
   }, [handleCreateTeam]);
 
   const handleUpdateTeamWrapper = useCallback(async (teamId: string, data: { name: string }) => {
-    return handleUpdateTeam(teamId, data);
-  }, [handleUpdateTeam]);
-
-  // Fixed wrapper that matches the expected signature
-  const handleUpdateTeamWrapperFixed = useCallback(async (teamId: string, data: { name: string }) => {
-    return handleUpdateTeam(teamId, data);
+    return handleUpdateTeam(teamId, data.name);
   }, [handleUpdateTeam]);
 
   const handleDeleteTeamWrapper = useCallback(async (teamId: string) => {
@@ -64,7 +59,6 @@ export function useTeamFunctionWrappers(
     handleRemoveMemberWrapper,
     handleCreateTeamWithOrg,
     handleUpdateTeamWrapper,
-    handleUpdateTeamWrapperFixed,
     handleDeleteTeamWrapper,
     handleRepairTeamWrapper,
     handleUpgradeRoleWrapper,
