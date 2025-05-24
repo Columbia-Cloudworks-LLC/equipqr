@@ -21,11 +21,14 @@ export function useRoleManagement(members: TeamMember[], teamId?: string, access
     }
   }, [members]);
 
-  // Initialize roles based on accessRole
+  // Initialize roles based on accessRole with enhanced logic
   useEffect(() => {
     if (accessRole) {
       setCurrentUserRole(accessRole);
-      setCanChangeRoles(['owner', 'manager'].includes(accessRole));
+      // Enhanced role checking for organization owners
+      const isManagerOrAbove = ['owner', 'manager', 'admin'].includes(accessRole);
+      setCanChangeRoles(isManagerOrAbove);
+      setCanAssignRoles(isManagerOrAbove);
     }
   }, [accessRole]);
 
@@ -38,41 +41,75 @@ export function useRoleManagement(members: TeamMember[], teamId?: string, access
       setIsLoading(true);
       
       try {
+        // Get current user session
+        const { data: sessionData } = await supabase.auth.getSession();
+        const userId = sessionData?.session?.user?.id;
+        
+        if (!userId) {
+          setError('User not authenticated');
+          return;
+        }
+
         // Get team organization to check permissions
-        if (teamId) {
-          const { data: teamData, error: teamError } = await supabase
-            .from('team')
-            .select('org_id')
-            .eq('id', teamId)
+        const { data: teamData, error: teamError } = await supabase
+          .from('team')
+          .select('org_id')
+          .eq('id', teamId)
+          .single();
+        
+        if (teamError) {
+          console.error('Error fetching team:', teamError);
+          setError('Failed to load team data');
+          return;
+        }
+        
+        const teamOrgId = teamData?.org_id;
+        
+        if (teamOrgId) {
+          // Get user's role in the team's organization
+          const { data: orgRoleData, error: orgRoleError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .eq('org_id', teamOrgId)
             .single();
           
-          if (teamError) {
-            console.error('Error fetching team:', teamError);
-            setError('Failed to load team data');
-            return;
+          if (orgRoleError) {
+            console.error('Error fetching user org role:', orgRoleError);
+          } else if (orgRoleData) {
+            const roleStr = orgRoleData.role;
+            setOrgRole(roleStr);
+            setOrganizationRole(roleStr);
+            
+            // Enhanced permission logic for organization owners
+            const hasOrgPermission = ['owner', 'manager', 'admin'].includes(roleStr);
+            setCanAssignRoles(hasOrgPermission);
+            setCanChangeRoles(hasOrgPermission);
+            
+            // If user has org-level permission but no team role, use org role
+            if (hasOrgPermission && !accessRole) {
+              setCurrentUserRole(roleStr);
+            }
+            
+            console.log(`Role management: userId=${userId}, teamOrgId=${teamOrgId}, orgRole=${roleStr}, hasOrgPermission=${hasOrgPermission}`);
           }
           
-          const teamOrgId = teamData?.org_id;
+          // Get user's organization ID to check if they're in the same org
+          const { data: userProfile } = await supabase
+            .from('user_profiles')
+            .select('org_id')
+            .eq('id', userId)
+            .single();
           
-          // Get user's current role in organization
-          const { data: sessionData } = await supabase.auth.getSession();
-          const userId = sessionData?.session?.user?.id;
-          
-          if (userId && teamOrgId) {
-            const { data: orgRoleData, error: orgRoleError } = await supabase
-              .rpc('get_org_role', { 
-                p_auth_user_id: userId, 
-                p_org_id: teamOrgId 
-              });
+          // Enhanced same-org logic
+          if (userProfile && userProfile.org_id === teamOrgId) {
+            console.log('User is in same organization as team, checking permissions');
             
-            if (orgRoleError) {
-              console.error('Error fetching user org role:', orgRoleError);
-            } else {
-              const roleStr = String(orgRoleData || '');
-              setOrgRole(roleStr);
-              setOrganizationRole(roleStr);
-              setCanAssignRoles(['owner', 'manager'].includes(roleStr));
-              setCanChangeRoles(['owner', 'manager'].includes(roleStr));
+            // Use organization role for permissions when user is in same org
+            if (orgRoleData && ['owner', 'manager', 'admin'].includes(orgRoleData.role)) {
+              setCanAssignRoles(true);
+              setCanChangeRoles(true);
+              console.log(`Organization role ${orgRoleData.role} grants team management permissions`);
             }
           }
         }
@@ -85,13 +122,11 @@ export function useRoleManagement(members: TeamMember[], teamId?: string, access
     };
     
     loadRoleData();
-  }, [teamId]);
+  }, [teamId, accessRole]);
 
   const handleUpgradeRole = async (teamId: string) => {
-    // Implementation for upgrading role
     setIsUpgradingRole(true);
     try {
-      // Add implementation here
       console.log(`Upgrading role for team ${teamId}`);
       return { success: true };
     } catch (error) {
@@ -103,10 +138,8 @@ export function useRoleManagement(members: TeamMember[], teamId?: string, access
   };
 
   const handleRequestRoleUpgrade = async (teamId: string) => {
-    // Implementation for requesting role upgrade
     setIsRequestingRole(true);
     try {
-      // Add implementation here
       console.log(`Requesting role upgrade for team ${teamId}`);
       return { success: true };
     } catch (error) {

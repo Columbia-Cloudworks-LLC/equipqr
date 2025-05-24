@@ -122,7 +122,7 @@ async function checkTeamPermissions(
   
   try {
     if (action === 'read' && resourceId) {
-      // Team access validation
+      // Team access validation with enhanced organization role check
       const { data: userProfile } = await supabase
         .from('user_profiles')
         .select('org_id')
@@ -139,16 +139,31 @@ async function checkTeamPermissions(
         return { has_permission: false, reason: 'User or team not found' };
       }
       
-      // Same organization check
+      // Enhanced same organization check with role detection
       if (userProfile.org_id === teamData.org_id) {
+        // Get user's organization role
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .eq('org_id', teamData.org_id)
+          .single();
+        
         return { 
           has_permission: true, 
           reason: 'same_org',
-          details: { user_org_id: userProfile.org_id, team_org_id: teamData.org_id }
+          role: userRole?.role || 'viewer',
+          details: { 
+            user_org_id: userProfile.org_id, 
+            team_org_id: teamData.org_id,
+            is_member: false,
+            has_org_access: true,
+            org_role: userRole?.role || 'viewer'
+          }
         };
       }
       
-      // Check team membership
+      // Check team membership for cross-org access
       const { data: appUser } = await supabase
         .from('app_user')
         .select('id')
@@ -164,10 +179,23 @@ async function checkTeamPermissions(
           .single();
         
         if (teamMember) {
+          // Get team role
+          const { data: teamRole } = await supabase
+            .from('team_roles')
+            .select('role')
+            .eq('team_member_id', teamMember.id)
+            .single();
+          
           return { 
             has_permission: true, 
             reason: 'team_member',
-            details: { is_member: true }
+            role: teamRole?.role || 'viewer',
+            details: { 
+              is_member: true,
+              has_cross_org_access: true,
+              user_org_id: userProfile.org_id,
+              team_org_id: teamData.org_id
+            }
           };
         }
       }
@@ -176,13 +204,49 @@ async function checkTeamPermissions(
     }
     
     if (action === 'manage_members' && resourceId) {
-      // Team role permission check
+      // Enhanced team role permission check with organization roles
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', userId)
+        .single();
+      
+      const { data: teamData } = await supabase
+        .from('team')
+        .select('org_id')
+        .eq('id', resourceId)
+        .single();
+      
+      if (!userProfile || !teamData) {
+        return { has_permission: false, reason: 'User or team not found' };
+      }
+      
+      // Check if user is organization owner/manager for this team's org
+      if (userProfile.org_id === teamData.org_id) {
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .eq('org_id', teamData.org_id)
+          .single();
+        
+        if (userRole && ['owner', 'manager'].includes(userRole.role)) {
+          return {
+            has_permission: true,
+            reason: 'org_role_permission',
+            role: userRole.role,
+            details: { org_role: userRole.role }
+          };
+        }
+      }
+      
+      // Fallback to original team role check
       const { data, error } = await supabase.functions.invoke('check_team_role_permission', {
         body: {
           auth_user_id: userId,
           team_id: resourceId,
           target_user_id: targetId,
-          role: 'manager' // Default role for checking if user can manage
+          role: 'manager'
         }
       });
       

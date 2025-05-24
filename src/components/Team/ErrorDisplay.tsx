@@ -1,8 +1,7 @@
 
-import { AlertCircle, RefreshCw, Wrench } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, RefreshCw, ArrowUp, MessageSquare } from 'lucide-react';
 
 interface ErrorDisplayProps {
   error: string | null;
@@ -17,94 +16,96 @@ export function ErrorDisplay({
   error, 
   onRetry, 
   onUpgradeRole, 
-  isViewer = false, 
+  isViewer = false,
   canDirectlyUpgrade = false,
   isRequestingUpgrade = false
 }: ErrorDisplayProps) {
-  // No error to display
   if (!error) return null;
 
-  // Special handling for viewer-only permissions
-  if (isViewer && onUpgradeRole) {
-    return (
-      <Card className="border-amber-300 bg-amber-50 shadow-sm mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-amber-700">
-            <AlertCircle className="h-5 w-5" />
-            Limited Access
-          </CardTitle>
-          <CardDescription className="text-amber-700">
-            You currently have view-only access to this team
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-amber-700">
-            As a viewer, your actions are limited. You can view team members and settings, 
-            but cannot make changes to the team.
-          </p>
-        </CardContent>
-        <CardFooter className="flex justify-end gap-2">
+  // Enhanced error message handling for organization owners
+  const isPermissionError = error.includes('permission') || error.includes('access');
+  const isOrgOwnerError = error.includes('organization') && error.includes('owner');
+  const isTeamMemberError = error.includes('not a member');
+
+  // Better error messaging for organization context
+  const getErrorMessage = () => {
+    if (isOrgOwnerError) {
+      return "There seems to be an issue with organization-level permissions. As an organization owner, you should have access to manage all teams in your organization.";
+    }
+    
+    if (isTeamMemberError && !isViewer) {
+      return "You don't appear to be a member of this team, but you may have organization-level access. Try refreshing to reload your permissions.";
+    }
+    
+    return error;
+  };
+
+  const getActionButtons = () => {
+    const buttons = [];
+    
+    // Always show retry button for permission errors
+    if (isPermissionError) {
+      buttons.push(
+        <Button 
+          key="retry"
+          variant="outline" 
+          size="sm" 
+          onClick={onRetry}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh Permissions
+        </Button>
+      );
+    }
+    
+    // Role upgrade options for viewers
+    if (isViewer && onUpgradeRole) {
+      if (canDirectlyUpgrade) {
+        buttons.push(
           <Button 
-            variant="outline" 
-            onClick={onRetry}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <Button 
-            variant={canDirectlyUpgrade ? "default" : "secondary"} 
+            key="upgrade"
+            size="sm" 
             onClick={onUpgradeRole}
             disabled={isRequestingUpgrade}
+            className="flex items-center gap-2"
           >
-            <Wrench className="mr-2 h-4 w-4" />
-            {isRequestingUpgrade ? "Requesting..." : canDirectlyUpgrade ? 
-              "Upgrade to Manager" : "Request Manager Access"}
+            <ArrowUp className="h-4 w-4" />
+            {isRequestingUpgrade ? 'Upgrading...' : 'Upgrade Role'}
           </Button>
-        </CardFooter>
-      </Card>
-    );
-  }
-
-  // Detect specific error types
-  const isConnectionError = error.toLowerCase().includes('network') || 
-                          error.toLowerCase().includes('timeout') || 
-                          error.toLowerCase().includes('failed to fetch');
-  
-  const isAuthError = error.toLowerCase().includes('auth') || 
-                    error.toLowerCase().includes('permission') || 
-                    error.toLowerCase().includes('not authorized');
-                    
-  const isAccessError = error.toLowerCase().includes('member') || 
-                      error.toLowerCase().includes('access');
-
-  // Determine alert variant based on error type
-  let variant: "destructive" | "default" = "destructive";
-  
-  if (isConnectionError) {
-    variant = "default";  // Less alarming for connection issues
-  }
-
-  return (
-    <Alert variant={variant} className="mb-6">
-      <AlertCircle className="h-4 w-4" />
-      <AlertTitle>
-        {isConnectionError ? "Connection Issue" : 
-          isAuthError ? "Authorization Error" :
-          isAccessError ? "Access Error" : "Error"}
-      </AlertTitle>
-      <AlertDescription className="flex flex-col space-y-4">
-        <p>{error}</p>
-        
-        <div className="flex justify-end space-x-2">
+        );
+      } else {
+        buttons.push(
           <Button 
+            key="request"
             variant="outline" 
             size="sm" 
-            onClick={onRetry}
+            onClick={onUpgradeRole}
+            disabled={isRequestingUpgrade}
+            className="flex items-center gap-2"
           >
-            <RefreshCw className="mr-2 h-3 w-3" />
-            Retry
+            <MessageSquare className="h-4 w-4" />
+            {isRequestingUpgrade ? 'Requesting...' : 'Request Access'}
           </Button>
-        </div>
+        );
+      }
+    }
+    
+    return buttons;
+  };
+
+  const actionButtons = getActionButtons();
+
+  return (
+    <Alert variant="destructive" className="mb-4">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertDescription className="flex items-center justify-between">
+        <span>{getErrorMessage()}</span>
+        {actionButtons.length > 0 && (
+          <div className="flex gap-2 ml-4">
+            {actionButtons}
+          </div>
+        )}
       </AlertDescription>
     </Alert>
   );
