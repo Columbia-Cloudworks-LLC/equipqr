@@ -1,15 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { useToast } from "@/components/ui/use-toast"
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { DeactivateAccountSection } from '@/components/Profile/DeactivateAccountSection';
 
 export default function Profile() {
   const { user, session } = useAuth();
+  const { toast } = useToast()
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,9 +34,16 @@ export default function Profile() {
       if (error) {
         throw error;
       }
-      toast.success('Your profile has been updated.');
+      toast({
+        title: "Success!",
+        description: "Your profile has been updated.",
+      })
     } catch (error: any) {
-      toast.error(error.message || 'Something went wrong.');
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: error.message,
+      })
     } finally {
       setIsLoading(false);
     }

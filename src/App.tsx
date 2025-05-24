@@ -1,6 +1,5 @@
-
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider } from '@/providers/ThemeProvider';
+import { ThemeProvider } from '@/components/theme-provider';
 import { QueryClientProvider } from '@/contexts/QueryClient';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -15,11 +14,11 @@ function App() {
     <BrowserRouter>
       <ThemeProvider defaultTheme="light" storageKey="equipqr-theme">
         <QueryClientProvider>
-          <Toaster />
+          <Toaster position="top-right" />
           <AuthProvider>
             <OrganizationProvider>
               <NotificationsProvider>
-                <TeamManagementProvider value={{}}>
+                <TeamManagementProvider>
                   <div className="min-h-screen bg-background">
                     <ReactivationBanner />
                     <AppRoutes />
