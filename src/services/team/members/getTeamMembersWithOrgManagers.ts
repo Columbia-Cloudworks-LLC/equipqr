@@ -6,11 +6,6 @@ import { getTeamMembers } from './getTeamMembers';
 interface OrgManager {
   user_id: string;
   role: string;
-  user_profiles: {
-    id: string;
-    display_name: string;
-    org_id: string;
-  } | null;
 }
 
 /**
@@ -87,27 +82,34 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
     // Process org managers who aren't already team members
     const orgManagerMembers: TeamMember[] = orgManagersData
       .filter(manager => {
-        const authUser = authUsers.users.find(u => u.id === manager.user_id);
+        // Find the auth user for this manager
+        const authUser = authUsers.users?.find((u: any) => u.id === manager.user_id);
         return authUser && !existingMemberAuthUids.has(authUser.id);
       })
       .map(manager => {
-        const authUser = authUsers.users.find(u => u.id === manager.user_id);
+        // Find the auth user and profile for this manager
+        const authUser = authUsers.users?.find((u: any) => u.id === manager.user_id);
         const profile = userProfiles?.find(p => p.id === manager.user_id);
+        
+        if (!authUser) {
+          return null; // Skip if no auth user found
+        }
         
         return {
           id: `org-${manager.user_id}`, // Use a special ID prefix to identify org managers
           team_id: teamId,
           user_id: manager.user_id,
-          auth_uid: authUser?.id || '',
+          auth_uid: authUser.id || '',
           joined_at: new Date().toISOString(), // Use current time as placeholder
-          display_name: profile?.display_name || authUser?.email?.split('@')[0] || 'Unknown',
-          email: authUser?.email || '',
+          display_name: profile?.display_name || authUser.email?.split('@')[0] || 'Unknown',
+          email: authUser.email || '',
           role: manager.role, // Use their org role as their effective team role
-          status: authUser?.last_sign_in_at ? 'Active' : 'Pending',
+          status: authUser.last_sign_in_at ? 'Active' : 'Pending',
           org_role: manager.role, // Store the original org role
           is_org_manager: true // Flag to identify these as org-level managers
         } as TeamMember & { org_role: string; is_org_manager: boolean };
-      });
+      })
+      .filter((member): member is TeamMember & { org_role: string; is_org_manager: boolean } => member !== null);
     
     // Combine team members with org managers, sorting so org managers appear after regular members
     const combinedMembers = [

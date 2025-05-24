@@ -94,6 +94,15 @@ export function TeamManagementView() {
     return Promise.resolve();
   };
 
+  // Fix the retry function to not pass parameters
+  const handleRetry = () => {
+    if (selectedTeamId) {
+      refetchTeamMembers();
+    } else {
+      fetchTeams();
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <TeamManagementHeader
@@ -114,7 +123,7 @@ export function TeamManagementView() {
       
       <ErrorDisplay 
         error={error} 
-        onRetry={selectedTeamId ? refetchTeamMembers : fetchTeams} 
+        onRetry={handleRetry}
         onUpgradeRole={isViewerOnly ? 
           (canChangeRoles ? handleRoleUpgrade : handleRoleUpgradeRequest) : undefined}
         isViewer={isViewerOnly}
