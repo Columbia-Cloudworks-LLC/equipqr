@@ -60,6 +60,10 @@ export function TeamContent({
     return onInviteMember(email, role, selectedTeam.id);
   };
 
+  const handleUpdateTeam = (teamId: string, name: string) => {
+    return onUpdateTeam(teamId, { name });
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="members" className="w-full">
@@ -104,13 +108,13 @@ export function TeamContent({
         </TabsContent>
         
         <TabsContent value="map" className="mt-6">
-          <TeamEquipmentMap teamId={selectedTeam.id} />
+          <TeamEquipmentMap teamId={selectedTeam.id} teamName={selectedTeam.name} />
         </TabsContent>
         
         <TabsContent value="settings" className="mt-6">
           <TeamSettings
             team={selectedTeam}
-            onUpdateTeam={onUpdateTeam}
+            onUpdateTeam={handleUpdateTeam}
             onDeleteTeam={onDeleteTeam}
             currentUserRole={currentUserRole}
             canChangeRoles={canChangeRoles}

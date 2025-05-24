@@ -27,7 +27,7 @@ interface TeamManagementWrapperProps {
   isChangingOrg: boolean;
   onSelectTeam: (teamId: string) => void;
   onCreateTeam: (name: string) => Promise<any>;
-  onUpdateTeam: (id: string, name: string) => Promise<any>;
+  onUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>;
   onDeleteTeam: (teamId: string) => Promise<any>;
   onInviteMember: (email: string, role: UserRole) => Promise<any>;
   onChangeRole: (userId: string, role: string) => Promise<any>;
@@ -79,6 +79,34 @@ export function TeamManagementWrapper({
                              selectedOrganization?.role === 'manager' ||
                              selectedOrganization?.is_primary;
 
+  const selectedTeam = filteredTeams.find(team => team.id === selectedTeamId);
+
+  if (!selectedTeam) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <TeamSelector
+            teams={filteredTeams}
+            value={selectedTeamId}
+            onChange={onSelectTeam}
+            disabled={isChangingOrg}
+          />
+          
+          {hasCreatePermission && (
+            <CreateTeamButton
+              onCreateTeam={onCreateTeam}
+              isCreating={isCreatingTeam}
+            />
+          )}
+        </div>
+        
+        <div className="text-center py-8 text-muted-foreground">
+          <p>No team selected</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -97,38 +125,30 @@ export function TeamManagementWrapper({
         )}
       </div>
       
-      {selectedTeamId && (
-        <TeamContent
-          selectedTeamId={selectedTeamId}
-          members={members}
-          pendingInvitations={pendingInvitations}
-          teams={filteredTeams}
-          isLoading={isLoading}
-          isLoadingInvitations={isLoadingInvitations}
-          isCreatingTeam={isCreatingTeam}
-          isUpdatingTeam={isUpdatingTeam}
-          isDeletingTeam={isDeletingTeam}
-          isRepairingTeam={isRepairingTeam}
-          isUpgradingRole={isUpgradingRole}
-          isRequestingRole={isRequestingRole}
-          isMember={isMember}
-          currentUserRole={currentUserRole}
-          canChangeRoles={canChangeRoles}
-          onInviteMember={onInviteMember}
-          onChangeRole={onChangeRole}
-          onRemoveMember={onRemoveMember}
-          onResendInvite={onResendInvite}
-          onCancelInvitation={onCancelInvitation}
-          onCreateTeam={onCreateTeam}
-          onUpdateTeam={onUpdateTeam}
-          onDeleteTeam={onDeleteTeam}
-          onRepairTeam={onRepairTeam}
-          onUpgradeRole={onUpgradeRole}
-          onRequestRoleUpgrade={onRequestRoleUpgrade}
-          onFetchPendingInvitations={onFetchPendingInvitations}
-          getTeamEquipmentCount={getTeamEquipmentCount}
-        />
-      )}
+      <TeamContent
+        selectedTeam={selectedTeam}
+        members={members}
+        pendingInvitations={pendingInvitations}
+        teams={filteredTeams}
+        isLoading={isLoading}
+        currentUserRole={currentUserRole}
+        isMember={isMember}
+        canChangeRoles={canChangeRoles}
+        isUpgradingRole={isUpgradingRole}
+        isRequestingRole={isRequestingRole}
+        onInviteMember={onInviteMember}
+        onChangeRole={onChangeRole}
+        onRemoveMember={onRemoveMember}
+        onUpdateTeam={onUpdateTeam}
+        onDeleteTeam={onDeleteTeam}
+        onUpgradeRole={onUpgradeRole}
+        onRequestRoleUpgrade={onRequestRoleUpgrade}
+        isRepairingTeam={isRepairingTeam}
+        onRepairTeam={onRepairTeam}
+        onResendInvite={onResendInvite}
+        onCancelInvitation={onCancelInvitation}
+        getTeamEquipmentCount={getTeamEquipmentCount}
+      />
     </div>
   );
 }
