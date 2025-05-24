@@ -1,12 +1,12 @@
+
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryClientProvider } from '@/contexts/QueryClient';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import AppRoutes from '@/routes/AppRoutes';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
-import { TeamManagementProvider } from '@/contexts/TeamManagementContext';
 import { ReactivationBanner } from '@/components/Auth/ReactivationBanner';
 
 function App() {
@@ -18,12 +18,10 @@ function App() {
           <AuthProvider>
             <OrganizationProvider>
               <NotificationsProvider>
-                <TeamManagementProvider>
-                  <div className="min-h-screen bg-background">
-                    <ReactivationBanner />
-                    <AppRoutes />
-                  </div>
-                </TeamManagementProvider>
+                <div className="min-h-screen bg-background">
+                  <ReactivationBanner />
+                  <AppRoutes />
+                </div>
               </NotificationsProvider>
             </OrganizationProvider>
           </AuthProvider>

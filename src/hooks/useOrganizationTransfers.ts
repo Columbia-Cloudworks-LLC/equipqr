@@ -51,13 +51,20 @@ export function useOrganizationTransfers() {
       const { data, error } = await supabase
         .from('organization_transfers')
         .select(`
-          *,
+          id,
+          org_id,
+          from_user_id,
+          status,
+          initiated_at,
+          expires_at,
+          transfer_reason,
           organization:org_id(name),
-          from_user:from_user_id(
-            auth_uid,
+          from_user_profile:from_user_id(
             app_user!inner(
-              auth_uid,
-              user_profiles!inner(display_name)
+              email,
+              user_profiles!inner(
+                display_name
+              )
             )
           )
         `)
@@ -66,7 +73,24 @@ export function useOrganizationTransfers() {
         .gt('expires_at', new Date().toISOString());
 
       if (error) throw error;
-      setTransfers(data || []);
+
+      // Transform the data to match the expected interface
+      const transformedData = data?.map(item => ({
+        id: item.id,
+        org_id: item.org_id,
+        from_user_id: item.from_user_id,
+        status: item.status,
+        initiated_at: item.initiated_at,
+        expires_at: item.expires_at,
+        transfer_reason: item.transfer_reason,
+        organization: item.organization,
+        from_user: {
+          display_name: item.from_user_profile?.app_user?.user_profiles?.display_name || 'Unknown User',
+          email: item.from_user_profile?.app_user?.email || 'unknown@example.com'
+        }
+      })) || [];
+
+      setTransfers(transformedData);
     } catch (error) {
       console.error('Error fetching transfers:', error);
     } finally {
