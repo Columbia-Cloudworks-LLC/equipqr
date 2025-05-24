@@ -79,13 +79,19 @@ export function TeamManagementView() {
   // Check if we're viewing an external organization's teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
 
-  // Fixed wrapper functions that don't take parameters
+  // Fixed wrapper functions that properly handle parameters
   const handleRoleUpgrade = () => {
-    return functionWrappers.handleUpgradeRoleWrapper();
+    if (selectedTeamId) {
+      return functionWrappers.handleUpgradeRoleWrapper();
+    }
+    return Promise.resolve();
   };
   
   const handleRoleUpgradeRequest = () => {
-    return functionWrappers.handleRequestRoleUpgradeWrapper();
+    if (selectedTeamId) {
+      return functionWrappers.handleRequestRoleUpgradeWrapper();
+    }
+    return Promise.resolve();
   };
 
   return (

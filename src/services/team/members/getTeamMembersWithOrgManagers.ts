@@ -4,15 +4,13 @@ import { TeamMember } from '@/types';
 import { getTeamMembers } from './getTeamMembers';
 
 interface OrgManager {
-  id: string;
   user_id: string;
-  auth_uid: string;
-  display_name: string;
-  email: string;
   role: string;
-  status: string;
-  org_role: string;
-  is_org_manager: boolean;
+  user_profiles: {
+    id: string;
+    display_name: string;
+    org_id: string;
+  } | null;
 }
 
 /**
@@ -44,7 +42,7 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
       .select(`
         user_id,
         role,
-        user_profiles!inner(
+        user_profiles!inner (
           id,
           display_name,
           org_id
@@ -64,7 +62,6 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
     }
     
     // Get auth user data for org managers
-    const managerUserIds = orgManagers.map(m => m.user_id);
     const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
     
     if (authError) {
@@ -80,7 +77,7 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
     );
     
     // Process org managers who aren't already team members
-    const orgManagerMembers: TeamMember[] = orgManagers
+    const orgManagerMembers: TeamMember[] = (orgManagers as OrgManager[])
       .filter(manager => {
         const authUser = authUsers.users.find(u => u.id === manager.user_id);
         return authUser && !existingMemberAuthUids.has(authUser.id);

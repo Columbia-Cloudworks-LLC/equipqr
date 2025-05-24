@@ -19,7 +19,7 @@ export async function getTeamAccessDetails(teamId: string, userId?: string) {
       isMember: result.is_member || false,
       accessReason: result.access_reason || 'unknown',
       role: result.role || null,
-      orgRole: result.role,  // Edge function now returns the correct role even if from org
+      orgRole: result.org_role || result.role || null,  // Use org_role if available, fallback to role
       orgName: result.org_name || null,
       teamName: result.team_name || null,
       team: result.team || null,

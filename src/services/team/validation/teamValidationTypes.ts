@@ -8,12 +8,25 @@ export interface TeamAccessResult {
   role?: string;
   has_cross_org_access?: boolean;
   has_org_access?: boolean;
-  org_role?: string; // Add org_role to the interface
+  org_role?: string;
+  org_name?: string;
+  team_name?: string;
+  team?: {
+    id: string;
+    name: string;
+    org_id: string;
+  } | null;
 }
 
 export interface TeamValidationResult {
   isValid: boolean;
   result: TeamAccessResult;
   diagnostics?: any;
+  error?: string;
+}
+
+export interface RepairResult {
+  success: boolean;
+  team_member_id?: string;
   error?: string;
 }
