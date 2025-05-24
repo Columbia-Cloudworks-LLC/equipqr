@@ -5,9 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Smartphone, Monitor, Tablet, MapPin, Clock, User, Globe, Download, Search, Filter } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Smartphone, Monitor, Tablet, MapPin, Clock, User, Globe, Download, Search, Filter, Map } from 'lucide-react';
 import { getEnhancedScanHistory, canViewScanHistory, type ScanHistoryRecord } from '@/services/equipment/enhancedScanService';
 import { formatDistanceToNow } from 'date-fns';
+import { LocationMap } from './LocationMap';
 
 interface ScanHistoryProps {
   equipmentId: string;
@@ -21,6 +23,7 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [deviceFilter, setDeviceFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('list');
 
   useEffect(() => {
     loadScanHistory();
@@ -116,6 +119,11 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
     return <Badge variant={variant}>{text}</Badge>;
   };
 
+  const showLocationOnMap = (latitude: number, longitude: number) => {
+    // For individual location view, we can enhance this later
+    console.log(`Show location: ${latitude}, ${longitude}`);
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -146,6 +154,8 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
       </Card>
     );
   }
+
+  const recordsWithLocation = filteredHistory.filter(record => record.latitude && record.longitude);
 
   return (
     <div className="space-y-4">
@@ -195,95 +205,125 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
       </div>
 
       {/* Results Summary */}
-      <div className="text-sm text-muted-foreground">
-        Showing {filteredHistory.length} of {scanHistory.length} scan records
+      <div className="flex justify-between items-center text-sm text-muted-foreground">
+        <span>
+          Showing {filteredHistory.length} of {scanHistory.length} scan records
+        </span>
+        {recordsWithLocation.length > 0 && (
+          <span>
+            {recordsWithLocation.length} with location data
+          </span>
+        )}
       </div>
 
-      {/* Scan History List */}
-      {filteredHistory.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-center">
+      {/* Tabs for List and Map views */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="list">
+            <User className="h-4 w-4 mr-2" />
+            List View
+          </TabsTrigger>
+          <TabsTrigger value="map" disabled={recordsWithLocation.length === 0}>
+            <Map className="h-4 w-4 mr-2" />
+            Map View ({recordsWithLocation.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list" className="mt-4">
+          {/* Scan History List */}
+          {filteredHistory.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <div className="space-y-3">
+                  <div className="text-muted-foreground">
+                    <Clock className="h-8 w-8 mx-auto mb-2" />
+                  </div>
+                  <h3 className="font-medium">No Scan History</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {scanHistory.length === 0 
+                      ? "No scans recorded for this equipment yet."
+                      : "No scans match your current filters."
+                    }
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
             <div className="space-y-3">
-              <div className="text-muted-foreground">
-                <Clock className="h-8 w-8 mx-auto mb-2" />
-              </div>
-              <h3 className="font-medium">No Scan History</h3>
-              <p className="text-sm text-muted-foreground">
-                {scanHistory.length === 0 
-                  ? "No scans recorded for this equipment yet."
-                  : "No scans match your current filters."
-                }
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {filteredHistory.map((record) => (
-            <Card key={record.id} className="p-4">
-              <div className="space-y-3">
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      {getDeviceIcon(record.device_type)}
-                      <div>
-                        <div className="font-medium text-sm">
-                          {record.user_display_name || 'Anonymous User'}
+              {filteredHistory.map((record) => (
+                <Card key={record.id} className="p-4">
+                  <div className="space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          {getDeviceIcon(record.device_type)}
+                          <div>
+                            <div className="font-medium text-sm">
+                              {record.user_display_name || 'Anonymous User'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {record.user_org_name || 'Unknown Organization'}
+                            </div>
+                          </div>
                         </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {getScanMethodBadge(record.scan_method)}
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(record.ts), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Device Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="text-muted-foreground">Device & Browser</div>
+                        <div>{record.device_type} • {record.browser_name} {record.browser_version}</div>
+                        <div className="text-xs text-muted-foreground">{record.operating_system}</div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-muted-foreground">Location & Time</div>
+                        <div className="flex items-center gap-1">
+                          {record.latitude && record.longitude ? (
+                            <>
+                              <MapPin className="h-3 w-3" />
+                              <button
+                                onClick={() => showLocationOnMap(record.latitude!, record.longitude!)}
+                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-xs">Location not available</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{record.timezone}</div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-muted-foreground">Session Info</div>
+                        <div className="text-xs font-mono">{record.session_id?.slice(0, 8)}...</div>
                         <div className="text-xs text-muted-foreground">
-                          {record.user_org_name || 'Unknown Organization'}
+                          {record.screen_resolution} • {record.language}
                         </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {getScanMethodBadge(record.scan_method)}
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(record.ts), { addSuffix: true })}
-                    </span>
-                  </div>
-                </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
-                {/* Device Details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">Device & Browser</div>
-                    <div>{record.device_type} • {record.browser_name} {record.browser_version}</div>
-                    <div className="text-xs text-muted-foreground">{record.operating_system}</div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-muted-foreground">Location & Time</div>
-                    <div className="flex items-center gap-1">
-                      {record.latitude && record.longitude ? (
-                        <>
-                          <MapPin className="h-3 w-3" />
-                          <span className="text-xs">
-                            {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-xs">Location not available</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{record.timezone}</div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-muted-foreground">Session Info</div>
-                    <div className="text-xs font-mono">{record.session_id?.slice(0, 8)}...</div>
-                    <div className="text-xs text-muted-foreground">
-                      {record.screen_resolution} • {record.language}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+        <TabsContent value="map" className="mt-4">
+          <LocationMap scanRecords={filteredHistory} height="500px" />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
