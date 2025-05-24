@@ -1199,6 +1199,10 @@ export type Database = {
         Args: { p_user_id: string; p_team_id?: string }
         Returns: boolean
       }
+      can_delete_equipment: {
+        Args: { p_uid: string; p_equipment_id: string }
+        Returns: boolean
+      }
       can_edit_equipment: {
         Args: { p_uid: string; p_equipment_id: string }
         Returns: boolean

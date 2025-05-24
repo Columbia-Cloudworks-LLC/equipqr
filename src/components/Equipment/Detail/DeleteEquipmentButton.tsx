@@ -83,15 +83,19 @@ export function DeleteEquipmentButton({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>This action will delete the equipment "{equipmentName}". 
-              This action cannot be undone, and the equipment record will be permanently removed.</p>
-              
-              {error && (
-                <div className="bg-destructive/10 border border-destructive/30 text-destructive p-3 rounded-md">
-                  {error}
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <div>
+                  This action will delete the equipment "{equipmentName}". 
+                  This action cannot be undone, and the equipment record will be permanently removed.
                 </div>
-              )}
+                
+                {error && (
+                  <div className="bg-destructive/10 border border-destructive/30 text-destructive p-3 rounded-md">
+                    {error}
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
