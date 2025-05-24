@@ -1,11 +1,11 @@
+
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { MapPin, Eye } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 import type { ScanHistoryRecord } from '@/services/equipment/enhancedScanService';
 
 interface LocationMapProps {
@@ -25,33 +25,51 @@ export function LocationMap({
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const [mapboxToken, setMapboxToken] = useState('');
-  const [showTokenInput, setShowTokenInput] = useState(true);
-  const [tokenSaved, setTokenSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Filter records that have location data
   const recordsWithLocation = scanRecords.filter(
     record => record.latitude && record.longitude
   );
 
+  // Fetch Mapbox token from Supabase Edge Function
   useEffect(() => {
-    const savedToken = localStorage.getItem('mapbox_token');
-    if (savedToken) {
-      setMapboxToken(savedToken);
-      setShowTokenInput(false);
-      setTokenSaved(true);
-    }
+    const fetchMapboxToken = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const { data, error } = await supabase.functions.invoke('get_mapbox_token', {
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+        });
+
+        if (error) {
+          console.error('Error fetching Mapbox token:', error);
+          setError('Failed to load map configuration');
+          return;
+        }
+
+        if (data?.token) {
+          setMapboxToken(data.token);
+        } else {
+          setError('Map configuration not available');
+        }
+      } catch (err) {
+        console.error('Error fetching Mapbox token:', err);
+        setError('Failed to load map configuration');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMapboxToken();
   }, []);
 
-  const handleTokenSubmit = () => {
-    if (mapboxToken.trim()) {
-      localStorage.setItem('mapbox_token', mapboxToken);
-      setShowTokenInput(false);
-      setTokenSaved(true);
-    }
-  };
-
   useEffect(() => {
-    if (!mapContainer.current || !tokenSaved || !mapboxToken || recordsWithLocation.length === 0) {
+    if (!mapContainer.current || !mapboxToken || recordsWithLocation.length === 0) {
       return;
     }
 
@@ -136,7 +154,7 @@ export function LocationMap({
       markers.current.clear();
       map.current?.remove();
     };
-  }, [tokenSaved, mapboxToken, recordsWithLocation, onRecordHighlighted]);
+  }, [mapboxToken, recordsWithLocation, onRecordHighlighted]);
 
   // Handle highlighting specific record
   useEffect(() => {
@@ -171,39 +189,36 @@ export function LocationMap({
     );
   }
 
-  if (showTokenInput) {
+  if (loading) {
     return (
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-6 text-center">
           <div className="space-y-4">
             <div className="text-center">
-              <MapPin className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <h3 className="font-medium mb-1">Map Configuration Required</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Enter your Mapbox public token to view scan locations on a map.
+              <MapPin className="h-8 w-8 mx-auto mb-2 text-muted-foreground animate-pulse" />
+              <h3 className="font-medium mb-1">Loading Map</h3>
+              <p className="text-sm text-muted-foreground">
+                Initializing map configuration...
               </p>
             </div>
-            
-            <div className="space-y-2">
-              <Input
-                type="text"
-                placeholder="Enter Mapbox public token (pk.ey...)"
-                value={mapboxToken}
-                onChange={(e) => setMapboxToken(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleTokenSubmit()}
-              />
-              <Button onClick={handleTokenSubmit} className="w-full" disabled={!mapboxToken.trim()}>
-                <Eye className="h-4 w-4 mr-2" />
-                Show Map
-              </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="space-y-4">
+            <div className="text-center">
+              <MapPin className="h-8 w-8 mx-auto mb-2 text-red-400" />
+              <h3 className="font-medium mb-1 text-red-600">Map Unavailable</h3>
+              <p className="text-sm text-muted-foreground">
+                {error}
+              </p>
             </div>
-            
-            <p className="text-xs text-muted-foreground text-center">
-              Get your token from{' '}
-              <a href="https://mapbox.com/" target="_blank" rel="noopener noreferrer" className="underline">
-                mapbox.com
-              </a>
-            </p>
           </div>
         </CardContent>
       </Card>
