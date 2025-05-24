@@ -68,10 +68,13 @@ export function TeamMemberCard({
   };
 
   const getStatusBadge = () => {
-    if (member.status === 'pending') {
+    if (member.is_org_manager) {
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Org Manager</Badge>;
+    }
+    if (member.status === 'pending' || member.status === 'Pending') {
       return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
     }
-    return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Active</Badge>;
+    return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Team Member</Badge>;
   };
 
   const getRoleBadge = () => {
@@ -107,7 +110,7 @@ export function TeamMemberCard({
                 {getDisplayName()}
                 {isCurrentUser && <span className="text-muted-foreground ml-2">(You)</span>}
               </h4>
-              <p className="text-sm text-muted-foreground truncate">{member.email || 'No email'}</p>
+              <p className="text-sm text-muted-foreground truncate">{member.email || 'No email available'}</p>
             </div>
             
             {canChangeRoles && !isOrgManager && (

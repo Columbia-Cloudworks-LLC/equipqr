@@ -33,10 +33,14 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
       return teamMembers; // Return just team members if we can't get org info
     }
     
-    // Get organization managers/owners
+    // Get organization managers/owners with their profile data
     const { data: orgManagersData, error: orgError } = await supabase
       .from('user_roles')
-      .select('user_id, role')
+      .select(`
+        user_id, 
+        role,
+        user_profiles!inner(id, display_name, email)
+      `)
       .eq('org_id', team.org_id)
       .in('role', ['owner', 'manager']);
     
@@ -58,30 +62,14 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
         .filter(Boolean)
     );
     
-    // Get user profiles for org managers who aren't already team members
-    const managerUserIds = orgManagersData
-      .filter(manager => !existingMemberUserIds.has(manager.user_id))
-      .map(m => m.user_id);
-    
-    if (managerUserIds.length === 0) {
-      return teamMembers; // No new managers to add
-    }
-    
-    const { data: userProfiles, error: profilesError } = await supabase
-      .from('user_profiles')
-      .select('id, display_name')
-      .in('id', managerUserIds);
-    
-    if (profilesError) {
-      console.error('Error fetching user profiles:', profilesError);
-      // Continue without profile data rather than failing completely
-    }
-    
     // Process org managers who aren't already team members
     const orgManagerMembers: TeamMember[] = orgManagersData
       .filter(manager => !existingMemberUserIds.has(manager.user_id))
       .map(manager => {
-        const profile = userProfiles?.find(p => p.id === manager.user_id);
+        // Access the joined user_profiles data
+        const profile = Array.isArray(manager.user_profiles) 
+          ? manager.user_profiles[0] 
+          : manager.user_profiles;
         
         return {
           id: `org-${manager.user_id}`, // Use a special ID prefix to identify org managers
@@ -90,9 +78,9 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
           auth_uid: manager.user_id, // For org managers, user_id is the auth_uid
           joined_at: new Date().toISOString(), // Use current time as placeholder
           display_name: profile?.display_name || 'Unknown Manager',
-          email: '', // We don't have email access without admin API
+          email: profile?.email || 'No email available',
           role: manager.role, // Use their org role as their effective team role
-          status: 'Active', // Assume active since they have org roles
+          status: 'Org Manager', // Clear status for org managers
           org_role: manager.role, // Store the original org role
           is_org_manager: true // Flag to identify these as org-level managers
         } as TeamMember & { org_role: string; is_org_manager: boolean };

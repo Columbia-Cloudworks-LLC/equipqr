@@ -19,6 +19,8 @@ import { TableCell, TableRow } from '@/components/ui/table';
 interface ExtendedTeamMember extends TeamMember {
   auth_uid?: string;
   name?: string;
+  org_role?: string;
+  is_org_manager?: boolean;
 }
 
 interface TeamMemberRowProps {
@@ -56,7 +58,7 @@ export function TeamMemberRow({
     if (member.display_name) {
       return member.display_name.substring(0, 2).toUpperCase();
     }
-    return member.email.substring(0, 2).toUpperCase();
+    return (member.email || 'U').substring(0, 2).toUpperCase();
   };
   
   // Determine if this role can be changed
@@ -76,9 +78,20 @@ export function TeamMemberRow({
   
   // Handle member removal with confirmation
   const handleRemove = async () => {
-    if (window.confirm(`Are you sure you want to remove ${member.display_name || member.name || member.email} from the team?`)) {
+    if (window.confirm(`Are you sure you want to remove ${member.display_name || member.email} from the team?`)) {
       await onRemoveMember(member.auth_uid || member.user_id);
     }
+  };
+
+  // Get member status based on their relationship to the team
+  const getMemberStatus = () => {
+    if (member.is_org_manager) {
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Org Manager</Badge>;
+    }
+    if (member.status === 'pending' || member.status === 'Pending') {
+      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
+    }
+    return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Team Member</Badge>;
   };
 
   return (
@@ -91,15 +104,15 @@ export function TeamMemberRow({
             <AvatarFallback>{getInitials()}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="font-semibold">{member.display_name || member.name || member.email}</span>
-            <span className="text-xs text-muted-foreground">{member.email}</span>
+            <span className="font-semibold">{member.display_name || member.email}</span>
+            {/* Removed the duplicate email display here since we have a dedicated email column */}
           </div>
         </div>
       </TableCell>
 
       {/* Email Column */}
       <TableCell className="hidden md:table-cell">
-        {member.email}
+        {member.email || 'No email available'}
       </TableCell>
 
       {/* Role Column */}
@@ -107,14 +120,14 @@ export function TeamMemberRow({
         <Badge variant="secondary">{member.role}</Badge>
       </TableCell>
 
-      {/* Status Column */}
+      {/* Status Column - Now shows member type instead of active/inactive */}
       <TableCell>
-        {member.is_active ? 'Active' : 'Inactive'}
+        {getMemberStatus()}
       </TableCell>
 
       {/* Actions Column */}
       <TableCell className="text-right">
-        {canChangeRoles && !isCurrentUser ? (
+        {canChangeRoles && !isCurrentUser && !member.is_org_manager ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
@@ -151,7 +164,7 @@ export function TeamMemberRow({
           </DropdownMenu>
         ) : (
           <span className="text-muted-foreground text-sm">
-            {isCurrentUser ? 'You' : 'No actions available'}
+            {isCurrentUser ? 'You' : member.is_org_manager ? 'Org Manager' : 'No actions available'}
           </span>
         )}
       </TableCell>

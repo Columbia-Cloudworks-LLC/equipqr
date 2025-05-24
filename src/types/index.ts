@@ -1,3 +1,4 @@
+
 import { Team } from '@/services/team';
 import { Equipment, EquipmentAttribute } from './equipment';
 
@@ -11,7 +12,11 @@ export interface TeamMember {
   avatar_url?: string;
   is_active?: boolean;
   status?: string;
-  auth_uid?: string; // Add this property to the interface
+  auth_uid?: string;
+  joined_at?: string;
+  // Properties for org managers
+  org_role?: string;
+  is_org_manager?: boolean;
 }
 
 export interface Organization {
