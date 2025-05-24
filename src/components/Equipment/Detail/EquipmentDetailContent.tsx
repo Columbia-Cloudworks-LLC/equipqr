@@ -11,6 +11,10 @@ import { AttributesList } from '../Attributes';
 import { ScanHistory } from '../ScanHistory/ScanHistory';
 import { DeleteEquipmentButton } from './DeleteEquipmentButton';
 import { DuplicateEquipmentButton } from './DuplicateEquipmentButton';
+import { LocationDisplay } from './LocationDisplay';
+import { toggleLocationOverride } from '@/services/equipment/locationService';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface EquipmentDetailContentProps {
   equipment: Equipment;
@@ -27,9 +31,37 @@ export function EquipmentDetailContent({
   activeTab,
   setActiveTab
 }: EquipmentDetailContentProps) {
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+  const queryClient = useQueryClient();
+
   // Generate QR URL with source tracking parameter
   const getQrUrl = () => {
     return `${window.location.origin}/equipment/${id}?source=qr`;
+  };
+
+  const handleLocationOverrideToggle = async () => {
+    setIsUpdatingLocation(true);
+    try {
+      const success = await toggleLocationOverride(
+        id, 
+        !equipment.location_override
+      );
+      
+      if (success) {
+        // Refresh the equipment data
+        queryClient.invalidateQueries({ queryKey: ['equipment', id] });
+      }
+    } finally {
+      setIsUpdatingLocation(false);
+    }
+  };
+
+  const handleViewOnMap = () => {
+    if (equipment.last_scan_latitude && equipment.last_scan_longitude) {
+      // Switch to scan history tab and highlight map
+      setActiveTab('scan-history');
+      // The LocationMap component will automatically show the location
+    }
   };
 
   return (
@@ -84,7 +116,7 @@ export function EquipmentDetailContent({
         
         <TabsContent value="details" className="space-y-4 mt-2">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Equipment Information</CardTitle>
@@ -94,10 +126,6 @@ export function EquipmentDetailContent({
                     <div className="space-y-1">
                       <p className="text-sm font-medium text-muted-foreground">Status</p>
                       <p>{equipment.status}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">Location</p>
-                      <p>{equipment.location || 'Not specified'}</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm font-medium text-muted-foreground">Install Date</p>
@@ -125,9 +153,16 @@ export function EquipmentDetailContent({
                   )}
                 </CardContent>
               </Card>
+
+              <LocationDisplay
+                equipment={equipment}
+                onViewOnMap={handleViewOnMap}
+                onToggleOverride={canEdit ? handleLocationOverrideToggle : undefined}
+                canEdit={canEdit}
+              />
               
               {equipment.attributes && equipment.attributes.length > 0 && (
-                <Card className="mt-4">
+                <Card>
                   <CardHeader>
                     <CardTitle>Additional Attributes</CardTitle>
                   </CardHeader>

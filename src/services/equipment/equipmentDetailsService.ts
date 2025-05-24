@@ -111,7 +111,7 @@ export async function getEquipmentById(id: string): Promise<Equipment> {
       // if RLS policies prevent access
     }
     
-    // First fetch the equipment
+    // First fetch the equipment with new location fields
     const { data: equipment, error } = await supabase
       .from('equipment')
       .select(`

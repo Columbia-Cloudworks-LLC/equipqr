@@ -260,7 +260,14 @@ export type Database = {
           deleted_at: string | null
           id: string
           install_date: string | null
+          last_scan_accuracy: number | null
+          last_scan_by_user_id: string | null
+          last_scan_latitude: number | null
+          last_scan_longitude: number | null
+          last_scan_timestamp: string | null
           location: string | null
+          location_override: boolean | null
+          location_source: string | null
           manufacturer: string | null
           model: string | null
           name: string
@@ -278,7 +285,14 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           install_date?: string | null
+          last_scan_accuracy?: number | null
+          last_scan_by_user_id?: string | null
+          last_scan_latitude?: number | null
+          last_scan_longitude?: number | null
+          last_scan_timestamp?: string | null
           location?: string | null
+          location_override?: boolean | null
+          location_source?: string | null
           manufacturer?: string | null
           model?: string | null
           name: string
@@ -296,7 +310,14 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           install_date?: string | null
+          last_scan_accuracy?: number | null
+          last_scan_by_user_id?: string | null
+          last_scan_latitude?: number | null
+          last_scan_longitude?: number | null
+          last_scan_timestamp?: string | null
           location?: string | null
+          location_override?: boolean | null
+          location_source?: string | null
           manufacturer?: string | null
           model?: string | null
           name?: string

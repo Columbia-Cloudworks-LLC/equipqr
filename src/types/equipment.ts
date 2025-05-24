@@ -1,3 +1,4 @@
+
 import { EquipmentStatus } from "./supabase-enums";
 
 export interface Equipment {
@@ -26,6 +27,14 @@ export interface Equipment {
   description?: string;
   purchase_date?: string;
   maintenance_date?: string;
+  // New location tracking fields
+  last_scan_latitude?: number | null;
+  last_scan_longitude?: number | null;
+  last_scan_accuracy?: number | null;
+  last_scan_timestamp?: string | null;
+  last_scan_by_user_id?: string | null;
+  location_override?: boolean;
+  location_source?: string;
 }
 
 export interface EquipmentAttribute {
