@@ -76,10 +76,17 @@ export function TeamContent({
   if (!isMember && currentUserRole !== 'owner' && currentUserRole !== 'manager') {
     return (
       <div className="space-y-4">
-        <MembershipAlert />
+        <MembershipAlert 
+          teamName={teamName}
+          onRepair={onRepairTeam}
+          isRepairing={isRepairingTeam}
+          role={currentUserRole}
+        />
         <RepairTeamAccess 
+          selectedTeamId={selectedTeamId}
           onRepairTeam={onRepairTeam}
           isRepairingTeam={isRepairingTeam}
+          teamDetails={selectedTeam}
         />
       </div>
     );
@@ -91,10 +98,11 @@ export function TeamContent({
     return (
       <div className="space-y-4">
         <ViewerRoleAlert
-          onUpgradeRole={canChangeRoles ? onUpgradeRole : onRequestRoleUpgrade}
-          canDirectlyUpgrade={canChangeRoles}
+          canUpgrade={canChangeRoles}
           isUpgrading={isUpgradingRole}
           isRequesting={isRequestingRole}
+          onUpgrade={onUpgradeRole}
+          onRequest={onRequestRoleUpgrade}
         />
         
         <Tabs defaultValue="locations" className="w-full">
@@ -109,19 +117,22 @@ export function TeamContent({
           
           <TabsContent value="members">
             <TeamMembers
-              selectedTeamId={selectedTeamId}
+              teamId={selectedTeamId}
+              teamName={teamName}
               members={members}
-              pendingInvitations={pendingInvitations}
               isLoading={isLoading}
-              isLoadingInvitations={isLoadingInvitations}
               currentUserRole={currentUserRole}
+              isMember={isMember}
               canChangeRoles={false}
+              isUpgradingRole={isUpgradingRole}
+              isRequestingRole={isRequestingRole}
               onInviteMember={onInviteMember}
               onChangeRole={onChangeRole}
               onRemoveMember={onRemoveMember}
-              onResendInvite={onResendInvite}
-              onCancelInvitation={onCancelInvitation}
-              onFetchPendingInvitations={onFetchPendingInvitations}
+              onUpgradeRole={onUpgradeRole}
+              onRequestRoleUpgrade={onRequestRoleUpgrade}
+              isRepairingTeam={isRepairingTeam}
+              onRepairTeam={onRepairTeam}
             />
           </TabsContent>
         </Tabs>
@@ -144,31 +155,33 @@ export function TeamContent({
         
         <TabsContent value="members">
           <TeamMembers
-            selectedTeamId={selectedTeamId}
+            teamId={selectedTeamId}
+            teamName={teamName}
             members={members}
-            pendingInvitations={pendingInvitations}
             isLoading={isLoading}
-            isLoadingInvitations={isLoadingInvitations}
             currentUserRole={currentUserRole}
+            isMember={isMember}
             canChangeRoles={canChangeRoles}
+            isUpgradingRole={isUpgradingRole}
+            isRequestingRole={isRequestingRole}
             onInviteMember={onInviteMember}
             onChangeRole={onChangeRole}
             onRemoveMember={onRemoveMember}
-            onResendInvite={onResendInvite}
-            onCancelInvitation={onCancelInvitation}
-            onFetchPendingInvitations={onFetchPendingInvitations}
+            onUpgradeRole={onUpgradeRole}
+            onRequestRoleUpgrade={onRequestRoleUpgrade}
+            isRepairingTeam={isRepairingTeam}
+            onRepairTeam={onRepairTeam}
           />
         </TabsContent>
         
         <TabsContent value="settings">
           <TeamSettings
-            selectedTeamId={selectedTeamId}
-            teams={teams}
-            currentUserRole={currentUserRole}
-            isUpdatingTeam={isUpdatingTeam}
-            isDeletingTeam={isDeletingTeam}
+            team={selectedTeam}
+            isUpdating={isUpdatingTeam}
+            isDeleting={isDeletingTeam}
             onUpdateTeam={onUpdateTeam}
-            onDeleteTeam={onDeleteTeam}
+            onDelete={onDeleteTeam}
+            currentUserRole={currentUserRole}
             getTeamEquipmentCount={getTeamEquipmentCount}
           />
         </TabsContent>
