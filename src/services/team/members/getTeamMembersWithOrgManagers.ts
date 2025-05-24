@@ -33,22 +33,12 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
       return teamMembers; // Return just team members if we can't get org info
     }
     
-    // Get organization managers/owners who aren't already team members
-    // Use a join with user_profiles to get display names and emails directly
+    // Get organization managers/owners
     const { data: orgManagersData, error: orgError } = await supabase
       .from('user_roles')
-      .select(`
-        user_id,
-        role,
-        user_profiles!inner(
-          id,
-          display_name,
-          org_id
-        )
-      `)
+      .select('user_id, role')
       .eq('org_id', team.org_id)
-      .in('role', ['owner', 'manager'])
-      .eq('user_profiles.org_id', team.org_id);
+      .in('role', ['owner', 'manager']);
     
     if (orgError) {
       console.error('Error fetching org managers:', orgError);
@@ -57,6 +47,18 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
     
     if (!orgManagersData || orgManagersData.length === 0) {
       return teamMembers;
+    }
+    
+    // Get user profiles for the org managers
+    const managerUserIds = orgManagersData.map(m => m.user_id);
+    const { data: userProfiles, error: profilesError } = await supabase
+      .from('user_profiles')
+      .select('id, display_name')
+      .in('id', managerUserIds);
+    
+    if (profilesError) {
+      console.error('Error fetching user profiles:', profilesError);
+      // Continue without profile data rather than failing completely
     }
     
     // Create a map of existing team member user IDs for deduplication
@@ -68,11 +70,9 @@ export async function getTeamMembersWithOrgManagers(teamId: string): Promise<Tea
     
     // Process org managers who aren't already team members
     const orgManagerMembers: TeamMember[] = orgManagersData
-      .filter(manager => {
-        return manager.user_profiles && !existingMemberUserIds.has(manager.user_id);
-      })
+      .filter(manager => !existingMemberUserIds.has(manager.user_id))
       .map(manager => {
-        const profile = manager.user_profiles;
+        const profile = userProfiles?.find(p => p.id === manager.user_id);
         
         return {
           id: `org-${manager.user_id}`, // Use a special ID prefix to identify org managers
