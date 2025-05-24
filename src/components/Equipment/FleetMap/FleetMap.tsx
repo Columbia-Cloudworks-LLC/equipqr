@@ -188,25 +188,9 @@ export function FleetMap({
     });
   }, [selectedEquipmentId]);
 
+  // If no equipment with location, return null to let parent handle empty state
   if (equipmentWithLocation.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Fleet Map
-            {teamId && <Badge variant="outline">Team View</Badge>}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 text-center">
-          <MapPin className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          <h3 className="font-medium mb-1">No Equipment Locations</h3>
-          <p className="text-sm text-muted-foreground">
-            Equipment locations will appear here when they are scanned with GPS enabled or manually set.
-          </p>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   if (loading) {
