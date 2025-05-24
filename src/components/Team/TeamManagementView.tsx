@@ -143,7 +143,7 @@ export function TeamManagementView() {
           isChangingOrg={isChangingOrg}
           onSelectTeam={setSelectedTeamId}
           onCreateTeam={functionWrappers.handleCreateTeamWithOrg}
-          onUpdateTeam={functionWrappers.handleUpdateTeamWrapperFixed}
+          onUpdateTeam={functionWrappers.handleUpdateTeamWrapper}
           onDeleteTeam={functionWrappers.handleDeleteTeamWrapper}
           onInviteMember={functionWrappers.handleInviteMemberWrapper}
           onChangeRole={functionWrappers.handleChangeRoleWrapper}
