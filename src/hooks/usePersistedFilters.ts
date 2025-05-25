@@ -75,14 +75,24 @@ export function usePersistedFilters(storageKey: string = 'equipment-filters') {
     }
   }, [filters, navigate, location.pathname, storageKey]);
 
-  // Clear all filters
+  // Clear all filters with special handling for organization
   const clearFilters = useCallback(() => {
-    setFilters(DEFAULT_FILTERS);
-    navigate(location.pathname, { replace: true });
-    try {
-      sessionStorage.removeItem(storageKey);
-    } catch (error) {
-      console.warn('Failed to clear stored filters:', error);
+    const currentParams = new URLSearchParams(window.location.search);
+    const orgParam = currentParams.get('org');
+    
+    // If there's an organization parameter, keep it but clear other filters
+    if (orgParam) {
+      const newUrl = `${location.pathname}?org=${orgParam}`;
+      window.location.href = newUrl;
+    } else {
+      // No organization parameter, just clear everything
+      setFilters(DEFAULT_FILTERS);
+      navigate(location.pathname, { replace: true });
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch (error) {
+        console.warn('Failed to clear stored filters:', error);
+      }
     }
   }, [navigate, location.pathname, storageKey]);
 

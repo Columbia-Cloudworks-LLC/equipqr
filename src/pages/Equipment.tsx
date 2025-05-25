@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Package } from 'lucide-react';
 import { Equipment } from '@/types';
@@ -17,6 +16,7 @@ import { usePersistedFilters } from '@/hooks/usePersistedFilters';
 const EquipmentPage = () => {
   const { user, isLoading: authLoading, checkSession } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { 
     organizations, 
     selectedOrganization, 
@@ -30,23 +30,56 @@ const EquipmentPage = () => {
     clearFilters 
   } = usePersistedFilters('equipment-page-filters');
   
-  // Set initial organization from filters if available
+  // Initialize organization from URL parameter or filters
   useEffect(() => {
-    if (filters.organization && organizations.length > 0) {
+    const urlOrgId = searchParams.get('org');
+    
+    if (urlOrgId && organizations.length > 0) {
+      // URL parameter takes precedence
+      const org = organizations.find(o => o.id === urlOrgId);
+      if (org && (!selectedOrganization || selectedOrganization.id !== urlOrgId)) {
+        selectOrganization(urlOrgId);
+        setFilterOrganization(urlOrgId);
+      }
+    } else if (filters.organization && organizations.length > 0 && !urlOrgId) {
+      // Fall back to persisted filter if no URL parameter
       const org = organizations.find(o => o.id === filters.organization);
       if (org && (!selectedOrganization || selectedOrganization.id !== filters.organization)) {
         selectOrganization(filters.organization);
       }
-    } else if (selectedOrganization && !filters.organization) {
-      // Update filters with current selected organization
+    } else if (selectedOrganization && !filters.organization && !urlOrgId) {
+      // Update filters with current selected organization if no URL or filter
       setFilterOrganization(selectedOrganization.id);
     }
-  }, [filters.organization, organizations, selectedOrganization, selectOrganization, setFilterOrganization]);
+  }, [searchParams, filters.organization, organizations, selectedOrganization, selectOrganization, setFilterOrganization]);
 
-  // Handle organization change
+  // Handle organization change with full page reload
   const handleOrganizationChange = (orgId: string) => {
-    selectOrganization(orgId);
-    setFilterOrganization(orgId);
+    if (orgId === selectedOrganization?.id) {
+      return; // No change needed
+    }
+    
+    // Create new URL with organization parameter
+    const currentParams = new URLSearchParams(window.location.search);
+    const newParams = new URLSearchParams();
+    
+    // Keep existing non-organization filters
+    if (currentParams.get('status') && currentParams.get('status') !== 'all') {
+      newParams.set('status', currentParams.get('status')!);
+    }
+    if (currentParams.get('team') && currentParams.get('team') !== 'all') {
+      newParams.set('team', currentParams.get('team')!);
+    }
+    if (currentParams.get('search')) {
+      newParams.set('search', currentParams.get('search')!);
+    }
+    
+    // Set the new organization
+    newParams.set('org', orgId);
+    
+    // Navigate with full page reload
+    const newUrl = `/equipment?${newParams.toString()}`;
+    window.location.href = newUrl;
   };
   
   // Check authentication on component mount

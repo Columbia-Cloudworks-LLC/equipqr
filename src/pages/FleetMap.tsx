@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout/Layout';
 import { FleetMap as FleetMapComponent } from '@/components/Equipment/FleetMap/FleetMap';
@@ -14,11 +13,12 @@ import { OrganizationSelector } from '@/components/Organization/OrganizationSele
 import { getDisplayLocation } from '@/services/equipment/locationService';
 import { useCombinedDashboardData } from '@/hooks/useCombinedDashboardData';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { usePersistedFilters } from '@/hooks/usePersistedFilters';
 
 const FleetMapPage = () => {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
   
   const { 
     organizations, 
@@ -47,17 +47,28 @@ const FleetMapPage = () => {
     refetchDashboard
   } = useCombinedDashboardData(selectedOrganization?.id);
 
-  // Sync organization with persisted filters
+  // Initialize organization from URL parameter or filters
   useEffect(() => {
-    if (filters.organization && organizations.length > 0) {
+    const urlOrgId = searchParams.get('org');
+    
+    if (urlOrgId && organizations.length > 0) {
+      // URL parameter takes precedence
+      const org = organizations.find(o => o.id === urlOrgId);
+      if (org && (!selectedOrganization || selectedOrganization.id !== urlOrgId)) {
+        selectOrganization(urlOrgId);
+        setFilterOrganization(urlOrgId);
+      }
+    } else if (filters.organization && organizations.length > 0 && !urlOrgId) {
+      // Fall back to persisted filter if no URL parameter
       const org = organizations.find(o => o.id === filters.organization);
       if (org && (!selectedOrganization || selectedOrganization.id !== filters.organization)) {
         selectOrganization(filters.organization);
       }
-    } else if (selectedOrganization && !filters.organization) {
+    } else if (selectedOrganization && !filters.organization && !urlOrgId) {
+      // Update filters with current selected organization if no URL or filter
       setFilterOrganization(selectedOrganization.id);
     }
-  }, [filters.organization, organizations, selectedOrganization, selectOrganization, setFilterOrganization]);
+  }, [searchParams, filters.organization, organizations, selectedOrganization, selectOrganization, setFilterOrganization]);
 
   // Filter equipment based on search and filters
   const filteredEquipment = equipment.filter(item => {
@@ -77,10 +88,33 @@ const FleetMapPage = () => {
     return location.hasLocation && location.coordinates;
   });
 
+  // Handle organization change with full page reload
   const handleOrganizationChange = (orgId: string) => {
-    selectOrganization(orgId);
-    setFilterOrganization(orgId);
-    setSelectedEquipmentId(null); // Clear selection when changing orgs
+    if (orgId === selectedOrganization?.id) {
+      return; // No change needed
+    }
+    
+    // Create new URL with organization parameter
+    const currentParams = new URLSearchParams(window.location.search);
+    const newParams = new URLSearchParams();
+    
+    // Keep existing non-organization filters
+    if (currentParams.get('status') && currentParams.get('status') !== 'all') {
+      newParams.set('status', currentParams.get('status')!);
+    }
+    if (currentParams.get('team') && currentParams.get('team') !== 'all') {
+      newParams.set('team', currentParams.get('team')!);
+    }
+    if (currentParams.get('search')) {
+      newParams.set('search', currentParams.get('search')!);
+    }
+    
+    // Set the new organization
+    newParams.set('org', orgId);
+    
+    // Navigate with full page reload
+    const newUrl = `/fleet-map?${newParams.toString()}`;
+    window.location.href = newUrl;
   };
 
   const handleSetDefaultOrg = async (orgId: string) => {
@@ -242,7 +276,7 @@ const FleetMapPage = () => {
           </CardContent>
         </Card>
 
-        {/* Main Content */}
+        {/* Main Content - keeping existing map and sidebar components */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
           {/* Map */}
           <div className="xl:col-span-3">
