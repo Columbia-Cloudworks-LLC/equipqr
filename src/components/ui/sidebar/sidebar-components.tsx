@@ -48,7 +48,7 @@ export const Sidebar = React.forwardRef<
           data-state={state}
           data-mobile-open={openMobile}
           className={cn(
-            "flex h-full flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out overflow-hidden",
+            "flex h-screen flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out overflow-hidden",
             // Only use fixed positioning for mobile
             isMobile ? "fixed inset-y-0 left-0 z-50" : "relative",
             state === "expanded" ? "w-64" : "w-14",
@@ -84,7 +84,6 @@ export const SidebarHeader = React.forwardRef<
       {...props}
     >
       {children}
-      {/* We've removed the toggle from header and will add it to footer instead */}
     </div>
   )
 })
