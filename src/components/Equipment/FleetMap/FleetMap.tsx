@@ -31,25 +31,31 @@ export function FleetMap({
 
   // Get Mapbox token from edge function
   useEffect(() => {
+    console.log('FleetMap: Starting token retrieval...');
     const getMapboxToken = async () => {
       try {
+        console.log('FleetMap: Calling get_mapbox_token edge function...');
         const { data, error } = await supabase.functions.invoke('get_mapbox_token');
         
         if (error) {
-          console.warn('Failed to get Mapbox token from edge function:', error);
+          console.error('FleetMap: Edge function error:', error);
           setError('Map service is not configured. Please contact your administrator.');
           setIsLoading(false);
           return;
         }
         
+        console.log('FleetMap: Edge function response:', data);
+        
         if (data?.token) {
+          console.log('FleetMap: Token received, length:', data.token.length);
           setMapboxToken(data.token);
         } else {
+          console.error('FleetMap: No token in response');
           setError('Map service is not available.');
           setIsLoading(false);
         }
       } catch (err) {
-        console.warn('Error calling Mapbox token function:', err);
+        console.error('FleetMap: Exception calling token function:', err);
         setError('Map service is temporarily unavailable.');
         setIsLoading(false);
       }
@@ -60,10 +66,24 @@ export function FleetMap({
 
   // Initialize map when token is available
   useEffect(() => {
-    if (!mapboxToken || !mapContainer.current) return;
+    if (!mapboxToken || !mapContainer.current) {
+      console.log('FleetMap: Skipping map init - token:', !!mapboxToken, 'container:', !!mapContainer.current);
+      return;
+    }
 
+    console.log('FleetMap: Starting map initialization...');
+    
     try {
+      // Validate token format (basic check)
+      if (mapboxToken.length < 10 || !mapboxToken.startsWith('pk.')) {
+        console.error('FleetMap: Invalid token format');
+        setError('Invalid map configuration.');
+        setIsLoading(false);
+        return;
+      }
+
       mapboxgl.accessToken = mapboxToken;
+      console.log('FleetMap: Mapbox access token set');
       
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -73,26 +93,51 @@ export function FleetMap({
         projection: 'mercator'
       });
 
+      console.log('FleetMap: Map instance created');
+
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      console.log('FleetMap: Navigation control added');
       
+      // Set a timeout to detect loading issues
+      const loadTimeout = setTimeout(() => {
+        console.error('FleetMap: Map loading timeout after 10 seconds');
+        setError('Map is taking too long to load. Please try refreshing the page.');
+        setIsLoading(false);
+      }, 10000);
+
       map.current.on('load', () => {
+        console.log('FleetMap: Map loaded successfully');
+        clearTimeout(loadTimeout);
         setIsLoading(false);
         setError(null);
       });
 
       map.current.on('error', (e) => {
-        console.error('Mapbox error:', e);
+        console.error('FleetMap: Map error event:', e);
+        clearTimeout(loadTimeout);
         setError('Failed to load map. Please try refreshing the page.');
         setIsLoading(false);
       });
 
+      // Add style load event for additional debugging
+      map.current.on('style.load', () => {
+        console.log('FleetMap: Map style loaded');
+      });
+
+      map.current.on('sourcedata', (e) => {
+        if (e.isSourceLoaded) {
+          console.log('FleetMap: Source data loaded:', e.sourceId);
+        }
+      });
+
     } catch (err) {
-      console.error('Error initializing map:', err);
+      console.error('FleetMap: Exception during map initialization:', err);
       setError('Failed to initialize map. Please try refreshing the page.');
       setIsLoading(false);
     }
 
     return () => {
+      console.log('FleetMap: Cleaning up map instance');
       if (map.current) {
         map.current.remove();
         map.current = null;
@@ -102,7 +147,12 @@ export function FleetMap({
 
   // Update markers when equipment changes
   useEffect(() => {
-    if (!map.current || isLoading || error) return;
+    if (!map.current || isLoading || error) {
+      console.log('FleetMap: Skipping marker update - map:', !!map.current, 'loading:', isLoading, 'error:', !!error);
+      return;
+    }
+
+    console.log('FleetMap: Updating markers for', equipment.length, 'equipment items');
 
     // Clear existing markers
     Object.values(markers.current).forEach(marker => marker.remove());
@@ -114,12 +164,19 @@ export function FleetMap({
       return location.hasLocation && location.coordinates;
     });
 
-    if (equipmentWithLocation.length === 0) return;
+    console.log('FleetMap: Found', equipmentWithLocation.length, 'equipment items with location');
+
+    if (equipmentWithLocation.length === 0) {
+      console.log('FleetMap: No equipment with location data, map will remain empty');
+      return;
+    }
 
     // Add new markers
     equipmentWithLocation.forEach(item => {
       const location = getDisplayLocation(item);
       if (!location.coordinates) return;
+
+      console.log('FleetMap: Adding marker for equipment:', item.name, 'at', location.coordinates);
 
       const el = document.createElement('div');
       el.className = `w-8 h-8 rounded-full border-2 border-white shadow-lg cursor-pointer transition-all hover:scale-110 ${
@@ -158,6 +215,7 @@ export function FleetMap({
 
     // Fit map to show all markers
     if (equipmentWithLocation.length > 0) {
+      console.log('FleetMap: Fitting map bounds to show all markers');
       const bounds = new mapboxgl.LngLatBounds();
       equipmentWithLocation.forEach(item => {
         const location = getDisplayLocation(item);
