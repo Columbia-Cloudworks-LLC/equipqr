@@ -11,6 +11,7 @@ export interface Equipment {
   manufacturer?: string;
   model?: string;
   serial_number?: string;
+  asset_id?: string;
   notes?: string;
   install_date?: string | null;
   warranty_expiration?: string | null;
@@ -27,7 +28,9 @@ export interface Equipment {
   description?: string;
   purchase_date?: string;
   maintenance_date?: string;
-  // New location tracking fields
+  // Location fields
+  location_address?: string;
+  location_coordinates?: string;
   last_scan_latitude?: number | null;
   last_scan_longitude?: number | null;
   last_scan_accuracy?: number | null;
@@ -77,7 +80,6 @@ export interface EquipmentFormValues {
   maintenance_date?: string;
 }
 
-// Export CreateEquipmentParams type - ensure it includes created_by
 export type CreateEquipmentParams = Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'can_edit' | 'has_no_team' | 'team_name' | 'org_name' | 'is_external_org'> & {
-  created_by: string; // Explicitly require created_by
+  created_by: string;
 };

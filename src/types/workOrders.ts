@@ -49,3 +49,6 @@ export interface UpdateWorkOrderParams {
   estimated_hours?: number;
   assigned_to?: string;
 }
+
+// Export WorkOrderStatus for use in other modules
+export { WorkOrderStatus };

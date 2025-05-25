@@ -68,10 +68,6 @@ export async function canViewWorkOrderHours(equipmentId: string): Promise<boolea
 
     if (!equipment) return false;
 
-    // Check if user has technician role or higher (excluding requestor)
-    const { data: session } = await supabase.auth.getSession();
-    if (!session.session) return false;
-
     // Get user's app_user ID
     const { data: appUser } = await supabase
       .from('app_user')
@@ -95,7 +91,7 @@ export async function canViewWorkOrderHours(equipmentId: string): Promise<boolea
 
     // Check team role if equipment is assigned to a team
     if (equipment.team_id) {
-      const { data: teamRole } = await supabase
+      const { data: teamMember } = await supabase
         .from('team_member')
         .select(`
           team_roles!inner(role)
@@ -104,7 +100,7 @@ export async function canViewWorkOrderHours(equipmentId: string): Promise<boolea
         .eq('team_id', equipment.team_id)
         .single();
 
-      if (teamRole?.team_roles?.role && ['manager', 'technician'].includes(teamRole.team_roles.role)) {
+      if (teamMember?.team_roles && ['manager', 'technician'].includes(teamMember.team_roles.role)) {
         return true;
       }
     }

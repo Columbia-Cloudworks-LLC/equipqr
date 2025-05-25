@@ -16,7 +16,6 @@ export default function EquipmentDetail() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const [canEdit, setCanEdit] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("details");
   const [scanRecorded, setScanRecorded] = useState(false);
   
   const {
@@ -28,9 +27,9 @@ export default function EquipmentDetail() {
   } = useQuery({
     queryKey: ['equipment', id],
     queryFn: () => getEquipmentById(id as string),
-    enabled: !!id, // only run query if ID is available
-    retry: 1, // Only retry once to avoid too many error messages
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    enabled: !!id,
+    retry: 1,
+    staleTime: 1000 * 60 * 5,
   });
   
   useEffect(() => {
@@ -95,10 +94,8 @@ export default function EquipmentDetail() {
         
         <EquipmentDetailContent 
           equipment={equipment}
-          id={id || ''}
           canEdit={canEdit}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          canDelete={canEdit}
         />
       </div>
     </Layout>

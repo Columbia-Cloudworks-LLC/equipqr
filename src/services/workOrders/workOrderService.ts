@@ -14,10 +14,12 @@ export async function getWorkOrders(equipmentId: string): Promise<WorkOrder[]> {
         *,
         equipment!inner(name),
         submitted_by_profile:app_user!work_order_submitted_by_fkey(
-          user_profiles!inner(display_name, email)
+          display_name,
+          email
         ),
         assigned_to_profile:app_user!work_order_assigned_to_fkey(
-          user_profiles!inner(display_name, email)
+          display_name,
+          email
         )
       `)
       .eq('equipment_id', equipmentId)
@@ -31,8 +33,9 @@ export async function getWorkOrders(equipmentId: string): Promise<WorkOrder[]> {
     return data?.map(wo => ({
       ...wo,
       equipment_name: wo.equipment?.name,
-      submitted_by_name: wo.submitted_by_profile?.user_profiles?.display_name || wo.submitted_by_profile?.user_profiles?.email,
-      assigned_to_name: wo.assigned_to_profile?.user_profiles?.display_name || wo.assigned_to_profile?.user_profiles?.email
+      submitted_by_name: wo.submitted_by_profile?.display_name || wo.submitted_by_profile?.email,
+      assigned_to_name: wo.assigned_to_profile?.display_name || wo.assigned_to_profile?.email,
+      submitted_at: wo.opened_at
     })) || [];
   } catch (error) {
     console.error('Error in getWorkOrders:', error);
@@ -61,13 +64,27 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
       throw new Error('User profile not found');
     }
 
+    // Get equipment org_id for the work order
+    const { data: equipment } = await supabase
+      .from('equipment')
+      .select('org_id')
+      .eq('id', params.equipment_id)
+      .single();
+
+    if (!equipment) {
+      throw new Error('Equipment not found');
+    }
+
     const { data, error } = await supabase
       .from('work_order')
       .insert({
-        ...params,
+        equipment_id: params.equipment_id,
+        title: params.title,
+        description: params.description,
         status: 'submitted' as WorkOrderStatus,
-        submitted_by: appUser.id,
-        submitted_at: new Date().toISOString()
+        created_by: appUser.id,
+        org_id: equipment.org_id,
+        opened_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -80,7 +97,11 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
     // Log the creation
     await logWorkOrderChange(data.id, 'status_change', null, 'submitted');
 
-    return data;
+    return {
+      ...data,
+      submitted_at: data.opened_at,
+      submitted_by: appUser.id
+    };
   } catch (error) {
     console.error('Error in createWorkOrder:', error);
     throw error;
@@ -127,6 +148,7 @@ export async function updateWorkOrder(
           break;
         case 'completed':
           updateData.completed_at = new Date().toISOString();
+          updateData.closed_at = new Date().toISOString();
           break;
       }
     }
@@ -152,7 +174,10 @@ export async function updateWorkOrder(
       await logWorkOrderChange(workOrderId, 'assignee_change', currentWorkOrder.assigned_to, params.assigned_to);
     }
 
-    return data;
+    return {
+      ...data,
+      submitted_at: data.opened_at
+    };
   } catch (error) {
     console.error('Error in updateWorkOrder:', error);
     throw error;
@@ -170,10 +195,12 @@ export async function getWorkOrder(workOrderId: string): Promise<WorkOrder | nul
         *,
         equipment!inner(name),
         submitted_by_profile:app_user!work_order_submitted_by_fkey(
-          user_profiles!inner(display_name, email)
+          display_name,
+          email
         ),
         assigned_to_profile:app_user!work_order_assigned_to_fkey(
-          user_profiles!inner(display_name, email)
+          display_name,
+          email
         )
       `)
       .eq('id', workOrderId)
@@ -190,8 +217,10 @@ export async function getWorkOrder(workOrderId: string): Promise<WorkOrder | nul
     return {
       ...data,
       equipment_name: data.equipment?.name,
-      submitted_by_name: data.submitted_by_profile?.user_profiles?.display_name || data.submitted_by_profile?.user_profiles?.email,
-      assigned_to_name: data.assigned_to_profile?.user_profiles?.display_name || data.assigned_to_profile?.user_profiles?.email
+      submitted_by_name: data.submitted_by_profile?.display_name || data.submitted_by_profile?.email,
+      assigned_to_name: data.assigned_to_profile?.display_name || data.assigned_to_profile?.email,
+      submitted_at: data.opened_at,
+      submitted_by: data.created_by
     };
   } catch (error) {
     console.error('Error in getWorkOrder:', error);

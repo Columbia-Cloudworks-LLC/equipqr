@@ -54,8 +54,10 @@ export async function getWorkOrderAuditLog(workOrderId: string): Promise<WorkOrd
       .from('work_order_audit_log')
       .select(`
         *,
-        changed_by_profile:app_user!work_order_audit_log_changed_by_fkey(
-          user_profiles!inner(display_name, email)
+        app_user!work_order_audit_log_changed_by_fkey(
+          auth_uid,
+          display_name,
+          email
         )
       `)
       .eq('work_order_id', workOrderId)
@@ -68,7 +70,7 @@ export async function getWorkOrderAuditLog(workOrderId: string): Promise<WorkOrd
 
     return data?.map(log => ({
       ...log,
-      changed_by_name: log.changed_by_profile?.user_profiles?.display_name || log.changed_by_profile?.user_profiles?.email
+      changed_by_name: log.app_user?.display_name || log.app_user?.email
     })) || [];
   } catch (error) {
     console.error('Error in getWorkOrderAuditLog:', error);

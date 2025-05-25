@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +54,7 @@ export function EquipmentDetailContent({ equipment, canEdit, canDelete }: Equipm
     isNoteEditable
   } = useWorkNotes(equipment.id);
 
-  const location = equipment.location_address || equipment.location_coordinates;
+  const location = equipment.location_address || equipment.location_coordinates || equipment.location;
 
   return (
     <div className="space-y-6">
@@ -90,11 +91,11 @@ export function EquipmentDetailContent({ equipment, canEdit, canDelete }: Equipm
                   Edit
                 </Link>
               </Button>
-              <DuplicateEquipmentButton equipment={equipment} />
+              <DuplicateEquipmentButton equipmentId={equipment.id} />
             </>
           )}
           
-          {canDelete && <DeleteEquipmentButton equipment={equipment} />}
+          {canDelete && <DeleteEquipmentButton equipmentId={equipment.id} />}
         </div>
       </div>
 
@@ -172,9 +173,8 @@ export function EquipmentDetailContent({ equipment, canEdit, canDelete }: Equipm
             <CardContent className="space-y-4">
               {canCreateNotes && (
                 <AddNoteForm 
-                  equipmentId={equipment.id} 
-                  onSubmit={addNote} 
-                  isLoading={createMutation.isLoading} 
+                  onAddNote={addNote} 
+                  isPending={createMutation.isPending} 
                 />
               )}
               <NotesList 
@@ -194,20 +194,17 @@ export function EquipmentDetailContent({ equipment, canEdit, canDelete }: Equipm
         </TabsContent>
 
         <TabsContent value="attributes" className="space-y-6">
-          <AttributesList equipmentId={equipment.id} />
+          <AttributesList equipment={equipment} />
         </TabsContent>
       </Tabs>
 
       {/* Edit Note Dialog */}
       {editingNote && (
         <EditNoteDialog
-          note={editingNote}
-          isOpen={!!editingNote}
-          onClose={() => setEditingNote(null)}
-          onSave={updateNote}
-          onHoursWorkedChange={handleHoursWorkedChange}
-          canEdit={canEditNotes}
-          isEditable={isNoteEditable(editingNote)}
+          editingNote={editingNote}
+          setEditingNote={setEditingNote}
+          onUpdateNote={updateNote}
+          handleHoursWorkedChange={handleHoursWorkedChange}
         />
       )}
     </div>
