@@ -48,7 +48,7 @@ export const Sidebar = React.forwardRef<
           data-state={state}
           data-mobile-open={openMobile}
           className={cn(
-            "flex h-screen flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out overflow-hidden",
+            "flex h-full flex-col border-r bg-slate-800 text-white shadow-sm transition-all duration-300 ease-in-out overflow-hidden",
             // Only use fixed positioning for mobile
             isMobile ? "fixed inset-y-0 left-0 z-50" : "relative",
             state === "expanded" ? "w-64" : "w-14",
@@ -99,7 +99,7 @@ export const SidebarContent = React.forwardRef<
   <div
     ref={ref}
     data-sidebar="content"
-    className={cn("flex flex-1 flex-col py-2 overflow-y-auto no-scrollbar", className)}
+    className={cn("flex flex-1 flex-col py-2 overflow-y-auto no-scrollbar min-h-0", className)}
     {...props}
   />
 ))
@@ -120,7 +120,7 @@ export const SidebarFooter = React.forwardRef<
       ref={ref}
       data-sidebar="footer"
       className={cn(
-        "mt-auto shrink-0 flex flex-col border-t border-slate-700 relative",
+        "shrink-0 flex flex-col border-t border-slate-700 relative",
         className
       )}
       {...props}

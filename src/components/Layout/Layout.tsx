@@ -16,11 +16,11 @@ export function Layout({ children }: LayoutProps) {
   
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className="flex w-full min-h-screen bg-background">
+      <div className="flex w-full h-screen overflow-hidden bg-background">
         <AppSidebar />
-        <div className="flex flex-1 flex-col min-h-screen">
+        <div className="flex flex-1 flex-col min-w-0 h-full">
           <Navbar />
-          <main className="flex-1 p-4 md:p-6 min-h-0">
+          <main className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
           </main>
           <footer className="border-t py-3 px-4 text-xs text-center text-muted-foreground bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
