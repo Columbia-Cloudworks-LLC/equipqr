@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Package, Users, Home } from "lucide-react";
+import { Package, Users, Home, Map } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -38,6 +38,11 @@ const mainNavItems = [
     title: "Equipment",
     href: "/equipment",
     icon: Package,
+  },
+  {
+    title: "Fleet Map",
+    href: "/fleet-map",
+    icon: Map,
   },
   {
     title: "Teams",

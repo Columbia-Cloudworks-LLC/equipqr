@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Users, Settings, Building } from 'lucide-react';
+import { Package, Users, Settings, Building, Map } from 'lucide-react';
 
 export function QuickLinksCard() {
   return (
@@ -18,7 +18,13 @@ export function QuickLinksCard() {
           </Link>
         </Button>
         <Button variant="outline" className="w-full justify-start" asChild>
-          <Link to="/team">
+          <Link to="/fleet-map">
+            <Map className="mr-2 h-4 w-4" />
+            Fleet Map
+          </Link>
+        </Button>
+        <Button variant="outline" className="w-full justify-start" asChild>
+          <Link to="/teams">
             <Users className="mr-2 h-4 w-4" />
             Team Management
           </Link>

@@ -9,6 +9,7 @@ import OrganizationSettings from '@/pages/OrganizationSettings';
 import Equipment from '@/pages/Equipment';
 import EquipmentDetail from '@/pages/EquipmentDetail';
 import EquipmentForm from '@/pages/EquipmentForm';
+import FleetMap from '@/pages/FleetMap';
 import MyInvitations from '@/pages/MyInvitations';
 import InvitationPage from '@/pages/invitation/InvitationPage';
 import NotFound from '@/pages/NotFound';
@@ -32,6 +33,7 @@ export default function AppRoutes() {
       <Route path="/equipment/new" element={user ? <EquipmentForm /> : <Navigate to="/auth" />} />
       <Route path="/equipment/:id" element={user ? <EquipmentDetail /> : <Navigate to="/auth" />} />
       <Route path="/equipment/:id/edit" element={user ? <EquipmentForm /> : <Navigate to="/auth" />} />
+      <Route path="/fleet-map" element={user ? <FleetMap /> : <Navigate to="/auth" />} />
       <Route path="/invitations" element={user ? <MyInvitations /> : <Navigate to="/auth" />} />
       <Route path="/invitation/:token" element={<InvitationPage />} />
       <Route path="*" element={<NotFound />} />

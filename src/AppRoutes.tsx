@@ -13,6 +13,7 @@ import Equipment from './pages/Equipment';
 import EquipmentDetail from './pages/EquipmentDetail';
 import EquipmentForm from './pages/EquipmentForm';
 import EquipmentQR from './pages/EquipmentQR';
+import FleetMap from './pages/FleetMap';
 import TeamManagement from './pages/TeamManagement';
 import Profile from './pages/Profile';
 import OrganizationSettings from './pages/OrganizationSettings';
@@ -56,6 +57,7 @@ const AppRoutes = () => {
       <Route path="/equipment/:id" element={<ProtectedRoute><EquipmentDetail /></ProtectedRoute>} />
       <Route path="/equipment/:id/edit" element={<ProtectedRoute><EquipmentForm /></ProtectedRoute>} />
       <Route path="/equipment/:id/qr" element={<ProtectedRoute><EquipmentQR /></ProtectedRoute>} />
+      <Route path="/fleet-map" element={<ProtectedRoute><FleetMap /></ProtectedRoute>} />
       <Route path="/teams" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/organization" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
