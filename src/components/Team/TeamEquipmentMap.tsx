@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -98,7 +97,6 @@ export function TeamEquipmentMap({ teamId, teamName }: TeamEquipmentMapProps) {
           height="400px"
           selectedEquipmentId={selectedEquipmentId}
           onEquipmentSelected={setSelectedEquipmentId}
-          teamId={teamId}
         />
 
         {equipment.length === 0 && (
