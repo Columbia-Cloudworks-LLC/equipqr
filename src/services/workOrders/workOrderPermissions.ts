@@ -100,8 +100,11 @@ export async function canViewWorkOrderHours(equipmentId: string): Promise<boolea
         .eq('team_id', equipment.team_id)
         .single();
 
-      if (teamMember?.team_roles && ['manager', 'technician'].includes(teamMember.team_roles.role)) {
-        return true;
+      if (teamMember?.team_roles && Array.isArray(teamMember.team_roles) && teamMember.team_roles.length > 0) {
+        const role = teamMember.team_roles[0].role;
+        if (['manager', 'technician'].includes(role)) {
+          return true;
+        }
       }
     }
 
