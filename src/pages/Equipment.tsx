@@ -12,26 +12,41 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePersistedFilters } from '@/hooks/usePersistedFilters';
 
 const EquipmentPage = () => {
   const { user, isLoading: authLoading, checkSession } = useAuth();
   const navigate = useNavigate();
-  const { organizations, selectedOrganization, selectOrganization } = useOrganization();
-  const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(
-    selectedOrganization?.id
-  );
+  const { 
+    organizations, 
+    selectedOrganization, 
+    selectOrganization 
+  } = useOrganization();
   
-  // Update selectedOrgId when selectedOrganization changes
+  // Use persisted filters
+  const { 
+    filters, 
+    setFilterOrganization,
+    clearFilters 
+  } = usePersistedFilters('equipment-page-filters');
+  
+  // Set initial organization from filters if available
   useEffect(() => {
-    if (selectedOrganization?.id) {
-      setSelectedOrgId(selectedOrganization.id);
+    if (filters.organization && organizations.length > 0) {
+      const org = organizations.find(o => o.id === filters.organization);
+      if (org && (!selectedOrganization || selectedOrganization.id !== filters.organization)) {
+        selectOrganization(filters.organization);
+      }
+    } else if (selectedOrganization && !filters.organization) {
+      // Update filters with current selected organization
+      setFilterOrganization(selectedOrganization.id);
     }
-  }, [selectedOrganization]);
+  }, [filters.organization, organizations, selectedOrganization, selectOrganization, setFilterOrganization]);
 
   // Handle organization change
   const handleOrganizationChange = (orgId: string) => {
-    setSelectedOrgId(orgId);
     selectOrganization(orgId);
+    setFilterOrganization(orgId);
   };
   
   // Check authentication on component mount
@@ -53,9 +68,9 @@ const EquipmentPage = () => {
     error,
     refetch
   } = useQuery({
-    queryKey: ['equipment', selectedOrgId],
+    queryKey: ['equipment', selectedOrganization?.id],
     queryFn: async () => {
-      return getEquipment(selectedOrgId);
+      return getEquipment(selectedOrganization?.id);
     },
     enabled: !!user,
   });
@@ -116,21 +131,29 @@ const EquipmentPage = () => {
       <div className="flex-1 space-y-6 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
           <h1 className="text-2xl font-bold tracking-tight">Equipment</h1>
-          <Button asChild className="sm:self-end">
-            <Link to="/equipment/new">
-              <Package className="mr-2 h-4 w-4" />
-              Add Equipment
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            {(filters.status !== 'all' || filters.team !== 'all' || filters.search) && (
+              <Button variant="outline" onClick={clearFilters} size="sm">
+                Clear Filters
+              </Button>
+            )}
+            <Button asChild className="sm:self-end">
+              <Link to="/equipment/new">
+                <Package className="mr-2 h-4 w-4" />
+                Add Equipment
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <EquipmentList 
           equipment={equipment} 
           isLoading={isLoading}
           organizations={organizations}
-          selectedOrgId={selectedOrgId}
+          selectedOrgId={selectedOrganization?.id}
           onOrganizationChange={handleOrganizationChange}
           showOrgSelector={showOrgSelector}
+          persistedFilters={filters}
         />
       </div>
     </Layout>

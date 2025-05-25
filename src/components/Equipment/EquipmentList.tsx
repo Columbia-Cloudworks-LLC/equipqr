@@ -2,12 +2,12 @@
 import { Equipment } from '@/types';
 import { EquipmentFilters } from './Filters/EquipmentFilters';
 import { EquipmentTable } from './Table/EquipmentTable';
-import { useEquipmentFilters } from './hooks/useEquipmentFilters';
 import { UserOrganization } from '@/services/organization/userOrganizations';
 import { ExportButton } from './ExportButton';
 import { MobileFilterDrawer } from './Filters/MobileFilterDrawer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { EquipmentCard } from './EquipmentCard';
+import { usePersistedEquipmentFilters } from './hooks/usePersistedEquipmentFilters';
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -16,6 +16,12 @@ interface EquipmentListProps {
   selectedOrgId?: string;
   onOrganizationChange?: (orgId: string) => void;
   showOrgSelector?: boolean;
+  persistedFilters?: {
+    status: string;
+    team: string;
+    search: string;
+    organization?: string;
+  };
 }
 
 export function EquipmentList({ 
@@ -24,14 +30,15 @@ export function EquipmentList({
   organizations = [],
   selectedOrgId,
   onOrganizationChange = () => {},
-  showOrgSelector = false
+  showOrgSelector = false,
+  persistedFilters
 }: EquipmentListProps) {
   const isMobile = useIsMobile();
   
   // Ensure equipment is always an array, even if somehow passed as something else
   const safeEquipment = Array.isArray(equipment) ? equipment : [];
   
-  // Use our custom hook to manage filtering logic
+  // Use our custom hook to manage filtering logic with persisted filters
   const {
     filterStatus,
     setFilterStatus,
@@ -41,7 +48,7 @@ export function EquipmentList({
     setSearchQuery,
     teams,
     filteredEquipment
-  } = useEquipmentFilters(safeEquipment);
+  } = usePersistedEquipmentFilters(safeEquipment, persistedFilters);
 
   // Count active filters
   const activeFilterCount = [

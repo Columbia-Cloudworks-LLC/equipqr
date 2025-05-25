@@ -15,12 +15,10 @@ import { getDisplayLocation } from '@/services/equipment/locationService';
 import { useCombinedDashboardData } from '@/hooks/useCombinedDashboardData';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { usePersistedFilters } from '@/hooks/usePersistedFilters';
 
 const FleetMapPage = () => {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [teamFilter, setTeamFilter] = useState<string>('all');
   
   const { 
     organizations, 
@@ -31,6 +29,16 @@ const FleetMapPage = () => {
     isLoading: isOrgLoading
   } = useOrganization();
   
+  // Use persisted filters for the fleet map
+  const { 
+    filters, 
+    setFilterStatus, 
+    setFilterTeam, 
+    setFilterSearch,
+    setFilterOrganization,
+    clearFilters 
+  } = usePersistedFilters('fleet-map-filters');
+  
   const { 
     equipment,
     teams,
@@ -39,14 +47,26 @@ const FleetMapPage = () => {
     refetchDashboard
   } = useCombinedDashboardData(selectedOrganization?.id);
 
+  // Sync organization with persisted filters
+  useEffect(() => {
+    if (filters.organization && organizations.length > 0) {
+      const org = organizations.find(o => o.id === filters.organization);
+      if (org && (!selectedOrganization || selectedOrganization.id !== filters.organization)) {
+        selectOrganization(filters.organization);
+      }
+    } else if (selectedOrganization && !filters.organization) {
+      setFilterOrganization(selectedOrganization.id);
+    }
+  }, [filters.organization, organizations, selectedOrganization, selectOrganization, setFilterOrganization]);
+
   // Filter equipment based on search and filters
   const filteredEquipment = equipment.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.model?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = item.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+                         item.manufacturer?.toLowerCase().includes(filters.search.toLowerCase()) ||
+                         item.model?.toLowerCase().includes(filters.search.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || item.status.toLowerCase() === statusFilter.toLowerCase();
-    const matchesTeam = teamFilter === 'all' || item.team_id === teamFilter;
+    const matchesStatus = filters.status === 'all' || item.status.toLowerCase() === filters.status.toLowerCase();
+    const matchesTeam = filters.team === 'all' || item.team_id === filters.team;
     
     return matchesSearch && matchesStatus && matchesTeam;
   });
@@ -59,6 +79,7 @@ const FleetMapPage = () => {
 
   const handleOrganizationChange = (orgId: string) => {
     selectOrganization(orgId);
+    setFilterOrganization(orgId);
     setSelectedEquipmentId(null); // Clear selection when changing orgs
   };
 
@@ -168,8 +189,8 @@ const FleetMapPage = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by name, manufacturer, model..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={filters.search}
+                    onChange={(e) => setFilterSearch(e.target.value)}
                     className="pl-10"
                   />
                 </div>
@@ -178,8 +199,8 @@ const FleetMapPage = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
                 <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  value={filters.status}
+                  onChange={(e) => setFilterStatus(e.target.value)}
                   className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                 >
                   <option value="all">All Statuses</option>
@@ -192,8 +213,8 @@ const FleetMapPage = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Team</label>
                 <select
-                  value={teamFilter}
-                  onChange={(e) => setTeamFilter(e.target.value)}
+                  value={filters.team}
+                  onChange={(e) => setFilterTeam(e.target.value)}
                   className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                 >
                   <option value="all">All Teams</option>
@@ -210,11 +231,7 @@ const FleetMapPage = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setSearchTerm('');
-                      setStatusFilter('all');
-                      setTeamFilter('all');
-                    }}
+                    onClick={clearFilters}
                     className="flex-1"
                   >
                     Clear All
