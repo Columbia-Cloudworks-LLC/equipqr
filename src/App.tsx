@@ -4,7 +4,7 @@ import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryClientProvider } from '@/contexts/QueryClient';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
-import AppRoutes from '@/routes/AppRoutes';
+import AppRoutes from './AppRoutes';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { ReactivationBanner } from '@/components/Auth/ReactivationBanner';
