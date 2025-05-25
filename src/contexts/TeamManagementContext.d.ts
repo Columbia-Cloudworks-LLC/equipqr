@@ -33,7 +33,7 @@ export interface TeamManagementContextType {
   // Error handling
   error: string | null;
   
-  // Functions - signatures corrected to match component usage patterns
+  // Functions - updated to match component usage patterns
   setSelectedTeamId: (teamId: string) => void;
   handleOrganizationChange: (orgId: string) => void;
   handleCreateTeam: (name: string) => Promise<any>;
@@ -44,10 +44,10 @@ export interface TeamManagementContextType {
   handleRemoveMember: (userId: string) => Promise<any>;
   handleResendInvite: (id: string) => Promise<any>;
   handleCancelInvitation: (id: string) => Promise<any>;
-  handleUpgradeRole: () => Promise<any>;
-  handleRequestRoleUpgrade: () => Promise<any>;
+  handleUpgradeRole: () => Promise<any>; // No parameters needed
+  handleRequestRoleUpgrade: () => Promise<any>; // No parameters needed
   refetchTeamMembers: () => void;
   refetchPendingInvitations: () => Promise<any>;
   fetchTeams: () => void;
-  getTeamEquipmentCount: (teamId: string) => Promise<number>;
+  getTeamEquipmentCount: (teamId: string) => Promise<number>; // Keep teamId parameter as components need it
 }

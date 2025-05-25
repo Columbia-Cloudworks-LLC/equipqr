@@ -44,8 +44,8 @@ export function useTeamManagementPage(): {
     handleRemoveMember,
     handleResendInvite,
     handleCancelInvitation,
-    handleUpgradeRole,
-    handleRequestRoleUpgrade,
+    handleUpgradeRole: handleUpgradeRoleBase,
+    handleRequestRoleUpgrade: handleRequestRoleUpgradeBase,
     refetchTeamMembers,
     refetchPendingInvitations,
     fetchTeams,
@@ -118,12 +118,19 @@ export function useTeamManagementPage(): {
     return handleDeleteTeamBase(selectedTeamId);
   };
 
-  // Fixed: This function signature now matches the interface expectation (no parameters)
-  const wrappedGetTeamEquipmentCount = async () => {
+  // Fixed: These functions now use selectedTeamId internally and take no parameters
+  const wrappedHandleUpgradeRole = async () => {
     if (!selectedTeamId) {
-      return 0;
+      throw new Error('No team selected');
     }
-    return getTeamEquipmentCountBase(selectedTeamId);
+    return handleUpgradeRoleBase(selectedTeamId);
+  };
+
+  const wrappedHandleRequestRoleUpgrade = async () => {
+    if (!selectedTeamId) {
+      throw new Error('No team selected');
+    }
+    return handleRequestRoleUpgradeBase(selectedTeamId);
   };
 
   const wrappedRefetchPendingInvitations = async () => {
@@ -161,12 +168,12 @@ export function useTeamManagementPage(): {
     handleRemoveMember,
     handleResendInvite,
     handleCancelInvitation,
-    handleUpgradeRole,
-    handleRequestRoleUpgrade,
+    handleUpgradeRole: wrappedHandleUpgradeRole,
+    handleRequestRoleUpgrade: wrappedHandleRequestRoleUpgrade,
     refetchTeamMembers,
     refetchPendingInvitations: wrappedRefetchPendingInvitations,
     fetchTeams,
-    getTeamEquipmentCount: wrappedGetTeamEquipmentCount
+    getTeamEquipmentCount: getTeamEquipmentCountBase // Pass directly - it already has correct signature
   };
 
   return {
