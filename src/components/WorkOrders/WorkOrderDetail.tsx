@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, User, Clock, Edit2 } from 'lucide-react';
-import { WorkOrder, UpdateWorkOrderParams } from '@/types/workOrders';
+import { WorkOrder, UpdateWorkOrderParams, WorkOrderStatus } from '@/types/workOrders';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import { format } from 'date-fns';
 
@@ -21,7 +21,7 @@ interface WorkOrderDetailProps {
 export function WorkOrderDetail({ workOrder, canManage, onUpdate, onClose }: WorkOrderDetailProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [estimatedHours, setEstimatedHours] = React.useState(workOrder.estimated_hours?.toString() || '');
-  const [status, setStatus] = React.useState(workOrder.status);
+  const [status, setStatus] = React.useState<WorkOrderStatus>(workOrder.status);
 
   const handleSave = async () => {
     const updates: UpdateWorkOrderParams = {
@@ -33,7 +33,7 @@ export function WorkOrderDetail({ workOrder, canManage, onUpdate, onClose }: Wor
     setIsEditing(false);
   };
 
-  const getAvailableStatuses = () => {
+  const getAvailableStatuses = (): WorkOrderStatus[] => {
     switch (workOrder.status) {
       case 'submitted':
         return ['submitted', 'accepted'];
@@ -48,6 +48,10 @@ export function WorkOrderDetail({ workOrder, canManage, onUpdate, onClose }: Wor
       default:
         return [workOrder.status];
     }
+  };
+
+  const handleStatusChange = (value: string) => {
+    setStatus(value as WorkOrderStatus);
   };
 
   return (
@@ -106,7 +110,7 @@ export function WorkOrderDetail({ workOrder, canManage, onUpdate, onClose }: Wor
             </div>
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={handleStatusChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

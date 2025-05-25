@@ -51,4 +51,4 @@ export interface UpdateWorkOrderParams {
 }
 
 // Export WorkOrderStatus for use in other modules
-export { WorkOrderStatus };
+export type { WorkOrderStatus };

@@ -70,6 +70,7 @@ export async function getWorkOrderAuditLog(workOrderId: string): Promise<WorkOrd
 
     return data?.map(log => ({
       ...log,
+      change_type: log.change_type as 'status_change' | 'assignee_change' | 'field_update',
       changed_by_name: log.app_user?.display_name || log.app_user?.email
     })) || [];
   } catch (error) {

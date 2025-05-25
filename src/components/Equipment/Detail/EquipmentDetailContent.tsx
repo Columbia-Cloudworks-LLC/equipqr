@@ -91,11 +91,21 @@ export function EquipmentDetailContent({ equipment, canEdit, canDelete }: Equipm
                   Edit
                 </Link>
               </Button>
-              <DuplicateEquipmentButton equipmentId={equipment.id} />
+              <DuplicateEquipmentButton 
+                equipmentId={equipment.id} 
+                equipmentName={equipment.name}
+                canDuplicate={canEdit}
+              />
             </>
           )}
           
-          {canDelete && <DeleteEquipmentButton equipmentId={equipment.id} />}
+          {canDelete && (
+            <DeleteEquipmentButton 
+              equipmentId={equipment.id}
+              equipmentName={equipment.name}
+              canDelete={canDelete}
+            />
+          )}
         </div>
       </div>
 
