@@ -2,7 +2,7 @@
 /**
  * Enum for user roles in the application
  */
-export type UserRole = 'owner' | 'manager' | 'technician' | 'viewer' | 'member' | 'admin';
+export type UserRole = 'owner' | 'manager' | 'technician' | 'viewer' | 'member' | 'admin' | 'requestor';
 
 /**
  * Enum for equipment status values
@@ -34,3 +34,15 @@ export type DateTimeFormat =
   | 'DD/MM/YYYY h:mm A'     // European format
   | 'YYYY-MM-DD HH:mm:ss'   // ISO-like format
   | 'ISO';                  // Full ISO format
+
+/**
+ * Enum for work order status values
+ */
+export type WorkOrderStatus = 
+  | 'submitted' 
+  | 'accepted' 
+  | 'assigned' 
+  | 'in_progress' 
+  | 'on_hold' 
+  | 'cancelled' 
+  | 'completed';

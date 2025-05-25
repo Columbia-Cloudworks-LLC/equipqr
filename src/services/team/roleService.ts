@@ -133,12 +133,13 @@ export const getEffectiveRole = (
   // If user has no roles, return null
   if (!teamRole && !orgRole) return null;
   
-  // Define role hierarchy
+  // Define role hierarchy (higher number = more permissions)
   const roleHierarchy = {
-    'owner': 4,
-    'admin': 3,
-    'manager': 2,
-    'technician': 1,
+    'owner': 5,
+    'admin': 4,
+    'manager': 3,
+    'technician': 2,
+    'requestor': 1,
     'viewer': 0
   };
   
@@ -154,13 +155,18 @@ export const getEffectiveRole = (
   }
 };
 
-// Add this function if it doesn't exist in the file
+/**
+ * Check if a role has permission for a specific action
+ * @param role The user's role
+ * @param requiredRole The minimum required role for the action
+ * @returns Boolean indicating if the user has permission
+ */
 export const hasRolePermission = (
   role: string | null | undefined, 
   requiredRole: string
 ): boolean => {
-  // Simple role hierarchy: manager > technician > viewer
-  const roles = ['viewer', 'technician', 'manager'];
+  // Role hierarchy: owner > admin > manager > technician > requestor > viewer
+  const roles = ['viewer', 'requestor', 'technician', 'manager', 'admin', 'owner'];
   
   // If no role provided, no permissions
   if (!role) return false;
@@ -175,4 +181,33 @@ export const hasRolePermission = (
   
   // User has permission if their role is equal to or higher than required role
   return userRoleIndex >= requiredRoleIndex;
+};
+
+/**
+ * Check if a user can submit work orders (requestor and above)
+ * @param role The user's role
+ * @returns Boolean indicating if the user can submit work orders
+ */
+export const canSubmitWorkOrders = (role: string | null | undefined): boolean => {
+  return hasRolePermission(role, 'requestor');
+};
+
+/**
+ * Check if a user can manage work orders (manager and above)
+ * @param role The user's role
+ * @returns Boolean indicating if the user can manage work orders
+ */
+export const canManageWorkOrders = (role: string | null | undefined): boolean => {
+  return hasRolePermission(role, 'manager');
+};
+
+/**
+ * Check if a user can view work order hours (technician and above, excluding requestor)
+ * @param role The user's role
+ * @returns Boolean indicating if the user can view work order hours
+ */
+export const canViewWorkOrderHours = (role: string | null | undefined): boolean => {
+  if (!role) return false;
+  // Requestors cannot see hours, but technicians and above can
+  return hasRolePermission(role, 'technician');
 };

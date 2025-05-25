@@ -436,6 +436,7 @@ export type Database = {
           is_public: boolean
           note: string
           updated_at: string
+          work_order_id: string | null
         }
         Insert: {
           created_at?: string
@@ -449,6 +450,7 @@ export type Database = {
           is_public?: boolean
           note: string
           updated_at?: string
+          work_order_id?: string | null
         }
         Update: {
           created_at?: string
@@ -462,6 +464,7 @@ export type Database = {
           is_public?: boolean
           note?: string
           updated_at?: string
+          work_order_id?: string | null
         }
         Relationships: [
           {
@@ -469,6 +472,13 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_work_notes_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_order"
             referencedColumns: ["id"]
           },
           {
@@ -1199,12 +1209,17 @@ export type Database = {
       }
       work_order: {
         Row: {
+          accepted_at: string | null
+          assigned_at: string | null
+          assigned_to: string | null
           closed_at: string | null
+          completed_at: string | null
           created_by: string
           customer_id: string | null
           deleted_at: string | null
           description: string | null
           equipment_id: string
+          estimated_hours: number | null
           id: string
           opened_at: string
           org_id: string
@@ -1213,12 +1228,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
+          assigned_at?: string | null
+          assigned_to?: string | null
           closed_at?: string | null
+          completed_at?: string | null
           created_by: string
           customer_id?: string | null
           deleted_at?: string | null
           description?: string | null
           equipment_id: string
+          estimated_hours?: number | null
           id?: string
           opened_at?: string
           org_id: string
@@ -1227,12 +1247,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
+          assigned_at?: string | null
+          assigned_to?: string | null
           closed_at?: string | null
+          completed_at?: string | null
           created_by?: string
           customer_id?: string | null
           deleted_at?: string | null
           description?: string | null
           equipment_id?: string
+          estimated_hours?: number | null
           id?: string
           opened_at?: string
           org_id?: string
@@ -1241,6 +1266,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "work_order_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "work_order_created_by_fkey"
             columns: ["created_by"]
@@ -1310,6 +1342,51 @@ export type Database = {
           },
         ]
       }
+      work_order_audit_log: {
+        Row: {
+          change_type: string
+          changed_by: string
+          created_at: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          work_order_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_by: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          work_order_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_audit_log_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_audit_log_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1357,6 +1434,14 @@ export type Database = {
       }
       can_manage_org_members: {
         Args: { p_user_id: string; p_org_id: string }
+        Returns: boolean
+      }
+      can_manage_work_orders: {
+        Args: { p_user_id: string; p_equipment_id: string }
+        Returns: boolean
+      }
+      can_submit_work_orders: {
+        Args: { p_user_id: string; p_equipment_id: string }
         Returns: boolean
       }
       can_view_scan_history: {
@@ -1447,6 +1532,7 @@ export type Database = {
           is_public: boolean
           note: string
           updated_at: string
+          work_order_id: string | null
         }[]
       }
       get_org_managers: {
@@ -1655,13 +1741,23 @@ export type Database = {
         | "storage"
         | "retired"
       image_status: "processing" | "ready" | "failed"
-      user_role: "owner" | "manager" | "technician" | "viewer" | "member"
+      user_role:
+        | "owner"
+        | "manager"
+        | "technician"
+        | "viewer"
+        | "member"
+        | "requestor"
       work_order_status:
         | "open"
         | "in_progress"
         | "closed"
         | "on_hold"
         | "cancelled"
+        | "submitted"
+        | "accepted"
+        | "assigned"
+        | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1792,13 +1888,24 @@ export const Constants = {
         "retired",
       ],
       image_status: ["processing", "ready", "failed"],
-      user_role: ["owner", "manager", "technician", "viewer", "member"],
+      user_role: [
+        "owner",
+        "manager",
+        "technician",
+        "viewer",
+        "member",
+        "requestor",
+      ],
       work_order_status: [
         "open",
         "in_progress",
         "closed",
         "on_hold",
         "cancelled",
+        "submitted",
+        "accepted",
+        "assigned",
+        "completed",
       ],
     },
   },
