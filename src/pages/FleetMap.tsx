@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout/Layout';
-import { FleetMap } from '@/components/Equipment/FleetMap/FleetMap';
+import { FleetMap as FleetMapComponent } from '@/components/Equipment/FleetMap/FleetMap';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { useCombinedDashboardData } from '@/hooks/useCombinedDashboardData';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
-const FleetMap = () => {
+const FleetMapPage = () => {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -265,7 +265,7 @@ const FleetMap = () => {
                     </div>
                   </div>
                 ) : (
-                  <FleetMap
+                  <FleetMapComponent
                     equipment={filteredEquipment}
                     height="600px"
                     selectedEquipmentId={selectedEquipmentId}
@@ -348,4 +348,4 @@ const FleetMap = () => {
   );
 };
 
-export default FleetMap;
+export default FleetMapPage;
