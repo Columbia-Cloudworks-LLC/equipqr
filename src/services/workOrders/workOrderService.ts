@@ -13,7 +13,7 @@ export async function getWorkOrders(equipmentId: string): Promise<WorkOrder[]> {
       .select(`
         *,
         equipment!inner(name),
-        submitted_by_profile:app_user!work_order_submitted_by_fkey(
+        submitted_by_profile:app_user!work_order_created_by_fkey(
           display_name,
           email
         ),
@@ -23,7 +23,7 @@ export async function getWorkOrders(equipmentId: string): Promise<WorkOrder[]> {
         )
       `)
       .eq('equipment_id', equipmentId)
-      .order('created_at', { ascending: false });
+      .order('opened_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching work orders:', error);
@@ -31,13 +31,23 @@ export async function getWorkOrders(equipmentId: string): Promise<WorkOrder[]> {
     }
 
     return data?.map(wo => ({
-      ...wo,
+      id: wo.id,
+      equipment_id: wo.equipment_id,
+      title: wo.title,
+      description: wo.description || '',
+      status: wo.status as WorkOrderStatus,
+      estimated_hours: wo.estimated_hours,
+      submitted_by: wo.created_by,
+      submitted_at: wo.opened_at,
+      accepted_at: wo.accepted_at,
+      assigned_at: wo.assigned_at,
+      completed_at: wo.completed_at,
+      assigned_to: wo.assigned_to,
+      created_at: wo.opened_at, // Use opened_at as created_at for consistency
+      updated_at: wo.updated_at,
       equipment_name: wo.equipment?.name,
       submitted_by_name: wo.submitted_by_profile?.display_name || wo.submitted_by_profile?.email,
-      assigned_to_name: wo.assigned_to_profile?.display_name || wo.assigned_to_profile?.email,
-      submitted_at: wo.opened_at || wo.created_at,
-      submitted_by: wo.created_by,
-      created_at: wo.created_at
+      assigned_to_name: wo.assigned_to_profile?.display_name || wo.assigned_to_profile?.email
     })) || [];
   } catch (error) {
     console.error('Error in getWorkOrders:', error);
@@ -100,10 +110,20 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
     await logWorkOrderChange(data.id, 'status_change', null, 'submitted');
 
     return {
-      ...data,
-      submitted_at: data.opened_at || data.created_at,
-      submitted_by: appUser.id,
-      created_at: data.created_at
+      id: data.id,
+      equipment_id: data.equipment_id,
+      title: data.title,
+      description: data.description || '',
+      status: data.status as WorkOrderStatus,
+      estimated_hours: data.estimated_hours,
+      submitted_by: data.created_by,
+      submitted_at: data.opened_at,
+      accepted_at: data.accepted_at,
+      assigned_at: data.assigned_at,
+      completed_at: data.completed_at,
+      assigned_to: data.assigned_to,
+      created_at: data.opened_at,
+      updated_at: data.updated_at
     };
   } catch (error) {
     console.error('Error in createWorkOrder:', error);
@@ -178,10 +198,20 @@ export async function updateWorkOrder(
     }
 
     return {
-      ...data,
-      submitted_at: data.opened_at || data.created_at,
+      id: data.id,
+      equipment_id: data.equipment_id,
+      title: data.title,
+      description: data.description || '',
+      status: data.status as WorkOrderStatus,
+      estimated_hours: data.estimated_hours,
       submitted_by: data.created_by,
-      created_at: data.created_at
+      submitted_at: data.opened_at,
+      accepted_at: data.accepted_at,
+      assigned_at: data.assigned_at,
+      completed_at: data.completed_at,
+      assigned_to: data.assigned_to,
+      created_at: data.opened_at,
+      updated_at: data.updated_at
     };
   } catch (error) {
     console.error('Error in updateWorkOrder:', error);
@@ -199,7 +229,7 @@ export async function getWorkOrder(workOrderId: string): Promise<WorkOrder | nul
       .select(`
         *,
         equipment!inner(name),
-        submitted_by_profile:app_user!work_order_submitted_by_fkey(
+        submitted_by_profile:app_user!work_order_created_by_fkey(
           display_name,
           email
         ),
@@ -220,13 +250,23 @@ export async function getWorkOrder(workOrderId: string): Promise<WorkOrder | nul
     }
 
     return {
-      ...data,
+      id: data.id,
+      equipment_id: data.equipment_id,
+      title: data.title,
+      description: data.description || '',
+      status: data.status as WorkOrderStatus,
+      estimated_hours: data.estimated_hours,
+      submitted_by: data.created_by,
+      submitted_at: data.opened_at,
+      accepted_at: data.accepted_at,
+      assigned_at: data.assigned_at,
+      completed_at: data.completed_at,
+      assigned_to: data.assigned_to,
+      created_at: data.opened_at,
+      updated_at: data.updated_at,
       equipment_name: data.equipment?.name,
       submitted_by_name: data.submitted_by_profile?.display_name || data.submitted_by_profile?.email,
-      assigned_to_name: data.assigned_to_profile?.display_name || data.assigned_to_profile?.email,
-      submitted_at: data.opened_at || data.created_at,
-      submitted_by: data.created_by,
-      created_at: data.created_at
+      assigned_to_name: data.assigned_to_profile?.display_name || data.assigned_to_profile?.email
     };
   } catch (error) {
     console.error('Error in getWorkOrder:', error);

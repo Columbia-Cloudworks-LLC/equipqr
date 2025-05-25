@@ -36,7 +36,7 @@ export type DateTimeFormat =
   | 'ISO';                  // Full ISO format
 
 /**
- * Enum for work order status values
+ * Enum for work order status values - updated to match database
  */
 export type WorkOrderStatus = 
   | 'submitted' 
@@ -45,4 +45,6 @@ export type WorkOrderStatus =
   | 'in_progress' 
   | 'on_hold' 
   | 'cancelled' 
-  | 'completed';
+  | 'completed'
+  | 'open'
+  | 'closed';
