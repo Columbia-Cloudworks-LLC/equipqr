@@ -118,9 +118,12 @@ export function useTeamManagementPage(): {
     return handleDeleteTeamBase(selectedTeamId);
   };
 
-  // This function signature now matches the interface expectation
-  const wrappedGetTeamEquipmentCount = async (teamId: string) => {
-    return getTeamEquipmentCountBase(teamId);
+  // Fixed: This function signature now matches the interface expectation (no parameters)
+  const wrappedGetTeamEquipmentCount = async () => {
+    if (!selectedTeamId) {
+      return 0;
+    }
+    return getTeamEquipmentCountBase(selectedTeamId);
   };
 
   const wrappedRefetchPendingInvitations = async () => {
