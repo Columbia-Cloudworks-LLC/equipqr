@@ -50,16 +50,6 @@ export function FleetMapContent({
                   </Button>
                 </div>
               </div>
-            ) : equipmentWithLocation.length === 0 ? (
-              <div className="h-[600px] flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-medium mb-2">No Location Data</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Equipment locations will appear here when they are scanned with GPS enabled
-                  </p>
-                </div>
-              </div>
             ) : (
               <FleetMap
                 equipment={filteredEquipment}
