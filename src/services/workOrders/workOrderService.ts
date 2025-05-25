@@ -36,7 +36,8 @@ export async function getWorkOrders(equipmentId: string): Promise<WorkOrder[]> {
       submitted_by_name: wo.submitted_by_profile?.display_name || wo.submitted_by_profile?.email,
       assigned_to_name: wo.assigned_to_profile?.display_name || wo.assigned_to_profile?.email,
       submitted_at: wo.opened_at || wo.created_at,
-      submitted_by: wo.created_by
+      submitted_by: wo.created_by,
+      created_at: wo.created_at
     })) || [];
   } catch (error) {
     console.error('Error in getWorkOrders:', error);
@@ -101,7 +102,8 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
     return {
       ...data,
       submitted_at: data.opened_at || data.created_at,
-      submitted_by: appUser.id
+      submitted_by: appUser.id,
+      created_at: data.created_at
     };
   } catch (error) {
     console.error('Error in createWorkOrder:', error);
@@ -178,7 +180,8 @@ export async function updateWorkOrder(
     return {
       ...data,
       submitted_at: data.opened_at || data.created_at,
-      submitted_by: data.created_by
+      submitted_by: data.created_by,
+      created_at: data.created_at
     };
   } catch (error) {
     console.error('Error in updateWorkOrder:', error);
@@ -222,7 +225,8 @@ export async function getWorkOrder(workOrderId: string): Promise<WorkOrder | nul
       submitted_by_name: data.submitted_by_profile?.display_name || data.submitted_by_profile?.email,
       assigned_to_name: data.assigned_to_profile?.display_name || data.assigned_to_profile?.email,
       submitted_at: data.opened_at || data.created_at,
-      submitted_by: data.created_by
+      submitted_by: data.created_by,
+      created_at: data.created_at
     };
   } catch (error) {
     console.error('Error in getWorkOrder:', error);

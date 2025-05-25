@@ -204,7 +204,7 @@ export function EquipmentDetailContent({ equipment, canEdit, canDelete }: Equipm
         </TabsContent>
 
         <TabsContent value="attributes" className="space-y-6">
-          <AttributesList equipment={equipment} />
+          <AttributesList attributes={equipment.attributes || []} />
         </TabsContent>
       </Tabs>
 
