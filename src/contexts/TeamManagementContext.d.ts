@@ -33,7 +33,7 @@ export interface TeamManagementContextType {
   // Error handling
   error: string | null;
   
-  // Functions - corrected signatures to match actual usage
+  // Functions - signatures corrected to match component usage patterns
   setSelectedTeamId: (teamId: string) => void;
   handleOrganizationChange: (orgId: string) => void;
   handleCreateTeam: (name: string) => Promise<any>;

@@ -99,7 +99,7 @@ export function useTeamManagementPage(): {
     }
   }, [filteredTeams, selectedTeamId, setSelectedTeamId, isChangingOrg]);
 
-  // Create wrapper functions to match the expected signatures
+  // Create wrapper functions that match the context interface signatures exactly
   const wrappedHandleUpdateTeam = async (teamId: string, data: { name: string }) => {
     return handleUpdateTeamBase(teamId, data.name);
   };
@@ -118,6 +118,7 @@ export function useTeamManagementPage(): {
     return handleDeleteTeamBase(selectedTeamId);
   };
 
+  // This function signature now matches the interface expectation
   const wrappedGetTeamEquipmentCount = async (teamId: string) => {
     return getTeamEquipmentCountBase(teamId);
   };
