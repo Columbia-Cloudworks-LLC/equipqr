@@ -12,6 +12,7 @@ import {
 import { TeamMemberRow } from './TeamMemberRow';
 import { TeamListHeader } from './TeamListHeader';
 import { TeamEmptyState } from './TeamEmptyState';
+import { RoleInfoTooltip } from '@/components/ui/RoleInfoTooltip';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UnifiedMember extends TeamMember {
@@ -84,7 +85,12 @@ export function TeamList({
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead className="hidden md:table-cell">Email</TableHead>
-            <TableHead>Role</TableHead>
+            <TableHead>
+              <div className="flex items-center gap-2">
+                Role
+                <RoleInfoTooltip type="team" />
+              </div>
+            </TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>

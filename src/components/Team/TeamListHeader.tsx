@@ -1,17 +1,22 @@
 
-import { AlertTriangle } from 'lucide-react';
+import { RoleInfoTooltip } from '@/components/ui/RoleInfoTooltip';
 
 interface TeamListHeaderProps {
-  isViewOnly: boolean;
+  isViewOnly?: boolean;
 }
 
-export function TeamListHeader({ isViewOnly }: TeamListHeaderProps) {
-  if (!isViewOnly) return null;
-  
+export function TeamListHeader({ isViewOnly = false }: TeamListHeaderProps) {
   return (
-    <div className="bg-amber-50 p-4 border-b flex items-center gap-2 text-amber-800">
-      <AlertTriangle className="h-4 w-4" />
-      <span className="text-sm">You are in view-only mode. You need a manager role to make changes.</span>
+    <div className="bg-muted/50 px-4 py-3 border-b">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium">Team Members</h3>
+        {!isViewOnly && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Role</span>
+            <RoleInfoTooltip type="team" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

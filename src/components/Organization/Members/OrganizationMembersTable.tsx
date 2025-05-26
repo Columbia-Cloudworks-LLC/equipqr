@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { OrganizationMember } from '@/services/organization/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -8,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateMemberRole, removeMember } from '@/services/organization/membersService';
+import { RoleInfoTooltip } from '@/components/ui/RoleInfoTooltip';
 import {
   Table,
   TableBody,
@@ -41,7 +41,7 @@ export function OrganizationMembersTable({
   const [updatingRole, setUpdatingRole] = useState<Record<string, boolean>>({});
   const [removingMember, setRemovingMember] = useState<Record<string, boolean>>({});
 
-  const handleRoleChange = async (memberId: string, newRole: UserRole) => {
+  async function handleRoleChange(memberId: string, newRole: UserRole) {
     setUpdatingRole(prev => ({ ...prev, [memberId]: true }));
     
     // Optimistically update the UI immediately
@@ -82,9 +82,9 @@ export function OrganizationMembersTable({
     } finally {
       setUpdatingRole(prev => ({ ...prev, [memberId]: false }));
     }
-  };
+  }
 
-  const handleRemoveMember = async (userId: string) => {
+  async function handleRemoveMember(userId: string) {
     setRemovingMember(prev => ({ ...prev, [userId]: true }));
     
     try {
@@ -106,7 +106,7 @@ export function OrganizationMembersTable({
     } finally {
       setRemovingMember(prev => ({ ...prev, [userId]: false }));
     }
-  };
+  }
 
   if (loading) {
     return <div className="text-center py-8">Loading members...</div>;
@@ -127,7 +127,12 @@ export function OrganizationMembersTable({
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
+            <TableHead>
+              <div className="flex items-center gap-2">
+                Role
+                <RoleInfoTooltip type="organization" />
+              </div>
+            </TableHead>
             {isOwner && <TableHead>Actions</TableHead>}
           </TableRow>
         </TableHeader>
