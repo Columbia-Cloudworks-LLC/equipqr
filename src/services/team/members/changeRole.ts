@@ -12,6 +12,12 @@ export async function changeRole(teamId: string, authUserId: string, role: strin
       return { success: false, error: 'Missing required parameters' };
     }
 
+    // Validate role is one of the allowed values
+    const allowedRoles = ['owner', 'manager', 'technician', 'requestor', 'viewer'];
+    if (!allowedRoles.includes(role)) {
+      return { success: false, error: `Invalid role: ${role}. Allowed roles: ${allowedRoles.join(', ')}` };
+    }
+
     // Get current user session
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session?.user) {
@@ -87,7 +93,7 @@ export async function changeRole(teamId: string, authUserId: string, role: strin
 
     console.log('Found team member:', teamMember);
 
-    // Check if there would be at least one manager left
+    // Check if there would be at least one manager left (only applies when changing FROM manager role)
     if (role !== 'manager') {
       // Get count of existing managers in this team
       const { data: teamMembers } = await supabase

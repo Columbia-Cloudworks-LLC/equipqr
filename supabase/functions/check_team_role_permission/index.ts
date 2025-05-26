@@ -189,7 +189,7 @@ serve(async (req) => {
       );
     }
     
-    // Rule 4: Team managers (who are NOT organization managers) can manage other team managers
+    // Rule 4: Team managers (who are NOT organization managers) can manage other team members
     if (authUserTeamRole === 'manager' && !authOrgRole) {
       // Cannot manage organization managers
       if (targetOrgRole === 'owner' || targetOrgRole === 'manager') {
@@ -202,7 +202,7 @@ serve(async (req) => {
         );
       }
       
-      // Can manage other team members
+      // Can manage other team members (including requestors)
       return new Response(
         JSON.stringify({ can_change: true, reason: 'team_manager' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
