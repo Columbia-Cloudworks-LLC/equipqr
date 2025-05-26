@@ -10,7 +10,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { TeamMemberRow } from './TeamMemberRow';
-import { TeamListHeader } from './TeamListHeader';
 import { TeamEmptyState } from './TeamEmptyState';
 import { RoleInfoTooltip } from '@/components/ui/RoleInfoTooltip';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,7 +78,6 @@ export function TeamList({
 
   return (
     <div className="rounded-md border">
-      <TeamListHeader isViewOnly={isViewOnly} />
       <Table>
         <TableHeader>
           <TableRow>
