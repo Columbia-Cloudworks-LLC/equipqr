@@ -131,10 +131,22 @@ export async function changeRole(teamId: string, authUserId: string, role: strin
       }
     }
 
-    // Update the user's role
+    // FIXED: Replace upsert with delete-then-insert to handle unique constraint
+    // First, delete any existing role for this team member
+    const { error: deleteError } = await supabase
+      .from('team_roles')
+      .delete()
+      .eq('team_member_id', teamMember.id);
+
+    if (deleteError) {
+      console.error('Error deleting existing role:', deleteError);
+      return { success: false, error: `Failed to remove existing role: ${deleteError.message}` };
+    }
+
+    // Then insert the new role
     const { data: roleData, error: roleError } = await supabase
       .from('team_roles')
-      .upsert({ 
+      .insert({ 
         team_member_id: teamMember.id,
         role: role,
         assigned_by: sessionData.session.user.id
@@ -143,8 +155,8 @@ export async function changeRole(teamId: string, authUserId: string, role: strin
       .single();
 
     if (roleError) {
-      console.error('Error updating role:', roleError);
-      return { success: false, error: `Failed to update role: ${roleError.message}` };
+      console.error('Error inserting new role:', roleError);
+      return { success: false, error: `Failed to assign new role: ${roleError.message}` };
     }
 
     console.log('Role updated successfully:', roleData);
