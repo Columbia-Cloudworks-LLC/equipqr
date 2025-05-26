@@ -83,6 +83,8 @@ export function TeamManagementWrapper({
             teams={filteredTeams}
             value={selectedTeamId}
             onChange={onSelectTeam}
+            placeholder="Select a team to manage"
+            hideNoTeamOption={true}
             disabled={isChangingOrg}
           />
           
@@ -108,6 +110,8 @@ export function TeamManagementWrapper({
           teams={filteredTeams}
           value={selectedTeamId}
           onChange={onSelectTeam}
+          placeholder="Select a team to manage"
+          hideNoTeamOption={true}
           disabled={isChangingOrg}
         />
         
