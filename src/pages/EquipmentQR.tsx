@@ -9,10 +9,14 @@ import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 export default function EquipmentQR() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { selectedOrganization } = useOrganization();
 
   const {
     data: equipment,
@@ -40,6 +44,16 @@ export default function EquipmentQR() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const getCurrentDate = () => {
+    return new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (isLoading) {
@@ -195,6 +209,28 @@ export default function EquipmentQR() {
               Open your device's camera app, point at the QR code, and tap the notification.
               The scan will be recorded with timestamp, device info, and location data for audit purposes.
             </p>
+          </div>
+        </div>
+
+        {/* Print footer */}
+        <div className="print-footer">
+          <div className="print-footer-content">
+            <div className="print-footer-left">
+              <p className="print-footer-org">
+                {selectedOrganization?.name || 'EquipQR'}
+              </p>
+              <p className="print-footer-date">
+                Printed on {getCurrentDate()}
+              </p>
+            </div>
+            <div className="print-footer-right">
+              <p className="print-footer-user">
+                Printed by: {user?.email || 'Unknown User'}
+              </p>
+              <p className="print-footer-copyright">
+                © 2025 EquipQR. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </div>

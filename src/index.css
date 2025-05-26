@@ -167,6 +167,13 @@
     background: white !important;
   }
   
+  /* Hide buttons in QR code component */
+  .print-qr-code .no-print,
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
   /* Instructions section */
   .print-instructions {
     margin-top: 0.5in !important;
@@ -211,6 +218,46 @@
     line-height: 1.4 !important;
     color: black !important;
     margin: 0.1in 0 !important;
+  }
+  
+  /* Print footer styling */
+  .print-footer {
+    position: fixed !important;
+    bottom: 0.5in !important;
+    left: 0.5in !important;
+    right: 0.5in !important;
+    border-top: 1px solid black !important;
+    padding-top: 0.1in !important;
+    margin-top: 0.5in !important;
+  }
+  
+  .print-footer-content {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    font-size: 8pt !important;
+    color: black !important;
+  }
+  
+  .print-footer-left,
+  .print-footer-right {
+    flex: 1 !important;
+  }
+  
+  .print-footer-right {
+    text-align: right !important;
+  }
+  
+  .print-footer-org {
+    font-weight: bold !important;
+    margin-bottom: 0.05in !important;
+  }
+  
+  .print-footer-date,
+  .print-footer-user,
+  .print-footer-copyright {
+    margin: 0 !important;
+    line-height: 1.2 !important;
   }
   
   /* Ensure all text is black */
