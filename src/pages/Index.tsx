@@ -9,6 +9,7 @@ import { InvitationAlert } from '@/components/Dashboard/InvitationAlert';
 import { DashboardEquipmentMap } from '@/components/Dashboard/DashboardEquipmentMap';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { Users, Package, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function Index() {
   const { selectedOrganization, isLoading: isOrgLoading } = useOrganization();
@@ -53,6 +54,30 @@ export default function Index() {
     );
   }
 
+  // Create stats array for DashboardStats component
+  const stats = [
+    {
+      label: "Teams",
+      value: teamCount,
+      icon: Users,
+    },
+    {
+      label: "Equipment",
+      value: equipmentCount,
+      icon: Package,
+    },
+    {
+      label: "Active",
+      value: activeCount,
+      icon: CheckCircle,
+    },
+    {
+      label: "Maintenance",
+      value: maintenanceCount,
+      icon: AlertTriangle,
+    }
+  ];
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -74,28 +99,19 @@ export default function Index() {
           {/* Left Column - Stats and Equipment */}
           <div className="lg:col-span-2 space-y-6">
             {/* Stats Cards */}
-            <DashboardStats
-              teamCount={teamCount}
-              equipmentCount={equipmentCount}
-              activeCount={activeCount}
-              maintenanceCount={maintenanceCount}
-              isLoading={isLoading}
-              error={error}
-            />
+            <DashboardStats stats={stats} />
 
             {/* Recent Equipment */}
             <RecentEquipmentSection
-              equipment={recentEquipment}
+              recentEquipment={recentEquipment}
               isLoading={isLoading}
-              error={error}
-              onRefresh={refetchEquipment}
+              isError={!!error}
             />
 
             {/* Equipment Map */}
             <DashboardEquipmentMap
               equipment={equipment}
               isLoading={isLoading}
-              error={error}
             />
           </div>
 
@@ -105,7 +121,7 @@ export default function Index() {
             <TeamsSection
               teams={teams}
               isLoading={isLoading}
-              error={error}
+              isError={!!error}
               onRefresh={refetchTeams}
             />
 
