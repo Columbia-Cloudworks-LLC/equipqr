@@ -65,6 +65,8 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
       throw new Error('Not authenticated');
     }
 
+    console.log('Creating work order for user:', user.user.id);
+
     // Get app_user ID
     const { data: appUser, error: appUserError } = await supabase
       .from('app_user')
@@ -73,31 +75,54 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
       .single();
 
     if (appUserError || !appUser) {
+      console.error('Error fetching app_user:', appUserError);
       throw new Error('User profile not found');
     }
 
-    // Get equipment org_id for the work order
-    const { data: equipment } = await supabase
+    console.log('Found app_user:', appUser.id);
+
+    // Get equipment details including org_id
+    const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
-      .select('org_id')
+      .select('org_id, name')
       .eq('id', params.equipment_id)
       .single();
 
-    if (!equipment) {
+    if (equipmentError || !equipment) {
+      console.error('Error fetching equipment:', equipmentError);
       throw new Error('Equipment not found');
     }
 
+    console.log('Equipment org_id:', equipment.org_id);
+
+    // Verify user has permission to create work orders for this equipment
+    const { data: canSubmit } = await supabase.rpc('can_submit_work_orders', {
+      p_user_id: user.user.id,
+      p_equipment_id: params.equipment_id
+    });
+
+    if (!canSubmit) {
+      throw new Error('You do not have permission to create work orders for this equipment');
+    }
+
+    console.log('User has permission to submit work orders');
+
+    // Create the work order with proper status
+    const workOrderData = {
+      equipment_id: params.equipment_id,
+      title: params.title,
+      description: params.description,
+      status: 'submitted' as WorkOrderStatus,
+      created_by: appUser.id,
+      org_id: equipment.org_id,
+      opened_at: new Date().toISOString()
+    };
+
+    console.log('Creating work order with data:', workOrderData);
+
     const { data, error } = await supabase
       .from('work_order')
-      .insert({
-        equipment_id: params.equipment_id,
-        title: params.title,
-        description: params.description,
-        status: 'submitted' as WorkOrderStatus,
-        created_by: appUser.id,
-        org_id: equipment.org_id,
-        opened_at: new Date().toISOString()
-      })
+      .insert(workOrderData)
       .select()
       .single();
 
@@ -106,8 +131,15 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
       throw error;
     }
 
+    console.log('Work order created successfully:', data.id);
+
     // Log the creation
-    await logWorkOrderChange(data.id, 'status_change', null, 'submitted');
+    try {
+      await logWorkOrderChange(data.id, 'status_change', null, 'submitted');
+    } catch (auditError) {
+      console.warn('Failed to log work order creation:', auditError);
+      // Don't fail the whole operation if audit logging fails
+    }
 
     return {
       id: data.id,
@@ -123,7 +155,8 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
       completed_at: data.completed_at,
       assigned_to: data.assigned_to,
       created_at: data.opened_at,
-      updated_at: data.updated_at
+      updated_at: data.updated_at,
+      equipment_name: equipment.name
     };
   } catch (error) {
     console.error('Error in createWorkOrder:', error);

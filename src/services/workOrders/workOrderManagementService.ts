@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrder, WorkOrderStatus } from '@/types/workOrders';
 
@@ -23,6 +24,8 @@ export async function getAllUserWorkOrders(params: GetAllUserWorkOrdersParams = 
       throw new Error('Not authenticated');
     }
 
+    console.log('Fetching work orders for user:', user.user.id);
+
     let query = supabase
       .from('work_order')
       .select(`
@@ -42,6 +45,7 @@ export async function getAllUserWorkOrders(params: GetAllUserWorkOrdersParams = 
           email
         )
       `)
+      .is('deleted_at', null)
       .order('opened_at', { ascending: false });
 
     // Apply filters with proper type checking
@@ -79,6 +83,8 @@ export async function getAllUserWorkOrders(params: GetAllUserWorkOrdersParams = 
       console.error('Error fetching work orders:', error);
       throw error;
     }
+
+    console.log('Fetched work orders:', data?.length || 0);
 
     return data?.map(wo => ({
       id: wo.id,
