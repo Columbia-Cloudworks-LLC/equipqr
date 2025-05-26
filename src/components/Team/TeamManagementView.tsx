@@ -14,9 +14,7 @@ export function TeamManagementView() {
     pendingInvitations,
     filteredTeams,
     selectedTeamId,
-    selectedOrgId,
     selectedOrganization,
-    organizations,
     isLoading,
     isLoadingInvitations,
     isCreatingTeam,
@@ -30,7 +28,6 @@ export function TeamManagementView() {
     canChangeRoles,
     error,
     setSelectedTeamId,
-    handleOrganizationChange,
     handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam,
@@ -70,12 +67,8 @@ export function TeamManagementView() {
   return (
     <div className="p-6 space-y-6">
       <TeamManagementHeader
-        organizations={organizations}
-        selectedOrgId={selectedOrgId}
-        onChange={handleOrganizationChange}
         onRefresh={fetchTeams}
         isLoading={isLoading}
-        isChangingOrg={isChangingOrg}
       />
       
       {isExternalOrg && selectedOrganization && (
@@ -104,7 +97,6 @@ export function TeamManagementView() {
         <TeamManagementWrapper
           filteredTeams={filteredTeams}
           selectedTeamId={selectedTeamId}
-          selectedOrgId={selectedOrgId}
           selectedOrganization={selectedOrganization}
           members={members}
           pendingInvitations={pendingInvitations}
