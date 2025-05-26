@@ -20,7 +20,7 @@ interface WorkOrderEditFormProps {
 export function WorkOrderEditForm({ workOrder, onUpdate, onCancel, canManage }: WorkOrderEditFormProps) {
   const [estimatedHours, setEstimatedHours] = useState(workOrder.estimated_hours?.toString() || '');
   const [status, setStatus] = useState<WorkOrderStatus>(workOrder.status);
-  const [assignedTo, setAssignedTo] = useState(workOrder.assigned_to || '');
+  const [assignedTo, setAssignedTo] = useState(workOrder.assigned_to || 'unassigned');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get assignable team members
@@ -77,7 +77,7 @@ export function WorkOrderEditForm({ workOrder, onUpdate, onCancel, canManage }: 
       };
 
       // Handle assignment
-      if (assignedTo && assignedTo !== workOrder.assigned_to) {
+      if (assignedTo && assignedTo !== 'unassigned' && assignedTo !== workOrder.assigned_to) {
         updates.assigned_to = assignedTo;
         
         // Send notification to the assigned user
@@ -93,6 +93,8 @@ export function WorkOrderEditForm({ workOrder, onUpdate, onCancel, canManage }: 
           console.warn('Failed to send assignment notification:', notificationError);
           // Don't fail the whole operation if notification fails
         }
+      } else if (assignedTo === 'unassigned') {
+        updates.assigned_to = undefined;
       }
       
       await onUpdate(workOrder.id, updates);
@@ -156,9 +158,9 @@ export function WorkOrderEditForm({ workOrder, onUpdate, onCancel, canManage }: 
                   <SelectValue placeholder="Select team member" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {loadingMembers ? (
-                    <SelectItem value="" disabled>Loading team members...</SelectItem>
+                    <SelectItem value="loading" disabled>Loading team members...</SelectItem>
                   ) : (
                     teamMembers.map((member) => (
                       <SelectItem key={member.user_id} value={member.user_id}>
