@@ -231,10 +231,17 @@ export const mockWorkNotes: WorkNote[] = [
     created_by: 'user1',
     note: 'Replaced the filter and cleaned air intake system.',
     created_at: '2023-05-15T10:30:00Z',
+    updated_at: '2023-05-15T10:30:00Z',
+    deleted_at: null,
+    edited_at: null,
+    edited_by: null,
+    work_order_id: null,
+    image_urls: null,
+    hours_worked: null,
     is_public: true,
     organization_name: 'Acme Corp',
     is_external_org: false,
-    team_name: 'Maintenance Team',
+    creator_name: 'John Doe',
     creator: {
       display_name: 'John Doe'
     }
@@ -245,10 +252,17 @@ export const mockWorkNotes: WorkNote[] = [
     created_by: 'user2',
     note: 'Conducted routine inspection, all systems working normally.',
     created_at: '2023-06-22T14:45:00Z',
+    updated_at: '2023-06-22T14:45:00Z',
+    deleted_at: null,
+    edited_at: null,
+    edited_by: null,
+    work_order_id: null,
+    image_urls: null,
+    hours_worked: null,
     is_public: true,
     organization_name: 'Acme Corp',
     is_external_org: false,
-    team_name: 'Maintenance Team',
+    creator_name: 'Jane Smith',
     creator: {
       display_name: 'Jane Smith'
     }
@@ -259,10 +273,17 @@ export const mockWorkNotes: WorkNote[] = [
     created_by: 'user1',
     note: 'Fixed hydraulic leak in the main system.',
     created_at: '2023-07-10T09:15:00Z',
+    updated_at: '2023-07-10T09:15:00Z',
+    deleted_at: null,
+    edited_at: null,
+    edited_by: null,
+    work_order_id: null,
+    image_urls: null,
+    hours_worked: null,
     is_public: false,
     organization_name: 'External Organization',
     is_external_org: true,
-    team_name: 'Repair Team',
+    creator_name: 'John Doe',
     creator: {
       display_name: 'John Doe'
     }

@@ -72,12 +72,11 @@ export function useWorkNotesMutations(equipmentId: string) {
     }
   });
   
-  // Handle adding a new work note
+  // Handle adding a new work note - fixed parameter order
   const handleAddNote = (
     note: string, 
     isPublic: boolean, 
-    hoursWorked: string, 
-    workOrderId?: string,
+    hoursWorked: string,
     imageUrls?: string[]
   ) => {
     const hours = hoursWorked ? parseFloat(hoursWorked) : null;
@@ -99,7 +98,6 @@ export function useWorkNotesMutations(equipmentId: string) {
       note: note.trim(),
       is_public: isPublic,
       hours_worked: hours,
-      work_order_id: workOrderId,
       image_urls: imageUrls || []
     });
   };

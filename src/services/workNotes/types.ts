@@ -19,6 +19,11 @@ export interface WorkNote {
   creator_org_name?: string;
   organization_name?: string;
   is_external_org?: boolean;
+  
+  // Creator object for compatibility
+  creator?: {
+    display_name: string;
+  };
 }
 
 export interface WorkNotePermissions {

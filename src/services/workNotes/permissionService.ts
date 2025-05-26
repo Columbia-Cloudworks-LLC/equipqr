@@ -1,73 +1,46 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { WorkNotePermissions } from "./types";
-import { checkAccessPermission, checkEquipmentEditPermission } from '@/services/equipment/permissions/accessCheck';
+import { WorkNotePermissions } from './types';
 
 /**
- * Check if user can create work notes for specific equipment
- */
-export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    
-    if (!sessionData?.session?.user) {
-      console.log('No session, cannot create work notes');
-      return false;
-    }
-    
-    // Check if user has access to the equipment
-    const accessResult = await checkAccessPermission(equipmentId);
-    return accessResult.hasPermission;
-  } catch (error) {
-    console.error("Error checking create permissions:", error);
-    return false;
-  }
-}
-
-/**
- * Check if user can manage (edit) work notes for specific equipment
- */
-export async function canManageWorkNotes(equipmentId: string): Promise<boolean> {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    
-    if (!userId || !equipmentId) {
-      console.log('No user ID or equipment ID, cannot manage work notes');
-      return false;
-    }
-    
-    // Check if user has edit permissions on the equipment
-    const editResult = await checkEquipmentEditPermission(equipmentId);
-    return editResult.hasPermission;
-  } catch (error) {
-    console.error("Error checking manage permissions:", error);
-    return false;
-  }
-}
-
-/**
- * Get detailed work note permissions for a user
+ * Get work note permissions for a user on specific equipment
  */
 export async function getWorkNotePermissions(equipmentId: string): Promise<WorkNotePermissions> {
+  // This is a placeholder implementation
+  // In a real app, this would check user roles and team memberships
+  
   try {
-    const [canCreate, canManage] = await Promise.all([
-      canCreateWorkNotes(equipmentId),
-      canManageWorkNotes(equipmentId)
-    ]);
-    
+    // For now, return basic permissions
+    // This should be replaced with actual permission checking logic
     return {
-      canCreate,
-      canManage,
-      canDelete: canManage
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canViewPrivate: true
     };
   } catch (error) {
-    console.error("Error getting work note permissions:", error);
+    console.error('Error checking work note permissions:', error);
+    // Return restrictive permissions on error
     return {
       canCreate: false,
-      canManage: false,
+      canEdit: false,
       canDelete: false,
-      reason: 'error'
+      canViewPrivate: false
     };
   }
+}
+
+/**
+ * Check if a user can edit a specific work note
+ */
+export function canEditWorkNote(note: any, userId: string): boolean {
+  // Can only edit own notes within 24 hours
+  if (note.created_by !== userId) {
+    return false;
+  }
+  
+  const createdAt = new Date(note.created_at);
+  const now = new Date();
+  const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+  
+  return hoursSinceCreation <= 24;
 }

@@ -143,7 +143,7 @@ export function RoleAwareNotesList({
               <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
                 <div className="flex items-center gap-1">
                   <User className="h-3 w-3" />
-                  <span>{note.creator?.display_name || 'Unknown User'}</span>
+                  <span>{note.creator?.display_name || note.creator_name || 'Unknown User'}</span>
                   {note.edited_at && (
                     <span className="ml-2">(edited)</span>
                   )}
