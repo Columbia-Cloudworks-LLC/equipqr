@@ -188,7 +188,8 @@ export function useTeamMembers(teamId: string | null) {
       }
       
       setError(null);
-      await changeRole(userId, role, teamId);
+      // Fix: Correct parameter order - teamId, userId, role
+      await changeRole(teamId, userId, role);
       toast.success("Role updated", {
         description: "Team member role updated successfully"
       });
