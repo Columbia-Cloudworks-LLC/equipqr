@@ -19,15 +19,18 @@ export async function changeRole(teamId: string, userId: string, role: string): 
     }
 
     // Check if user has permission to change roles in this team
+    // Fix: Send correct parameter names that the edge function expects
     const { data: permissionData } = await supabase.functions.invoke('check_team_role_permission', {
       body: { 
-        team_id: teamId,
-        user_id: sessionData.session.user.id
+        auth_user_id: sessionData.session.user.id,  // Changed from team_id
+        team_id: teamId,                             // Keep team_id
+        target_user_id: userId,                      // Added missing target_user_id
+        role: role                                   // Add the role being assigned
       }
     });
 
-    if (!permissionData?.hasPermission) {
-      return { success: false, error: 'You do not have permission to manage team members' };
+    if (!permissionData?.can_change) {
+      return { success: false, error: permissionData?.reason || 'You do not have permission to manage team members' };
     }
 
     // First get the team member record to get the team_member_id
