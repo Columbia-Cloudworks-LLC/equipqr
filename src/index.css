@@ -83,25 +83,20 @@
 
 /* Print-specific styles */
 @media print {
-  /* Override all colors to black for print */
-  * {
-    color: black !important;
-    -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-  
-  /* Reset page styling */
+  /* Reset page styling for print */
   @page {
     margin: 0.5in;
     size: letter;
   }
   
+  /* Reset html and body for print */
   html, body {
     height: auto !important;
     overflow: visible !important;
     margin: 0;
     padding: 0;
     background: white !important;
+    color: black !important;
   }
   
   #root {
@@ -110,34 +105,25 @@
     overflow: visible !important;
   }
   
-  /* Hide the entire Layout component and its children with high specificity */
-  body > div > div:first-child:not(.print-only-container),
-  [data-sidebar="sidebar"],
-  .sidebar,
-  nav,
-  main,
-  footer,
-  .no-print,
-  button:not(.print-friendly) {
+  /* Hide all screen elements */
+  body > #root > * {
     display: none !important;
-    visibility: hidden !important;
   }
   
-  /* Show and style the print container with highest specificity */
-  body .print-only-container,
-  html .print-only-container {
+  /* Show only the print container */
+  .print-only-container {
     display: block !important;
     visibility: visible !important;
+    position: static !important;
     max-width: 6in !important;
     margin: 0 auto !important;
     padding: 0.5in !important;
     background: white !important;
     color: black !important;
     font-family: Arial, sans-serif !important;
-    position: static !important;
-    z-index: 9999 !important;
   }
   
+  /* Print header styling */
   .print-header {
     text-align: center !important;
     margin-bottom: 0.5in !important;
@@ -153,6 +139,7 @@
     line-height: 1.2 !important;
   }
   
+  /* QR code section */
   .print-qr-section {
     text-align: center !important;
     margin: 0.5in 0 !important;
@@ -171,8 +158,10 @@
     display: block !important;
     visibility: visible !important;
     margin: 0 auto !important;
+    background: white !important;
   }
   
+  /* Instructions section */
   .print-instructions {
     margin-top: 0.5in !important;
   }
@@ -216,6 +205,13 @@
     line-height: 1.4 !important;
     color: black !important;
     margin: 0.1in 0 !important;
+  }
+  
+  /* Ensure all text is black */
+  * {
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 }
 
