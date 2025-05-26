@@ -10,6 +10,7 @@ interface GetAllUserWorkOrdersParams {
   status?: string;
   equipmentId?: string;
   assignedTo?: string;
+  organizationId?: string;
   limit?: number;
   offset?: number;
 }
@@ -24,7 +25,7 @@ export async function getAllUserWorkOrders(params: GetAllUserWorkOrdersParams = 
       throw new Error('Not authenticated');
     }
 
-    console.log('Fetching work orders for user:', user.user.id);
+    console.log('Fetching work orders for user:', user.user.id, 'org:', params.organizationId);
 
     let query = supabase
       .from('work_order')
@@ -48,7 +49,12 @@ export async function getAllUserWorkOrders(params: GetAllUserWorkOrdersParams = 
       .is('deleted_at', null)
       .order('opened_at', { ascending: false });
 
-    // Apply filters with proper type checking
+    // Filter by organization if specified
+    if (params.organizationId) {
+      query = query.eq('equipment.org_id', params.organizationId);
+    }
+
+    // Apply other filters with proper type checking
     if (params.status && params.status !== 'all') {
       // Ensure the status is a valid WorkOrderStatus
       const validStatuses: WorkOrderStatus[] = [
@@ -114,17 +120,24 @@ export async function getAllUserWorkOrders(params: GetAllUserWorkOrdersParams = 
 /**
  * Get work order statistics for dashboard
  */
-export async function getWorkOrderStats() {
+export async function getWorkOrderStats(organizationId?: string) {
   try {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) {
       throw new Error('Not authenticated');
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('work_order')
       .select('status, equipment!inner(org_id, team_id)')
       .not('deleted_at', 'is', null);
+
+    // Filter by organization if specified
+    if (organizationId) {
+      query = query.eq('equipment.org_id', organizationId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching work order stats:', error);
@@ -149,7 +162,7 @@ export async function getWorkOrderStats() {
 /**
  * Get work orders assigned to the current user
  */
-export async function getMyWorkOrders(): Promise<WorkOrder[]> {
+export async function getMyWorkOrders(organizationId?: string): Promise<WorkOrder[]> {
   try {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) {
@@ -167,11 +180,11 @@ export async function getMyWorkOrders(): Promise<WorkOrder[]> {
       throw new Error('User profile not found');
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('work_order')
       .select(`
         *,
-        equipment!inner(name),
+        equipment!inner(name, org_id),
         submitted_by_profile:app_user!work_order_created_by_fkey(
           display_name,
           email
@@ -179,6 +192,13 @@ export async function getMyWorkOrders(): Promise<WorkOrder[]> {
       `)
       .eq('assigned_to', appUser.id)
       .order('opened_at', { ascending: false });
+
+    // Filter by organization if specified
+    if (organizationId) {
+      query = query.eq('equipment.org_id', organizationId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching my work orders:', error);

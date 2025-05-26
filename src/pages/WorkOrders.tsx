@@ -10,14 +10,22 @@ import { WorkOrdersList } from '@/components/WorkOrders/WorkOrdersList';
 import { getAllUserWorkOrders } from '@/services/workOrders/workOrderManagementService';
 import { toast } from 'sonner';
 import { Layout } from '@/components/Layout/Layout';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 export default function WorkOrders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  const { selectedOrganization, isLoading: isOrgLoading } = useOrganization();
 
   const { data: workOrders = [], isLoading, refetch } = useQuery({
-    queryKey: ['allWorkOrders', searchTerm, statusFilter],
-    queryFn: () => getAllUserWorkOrders({ search: searchTerm, status: statusFilter })
+    queryKey: ['allWorkOrders', selectedOrganization?.id, searchTerm, statusFilter],
+    queryFn: () => getAllUserWorkOrders({ 
+      search: searchTerm, 
+      status: statusFilter,
+      organizationId: selectedOrganization?.id 
+    }),
+    enabled: !!selectedOrganization
   });
 
   const filteredWorkOrders = workOrders.filter(wo => {
@@ -30,6 +38,18 @@ export default function WorkOrders() {
     
     return matchesSearch && matchesStatus;
   });
+
+  if (isOrgLoading || !selectedOrganization) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-center h-40">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

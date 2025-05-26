@@ -13,6 +13,7 @@ import {
   canManageWorkOrders,
   canViewWorkOrderHours
 } from '@/services/workOrders';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface WorkOrderManagementProps {
   equipmentId: string;
@@ -20,6 +21,7 @@ interface WorkOrderManagementProps {
 
 export function WorkOrderManagement({ equipmentId }: WorkOrderManagementProps) {
   const queryClient = useQueryClient();
+  const { selectedOrganization } = useOrganization();
 
   // Permission checks
   const { data: canSubmit = false } = useQuery({
@@ -39,8 +41,9 @@ export function WorkOrderManagement({ equipmentId }: WorkOrderManagementProps) {
 
   // Work orders query
   const { data: workOrders = [], isLoading } = useQuery({
-    queryKey: ['workOrders', equipmentId],
-    queryFn: () => getWorkOrders(equipmentId)
+    queryKey: ['workOrders', equipmentId, selectedOrganization?.id],
+    queryFn: () => getWorkOrders(equipmentId),
+    enabled: !!selectedOrganization
   });
 
   // Create work order mutation
@@ -48,6 +51,7 @@ export function WorkOrderManagement({ equipmentId }: WorkOrderManagementProps) {
     mutationFn: createWorkOrder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workOrders', equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['allWorkOrders', selectedOrganization?.id] });
       toast.success('Work order submitted successfully');
     },
     onError: (error: any) => {
