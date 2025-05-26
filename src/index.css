@@ -83,6 +83,13 @@
 
 /* Print-specific styles */
 @media print {
+  /* Override all colors to black for print */
+  * {
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
   /* Reset page styling */
   @page {
     margin: 0.5in;
@@ -103,24 +110,32 @@
     overflow: visible !important;
   }
   
-  /* Hide navigation and non-essential elements */
-  .no-print,
-  nav,
-  button:not(.print-friendly),
+  /* Hide the entire Layout component and its children with high specificity */
+  body > div > div:first-child:not(.print-only-container),
   [data-sidebar="sidebar"],
-  .sidebar {
+  .sidebar,
+  nav,
+  main,
+  footer,
+  .no-print,
+  button:not(.print-friendly) {
     display: none !important;
+    visibility: hidden !important;
   }
   
-  /* Show and style the print container */
-  .print-only-container {
+  /* Show and style the print container with highest specificity */
+  body .print-only-container,
+  html .print-only-container {
     display: block !important;
+    visibility: visible !important;
     max-width: 6in !important;
     margin: 0 auto !important;
     padding: 0.5in !important;
     background: white !important;
     color: black !important;
     font-family: Arial, sans-serif !important;
+    position: static !important;
+    z-index: 9999 !important;
   }
   
   .print-header {
@@ -145,6 +160,7 @@
   
   .print-qr-code {
     display: block !important;
+    visibility: visible !important;
   }
   
   .print-qr-code svg {
@@ -153,6 +169,7 @@
     width: auto !important;
     height: auto !important;
     display: block !important;
+    visibility: visible !important;
     margin: 0 auto !important;
   }
   
