@@ -4,12 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Layout } from '@/components/Layout/Layout';
-import { WorkOrderDetail as WorkOrderDetailComponent } from '@/components/WorkOrders/WorkOrderDetail';
-import { WorkOrderWorkNotes } from '@/components/WorkOrders/WorkOrderWorkNotes';
+import { WorkOrderDetailView } from '@/components/WorkOrders/WorkOrderDetailView';
 import { getWorkOrder, updateWorkOrder } from '@/services/workOrders';
 import { UpdateWorkOrderParams } from '@/types/workOrders';
 import { toast } from 'sonner';
@@ -45,18 +41,17 @@ export default function WorkOrderDetailPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center gap-4 mb-6">
             <Button variant="ghost" onClick={() => navigate('/work-orders')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Work Orders
             </Button>
           </div>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">Loading work order...</div>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading work order...</p>
+          </div>
         </div>
       </Layout>
     );
@@ -65,20 +60,21 @@ export default function WorkOrderDetailPage() {
   if (error || !workOrder) {
     return (
       <Layout>
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center gap-4 mb-6">
             <Button variant="ghost" onClick={() => navigate('/work-orders')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Work Orders
             </Button>
           </div>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center text-destructive">
-                {error ? 'Error loading work order' : 'Work order not found'}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12">
+            <div className="text-destructive mb-4">
+              {error ? 'Error loading work order' : 'Work order not found'}
+            </div>
+            <Button onClick={() => navigate('/work-orders')}>
+              Return to Work Orders
+            </Button>
+          </div>
         </div>
       </Layout>
     );
@@ -86,52 +82,12 @@ export default function WorkOrderDetailPage() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/work-orders')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Work Orders
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">{workOrder.title}</h1>
-              <p className="text-muted-foreground">
-                Work Order #{workOrder.id.slice(0, 8)}
-              </p>
-            </div>
-          </div>
-          <Badge variant="outline" className="text-sm">
-            Equipment: {workOrder.equipment_name}
-          </Badge>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Work Order Details */}
-          <div className="lg:col-span-2 space-y-6">
-            <WorkOrderDetailComponent
-              workOrder={workOrder}
-              canManage={true} // TODO: Implement proper permission check
-              onUpdate={handleUpdate}
-              onClose={() => {}} // Not used in this context
-            />
-          </div>
-
-          {/* Work Notes */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Work Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <WorkOrderWorkNotes 
-                  workOrderId={workOrder.id}
-                  equipmentId={workOrder.equipment_id}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+      <WorkOrderDetailView
+        workOrder={workOrder}
+        onUpdate={handleUpdate}
+        onBack={() => navigate('/work-orders')}
+        canManage={true} // TODO: Implement proper permission check
+      />
     </Layout>
   );
 }
