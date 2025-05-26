@@ -11,6 +11,7 @@ import {
   createWorkOrder,
   canSubmitWorkOrders,
   canManageWorkOrders,
+  canViewWorkOrders,
   canViewWorkOrderHours
 } from '@/services/workOrders';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -34,6 +35,11 @@ export function WorkOrderManagement({ equipmentId }: WorkOrderManagementProps) {
     queryFn: () => canManageWorkOrders(equipmentId)
   });
 
+  const { data: canView = false } = useQuery({
+    queryKey: ['canViewWorkOrders', equipmentId],
+    queryFn: () => canViewWorkOrders(equipmentId)
+  });
+
   const { data: canViewHours = false } = useQuery({
     queryKey: ['canViewWorkOrderHours', equipmentId],
     queryFn: () => canViewWorkOrderHours(equipmentId)
@@ -43,7 +49,7 @@ export function WorkOrderManagement({ equipmentId }: WorkOrderManagementProps) {
   const { data: workOrders = [], isLoading } = useQuery({
     queryKey: ['workOrders', equipmentId, selectedOrganization?.id],
     queryFn: () => getWorkOrders(equipmentId),
-    enabled: !!selectedOrganization
+    enabled: !!selectedOrganization && canView
   });
 
   // Create work order mutation
@@ -64,7 +70,7 @@ export function WorkOrderManagement({ equipmentId }: WorkOrderManagementProps) {
     await createMutation.mutateAsync(params);
   };
 
-  if (!canSubmit && !canManage) {
+  if (!canView && !canSubmit && !canManage) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         You don't have permission to view work orders for this equipment.
