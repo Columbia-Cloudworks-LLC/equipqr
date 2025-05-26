@@ -8,69 +8,67 @@ export async function canSubmitWorkOrders(equipmentId: string): Promise<boolean>
       return false;
     }
 
-    // First try checking via organization membership
-    const { data: orgData, error: orgError } = await supabase
+    // Get equipment details first
+    const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
-      .select(`
-        id,
-        org_id,
-        user_roles!inner(role)
-      `)
+      .select('id, org_id, team_id')
       .eq('id', equipmentId)
-      .eq('user_roles.user_id', user.user.id)
+      .single();
+
+    if (equipmentError || !equipment) {
+      console.error('Error fetching equipment:', equipmentError);
+      return false;
+    }
+
+    // Check organization membership separately
+    const { data: orgRole, error: orgError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.user.id)
+      .eq('org_id', equipment.org_id)
       .maybeSingle();
 
-    if (!orgError && orgData?.user_roles) {
-      const orgRole = Array.isArray(orgData.user_roles) 
-        ? orgData.user_roles[0]?.role 
-        : orgData.user_roles.role;
-      
-      if (['owner', 'manager', 'technician'].includes(orgRole)) {
+    if (!orgError && orgRole?.role) {
+      if (['owner', 'manager', 'technician'].includes(orgRole.role)) {
         return true;
       }
     }
 
-    // If org check failed, try team membership
-    const { data: equipmentData } = await supabase
-      .from('equipment')
-      .select('team_id')
-      .eq('id', equipmentId)
-      .single();
+    // If equipment has a team, check team membership
+    if (equipment.team_id) {
+      // Get app_user ID
+      const { data: appUser } = await supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', user.user.id)
+        .single();
 
-    if (!equipmentData?.team_id) {
-      return false;
-    }
+      if (!appUser) {
+        return false;
+      }
 
-    // Check team membership separately
-    const { data: appUser } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', user.user.id)
-      .single();
+      // Check team membership
+      const { data: teamMember } = await supabase
+        .from('team_member')
+        .select('id')
+        .eq('user_id', appUser.id)
+        .eq('team_id', equipment.team_id)
+        .maybeSingle();
 
-    if (!appUser) {
-      return false;
-    }
+      if (!teamMember) {
+        return false;
+      }
 
-    const { data: teamMember } = await supabase
-      .from('team_member')
-      .select('id')
-      .eq('user_id', appUser.id)
-      .eq('team_id', equipmentData.team_id)
-      .maybeSingle();
+      // Check team role
+      const { data: teamRole } = await supabase
+        .from('team_roles')
+        .select('role')
+        .eq('team_member_id', teamMember.id)
+        .maybeSingle();
 
-    if (!teamMember) {
-      return false;
-    }
-
-    const { data: teamRole } = await supabase
-      .from('team_roles')
-      .select('role')
-      .eq('team_member_id', teamMember.id)
-      .maybeSingle();
-
-    if (teamRole?.role) {
-      return ['manager', 'owner', 'admin', 'technician', 'requestor'].includes(teamRole.role);
+      if (teamRole?.role) {
+        return ['manager', 'owner', 'admin', 'technician', 'requestor'].includes(teamRole.role);
+      }
     }
 
     return false;
@@ -87,69 +85,67 @@ export async function canManageWorkOrders(equipmentId: string): Promise<boolean>
       return false;
     }
 
-    // First try checking via organization membership
-    const { data: orgData, error: orgError } = await supabase
+    // Get equipment details first
+    const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
-      .select(`
-        id,
-        org_id,
-        user_roles!inner(role)
-      `)
+      .select('id, org_id, team_id')
       .eq('id', equipmentId)
-      .eq('user_roles.user_id', user.user.id)
+      .single();
+
+    if (equipmentError || !equipment) {
+      console.error('Error fetching equipment:', equipmentError);
+      return false;
+    }
+
+    // Check organization membership separately
+    const { data: orgRole, error: orgError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.user.id)
+      .eq('org_id', equipment.org_id)
       .maybeSingle();
 
-    if (!orgError && orgData?.user_roles) {
-      const orgRole = Array.isArray(orgData.user_roles) 
-        ? orgData.user_roles[0]?.role 
-        : orgData.user_roles.role;
-      
-      if (['owner', 'manager'].includes(orgRole)) {
+    if (!orgError && orgRole?.role) {
+      if (['owner', 'manager'].includes(orgRole.role)) {
         return true;
       }
     }
 
-    // If org check failed, try team membership
-    const { data: equipmentData } = await supabase
-      .from('equipment')
-      .select('team_id')
-      .eq('id', equipmentId)
-      .single();
+    // If equipment has a team, check team membership
+    if (equipment.team_id) {
+      // Get app_user ID
+      const { data: appUser } = await supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', user.user.id)
+        .single();
 
-    if (!equipmentData?.team_id) {
-      return false;
-    }
+      if (!appUser) {
+        return false;
+      }
 
-    // Check team membership separately
-    const { data: appUser } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', user.user.id)
-      .single();
+      // Check team membership
+      const { data: teamMember } = await supabase
+        .from('team_member')
+        .select('id')
+        .eq('user_id', appUser.id)
+        .eq('team_id', equipment.team_id)
+        .maybeSingle();
 
-    if (!appUser) {
-      return false;
-    }
+      if (!teamMember) {
+        return false;
+      }
 
-    const { data: teamMember } = await supabase
-      .from('team_member')
-      .select('id')
-      .eq('user_id', appUser.id)
-      .eq('team_id', equipmentData.team_id)
-      .maybeSingle();
+      // Check team role
+      const { data: teamRole } = await supabase
+        .from('team_roles')
+        .select('role')
+        .eq('team_member_id', teamMember.id)
+        .maybeSingle();
 
-    if (!teamMember) {
-      return false;
-    }
-
-    const { data: teamRole } = await supabase
-      .from('team_roles')
-      .select('role')
-      .eq('team_member_id', teamMember.id)
-      .maybeSingle();
-
-    if (teamRole?.role) {
-      return ['manager', 'owner', 'admin'].includes(teamRole.role);
+      if (teamRole?.role) {
+        return ['manager', 'owner', 'admin'].includes(teamRole.role);
+      }
     }
 
     return false;
@@ -166,63 +162,65 @@ export async function canViewWorkOrders(equipmentId: string): Promise<boolean> {
       return false;
     }
 
-    // First try checking via organization membership
-    const { data: orgData, error: orgError } = await supabase
+    // Get equipment details first
+    const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
-      .select(`
-        id,
-        org_id,
-        user_roles!inner(role)
-      `)
+      .select('id, org_id, team_id')
       .eq('id', equipmentId)
-      .eq('user_roles.user_id', user.user.id)
+      .single();
+
+    if (equipmentError || !equipment) {
+      console.error('Error fetching equipment:', equipmentError);
+      return false;
+    }
+
+    // Check organization membership separately - any org member can view
+    const { data: orgRole, error: orgError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.user.id)
+      .eq('org_id', equipment.org_id)
       .maybeSingle();
 
-    if (!orgError && orgData) {
+    if (!orgError && orgRole?.role) {
       return true; // Any org member can view
     }
 
-    // If org check failed, try team membership
-    const { data: equipmentData } = await supabase
-      .from('equipment')
-      .select('team_id')
-      .eq('id', equipmentId)
-      .single();
+    // If equipment has a team, check team membership
+    if (equipment.team_id) {
+      // Get app_user ID
+      const { data: appUser } = await supabase
+        .from('app_user')
+        .select('id')
+        .eq('auth_uid', user.user.id)
+        .single();
 
-    if (!equipmentData?.team_id) {
-      return false;
-    }
+      if (!appUser) {
+        return false;
+      }
 
-    // Check team membership separately
-    const { data: appUser } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', user.user.id)
-      .single();
+      // Check team membership
+      const { data: teamMember } = await supabase
+        .from('team_member')
+        .select('id')
+        .eq('user_id', appUser.id)
+        .eq('team_id', equipment.team_id)
+        .maybeSingle();
 
-    if (!appUser) {
-      return false;
-    }
+      if (!teamMember) {
+        return false;
+      }
 
-    const { data: teamMember } = await supabase
-      .from('team_member')
-      .select('id')
-      .eq('user_id', appUser.id)
-      .eq('team_id', equipmentData.team_id)
-      .maybeSingle();
+      // Check team role
+      const { data: teamRole } = await supabase
+        .from('team_roles')
+        .select('role')
+        .eq('team_member_id', teamMember.id)
+        .maybeSingle();
 
-    if (!teamMember) {
-      return false;
-    }
-
-    const { data: teamRole } = await supabase
-      .from('team_roles')
-      .select('role')
-      .eq('team_member_id', teamMember.id)
-      .maybeSingle();
-
-    if (teamRole?.role) {
-      return ['manager', 'owner', 'admin', 'technician', 'requestor', 'viewer'].includes(teamRole.role);
+      if (teamRole?.role) {
+        return ['manager', 'owner', 'admin', 'technician', 'requestor', 'viewer'].includes(teamRole.role);
+      }
     }
 
     return false;
