@@ -1,5 +1,5 @@
 
-import { Organization } from '@/types';
+import { UserOrganization } from '@/services/organization/userOrganizations';
 import { Team } from '@/services/team';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
@@ -10,8 +10,8 @@ export interface TeamManagementContextType {
   members: TeamMember[];
   pendingInvitations: any[];
   selectedTeamId: string;
-  organizations: Organization[]; // Keep for backward compatibility but not used
-  selectedOrganization: Organization | null;
+  organizations: UserOrganization[]; // Keep for backward compatibility but not used
+  selectedOrganization: UserOrganization | null;
   filteredTeams: Team[];
   
   // State flags

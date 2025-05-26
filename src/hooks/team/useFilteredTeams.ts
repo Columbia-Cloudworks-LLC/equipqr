@@ -1,11 +1,11 @@
 
 import { useMemo } from 'react';
 import { Team } from '@/services/team';
-import { Organization } from '@/types';
+import { UserOrganization } from '@/services/organization/userOrganizations';
 
 export function useFilteredTeams(
   teams: Team[], 
-  selectedOrganization?: Organization | null
+  selectedOrganization?: UserOrganization | null
 ) {
   // Filter teams by selected organization
   return useMemo(() => {

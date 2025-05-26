@@ -4,12 +4,12 @@ import { TeamContent } from './TeamContent';
 import { CreateTeamButton } from './CreateTeamButton';
 import { UserRole } from '@/types/supabase-enums';
 import { Team } from '@/services/team';
-import { Organization } from '@/types';
+import { UserOrganization } from '@/services/organization/userOrganizations';
 
 interface TeamManagementWrapperProps {
   filteredTeams: Team[];
   selectedTeamId: string;
-  selectedOrganization?: Organization | null;
+  selectedOrganization?: UserOrganization | null;
   members: any[];
   pendingInvitations: any[];
   isLoading: boolean;

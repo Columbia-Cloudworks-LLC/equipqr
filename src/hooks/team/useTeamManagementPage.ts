@@ -2,6 +2,7 @@
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { useFilteredTeams } from '@/hooks/team/useFilteredTeams';
 import { TeamManagementContextType } from '@/contexts/TeamManagementContext.d';
@@ -15,13 +16,15 @@ export function useTeamManagementPage(): {
   const navigate = useNavigate();
   const { session, isLoading: isAuthLoading } = useAuth();
   
+  // Use global organization context directly
+  const { selectedOrganization } = useOrganization();
+  
   const teamManagement = useTeamManagement();
   const {
     members,
     pendingInvitations,
     teams,
     selectedTeamId,
-    selectedOrganization,
     isLoading,
     isLoadingInvitations,
     isCreatingTeam,

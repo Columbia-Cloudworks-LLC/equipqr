@@ -1,10 +1,10 @@
 
-import { Organization } from '@/types';
+import { UserOrganization } from '@/services/organization/userOrganizations';
 
 interface TeamManagementHeaderProps {
   onRefresh: () => void;
   isLoading: boolean;
-  selectedOrganization?: Organization | null;
+  selectedOrganization?: UserOrganization | null;
 }
 
 export function TeamManagementHeader({
