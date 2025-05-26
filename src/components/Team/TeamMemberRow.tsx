@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -74,7 +73,8 @@ export function TeamMemberRow({
     if (isChangingRole || member.status === 'pending') return;
     setIsChangingRole(true);
     try {
-      await onChangeRole(member.user_id, newRole);
+      // Fix: Pass auth_uid instead of user_id for role changes
+      await onChangeRole(member.auth_uid, newRole);
     } finally {
       setIsChangingRole(false);
     }
