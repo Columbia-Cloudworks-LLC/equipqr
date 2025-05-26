@@ -1,29 +1,16 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { WorkOrderAuditLog } from '@/types/workOrders';
 
-/**
- * Log a work order change for audit purposes
- */
 export async function logWorkOrderChange(
   workOrderId: string,
   changeType: 'status_change' | 'assignee_change' | 'field_update',
   oldValue: any,
   newValue: any
-): Promise<void> {
+) {
   try {
     const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return;
-
-    // Get app_user ID
-    const { data: appUser, error: appUserError } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', user.user.id)
-      .single();
-
-    if (appUserError || !appUser) {
-      console.error('Error getting app user for audit log:', appUserError);
+    if (!user.user) {
+      console.warn('No authenticated user for audit log');
       return;
     }
 
@@ -31,10 +18,10 @@ export async function logWorkOrderChange(
       .from('work_order_audit_log')
       .insert({
         work_order_id: workOrderId,
-        changed_by: appUser.id,
         change_type: changeType,
         old_value: oldValue,
-        new_value: newValue
+        new_value: newValue,
+        changed_by: user.user.id // Use auth.uid() for consistency
       });
 
     if (error) {
@@ -42,39 +29,5 @@ export async function logWorkOrderChange(
     }
   } catch (error) {
     console.error('Error in logWorkOrderChange:', error);
-  }
-}
-
-/**
- * Get audit log for a work order
- */
-export async function getWorkOrderAuditLog(workOrderId: string): Promise<WorkOrderAuditLog[]> {
-  try {
-    const { data, error } = await supabase
-      .from('work_order_audit_log')
-      .select(`
-        *,
-        app_user!work_order_audit_log_changed_by_fkey(
-          auth_uid,
-          display_name,
-          email
-        )
-      `)
-      .eq('work_order_id', workOrderId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching work order audit log:', error);
-      throw error;
-    }
-
-    return data?.map(log => ({
-      ...log,
-      change_type: log.change_type as 'status_change' | 'assignee_change' | 'field_update',
-      changed_by_name: log.app_user?.display_name || log.app_user?.email
-    })) || [];
-  } catch (error) {
-    console.error('Error in getWorkOrderAuditLog:', error);
-    throw error;
   }
 }
