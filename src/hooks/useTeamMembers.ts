@@ -187,13 +187,23 @@ export function useTeamMembers(teamId: string | null) {
         throw new Error('Cannot change roles in a deleted team');
       }
       
+      console.log('handleChangeRole called with:', { teamId, userId, role });
       setError(null);
+      
       // Fix: Correct parameter order - teamId, userId, role
-      await changeRole(teamId, userId, role);
-      toast.success("Role updated", {
-        description: "Team member role updated successfully"
-      });
-      await fetchTeamMembers();
+      const result = await changeRole(teamId, userId, role);
+      
+      if (result.success) {
+        toast.success("Role updated", {
+          description: "Team member role updated successfully"
+        });
+        
+        // Force refresh of team members data
+        console.log('Role change successful, refreshing team members...');
+        await fetchTeamMembers();
+      } else {
+        throw new Error(result.error || 'Failed to update role');
+      }
     } catch (error: any) {
       console.error('Error in handleChangeRole:', error);
       setError('Failed to update role. Please try again.');

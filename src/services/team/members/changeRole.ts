@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export async function changeRole(teamId: string, userId: string, role: string): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
+    console.log('changeRole called with:', { teamId, userId, role });
+    
     if (!teamId || !userId || !role) {
       return { success: false, error: 'Missing required parameters' };
     }
@@ -29,16 +31,19 @@ export async function changeRole(teamId: string, userId: string, role: string): 
     }
 
     // First get the team member record to get the team_member_id
-    const { data: teamMember } = await supabase
+    const { data: teamMember, error: teamMemberError } = await supabase
       .from('team_member')
       .select('id')
       .eq('user_id', userId)
       .eq('team_id', teamId)
       .single();
 
-    if (!teamMember) {
+    if (teamMemberError || !teamMember) {
+      console.error('Error finding team member:', teamMemberError);
       return { success: false, error: 'User is not a member of this team' };
     }
+
+    console.log('Found team member:', teamMember);
 
     // Check if there would be at least one manager left
     if (role !== 'manager') {
@@ -90,8 +95,11 @@ export async function changeRole(teamId: string, userId: string, role: string): 
       .single();
 
     if (roleError) {
+      console.error('Error updating role:', roleError);
       return { success: false, error: `Failed to update role: ${roleError.message}` };
     }
+
+    console.log('Role updated successfully:', roleData);
 
     return { 
       success: true, 
