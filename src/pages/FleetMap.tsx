@@ -8,12 +8,10 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { getDisplayLocation } from '@/services/equipment/locationService';
 import { useCombinedDashboardData } from '@/hooks/useCombinedDashboardData';
 import { toast } from 'sonner';
-import { useSearchParams } from 'react-router-dom';
 import { usePersistedFilters } from '@/hooks/usePersistedFilters';
 
 const FleetMapPage = () => {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
-  const [searchParams] = useSearchParams();
   
   const { 
     organizations, 
@@ -22,13 +20,12 @@ const FleetMapPage = () => {
     isLoading: isOrgLoading
   } = useOrganization();
   
-  // Use persisted filters for the fleet map
+  // Use persisted filters for the fleet map (excluding organization)
   const { 
     filters, 
     setFilterStatus, 
     setFilterTeam, 
     setFilterSearch,
-    setFilterOrganization,
     clearFilters 
   } = usePersistedFilters('fleet-map-filters');
   
@@ -39,29 +36,6 @@ const FleetMapPage = () => {
     isOrgReady,
     refetchDashboard
   } = useCombinedDashboardData(selectedOrganization?.id);
-
-  // Initialize organization from URL parameter or filters
-  useEffect(() => {
-    const urlOrgId = searchParams.get('org');
-    
-    if (urlOrgId && organizations.length > 0) {
-      // URL parameter takes precedence
-      const org = organizations.find(o => o.id === urlOrgId);
-      if (org && (!selectedOrganization || selectedOrganization.id !== urlOrgId)) {
-        selectOrganization(urlOrgId);
-        setFilterOrganization(urlOrgId);
-      }
-    } else if (filters.organization && organizations.length > 0 && !urlOrgId) {
-      // Fall back to persisted filter if no URL parameter
-      const org = organizations.find(o => o.id === filters.organization);
-      if (org && (!selectedOrganization || selectedOrganization.id !== filters.organization)) {
-        selectOrganization(filters.organization);
-      }
-    } else if (selectedOrganization && !filters.organization && !urlOrgId) {
-      // Update filters with current selected organization if no URL or filter
-      setFilterOrganization(selectedOrganization.id);
-    }
-  }, [searchParams, filters.organization, organizations, selectedOrganization, selectOrganization, setFilterOrganization]);
 
   // Filter equipment based on search and filters
   const filteredEquipment = equipment.filter(item => {
