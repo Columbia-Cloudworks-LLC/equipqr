@@ -14,6 +14,18 @@ export async function logWorkOrderChange(
       return;
     }
 
+    // Get app_user.id from auth.uid for audit logging (required by foreign key)
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', user.user.id)
+      .single();
+
+    if (appUserError || !appUser) {
+      console.error('Error fetching app_user for audit:', appUserError);
+      return;
+    }
+
     const { error } = await supabase
       .from('work_order_audit_log')
       .insert({
@@ -21,7 +33,7 @@ export async function logWorkOrderChange(
         change_type: changeType,
         old_value: oldValue,
         new_value: newValue,
-        changed_by: user.user.id // Use auth.uid() for consistency with RLS
+        changed_by: appUser.id // Use app_user.id for foreign key constraint
       });
 
     if (error) {
