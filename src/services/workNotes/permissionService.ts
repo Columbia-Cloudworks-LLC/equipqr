@@ -44,3 +44,29 @@ export function canEditWorkNote(note: any, userId: string): boolean {
   
   return hoursSinceCreation <= 24;
 }
+
+/**
+ * Check if a user can manage work notes for specific equipment
+ */
+export async function canManageWorkNotes(equipmentId: string): Promise<boolean> {
+  try {
+    const permissions = await getWorkNotePermissions(equipmentId);
+    return permissions.canEdit && permissions.canDelete;
+  } catch (error) {
+    console.error('Error checking manage permissions:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if a user can create work notes for specific equipment
+ */
+export async function canCreateWorkNotes(equipmentId: string): Promise<boolean> {
+  try {
+    const permissions = await getWorkNotePermissions(equipmentId);
+    return permissions.canCreate;
+  } catch (error) {
+    console.error('Error checking create permissions:', error);
+    return false;
+  }
+}

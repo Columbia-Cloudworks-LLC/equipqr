@@ -1,7 +1,14 @@
+
 export * from './types';
 export * from './fetchService';
 export * from './mutationService';
-export * from './permissionService';
 
-// Export the new role permission service
+// Export permission functions individually to avoid conflicts
+export { 
+  getWorkNotePermissions,
+  canManageWorkNotes,
+  canCreateWorkNotes
+} from './permissionService';
+
+// Export role permission service
 export * from './rolePermissionService';
