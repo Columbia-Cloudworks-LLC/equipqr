@@ -10,8 +10,7 @@ export interface TeamManagementContextType {
   members: TeamMember[];
   pendingInvitations: any[];
   selectedTeamId: string;
-  organizations: Organization[];
-  selectedOrgId?: string;
+  organizations: Organization[]; // Keep for backward compatibility but not used
   selectedOrganization: Organization | null;
   filteredTeams: Team[];
   
@@ -24,7 +23,7 @@ export interface TeamManagementContextType {
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
   isMember: boolean;
-  isChangingOrg: boolean;
+  isChangingOrg: boolean; // Keep for backward compatibility but always false
   
   // User roles and permissions
   currentUserRole: string | null;
@@ -35,7 +34,7 @@ export interface TeamManagementContextType {
   
   // Functions - updated to match component usage patterns
   setSelectedTeamId: (teamId: string) => void;
-  handleOrganizationChange: (orgId: string) => void;
+  handleOrganizationChange: (orgId: string) => void; // Keep for backward compatibility but does nothing
   handleCreateTeam: (name: string) => Promise<any>;
   handleUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>;
   handleDeleteTeam: () => Promise<any>; 

@@ -11,7 +11,7 @@ import { useTeamOperationState } from './team/useTeamOperationState';
 import { useTeamCreation } from './team/useTeamCreation';
 
 export function useTeamManagement() {
-  const { organizations, selectedOrganization } = useOrganization();
+  const { selectedOrganization } = useOrganization();
   
   // Use the smaller, focused hooks
   const { 
@@ -87,6 +87,15 @@ export function useTeamManagement() {
     fetchTeams();
   }, [fetchTeams]);
 
+  // IMPORTANT: Re-fetch teams and clear selection when organization changes
+  useEffect(() => {
+    if (selectedOrganization) {
+      console.log(`Organization changed to: ${selectedOrganization.name}, fetching teams...`);
+      setSelectedTeamId(''); // Clear team selection
+      fetchTeams(); // Fetch teams for new organization
+    }
+  }, [selectedOrganization?.id, fetchTeams, setSelectedTeamId]);
+
   // Fetch team members when selectedTeamId changes
   useEffect(() => {
     if (selectedTeamId && selectedTeamId !== 'none') {
@@ -141,16 +150,17 @@ export function useTeamManagement() {
       members: members.length,
       currentUserRole,
       accessRole,
-      organizationRole
+      organizationRole,
+      selectedOrg: selectedOrganization?.name
     });
-  }, [teams.length, selectedTeamId, isLoading, isMember, members.length, currentUserRole, accessRole, organizationRole]);
+  }, [teams.length, selectedTeamId, isLoading, isMember, members.length, currentUserRole, accessRole, organizationRole, selectedOrganization?.name]);
 
   return {
     members,
     pendingInvitations,
     teams,
     selectedTeamId,
-    organizations,
+    selectedOrganization,
     isLoading,
     isLoadingInvitations,
     isCreatingTeam,

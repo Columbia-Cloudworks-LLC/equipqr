@@ -1,17 +1,17 @@
 
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Team } from '@/services/team';
+import { Organization } from '@/types';
 
 export function useFilteredTeams(
   teams: Team[], 
-  selectedOrgId?: string, 
-  isChangingOrg: boolean = false
+  selectedOrganization?: Organization | null
 ) {
   // Filter teams by selected organization
   return useMemo(() => {
     // Filter by org ID and also ensure we only include non-deleted teams
-    return selectedOrgId 
-      ? teams.filter(team => team.org_id === selectedOrgId && !team.deleted_at) 
+    return selectedOrganization?.id 
+      ? teams.filter(team => team.org_id === selectedOrganization.id && !team.deleted_at) 
       : teams.filter(team => !team.deleted_at);
-  }, [teams, selectedOrgId]);
+  }, [teams, selectedOrganization?.id]);
 }

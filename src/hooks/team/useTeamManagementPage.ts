@@ -3,9 +3,7 @@ import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeamManagement } from '@/hooks/useTeamManagement';
-import { useTeamManagementOrgs } from '@/hooks/team/useTeamManagementOrgs';
 import { useFilteredTeams } from '@/hooks/team/useFilteredTeams';
-import { Organization } from '@/types';
 import { TeamManagementContextType } from '@/contexts/TeamManagementContext.d';
 import { UserRole } from '@/types/supabase-enums';
 
@@ -23,7 +21,7 @@ export function useTeamManagementPage(): {
     pendingInvitations,
     teams,
     selectedTeamId,
-    organizations,
+    selectedOrganization,
     isLoading,
     isLoadingInvitations,
     isCreatingTeam,
@@ -52,21 +50,7 @@ export function useTeamManagementPage(): {
     getTeamEquipmentCount: getTeamEquipmentCountBase
   } = teamManagement;
   
-  const orgContext = useTeamManagementOrgs(organizations, fetchTeams, setSelectedTeamId);
-  const { selectedOrgId, isChangingOrg, handleOrganizationChange, selectedOrganization } = orgContext;
-  
-  const filteredTeams = useFilteredTeams(teams, selectedOrgId, isChangingOrg);
-  
-  const formattedOrganizations = useMemo(() => organizations.map(org => ({
-    id: org.id,
-    name: org.name,
-    role: org.role || 'viewer',
-    is_primary: !!org.is_primary,
-    created_at: org.created_at,
-    updated_at: org.updated_at,
-    owner_user_id: org.owner_user_id,
-    user_id: (org as any).user_id
-  })), [organizations]);
+  const filteredTeams = useFilteredTeams(teams, selectedOrganization);
 
   useEffect(() => {
     if (!isAuthLoading && !session) {
@@ -80,10 +64,6 @@ export function useTeamManagementPage(): {
   }, [session, isAuthLoading, navigate]);
 
   useEffect(() => {
-    if (isChangingOrg) {
-      return;
-    }
-    
     if (filteredTeams.length > 0) {
       const teamExists = filteredTeams.some(team => team.id === selectedTeamId);
       
@@ -97,7 +77,7 @@ export function useTeamManagementPage(): {
         setSelectedTeamId('');
       }
     }
-  }, [filteredTeams, selectedTeamId, setSelectedTeamId, isChangingOrg]);
+  }, [filteredTeams, selectedTeamId, setSelectedTeamId]);
 
   // Create wrapper functions that match the context interface signatures exactly
   const wrappedHandleUpdateTeam = async (teamId: string, data: { name: string }) => {
@@ -142,8 +122,7 @@ export function useTeamManagementPage(): {
     members,
     pendingInvitations,
     selectedTeamId,
-    organizations: formattedOrganizations,
-    selectedOrgId,
+    organizations: [], // No longer needed since we use global context
     selectedOrganization,
     filteredTeams,
     isLoading,
@@ -154,12 +133,12 @@ export function useTeamManagementPage(): {
     isUpgradingRole,
     isRequestingRole,
     isMember,
-    isChangingOrg,
+    isChangingOrg: false, // No longer managed locally
     currentUserRole,
     canChangeRoles,
     error,
     setSelectedTeamId,
-    handleOrganizationChange,
+    handleOrganizationChange: () => {}, // No longer needed
     handleCreateTeam,
     handleUpdateTeam: wrappedHandleUpdateTeam,
     handleDeleteTeam: wrappedHandleDeleteTeam,
@@ -173,7 +152,7 @@ export function useTeamManagementPage(): {
     refetchTeamMembers,
     refetchPendingInvitations: wrappedRefetchPendingInvitations,
     fetchTeams,
-    getTeamEquipmentCount: getTeamEquipmentCountBase // Pass directly - it already has correct signature
+    getTeamEquipmentCount: getTeamEquipmentCountBase
   };
 
   return {

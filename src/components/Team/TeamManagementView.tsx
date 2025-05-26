@@ -4,7 +4,6 @@ import { EmptyTeamState } from '@/components/Team/EmptyTeamState';
 import { TeamManagementHeader } from '@/components/Team/TeamManagementHeader';
 import { OrganizationAlert } from '@/components/Team/OrganizationAlert';
 import { AuthLoadingState } from '@/components/Team/AuthLoadingState';
-import { OrgSwitcherLoading } from '@/components/Team/OrgSwitcherLoading';
 import { TeamManagementWrapper } from '@/components/Team/TeamManagementWrapper';
 import { useTeamManagementContext } from '@/contexts/TeamManagementContext';
 
@@ -23,7 +22,6 @@ export function TeamManagementView() {
     isUpgradingRole,
     isRequestingRole,
     isMember,
-    isChangingOrg,
     currentUserRole,
     canChangeRoles,
     error,
@@ -46,11 +44,6 @@ export function TeamManagementView() {
 
   // Determine if the user has viewer role only
   const isViewerOnly = isMember && currentUserRole === 'viewer';
-
-  // Check if we're in the middle of an organization change
-  if (isChangingOrg) {
-    return <OrgSwitcherLoading />;
-  }
 
   // Check if we're viewing an external organization's teams
   const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
@@ -111,7 +104,7 @@ export function TeamManagementView() {
           isMember={isMember}
           currentUserRole={currentUserRole}
           canChangeRoles={canChangeRoles}
-          isChangingOrg={isChangingOrg}
+          isChangingOrg={false}
           onSelectTeam={setSelectedTeamId}
           onCreateTeam={handleCreateTeam}
           onUpdateTeam={handleUpdateTeam}
