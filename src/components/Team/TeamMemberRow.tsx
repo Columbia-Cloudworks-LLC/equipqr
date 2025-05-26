@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Mail, Trash2, UserCheck } from 'lucide-react';
+import { MoreHorizontal, Mail, Trash2, UserCheck, Shield, Crown } from 'lucide-react';
 import { UserRole } from '@/types/supabase-enums';
 import { TeamMember } from '@/types';
 
@@ -17,6 +18,8 @@ interface UnifiedMember extends TeamMember {
   invitation_id?: string;
   invitation_email?: string;
   invitation_role?: string;
+  is_org_manager?: boolean;
+  org_role?: string;
 }
 
 interface TeamMemberRowProps {
@@ -49,7 +52,6 @@ export function TeamMemberRow({
     setIsRemoving(true);
     try {
       if (member.status === 'pending' && member.invitation_id) {
-        // For pending invitations, we need to cancel the invitation
         await onRemoveMember(member.invitation_id);
       } else {
         await onRemoveMember(member.user_id);
@@ -73,7 +75,7 @@ export function TeamMemberRow({
     if (isChangingRole || member.status === 'pending') return;
     setIsChangingRole(true);
     try {
-      // Fix: Pass auth_uid instead of user_id for role changes
+      // Use auth_uid for role changes (already fixed in previous edit)
       await onChangeRole(member.auth_uid, newRole);
     } finally {
       setIsChangingRole(false);
@@ -84,6 +86,24 @@ export function TeamMemberRow({
     if (member.status === 'pending') {
       return <Badge variant="secondary">Invitation Pending</Badge>;
     }
+    
+    if (member.is_org_manager) {
+      if (member.org_role === 'owner') {
+        return (
+          <Badge className="bg-purple-100 text-purple-800">
+            <Crown className="w-3 h-3 mr-1" />
+            Organization Owner
+          </Badge>
+        );
+      }
+      return (
+        <Badge className="bg-blue-100 text-blue-800">
+          <Shield className="w-3 h-3 mr-1" />
+          Organization Manager
+        </Badge>
+      );
+    }
+    
     return <Badge variant="default">Active</Badge>;
   };
 
@@ -103,11 +123,14 @@ export function TeamMemberRow({
     );
   };
 
+  // Organization managers should not have their team roles changed
+  const isOrgManager = member.is_org_manager && ['owner', 'manager'].includes(member.org_role || '');
+  
   const canRemove = canChangeRoles && !isLastManager && 
-    (member.status === 'pending' || !isCurrentUser);
+    (member.status === 'pending' || (!isCurrentUser && !isOrgManager));
 
   const canChangeRole = canChangeRoles && member.status === 'active' && 
-    !isLastManager && !isCurrentUser;
+    !isLastManager && !isCurrentUser && !isOrgManager;
 
   return (
     <TableRow>
@@ -119,6 +142,11 @@ export function TeamMemberRow({
           {member.status === 'pending' && (
             <span className="text-xs text-muted-foreground">
               Invited
+            </span>
+          )}
+          {isOrgManager && (
+            <span className="text-xs text-blue-600 font-medium">
+              Manages via organization
             </span>
           )}
         </div>
@@ -189,6 +217,12 @@ export function TeamMemberRow({
                     Make Viewer
                   </DropdownMenuItem>
                 </>
+              )}
+              {isOrgManager && (
+                <DropdownMenuItem disabled>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Organization role cannot be changed here
+                </DropdownMenuItem>
               )}
               {canRemove && (
                 <DropdownMenuItem 

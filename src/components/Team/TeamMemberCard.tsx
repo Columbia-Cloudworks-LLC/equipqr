@@ -8,7 +8,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Mail, Trash2, UserCheck } from 'lucide-react';
+import { MoreHorizontal, Mail, Trash2, UserCheck, Shield, Crown } from 'lucide-react';
 import { UserRole } from '@/types/supabase-enums';
 import { TeamMember } from '@/types';
 import { useState } from 'react';
@@ -18,6 +18,8 @@ interface UnifiedMember extends TeamMember {
   invitation_id?: string;
   invitation_email?: string;
   invitation_role?: string;
+  is_org_manager?: boolean;
+  org_role?: string;
 }
 
 interface TeamMemberCardProps {
@@ -73,7 +75,7 @@ export function TeamMemberCard({
     if (isChangingRole || member.status === 'pending') return;
     setIsChangingRole(true);
     try {
-      await onChangeRole(member.user_id, newRole);
+      await onChangeRole(member.auth_uid, newRole);
     } finally {
       setIsChangingRole(false);
     }
@@ -83,6 +85,24 @@ export function TeamMemberCard({
     if (member.status === 'pending') {
       return <Badge variant="secondary">Invitation Pending</Badge>;
     }
+    
+    if (member.is_org_manager) {
+      if (member.org_role === 'owner') {
+        return (
+          <Badge className="bg-purple-100 text-purple-800">
+            <Crown className="w-3 h-3 mr-1" />
+            Organization Owner
+          </Badge>
+        );
+      }
+      return (
+        <Badge className="bg-blue-100 text-blue-800">
+          <Shield className="w-3 h-3 mr-1" />
+          Organization Manager
+        </Badge>
+      );
+    }
+    
     return <Badge variant="default">Active</Badge>;
   };
 
@@ -101,11 +121,14 @@ export function TeamMemberCard({
     );
   };
 
+  // Organization managers should not have their team roles changed
+  const isOrgManager = member.is_org_manager && ['owner', 'manager'].includes(member.org_role || '');
+  
   const canRemove = canChangeRoles && !isLastManager && 
-    (member.status === 'pending' || !isCurrentUser);
+    (member.status === 'pending' || (!isCurrentUser && !isOrgManager));
 
   const canChangeRole = canChangeRoles && member.status === 'active' && 
-    !isLastManager && !isCurrentUser;
+    !isLastManager && !isCurrentUser && !isOrgManager;
 
   return (
     <Card>
@@ -125,6 +148,11 @@ export function TeamMemberCard({
             <p className="text-sm text-muted-foreground truncate mb-2">
               {member.email || member.invitation_email || 'N/A'}
             </p>
+            {isOrgManager && (
+              <p className="text-xs text-blue-600 font-medium mb-2">
+                Manages via organization
+              </p>
+            )}
             <div className="flex items-center gap-2 mb-3">
               {getRoleBadge(member.role)}
               {getStatusBadge()}
@@ -175,6 +203,12 @@ export function TeamMemberCard({
                     Make Viewer
                   </DropdownMenuItem>
                 </>
+              )}
+              {isOrgManager && (
+                <DropdownMenuItem disabled>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Organization role cannot be changed here
+                </DropdownMenuItem>
               )}
               {canRemove && (
                 <DropdownMenuItem 

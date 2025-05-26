@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { sendInvitationEmail, generateToken } from './invitationHelpers';
 import { UserRole } from '@/types/supabase-enums';
@@ -42,18 +43,45 @@ export async function inviteMember(
       throw new Error('You do not have permission to invite users to this team');
     }
     
-    // Check if user is already a member of the team
+    // Get team organization ID
+    const { data: team, error: teamError } = await supabase
+      .from('team')
+      .select('org_id')
+      .eq('id', teamId)
+      .single();
+    
+    if (teamError || !team) {
+      throw new Error('Team not found');
+    }
+    
+    // Check if user exists and get their organization role
     const { data: existingUser } = await supabase.rpc('get_user_by_email', {
       email_address: normalizedEmail
     });
     
     let isAlreadyMember = false;
+    let isOrgManager = false;
     
     if (existingUser && existingUser[0]) {
-      // Fix: Access the first element of the array to get the user object
       const user = existingUser[0];
       
-      // Check if already a member by querying team_member directly
+      // Check if they're an organization manager in this team's organization
+      const { data: orgRole, error: orgRoleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.auth_uid)
+        .eq('org_id', team.org_id)
+        .maybeSingle();
+      
+      if (orgRole && ['owner', 'manager'].includes(orgRole.role)) {
+        isOrgManager = true;
+        return {
+          success: false,
+          error: 'Cannot invite organization managers to teams they already manage'
+        };
+      }
+      
+      // Check if already a team member
       const { data: existingMember, error: memberCheckError } = await supabase
         .from('team_member')
         .select('id')
@@ -117,7 +145,6 @@ export async function inviteMember(
     
     // Send invitation email
     try {
-      // Fix: Looking at the function signature in invitationHelpers.ts, we need to pass an object with required properties
       await sendInvitationEmail({
         recipientEmail: normalizedEmail,
         teamName: "Team", // We should get the team name here, but for now just use generic name

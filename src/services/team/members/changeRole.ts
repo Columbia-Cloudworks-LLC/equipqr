@@ -4,11 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * Change a user's role in a team
  */
-export async function changeRole(teamId: string, userId: string, role: string): Promise<{ success: boolean; message?: string; error?: string }> {
+export async function changeRole(teamId: string, authUserId: string, role: string): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    console.log('changeRole called with:', { teamId, userId, role });
+    console.log('changeRole called with:', { teamId, authUserId, role });
     
-    if (!teamId || !userId || !role) {
+    if (!teamId || !authUserId || !role) {
       return { success: false, error: 'Missing required parameters' };
     }
 
@@ -18,14 +18,27 @@ export async function changeRole(teamId: string, userId: string, role: string): 
       return { success: false, error: 'Authentication required' };
     }
 
+    // Convert auth_uid to app_user.id for database lookups
+    const { data: targetAppUser, error: targetAppUserError } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', authUserId)
+      .single();
+
+    if (targetAppUserError || !targetAppUser) {
+      console.error('Error finding target app user:', targetAppUserError);
+      return { success: false, error: 'Target user not found in system' };
+    }
+
+    console.log('Found target app user:', targetAppUser);
+
     // Check if user has permission to change roles in this team
-    // Fix: Send correct parameter names that the edge function expects
     const { data: permissionData } = await supabase.functions.invoke('check_team_role_permission', {
       body: { 
-        auth_user_id: sessionData.session.user.id,  // Changed from team_id
-        team_id: teamId,                             // Keep team_id
-        target_user_id: userId,                      // Added missing target_user_id
-        role: role                                   // Add the role being assigned
+        auth_user_id: sessionData.session.user.id,
+        team_id: teamId,
+        target_user_id: authUserId,
+        role: role
       }
     });
 
@@ -33,16 +46,42 @@ export async function changeRole(teamId: string, userId: string, role: string): 
       return { success: false, error: permissionData?.reason || 'You do not have permission to manage team members' };
     }
 
-    // First get the team member record to get the team_member_id
+    // Check if target user is a team member or organization manager
     const { data: teamMember, error: teamMemberError } = await supabase
       .from('team_member')
       .select('id')
-      .eq('user_id', userId)
+      .eq('user_id', targetAppUser.id)
       .eq('team_id', teamId)
-      .single();
+      .maybeSingle();
 
-    if (teamMemberError || !teamMember) {
-      console.error('Error finding team member:', teamMemberError);
+    // If not a direct team member, check if they're an organization manager
+    if (!teamMember) {
+      // Get team organization
+      const { data: team, error: teamError } = await supabase
+        .from('team')
+        .select('org_id')
+        .eq('id', teamId)
+        .single();
+
+      if (teamError || !team) {
+        return { success: false, error: 'Team not found' };
+      }
+
+      // Check if target user is an organization manager
+      const { data: orgRole, error: orgRoleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authUserId)
+        .eq('org_id', team.org_id)
+        .maybeSingle();
+
+      if (orgRole && ['owner', 'manager'].includes(orgRole.role)) {
+        return { 
+          success: false, 
+          error: 'Cannot change organization manager roles directly - they manage teams through organization permissions' 
+        };
+      }
+
       return { success: false, error: 'User is not a member of this team' };
     }
 
@@ -50,7 +89,7 @@ export async function changeRole(teamId: string, userId: string, role: string): 
 
     // Check if there would be at least one manager left
     if (role !== 'manager') {
-      // Get count of existing managers in this team using proper parameter syntax
+      // Get count of existing managers in this team
       const { data: teamMembers } = await supabase
         .from('team_member')
         .select('id')

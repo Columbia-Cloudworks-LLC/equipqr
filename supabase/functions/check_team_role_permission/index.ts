@@ -54,7 +54,22 @@ serve(async (req) => {
       );
     }
     
-    // Get the app_user.id for the auth user and target user
+    // Get organization roles for both users
+    const { data: authUserOrgRole, error: authOrgRoleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", auth_user_id)
+      .eq("org_id", team.org_id)
+      .maybeSingle();
+      
+    const { data: targetUserOrgRole, error: targetOrgRoleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", target_user_id)
+      .eq("org_id", team.org_id)
+      .maybeSingle();
+    
+    // Get app_user IDs for both users
     const { data: authAppUser, error: authUserError } = await supabaseAdmin
       .from("app_user")
       .select("id")
@@ -77,7 +92,7 @@ serve(async (req) => {
       );
     }
     
-    // Get the team member records for both users
+    // Get team member records for both users
     const { data: authTeamMember, error: authMemberError } = await supabaseAdmin
       .from("team_member")
       .select("id")
@@ -92,78 +107,104 @@ serve(async (req) => {
       .eq("team_id", team_id)
       .maybeSingle();
     
-    if (targetMemberError || !targetTeamMember) {
-      return new Response(
-        JSON.stringify({ 
-          can_change: false, 
-          reason: 'Target user is not a team member' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-    
-    // Get the auth user's team role if they're a team member
+    // Get team roles if they exist
     let authUserTeamRole = null;
+    let targetUserTeamRole = null;
+    
     if (authTeamMember) {
-      const { data: authRoleData, error: authRoleError } = await supabaseAdmin
+      const { data: authRoleData } = await supabaseAdmin
         .from("team_roles")
         .select("role")
         .eq("team_member_id", authTeamMember.id)
         .maybeSingle();
-        
-      if (!authRoleError && authRoleData) {
-        authUserTeamRole = authRoleData.role;
-      }
+      authUserTeamRole = authRoleData?.role;
     }
     
-    // Get the auth user's org role
-    const { data: authOrgRole, error: authOrgRoleError } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", auth_user_id)
-      .eq("org_id", team.org_id)
-      .maybeSingle();
+    if (targetTeamMember) {
+      const { data: targetRoleData } = await supabaseAdmin
+        .from("team_roles")
+        .select("role")
+        .eq("team_member_id", targetTeamMember.id)
+        .maybeSingle();
+      targetUserTeamRole = targetRoleData?.role;
+    }
     
-    // Get the target member's current role
-    const { data: targetRoleData, error: targetRoleError } = await supabaseAdmin
-      .from("team_roles")
-      .select("role")
-      .eq("team_member_id", targetTeamMember.id)
-      .maybeSingle();
-      
-    const targetCurrentRole = targetRoleData?.role;
+    // Implement hierarchy rules
+    const authOrgRole = authUserOrgRole?.role;
+    const targetOrgRole = targetUserOrgRole?.role;
     
-    // Self-demotion check - prevent managers from changing their own role
-    if (auth_user_id === target_user_id && authUserTeamRole === 'manager') {
+    console.log('Permission check:', {
+      authOrgRole,
+      targetOrgRole,
+      authUserTeamRole,
+      targetUserTeamRole,
+      isSelfChange: auth_user_id === target_user_id
+    });
+    
+    // Rule 1: Self-management prevention - managers cannot change their own role
+    if (auth_user_id === target_user_id && (authUserTeamRole === 'manager' || authOrgRole === 'manager')) {
       return new Response(
         JSON.stringify({ 
           can_change: false, 
-          reason: 'Team managers cannot change their own role' 
+          reason: 'Managers cannot change their own role' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
     
-    // Organization owners can change any role
-    if (authOrgRole?.role === 'owner') {
+    // Rule 2: Organization owners can change any role
+    if (authOrgRole === 'owner') {
       return new Response(
         JSON.stringify({ can_change: true, reason: 'org_owner' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
     
-    // Team managers can change roles of other team members (except themselves)
-    if (authUserTeamRole === 'manager') {
+    // Rule 3: Organization managers can manage team roles BUT NOT other organization managers
+    if (authOrgRole === 'manager') {
+      if (targetOrgRole === 'owner') {
+        return new Response(
+          JSON.stringify({ 
+            can_change: false, 
+            reason: 'Organization managers cannot manage organization owners' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+      
+      if (targetOrgRole === 'manager') {
+        return new Response(
+          JSON.stringify({ 
+            can_change: false, 
+            reason: 'Organization managers cannot manage other organization managers - contact organization owner' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+      
+      // Org managers can manage team roles for non-org-managers
       return new Response(
-        JSON.stringify({ can_change: true, reason: 'team_manager' }),
+        JSON.stringify({ can_change: true, reason: 'org_manager' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
     
-    // Organization managers can change team roles
-    if (authOrgRole?.role === 'manager') {
+    // Rule 4: Team managers (who are NOT organization managers) can manage other team managers
+    if (authUserTeamRole === 'manager' && !authOrgRole) {
+      // Cannot manage organization managers
+      if (targetOrgRole === 'owner' || targetOrgRole === 'manager') {
+        return new Response(
+          JSON.stringify({ 
+            can_change: false, 
+            reason: 'Team managers cannot manage organization managers' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+      
+      // Can manage other team members
       return new Response(
-        JSON.stringify({ can_change: true, reason: 'org_manager' }),
+        JSON.stringify({ can_change: true, reason: 'team_manager' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
