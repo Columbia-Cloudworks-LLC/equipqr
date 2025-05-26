@@ -1,7 +1,6 @@
-
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Package, Users, Home, Map, ClipboardList } from "lucide-react";
+import { QrCode, Users, Home, Map, ClipboardList } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -37,7 +36,7 @@ const mainNavItems = [
   {
     title: "Equipment",
     href: "/equipment",
-    icon: Package,
+    icon: QrCode,
   },
   {
     title: "Work Orders",
@@ -74,7 +73,7 @@ export function AppSidebar() {
     <Sidebar className="border-r-slate-700">
       <SidebarHeader className="border-b-slate-700">
         <div className="flex items-center gap-2 w-full">
-          <Package className="h-6 w-6 text-primary shrink-0" />
+          <QrCode className="h-6 w-6 text-primary shrink-0" />
           {!isCollapsed && <h1 className="text-lg font-semibold text-white truncate">{AppConfig.name}</h1>}
         </div>
       </SidebarHeader>
