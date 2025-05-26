@@ -92,6 +92,7 @@ export function TeamMemberRow({
       owner: 'bg-purple-100 text-purple-800',
       manager: 'bg-blue-100 text-blue-800', 
       technician: 'bg-green-100 text-green-800',
+      requestor: 'bg-orange-100 text-orange-800',
       viewer: 'bg-gray-100 text-gray-800'
     };
     
@@ -172,6 +173,13 @@ export function TeamMemberRow({
                   >
                     <UserCheck className="mr-2 h-4 w-4" />
                     Make Technician
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleRoleChange('requestor' as UserRole)}
+                    disabled={isChangingRole || member.role === 'requestor'}
+                  >
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    Make Requestor
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => handleRoleChange('viewer' as UserRole)}

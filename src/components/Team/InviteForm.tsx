@@ -19,7 +19,7 @@ interface InviteFormProps {
   onCancel?: () => void;
   isLoading?: boolean;
   teams: { id: string; name: string }[];
-  selectedTeamId?: string; // Added this prop
+  selectedTeamId?: string;
 }
 
 export function InviteForm({ onInvite, onCancel, isLoading = false, teams, selectedTeamId }: InviteFormProps) {
@@ -27,7 +27,7 @@ export function InviteForm({ onInvite, onCancel, isLoading = false, teams, selec
   const [role, setRole] = useState<UserRole>('viewer');
   const [teamId, setTeamId] = useState(selectedTeamId || '');
 
-  // Update teamId when selectedTeamId changes - fix: changed useState to useEffect
+  // Update teamId when selectedTeamId changes
   useEffect(() => {
     if (selectedTeamId) {
       setTeamId(selectedTeamId);
@@ -98,6 +98,7 @@ export function InviteForm({ onInvite, onCancel, isLoading = false, teams, selec
               <SelectContent>
                 <SelectItem value="manager">Manager (Can manage team and equipment)</SelectItem>
                 <SelectItem value="technician">Technician (Can update equipment and add notes)</SelectItem>
+                <SelectItem value="requestor">Requestor (Can submit work orders)</SelectItem>
                 <SelectItem value="viewer">Viewer (Read-only access)</SelectItem>
               </SelectContent>
             </Select>
