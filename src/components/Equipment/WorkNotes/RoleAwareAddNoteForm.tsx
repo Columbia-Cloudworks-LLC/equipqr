@@ -8,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { PlusCircle, Eye, EyeOff, Clock, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EquipmentUserRole } from '@/services/equipment/equipmentRoleService';
+import { ImageUpload } from './ImageUpload';
 
 export interface RoleAwareAddNoteFormProps {
-  onAddNote: (note: string, isPublic: boolean, hoursWorked: string) => void;
+  onAddNote: (note: string, isPublic: boolean, hoursWorked: string, imageUrls?: string[]) => void;
   isPending?: boolean;
   userRole: EquipmentUserRole;
 }
@@ -23,6 +24,7 @@ export function RoleAwareAddNoteForm({
   const [newNote, setNewNote] = useState('');
   const [isPublic, setIsPublic] = useState(userRole === 'requestor' ? true : false);
   const [hoursWorked, setHoursWorked] = useState<string>('');
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   
   // Determine permissions based on role
   const canCreateNotes = ['manager', 'technician', 'requestor'].includes(userRole);
@@ -36,10 +38,15 @@ export function RoleAwareAddNoteForm({
     // Force public for requestors
     const noteIsPublic = userRole === 'requestor' ? true : isPublic;
     
-    onAddNote(newNote, noteIsPublic, canEnterHours ? hoursWorked : '');
+    onAddNote(newNote, noteIsPublic, canEnterHours ? hoursWorked : '', imageUrls);
     setNewNote('');
     setIsPublic(userRole === 'requestor' ? true : false);
     setHoursWorked('');
+    setImageUrls([]);
+  };
+
+  const handleImagesUploaded = (urls: string[]) => {
+    setImageUrls(prev => [...prev, ...urls]);
   };
 
   if (!canCreateNotes) {
@@ -73,6 +80,35 @@ export function RoleAwareAddNoteForm({
           className="resize-none"
           required
         />
+        
+        <ImageUpload 
+          onImagesUploaded={handleImagesUploaded}
+          isUploading={isPending}
+        />
+
+        {imageUrls.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Attached Images ({imageUrls.length}):</Label>
+            <div className="flex flex-wrap gap-2">
+              {imageUrls.map((url, index) => (
+                <div key={index} className="relative">
+                  <img
+                    src={url}
+                    alt={`Attachment ${index + 1}`}
+                    className="h-16 w-16 object-cover rounded border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImageUrls(prev => prev.filter((_, i) => i !== index))}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="flex flex-wrap gap-4 items-end justify-between">
           <div className="flex flex-wrap gap-4 items-end">

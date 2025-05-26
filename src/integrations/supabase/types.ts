@@ -433,6 +433,7 @@ export type Database = {
           equipment_id: string
           hours_worked: number | null
           id: string
+          image_urls: string[] | null
           is_public: boolean
           note: string
           updated_at: string
@@ -447,6 +448,7 @@ export type Database = {
           equipment_id: string
           hours_worked?: number | null
           id?: string
+          image_urls?: string[] | null
           is_public?: boolean
           note: string
           updated_at?: string
@@ -461,6 +463,7 @@ export type Database = {
           equipment_id?: string
           hours_worked?: number | null
           id?: string
+          image_urls?: string[] | null
           is_public?: boolean
           note?: string
           updated_at?: string
@@ -1496,6 +1499,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_equipment_latest_image: {
+        Args: { equipment_id_param: string }
+        Returns: string
+      }
       get_equipment_scan_history: {
         Args: { p_equipment_id: string; p_user_id: string; p_limit?: number }
         Returns: {
@@ -1533,6 +1540,7 @@ export type Database = {
           equipment_id: string
           hours_worked: number | null
           id: string
+          image_urls: string[] | null
           is_public: boolean
           note: string
           updated_at: string

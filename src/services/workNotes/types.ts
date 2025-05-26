@@ -1,31 +1,29 @@
 
 export interface WorkNote {
-  id?: string;
+  id: string;
   equipment_id: string;
   note: string;
-  created_by: string;
-  created_at?: string;
-  hours_worked?: number | null;
   is_public: boolean;
-  updated_at?: string;
-  deleted_at?: string | null;
-  edited_at?: string | null;
-  edited_by?: string | null;
-  work_order_id?: string | null;
-  creator?: {
-    display_name?: string;
-  };
-  editor?: {
-    display_name?: string;
-  };
-  is_external_org?: boolean;
+  hours_worked: number | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  edited_at: string | null;
+  edited_by: string | null;
+  work_order_id: string | null;
+  image_urls: string[] | null;
+  
+  // Extended fields from joins
+  creator_name?: string;
+  creator_org_name?: string;
   organization_name?: string;
-  team_name?: string;
+  is_external_org?: boolean;
 }
 
 export interface WorkNotePermissions {
   canCreate: boolean;
-  canManage: boolean;
+  canEdit: boolean;
   canDelete: boolean;
-  reason?: string;
+  canViewPrivate: boolean;
 }

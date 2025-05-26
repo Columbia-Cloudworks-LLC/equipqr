@@ -43,8 +43,22 @@ export function RoleAwareWorkNotes({ workOrderId, equipmentId }: RoleAwareWorkNo
   const workOrderNotes = workNotes.filter(note => note.work_order_id === workOrderId);
 
   const createNoteMutation = useMutation({
-    mutationFn: (data: { equipment_id: string; note: string; is_public: boolean; hours_worked: number | null; work_order_id: string }) =>
-      createWorkNote(data.equipment_id, data.note, data.hours_worked, data.is_public, data.work_order_id),
+    mutationFn: (data: { 
+      equipment_id: string; 
+      note: string; 
+      is_public: boolean; 
+      hours_worked: number | null; 
+      work_order_id: string;
+      image_urls?: string[]
+    }) =>
+      createWorkNote(
+        data.equipment_id, 
+        data.note, 
+        data.hours_worked, 
+        data.is_public, 
+        data.work_order_id,
+        data.image_urls || []
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workNotes', equipmentId] });
       toast.success('Work note added successfully');
@@ -55,7 +69,12 @@ export function RoleAwareWorkNotes({ workOrderId, equipmentId }: RoleAwareWorkNo
     }
   });
 
-  const handleAddNote = (note: string, isPublic: boolean, hoursWorked: string) => {
+  const handleAddNote = (
+    note: string, 
+    isPublic: boolean, 
+    hoursWorked: string, 
+    imageUrls?: string[]
+  ) => {
     const hours = hoursWorked ? parseFloat(hoursWorked) : null;
     
     if (hoursWorked && isNaN(parseFloat(hoursWorked))) {
@@ -68,7 +87,8 @@ export function RoleAwareWorkNotes({ workOrderId, equipmentId }: RoleAwareWorkNo
       note: note.trim(),
       is_public: isPublic,
       hours_worked: hours,
-      work_order_id: workOrderId
+      work_order_id: workOrderId,
+      image_urls: imageUrls || []
     });
   };
 

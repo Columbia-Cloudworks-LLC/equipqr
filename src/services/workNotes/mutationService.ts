@@ -10,7 +10,8 @@ export async function createWorkNote(
   note: string, 
   hoursWorked: number | null = null, 
   isPublic: boolean = false,
-  workOrderId?: string
+  workOrderId?: string,
+  imageUrls: string[] = []
 ): Promise<WorkNote> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -20,7 +21,7 @@ export async function createWorkNote(
       throw new Error('You must be logged in to create work notes');
     }
 
-    console.log('Creating work note:', { equipmentId, note, hoursWorked, isPublic, workOrderId });
+    console.log('Creating work note:', { equipmentId, note, hoursWorked, isPublic, workOrderId, imageUrls });
 
     const noteData = {
       equipment_id: equipmentId,
@@ -28,7 +29,8 @@ export async function createWorkNote(
       hours_worked: hoursWorked,
       is_public: isPublic,
       created_by: userId, // Use auth user ID directly
-      work_order_id: workOrderId || null
+      work_order_id: workOrderId || null,
+      image_urls: imageUrls.length > 0 ? imageUrls : null
     };
 
     const { data, error } = await supabase

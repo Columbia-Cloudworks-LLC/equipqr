@@ -13,8 +13,22 @@ export function useWorkNotesMutations(equipmentId: string) {
   
   // Create work note mutation
   const createMutation = useMutation({
-    mutationFn: (data: { equipment_id: string, note: string, is_public: boolean, hours_worked: number | null, work_order_id?: string }) => 
-      createWorkNote(data.equipment_id, data.note, data.hours_worked, data.is_public, data.work_order_id),
+    mutationFn: (data: { 
+      equipment_id: string, 
+      note: string, 
+      is_public: boolean, 
+      hours_worked: number | null, 
+      work_order_id?: string,
+      image_urls?: string[]
+    }) => 
+      createWorkNote(
+        data.equipment_id, 
+        data.note, 
+        data.hours_worked, 
+        data.is_public, 
+        data.work_order_id,
+        data.image_urls || []
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workNotes', equipmentId] });
       toast.success('Work note added successfully');
@@ -59,7 +73,13 @@ export function useWorkNotesMutations(equipmentId: string) {
   });
   
   // Handle adding a new work note
-  const handleAddNote = (note: string, isPublic: boolean, hoursWorked: string, workOrderId?: string) => {
+  const handleAddNote = (
+    note: string, 
+    isPublic: boolean, 
+    hoursWorked: string, 
+    workOrderId?: string,
+    imageUrls?: string[]
+  ) => {
     const hours = hoursWorked ? parseFloat(hoursWorked) : null;
     
     // Validation
@@ -79,7 +99,8 @@ export function useWorkNotesMutations(equipmentId: string) {
       note: note.trim(),
       is_public: isPublic,
       hours_worked: hours,
-      work_order_id: workOrderId
+      work_order_id: workOrderId,
+      image_urls: imageUrls || []
     });
   };
 

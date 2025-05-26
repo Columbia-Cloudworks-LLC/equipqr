@@ -4,8 +4,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Users, Package, QrCode, Building, MapPin } from 'lucide-react';
+import { Users, Package, QrCode, Building, MapPin, ImageIcon } from 'lucide-react';
 import { truncateText } from '@/utils/textUtils';
+import { useQuery } from '@tanstack/react-query';
+import { getEquipmentLatestImage } from '@/services/equipment/imageService';
 
 interface EquipmentCardProps {
   equipment: Equipment;
@@ -23,6 +25,13 @@ export function EquipmentCard({ equipment }: EquipmentCardProps) {
     }
   };
 
+  // Get the latest image for this equipment
+  const { data: latestImage } = useQuery({
+    queryKey: ['equipmentLatestImage', equipment.id],
+    queryFn: () => getEquipmentLatestImage(equipment.id),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   return (
     <Card className="flex flex-col h-full">
       <CardHeader className="pb-2">
@@ -37,6 +46,21 @@ export function EquipmentCard({ equipment }: EquipmentCardProps) {
       </CardHeader>
       
       <CardContent className="pb-2 flex-grow">
+        {/* Image thumbnail */}
+        {latestImage ? (
+          <div className="mb-3">
+            <img
+              src={latestImage}
+              alt={`${equipment.name} latest image`}
+              className="w-full h-32 object-cover rounded border"
+            />
+          </div>
+        ) : (
+          <div className="mb-3 w-full h-32 bg-muted rounded border flex items-center justify-center">
+            <ImageIcon className="h-8 w-8 text-muted-foreground" />
+          </div>
+        )}
+
         <dl className="space-y-2 text-sm">
           {equipment.model && (
             <div className="flex items-start">

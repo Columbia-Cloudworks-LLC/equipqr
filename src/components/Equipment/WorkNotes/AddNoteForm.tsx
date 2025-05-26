@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { PlusCircle, Eye, EyeOff } from 'lucide-react';
+import { ImageUpload } from './ImageUpload';
 
 export interface AddNoteFormProps {
-  onAddNote: (note: string, isPublic: boolean, hoursWorked: string) => void;
+  onAddNote: (note: string, isPublic: boolean, hoursWorked: string, imageUrls?: string[]) => void;
   isPending?: boolean;
 }
 
@@ -16,14 +17,20 @@ export function AddNoteForm({ isPending = false, onAddNote }: AddNoteFormProps) 
   const [newNote, setNewNote] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [hoursWorked, setHoursWorked] = useState<string>('');
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote.trim()) return;
-    onAddNote(newNote, isPublic, hoursWorked);
+    onAddNote(newNote, isPublic, hoursWorked, imageUrls);
     setNewNote('');
     setIsPublic(false);
     setHoursWorked('');
+    setImageUrls([]);
+  };
+
+  const handleImagesUploaded = (urls: string[]) => {
+    setImageUrls(prev => [...prev, ...urls]);
   };
   
   return (
@@ -35,6 +42,35 @@ export function AddNoteForm({ isPending = false, onAddNote }: AddNoteFormProps) 
         className="resize-none"
         required
       />
+      
+      <ImageUpload 
+        onImagesUploaded={handleImagesUploaded}
+        isUploading={isPending}
+      />
+
+      {imageUrls.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Attached Images ({imageUrls.length}):</Label>
+          <div className="flex flex-wrap gap-2">
+            {imageUrls.map((url, index) => (
+              <div key={index} className="relative">
+                <img
+                  src={url}
+                  alt={`Attachment ${index + 1}`}
+                  className="h-16 w-16 object-cover rounded border"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImageUrls(prev => prev.filter((_, i) => i !== index))}
+                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       <div className="flex flex-wrap gap-4 items-end justify-between">
         <div className="flex flex-wrap gap-4 items-end">
