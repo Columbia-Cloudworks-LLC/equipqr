@@ -107,9 +107,9 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
         // Try to get more info about these missing users from auth.users
         const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
         if (!authError && authUsers?.users) {
-          const missingAuthUsers = authUsers.users.filter(user => missingUserIds.includes(user.id));
+          const missingAuthUsers = authUsers.users.filter((user: any) => missingUserIds.includes(user.id));
           console.log('🔍 DEBUGGING: Found these missing users in auth.users:', 
-            missingAuthUsers.map(u => ({ id: u.id, email: u.email, created_at: u.created_at }))
+            missingAuthUsers.map((u: any) => ({ id: u.id, email: u.email, created_at: u.created_at }))
           );
         }
       }
