@@ -76,8 +76,13 @@
   }
 }
 
-/* Print-only container - hidden on screen */
-.print-only-container {
+/* Screen-only elements - hidden during print */
+.screen-only {
+  display: block;
+}
+
+/* Print-only elements - hidden on screen */
+.print-only {
   display: none;
 }
 
@@ -105,13 +110,14 @@
     overflow: visible !important;
   }
   
-  /* Hide all screen elements */
-  body > #root > * {
+  /* Hide screen-only elements */
+  .screen-only {
     display: none !important;
+    visibility: hidden !important;
   }
   
-  /* Show only the print container */
-  .print-only-container {
+  /* Show print-only elements */
+  .print-only {
     display: block !important;
     visibility: visible !important;
     position: static !important;
