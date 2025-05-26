@@ -22,24 +22,12 @@ export async function createWorkNote(
 
     console.log('Creating work note:', { equipmentId, note, hoursWorked, isPublic, workOrderId });
 
-    // Get app_user.id from auth.uid for foreign key constraint
-    const { data: appUser, error: appUserError } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', userId)
-      .single();
-
-    if (appUserError || !appUser) {
-      console.error('Error fetching app_user:', appUserError);
-      throw new Error('User profile not found');
-    }
-
     const noteData = {
       equipment_id: equipmentId,
       note: note.trim(),
       hours_worked: hoursWorked,
       is_public: isPublic,
-      created_by: appUser.id,
+      created_by: userId, // Use auth user ID directly
       work_order_id: workOrderId || null
     };
 
@@ -76,21 +64,9 @@ export async function updateWorkNote(id: string, updates: Partial<WorkNote>): Pr
 
     console.log('Updating work note:', id, updates);
 
-    // Get app_user.id from auth.uid for edit tracking
-    const { data: appUser, error: appUserError } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', userId)
-      .single();
-
-    if (appUserError || !appUser) {
-      console.error('Error fetching app_user:', appUserError);
-      throw new Error('User profile not found');
-    }
-
     const updateData = {
       ...updates,
-      edited_by: appUser.id,
+      edited_by: userId, // Use auth user ID directly
       edited_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
