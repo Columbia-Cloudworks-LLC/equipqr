@@ -1,7 +1,9 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrder, CreateWorkOrderParams, UpdateWorkOrderParams, WorkOrderStatus } from '@/types/workOrders';
 import { logWorkOrderChange } from './workOrderAudit';
 import { canSubmitWorkOrders } from './workOrderPermissions';
+import { sendAssignmentNotification } from './workOrderAssignmentService';
 
 /**
  * Get work orders for equipment
@@ -177,7 +179,7 @@ export async function updateWorkOrder(
     // Get current work order for audit logging
     const { data: currentWorkOrder } = await supabase
       .from('work_order')
-      .select('*')
+      .select('*, equipment!inner(name)')
       .eq('id', workOrderId)
       .single();
 
@@ -240,6 +242,21 @@ export async function updateWorkOrder(
 
     if (updateData.assigned_to && updateData.assigned_to !== currentWorkOrder.assigned_to) {
       await logWorkOrderChange(workOrderId, 'assignee_change', currentWorkOrder.assigned_to, updateData.assigned_to);
+      
+      // Send assignment notification if assignment is new or changed
+      if (params.assigned_to) {
+        try {
+          await sendAssignmentNotification(
+            params.assigned_to,
+            workOrderId,
+            currentWorkOrder.title,
+            currentWorkOrder.equipment?.name || 'Unknown Equipment'
+          );
+        } catch (notificationError) {
+          console.warn('Failed to send assignment notification:', notificationError);
+          // Don't fail the whole operation if notification fails
+        }
+      }
     }
 
     return {

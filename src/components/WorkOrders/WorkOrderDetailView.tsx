@@ -1,250 +1,168 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Edit, FileText, Clock, User, Calendar, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  User, 
-  Clock, 
-  Edit2, 
-  FileText,
-  MessageSquare,
-  Building2
-} from 'lucide-react';
 import { WorkOrder, UpdateWorkOrderParams } from '@/types/workOrders';
-import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import { WorkOrderEditForm } from './WorkOrderEditForm';
-import { RoleAwareWorkNotes } from './RoleAwareWorkNotes';
-import { getUserRoleForWorkOrder } from '@/services/workOrders/workOrderRoleService';
+import { WorkOrderWorkNotes } from './WorkOrderWorkNotes';
+import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import { format } from 'date-fns';
 
 interface WorkOrderDetailViewProps {
   workOrder: WorkOrder;
-  canManage: boolean;
-  onUpdate: (id: string, updates: UpdateWorkOrderParams) => Promise<void>;
+  onUpdate: (workOrderId: string, updates: UpdateWorkOrderParams) => Promise<void>;
   onBack: () => void;
+  canManage: boolean;
 }
 
-export function WorkOrderDetailView({ 
-  workOrder, 
-  canManage, 
-  onUpdate, 
-  onBack 
-}: WorkOrderDetailViewProps) {
+export function WorkOrderDetailView({ workOrder, onUpdate, onBack, canManage }: WorkOrderDetailViewProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('details');
 
-  // Get user role for this work order
-  const { data: userRole = 'none' } = useQuery({
-    queryKey: ['workOrderUserRole', workOrder.equipment_id],
-    queryFn: () => getUserRoleForWorkOrder(workOrder.equipment_id)
-  });
+  const handleUpdate = async (workOrderId: string, updates: UpdateWorkOrderParams) => {
+    await onUpdate(workOrderId, updates);
+    setIsEditing(false);
+  };
 
-  // Determine if user can edit based on role and work order status
-  const canEdit = canManage && 
-    ['manager', 'technician'].includes(userRole) && 
-    !['completed', 'cancelled'].includes(workOrder.status);
-
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-        {/* Header */}
-        <div className="space-y-4">
-          <Button variant="ghost" onClick={onBack} className="p-0 h-auto">
+  if (isEditing) {
+    return (
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onBack}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Work Orders
           </Button>
-          
-          <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div className="space-y-2">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                  {workOrder.title}
-                </h1>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                  <span>Work Order #{workOrder.id.slice(0, 8)}</span>
-                  <span>•</span>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {format(new Date(workOrder.submitted_at), 'MMM d, yyyy')}
-                  </div>
-                  {workOrder.submitted_by_name && (
-                    <>
-                      <span>•</span>
-                      <div className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
-                        {workOrder.submitted_by_name}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <WorkOrderStatusBadge status={workOrder.status} />
-                {workOrder.equipment_name && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <Building2 className="h-3 w-3" />
-                    {workOrder.equipment_name}
-                  </Badge>
-                )}
-                {canEdit && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(!isEditing)}
-                  >
-                    <Edit2 className="h-4 w-4 mr-1" />
-                    {isEditing ? 'Cancel' : 'Edit'}
-                  </Button>
-                )}
-              </div>
-            </div>
-            
-            {workOrder.estimated_hours && (
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>Estimated: {workOrder.estimated_hours}h</span>
-                {workOrder.assigned_to_name && (
-                  <>
-                    <span className="mx-2">•</span>
-                    <span>Assigned to: {workOrder.assigned_to_name}</span>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Role-based access indicator */}
-            {userRole === 'requestor' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
-                  You submitted this work order. You can view progress and add public notes, but editing is restricted to technicians and managers.
-                </p>
-              </div>
-            )}
-            
-            {userRole === 'viewer' && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-sm text-gray-700">
-                  You have read-only access to this work order.
-                </p>
-              </div>
-            )}
-          </div>
         </div>
-
-        {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-2">
-            <TabsTrigger value="details" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Details
-            </TabsTrigger>
-            <TabsTrigger value="notes" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Work Notes
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="details" className="space-y-6">
-            {isEditing ? (
-              <WorkOrderEditForm
-                workOrder={workOrder}
-                onUpdate={onUpdate}
-                onCancel={() => setIsEditing(false)}
-              />
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Work Order Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
-                    <p className="text-sm leading-relaxed">
-                      {workOrder.description || 'No description provided.'}
-                    </p>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Status</h4>
-                      <WorkOrderStatusBadge status={workOrder.status} />
-                    </div>
-                    
-                    {workOrder.estimated_hours && (
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Estimated Hours</h4>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{workOrder.estimated_hours}h</span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {workOrder.submitted_by_name && (
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Submitted By</h4>
-                        <div className="flex items-center gap-1">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{workOrder.submitted_by_name}</span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {workOrder.assigned_to_name && (
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Assigned To</h4>
-                        <div className="flex items-center gap-1">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{workOrder.assigned_to_name}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-muted-foreground">
-                    <div>
-                      <span className="font-medium">Submitted:</span>{' '}
-                      {format(new Date(workOrder.submitted_at), 'MMM d, yyyy \'at\' h:mm a')}
-                    </div>
-                    
-                    {workOrder.completed_at && (
-                      <div>
-                        <span className="font-medium">Completed:</span>{' '}
-                        {format(new Date(workOrder.completed_at), 'MMM d, yyyy \'at\' h:mm a')}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="notes" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Work Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RoleAwareWorkNotes 
-                  workOrderId={workOrder.id}
-                  equipmentId={workOrder.equipment_id}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <WorkOrderEditForm
+          workOrder={workOrder}
+          onUpdate={handleUpdate}
+          onCancel={() => setIsEditing(false)}
+          canManage={canManage}
+        />
       </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Work Orders
+          </Button>
+        </div>
+        
+        {canManage && (
+          <Button onClick={() => setIsEditing(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Work Order
+          </Button>
+        )}
+      </div>
+
+      {/* Work Order Details */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-xl">{workOrder.title}</CardTitle>
+              <p className="text-muted-foreground mt-1">
+                Equipment: {workOrder.equipment_name || 'Unknown'}
+              </p>
+            </div>
+            <WorkOrderStatusBadge status={workOrder.status} />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Description */}
+          {workOrder.description && (
+            <div>
+              <h3 className="font-medium mb-2 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Description
+              </h3>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {workOrder.description}
+              </p>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Details Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Submitted by:</span>
+                <span className="text-sm text-muted-foreground">
+                  {workOrder.submitted_by_name || 'Unknown'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Submitted:</span>
+                <span className="text-sm text-muted-foreground">
+                  {format(new Date(workOrder.submitted_at), 'MMM d, yyyy \'at\' h:mm a')}
+                </span>
+              </div>
+
+              {workOrder.assigned_to_name && (
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Assigned to:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {workOrder.assigned_to_name}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {workOrder.estimated_hours && (
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Estimated hours:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {workOrder.estimated_hours}h
+                  </span>
+                </div>
+              )}
+
+              {workOrder.accepted_at && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Accepted:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(workOrder.accepted_at), 'MMM d, yyyy \'at\' h:mm a')}
+                  </span>
+                </div>
+              )}
+
+              {workOrder.completed_at && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Completed:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(workOrder.completed_at), 'MMM d, yyyy \'at\' h:mm a')}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Work Notes Section */}
+      <WorkOrderWorkNotes
+        workOrderId={workOrder.id}
+        equipmentId={workOrder.equipment_id}
+      />
     </div>
   );
 }

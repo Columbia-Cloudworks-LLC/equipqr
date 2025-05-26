@@ -1,207 +1,87 @@
 
-import { useState } from 'react';
-import { 
-  Table, 
-  TableHeader, 
-  TableHead, 
-  TableRow, 
-  TableBody, 
-  TableCell 
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  MoreHorizontal, 
-  Mail, 
-  XCircle, 
-  Calendar,
-  Copy
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clock, Mail, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { TeamListHeader } from './TeamListHeader';
-
-interface PendingInvitation {
-  id: string;
-  email: string;
-  role: string;
-  status: string;
-  created_at: string;
-  expires_at: string;
-  token: string;
-}
+import { Invitation } from '@/types';
 
 interface PendingInvitationsListProps {
-  invitations: PendingInvitation[];
+  invitations: Invitation[];
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvite: (id: string) => Promise<void>;
-  isLoading: boolean;
-  isViewOnly?: boolean;
+  resendingInvite: string | null;
+  cancelingInvite: string | null;
 }
 
 export function PendingInvitationsList({
   invitations,
   onResendInvite,
   onCancelInvite,
-  isLoading,
-  isViewOnly = false
+  resendingInvite,
+  cancelingInvite
 }: PendingInvitationsListProps) {
-  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
-  const [cancellingInvite, setCancellingInvite] = useState<string | null>(null);
-
-  const handleResendInvite = async (id: string) => {
-    try {
-      setResendingInvite(id);
-      await onResendInvite(id);
-      toast.success('Invitation resent successfully');
-    } catch (error: any) {
-      toast.error(`Failed to resend invitation: ${error.message}`);
-    } finally {
-      setResendingInvite(null);
-    }
-  };
-
-  const handleCancelInvite = async (id: string) => {
-    try {
-      setCancellingInvite(id);
-      await onCancelInvite(id);
-      toast.success('Invitation cancelled successfully');
-    } catch (error: any) {
-      toast.error(`Failed to cancel invitation: ${error.message}`);
-    } finally {
-      setCancellingInvite(null);
-    }
-  };
-  
-  const copyInvitationLink = (token: string) => {
-    const appUrl = window.location.origin;
-    const invitationUrl = `${appUrl}/invitation/${token}`;
-    
-    navigator.clipboard.writeText(invitationUrl)
-      .then(() => toast.success('Invitation link copied to clipboard!'))
-      .catch(() => toast.error('Failed to copy invitation link'));
-  };
-
-  if (isLoading) {
+  if (invitations.length === 0) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
-
-  if (!invitations || invitations.length === 0) {
-    return (
-      <div className="text-center p-8 border rounded-md">
-        <p className="text-gray-500">No pending invitations</p>
-      </div>
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center text-muted-foreground">
+            <UserPlus className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No pending invitations</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-4">
-      <TeamListHeader isViewOnly={isViewOnly} />
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Invited</TableHead>
-              <TableHead>Expires</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invitations.map((invitation) => {
-              const createdDate = new Date(invitation.created_at);
-              const expiresDate = new Date(invitation.expires_at);
-              const isExpired = expiresDate < new Date();
+      {invitations.map((invitation) => (
+        <Card key={invitation.id}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">{invitation.email}</CardTitle>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Pending
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p><strong>Role:</strong> {invitation.role}</p>
+                <p><strong>Invited:</strong> {format(new Date(invitation.created_at), 'MMM d, yyyy \'at\' h:mm a')}</p>
+                <p><strong>Expires:</strong> {format(new Date(invitation.expires_at), 'MMM d, yyyy \'at\' h:mm a')}</p>
+              </div>
               
-              return (
-                <TableRow key={invitation.id} className={isExpired ? 'bg-red-50' : ''}>
-                  <TableCell>{invitation.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={invitation.role === 'manager' ? 'default' : 'outline'}>
-                      {invitation.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          <span>{format(createdDate, 'MMM d, yyyy')}</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>{format(createdDate, 'PPpp')}</TooltipContent>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-1">
-                          <Calendar className={`h-4 w-4 ${isExpired ? 'text-red-500' : 'text-gray-500'}`} />
-                          <span className={isExpired ? 'text-red-500 font-medium' : ''}>
-                            {format(expiresDate, 'MMM d, yyyy')}
-                          </span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>{format(expiresDate, 'PPpp')}</TooltipContent>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>
-                    {!isViewOnly ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
-                            onClick={() => handleResendInvite(invitation.id)}
-                            disabled={resendingInvite === invitation.id}
-                            className="flex items-center gap-2"
-                          >
-                            <Mail className="h-4 w-4" />
-                            {resendingInvite === invitation.id ? 'Sending...' : 'Resend invitation'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => copyInvitationLink(invitation.token)}
-                            className="flex items-center gap-2"
-                          >
-                            <Copy className="h-4 w-4" />
-                            Copy invitation link
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleCancelInvite(invitation.id)}
-                            disabled={cancellingInvite === invitation.id}
-                            className="flex items-center gap-2 text-destructive focus:text-destructive"
-                          >
-                            <XCircle className="h-4 w-4" />
-                            {cancellingInvite === invitation.id ? 'Cancelling...' : 'Cancel invitation'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : (
-                      <span className="text-gray-400 text-sm italic">No actions available</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onResendInvite(invitation.id)}
+                  disabled={resendingInvite === invitation.id}
+                  className="flex items-center gap-1"
+                >
+                  <Mail className="h-3 w-3" />
+                  {resendingInvite === invitation.id ? 'Resending...' : 'Resend'}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCancelInvite(invitation.id)}
+                  disabled={cancelingInvite === invitation.id}
+                  className="text-destructive hover:text-destructive"
+                >
+                  {cancelingInvite === invitation.id ? 'Canceling...' : 'Cancel'}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

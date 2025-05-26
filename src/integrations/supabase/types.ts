@@ -573,6 +573,42 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          data: Json | null
+          id: string
+          message: string
+          read: boolean
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message: string
+          read?: boolean
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message?: string
+          read?: boolean
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organization: {
         Row: {
           created_at: string
@@ -1499,6 +1535,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_assignable_team_members: {
+        Args: { p_equipment_id: string }
+        Returns: {
+          user_id: string
+          app_user_id: string
+          display_name: string
+          email: string
+          role: string
+        }[]
+      }
       get_equipment_latest_image: {
         Args: { equipment_id_param: string }
         Returns: string
@@ -1683,6 +1729,15 @@ export type Database = {
           equipment_id?: string
         }
         Returns: Json
+      }
+      send_assignment_notification: {
+        Args: {
+          p_user_id: string
+          p_work_order_id: string
+          p_work_order_title: string
+          p_equipment_name: string
+        }
+        Returns: undefined
       }
       set_user_default_org: {
         Args: { user_id_param: string; org_id_param: string }
