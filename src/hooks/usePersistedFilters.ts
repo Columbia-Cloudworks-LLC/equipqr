@@ -5,14 +5,12 @@ interface FilterState {
   status: string;
   team: string;
   search: string;
-  organization?: string;
 }
 
 const DEFAULT_FILTERS: FilterState = {
   status: 'all',
   team: 'all',
-  search: '',
-  organization: undefined
+  search: ''
 };
 
 export function usePersistedFilters(storageKey: string = 'equipment-filters') {
@@ -28,7 +26,6 @@ export function usePersistedFilters(storageKey: string = 'equipment-filters') {
     if (urlParams.get('status')) urlFilters.status = urlParams.get('status')!;
     if (urlParams.get('team')) urlFilters.team = urlParams.get('team')!;
     if (urlParams.get('search')) urlFilters.search = urlParams.get('search')!;
-    if (urlParams.get('org')) urlFilters.organization = urlParams.get('org')!;
     
     // If we have URL params, use them
     if (Object.keys(urlFilters).length > 0) {
@@ -61,7 +58,6 @@ export function usePersistedFilters(storageKey: string = 'equipment-filters') {
     if (updatedFilters.status !== 'all') params.set('status', updatedFilters.status);
     if (updatedFilters.team !== 'all') params.set('team', updatedFilters.team);
     if (updatedFilters.search) params.set('search', updatedFilters.search);
-    if (updatedFilters.organization) params.set('org', updatedFilters.organization);
     
     // Update URL without triggering navigation
     const newUrl = params.toString() ? `${location.pathname}?${params}` : location.pathname;
@@ -75,24 +71,14 @@ export function usePersistedFilters(storageKey: string = 'equipment-filters') {
     }
   }, [filters, navigate, location.pathname, storageKey]);
 
-  // Clear all filters with special handling for organization
+  // Clear all filters
   const clearFilters = useCallback(() => {
-    const currentParams = new URLSearchParams(window.location.search);
-    const orgParam = currentParams.get('org');
-    
-    // If there's an organization parameter, keep it but clear other filters
-    if (orgParam) {
-      const newUrl = `${location.pathname}?org=${orgParam}`;
-      window.location.href = newUrl;
-    } else {
-      // No organization parameter, just clear everything
-      setFilters(DEFAULT_FILTERS);
-      navigate(location.pathname, { replace: true });
-      try {
-        sessionStorage.removeItem(storageKey);
-      } catch (error) {
-        console.warn('Failed to clear stored filters:', error);
-      }
+    setFilters(DEFAULT_FILTERS);
+    navigate(location.pathname, { replace: true });
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch (error) {
+      console.warn('Failed to clear stored filters:', error);
     }
   }, [navigate, location.pathname, storageKey]);
 
@@ -102,7 +88,6 @@ export function usePersistedFilters(storageKey: string = 'equipment-filters') {
     clearFilters,
     setFilterStatus: (status: string) => updateFilters({ status }),
     setFilterTeam: (team: string) => updateFilters({ team }),
-    setFilterSearch: (search: string) => updateFilters({ search }),
-    setFilterOrganization: (organization: string) => updateFilters({ organization })
+    setFilterSearch: (search: string) => updateFilters({ search })
   };
 }

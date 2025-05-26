@@ -2,7 +2,6 @@
 import { Equipment } from '@/types';
 import { EquipmentFilters } from './Filters/EquipmentFilters';
 import { EquipmentTable } from './Table/EquipmentTable';
-import { UserOrganization } from '@/services/organization/userOrganizations';
 import { ExportButton } from './ExportButton';
 import { MobileFilterDrawer } from './Filters/MobileFilterDrawer';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -12,25 +11,16 @@ import { usePersistedEquipmentFilters } from './hooks/usePersistedEquipmentFilte
 interface EquipmentListProps {
   equipment: Equipment[];
   isLoading?: boolean;
-  organizations?: UserOrganization[];
-  selectedOrgId?: string;
-  onOrganizationChange?: (orgId: string) => void;
-  showOrgSelector?: boolean;
   persistedFilters?: {
     status: string;
     team: string;
     search: string;
-    organization?: string;
   };
 }
 
 export function EquipmentList({ 
   equipment, 
   isLoading = false, 
-  organizations = [],
-  selectedOrgId,
-  onOrganizationChange = () => {},
-  showOrgSelector = false,
   persistedFilters
 }: EquipmentListProps) {
   const isMobile = useIsMobile();
@@ -69,10 +59,6 @@ export function EquipmentList({
           filterTeam={filterTeam}
           onTeamChange={setFilterTeam}
           teams={teams}
-          organizations={organizations}
-          selectedOrgId={selectedOrgId}
-          onOrganizationChange={onOrganizationChange}
-          showOrgSelector={showOrgSelector}
         />
       )}
       
@@ -86,10 +72,6 @@ export function EquipmentList({
           filterTeam={filterTeam}
           onTeamChange={setFilterTeam}
           teams={teams}
-          organizations={organizations}
-          selectedOrgId={selectedOrgId}
-          onOrganizationChange={onOrganizationChange}
-          showOrgSelector={showOrgSelector}
           activeFilterCount={activeFilterCount}
         />
       )}

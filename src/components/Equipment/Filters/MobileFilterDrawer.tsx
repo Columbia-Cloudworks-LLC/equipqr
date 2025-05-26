@@ -1,31 +1,28 @@
 
-import { Button } from "@/components/ui/button";
-import { 
+import { useState } from 'react';
+import { FilterIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
   Drawer,
-  DrawerClose,
   DrawerContent,
-  DrawerFooter,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
-} from "@/components/ui/drawer";
-import { Filter } from "lucide-react";
-import { EquipmentFilters } from "./EquipmentFilters";
-import { UserOrganization } from "@/services/organization/userOrganizations";
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+  DrawerTrigger,
+} from '@/components/ui/drawer';
+import { SearchField } from './SearchField';
+import { StatusFilter } from './StatusFilter';
+import { TeamFilter } from './TeamFilter';
 
 interface MobileFilterDrawerProps {
   searchQuery: string;
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   filterStatus: string;
-  onStatusChange: (value: string) => void;
+  onStatusChange: (status: string) => void;
   filterTeam: string;
-  onTeamChange: (value: string) => void;
+  onTeamChange: (team: string) => void;
   teams: string[];
-  organizations?: UserOrganization[];
-  selectedOrgId?: string;
-  onOrganizationChange?: (orgId: string) => void;
-  showOrgSelector?: boolean;
   activeFilterCount: number;
 }
 
@@ -37,61 +34,48 @@ export function MobileFilterDrawer({
   filterTeam,
   onTeamChange,
   teams,
-  organizations = [],
-  selectedOrgId,
-  onOrganizationChange = () => {},
-  showOrgSelector = false,
   activeFilterCount
 }: MobileFilterDrawerProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <>
-      <Button 
-        variant="outline" 
-        onClick={() => setOpen(true)} 
-        className="w-full mb-4"
-        size="sm"
-      >
-        <Filter className="h-4 w-4 mr-2" />
-        Filters
-        {activeFilterCount > 0 && (
-          <Badge variant="secondary" className="ml-2">
-            {activeFilterCount}
-          </Badge>
-        )}
-      </Button>
-
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent className="max-h-[90%]">
-          <DrawerHeader>
-            <DrawerTitle>Filters</DrawerTitle>
-          </DrawerHeader>
-          
-          <div className="px-4 pb-0">
-            <EquipmentFilters
-              searchQuery={searchQuery}
-              onSearchChange={onSearchChange}
-              filterStatus={filterStatus}
-              onStatusChange={onStatusChange}
-              filterTeam={filterTeam}
-              onTeamChange={onTeamChange}
-              teams={teams}
-              organizations={organizations}
-              selectedOrgId={selectedOrgId}
-              onOrganizationChange={onOrganizationChange}
-              showOrgSelector={showOrgSelector}
-              isMobile={true}
-            />
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
+        <Button variant="outline" className="w-full justify-between">
+          <div className="flex items-center gap-2">
+            <FilterIcon className="h-4 w-4" />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
+                {activeFilterCount}
+              </Badge>
+            )}
           </div>
-          
-          <DrawerFooter className="pt-2">
-            <DrawerClose asChild>
-              <Button variant="default">Apply Filters</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    </>
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Filter Equipment</DrawerTitle>
+          <DrawerDescription>
+            Apply filters to find specific equipment
+          </DrawerDescription>
+        </DrawerHeader>
+        <div className="p-4 space-y-4">
+          <SearchField 
+            value={searchQuery}
+            onChange={onSearchChange}
+          />
+          <StatusFilter 
+            value={filterStatus}
+            onChange={onStatusChange}
+          />
+          <TeamFilter 
+            value={filterTeam}
+            onChange={onTeamChange}
+            teams={teams}
+          />
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
