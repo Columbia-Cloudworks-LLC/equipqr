@@ -69,6 +69,7 @@ export function TeamManagementView() {
       <TeamManagementHeader
         onRefresh={fetchTeams}
         isLoading={isLoading}
+        selectedOrganization={selectedOrganization}
       />
       
       {isExternalOrg && selectedOrganization && (

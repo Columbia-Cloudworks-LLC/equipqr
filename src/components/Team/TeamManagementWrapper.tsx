@@ -9,7 +9,6 @@ import { Organization } from '@/types';
 interface TeamManagementWrapperProps {
   filteredTeams: Team[];
   selectedTeamId: string;
-  selectedOrgId?: string;
   selectedOrganization?: Organization | null;
   members: any[];
   pendingInvitations: any[];
@@ -42,7 +41,6 @@ interface TeamManagementWrapperProps {
 export function TeamManagementWrapper({
   filteredTeams,
   selectedTeamId,
-  selectedOrgId,
   selectedOrganization,
   members,
   pendingInvitations,
