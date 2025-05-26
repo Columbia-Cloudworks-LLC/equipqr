@@ -2,13 +2,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, MessageSquare } from 'lucide-react';
+import { PlusCircle, MessageSquare, Shield } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getWorkNotes, createWorkNote } from '@/services/workNotes';
-import { NotesList } from '@/components/Equipment/WorkNotes/NotesList';
-import { getUserRoleForWorkOrder, WorkOrderUserRole } from '@/services/workOrders/workOrderRoleService';
+import { getUserRoleForEquipment } from '@/services/equipment/equipmentRoleService';
+import { getRoleBasedWorkNotePermissions } from '@/services/workNotes/rolePermissionService';
+import { RoleAwareAddNoteForm } from '@/components/Equipment/WorkNotes/RoleAwareAddNoteForm';
+import { RoleAwareNotesList } from '@/components/Equipment/WorkNotes/RoleAwareNotesList';
 import { toast } from 'sonner';
 
 interface RoleAwareWorkNotesProps {
@@ -17,14 +18,19 @@ interface RoleAwareWorkNotesProps {
 }
 
 export function RoleAwareWorkNotes({ workOrderId, equipmentId }: RoleAwareWorkNotesProps) {
-  const [newNote, setNewNote] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const queryClient = useQueryClient();
 
-  // Get user role for this work order
+  // Get user role for this equipment
   const { data: userRole = 'none' } = useQuery({
-    queryKey: ['workOrderUserRole', equipmentId],
-    queryFn: () => getUserRoleForWorkOrder(equipmentId)
+    queryKey: ['equipmentUserRole', equipmentId],
+    queryFn: () => getUserRoleForEquipment(equipmentId)
+  });
+
+  // Get role-based permissions
+  const { data: permissions } = useQuery({
+    queryKey: ['roleBasedWorkNotePermissions', equipmentId],
+    queryFn: () => getRoleBasedWorkNotePermissions(equipmentId)
   });
 
   // Fetch work notes for this equipment (will include work order notes)
@@ -37,12 +43,11 @@ export function RoleAwareWorkNotes({ workOrderId, equipmentId }: RoleAwareWorkNo
   const workOrderNotes = workNotes.filter(note => note.work_order_id === workOrderId);
 
   const createNoteMutation = useMutation({
-    mutationFn: (data: { equipment_id: string; note: string; is_public: boolean; work_order_id: string }) =>
-      createWorkNote(data.equipment_id, data.note, null, data.is_public, data.work_order_id),
+    mutationFn: (data: { equipment_id: string; note: string; is_public: boolean; hours_worked: number | null; work_order_id: string }) =>
+      createWorkNote(data.equipment_id, data.note, data.hours_worked, data.is_public, data.work_order_id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workNotes', equipmentId] });
       toast.success('Work note added successfully');
-      setNewNote('');
       setShowAddForm(false);
     },
     onError: (error: any) => {
@@ -50,30 +55,29 @@ export function RoleAwareWorkNotes({ workOrderId, equipmentId }: RoleAwareWorkNo
     }
   });
 
-  const canCreateNotes = ['manager', 'technician', 'requestor'].includes(userRole);
-  const canViewPrivateNotes = ['manager', 'technician'].includes(userRole);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newNote.trim()) return;
-
-    // Requestors can only create public notes
-    const isPublic = userRole === 'requestor' ? true : true; // For work orders, we'll default to public
+  const handleAddNote = (note: string, isPublic: boolean, hoursWorked: string) => {
+    const hours = hoursWorked ? parseFloat(hoursWorked) : null;
+    
+    if (hoursWorked && isNaN(parseFloat(hoursWorked))) {
+      toast.error('Hours worked must be a valid number');
+      return;
+    }
 
     createNoteMutation.mutate({
       equipment_id: equipmentId,
-      note: newNote.trim(),
+      note: note.trim(),
       is_public: isPublic,
+      hours_worked: hours,
       work_order_id: workOrderId
     });
   };
 
-  // Filter notes based on user role
-  const visibleNotes = canViewPrivateNotes 
+  // Filter notes based on user permissions
+  const visibleNotes = permissions?.canViewPrivate 
     ? workOrderNotes 
     : workOrderNotes.filter(note => note.is_public);
 
-  if (!canCreateNotes && userRole !== 'viewer') {
+  if (!permissions?.canCreate && userRole !== 'viewer') {
     return (
       <div className="text-center text-muted-foreground py-8">
         You don't have permission to view work notes for this work order.
@@ -83,16 +87,26 @@ export function RoleAwareWorkNotes({ workOrderId, equipmentId }: RoleAwareWorkNo
 
   return (
     <div className="space-y-6">
-      {/* Header with Add Button */}
+      {/* Header with Role Indicator and Add Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          <h3 className="text-lg font-medium">
-            Work Order Notes ({visibleNotes.length})
-          </h3>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            <h3 className="text-lg font-medium">
+              Work Order Notes ({visibleNotes.length})
+            </h3>
+          </div>
+          
+          {/* Role indicator */}
+          {userRole !== 'none' && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Shield className="h-4 w-4" />
+              <span className="capitalize">{userRole}</span>
+            </div>
+          )}
         </div>
         
-        {canCreateNotes && (
+        {permissions?.canCreate && (
           <Button 
             onClick={() => setShowAddForm(!showAddForm)}
             variant={showAddForm ? "outline" : "default"}
@@ -105,64 +119,51 @@ export function RoleAwareWorkNotes({ workOrderId, equipmentId }: RoleAwareWorkNo
         )}
       </div>
 
-      {/* Role-specific messaging */}
+      {/* Role-specific alerts */}
       {userRole === 'requestor' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            As a requestor, your notes will be visible to all team members working on this work order.
-          </p>
-        </div>
+        <Alert variant="default" className="bg-blue-50 border-blue-200">
+          <AlertTitle>Requestor Access</AlertTitle>
+          <AlertDescription>
+            As a requestor, your notes will be visible to all team members working on this work order. You cannot enter hours worked or create private notes.
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* Add Note Form */}
-      {canCreateNotes && showAddForm && (
+      {userRole === 'viewer' && (
+        <Alert variant="default" className="bg-gray-50 border-gray-200">
+          <AlertTitle>Viewer Access</AlertTitle>
+          <AlertDescription>
+            You have read-only access to work notes. You can view public notes but cannot create, edit, or delete notes.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Add Note Form - Role-aware */}
+      {permissions?.canCreate && showAddForm && (
         <Card>
           <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="note-content">Note Content</Label>
-                <Textarea
-                  id="note-content"
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Add a work note for this work order..."
-                  className="resize-none min-h-[100px]"
-                  required
-                />
-              </div>
-              
-              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => setShowAddForm(false)}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createNoteMutation.isPending || !newNote.trim()}
-                  className="w-full sm:w-auto"
-                >
-                  {createNoteMutation.isPending ? 'Adding...' : 'Add Work Note'}
-                </Button>
-              </div>
-            </form>
+            <RoleAwareAddNoteForm 
+              onAddNote={handleAddNote}
+              isPending={createNoteMutation.isPending}
+              userRole={userRole}
+            />
           </CardContent>
         </Card>
       )}
 
-      {/* Notes List */}
+      {/* Notes List - Role-aware */}
       <div>
         {visibleNotes.length > 0 ? (
-          <NotesList
+          <RoleAwareNotesList
             notes={visibleNotes}
             isLoading={isLoading}
-            canManage={false} // Disable editing for work order notes
-            onEditNote={() => {}} 
-            onDeleteNote={() => {}} 
-            isNoteEditable={() => false} 
+            userRole={userRole}
+            canEdit={permissions?.canEdit || false}
+            canDelete={permissions?.canDelete || false}
+            canViewPrivate={permissions?.canViewPrivate || false}
+            onEditNote={() => {}} // TODO: Implement edit functionality for work order notes
+            onDeleteNote={() => {}} // TODO: Implement delete functionality for work order notes
+            isNoteEditable={() => false} // Work order notes are typically not editable
           />
         ) : (
           <Card>
@@ -170,7 +171,7 @@ export function RoleAwareWorkNotes({ workOrderId, equipmentId }: RoleAwareWorkNo
               <div className="text-center text-muted-foreground">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No work notes for this work order yet</p>
-                {canCreateNotes && !showAddForm && (
+                {permissions?.canCreate && !showAddForm && (
                   <Button 
                     variant="outline" 
                     size="sm" 
