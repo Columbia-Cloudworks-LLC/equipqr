@@ -84,7 +84,7 @@ const QRCodeGenerator = ({ value, equipmentName, className }: QRCodeGeneratorPro
           }}
         />
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 no-print">
         <Button
           variant="outline"
           onClick={() => setSize(Math.min(size + 32, 256))}

@@ -76,6 +76,92 @@
   }
 }
 
+/* Print-specific styles */
+@media print {
+  /* Hide navigation and layout elements */
+  nav,
+  footer,
+  .sidebar,
+  [data-sidebar="sidebar"],
+  button:not(.print-friendly),
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Reset page margins and padding */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  @page {
+    margin: 0.5in;
+    size: letter;
+  }
+  
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0;
+    padding: 0;
+    background: white !important;
+  }
+  
+  #root {
+    height: auto !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* QR code print layout */
+  .qr-print-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 4in !important;
+    page-break-inside: avoid !important;
+    margin: 0 auto !important;
+    max-width: 4in !important;
+    text-align: center !important;
+  }
+  
+  .qr-print-title {
+    font-size: 18pt !important;
+    font-weight: bold !important;
+    margin-bottom: 0.5in !important;
+    color: black !important;
+    page-break-after: avoid !important;
+  }
+  
+  .qr-print-code {
+    margin: 0.25in 0 !important;
+    page-break-inside: avoid !important;
+  }
+  
+  .qr-print-instructions {
+    font-size: 12pt !important;
+    color: black !important;
+    margin-top: 0.25in !important;
+    line-height: 1.4 !important;
+    page-break-before: avoid !important;
+  }
+  
+  /* Hide everything except the QR code content */
+  .layout-content > *:not(.qr-print-container) {
+    display: none !important;
+  }
+  
+  /* Ensure QR code SVG prints properly */
+  svg {
+    max-width: 2.5in !important;
+    max-height: 2.5in !important;
+    width: auto !important;
+    height: auto !important;
+  }
+}
+
 /* Hide scrollbars but allow scrolling */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
