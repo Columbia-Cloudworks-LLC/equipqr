@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrder, CreateWorkOrderParams, UpdateWorkOrderParams, WorkOrderStatus } from '@/types/workOrders';
 import { logWorkOrderChange } from './workOrderAudit';
@@ -67,20 +66,6 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
 
     console.log('Creating work order for user:', user.user.id);
 
-    // Get app_user.id from auth.uid
-    const { data: appUser, error: appUserError } = await supabase
-      .from('app_user')
-      .select('id')
-      .eq('auth_uid', user.user.id)
-      .single();
-
-    if (appUserError || !appUser) {
-      console.error('Error fetching app_user:', appUserError);
-      throw new Error('User profile not found');
-    }
-
-    console.log('Found app_user.id:', appUser.id);
-
     // Get equipment details including org_id
     const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
@@ -107,13 +92,13 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
 
     console.log('User has permission to submit work orders');
 
-    // Create the work order with app_user.id as created_by
+    // Create the work order with auth.uid() as created_by to align with RLS
     const workOrderData = {
       equipment_id: params.equipment_id,
       title: params.title,
       description: params.description,
       status: 'submitted' as WorkOrderStatus,
-      created_by: appUser.id, // Use app_user.id instead of auth.uid()
+      created_by: user.user.id, // Use auth.uid() instead of app_user.id
       org_id: equipment.org_id,
       opened_at: new Date().toISOString()
     };
