@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrder, WorkOrderStatus } from '@/types/workOrders';
 
@@ -54,7 +53,7 @@ export async function getAllUserWorkOrders(params: GetAllUserWorkOrdersParams = 
       ];
       
       if (validStatuses.includes(params.status as WorkOrderStatus)) {
-        query = query.eq('status', params.status);
+        query = query.eq('status', params.status as WorkOrderStatus);
       }
     }
 
