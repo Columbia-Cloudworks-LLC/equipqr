@@ -1448,6 +1448,10 @@ export type Database = {
         Args: { p_user_id: string; p_equipment_id: string }
         Returns: boolean
       }
+      can_view_work_orders: {
+        Args: { p_user_id: string; p_equipment_id: string }
+        Returns: boolean
+      }
       check_equipment_create_permission: {
         Args: { p_user_id: string; p_team_id?: string; p_org_id?: string }
         Returns: {

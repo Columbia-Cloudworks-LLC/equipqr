@@ -59,7 +59,7 @@ export async function canSubmitWorkOrders(equipmentId: string): Promise<boolean>
         return false;
       }
 
-      // Check team role
+      // Check team role - now includes requestor
       const { data: teamRole } = await supabase
         .from('team_roles')
         .select('role')
@@ -136,7 +136,7 @@ export async function canManageWorkOrders(equipmentId: string): Promise<boolean>
         return false;
       }
 
-      // Check team role
+      // Check team role - requestors cannot manage, only submit
       const { data: teamRole } = await supabase
         .from('team_roles')
         .select('role')
@@ -211,7 +211,7 @@ export async function canViewWorkOrders(equipmentId: string): Promise<boolean> {
         return false;
       }
 
-      // Check team role
+      // Check team role - now includes requestor and viewer
       const { data: teamRole } = await supabase
         .from('team_roles')
         .select('role')
