@@ -2,6 +2,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrder, WorkOrderStatus } from '@/types/workOrders';
 
+// Re-export updateWorkOrder from workOrderService
+export { updateWorkOrder } from './workOrderService';
+
 interface GetAllUserWorkOrdersParams {
   search?: string;
   status?: string;
@@ -42,9 +45,17 @@ export async function getAllUserWorkOrders(params: GetAllUserWorkOrdersParams = 
       `)
       .order('opened_at', { ascending: false });
 
-    // Apply filters
+    // Apply filters with proper type checking
     if (params.status && params.status !== 'all') {
-      query = query.eq('status', params.status);
+      // Ensure the status is a valid WorkOrderStatus
+      const validStatuses: WorkOrderStatus[] = [
+        'submitted', 'accepted', 'assigned', 'in_progress', 
+        'on_hold', 'cancelled', 'completed', 'open', 'closed'
+      ];
+      
+      if (validStatuses.includes(params.status as WorkOrderStatus)) {
+        query = query.eq('status', params.status);
+      }
     }
 
     if (params.equipmentId) {
