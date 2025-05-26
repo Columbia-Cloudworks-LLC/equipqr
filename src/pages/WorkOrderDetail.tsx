@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Layout } from '@/components/Layout/Layout';
 import { WorkOrderDetailView } from '@/components/WorkOrders/WorkOrderDetailView';
 import { getWorkOrder, updateWorkOrder } from '@/services/workOrders';
+import { canManageWorkOrders } from '@/services/workOrders/workOrderPermissions';
 import { UpdateWorkOrderParams } from '@/types/workOrders';
 import { toast } from 'sonner';
 
@@ -19,6 +20,13 @@ export default function WorkOrderDetailPage() {
     queryKey: ['workOrder', id],
     queryFn: () => getWorkOrder(id!),
     enabled: !!id
+  });
+
+  // Check if user can manage work orders for this equipment
+  const { data: canManage = false } = useQuery({
+    queryKey: ['canManageWorkOrders', workOrder?.equipment_id],
+    queryFn: () => workOrder ? canManageWorkOrders(workOrder.equipment_id) : Promise.resolve(false),
+    enabled: !!workOrder?.equipment_id
   });
 
   const updateMutation = useMutation({
@@ -86,7 +94,7 @@ export default function WorkOrderDetailPage() {
         workOrder={workOrder}
         onUpdate={handleUpdate}
         onBack={() => navigate('/work-orders')}
-        canManage={true} // TODO: Implement proper permission check
+        canManage={canManage}
       />
     </Layout>
   );

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,8 @@ import {
 import { WorkOrder, UpdateWorkOrderParams } from '@/types/workOrders';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import { WorkOrderEditForm } from './WorkOrderEditForm';
-import { WorkOrderWorkNotes } from './WorkOrderWorkNotes';
+import { RoleAwareWorkNotes } from './RoleAwareWorkNotes';
+import { getUserRoleForWorkOrder } from '@/services/workOrders/workOrderRoleService';
 import { format } from 'date-fns';
 
 interface WorkOrderDetailViewProps {
@@ -36,6 +38,17 @@ export function WorkOrderDetailView({
 }: WorkOrderDetailViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
+
+  // Get user role for this work order
+  const { data: userRole = 'none' } = useQuery({
+    queryKey: ['workOrderUserRole', workOrder.equipment_id],
+    queryFn: () => getUserRoleForWorkOrder(workOrder.equipment_id)
+  });
+
+  // Determine if user can edit based on role and work order status
+  const canEdit = canManage && 
+    ['manager', 'technician'].includes(userRole) && 
+    !['completed', 'cancelled'].includes(workOrder.status);
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,7 +93,7 @@ export function WorkOrderDetailView({
                     {workOrder.equipment_name}
                   </Badge>
                 )}
-                {canManage && (
+                {canEdit && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -103,6 +116,23 @@ export function WorkOrderDetailView({
                     <span>Assigned to: {workOrder.assigned_to_name}</span>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Role-based access indicator */}
+            {userRole === 'requestor' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  You submitted this work order. You can view progress and add public notes, but editing is restricted to technicians and managers.
+                </p>
+              </div>
+            )}
+            
+            {userRole === 'viewer' && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-sm text-gray-700">
+                  You have read-only access to this work order.
+                </p>
               </div>
             )}
           </div>
@@ -206,7 +236,7 @@ export function WorkOrderDetailView({
                 <CardTitle>Work Notes</CardTitle>
               </CardHeader>
               <CardContent>
-                <WorkOrderWorkNotes 
+                <RoleAwareWorkNotes 
                   workOrderId={workOrder.id}
                   equipmentId={workOrder.equipment_id}
                 />
