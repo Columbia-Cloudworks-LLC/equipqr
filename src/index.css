@@ -83,36 +83,13 @@
 
 /* Print-specific styles */
 @media print {
-  /* Hide all screen elements */
-  body > *,
-  #root > *,
-  nav,
-  footer,
-  .sidebar,
-  [data-sidebar="sidebar"],
-  button:not(.print-friendly),
-  .no-print {
-    display: none !important;
-  }
-  
-  /* Show only print container */
-  .print-only-container {
-    display: block !important;
-  }
-  
-  /* Reset page margins and styling */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-  
+  /* Reset page styling */
   @page {
     margin: 0.5in;
     size: letter;
   }
   
-  html,
-  body {
+  html, body {
     height: auto !important;
     overflow: visible !important;
     margin: 0;
@@ -126,15 +103,24 @@
     overflow: visible !important;
   }
   
-  /* Print layout styles */
+  /* Hide navigation and non-essential elements */
+  .no-print,
+  nav,
+  button:not(.print-friendly),
+  [data-sidebar="sidebar"],
+  .sidebar {
+    display: none !important;
+  }
+  
+  /* Show and style the print container */
   .print-only-container {
+    display: block !important;
     max-width: 6in !important;
     margin: 0 auto !important;
     padding: 0.5in !important;
     background: white !important;
     color: black !important;
     font-family: Arial, sans-serif !important;
-    page-break-inside: avoid !important;
   }
   
   .print-header {
@@ -155,7 +141,10 @@
   .print-qr-section {
     text-align: center !important;
     margin: 0.5in 0 !important;
-    page-break-inside: avoid !important;
+  }
+  
+  .print-qr-code {
+    display: block !important;
   }
   
   .print-qr-code svg {
@@ -163,15 +152,12 @@
     max-height: 2.5in !important;
     width: auto !important;
     height: auto !important;
-  }
-  
-  .print-qr-code .no-print {
-    display: none !important;
+    display: block !important;
+    margin: 0 auto !important;
   }
   
   .print-instructions {
     margin-top: 0.5in !important;
-    page-break-inside: avoid !important;
   }
   
   .print-section-title {
@@ -186,7 +172,6 @@
   
   .print-section {
     margin-bottom: 0.3in !important;
-    page-break-inside: avoid !important;
   }
   
   .print-subsection-title {
