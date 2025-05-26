@@ -73,7 +73,7 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r-slate-700">
       <SidebarHeader className="border-b-slate-700">
-        <div className="flex items-center gap-2 px-2 w-full">
+        <div className="flex items-center gap-2 w-full">
           <Package className="h-6 w-6 text-primary shrink-0" />
           {!isCollapsed && <h1 className="text-lg font-semibold text-white truncate">{AppConfig.name}</h1>}
         </div>
@@ -112,7 +112,7 @@ export function AppSidebar() {
       </SidebarContent>
       
       <SidebarFooter className="p-3">
-        <div className={cn("text-xs text-slate-400 mb-6", isCollapsed ? "text-center" : "")}>
+        <div className={cn("text-xs text-slate-400", isCollapsed ? "text-center" : "")}>
           {isCollapsed ? (
             <p className="truncate">{AppConfig.version}</p>
           ) : (

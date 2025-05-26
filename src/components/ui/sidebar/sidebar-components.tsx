@@ -65,25 +65,44 @@ export const Sidebar = React.forwardRef<
 Sidebar.displayName = "Sidebar"
 
 /**
- * Sidebar header component - typically contains logo and controls
+ * Sidebar header component - now includes the toggle button
  */
 export const SidebarHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & { showTrigger?: boolean }
 >(({ className, children, showTrigger = false, ...props }, ref) => {
   const { state, toggleSidebar, isMobile } = useSidebar()
+  const isCollapsed = state === "collapsed" && !isMobile
   
   return (
     <div
       ref={ref}
       data-sidebar="header"
       className={cn(
-        "flex h-14 shrink-0 items-center justify-between border-b border-slate-700 px-3",
+        "flex h-14 shrink-0 items-center justify-between border-b border-slate-700 px-3 relative",
         className
       )}
       {...props}
     >
       {children}
+      
+      {/* Toggle button - only show on desktop */}
+      {!isMobile && (
+        <button
+          onClick={toggleSidebar}
+          className={cn(
+            "flex h-6 w-6 items-center justify-center text-white rounded-md hover:bg-slate-700 transition-colors shrink-0",
+            isCollapsed && "ml-auto" // Center when collapsed
+          )}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+      )}
     </div>
   )
 })
@@ -106,44 +125,22 @@ export const SidebarContent = React.forwardRef<
 SidebarContent.displayName = "SidebarContent"
 
 /**
- * Sidebar footer - contains fixed content at the bottom
+ * Sidebar footer - simplified, no longer contains toggle button
  */
 export const SidebarFooter = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
-  const { state, toggleSidebar, isMobile } = useSidebar()
-  const isCollapsed = state === "collapsed" && !isMobile
-  
   return (
     <div
       ref={ref}
       data-sidebar="footer"
       className={cn(
-        "shrink-0 flex flex-col border-t border-slate-700 relative",
+        "shrink-0 flex flex-col border-t border-slate-700",
         className
       )}
       {...props}
-    >
-      {/* Add collapse/expand button in the bottom right corner */}
-      <button
-        onClick={toggleSidebar}
-        className={cn(
-          "absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center text-white rounded-md hover:bg-slate-700 transition-colors",
-          isCollapsed && "bottom-2 right-[calc(50%-12px)]" // Center when collapsed
-        )}
-        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {isCollapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <ChevronLeft className="h-4 w-4" />
-        )}
-      </button>
-      
-      {/* User content in footer */}
-      {props.children}
-    </div>
+    />
   )
 })
 SidebarFooter.displayName = "SidebarFooter"
