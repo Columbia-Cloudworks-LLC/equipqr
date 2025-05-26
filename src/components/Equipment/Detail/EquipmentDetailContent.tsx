@@ -13,7 +13,8 @@ import {
   Users,
   Building2,
   FileText,
-  ClipboardList
+  ClipboardList,
+  History
 } from 'lucide-react';
 import { Equipment } from '@/types';
 import { formatDate } from '@/lib/utils';
@@ -27,6 +28,7 @@ import { AddNoteForm } from '../WorkNotes/AddNoteForm';
 import { NotesList } from '../WorkNotes/NotesList';
 import { EditNoteDialog } from '../WorkNotes/EditNoteDialog';
 import { WorkOrderManagement } from '@/components/WorkOrders';
+import { ScanHistory } from '../ScanHistory/ScanHistory';
 
 interface EquipmentDetailContentProps {
   equipment: Equipment;
@@ -115,7 +117,10 @@ export function EquipmentDetailContent({ equipment, canEdit, canDelete }: Equipm
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="work-notes">Work Notes</TabsTrigger>
           <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
-          <TabsTrigger value="attributes">Attributes</TabsTrigger>
+          <TabsTrigger value="scan-history">
+            <History className="h-4 w-4 mr-2" />
+            Scan History
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
@@ -168,6 +173,14 @@ export function EquipmentDetailContent({ equipment, canEdit, canDelete }: Equipm
                 <div className="text-sm font-medium leading-none">Notes</div>
                 <p className="text-sm text-muted-foreground">{equipment.notes || 'N/A'}</p>
               </div>
+
+              <Separator />
+
+              {/* Custom Attributes Section - Moved to bottom of Details tab */}
+              <div>
+                <div className="text-sm font-medium leading-none mb-3">Custom Attributes</div>
+                <AttributesList attributes={equipment.attributes || []} />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -203,8 +216,18 @@ export function EquipmentDetailContent({ equipment, canEdit, canDelete }: Equipm
           <WorkOrderManagement equipmentId={equipment.id} />
         </TabsContent>
 
-        <TabsContent value="attributes" className="space-y-6">
-          <AttributesList attributes={equipment.attributes || []} />
+        <TabsContent value="scan-history" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Scan History</CardTitle>
+              <CardDescription>
+                View QR code scan history for this equipment
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScanHistory equipmentId={equipment.id} />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
