@@ -11,8 +11,10 @@ interface PendingInvitationsListProps {
   invitations: Invitation[];
   onResendInvite: (id: string) => Promise<void>;
   onCancelInvite: (id: string) => Promise<void>;
-  resendingInvite: string | null;
-  cancelingInvite: string | null;
+  resendingInvite?: string | null;
+  cancelingInvite?: string | null;
+  isLoading?: boolean; // Add the missing isLoading property
+  isViewOnly?: boolean; // Add isViewOnly property for consistency
 }
 
 export function PendingInvitationsList({
@@ -20,7 +22,9 @@ export function PendingInvitationsList({
   onResendInvite,
   onCancelInvite,
   resendingInvite,
-  cancelingInvite
+  cancelingInvite,
+  isLoading = false,
+  isViewOnly = false
 }: PendingInvitationsListProps) {
   if (invitations.length === 0) {
     return (
@@ -53,31 +57,35 @@ export function PendingInvitationsList({
               <div className="text-sm text-muted-foreground space-y-1">
                 <p><strong>Role:</strong> {invitation.role}</p>
                 <p><strong>Invited:</strong> {format(new Date(invitation.created_at), 'MMM d, yyyy \'at\' h:mm a')}</p>
-                <p><strong>Expires:</strong> {format(new Date(invitation.expires_at), 'MMM d, yyyy \'at\' h:mm a')}</p>
+                {invitation.expires_at && (
+                  <p><strong>Expires:</strong> {format(new Date(invitation.expires_at), 'MMM d, yyyy \'at\' h:mm a')}</p>
+                )}
               </div>
               
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onResendInvite(invitation.id)}
-                  disabled={resendingInvite === invitation.id}
-                  className="flex items-center gap-1"
-                >
-                  <Mail className="h-3 w-3" />
-                  {resendingInvite === invitation.id ? 'Resending...' : 'Resend'}
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onCancelInvite(invitation.id)}
-                  disabled={cancelingInvite === invitation.id}
-                  className="text-destructive hover:text-destructive"
-                >
-                  {cancelingInvite === invitation.id ? 'Canceling...' : 'Cancel'}
-                </Button>
-              </div>
+              {!isViewOnly && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onResendInvite(invitation.id)}
+                    disabled={resendingInvite === invitation.id}
+                    className="flex items-center gap-1"
+                  >
+                    <Mail className="h-3 w-3" />
+                    {resendingInvite === invitation.id ? 'Resending...' : 'Resend'}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onCancelInvite(invitation.id)}
+                    disabled={cancelingInvite === invitation.id}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    {cancelingInvite === invitation.id ? 'Canceling...' : 'Cancel'}
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

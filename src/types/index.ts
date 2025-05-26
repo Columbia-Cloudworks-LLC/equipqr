@@ -45,6 +45,7 @@ export interface Invitation {
   email: string;
   status: string;
   created_at: string;
+  expires_at?: string; // Add the missing expires_at property
   team?: {
     id: string;
     name: string;

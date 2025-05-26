@@ -9,7 +9,6 @@ import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuHeader,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead, getUnreadNotificationCount } from '@/services/notifications/notificationService';
