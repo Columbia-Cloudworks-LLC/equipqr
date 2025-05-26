@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkOrderForm } from './WorkOrderForm';
 import { WorkOrdersList } from './WorkOrdersList';
-import { WorkOrder, CreateWorkOrderParams } from '@/types/workOrders';
+import { CreateWorkOrderParams } from '@/types/workOrders';
 import { 
   getWorkOrders, 
   createWorkOrder,
@@ -19,7 +19,6 @@ interface WorkOrderManagementProps {
 }
 
 export function WorkOrderManagement({ equipmentId }: WorkOrderManagementProps) {
-  const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const queryClient = useQueryClient();
 
   // Permission checks
@@ -61,10 +60,6 @@ export function WorkOrderManagement({ equipmentId }: WorkOrderManagementProps) {
     await createMutation.mutateAsync(params);
   };
 
-  const handleViewDetails = (workOrder: WorkOrder) => {
-    setSelectedWorkOrder(workOrder);
-  };
-
   if (!canSubmit && !canManage) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -87,7 +82,6 @@ export function WorkOrderManagement({ equipmentId }: WorkOrderManagementProps) {
           <WorkOrdersList
             workOrders={workOrders}
             isLoading={isLoading}
-            onViewDetails={handleViewDetails}
             canViewHours={canViewHours}
           />
         </TabsContent>

@@ -11,6 +11,7 @@ export interface WorkNote {
   deleted_at?: string | null;
   edited_at?: string | null;
   edited_by?: string | null;
+  work_order_id?: string | null;
   creator?: {
     display_name?: string;
   };
