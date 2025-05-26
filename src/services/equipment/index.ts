@@ -1,4 +1,3 @@
-
 // Re-export all functions from the module files
 
 // Core equipment services
@@ -35,3 +34,6 @@ export * from './permissions/updatePermissionCheck';
 // Database operations
 export * from './db/equipmentDbService';
 export * from './db/equipmentUpdateDbService';
+
+// Export the new equipment role service
+export * from './equipmentRoleService';
