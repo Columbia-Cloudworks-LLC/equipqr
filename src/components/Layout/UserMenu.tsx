@@ -22,9 +22,7 @@ export function UserMenu() {
   const { 
     organizations, 
     selectedOrganization, 
-    selectOrganization, 
-    setDefaultOrganization,
-    defaultOrganizationId 
+    selectOrganization
   } = useOrganization();
 
   const handleLogout = async () => {
@@ -39,10 +37,6 @@ export function UserMenu() {
 
   const handleOrganizationChange = (orgId: string) => {
     selectOrganization(orgId);
-  };
-
-  const handleSetDefault = async (orgId: string) => {
-    return await setDefaultOrganization(orgId);
   };
 
   return (
@@ -66,11 +60,8 @@ export function UserMenu() {
               <OrganizationSelector
                 organizations={organizations}
                 selectedOrgId={selectedOrganization?.id}
-                defaultOrgId={defaultOrganizationId}
                 onChange={handleOrganizationChange}
-                onSetDefault={handleSetDefault}
                 showRoleBadges={true}
-                showSetDefault={true}
                 className="w-full"
                 maxDisplayLength={30}
               />

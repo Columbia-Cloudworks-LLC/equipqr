@@ -101,7 +101,6 @@ export function useTeamManagementPage(): {
     return handleDeleteTeamBase(selectedTeamId);
   };
 
-  // Fixed: These functions now use selectedTeamId internally and take no parameters
   const wrappedHandleUpgradeRole = async () => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
@@ -125,7 +124,6 @@ export function useTeamManagementPage(): {
     members,
     pendingInvitations,
     selectedTeamId,
-    organizations: [], // No longer needed since we use global context
     selectedOrganization,
     filteredTeams,
     isLoading,
@@ -136,12 +134,10 @@ export function useTeamManagementPage(): {
     isUpgradingRole,
     isRequestingRole,
     isMember,
-    isChangingOrg: false, // No longer managed locally
     currentUserRole,
     canChangeRoles,
     error,
     setSelectedTeamId,
-    handleOrganizationChange: () => {}, // No longer needed
     handleCreateTeam,
     handleUpdateTeam: wrappedHandleUpdateTeam,
     handleDeleteTeam: wrappedHandleDeleteTeam,

@@ -10,7 +10,6 @@ export interface TeamManagementContextType {
   members: TeamMember[];
   pendingInvitations: any[];
   selectedTeamId: string;
-  organizations: UserOrganization[]; // Keep for backward compatibility but not used
   selectedOrganization: UserOrganization | null;
   filteredTeams: Team[];
   
@@ -23,7 +22,6 @@ export interface TeamManagementContextType {
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
   isMember: boolean;
-  isChangingOrg: boolean; // Keep for backward compatibility but always false
   
   // User roles and permissions
   currentUserRole: string | null;
@@ -32,9 +30,8 @@ export interface TeamManagementContextType {
   // Error handling
   error: string | null;
   
-  // Functions - updated to match component usage patterns
+  // Functions
   setSelectedTeamId: (teamId: string) => void;
-  handleOrganizationChange: (orgId: string) => void; // Keep for backward compatibility but does nothing
   handleCreateTeam: (name: string) => Promise<any>;
   handleUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>;
   handleDeleteTeam: () => Promise<any>; 
@@ -43,10 +40,10 @@ export interface TeamManagementContextType {
   handleRemoveMember: (userId: string) => Promise<any>;
   handleResendInvite: (id: string) => Promise<any>;
   handleCancelInvitation: (id: string) => Promise<any>;
-  handleUpgradeRole: () => Promise<any>; // No parameters needed
-  handleRequestRoleUpgrade: () => Promise<any>; // No parameters needed
+  handleUpgradeRole: () => Promise<any>;
+  handleRequestRoleUpgrade: () => Promise<any>;
   refetchTeamMembers: () => void;
   refetchPendingInvitations: () => Promise<any>;
   fetchTeams: () => void;
-  getTeamEquipmentCount: (teamId: string) => Promise<number>; // Keep teamId parameter as components need it
+  getTeamEquipmentCount: (teamId: string) => Promise<number>;
 }
