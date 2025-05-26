@@ -1,7 +1,7 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrder, CreateWorkOrderParams, UpdateWorkOrderParams, WorkOrderStatus } from '@/types/workOrders';
 import { logWorkOrderChange } from './workOrderAudit';
+import { canSubmitWorkOrders } from './workOrderPermissions';
 
 /**
  * Get work orders for equipment
@@ -95,13 +95,10 @@ export async function createWorkOrder(params: CreateWorkOrderParams): Promise<Wo
 
     console.log('Equipment org_id:', equipment.org_id);
 
-    // Verify user has permission to create work orders for this equipment
-    const { data: canSubmit } = await supabase.rpc('can_submit_work_orders', {
-      p_user_id: user.user.id,
-      p_equipment_id: params.equipment_id
-    });
+    // Verify user has permission to create work orders for this equipment using our permission function
+    const hasPermission = await canSubmitWorkOrders(params.equipment_id);
 
-    if (!canSubmit) {
+    if (!hasPermission) {
       throw new Error('You do not have permission to create work orders for this equipment');
     }
 
