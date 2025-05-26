@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,6 @@ import { format } from 'date-fns';
 interface WorkOrdersListProps {
   workOrders: WorkOrder[];
   isLoading?: boolean;
-  onViewDetails: (workOrder: WorkOrder) => void;
   canViewHours?: boolean;
   showEquipmentName?: boolean;
 }
@@ -19,10 +19,15 @@ interface WorkOrdersListProps {
 export function WorkOrdersList({ 
   workOrders, 
   isLoading = false, 
-  onViewDetails,
   canViewHours = false,
   showEquipmentName = false
 }: WorkOrdersListProps) {
+  const navigate = useNavigate();
+
+  const handleViewDetails = (workOrder: WorkOrder) => {
+    navigate(`/work-orders/${workOrder.id}`);
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -99,7 +104,7 @@ export function WorkOrdersList({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onViewDetails(workOrder)}
+                onClick={() => handleViewDetails(workOrder)}
               >
                 <Eye className="h-4 w-4 mr-1" />
                 View Details

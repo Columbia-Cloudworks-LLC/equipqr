@@ -3,13 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkNote } from './types';
 
 /**
- * Create a new work note for a piece of equipment
+ * Create a new work note
  */
 export async function createWorkNote(
   equipmentId: string, 
   note: string, 
   hoursWorked: number | null = null, 
-  isPublic: boolean = true
+  isPublic: boolean = false,
+  workOrderId?: string
 ): Promise<WorkNote> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -18,51 +19,53 @@ export async function createWorkNote(
     if (!userId) {
       throw new Error('You must be logged in to create work notes');
     }
-    
-    console.log('Creating work note for equipment:', equipmentId);
-    
+
+    console.log('Creating work note:', { equipmentId, note, hoursWorked, isPublic, workOrderId });
+
+    // Get app_user.id from auth.uid for foreign key constraint
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', userId)
+      .single();
+
+    if (appUserError || !appUser) {
+      console.error('Error fetching app_user:', appUserError);
+      throw new Error('User profile not found');
+    }
+
+    const noteData = {
+      equipment_id: equipmentId,
+      note: note.trim(),
+      hours_worked: hoursWorked,
+      is_public: isPublic,
+      created_by: appUser.id,
+      work_order_id: workOrderId || null
+    };
+
     const { data, error } = await supabase
       .from('equipment_work_notes')
-      .insert({
-        equipment_id: equipmentId,
-        note,
-        created_by: userId,
-        is_public: isPublic,
-        hours_worked: hoursWorked
-      })
-      .select('*')
+      .insert(noteData)
+      .select()
       .single();
-    
+
     if (error) {
       console.error('Error creating work note:', error);
       throw error;
     }
-    
-    return data;
-  } catch (error) {
+
+    console.log('Work note created successfully:', data.id);
+    return data as WorkNote;
+  } catch (error: any) {
     console.error('Error in createWorkNote:', error);
-    
-    if (error instanceof Error) {
-      if (error.message.includes('foreign key constraint')) {
-        throw new Error('Failed to create work note: Database constraint error');
-      } else if (error.message.includes('permission denied')) {
-        throw new Error('You do not have permission to create work notes for this equipment');
-      } else {
-        throw new Error(`Failed to create work note: ${error.message}`);
-      }
-    } else {
-      throw new Error('Failed to create work note: Unknown error');
-    }
+    throw new Error(`Failed to create work note: ${error.message}`);
   }
 }
 
 /**
- * Update an existing work note - with 24 hour window enforcement
+ * Update an existing work note
  */
-export async function updateWorkNote(
-  noteId: string, 
-  updates: Partial<WorkNote>
-): Promise<WorkNote> {
+export async function updateWorkNote(id: string, updates: Partial<WorkNote>): Promise<WorkNote> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
@@ -71,62 +74,51 @@ export async function updateWorkNote(
       throw new Error('You must be logged in to update work notes');
     }
 
-    // Check if user can edit this note (simplified version)
-    const { data: existingNote } = await supabase
-      .from('equipment_work_notes')
-      .select('created_by, created_at')
-      .eq('id', noteId)
+    console.log('Updating work note:', id, updates);
+
+    // Get app_user.id from auth.uid for edit tracking
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_user')
+      .select('id')
+      .eq('auth_uid', userId)
       .single();
-    
-    if (!existingNote) {
-      throw new Error('Work note not found');
+
+    if (appUserError || !appUser) {
+      console.error('Error fetching app_user:', appUserError);
+      throw new Error('User profile not found');
     }
-    
-    if (existingNote.created_by !== userId) {
-      throw new Error('You can only edit your own notes');
-    }
-    
-    // Check 24-hour window
-    const createdAt = new Date(existingNote.created_at);
-    const now = new Date();
-    const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-    
-    if (hoursSinceCreation > 24) {
-      throw new Error('You can only edit notes within 24 hours of creation');
-    }
-    
-    // Safe updates
-    const safeUpdates = {
-      note: updates.note,
-      is_public: updates.is_public,
-      hours_worked: updates.hours_worked,
+
+    const updateData = {
+      ...updates,
+      edited_by: appUser.id,
       edited_at: new Date().toISOString(),
-      edited_by: userId
+      updated_at: new Date().toISOString()
     };
-    
+
     const { data, error } = await supabase
       .from('equipment_work_notes')
-      .update(safeUpdates)
-      .eq('id', noteId)
-      .select('*')
+      .update(updateData)
+      .eq('id', id)
+      .select()
       .single();
-    
+
     if (error) {
       console.error('Error updating work note:', error);
       throw error;
     }
-    
-    return data;
-  } catch (error) {
+
+    console.log('Work note updated successfully:', data.id);
+    return data as WorkNote;
+  } catch (error: any) {
     console.error('Error in updateWorkNote:', error);
-    throw new Error(`Failed to update work note: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(`Failed to update work note: ${error.message}`);
   }
 }
 
 /**
  * Delete a work note (soft delete)
  */
-export async function deleteWorkNote(noteId: string): Promise<void> {
+export async function deleteWorkNote(id: string): Promise<void> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
@@ -134,34 +126,25 @@ export async function deleteWorkNote(noteId: string): Promise<void> {
     if (!userId) {
       throw new Error('You must be logged in to delete work notes');
     }
-    
-    // Check if note exists and user is the author
-    const { data: note, error: fetchError } = await supabase
-      .from('equipment_work_notes')
-      .select('created_by')
-      .eq('id', noteId)
-      .single();
-    
-    if (fetchError) {
-      console.error('Error fetching work note:', fetchError);
-      throw fetchError;
-    }
-    
-    if (note.created_by !== userId) {
-      throw new Error('You can only delete your own work notes');
-    }
-    
+
+    console.log('Deleting work note:', id);
+
     const { error } = await supabase
       .from('equipment_work_notes')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', noteId);
-    
+      .update({ 
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
     if (error) {
       console.error('Error deleting work note:', error);
       throw error;
     }
-  } catch (error) {
+
+    console.log('Work note deleted successfully:', id);
+  } catch (error: any) {
     console.error('Error in deleteWorkNote:', error);
-    throw new Error(`Failed to delete work note: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(`Failed to delete work note: ${error.message}`);
   }
 }

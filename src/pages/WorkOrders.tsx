@@ -7,38 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Search, Filter, RefreshCw } from 'lucide-react';
 import { WorkOrdersList } from '@/components/WorkOrders/WorkOrdersList';
-import { WorkOrderDetail } from '@/components/WorkOrders/WorkOrderDetail';
-import { WorkOrder, UpdateWorkOrderParams } from '@/types/workOrders';
-import { getAllUserWorkOrders, updateWorkOrder } from '@/services/workOrders/workOrderManagementService';
+import { getAllUserWorkOrders } from '@/services/workOrders/workOrderManagementService';
 import { toast } from 'sonner';
 import { Layout } from '@/components/Layout/Layout';
 
 export default function WorkOrders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
 
   const { data: workOrders = [], isLoading, refetch } = useQuery({
     queryKey: ['allWorkOrders', searchTerm, statusFilter],
     queryFn: () => getAllUserWorkOrders({ search: searchTerm, status: statusFilter })
   });
-
-  const handleUpdateWorkOrder = async (id: string, updates: UpdateWorkOrderParams) => {
-    try {
-      await updateWorkOrder(id, updates);
-      toast.success('Work order updated successfully');
-      refetch();
-      // Update the selected work order if it's the one being updated
-      if (selectedWorkOrder?.id === id) {
-        const updatedWorkOrder = workOrders.find(wo => wo.id === id);
-        if (updatedWorkOrder) {
-          setSelectedWorkOrder(updatedWorkOrder);
-        }
-      }
-    } catch (error: any) {
-      toast.error('Failed to update work order: ' + error.message);
-    }
-  };
 
   const filteredWorkOrders = workOrders.filter(wo => {
     const matchesSearch = !searchTerm || 
@@ -110,45 +90,22 @@ export default function WorkOrders() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Work Orders List */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  Work Orders ({filteredWorkOrders.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <WorkOrdersList
-                  workOrders={filteredWorkOrders}
-                  isLoading={isLoading}
-                  onViewDetails={setSelectedWorkOrder}
-                  canViewHours={true}
-                  showEquipmentName={true}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Work Order Detail */}
-          <div className="lg:col-span-1">
-            {selectedWorkOrder ? (
-              <WorkOrderDetail
-                workOrder={selectedWorkOrder}
-                canManage={true} // TODO: Implement proper permission check
-                onUpdate={handleUpdateWorkOrder}
-                onClose={() => setSelectedWorkOrder(null)}
-              />
-            ) : (
-              <Card>
-                <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
-                  Select a work order to view details
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+        {/* Work Orders List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Work Orders ({filteredWorkOrders.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WorkOrdersList
+              workOrders={filteredWorkOrders}
+              isLoading={isLoading}
+              canViewHours={true}
+              showEquipmentName={true}
+            />
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
