@@ -23,6 +23,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import WorkOrders from './pages/WorkOrders';
 
 const AppRoutes = () => {
   const { user, isLoading } = useAuth();
@@ -59,6 +60,7 @@ const AppRoutes = () => {
       <Route path="/equipment/:id/qr" element={<ProtectedRoute><EquipmentQR /></ProtectedRoute>} />
       <Route path="/fleet-map" element={<ProtectedRoute><FleetMap /></ProtectedRoute>} />
       <Route path="/teams" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
+      <Route path="/work-orders" element={<ProtectedRoute><WorkOrders /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/organization" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
       <Route path="/settings/organization" element={<Navigate to="/organization" replace />} />

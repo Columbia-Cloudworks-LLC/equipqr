@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Calendar, User } from 'lucide-react';
+import { Eye, Calendar, User, Package } from 'lucide-react';
 import { WorkOrder } from '@/types/workOrders';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import { format } from 'date-fns';
@@ -13,13 +13,15 @@ interface WorkOrdersListProps {
   isLoading?: boolean;
   onViewDetails: (workOrder: WorkOrder) => void;
   canViewHours?: boolean;
+  showEquipmentName?: boolean;
 }
 
 export function WorkOrdersList({ 
   workOrders, 
   isLoading = false, 
   onViewDetails,
-  canViewHours = false 
+  canViewHours = false,
+  showEquipmentName = false
 }: WorkOrdersListProps) {
   if (isLoading) {
     return (
@@ -48,12 +50,12 @@ export function WorkOrdersList({
   return (
     <div className="space-y-4">
       {workOrders.map((workOrder) => (
-        <Card key={workOrder.id}>
+        <Card key={workOrder.id} className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
-              <div className="space-y-1">
+              <div className="space-y-1 flex-1">
                 <CardTitle className="text-lg">{workOrder.title}</CardTitle>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     {format(new Date(workOrder.submitted_at), 'MMM d, yyyy')}
@@ -62,6 +64,12 @@ export function WorkOrdersList({
                     <div className="flex items-center gap-1">
                       <User className="h-4 w-4" />
                       {workOrder.submitted_by_name}
+                    </div>
+                  )}
+                  {showEquipmentName && workOrder.equipment_name && (
+                    <div className="flex items-center gap-1">
+                      <Package className="h-4 w-4" />
+                      {workOrder.equipment_name}
                     </div>
                   )}
                 </div>
