@@ -1,6 +1,6 @@
 
 /**
- * Process equipment data to add required fields for frontend consumption
+ * Process equipment data to add required fields for frontend consumption with enhanced validation
  */
 export function formatEquipmentResponse(equipment: any[]): any[] {
   // Log the received equipment count for debugging
@@ -14,22 +14,38 @@ export function formatEquipmentResponse(equipment: any[]): any[] {
   
   const userOrgIds = Array.from(orgIds);
   
-  // Format each equipment item
+  // Format each equipment item with enhanced data validation
   return equipment.map(item => {
     const isExternalOrg = !userOrgIds.includes(item.org_id);
     const hasNoTeam = item.team_id === null;
     
-    // Enhanced organization name resolution with multiple fallbacks
-    const orgName = item.org_name || 
-                   (item.org?.name ? item.org.name : 
-                    (item.organization?.name ? item.organization.name : 'Unknown Organization'));
+    // Enhanced organization name resolution with multiple fallbacks and validation
+    let orgName = item.org_name;
+    if (!orgName && item.org?.name) {
+      orgName = item.org.name;
+      console.log(`Equipment "${item.name}": Resolved org name from nested org object`);
+    } else if (!orgName && item.organization?.name) {
+      orgName = item.organization.name;
+      console.log(`Equipment "${item.name}": Resolved org name from nested organization object`);
+    } else if (!orgName) {
+      orgName = 'Unknown Organization';
+      console.warn(`Equipment "${item.name}": Could not resolve organization name, using fallback`);
+    }
     
-    // Enhanced team name resolution with multiple fallbacks
-    const teamName = item.team_name || 
-                     (item.team?.name ? item.team.name : null);
+    // Enhanced team name resolution with validation and logging
+    let teamName = item.team_name;
+    if (!teamName && item.team?.name) {
+      teamName = item.team.name;
+      console.log(`Equipment "${item.name}": Resolved team name from nested team object`);
+    } else if (!teamName && item.team_id) {
+      // If we have a team_id but no team name, this indicates a data inconsistency
+      console.warn(`Equipment "${item.name}": Has team_id (${item.team_id}) but missing team name - data inconsistency detected`);
+      teamName = null;
+    }
     
-    // Log organization and team name resolution for debugging
-    console.log(`Equipment "${item.name}": org_name=${orgName}, team_name=${teamName || 'None'}, source=${item.access_via || 'unknown'}`);
+    // Log team name resolution for debugging
+    const teamInfo = teamName ? `team_name=${teamName}` : 'No team';
+    console.log(`Equipment "${item.name}": org_name=${orgName}, ${teamInfo}, source=${item.access_via || 'unknown'}, team_id=${item.team_id || 'null'}`);
     
     return {
       ...item,

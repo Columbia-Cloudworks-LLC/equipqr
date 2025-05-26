@@ -1,4 +1,3 @@
-
 import { getAppUserId } from "./appUserService.ts";
 import { checkUserOrgAccess } from "./userOrgService.ts";
 import { fetchTeamEquipment } from "./teamEquipmentService.ts";
@@ -12,20 +11,59 @@ interface EquipmentResult {
 }
 
 /**
- * Combine all equipment sources and eliminate duplicates
+ * Improved equipment combining with data source prioritization
  */
 function combineEquipment(equipmentSources: any[][]): any[] {
-  // Flatten all equipment sources into a single array
-  const allEquipment = equipmentSources.reduce((acc, source) => [...acc, ...source], []);
+  // Flatten all equipment sources into a single array with source tracking
+  const allEquipment = equipmentSources.reduce((acc, source, sourceIndex) => {
+    const sourceNames = ['team', 'org', 'direct_org'];
+    const sourceName = sourceNames[sourceIndex] || `source_${sourceIndex}`;
+    
+    return [...acc, ...source.map(item => ({
+      ...item,
+      _source_index: sourceIndex,
+      _source_name: sourceName
+    }))];
+  }, []);
   
-  // Deduplicate by equipment ID
-  return allEquipment.filter((item, index, self) =>
-    index === self.findIndex((eq) => eq.id === item.id)
-  );
+  // Group by equipment ID and prioritize sources with complete data
+  const equipmentMap = new Map();
+  
+  allEquipment.forEach(item => {
+    const existingItem = equipmentMap.get(item.id);
+    
+    if (!existingItem) {
+      equipmentMap.set(item.id, item);
+    } else {
+      // Prioritize items with team names over those without
+      const currentHasTeamName = Boolean(item.team_name);
+      const existingHasTeamName = Boolean(existingItem.team_name);
+      
+      if (currentHasTeamName && !existingHasTeamName) {
+        console.log(`Equipment ${item.id}: Prioritizing ${item._source_name} over ${existingItem._source_name} (has team name)`);
+        equipmentMap.set(item.id, item);
+      } else if (!currentHasTeamName && existingHasTeamName) {
+        console.log(`Equipment ${item.id}: Keeping ${existingItem._source_name} over ${item._source_name} (has team name)`);
+        // Keep existing
+      } else {
+        // If both have team names or both don't, prioritize by source order (team > org > direct_org)
+        if (item._source_index < existingItem._source_index) {
+          console.log(`Equipment ${item.id}: Prioritizing ${item._source_name} over ${existingItem._source_name} (better source)`);
+          equipmentMap.set(item.id, item);
+        }
+      }
+    }
+  });
+  
+  // Remove internal tracking properties and return
+  return Array.from(equipmentMap.values()).map(item => {
+    const { _source_index, _source_name, ...cleanItem } = item;
+    return cleanItem;
+  });
 }
 
 /**
- * Main function to fetch all equipment for a user with access control
+ * Main function to fetch all equipment for a user with improved data consistency
  */
 export async function fetchUserEquipment(userId: string, orgId?: string): Promise<EquipmentResult> {
   try {
@@ -56,20 +94,31 @@ export async function fetchUserEquipment(userId: string, orgId?: string): Promis
       }
     }
     
-    // 1. Get equipment from user's teams
+    // Fetch equipment from all sources with improved logging
+    console.log('Fetching equipment from team source...');
     const teamEquipment = await fetchTeamEquipment(appUserId, orgId);
+    console.log(`Team equipment: ${teamEquipment.length} items`);
     
-    // 2. Get equipment from user's organizations
+    console.log('Fetching equipment from org source...');
     const orgEquipment = await fetchOrgEquipment(userId, orgId);
+    console.log(`Org equipment: ${orgEquipment.length} items`);
     
-    // 3. If orgId is specified, get direct equipment from that org
     let directOrgEquipment: any[] = [];
     if (orgId) {
+      console.log('Fetching equipment from direct org source...');
       directOrgEquipment = await fetchDirectOrgEquipment(orgId);
+      console.log(`Direct org equipment: ${directOrgEquipment.length} items`);
     }
     
-    // Combine all equipment sources and deduplicate
+    // Combine all equipment sources with improved deduplication
     const uniqueEquipment = combineEquipment([teamEquipment, orgEquipment, directOrgEquipment]);
+    
+    console.log(`Final combined equipment: ${uniqueEquipment.length} items`);
+    
+    // Log summary of team name resolution
+    const withTeamNames = uniqueEquipment.filter(item => item.team_name).length;
+    const withoutTeamNames = uniqueEquipment.filter(item => !item.team_name).length;
+    console.log(`Team name resolution: ${withTeamNames} with team names, ${withoutTeamNames} without`);
     
     return { success: true, equipment: uniqueEquipment };
   } catch (error) {

@@ -2,12 +2,13 @@
 import { createAdminClient } from "../adminClient.ts";
 
 /**
- * Fetch equipment from user's organizations
+ * Fetch equipment from user's organizations with proper team joins
  */
 export async function fetchOrgEquipment(userId: string, orgId?: string): Promise<any[]> {
   try {
     const adminClient = createAdminClient();
     
+    // Get user's organization with equipment that includes team information
     let userOrgQuery = adminClient
       .from('user_profiles')
       .select(`
@@ -15,7 +16,11 @@ export async function fetchOrgEquipment(userId: string, orgId?: string): Promise
           id,
           name,
           equipment (
-            *
+            *,
+            team:team_id (
+              id,
+              name
+            )
           )
         )
       `)
@@ -43,11 +48,14 @@ export async function fetchOrgEquipment(userId: string, orgId?: string): Promise
             .map(item => ({
               ...item,
               access_via: 'org',
-              org_name: userOrg.org.name
+              org_name: userOrg.org.name,
+              team_name: item.team?.name || null
             }))
         ];
       });
     }
+    
+    console.log(`Org equipment: found ${orgEquipment.length} items with team names resolved`);
     
     return orgEquipment;
   } catch (error) {

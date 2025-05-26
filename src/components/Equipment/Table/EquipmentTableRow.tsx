@@ -21,8 +21,31 @@ export function EquipmentTableRow({ equipment }: EquipmentTableRowProps) {
     }
   };
 
-  // Ensure organization name is never empty
+  // Ensure organization name is never empty with enhanced validation
   const orgName = equipment.org_name || 'Unknown Organization';
+  
+  // Enhanced team name handling with better fallback logic
+  const getTeamDisplay = () => {
+    if (equipment.team_name) {
+      return (
+        <div className="flex items-center">
+          <Users className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+          <span>{equipment.team_name}</span>
+        </div>
+      );
+    } else if (equipment.team_id) {
+      // Has team_id but no team_name - show warning
+      return (
+        <div className="flex items-center">
+          <Users className="h-3.5 w-3.5 text-yellow-500 mr-1" />
+          <span className="text-yellow-600 text-sm">Team Data Missing</span>
+        </div>
+      );
+    } else {
+      // No team assigned
+      return <span className="text-muted-foreground text-sm">No Team</span>;
+    }
+  };
 
   return (
     <TableRow>
@@ -35,14 +58,7 @@ export function EquipmentTableRow({ equipment }: EquipmentTableRowProps) {
         </Badge>
       </TableCell>
       <TableCell>
-        {equipment.team_name ? (
-          <div className="flex items-center">
-            <Users className="h-3.5 w-3.5 text-muted-foreground mr-1" />
-            <span>{equipment.team_name}</span>
-          </div>
-        ) : (
-          <span className="text-muted-foreground text-sm">No Team</span>
-        )}
+        {getTeamDisplay()}
       </TableCell>
       <TableCell>
         <div className="flex items-center">

@@ -2,7 +2,7 @@
 import { createAdminClient } from "../adminClient.ts";
 
 /**
- * Fetch equipment directly from a specific organization
+ * Fetch equipment directly from a specific organization with proper team joins
  */
 export async function fetchDirectOrgEquipment(orgId: string): Promise<any[]> {
   try {
@@ -22,7 +22,7 @@ export async function fetchDirectOrgEquipment(orgId: string): Promise<any[]> {
     
     const orgName = orgData?.name || 'Unknown Organization';
     
-    // Then get the equipment with team information
+    // Then get the equipment with complete team information
     const { data: orgEq, error: orgEqError } = await adminClient
       .from('equipment')
       .select(`
@@ -44,12 +44,16 @@ export async function fetchDirectOrgEquipment(orgId: string): Promise<any[]> {
       return [];
     }
     
-    return orgEq.map(item => ({
+    const formattedEquipment = orgEq.map(item => ({
       ...item,
       access_via: 'direct_org',
       org_name: orgName,
       team_name: item.team?.name || null
     }));
+    
+    console.log(`Direct org equipment: found ${formattedEquipment.length} items with team names resolved`);
+    
+    return formattedEquipment;
     
   } catch (error) {
     console.error('Error fetching direct org equipment:', error);

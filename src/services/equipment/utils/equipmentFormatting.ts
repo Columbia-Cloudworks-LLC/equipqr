@@ -2,7 +2,7 @@
 import { Equipment } from "@/types";
 
 /**
- * Process equipment data from the database to match the frontend data model
+ * Process equipment data from the database to match the frontend data model with enhanced validation
  */
 export function processEquipmentList(data: any[]): Equipment[] {
   console.log('Processing equipment list:', data?.length || 0, 'items');
@@ -21,14 +21,29 @@ export function processEquipmentList(data: any[]): Equipment[] {
     // Determine if the equipment has no team explicitly
     const hasNoTeam = item.team_id === null;
     
-    // Enhanced organization name resolution with multiple fallbacks
-    const orgName = item.org_name || 
-                   (item.org?.name ? item.org.name : 
-                    (item.organization?.name ? item.organization.name : 'Unknown Organization'));
+    // Enhanced organization name resolution with multiple fallbacks and validation
+    let orgName = item.org_name;
+    if (!orgName && item.org?.name) {
+      orgName = item.org.name;
+      console.log(`Frontend: Equipment "${item.name}" resolved org name from nested org object`);
+    } else if (!orgName && item.organization?.name) {
+      orgName = item.organization.name;
+      console.log(`Frontend: Equipment "${item.name}" resolved org name from nested organization object`);
+    } else if (!orgName) {
+      orgName = 'Unknown Organization';
+      console.warn(`Frontend: Equipment "${item.name}" could not resolve organization name, using fallback`);
+    }
     
-    // Enhanced team name resolution with multiple fallbacks
-    const teamName = item.team_name || 
-                    (item.team?.name ? item.team.name : null);
+    // Enhanced team name resolution with validation and logging
+    let teamName = item.team_name;
+    if (!teamName && item.team?.name) {
+      teamName = item.team.name;
+      console.log(`Frontend: Equipment "${item.name}" resolved team name from nested team object`);
+    } else if (!teamName && item.team_id) {
+      // If we have a team_id but no team name, this indicates a data inconsistency
+      console.warn(`Frontend: Equipment "${item.name}" has team_id (${item.team_id}) but missing team name - potential data issue`);
+      teamName = null;
+    }
     
     const processed = {
       ...item,
@@ -40,8 +55,9 @@ export function processEquipmentList(data: any[]): Equipment[] {
       has_no_team: item.has_no_team !== undefined ? item.has_no_team : hasNoTeam
     };
     
-    // Log equipment details for debugging
-    console.log(`Equipment "${item.name}": org_name=${processed.org_name}, team_name=${processed.team_name || 'None'}, team_id=${item.team_id}, has_no_team=${processed.has_no_team}`);
+    // Enhanced logging for equipment details
+    const teamInfo = processed.team_name ? `team_name=${processed.team_name}` : 'No team';
+    console.log(`Frontend: Equipment "${item.name}": org_name=${processed.org_name}, ${teamInfo}, team_id=${item.team_id || 'null'}, has_no_team=${processed.has_no_team}`);
     
     return processed;
   }).filter(Boolean); // Remove any null items
