@@ -11,9 +11,7 @@ interface FleetMapHeaderProps {
   showOrgSelector: boolean;
   organizations: UserOrganization[];
   selectedOrgId?: string;
-  defaultOrgId: string | null;
   onOrganizationChange: (orgId: string) => void;
-  onSetDefaultOrg: (orgId: string) => Promise<boolean>;
   onRefresh: () => void;
   onExportData: () => void;
   canExport: boolean;
@@ -25,9 +23,7 @@ export function FleetMapHeader({
   showOrgSelector,
   organizations,
   selectedOrgId,
-  defaultOrgId,
   onOrganizationChange,
-  onSetDefaultOrg,
   onRefresh,
   onExportData,
   canExport
@@ -46,10 +42,7 @@ export function FleetMapHeader({
           <OrganizationSelector
             organizations={organizations}
             selectedOrgId={selectedOrgId}
-            defaultOrgId={defaultOrgId}
             onChange={onOrganizationChange}
-            onSetDefault={onSetDefaultOrg}
-            showSetDefault={true}
             className="w-full sm:w-[250px]"
           />
         )}

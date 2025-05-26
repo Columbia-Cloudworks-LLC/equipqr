@@ -19,8 +19,6 @@ const FleetMapPage = () => {
     organizations, 
     selectedOrganization, 
     selectOrganization, 
-    defaultOrganizationId,
-    setDefaultOrganization,
     isLoading: isOrgLoading
   } = useOrganization();
   
@@ -112,14 +110,6 @@ const FleetMapPage = () => {
     window.location.href = newUrl;
   };
 
-  const handleSetDefaultOrg = async (orgId: string) => {
-    const success = await setDefaultOrganization(orgId);
-    if (success) {
-      toast.success('Default organization updated');
-    }
-    return success;
-  };
-
   const handleRefresh = () => {
     refetchDashboard();
     toast.success('Fleet data refreshed');
@@ -174,9 +164,7 @@ const FleetMapPage = () => {
           showOrgSelector={showOrgSelector}
           organizations={organizations}
           selectedOrgId={selectedOrganization?.id}
-          defaultOrgId={defaultOrganizationId}
           onOrganizationChange={handleOrganizationChange}
-          onSetDefaultOrg={handleSetDefaultOrg}
           onRefresh={handleRefresh}
           onExportData={handleExportData}
           canExport={equipmentWithLocation.length > 0}
