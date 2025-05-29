@@ -7,6 +7,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 interface FeatureAccessResult {
   has_access: boolean;
   subscription_details?: any;
+  grace_period_info?: any;
   user_role?: string;
   reason?: string;
 }
@@ -16,6 +17,7 @@ interface UseFeatureAccessResult {
   isLoading: boolean;
   error: string | null;
   subscriptionDetails: any;
+  gracePeriodInfo: any;
   userRole: string | null;
   checkAccess: () => Promise<void>;
 }
@@ -27,6 +29,7 @@ export function useFeatureAccess(featureKey: string): UseFeatureAccessResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionDetails, setSubscriptionDetails] = useState(null);
+  const [gracePeriodInfo, setGracePeriodInfo] = useState(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const checkAccess = async () => {
@@ -64,6 +67,7 @@ export function useFeatureAccess(featureKey: string): UseFeatureAccessResult {
 
       setHasAccess(result.has_access);
       setSubscriptionDetails(result.subscription_details);
+      setGracePeriodInfo(result.grace_period_info);
       setUserRole(result.user_role || null);
 
       if (!result.has_access && result.reason) {
@@ -88,6 +92,7 @@ export function useFeatureAccess(featureKey: string): UseFeatureAccessResult {
     isLoading,
     error,
     subscriptionDetails,
+    gracePeriodInfo,
     userRole,
     checkAccess
   };

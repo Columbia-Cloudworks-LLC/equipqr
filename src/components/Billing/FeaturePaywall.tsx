@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Users, CreditCard, Check } from 'lucide-react';
+import { MapPin, Users, CreditCard, Check, Clock, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ interface FeaturePaywallProps {
   benefits: string[];
   icon?: React.ReactNode;
   userRole?: string;
+  gracePeriodInfo?: any;
 }
 
 export function FeaturePaywall({ 
@@ -23,7 +24,8 @@ export function FeaturePaywall({
   description, 
   benefits, 
   icon,
-  userRole 
+  userRole,
+  gracePeriodInfo 
 }: FeaturePaywallProps) {
   const { selectedOrganization } = useOrganization();
   const [isLoading, setIsLoading] = React.useState(false);
@@ -58,7 +60,6 @@ export function FeaturePaywall({
 
       if (data?.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
-        // Open Stripe checkout in a new tab
         window.open(data.url, '_blank');
       } else {
         toast.error('Failed to create checkout session');
@@ -79,9 +80,30 @@ export function FeaturePaywall({
   };
 
   const canManage = ['owner', 'manager'].includes(userRole || '');
+  const hasGracePeriod = gracePeriodInfo?.has_grace_period && gracePeriodInfo?.is_active;
+  const daysRemaining = gracePeriodInfo?.days_remaining || 0;
+  const isUrgent = daysRemaining <= 7;
 
   return (
     <Card className="max-w-2xl mx-auto">
+      {hasGracePeriod && (
+        <div className={`p-4 border-b ${isUrgent ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+          <div className="flex items-center gap-2">
+            {isUrgent ? (
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+            ) : (
+              <Clock className="h-5 w-5 text-amber-600" />
+            )}
+            <div className={`flex-1 ${isUrgent ? 'text-red-800' : 'text-amber-800'}`}>
+              <p className="font-semibold">Grace Period Active</p>
+              <p className="text-sm">
+                You have {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining to subscribe before losing access to premium features.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <CardHeader className="text-center pb-4">
         <div className="flex justify-center mb-4">
           {getIcon()}

@@ -2,10 +2,10 @@
 import { useState } from 'react';
 import { useEquipmentQuery } from '@/hooks/equipment/useEquipmentQuery';
 import { useEquipmentFilters } from '@/components/Equipment/hooks/useEquipmentFilters';
-import { FleetMapHeader } from '@/components/FleetMap/FleetMapHeader';
 import { FleetMapFilters } from '@/components/FleetMap/FleetMapFilters';
 import { FleetMapContent } from '@/components/FleetMap/FleetMapContent';
 import { FeaturePaywall } from '@/components/Billing/FeaturePaywall';
+import { GracePeriodBanner } from '@/components/Billing/GracePeriodBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,7 +13,7 @@ import { MapPin } from 'lucide-react';
 
 export default function FleetMap() {
   const { selectedOrganization } = useOrganization();
-  const { hasAccess, isLoading: accessLoading, userRole } = useFeatureAccess('fleet_map');
+  const { hasAccess, isLoading: accessLoading, userRole, gracePeriodInfo } = useFeatureAccess('fleet_map');
   
   const { data: equipment = [], isLoading: equipmentLoading } = useEquipmentQuery(
     selectedOrganization?.id,
@@ -60,6 +60,7 @@ export default function FleetMap() {
           ]}
           icon={<MapPin className="h-8 w-8 text-blue-600" />}
           userRole={userRole}
+          gracePeriodInfo={gracePeriodInfo}
         />
       </div>
     );
@@ -67,6 +68,8 @@ export default function FleetMap() {
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
+      <GracePeriodBanner />
+      
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
         <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
