@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useEquipment } from '@/hooks/equipment/useEquipmentQuery';
+import { useEquipmentQuery } from '@/hooks/equipment/useEquipmentQuery';
 import { useEquipmentFilters } from '@/components/Equipment/hooks/useEquipmentFilters';
 import { FleetMapHeader } from '@/components/FleetMap/FleetMapHeader';
 import { FleetMapFilters } from '@/components/FleetMap/FleetMapFilters';
@@ -15,21 +15,19 @@ export default function FleetMap() {
   const { selectedOrganization } = useOrganization();
   const { hasAccess, isLoading: accessLoading, userRole } = useFeatureAccess('fleet_map');
   
-  const { data: equipment = [], isLoading: equipmentLoading } = useEquipment(
+  const { data: equipment = [], isLoading: equipmentLoading } = useEquipmentQuery(
     selectedOrganization?.id,
     { enabled: !!selectedOrganization && hasAccess }
   );
   
   const {
     filteredEquipment,
+    filterStatus,
+    setFilterStatus,
+    filterTeam,
+    setFilterTeam,
     searchTerm,
-    setSearchTerm,
-    statusFilter,
-    setStatusFilter,
-    teamFilter,
-    setTeamFilter,
-    organizationFilter,
-    setOrganizationFilter
+    setSearchTerm
   } = useEquipmentFilters(equipment);
 
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
@@ -49,9 +47,6 @@ export default function FleetMap() {
   if (!hasAccess) {
     return (
       <div className="container mx-auto px-4 py-6">
-        <div className="mb-8">
-          <FleetMapHeader />
-        </div>
         <FeaturePaywall
           featureKey="fleet_map"
           featureName="Fleet Map"
@@ -72,17 +67,18 @@ export default function FleetMap() {
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
-      <FleetMapHeader />
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
+        <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
+      </div>
       
       <FleetMapFilters
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        teamFilter={teamFilter}
-        onTeamChange={setTeamFilter}
-        organizationFilter={organizationFilter}
-        onOrganizationChange={setOrganizationFilter}
+        setSearchTerm={setSearchTerm}
+        statusFilter={filterStatus}
+        setStatusFilter={setFilterStatus}
+        teamFilter={filterTeam}
+        setTeamFilter={setFilterTeam}
       />
 
       <FleetMapContent

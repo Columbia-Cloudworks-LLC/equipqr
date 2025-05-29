@@ -123,8 +123,8 @@ serve(async (req) => {
         .eq('org_id', org_id);
 
       const totalUsers = userCount?.length || 1;
-      const freeUsers = 3;
-      const billableUsers = Math.max(totalUsers - freeUsers, 1); // Minimum 1 user
+      // No free users - bill for all users
+      const billableUsers = totalUsers;
 
       lineItems.push({
         price_data: {

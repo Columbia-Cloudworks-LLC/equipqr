@@ -118,7 +118,6 @@ export function FeaturePaywall({
             <div>
               <h4 className="font-semibold text-blue-900">Pricing</h4>
               <p className="text-blue-700 text-sm">$10 per user per month</p>
-              <p className="text-xs text-blue-600 mt-1">First 3 users are free</p>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-blue-900">$10</div>
