@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Filter, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { MapPin, Filter, ExternalLink, Eye, EyeOff, Lock } from 'lucide-react';
 import { FleetMap } from '@/components/Equipment/FleetMap/FleetMap';
 import { Equipment } from '@/types';
 import { getDisplayLocation } from '@/services/equipment/locationService';
 import { Link } from 'react-router-dom';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 interface DashboardEquipmentMapProps {
   equipment: Equipment[];
@@ -19,6 +20,7 @@ const LOCATION_LIMIT = 15;
 export function DashboardEquipmentMap({ equipment, isLoading }: DashboardEquipmentMapProps) {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
   const [showAllLocations, setShowAllLocations] = useState(false);
+  const { hasAccess, isLoading: accessLoading } = useFeatureAccess('fleet_map');
 
   // Filter equipment with location data and sort by freshest first
   const equipmentWithLocation = equipment.filter(item => {
@@ -39,7 +41,7 @@ export function DashboardEquipmentMap({ equipment, isLoading }: DashboardEquipme
   const totalWithLocation = equipmentWithLocation.length;
   const isLimited = !showAllLocations && totalWithLocation > LOCATION_LIMIT;
 
-  if (isLoading) {
+  if (isLoading || accessLoading) {
     return (
       <Card className="col-span-full">
         <CardHeader>
@@ -50,6 +52,50 @@ export function DashboardEquipmentMap({ equipment, isLoading }: DashboardEquipme
         </CardHeader>
         <CardContent>
           <div className="h-96 bg-muted animate-pulse rounded-md" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show locked state if no access
+  if (!hasAccess) {
+    return (
+      <Card className="col-span-full">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Fleet Map
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                <Lock className="h-3 w-3 mr-1" />
+                Premium
+              </Badge>
+            </CardTitle>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/equipment">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Unlock Fleet Map
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-96 bg-gradient-to-br from-gray-50 to-gray-100 rounded-md flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="bg-white p-6 rounded-lg shadow-sm border-2 border-dashed border-gray-300">
+                <Lock className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Fleet Map Premium Feature</h3>
+                <p className="text-sm text-gray-600 mb-4 max-w-md">
+                  Upgrade to unlock interactive maps showing real-time equipment locations across your fleet.
+                </p>
+                <Button asChild>
+                  <Link to="/fleet-map">
+                    View Upgrade Options
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -99,9 +145,9 @@ export function DashboardEquipmentMap({ equipment, isLoading }: DashboardEquipme
               </Button>
             )}
             <Button variant="outline" size="sm" asChild>
-              <Link to="/equipment">
+              <Link to="/fleet-map">
                 <ExternalLink className="h-4 w-4 mr-2" />
-                View All Equipment
+                Full Fleet Map
               </Link>
             </Button>
           </div>

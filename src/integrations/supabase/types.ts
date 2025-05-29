@@ -500,6 +500,111 @@ export type Database = {
           },
         ]
       }
+      feature_subscriptions: {
+        Row: {
+          activated_at: string
+          created_at: string
+          deactivated_at: string | null
+          feature_id: string
+          id: string
+          org_id: string
+          quantity: number | null
+          status: string
+          stripe_price_id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string
+          created_at?: string
+          deactivated_at?: string | null
+          feature_id: string
+          id?: string
+          org_id: string
+          quantity?: number | null
+          status?: string
+          stripe_price_id: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string
+          created_at?: string
+          deactivated_at?: string | null
+          feature_id?: string
+          id?: string
+          org_id?: string
+          quantity?: number | null
+          status?: string
+          stripe_price_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_subscriptions_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_usage: {
+        Row: {
+          created_at: string
+          feature_id: string
+          id: string
+          org_id: string
+          period_end: string
+          period_start: string
+          updated_at: string
+          usage_amount: number
+          usage_unit: string
+        }
+        Insert: {
+          created_at?: string
+          feature_id: string
+          id?: string
+          org_id: string
+          period_end: string
+          period_start: string
+          updated_at?: string
+          usage_amount?: number
+          usage_unit: string
+        }
+        Update: {
+          created_at?: string
+          feature_id?: string
+          id?: string
+          org_id?: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          usage_amount?: number
+          usage_unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_usage_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_usage_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       image_upload: {
         Row: {
           bucket: string
@@ -754,6 +859,50 @@ export type Database = {
           },
         ]
       }
+      organization_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          org_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          org_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          org_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_transfers: {
         Row: {
           accepted_at: string | null
@@ -827,6 +976,44 @@ export type Database = {
             columns: ["to_user_id"]
             isOneToOne: false
             referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_user_seats: {
+        Row: {
+          free_seats: number
+          id: string
+          org_id: string
+          paid_seats: number
+          total_seats: number
+          updated_at: string
+          used_seats: number
+        }
+        Insert: {
+          free_seats?: number
+          id?: string
+          org_id: string
+          paid_seats?: number
+          total_seats?: number
+          updated_at?: string
+          used_seats?: number
+        }
+        Update: {
+          free_seats?: number
+          id?: string
+          org_id?: string
+          paid_seats?: number
+          total_seats?: number
+          updated_at?: string
+          used_seats?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_user_seats_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
             referencedColumns: ["id"]
           },
         ]
@@ -914,6 +1101,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscription_features: {
+        Row: {
+          created_at: string
+          description: string | null
+          feature_key: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          feature_key: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          feature_key?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       team: {
         Row: {
@@ -1523,6 +1737,10 @@ export type Database = {
         Args: { p_user_id: string; p_team_id: string }
         Returns: boolean
       }
+      check_user_seat_availability: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       check_user_team_permission: {
         Args: { _user_id: string; _team_id: string; _required_roles: string[] }
         Returns: boolean
@@ -1592,6 +1810,10 @@ export type Database = {
           updated_at: string
           work_order_id: string | null
         }[]
+      }
+      get_org_feature_access: {
+        Args: { p_org_id: string; p_feature_key: string }
+        Returns: boolean
       }
       get_org_managers: {
         Args: { p_org_id: string }

@@ -1,169 +1,98 @@
-import { useState, useEffect } from 'react';
-import { Layout } from '@/components/Layout/Layout';
+
+import { useState } from 'react';
+import { useEquipment } from '@/hooks/equipment/useEquipmentQuery';
+import { useEquipmentFilters } from '@/components/Equipment/hooks/useEquipmentFilters';
 import { FleetMapHeader } from '@/components/FleetMap/FleetMapHeader';
 import { FleetMapFilters } from '@/components/FleetMap/FleetMapFilters';
 import { FleetMapContent } from '@/components/FleetMap/FleetMapContent';
-import { Equipment } from '@/types';
+import { FeaturePaywall } from '@/components/Billing/FeaturePaywall';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { getDisplayLocation } from '@/services/equipment/locationService';
-import { useCombinedDashboardData } from '@/hooks/useCombinedDashboardData';
-import { toast } from 'sonner';
-import { usePersistedFilters } from '@/hooks/usePersistedFilters';
+import { Skeleton } from '@/components/ui/skeleton';
+import { MapPin } from 'lucide-react';
 
-const FleetMapPage = () => {
+export default function FleetMap() {
+  const { selectedOrganization } = useOrganization();
+  const { hasAccess, isLoading: accessLoading, userRole } = useFeatureAccess('fleet_map');
+  
+  const { data: equipment = [], isLoading: equipmentLoading } = useEquipment(
+    selectedOrganization?.id,
+    { enabled: !!selectedOrganization && hasAccess }
+  );
+  
+  const {
+    filteredEquipment,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    teamFilter,
+    setTeamFilter,
+    organizationFilter,
+    setOrganizationFilter
+  } = useEquipmentFilters(equipment);
+
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
-  
-  const { 
-    organizations, 
-    selectedOrganization, 
-    selectOrganization, 
-    isLoading: isOrgLoading
-  } = useOrganization();
-  
-  // Use persisted filters for the fleet map (excluding organization)
-  const { 
-    filters, 
-    setFilterStatus, 
-    setFilterTeam, 
-    setFilterSearch,
-    clearFilters 
-  } = usePersistedFilters('fleet-map-filters');
-  
-  const { 
-    equipment,
-    teams,
-    isEquipmentLoading,
-    isOrgReady,
-    refetchDashboard
-  } = useCombinedDashboardData(selectedOrganization?.id);
+  const selectedEquipment = filteredEquipment.find(eq => eq.id === selectedEquipmentId) || null;
 
-  // Filter equipment based on search and filters
-  const filteredEquipment = equipment.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-                         item.manufacturer?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                         item.model?.toLowerCase().includes(filters.search.toLowerCase());
-    
-    const matchesStatus = filters.status === 'all' || item.status.toLowerCase() === filters.status.toLowerCase();
-    const matchesTeam = filters.team === 'all' || item.team_id === filters.team;
-    
-    return matchesSearch && matchesStatus && matchesTeam;
-  });
+  // Show loading state while checking access
+  if (accessLoading) {
+    return (
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
 
-  // Get equipment with location data
-  const equipmentWithLocation = filteredEquipment.filter(item => {
-    const location = getDisplayLocation(item);
-    return location.hasLocation && location.coordinates;
-  });
-
-  // Handle organization change with full page reload
-  const handleOrganizationChange = (orgId: string) => {
-    if (orgId === selectedOrganization?.id) {
-      return; // No change needed
-    }
-    
-    // Create new URL with organization parameter
-    const currentParams = new URLSearchParams(window.location.search);
-    const newParams = new URLSearchParams();
-    
-    // Keep existing non-organization filters
-    if (currentParams.get('status') && currentParams.get('status') !== 'all') {
-      newParams.set('status', currentParams.get('status')!);
-    }
-    if (currentParams.get('team') && currentParams.get('team') !== 'all') {
-      newParams.set('team', currentParams.get('team')!);
-    }
-    if (currentParams.get('search')) {
-      newParams.set('search', currentParams.get('search')!);
-    }
-    
-    // Set the new organization
-    newParams.set('org', orgId);
-    
-    // Navigate with full page reload
-    const newUrl = `/fleet-map?${newParams.toString()}`;
-    window.location.href = newUrl;
-  };
-
-  const handleRefresh = () => {
-    refetchDashboard();
-    toast.success('Fleet data refreshed');
-  };
-
-  const handleExportData = () => {
-    const exportData = equipmentWithLocation.map(item => {
-      const location = getDisplayLocation(item);
-      return {
-        name: item.name,
-        status: item.status,
-        team: item.team_name || 'Unassigned',
-        manufacturer: item.manufacturer || '',
-        model: item.model || '',
-        latitude: location.coordinates?.lat || '',
-        longitude: location.coordinates?.lng || '',
-        location_source: location.source,
-        last_updated: location.timestamp || item.updated_at
-      };
-    });
-
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + "Name,Status,Team,Manufacturer,Model,Latitude,Longitude,Location Source,Last Updated\n"
-      + exportData.map(row => 
-          `"${row.name}","${row.status}","${row.team}","${row.manufacturer}","${row.model}",${row.latitude},${row.longitude},"${row.location_source}","${row.last_updated}"`
-        ).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `fleet-map-data-${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success('Fleet data exported successfully');
-  };
-
-  const selectedEquipment = selectedEquipmentId 
-    ? filteredEquipment.find(eq => eq.id === selectedEquipmentId)
-    : null;
-
-  const isLoading = isOrgLoading || isEquipmentLoading || !isOrgReady;
-  const showOrgSelector = organizations.length > 1;
-
-  return (
-    <Layout>
-      <div className="space-y-4">
-        <FleetMapHeader
-          equipmentWithLocationCount={equipmentWithLocation.length}
-          totalEquipmentCount={filteredEquipment.length}
-          showOrgSelector={showOrgSelector}
-          organizations={organizations}
-          selectedOrgId={selectedOrganization?.id}
-          onOrganizationChange={handleOrganizationChange}
-          onRefresh={handleRefresh}
-          onExportData={handleExportData}
-          canExport={equipmentWithLocation.length > 0}
-        />
-
-        <FleetMapFilters
-          filters={filters}
-          teams={teams}
-          onFilterStatusChange={setFilterStatus}
-          onFilterTeamChange={setFilterTeam}
-          onFilterSearchChange={setFilterSearch}
-          onClearFilters={clearFilters}
-        />
-
-        <FleetMapContent
-          isLoading={isLoading}
-          filteredEquipment={filteredEquipment}
-          equipmentWithLocation={equipmentWithLocation}
-          selectedEquipmentId={selectedEquipmentId}
-          onEquipmentSelected={setSelectedEquipmentId}
-          selectedEquipment={selectedEquipment}
+  // Show paywall if user doesn't have access to fleet map
+  if (!hasAccess) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="mb-8">
+          <FleetMapHeader />
+        </div>
+        <FeaturePaywall
+          featureKey="fleet_map"
+          featureName="Fleet Map"
+          description="Get a bird's-eye view of your entire fleet with our interactive map feature"
+          benefits={[
+            "Interactive map showing all equipment locations",
+            "Real-time location updates when equipment is scanned",
+            "Filter equipment by status, team, and organization",
+            "Detailed equipment information in popup windows",
+            "Export location data for reporting"
+          ]}
+          icon={<MapPin className="h-8 w-8 text-blue-600" />}
+          userRole={userRole}
         />
       </div>
-    </Layout>
-  );
-};
+    );
+  }
 
-export default FleetMapPage;
+  return (
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <FleetMapHeader />
+      
+      <FleetMapFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
+        teamFilter={teamFilter}
+        onTeamChange={setTeamFilter}
+        organizationFilter={organizationFilter}
+        onOrganizationChange={setOrganizationFilter}
+      />
+
+      <FleetMapContent
+        isLoading={equipmentLoading}
+        filteredEquipment={filteredEquipment}
+        equipmentWithLocation={filteredEquipment}
+        selectedEquipmentId={selectedEquipmentId}
+        onEquipmentSelected={setSelectedEquipmentId}
+        selectedEquipment={selectedEquipment}
+      />
+    </div>
+  );
+}
