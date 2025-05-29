@@ -1,7 +1,5 @@
 
 import { useState } from 'react';
-import { useEquipmentQuery } from '@/hooks/equipment/useEquipmentQuery';
-import { useEquipmentFilters } from '@/components/Equipment/hooks/useEquipmentFilters';
 import { FleetMapFilters } from '@/components/FleetMap/FleetMapFilters';
 import { FleetMapContent } from '@/components/FleetMap/FleetMapContent';
 import { FeaturePaywall } from '@/components/Billing/FeaturePaywall';
@@ -10,15 +8,40 @@ import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MapPin } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { useEquipmentFilters } from '@/components/Equipment/hooks/useEquipmentFilters';
 
 export default function FleetMap() {
   const { selectedOrganization } = useOrganization();
   const { hasAccess, isLoading: accessLoading, userRole, gracePeriodInfo } = useFeatureAccess('fleet_map');
   
-  const { data: equipment = [], isLoading: equipmentLoading } = useEquipmentQuery(
-    selectedOrganization?.id,
-    { enabled: !!selectedOrganization && hasAccess }
-  );
+  // Fetch equipment data directly for fleet map
+  const { data: equipment = [], isLoading: equipmentLoading } = useQuery({
+    queryKey: ['fleet-equipment', selectedOrganization?.id],
+    queryFn: async () => {
+      if (!selectedOrganization?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('equipment')
+        .select(`
+          *,
+          team:team_id (name),
+          org:org_id (name)
+        `)
+        .eq('org_id', selectedOrganization.id)
+        .is('deleted_at', null);
+
+      if (error) throw error;
+
+      return data?.map(item => ({
+        ...item,
+        team_name: item.team?.name || null,
+        org_name: item.org?.name || 'Unknown Organization'
+      })) || [];
+    },
+    enabled: !!selectedOrganization && hasAccess
+  });
   
   const {
     filteredEquipment,
@@ -26,8 +49,9 @@ export default function FleetMap() {
     setFilterStatus,
     filterTeam,
     setFilterTeam,
-    searchTerm,
-    setSearchTerm
+    searchQuery,
+    setSearchQuery,
+    teams
   } = useEquipmentFilters(equipment);
 
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
@@ -66,6 +90,12 @@ export default function FleetMap() {
     );
   }
 
+  const handleClearFilters = () => {
+    setFilterStatus('all');
+    setFilterTeam('all');
+    setSearchQuery('');
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       <GracePeriodBanner />
@@ -76,12 +106,16 @@ export default function FleetMap() {
       </div>
       
       <FleetMapFilters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={filterStatus}
-        setStatusFilter={setFilterStatus}
-        teamFilter={filterTeam}
-        setTeamFilter={setFilterTeam}
+        filters={{
+          search: searchQuery,
+          status: filterStatus,
+          team: filterTeam
+        }}
+        teams={teams.map(name => ({ id: name, name }))}
+        onFilterSearchChange={setSearchQuery}
+        onFilterStatusChange={setFilterStatus}
+        onFilterTeamChange={setFilterTeam}
+        onClearFilters={handleClearFilters}
       />
 
       <FleetMapContent
