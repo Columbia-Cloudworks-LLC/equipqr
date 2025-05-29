@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,8 +15,9 @@ import { Layout } from '@/components/Layout/Layout';
 import OrganizationMembersManagement from '@/components/Organization/OrganizationMembersManagement';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { UserRole } from '@/types/supabase-enums';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@radix-ui/react-tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { StorageUsageCard } from '@/components/Billing/StorageUsageCard';
+import { BillingManagement } from '@/components/Billing/BillingManagement';
 
 export default function OrganizationSettings() {
   const navigate = useNavigate();
@@ -192,19 +194,7 @@ export default function OrganizationSettings() {
           <div className="grid gap-6 md:grid-cols-2">
             <StorageUsageCard />
             <div className="space-y-6">
-              <div className="flex flex-col items-center">
-                <h2 className="text-2xl font-bold">Billing Information</h2>
-                <p className="text-muted-foreground mt-2">
-                  Manage your organization's billing details.
-                </p>
-              </div>
-              
-              <div className="flex flex-col items-center">
-                <h2 className="text-2xl font-bold">Payment Methods</h2>
-                <p className="text-muted-foreground mt-2">
-                  Add or manage payment methods for your organization.
-                </p>
-              </div>
+              <BillingManagement />
             </div>
           </div>
         </TabsContent>

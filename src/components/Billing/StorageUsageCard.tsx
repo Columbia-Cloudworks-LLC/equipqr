@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,13 +14,15 @@ export function StorageUsageCard() {
   const { storageUsage, billingHistory, isLoading, error, userRole, refreshUsage } = useStorageUsage();
   const [isPayingOverage, setIsPayingOverage] = React.useState(false);
 
+  const isOwner = userRole === 'owner';
+
   const handlePayOverage = async () => {
     if (!selectedOrganization || !storageUsage?.has_overage) {
       return;
     }
 
-    if (!['owner', 'manager'].includes(userRole || '')) {
-      toast.error('Only owners and managers can manage billing');
+    if (!isOwner) {
+      toast.error('Only organization owners can manage billing');
       return;
     }
 
@@ -43,7 +44,11 @@ export function StorageUsageCard() {
 
       if (error) {
         console.error('Checkout error:', error);
-        toast.error(error.message || 'Failed to start checkout process');
+        if (error.message === 'access_denied' || error.message?.includes('Only organization owners')) {
+          toast.error('Only organization owners can manage billing');
+        } else {
+          toast.error(error.message || 'Failed to start checkout process');
+        }
         return;
       }
 
@@ -108,13 +113,6 @@ export function StorageUsageCard() {
   }
 
   const isNearLimit = storageUsage.used_percentage > 80;
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   return (
     <Card>
@@ -124,9 +122,17 @@ export function StorageUsageCard() {
             <HardDrive className="h-5 w-5" />
             Storage Usage
           </div>
-          <Button onClick={refreshUsage} variant="ghost" size="sm">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {!isOwner && (
+              <Badge variant="secondary" className="text-xs">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Owner Only Billing
+              </Badge>
+            )}
+            <Button onClick={refreshUsage} variant="ghost" size="sm">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -161,8 +167,13 @@ export function StorageUsageCard() {
                 <p className="text-red-600 text-xs mt-1">
                   Overage charge: ${(storageUsage.overage_amount_cents / 100).toFixed(2)} ($0.10 per GB)
                 </p>
+                {!isOwner && (
+                  <p className="text-red-600 text-xs mt-2 font-medium">
+                    Only organization owners can pay overage charges.
+                  </p>
+                )}
               </div>
-              {['owner', 'manager'].includes(userRole || '') && (
+              {isOwner && (
                 <Button 
                   onClick={handlePayOverage}
                   disabled={isPayingOverage}

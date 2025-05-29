@@ -8,10 +8,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper logging function
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CREATE-STORAGE-OVERAGE-CHECKOUT] ${step}${detailsStr}`);
+  console.log(`[MANAGE-BILLING-PORTAL] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -47,18 +46,15 @@ serve(async (req) => {
       throw new Error("User not authenticated or email not available");
     }
 
-    logStep("User authenticated", { userId: user.id, email: user.email });
-
-    // Get request body
-    const { org_id, overage_gb, billing_period_start, billing_period_end } = await req.json();
+    const { org_id } = await req.json();
     
-    if (!org_id || !overage_gb || !billing_period_start || !billing_period_end) {
-      throw new Error("org_id, overage_gb, billing_period_start, and billing_period_end are required");
+    if (!org_id) {
+      throw new Error("org_id is required");
     }
 
-    logStep("Request params", { org_id, overage_gb, billing_period_start, billing_period_end });
+    logStep("Request params", { org_id, userId: user.id });
 
-    // Verify user is organization owner (UPDATED: Only owners can manage billing)
+    // Verify user is organization owner
     const { data: userRole, error: roleError } = await supabaseClient
       .from('user_roles')
       .select('role')
@@ -67,13 +63,7 @@ serve(async (req) => {
       .single();
 
     if (roleError || !userRole || userRole.role !== 'owner') {
-      return new Response(JSON.stringify({ 
-        error: "access_denied",
-        message: "Only organization owners can manage billing"
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 403,
-      });
+      throw new Error("Only organization owners can access billing management");
     }
 
     logStep("User role verified", { role: userRole.role });
@@ -91,7 +81,7 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
-    // Check if organization already has a Stripe customer
+    // Get or create Stripe customer
     const { data: existingSub } = await supabaseClient
       .from('organization_subscriptions')
       .select('stripe_customer_id')
@@ -123,49 +113,13 @@ serve(async (req) => {
         });
     }
 
-    // Calculate overage amount (in cents)
-    const overageAmountCents = Math.ceil(parseFloat(overage_gb) * 10); // $0.10 per GB
-
-    // Create checkout session for storage overage
-    const session = await stripe.checkout.sessions.create({
+    // Create billing portal session
+    const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      line_items: [{
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: "Storage Overage",
-            description: `Storage overage for ${org.name} (${overage_gb} GB over 5GB limit)`
-          },
-          unit_amount: overageAmountCents,
-        },
-        quantity: 1,
-      }],
-      mode: "payment", // One-time payment for overage
-      success_url: `${req.headers.get("origin")}/organization-settings?tab=billing&success=true&type=storage`,
-      cancel_url: `${req.headers.get("origin")}/organization-settings?tab=billing&cancelled=true&type=storage`,
-      metadata: {
-        org_id,
-        overage_gb: overage_gb.toString(),
-        billing_period_start,
-        billing_period_end,
-        user_id: user.id,
-        type: 'storage_overage'
-      }
+      return_url: `${req.headers.get("origin")}/organization-settings?tab=billing`,
     });
 
-    logStep("Checkout session created", { sessionId: session.id });
-
-    // Create billing record
-    await supabaseClient
-      .from('organization_storage_billing')
-      .insert({
-        org_id,
-        billing_period_start,
-        billing_period_end,
-        overage_gb: parseFloat(overage_gb),
-        overage_amount_cents: overageAmountCents,
-        status: 'pending'
-      });
+    logStep("Billing portal session created", { sessionId: session.id });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
