@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,66 +6,13 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { HardDrive, AlertTriangle, CreditCard, RefreshCw } from 'lucide-react';
 import { useStorageUsage } from '@/hooks/useStorageUsage';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { toast } from 'sonner';
+import { StorageOveragePayment } from './StorageOveragePayment';
+import { StorageBillingHistory } from './StorageBillingHistory';
 
 export function StorageUsageCard() {
-  const { selectedOrganization } = useOrganization();
   const { storageUsage, billingHistory, isLoading, error, userRole, refreshUsage } = useStorageUsage();
-  const [isPayingOverage, setIsPayingOverage] = React.useState(false);
 
   const isOwner = userRole === 'owner';
-
-  const handlePayOverage = async () => {
-    if (!selectedOrganization || !storageUsage?.has_overage) {
-      return;
-    }
-
-    if (!isOwner) {
-      toast.error('Only organization owners can manage billing');
-      return;
-    }
-
-    try {
-      setIsPayingOverage(true);
-      
-      const now = new Date();
-      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-      const { data, error } = await supabase.functions.invoke('create-storage-overage-checkout', {
-        body: {
-          org_id: selectedOrganization.id,
-          overage_gb: storageUsage.overage_gb,
-          billing_period_start: periodStart.toISOString(),
-          billing_period_end: periodEnd.toISOString()
-        }
-      });
-
-      if (error) {
-        console.error('Checkout error:', error);
-        if (error.message === 'access_denied' || error.message?.includes('Only organization owners')) {
-          toast.error('Only organization owners can manage billing');
-        } else {
-          toast.error(error.message || 'Failed to start checkout process');
-        }
-        return;
-      }
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      } else {
-        toast.error('Failed to create checkout session');
-      }
-
-    } catch (err) {
-      console.error('Error creating checkout:', err);
-      toast.error('Failed to start payment process');
-    } finally {
-      setIsPayingOverage(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -157,35 +105,10 @@ export function StorageUsageCard() {
         </div>
 
         {storageUsage.has_overage && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-start justify-between">
-              <div>
-                <h4 className="font-semibold text-red-900 text-sm">Storage Overage</h4>
-                <p className="text-red-700 text-sm mt-1">
-                  You've exceeded your 5GB storage limit by {storageUsage.overage_gb.toFixed(3)} GB.
-                </p>
-                <p className="text-red-600 text-xs mt-1">
-                  Overage charge: ${(storageUsage.overage_amount_cents / 100).toFixed(2)} ($0.10 per GB)
-                </p>
-                {!isOwner && (
-                  <p className="text-red-600 text-xs mt-2 font-medium">
-                    Only organization owners can pay overage charges.
-                  </p>
-                )}
-              </div>
-              {isOwner && (
-                <Button 
-                  onClick={handlePayOverage}
-                  disabled={isPayingOverage}
-                  size="sm"
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  {isPayingOverage ? 'Processing...' : 'Pay Overage'}
-                </Button>
-              )}
-            </div>
-          </div>
+          <StorageOveragePayment 
+            storageUsage={storageUsage}
+            isOwner={isOwner}
+          />
         )}
 
         {isNearLimit && !storageUsage.has_overage && (
@@ -199,31 +122,7 @@ export function StorageUsageCard() {
         )}
 
         {billingHistory.length > 0 && (
-          <div className="pt-4 border-t">
-            <h4 className="font-semibold text-sm mb-3">Recent Billing History</h4>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {billingHistory.slice(0, 3).map((record) => (
-                <div key={record.id} className="flex justify-between items-center text-sm">
-                  <div>
-                    <span className="font-medium">{record.overage_gb.toFixed(3)} GB</span>
-                    <span className="text-muted-foreground ml-2">
-                      {new Date(record.billing_period_start).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span>${(record.overage_amount_cents / 100).toFixed(2)}</span>
-                    <Badge 
-                      variant={record.status === 'paid' ? 'default' : 
-                               record.status === 'pending' ? 'secondary' : 'destructive'}
-                      className="text-xs"
-                    >
-                      {record.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <StorageBillingHistory billingHistory={billingHistory.slice(0, 3)} />
         )}
       </CardContent>
     </Card>
