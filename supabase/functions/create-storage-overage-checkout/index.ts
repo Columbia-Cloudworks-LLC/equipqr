@@ -63,7 +63,7 @@ serve(async (req) => {
 
     logStep("Request params", { org_id, overage_gb, billing_period_start, billing_period_end });
 
-    // Verify user is organization owner (UPDATED: Only owners can manage billing)
+    // Verify user is organization owner
     const { data: userRole, error: roleError } = await supabaseClient
       .from('user_roles')
       .select('role')
