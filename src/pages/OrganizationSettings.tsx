@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +14,8 @@ import { Layout } from '@/components/Layout/Layout';
 import OrganizationMembersManagement from '@/components/Organization/OrganizationMembersManagement';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { UserRole } from '@/types/supabase-enums';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@radix-ui/react-tabs';
+import { StorageUsageCard } from '@/components/Billing/StorageUsageCard';
 
 export default function OrganizationSettings() {
   const navigate = useNavigate();
@@ -28,7 +29,8 @@ export default function OrganizationSettings() {
   
   const [name, setName] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-  
+  const [activeTab, setActiveTab] = useState('profile');
+
   useEffect(() => {
     if (!isAuthLoading && !user) {
       navigate('/auth', { state: { returnTo: '/organization' } });
@@ -97,72 +99,120 @@ export default function OrganizationSettings() {
   const userRole: UserRole = (selectedOrganization.role as UserRole) || 'viewer';
   
   return (
-    <Layout>
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Organization Settings</h1>
-            <p className="text-muted-foreground mt-2">
-              Manage your organization details and members.
-            </p>
-          </div>
-          
-          {organizations.length > 1 && (
-            <div className="flex flex-col items-end gap-2">
-              <span className="text-sm text-muted-foreground">Switch Organization</span>
-              <OrganizationSelector
-                organizations={organizations}
-                selectedOrgId={selectedOrganization.id}
-                onChange={handleOrganizationChange}
-                className="w-full sm:w-[280px]"
-                showRoleBadges={true}
-                maxDisplayLength={25}
-              />
-            </div>
-          )}
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Organization Details</CardTitle>
-            <CardDescription>
-              Update your organization's basic information.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="org-name">Organization Name</Label>
-              <Input
-                id="org-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter organization name"
-              />
+    <div className="container mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">Organization Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your organization profile, members, and billing settings.
+        </p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="transfers">Transfers</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Organization Settings</h1>
+              <p className="text-muted-foreground mt-2">
+                Manage your organization details and members.
+              </p>
             </div>
             
-            <Button 
-              onClick={handleUpdateOrganization} 
-              disabled={isUpdating || name === selectedOrganization.name}
-            >
-              {isUpdating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                'Update Organization'
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-        
-        <OwnershipTransferSection />
-        
-        <OrganizationMembersManagement 
-          organizationId={selectedOrganization.id}
-          userRole={userRole}
-        />
-      </div>
-    </Layout>
+            {organizations.length > 1 && (
+              <div className="flex flex-col items-end gap-2">
+                <span className="text-sm text-muted-foreground">Switch Organization</span>
+                <OrganizationSelector
+                  organizations={organizations}
+                  selectedOrgId={selectedOrganization.id}
+                  onChange={handleOrganizationChange}
+                  className="w-full sm:w-[280px]"
+                  showRoleBadges={true}
+                  maxDisplayLength={25}
+                />
+              </div>
+            )}
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Organization Details</CardTitle>
+              <CardDescription>
+                Update your organization's basic information.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="org-name">Organization Name</Label>
+                <Input
+                  id="org-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter organization name"
+                />
+              </div>
+              
+              <Button 
+                onClick={handleUpdateOrganization} 
+                disabled={isUpdating || name === selectedOrganization.name}
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Organization'
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <OwnershipTransferSection />
+          
+          <OrganizationMembersManagement 
+            organizationId={selectedOrganization.id}
+            userRole={userRole}
+          />
+        </TabsContent>
+
+        <TabsContent value="members">
+          <OrganizationMembersManagement 
+            organizationId={selectedOrganization.id}
+            userRole={userRole}
+          />
+        </TabsContent>
+
+        <TabsContent value="billing" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <StorageUsageCard />
+            <div className="space-y-6">
+              <div className="flex flex-col items-center">
+                <h2 className="text-2xl font-bold">Billing Information</h2>
+                <p className="text-muted-foreground mt-2">
+                  Manage your organization's billing details.
+                </p>
+              </div>
+              
+              <div className="flex flex-col items-center">
+                <h2 className="text-2xl font-bold">Payment Methods</h2>
+                <p className="text-muted-foreground mt-2">
+                  Add or manage payment methods for your organization.
+                </p>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="transfers">
+          <OwnershipTransferSection />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

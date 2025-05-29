@@ -717,39 +717,48 @@ export type Database = {
       organization: {
         Row: {
           created_at: string
+          current_storage_bytes: number | null
           deleted_at: string | null
           frozen_at: string | null
           id: string
+          last_storage_check: string | null
           name: string
           owner_user_id: string | null
           pending_transfer_to: string | null
           status: string
+          storage_overage_notified: boolean | null
           transfer_deadline: string | null
           transfer_initiated_at: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          current_storage_bytes?: number | null
           deleted_at?: string | null
           frozen_at?: string | null
           id?: string
+          last_storage_check?: string | null
           name: string
           owner_user_id?: string | null
           pending_transfer_to?: string | null
           status?: string
+          storage_overage_notified?: boolean | null
           transfer_deadline?: string | null
           transfer_initiated_at?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          current_storage_bytes?: number | null
           deleted_at?: string | null
           frozen_at?: string | null
           id?: string
+          last_storage_check?: string | null
           name?: string
           owner_user_id?: string | null
           pending_transfer_to?: string | null
           status?: string
+          storage_overage_notified?: boolean | null
           transfer_deadline?: string | null
           transfer_initiated_at?: string | null
           updated_at?: string
@@ -852,6 +861,103 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "organization_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_storage_billing: {
+        Row: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at: string
+          id: string
+          org_id: string
+          overage_amount_cents: number
+          overage_gb: number
+          status: string
+          stripe_invoice_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at?: string
+          id?: string
+          org_id: string
+          overage_amount_cents?: number
+          overage_gb?: number
+          status?: string
+          stripe_invoice_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_period_end?: string
+          billing_period_start?: string
+          created_at?: string
+          id?: string
+          org_id?: string
+          overage_amount_cents?: number
+          overage_gb?: number
+          status?: string
+          stripe_invoice_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_storage_billing_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_storage_usage: {
+        Row: {
+          calculated_at: string
+          created_at: string
+          id: string
+          org_id: string
+          overage_amount_cents: number
+          overage_bytes: number
+          overage_gb: number
+          period_end: string
+          period_start: string
+          total_bytes_used: number
+          updated_at: string
+        }
+        Insert: {
+          calculated_at?: string
+          created_at?: string
+          id?: string
+          org_id: string
+          overage_amount_cents?: number
+          overage_bytes?: number
+          overage_gb?: number
+          period_end: string
+          period_start: string
+          total_bytes_used?: number
+          updated_at?: string
+        }
+        Update: {
+          calculated_at?: string
+          created_at?: string
+          id?: string
+          org_id?: string
+          overage_amount_cents?: number
+          overage_bytes?: number
+          overage_gb?: number
+          period_end?: string
+          period_start?: string
+          total_bytes_used?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_storage_usage_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organization"
@@ -1645,6 +1751,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_org_storage_usage: {
+        Args: { p_org_id: string }
+        Returns: number
+      }
+      calculate_storage_overage: {
+        Args: { p_org_id: string; p_period_start: string; p_period_end: string }
+        Returns: {
+          total_bytes: number
+          overage_bytes: number
+          overage_gb: number
+          overage_amount_cents: number
+        }[]
+      }
       can_access_equipment: {
         Args: { p_uid: string; p_equipment_id: string }
         Returns: boolean
