@@ -1,38 +1,77 @@
 
-project_id = "oxeheowbfsshpyldlskb"
+[project]
+ref = "oxeheowbfsshpyldlskb"
 
 [api]
 enabled = true
 port = 54321
 schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
 [db]
+enabled = true
 port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
 
 [realtime]
 enabled = true
-
-[[publications]]
-publication = "public"
-tables = [
-  "public.equipments",
-  "public.organizations",
-  "public.teams",
-  "public.users",
-  "public.equipment",
-  "public.organization_members",
-  "public.team_members",
-  "public.team_invitations",
-  "public.sessions",
-  "public.user_profiles",
-  "public.worknotes"
-]
+port = 54323
+ip_version = "ipv4"
 
 [studio]
 enabled = true
-port = 54323
-browser_open = false
+port = 54324
+api_url = "http://127.0.0.1:54321"
 
-[functions]
-[functions.get_dashboard_data]
+[inbucket]
+enabled = true
+port = 54325
+smtp_port = 54326
+pop3_port = 54327
+
+[storage]
+enabled = true
+port = 54326
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+port = 54327
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true
+security_update_enabled = true
+
+[auth.email]
+enabled = true
+double_confirm_changes = true
+enable_signup = true
+
+[edge_functions]
+enabled = true
+port = 54328
+
+[functions.get-storage-usage]
 verify_jwt = true
+
+[functions.manage-billing-portal]
+verify_jwt = true
+
+[functions.create-storage-overage-checkout]
+verify_jwt = true
+
+[functions.download-invoice]
+verify_jwt = true
+
+[analytics]
+enabled = false

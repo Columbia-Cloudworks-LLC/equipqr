@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 // Helper logging function
@@ -15,8 +16,12 @@ const logStep = (step: string, details?: any) => {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -141,8 +146,8 @@ serve(async (req) => {
         quantity: 1,
       }],
       mode: "payment", // One-time payment for overage
-      success_url: `${req.headers.get("origin")}/organization-settings?tab=billing&success=true&type=storage`,
-      cancel_url: `${req.headers.get("origin")}/organization-settings?tab=billing&cancelled=true&type=storage`,
+      success_url: `${req.headers.get("origin")}/organization?tab=billing&success=true&type=storage`,
+      cancel_url: `${req.headers.get("origin")}/organization?tab=billing&cancelled=true&type=storage`,
       metadata: {
         org_id,
         overage_gb: overage_gb.toString(),

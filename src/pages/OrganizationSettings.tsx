@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,7 @@ import { BillingManagement } from '@/components/Billing/BillingManagement';
 
 export default function OrganizationSettings() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isLoading: isAuthLoading } = useAuth();
   const { 
     organizations, 
@@ -31,13 +32,23 @@ export default function OrganizationSettings() {
   
   const [name, setName] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState(() => {
+    return searchParams.get('tab') || 'profile';
+  });
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
       navigate('/auth', { state: { returnTo: '/organization' } });
     }
   }, [user, isAuthLoading, navigate]);
+
+  // Update tab from URL parameters
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['profile', 'members', 'billing', 'transfers'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
   
   useEffect(() => {
     if (selectedOrganization) {
