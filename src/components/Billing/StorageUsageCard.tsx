@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { HardDrive, AlertTriangle, CreditCard, RefreshCw } from 'lucide-react';
+import { HardDrive, AlertTriangle, CreditCard, RefreshCw, Info } from 'lucide-react';
 import { useStorageUsage } from '@/hooks/useStorageUsage';
 import { StorageOveragePayment } from './StorageOveragePayment';
 import { StorageBillingHistory } from './StorageBillingHistory';
 
 export function StorageUsageCard() {
-  const { storageUsage, billingHistory, isLoading, error, userRole, refreshUsage } = useStorageUsage();
+  const { storageUsage, billingHistory, isLoading, error, userRole, isFallback, refreshUsage } = useStorageUsage();
 
   const isOwner = userRole === 'owner';
 
@@ -34,7 +34,7 @@ export function StorageUsageCard() {
     );
   }
 
-  if (error) {
+  if (!storageUsage) {
     return (
       <Card>
         <CardHeader>
@@ -45,19 +45,15 @@ export function StorageUsageCard() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-6">
-            <p className="text-muted-foreground mb-4">{error}</p>
+            <p className="text-muted-foreground mb-4">Unable to load storage information</p>
             <Button onClick={refreshUsage} variant="outline">
               <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              Try Again
             </Button>
           </div>
         </CardContent>
       </Card>
     );
-  }
-
-  if (!storageUsage) {
-    return null;
   }
 
   const isNearLimit = storageUsage.used_percentage > 80;
@@ -75,6 +71,12 @@ export function StorageUsageCard() {
               <Badge variant="secondary" className="text-xs">
                 <AlertTriangle className="h-3 w-3 mr-1" />
                 Owner Only Billing
+              </Badge>
+            )}
+            {isFallback && (
+              <Badge variant="outline" className="text-xs">
+                <Info className="h-3 w-3 mr-1" />
+                Demo Mode
               </Badge>
             )}
             <Button onClick={refreshUsage} variant="ghost" size="sm">
@@ -104,14 +106,23 @@ export function StorageUsageCard() {
           </div>
         </div>
 
-        {storageUsage.has_overage && (
+        {isFallback && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="font-semibold text-blue-900 text-sm">Demo Mode</h4>
+            <p className="text-blue-700 text-sm mt-1">
+              Storage billing is currently in demo mode. Actual usage calculation is temporarily unavailable.
+            </p>
+          </div>
+        )}
+
+        {!isFallback && storageUsage.has_overage && (
           <StorageOveragePayment 
             storageUsage={storageUsage}
             isOwner={isOwner}
           />
         )}
 
-        {isNearLimit && !storageUsage.has_overage && (
+        {!isFallback && isNearLimit && !storageUsage.has_overage && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <h4 className="font-semibold text-amber-900 text-sm">Approaching Limit</h4>
             <p className="text-amber-700 text-sm mt-1">
@@ -121,7 +132,7 @@ export function StorageUsageCard() {
           </div>
         )}
 
-        {billingHistory.length > 0 && (
+        {!isFallback && billingHistory.length > 0 && (
           <StorageBillingHistory billingHistory={billingHistory.slice(0, 3)} />
         )}
       </CardContent>

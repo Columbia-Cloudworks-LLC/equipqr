@@ -49,7 +49,7 @@ export function StorageOveragePayment({ storageUsage, isOwner }: StorageOverageP
         if (error.message === 'access_denied' || error.message?.includes('Only organization owners')) {
           toast.error('Only organization owners can manage billing');
         } else {
-          toast.error(error.message || 'Failed to start checkout process');
+          toast.error('Payment processing is temporarily unavailable. Please try again later.');
         }
         return;
       }
@@ -57,12 +57,12 @@ export function StorageOveragePayment({ storageUsage, isOwner }: StorageOverageP
       if (data?.url) {
         window.open(data.url, '_blank');
       } else {
-        toast.error('Failed to create checkout session');
+        toast.error('Payment processing is temporarily unavailable. Please try again later.');
       }
 
     } catch (err) {
       console.error('Error creating checkout:', err);
-      toast.error('Failed to start payment process');
+      toast.error('Payment processing is temporarily unavailable. Please try again later.');
     } finally {
       setIsPayingOverage(false);
     }

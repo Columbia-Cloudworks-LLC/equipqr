@@ -31,6 +31,7 @@ interface UseStorageUsageResult {
   isLoading: boolean;
   error: string | null;
   userRole: string | null;
+  isFallback: boolean;
   refreshUsage: () => Promise<void>;
 }
 
@@ -42,18 +43,32 @@ export function useStorageUsage(): UseStorageUsageResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isFallback, setIsFallback] = useState(false);
+
+  const createFallbackData = (): StorageUsage => ({
+    total_bytes: 0,
+    total_gb: 0,
+    free_gb: 5,
+    used_percentage: 0,
+    overage_bytes: 0,
+    overage_gb: 0,
+    overage_amount_cents: 0,
+    has_overage: false
+  });
 
   const fetchStorageUsage = async () => {
     if (!user || !selectedOrganization) {
-      setStorageUsage(null);
+      setStorageUsage(createFallbackData());
       setBillingHistory([]);
       setIsLoading(false);
+      setIsFallback(true);
       return;
     }
 
     try {
       setIsLoading(true);
       setError(null);
+      setIsFallback(false);
 
       console.log('Fetching storage usage for organization:', selectedOrganization.id);
 
@@ -65,18 +80,27 @@ export function useStorageUsage(): UseStorageUsageResult {
 
       if (error) {
         console.error('Storage usage check error:', error);
-        setError(error.message || 'Failed to check storage usage');
+        // Use fallback data instead of showing error
+        setStorageUsage(createFallbackData());
+        setBillingHistory([]);
+        setUserRole(selectedOrganization.role || 'viewer');
+        setIsFallback(true);
         return;
       }
 
       console.log('Storage usage result:', data);
       setStorageUsage(data.storage_usage);
       setBillingHistory(data.billing_history || []);
-      setUserRole(data.user_role || null);
+      setUserRole(data.user_role || selectedOrganization.role || 'viewer');
+      setIsFallback(data.fallback || false);
 
     } catch (err) {
       console.error('Error checking storage usage:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      // Use fallback data on any error
+      setStorageUsage(createFallbackData());
+      setBillingHistory([]);
+      setUserRole(selectedOrganization.role || 'viewer');
+      setIsFallback(true);
     } finally {
       setIsLoading(false);
     }
@@ -92,6 +116,7 @@ export function useStorageUsage(): UseStorageUsageResult {
     isLoading,
     error,
     userRole,
+    isFallback,
     refreshUsage: fetchStorageUsage
   };
 }
