@@ -1,19 +1,28 @@
 
-import { UserOrganization } from '@/services/organization/userOrganizations';
+import { Organization } from '@/types';
 import { Team } from '@/services/team';
 import { TeamMember } from '@/types';
 import { UserRole } from '@/types/supabase-enums';
 
+interface OrganizationMember {
+  id: string;
+  email: string;
+  full_name?: string;
+  role: string;
+}
+
 export interface TeamManagementContextType {
-  // Team and organization data
+  // Data
   teams: Team[];
   members: TeamMember[];
   pendingInvitations: any[];
+  organizationMembers: OrganizationMember[];
+  existingTeamMemberIds: string[];
   selectedTeamId: string;
-  selectedOrganization: UserOrganization | null;
+  selectedOrganization: Organization | null;
   filteredTeams: Team[];
   
-  // State flags
+  // Loading states
   isLoading: boolean;
   isLoadingInvitations: boolean;
   isCreatingTeam: boolean;
@@ -21,29 +30,31 @@ export interface TeamManagementContextType {
   isDeletingTeam: boolean;
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
-  isMember: boolean;
   
-  // User roles and permissions
-  currentUserRole: string | null;
+  // User state
+  isMember: boolean;
+  currentUserRole?: string;
   canChangeRoles: boolean;
   
-  // Error handling
+  // Error state
   error: string | null;
   
-  // Functions
+  // Actions
   setSelectedTeamId: (teamId: string) => void;
-  handleCreateTeam: (name: string) => Promise<any>;
-  handleUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>;
-  handleDeleteTeam: () => Promise<any>; 
-  handleInviteMember: (email: string, role: UserRole) => Promise<any>;
-  handleChangeRole: (userId: string, role: UserRole) => Promise<any>;
-  handleRemoveMember: (userId: string) => Promise<any>;
-  handleResendInvite: (id: string) => Promise<any>;
-  handleCancelInvitation: (id: string) => Promise<any>;
-  handleUpgradeRole: () => Promise<any>;
-  handleRequestRoleUpgrade: () => Promise<any>;
+  handleCreateTeam: (name: string) => Promise<void>;
+  handleUpdateTeam: (teamId: string, data: { name: string }) => Promise<void>;
+  handleDeleteTeam: () => Promise<void>;
+  handleAddOrgMember: (userId: string, role: string) => Promise<void>;
+  handleInviteMember: (email: string, role: UserRole) => Promise<void>;
+  handleChangeRole: (userId: string, role: UserRole) => Promise<void>;
+  handleRemoveMember: (userId: string) => Promise<void>;
+  handleResendInvite: (id: string) => Promise<void>;
+  handleCancelInvitation: (id: string) => Promise<void>;
+  handleUpgradeRole: () => Promise<void>;
+  handleRequestRoleUpgrade: () => Promise<void>;
   refetchTeamMembers: () => void;
-  refetchPendingInvitations: () => Promise<any>;
+  refetchPendingInvitations: () => Promise<void>;
   fetchTeams: () => void;
   getTeamEquipmentCount: (teamId: string) => Promise<number>;
+  refetchOrgMembers: () => void;
 }

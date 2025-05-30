@@ -23,6 +23,8 @@ export function useTeamManagementPage(): {
   const {
     members,
     pendingInvitations,
+    organizationMembers,
+    existingTeamMemberIds,
     teams,
     selectedTeamId,
     isLoading,
@@ -40,6 +42,7 @@ export function useTeamManagementPage(): {
     handleCreateTeam,
     handleUpdateTeam: handleUpdateTeamBase,
     handleDeleteTeam: handleDeleteTeamBase,
+    handleAddOrgMember: handleAddOrgMemberBase,
     handleInviteMember: handleInviteMemberBase,
     handleChangeRole,
     handleRemoveMember,
@@ -50,7 +53,8 @@ export function useTeamManagementPage(): {
     refetchTeamMembers,
     refetchPendingInvitations,
     fetchTeams,
-    getTeamEquipmentCount: getTeamEquipmentCountBase
+    getTeamEquipmentCount: getTeamEquipmentCountBase,
+    refetchOrgMembers
   } = teamManagement;
   
   const filteredTeams = useFilteredTeams(teams, selectedOrganization);
@@ -85,6 +89,10 @@ export function useTeamManagementPage(): {
   // Create wrapper functions that match the context interface signatures exactly
   const wrappedHandleUpdateTeam = async (teamId: string, data: { name: string }) => {
     return handleUpdateTeamBase(teamId, data.name);
+  };
+
+  const wrappedHandleAddOrgMember = async (userId: string, role: string) => {
+    return handleAddOrgMemberBase(userId, role);
   };
 
   const wrappedHandleInviteMember = async (email: string, role: UserRole) => {
@@ -123,6 +131,8 @@ export function useTeamManagementPage(): {
     teams,
     members,
     pendingInvitations,
+    organizationMembers,
+    existingTeamMemberIds,
     selectedTeamId,
     selectedOrganization,
     filteredTeams,
@@ -141,6 +151,7 @@ export function useTeamManagementPage(): {
     handleCreateTeam,
     handleUpdateTeam: wrappedHandleUpdateTeam,
     handleDeleteTeam: wrappedHandleDeleteTeam,
+    handleAddOrgMember: wrappedHandleAddOrgMember,
     handleInviteMember: wrappedHandleInviteMember,
     handleChangeRole,
     handleRemoveMember,
@@ -151,7 +162,8 @@ export function useTeamManagementPage(): {
     refetchTeamMembers,
     refetchPendingInvitations: wrappedRefetchPendingInvitations,
     fetchTeams,
-    getTeamEquipmentCount: getTeamEquipmentCountBase
+    getTeamEquipmentCount: getTeamEquipmentCountBase,
+    refetchOrgMembers
   };
 
   return {

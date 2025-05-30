@@ -1,19 +1,25 @@
 
-import { ErrorDisplay } from '@/components/Team/ErrorDisplay';
-import { EmptyTeamState } from '@/components/Team/EmptyTeamState';
-import { TeamManagementHeader } from '@/components/Team/TeamManagementHeader';
-import { OrganizationAlert } from '@/components/Team/OrganizationAlert';
-import { AuthLoadingState } from '@/components/Team/AuthLoadingState';
-import { TeamManagementWrapper } from '@/components/Team/TeamManagementWrapper';
+import React from 'react';
+import { TeamSelector } from './TeamSelector';
+import { TeamMembers } from './TeamMembers';
+import { TeamSettings } from './TeamSettings';
+import { CreateTeamDialog } from './CreateTeamDialog';
 import { useTeamManagementContext } from '@/contexts/TeamManagementContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 export function TeamManagementView() {
   const {
+    teams,
     members,
     pendingInvitations,
-    filteredTeams,
+    organizationMembers,
+    existingTeamMemberIds,
     selectedTeamId,
     selectedOrganization,
+    filteredTeams,
     isLoading,
     isLoadingInvitations,
     isCreatingTeam,
@@ -29,6 +35,7 @@ export function TeamManagementView() {
     handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam,
+    handleAddOrgMember,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
@@ -39,93 +46,111 @@ export function TeamManagementView() {
     refetchTeamMembers,
     refetchPendingInvitations,
     fetchTeams,
-    getTeamEquipmentCount
+    getTeamEquipmentCount,
+    refetchOrgMembers
   } = useTeamManagementContext();
 
-  // Determine if the user has viewer role only
-  const isViewerOnly = isMember && currentUserRole === 'viewer';
+  const selectedTeam = teams.find(team => team.id === selectedTeamId);
 
-  // Check if we're viewing an external organization's teams
-  const isExternalOrg = selectedOrganization && !selectedOrganization.is_primary;
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
-  // Fix the retry function to not pass parameters
-  const handleRetry = () => {
-    if (selectedTeamId) {
-      refetchTeamMembers();
-    } else {
-      fetchTeams();
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
-      <TeamManagementHeader
-        onRefresh={fetchTeams}
-        isLoading={isLoading}
-        selectedOrganization={selectedOrganization}
-      />
-      
-      {isExternalOrg && selectedOrganization && (
-        <OrganizationAlert 
-          orgName={selectedOrganization.name} 
-          orgRole={selectedOrganization.role || 'viewer'} 
-        />
-      )}
-      
-      <ErrorDisplay 
-        error={error} 
-        onRetry={handleRetry}
-        onUpgradeRole={isViewerOnly ? 
-          (canChangeRoles ? handleUpgradeRole : handleRequestRoleUpgrade) : undefined}
-        isViewer={isViewerOnly}
-        canDirectlyUpgrade={canChangeRoles}
-        isRequestingUpgrade={isRequestingRole}
-      />
-      
-      {isLoading && filteredTeams.length === 0 ? (
-        <div className="space-y-3">
-          <div className="h-10 w-full max-w-xs bg-gray-200 animate-pulse rounded"></div>
-          <div className="h-40 w-full bg-gray-200 animate-pulse rounded"></div>
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Team Management</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your teams and team members for {selectedOrganization?.name}
+          </p>
         </div>
-      ) : filteredTeams.length > 0 ? (
-        <TeamManagementWrapper
-          filteredTeams={filteredTeams}
-          selectedTeamId={selectedTeamId}
-          selectedOrganization={selectedOrganization}
-          members={members}
-          pendingInvitations={pendingInvitations}
-          isLoading={isLoading}
-          isLoadingInvitations={isLoadingInvitations}
-          isCreatingTeam={isCreatingTeam}
-          isUpdatingTeam={isUpdatingTeam}
-          isDeletingTeam={isDeletingTeam}
-          isUpgradingRole={isUpgradingRole}
-          isRequestingRole={isRequestingRole}
-          isMember={isMember}
-          currentUserRole={currentUserRole}
-          canChangeRoles={canChangeRoles}
-          isChangingOrg={false}
-          onSelectTeam={setSelectedTeamId}
+        <CreateTeamDialog
           onCreateTeam={handleCreateTeam}
-          onUpdateTeam={handleUpdateTeam}
-          onDeleteTeam={handleDeleteTeam}
-          onInviteMember={handleInviteMember}
-          onChangeRole={handleChangeRole}
-          onRemoveMember={handleRemoveMember}
-          onResendInvite={handleResendInvite}
-          onCancelInvitation={handleCancelInvitation}
-          onUpgradeRole={handleUpgradeRole}
-          onRequestRoleUpgrade={handleRequestRoleUpgrade}
-          onFetchPendingInvitations={refetchPendingInvitations}
-          getTeamEquipmentCount={getTeamEquipmentCount}
+          isCreating={isCreatingTeam}
         />
-      ) : (
-        <EmptyTeamState
-          onCreateTeam={handleCreateTeam}
-          isCreatingTeam={isCreatingTeam}
-          userRole={selectedOrganization?.role || undefined}
-          organizationName={selectedOrganization?.name}
-        />
+      </div>
+
+      <TeamSelector
+        teams={filteredTeams}
+        selectedTeamId={selectedTeamId}
+        onSelectTeam={setSelectedTeamId}
+        getTeamEquipmentCount={getTeamEquipmentCount}
+        isLoading={isLoading}
+      />
+
+      {selectedTeam && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{selectedTeam.name}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="members" className="w-full">
+              <TabsList>
+                <TabsTrigger value="members">Members</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="members" className="space-y-4">
+                <TeamMembers
+                  teamId={selectedTeamId}
+                  teamName={selectedTeam.name}
+                  members={members}
+                  pendingInvitations={pendingInvitations}
+                  organizationMembers={organizationMembers}
+                  existingTeamMemberIds={existingTeamMemberIds}
+                  teams={teams}
+                  isLoading={isLoading}
+                  currentUserRole={currentUserRole}
+                  isMember={isMember}
+                  canChangeRoles={canChangeRoles}
+                  isUpgradingRole={isUpgradingRole}
+                  isRequestingRole={isRequestingRole}
+                  onAddOrgMember={handleAddOrgMember}
+                  onInviteMember={handleInviteMember}
+                  onChangeRole={handleChangeRole}
+                  onRemoveMember={handleRemoveMember}
+                  onUpgradeRole={handleUpgradeRole}
+                  onRequestRoleUpgrade={handleRequestRoleUpgrade}
+                  onResendInvite={handleResendInvite}
+                  onCancelInvitation={handleCancelInvitation}
+                />
+              </TabsContent>
+              
+              <TabsContent value="settings" className="space-y-4">
+                <TeamSettings
+                  team={selectedTeam}
+                  onUpdateTeam={handleUpdateTeam}
+                  onDeleteTeam={handleDeleteTeam}
+                  isUpdating={isUpdatingTeam}
+                  isDeleting={isDeletingTeam}
+                  canManage={currentUserRole === 'manager' || currentUserRole === 'owner'}
+                />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

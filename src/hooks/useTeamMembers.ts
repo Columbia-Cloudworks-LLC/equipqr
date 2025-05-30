@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TeamMember } from '@/types';
@@ -6,6 +5,7 @@ import { UserRole } from '@/types/supabase-enums';
 import { getTeamMembersWithOrgManagers } from '@/services/team/members/getTeamMembersWithOrgManagers';
 import { changeRole } from '@/services/team/members/changeRole';
 import { removeMember } from '@/services/team/members/removeMember';
+import { addOrgMemberToTeam } from '@/services/team/members/addOrgMemberToTeam';
 import { resendInvite } from '@/services/team/invitation/resendInvite';
 import { inviteMember } from '@/services/team/invitation/inviteMember';
 import { getPendingInvitations } from '@/services/team/invitation/getPendingInvitations';
@@ -234,6 +234,37 @@ export function useTeamMembers(teamId: string | null) {
     }
   }, [fetchTeamMembers, teamId, isTeamDeleted]);
 
+  const handleAddOrgMember = useCallback(async (userId: string, role: string) => {
+    if (!teamId || isTeamDeleted) {
+      throw new Error('Cannot add members to a deleted team');
+    }
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const result = await addOrgMemberToTeam(userId, teamId, role);
+      
+      if (result.success) {
+        toast.success("Member added", {
+          description: "Organization member was added to the team successfully"
+        });
+        await fetchTeamMembers();
+      } else {
+        throw new Error(result.error || 'Failed to add member');
+      }
+    } catch (error: any) {
+      console.error('Error in handleAddOrgMember:', error);
+      setError('Failed to add organization member. Please try again.');
+      toast.error("Error adding member", {
+        description: error.message
+      });
+      throw error; // Re-throw to allow form handling
+    } finally {
+      setIsLoading(false);
+    }
+  }, [teamId, isTeamDeleted, fetchTeamMembers]);
+
   const handleResendInvite = useCallback(async (id: string): Promise<void> => {
     try {
       if (isTeamDeleted) {
@@ -286,6 +317,7 @@ export function useTeamMembers(teamId: string | null) {
     fetchTeamMembers,
     fetchPendingInvitations,
     retryFetch,
+    handleAddOrgMember,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,

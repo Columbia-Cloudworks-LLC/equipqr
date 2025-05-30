@@ -6,6 +6,7 @@ import { useTeamMembers } from './useTeamMembers';
 import { useTeamMembership } from './useTeamMembership';
 import { useRoleManagement } from './useRoleManagement';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useOrganizationMembers } from './useOrganizationMembers';
 import { useTeamSelection } from './team/useTeamSelection';
 import { useTeamOperationState } from './team/useTeamOperationState';
 import { useTeamCreation } from './team/useTeamCreation';
@@ -44,6 +45,7 @@ export function useTeamManagement() {
     error: membersError,
     fetchTeamMembers,
     fetchPendingInvitations,
+    handleAddOrgMember,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
@@ -51,6 +53,13 @@ export function useTeamManagement() {
     handleCancelInvitation
   } = useTeamMembers(selectedTeamId);
   
+  // Get organization members for the add member functionality
+  const {
+    members: organizationMembers,
+    isLoading: isLoadingOrgMembers,
+    refetchMembers: refetchOrgMembers
+  } = useOrganizationMembers(selectedOrganization?.id || '');
+
   const {
     isMember,
     currentUserId,
@@ -140,6 +149,9 @@ export function useTeamManagement() {
     return handleDeleteAndUpdateSelection(handleDeleteTeam, teamId);
   }, [handleDeleteTeam, handleDeleteAndUpdateSelection]);
   
+  // Get existing team member IDs for filtering
+  const existingTeamMemberIds = members.map(member => member.auth_uid || member.user_id).filter(Boolean);
+  
   // Log for debugging
   useEffect(() => {
     console.log('useTeamManagement state:', {
@@ -148,20 +160,23 @@ export function useTeamManagement() {
       isLoading,
       isMember,
       members: members.length,
+      orgMembers: organizationMembers.length,
       currentUserRole,
       accessRole,
       organizationRole,
       selectedOrg: selectedOrganization?.name
     });
-  }, [teams.length, selectedTeamId, isLoading, isMember, members.length, currentUserRole, accessRole, organizationRole, selectedOrganization?.name]);
+  }, [teams.length, selectedTeamId, isLoading, isMember, members.length, organizationMembers.length, currentUserRole, accessRole, organizationRole, selectedOrganization?.name]);
 
   return {
     members,
     pendingInvitations,
+    organizationMembers,
+    existingTeamMemberIds,
     teams,
     selectedTeamId,
     selectedOrganization,
-    isLoading,
+    isLoading: isLoading || isLoadingOrgMembers,
     isLoadingInvitations,
     isCreatingTeam,
     isUpdatingTeam,
@@ -176,6 +191,7 @@ export function useTeamManagement() {
     handleCreateTeam,
     handleUpdateTeam,
     handleDeleteTeam: handleDeleteTeamWrapper,
+    handleAddOrgMember,
     handleInviteMember,
     handleChangeRole,
     handleRemoveMember,
@@ -186,6 +202,7 @@ export function useTeamManagement() {
     refetchTeamMembers,
     refetchPendingInvitations,
     fetchTeams,
-    getTeamEquipmentCount
+    getTeamEquipmentCount,
+    refetchOrgMembers
   };
 }

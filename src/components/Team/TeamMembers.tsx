@@ -2,18 +2,27 @@
 import { TeamMembersList } from './TeamMembersList';
 import { Button } from '@/components/ui/button';
 import { UserRole } from '@/types/supabase-enums';
-import { InviteMemberButton } from './InviteMemberButton';
+import { AddMemberButton } from './AddMemberButton';
 import { ViewerRoleAlert } from './ViewerRoleAlert';
 import { MembershipAlert } from './MembershipAlert';
 import { UserPlus } from 'lucide-react';
 import { Team } from '@/services/team';
 import { useUnifiedTeamMembers } from '@/hooks/team/useUnifiedTeamMembers';
 
+interface OrganizationMember {
+  id: string;
+  email: string;
+  full_name?: string;
+  role: string;
+}
+
 interface TeamMembersProps {
   teamId: string;
   teamName: string;
   members: any[];
   pendingInvitations: any[];
+  organizationMembers: OrganizationMember[];
+  existingTeamMemberIds: string[];
   teams: Team[];
   isLoading: boolean;
   currentUserRole?: string;
@@ -21,6 +30,7 @@ interface TeamMembersProps {
   canChangeRoles: boolean;
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
+  onAddOrgMember: (userId: string, role: string) => Promise<any>;
   onInviteMember: (email: string, role: UserRole) => Promise<any>;
   onChangeRole: (userId: string, role: UserRole) => Promise<any>;
   onRemoveMember: (userId: string) => Promise<any>;
@@ -36,6 +46,8 @@ export function TeamMembers({
   teamName,
   members,
   pendingInvitations,
+  organizationMembers,
+  existingTeamMemberIds,
   teams,
   isLoading,
   currentUserRole,
@@ -43,6 +55,7 @@ export function TeamMembers({
   canChangeRoles,
   isUpgradingRole,
   isRequestingRole,
+  onAddOrgMember,
   onInviteMember,
   onChangeRole,
   onRemoveMember,
@@ -99,10 +112,11 @@ export function TeamMembers({
         
         {isManager && (
           <div className="flex space-x-2">
-            <InviteMemberButton 
-              onInvite={(email, role) => onInviteMember(email, role as UserRole)}
-              teamId={teamId}
-              teams={teams}
+            <AddMemberButton 
+              organizationMembers={organizationMembers}
+              existingTeamMemberIds={existingTeamMemberIds}
+              onAddMember={onAddOrgMember}
+              isLoading={isLoading}
             />
           </div>
         )}
