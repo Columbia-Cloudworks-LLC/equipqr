@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { clearDashboardCache } from '@/services/dashboard/dashboardService';
 
 export interface DeleteTeamResult {
   success: boolean;
@@ -69,6 +70,11 @@ export const deleteTeam = async (teamId: string): Promise<DeleteTeamResult> => {
     }
 
     console.log('Team deletion successful:', data);
+    
+    // IMPORTANT: Clear dashboard cache after successful team deletion
+    // This ensures the dashboard will fetch fresh data without the deleted team
+    clearDashboardCache();
+    console.log('Dashboard cache cleared after team deletion');
     
     return data as DeleteTeamResult;
   } catch (error: any) {

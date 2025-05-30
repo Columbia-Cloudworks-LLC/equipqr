@@ -62,7 +62,7 @@ export class TeamDeletionService {
   }
 
   /**
-   * Delete all team members
+   * Delete all team members and their roles
    * @returns {Promise<number>} Number of team members deleted
    */
   async deleteTeamMembers(teamId: string): Promise<number> {
@@ -121,7 +121,7 @@ export class TeamDeletionService {
   }
 
   /**
-   * Cancel pending invitations
+   * Cancel pending invitations for the team
    * @returns {Promise<number>} Number of invitations cancelled
    */
   async cancelTeamInvitations(teamId: string): Promise<number> {
@@ -163,13 +163,14 @@ export class TeamDeletionService {
       // Step 1: Update equipment records (unassign from team)
       const equipmentUpdated = await this.updateEquipmentRecords(teamId);
       
-      // Step 2: Delete team members and their roles
+      // Step 2: Delete team members and their roles BEFORE marking team as deleted
+      // This ensures memberships are properly cleaned up
       const membersDeleted = await this.deleteTeamMembers(teamId);
       
       // Step 3: Cancel pending invitations
       const invitationsCancelled = await this.cancelTeamInvitations(teamId);
       
-      // Step 4: Soft delete the team record
+      // Step 4: Soft delete the team record (this must come AFTER cleaning up memberships)
       const { error } = await this.supabase
         .from('team')
         .update({ deleted_at: new Date().toISOString() })

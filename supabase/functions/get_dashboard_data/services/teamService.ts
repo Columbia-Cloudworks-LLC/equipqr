@@ -32,12 +32,14 @@ export async function fetchUserTeams(supabase: any, userId: string, orgId?: stri
     }
     
     // Build the query for teams - use correct table name 'team' instead of 'teams'
+    // IMPORTANT: Filter out deleted teams by adding .is('deleted_at', null)
     let query = supabase
       .from('team')
       .select(`
         *,
         org:org_id (*)
-      `);
+      `)
+      .is('deleted_at', null);  // This is the key fix - exclude deleted teams
     
     // Add org filter if provided
     if (orgId) {
@@ -73,7 +75,7 @@ export async function fetchUserTeams(supabase: any, userId: string, orgId?: stri
       };
     }
     
-    console.log(`Found ${teamMemberships?.length || 0} team memberships and ${teams?.length || 0} total teams`);
+    console.log(`Found ${teamMemberships?.length || 0} team memberships and ${teams?.length || 0} total teams (excluding deleted)`);
     
     // Create membership lookup map
     const membershipMap = new Map();
@@ -95,7 +97,7 @@ export async function fetchUserTeams(supabase: any, userId: string, orgId?: stri
         };
       });
     
-    console.log(`Returning ${userTeams.length} teams the user is member of`);
+    console.log(`Returning ${userTeams.length} teams the user is member of (excluding deleted)`);
     
     return { success: true, teams: userTeams };
   } catch (error) {

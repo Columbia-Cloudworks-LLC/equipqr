@@ -159,15 +159,19 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
 }
 
 /**
- * Clear dashboard cache
+ * Clear dashboard cache - ENHANCED to force refresh after team operations
  */
 export function clearDashboardCache() {
+  console.log('Clearing dashboard cache - fresh data will be fetched on next request');
   dashboardCache = null;
+  lastFetchTime = 0; // Reset debounce timer to allow immediate fetch
 }
 
 /**
  * Force refresh dashboard data
  */
 export async function refreshDashboardData(orgId?: string) {
+  console.log('Force refreshing dashboard data');
+  clearDashboardCache(); // Clear cache first
   return getDashboardData(orgId, true);
 }
