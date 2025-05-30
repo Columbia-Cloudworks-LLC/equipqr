@@ -12,6 +12,8 @@ interface TeamManagementWrapperProps {
   selectedOrganization?: UserOrganization | null;
   members: any[];
   pendingInvitations: any[];
+  organizationMembers: any[];
+  existingTeamMemberIds: string[];
   isLoading: boolean;
   isLoadingInvitations: boolean;
   isCreatingTeam: boolean;
@@ -27,6 +29,7 @@ interface TeamManagementWrapperProps {
   onCreateTeam: (name: string) => Promise<any>;
   onUpdateTeam: (teamId: string, data: { name: string }) => Promise<any>;
   onDeleteTeam: () => Promise<any>;
+  onAddOrgMember: (userId: string, role: string) => Promise<any>;
   onInviteMember: (email: string, role: UserRole) => Promise<any>;
   onChangeRole: (userId: string, role: string) => Promise<any>;
   onRemoveMember: (userId: string) => Promise<any>;
@@ -44,6 +47,8 @@ export function TeamManagementWrapper({
   selectedOrganization,
   members,
   pendingInvitations,
+  organizationMembers,
+  existingTeamMemberIds,
   isLoading,
   isLoadingInvitations,
   isCreatingTeam,
@@ -59,6 +64,7 @@ export function TeamManagementWrapper({
   onCreateTeam,
   onUpdateTeam,
   onDeleteTeam,
+  onAddOrgMember,
   onInviteMember,
   onChangeRole,
   onRemoveMember,
@@ -125,15 +131,18 @@ export function TeamManagementWrapper({
       
       <TeamContent
         selectedTeam={selectedTeam}
+        teams={filteredTeams}
         members={members}
         pendingInvitations={pendingInvitations}
-        teams={filteredTeams}
+        organizationMembers={organizationMembers}
+        existingTeamMemberIds={existingTeamMemberIds}
         isLoading={isLoading}
         currentUserRole={currentUserRole}
         isMember={isMember}
         canChangeRoles={canChangeRoles}
         isUpgradingRole={isUpgradingRole}
         isRequestingRole={isRequestingRole}
+        onAddOrgMember={onAddOrgMember}
         onInviteMember={onInviteMember}
         onChangeRole={onChangeRole}
         onRemoveMember={onRemoveMember}

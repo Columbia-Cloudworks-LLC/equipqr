@@ -89,19 +89,17 @@ export function useTeamManagementPage(): {
 
   // Create wrapper functions that match the context interface signatures exactly
   const wrappedHandleUpdateTeam = async (teamId: string, data: { name: string }) => {
-    const result = await handleUpdateTeamBase(teamId, data.name);
-    // Convert result to void by not returning anything
-    if (!result.success && result.error) {
-      throw new Error(result.error);
+    if (!teamId || !data.name) {
+      throw new Error('Team ID and name are required');
     }
+    return handleUpdateTeamBase(teamId, data.name);
   };
 
   const wrappedHandleAddOrgMember = async (userId: string, role: string) => {
-    const result = await handleAddOrgMemberBase(userId, role);
-    // Convert result to void by not returning anything
-    if (!result.success && result.error) {
-      throw new Error(result.error);
+    if (!userId || !role) {
+      throw new Error('User ID and role are required');
     }
+    return handleAddOrgMemberBase(userId, role);
   };
 
   const wrappedHandleInviteMember = async (email: string, role: UserRole) => {
@@ -115,33 +113,21 @@ export function useTeamManagementPage(): {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    const result = await handleDeleteTeamBase(selectedTeamId);
-    // Convert result to void by not returning anything
-    if (!result.success && result.error) {
-      throw new Error(result.error);
-    }
+    return handleDeleteTeamBase(selectedTeamId);
   };
 
   const wrappedHandleUpgradeRole = async () => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    const result = await handleUpgradeRoleBase(selectedTeamId);
-    // Convert result to void by not returning anything
-    if (!result.success && result.error) {
-      throw new Error(result.error);
-    }
+    return handleUpgradeRoleBase(selectedTeamId);
   };
 
   const wrappedHandleRequestRoleUpgrade = async () => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    const result = await handleRequestRoleUpgradeBase(selectedTeamId);
-    // Convert result to void by not returning anything
-    if (!result.success && result.error) {
-      throw new Error(result.error);
-    }
+    return handleRequestRoleUpgradeBase(selectedTeamId);
   };
 
   const wrappedRefetchPendingInvitations = async () => {

@@ -94,8 +94,8 @@ export function TeamManagementView() {
 
       <TeamSelector
         teams={filteredTeams}
-        selectedTeam={selectedTeamId}
-        onSelectTeam={setSelectedTeamId}
+        value={selectedTeamId}
+        onChange={setSelectedTeamId}
         getTeamEquipmentCount={getTeamEquipmentCount}
         isLoading={isLoading}
       />
@@ -142,10 +142,12 @@ export function TeamManagementView() {
                 <TeamSettings
                   team={selectedTeam}
                   onUpdateTeam={(id, name) => handleUpdateTeam(id, { name })}
-                  onDeleteTeam={handleDeleteTeam}
+                  onDelete={handleDeleteTeam}
                   isUpdating={isUpdatingTeam}
                   isDeleting={isDeletingTeam}
-                  canManage={currentUserRole === 'manager' || currentUserRole === 'owner'}
+                  currentUserRole={currentUserRole}
+                  canChangeRoles={canChangeRoles}
+                  getTeamEquipmentCount={getTeamEquipmentCount}
                 />
               </TabsContent>
             </Tabs>
