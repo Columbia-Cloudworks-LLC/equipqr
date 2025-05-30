@@ -96,7 +96,6 @@ export function TeamManagementView() {
         teams={filteredTeams}
         value={selectedTeamId}
         onChange={setSelectedTeamId}
-        getTeamEquipmentCount={getTeamEquipmentCount}
         isLoading={isLoading}
       />
 

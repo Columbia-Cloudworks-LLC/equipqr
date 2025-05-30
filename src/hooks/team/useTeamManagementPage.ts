@@ -87,47 +87,62 @@ export function useTeamManagementPage(): {
     }
   }, [filteredTeams, selectedTeamId, setSelectedTeamId]);
 
-  // Create wrapper functions that match the context interface signatures exactly
-  const wrappedHandleUpdateTeam = async (teamId: string, data: { name: string }) => {
+  // Create wrapper functions that match the context interface signatures exactly and handle errors properly
+  const wrappedHandleUpdateTeam = async (teamId: string, data: { name: string }): Promise<void> => {
     if (!teamId || !data.name) {
       throw new Error('Team ID and name are required');
     }
-    return handleUpdateTeamBase(teamId, data.name);
+    const result = await handleUpdateTeamBase(teamId, data.name);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update team');
+    }
   };
 
-  const wrappedHandleAddOrgMember = async (userId: string, role: string) => {
+  const wrappedHandleAddOrgMember = async (userId: string, role: string): Promise<void> => {
     if (!userId || !role) {
       throw new Error('User ID and role are required');
     }
-    return handleAddOrgMemberBase(userId, role);
+    const result = await handleAddOrgMemberBase(userId, role);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to add member');
+    }
   };
 
-  const wrappedHandleInviteMember = async (email: string, role: UserRole) => {
+  const wrappedHandleInviteMember = async (email: string, role: UserRole): Promise<void> => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
     return handleInviteMemberBase(email, role, selectedTeamId);
   };
 
-  const wrappedHandleDeleteTeam = async () => {
+  const wrappedHandleDeleteTeam = async (): Promise<void> => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    return handleDeleteTeamBase(selectedTeamId);
+    const result = await handleDeleteTeamBase(selectedTeamId);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to delete team');
+    }
   };
 
-  const wrappedHandleUpgradeRole = async () => {
+  const wrappedHandleUpgradeRole = async (): Promise<void> => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    return handleUpgradeRoleBase(selectedTeamId);
+    const result = await handleUpgradeRoleBase(selectedTeamId);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to upgrade role');
+    }
   };
 
-  const wrappedHandleRequestRoleUpgrade = async () => {
+  const wrappedHandleRequestRoleUpgrade = async (): Promise<void> => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    return handleRequestRoleUpgradeBase(selectedTeamId);
+    const result = await handleRequestRoleUpgradeBase(selectedTeamId);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to request role upgrade');
+    }
   };
 
   const wrappedRefetchPendingInvitations = async () => {
