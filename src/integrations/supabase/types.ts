@@ -815,6 +815,50 @@ export type Database = {
           },
         ]
       }
+      organization_billing_state: {
+        Row: {
+          billing_required: boolean
+          created_at: string
+          first_equipment_added_at: string | null
+          grace_period_days: number | null
+          grace_period_end: string | null
+          grace_period_start: string | null
+          id: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          billing_required?: boolean
+          created_at?: string
+          first_equipment_added_at?: string | null
+          grace_period_days?: number | null
+          grace_period_end?: string | null
+          grace_period_start?: string | null
+          id?: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          billing_required?: boolean
+          created_at?: string
+          first_equipment_added_at?: string | null
+          grace_period_days?: number | null
+          grace_period_end?: string | null
+          grace_period_start?: string | null
+          id?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_billing_state_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invitations: {
         Row: {
           accepted_at: string | null
@@ -1082,6 +1126,47 @@ export type Database = {
             columns: ["to_user_id"]
             isOneToOne: false
             referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_user_licenses: {
+        Row: {
+          billable_users: number
+          calculated_at: string
+          created_at: string
+          id: string
+          monthly_cost_cents: number
+          org_id: string
+          total_users: number
+          updated_at: string
+        }
+        Insert: {
+          billable_users?: number
+          calculated_at?: string
+          created_at?: string
+          id?: string
+          monthly_cost_cents?: number
+          org_id: string
+          total_users?: number
+          updated_at?: string
+        }
+        Update: {
+          billable_users?: number
+          calculated_at?: string
+          created_at?: string
+          id?: string
+          monthly_cost_cents?: number
+          org_id?: string
+          total_users?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_user_licenses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organization"
             referencedColumns: ["id"]
           },
         ]
@@ -1755,6 +1840,10 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: number
       }
+      calculate_org_user_billing: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       calculate_storage_overage: {
         Args: { p_org_id: string; p_period_start: string; p_period_end: string }
         Returns: {
@@ -1933,6 +2022,10 @@ export type Database = {
       get_org_feature_access: {
         Args: { p_org_id: string; p_feature_key: string }
         Returns: boolean
+      }
+      get_org_grace_period_info: {
+        Args: { p_org_id: string }
+        Returns: Json
       }
       get_org_managers: {
         Args: { p_org_id: string }

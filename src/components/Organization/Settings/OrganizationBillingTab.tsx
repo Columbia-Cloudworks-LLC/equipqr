@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { StorageUsageCard } from '@/components/Billing/StorageUsageCard';
-import { BillingManagement } from '@/components/Billing/BillingManagement';
+import { UserBillingCard } from '@/components/Billing/UserBillingCard';
+import { UserBillingManagement } from '@/components/Billing/UserBillingManagement';
+import { NewGracePeriodBanner } from '@/components/Billing/NewGracePeriodBanner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,10 +30,11 @@ export function OrganizationBillingTab() {
       onReset={() => window.location.reload()}
     >
       <div className="space-y-6">
+        <NewGracePeriodBanner />
         <div className="grid gap-6 md:grid-cols-2">
-          <StorageUsageCard />
+          <UserBillingCard />
           <div className="space-y-6">
-            <BillingManagement />
+            <UserBillingManagement />
           </div>
         </div>
       </div>
