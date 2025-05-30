@@ -66,10 +66,10 @@ export function useOrganizationMembers(organizationId: string) {
 
     try {
       const { data, error } = await supabase
-        .from('org_invitations')
+        .from('organization_invitations')
         .select('id, email, role, created_at')
         .eq('org_id', organizationId)
-        .is('accepted_at', null);
+        .eq('status', 'pending');
 
       if (error) throw error;
 
@@ -96,7 +96,7 @@ export function useOrganizationMembers(organizationId: string) {
     setIsInviting(true);
     try {
       const { error } = await supabase
-        .from('org_invitations')
+        .from('organization_invitations')
         .insert({
           org_id: organizationId,
           email: email.toLowerCase(),
@@ -155,7 +155,7 @@ export function useOrganizationMembers(organizationId: string) {
   const handleCancelInvitation = useCallback(async (invitationId: string) => {
     try {
       const { error } = await supabase
-        .from('org_invitations')
+        .from('organization_invitations')
         .delete()
         .eq('id', invitationId);
 
