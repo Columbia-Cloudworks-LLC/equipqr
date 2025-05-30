@@ -93,8 +93,8 @@ export function useTeamManagementPage(): {
       throw new Error('Team ID and name are required');
     }
     const result = await handleUpdateTeamBase(teamId, data.name);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to update team');
+    if (result && typeof result === 'object' && 'success' in result && !result.success) {
+      throw new Error((result as any).error || 'Failed to update team');
     }
   };
 
@@ -103,8 +103,8 @@ export function useTeamManagementPage(): {
       throw new Error('User ID and role are required');
     }
     const result = await handleAddOrgMemberBase(userId, role);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to add member');
+    if (result && typeof result === 'object' && 'success' in result && !result.success) {
+      throw new Error((result as any).error || 'Failed to add member');
     }
   };
 
@@ -120,8 +120,8 @@ export function useTeamManagementPage(): {
       throw new Error('No team selected');
     }
     const result = await handleDeleteTeamBase(selectedTeamId);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to delete team');
+    if (result && typeof result === 'object' && 'success' in result && !result.success) {
+      throw new Error((result as any).error || 'Failed to delete team');
     }
   };
 
@@ -130,8 +130,8 @@ export function useTeamManagementPage(): {
       throw new Error('No team selected');
     }
     const result = await handleUpgradeRoleBase(selectedTeamId);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to upgrade role');
+    if (result && typeof result === 'object' && 'success' in result && !result.success) {
+      throw new Error((result as any).error || 'Failed to upgrade role');
     }
   };
 
@@ -140,8 +140,8 @@ export function useTeamManagementPage(): {
       throw new Error('No team selected');
     }
     const result = await handleRequestRoleUpgradeBase(selectedTeamId);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to request role upgrade');
+    if (result && typeof result === 'object' && 'success' in result && !result.success) {
+      throw new Error((result as any).error || 'Failed to request role upgrade');
     }
   };
 
