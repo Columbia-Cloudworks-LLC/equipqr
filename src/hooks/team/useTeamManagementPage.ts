@@ -87,25 +87,21 @@ export function useTeamManagementPage(): {
     }
   }, [filteredTeams, selectedTeamId, setSelectedTeamId]);
 
-  // Create wrapper functions that match the context interface signatures exactly and handle errors properly
+  // Create wrapper functions that handle the different return types properly
   const wrappedHandleUpdateTeam = async (teamId: string, data: { name: string }): Promise<void> => {
     if (!teamId || !data.name) {
       throw new Error('Team ID and name are required');
     }
-    const result = await handleUpdateTeamBase(teamId, data.name);
-    if (result && typeof result === 'object' && 'success' in result && !result.success) {
-      throw new Error((result as any).error || 'Failed to update team');
-    }
+    // handleUpdateTeamBase returns void and throws on error
+    await handleUpdateTeamBase(teamId, data.name);
   };
 
   const wrappedHandleAddOrgMember = async (userId: string, role: string): Promise<void> => {
     if (!userId || !role) {
       throw new Error('User ID and role are required');
     }
-    const result = await handleAddOrgMemberBase(userId, role);
-    if (result && typeof result === 'object' && 'success' in result && !result.success) {
-      throw new Error((result as any).error || 'Failed to add member');
-    }
+    // handleAddOrgMemberBase throws on error, so we don't need to check return value
+    await handleAddOrgMemberBase(userId, role);
   };
 
   const wrappedHandleInviteMember = async (email: string, role: UserRole): Promise<void> => {
@@ -119,30 +115,24 @@ export function useTeamManagementPage(): {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    const result = await handleDeleteTeamBase(selectedTeamId);
-    if (result && typeof result === 'object' && 'success' in result && !result.success) {
-      throw new Error((result as any).error || 'Failed to delete team');
-    }
+    // handleDeleteTeamBase returns void and throws on error
+    await handleDeleteTeamBase(selectedTeamId);
   };
 
   const wrappedHandleUpgradeRole = async (): Promise<void> => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    const result = await handleUpgradeRoleBase(selectedTeamId);
-    if (result && typeof result === 'object' && 'success' in result && !result.success) {
-      throw new Error((result as any).error || 'Failed to upgrade role');
-    }
+    // handleUpgradeRoleBase returns void and throws on error
+    await handleUpgradeRoleBase(selectedTeamId);
   };
 
   const wrappedHandleRequestRoleUpgrade = async (): Promise<void> => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    const result = await handleRequestRoleUpgradeBase(selectedTeamId);
-    if (result && typeof result === 'object' && 'success' in result && !result.success) {
-      throw new Error((result as any).error || 'Failed to request role upgrade');
-    }
+    // handleRequestRoleUpgradeBase returns void and throws on error
+    await handleRequestRoleUpgradeBase(selectedTeamId);
   };
 
   const wrappedRefetchPendingInvitations = async () => {
