@@ -81,12 +81,12 @@ export function UserBillingCard() {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Total Users</p>
+            <p className="text-sm text-muted-foreground">Organization Members</p>
             <p className="text-2xl font-bold">{billingInfo.total_users}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Billable Users</p>
-            <p className="text-2xl font-bold text-blue-600">{billingInfo.billable_users}</p>
+            <p className="text-sm text-muted-foreground">Monthly Cost</p>
+            <p className="text-2xl font-bold text-blue-600">${monthlyAmount.toFixed(2)}</p>
           </div>
         </div>
 
@@ -102,9 +102,9 @@ export function UserBillingCard() {
           <div className="p-4 bg-blue-50 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-semibold text-blue-900">Monthly Cost</h4>
+                <h4 className="font-semibold text-blue-900">Monthly Billing</h4>
                 <p className="text-blue-700 text-sm">
-                  {billingInfo.billable_users} billable users × $10.00
+                  {billingInfo.total_users} organization members × $10.00
                 </p>
               </div>
               <div className="text-right">
@@ -125,7 +125,7 @@ export function UserBillingCard() {
         )}
 
         <div className="text-xs text-muted-foreground">
-          <p>• Viewers are not charged</p>
+          <p>• All organization members are charged $10/month</p>
           <p>• Billing starts when first equipment is added</p>
           <p>• 30-day grace period for new equipment</p>
         </div>

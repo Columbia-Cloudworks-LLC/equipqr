@@ -76,7 +76,7 @@ serve(async (req) => {
 
     const hasEquipment = (equipmentCount || 0) > 0
 
-    // Get billable users count (exclude viewers)
+    // Get ALL users count - no role exclusions
     const { data: userRoles, error: rolesError } = await supabaseClient
       .from('user_roles')
       .select('role')
@@ -90,7 +90,8 @@ serve(async (req) => {
       )
     }
 
-    const billableUsersCount = userRoles?.filter(role => role.role !== 'viewer').length || 0
+    // ALL users are billable
+    const billableUsersCount = userRoles?.length || 0
 
     // Check for active grace period
     const { data: billingInfo, error: billingError } = await supabaseClient

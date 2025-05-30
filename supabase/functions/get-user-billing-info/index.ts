@@ -70,9 +70,9 @@ serve(async (req) => {
       });
     }
 
-    // Calculate user billing info
+    // Calculate user billing info - ALL users are billable
     const { data: billingInfo, error: billingError } = await supabaseClient
-      .rpc('calculate_org_user_billing', {
+      .rpc('calculate_org_user_billing_corrected', {
         p_org_id: org_id
       });
 

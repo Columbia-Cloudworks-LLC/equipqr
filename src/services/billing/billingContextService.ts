@@ -47,14 +47,15 @@ export async function getBillingContext(orgId: string): Promise<BillingContext> 
 
 /**
  * Calculate billing impact of sending invitations
+ * ALL users are billable regardless of role
  */
 export function calculateInvitationImpact(
   billingContext: BillingContext,
   invitationCount: number,
   invitedRoles: string[]
 ): InvitationBillingImpact {
-  // Only non-viewer roles are billable
-  const billableInvitations = invitedRoles.filter(role => role !== 'viewer').length;
+  // ALL invitations are billable - no role exclusions
+  const billableInvitations = invitationCount;
   
   const costPerInvitation = billingContext.monthly_cost_per_user;
   const totalMonthlyIncrease = billableInvitations * costPerInvitation;
@@ -67,9 +68,7 @@ export function calculateInvitationImpact(
   
   let message = '';
   
-  if (billableInvitations === 0) {
-    message = 'Viewer invitations are free and will not incur charges.';
-  } else if (!billingContext.has_equipment) {
+  if (!billingContext.has_equipment) {
     message = `Adding ${billableInvitations} member(s) will activate billing when equipment is first added. Cost: $${totalMonthlyIncrease}/month.`;
   } else if (gracePeriodApplies) {
     message = `Adding ${billableInvitations} member(s) will cost $${totalMonthlyIncrease}/month after your grace period ends.`;

@@ -112,13 +112,7 @@ export function OrganizationMembersTab({ organizationId, userRole }: Organizatio
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="technician">Technician</SelectItem>
-                      <SelectItem value="viewer">
-                        <div className="flex items-center gap-2">
-                          Viewer
-                          <span className="text-xs text-green-600 font-medium">FREE</span>
-                        </div>
-                      </SelectItem>
+                      <SelectItem value="viewer">Viewer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -130,14 +124,12 @@ export function OrganizationMembersTab({ organizationId, userRole }: Organizatio
                 </Alert>
               )}
 
-              {role !== 'viewer' && (
-                <Alert>
-                  <CreditCard className="h-4 w-4" />
-                  <AlertDescription>
-                    This role costs $10/month. Viewer roles are always free.
-                  </AlertDescription>
-                </Alert>
-              )}
+              <Alert>
+                <CreditCard className="h-4 w-4" />
+                <AlertDescription>
+                  All organization members are charged $10/month, regardless of role.
+                </AlertDescription>
+              </Alert>
 
               <Button
                 type="submit"
@@ -164,11 +156,11 @@ export function OrganizationMembersTab({ organizationId, userRole }: Organizatio
             members={members}
             pendingInvitations={pendingInvitations}
             isLoading={isLoading}
-            userRole={userRole}
+            canManage={canManageMembers}
             onRemoveMember={handleRemoveMember}
             onResendInvite={handleResendInvite}
             onCancelInvitation={handleCancelInvitation}
-            onRefresh={refetchMembers}
+            onRefetch={refetchMembers}
           />
         </CardContent>
       </Card>
