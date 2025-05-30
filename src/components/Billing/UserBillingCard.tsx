@@ -104,7 +104,7 @@ export function UserBillingCard() {
               <div>
                 <h4 className="font-semibold text-blue-900">Monthly Billing</h4>
                 <p className="text-blue-700 text-sm">
-                  {billingInfo.total_users} organization members × $10.00
+                  {billingInfo.total_users} members × $10.00 per month
                 </p>
               </div>
               <div className="text-right">
@@ -125,7 +125,7 @@ export function UserBillingCard() {
         )}
 
         <div className="text-xs text-muted-foreground">
-          <p>• All organization members are charged $10/month</p>
+          <p>• Your organization is billed $10/month per member</p>
           <p>• Billing starts when first equipment is added</p>
           <p>• 30-day grace period for new equipment</p>
         </div>

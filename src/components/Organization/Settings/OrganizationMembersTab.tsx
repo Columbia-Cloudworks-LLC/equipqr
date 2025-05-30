@@ -127,7 +127,7 @@ export function OrganizationMembersTab({ organizationId, userRole }: Organizatio
               <Alert>
                 <CreditCard className="h-4 w-4" />
                 <AlertDescription>
-                  All organization members are charged $10/month, regardless of role.
+                  Adding members increases your monthly bill by $10 per member.
                 </AlertDescription>
               </Alert>
 
@@ -156,11 +156,11 @@ export function OrganizationMembersTab({ organizationId, userRole }: Organizatio
             members={members}
             pendingInvitations={pendingInvitations}
             isLoading={isLoading}
-            canManage={canManageMembers}
+            userRole={userRole}
             onRemoveMember={handleRemoveMember}
             onResendInvite={handleResendInvite}
             onCancelInvitation={handleCancelInvitation}
-            onRefetch={refetchMembers}
+            onRefresh={refetchMembers}
           />
         </CardContent>
       </Card>

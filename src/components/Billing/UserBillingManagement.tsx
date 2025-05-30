@@ -78,8 +78,8 @@ export function UserBillingManagement() {
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-semibold text-gray-800 mb-2">Pricing Model</h4>
                     <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• $10 per billable user per month</li>
-                      <li>• Viewers are not charged</li>
+                      <li>• $10 per organization member per month</li>
+                      <li>• All members are included in billing</li>
                       <li>• 30-day grace period when equipment is first added</li>
                       <li>• Equipment tracking and team collaboration included</li>
                     </ul>

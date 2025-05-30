@@ -105,7 +105,7 @@ export function InviteMemberForm({ onInvite, isLoading, disabled = false }: Invi
         <Alert>
           <CreditCard className="h-4 w-4" />
           <AlertDescription>
-            All organization members are charged $10/month, regardless of role.
+            Adding members to your organization increases the monthly bill by $10 per member.
           </AlertDescription>
         </Alert>
 
