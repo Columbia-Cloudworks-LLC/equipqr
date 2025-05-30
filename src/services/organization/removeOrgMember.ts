@@ -48,6 +48,15 @@ export async function removeOrganizationMember(
       };
     }
 
+    // Check if the response indicates an error
+    if (data.error) {
+      return {
+        success: false,
+        error: data.error
+      };
+    }
+
+    // Check for success flag
     if (!data.success) {
       return {
         success: false,

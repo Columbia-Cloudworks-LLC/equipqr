@@ -87,9 +87,9 @@ serve(async (req) => {
 
     console.log(`Attempting to remove user ${user_id} from organization ${org_id} by ${user.id}`)
 
-    // Validate that the organization exists
+    // Validate that the organization exists - FIXED: Use correct table name 'organization' (singular)
     const { data: orgCheck, error: orgError } = await supabaseClient
-      .from('organizations')
+      .from('organization')
       .select('id')
       .eq('id', org_id)
       .single()
