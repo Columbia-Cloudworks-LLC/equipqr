@@ -7,6 +7,7 @@ import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { useFilteredTeams } from '@/hooks/team/useFilteredTeams';
 import { TeamManagementContextType } from '@/contexts/TeamManagementContext.d';
 import { UserRole } from '@/types/supabase-enums';
+import { Organization } from '@/types';
 
 export function useTeamManagementPage(): {
   contextValue: TeamManagementContextType;
@@ -88,11 +89,19 @@ export function useTeamManagementPage(): {
 
   // Create wrapper functions that match the context interface signatures exactly
   const wrappedHandleUpdateTeam = async (teamId: string, data: { name: string }) => {
-    return handleUpdateTeamBase(teamId, data.name);
+    const result = await handleUpdateTeamBase(teamId, data.name);
+    // Convert result to void by not returning anything
+    if (!result.success && result.error) {
+      throw new Error(result.error);
+    }
   };
 
   const wrappedHandleAddOrgMember = async (userId: string, role: string) => {
-    return handleAddOrgMemberBase(userId, role);
+    const result = await handleAddOrgMemberBase(userId, role);
+    // Convert result to void by not returning anything
+    if (!result.success && result.error) {
+      throw new Error(result.error);
+    }
   };
 
   const wrappedHandleInviteMember = async (email: string, role: UserRole) => {
@@ -106,26 +115,45 @@ export function useTeamManagementPage(): {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    return handleDeleteTeamBase(selectedTeamId);
+    const result = await handleDeleteTeamBase(selectedTeamId);
+    // Convert result to void by not returning anything
+    if (!result.success && result.error) {
+      throw new Error(result.error);
+    }
   };
 
   const wrappedHandleUpgradeRole = async () => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    return handleUpgradeRoleBase(selectedTeamId);
+    const result = await handleUpgradeRoleBase(selectedTeamId);
+    // Convert result to void by not returning anything
+    if (!result.success && result.error) {
+      throw new Error(result.error);
+    }
   };
 
   const wrappedHandleRequestRoleUpgrade = async () => {
     if (!selectedTeamId) {
       throw new Error('No team selected');
     }
-    return handleRequestRoleUpgradeBase(selectedTeamId);
+    const result = await handleRequestRoleUpgradeBase(selectedTeamId);
+    // Convert result to void by not returning anything
+    if (!result.success && result.error) {
+      throw new Error(result.error);
+    }
   };
 
   const wrappedRefetchPendingInvitations = async () => {
     return refetchPendingInvitations();
   };
+
+  // Fix the Organization type conversion
+  const convertedSelectedOrganization: Organization | null = selectedOrganization ? {
+    id: selectedOrganization.id,
+    name: selectedOrganization.name,
+    role: selectedOrganization.role || 'viewer'
+  } : null;
 
   const contextValue: TeamManagementContextType = {
     teams,
@@ -134,7 +162,7 @@ export function useTeamManagementPage(): {
     organizationMembers,
     existingTeamMemberIds,
     selectedTeamId,
-    selectedOrganization,
+    selectedOrganization: convertedSelectedOrganization,
     filteredTeams,
     isLoading,
     isLoadingInvitations,

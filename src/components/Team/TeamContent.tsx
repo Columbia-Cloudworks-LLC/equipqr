@@ -7,17 +7,27 @@ import { Users, Settings, Map } from 'lucide-react';
 import { Team } from '@/services/team';
 import { UserRole } from '@/types/supabase-enums';
 
+interface OrganizationMember {
+  id: string;
+  email: string;
+  full_name?: string;
+  role: UserRole;
+}
+
 interface TeamContentProps {
   selectedTeam: Team;
   teams: Team[];
   members: any[];
   pendingInvitations: any[];
+  organizationMembers: OrganizationMember[];
+  existingTeamMemberIds: string[];
   isLoading: boolean;
   currentUserRole?: string;
   isMember: boolean;
   canChangeRoles: boolean;
   isUpgradingRole: boolean;
   isRequestingRole: boolean;
+  onAddOrgMember: (userId: string, role: string) => Promise<any>;
   onInviteMember: (email: string, role: UserRole) => Promise<any>;
   onChangeRole: (userId: string, role: UserRole) => Promise<any>;
   onRemoveMember: (userId: string) => Promise<any>;
@@ -35,12 +45,15 @@ export function TeamContent({
   teams,
   members,
   pendingInvitations,
+  organizationMembers,
+  existingTeamMemberIds,
   isLoading,
   currentUserRole,
   isMember,
   canChangeRoles,
   isUpgradingRole,
   isRequestingRole,
+  onAddOrgMember,
   onInviteMember,
   onChangeRole,
   onRemoveMember,
@@ -88,6 +101,8 @@ export function TeamContent({
             teamName={selectedTeam.name}
             members={members}
             pendingInvitations={pendingInvitations}
+            organizationMembers={organizationMembers}
+            existingTeamMemberIds={existingTeamMemberIds}
             teams={teams}
             isLoading={isLoading}
             currentUserRole={currentUserRole}
@@ -95,6 +110,7 @@ export function TeamContent({
             canChangeRoles={canChangeRoles}
             isUpgradingRole={isUpgradingRole}
             isRequestingRole={isRequestingRole}
+            onAddOrgMember={onAddOrgMember}
             onInviteMember={handleInviteMember}
             onChangeRole={onChangeRole}
             onRemoveMember={onRemoveMember}

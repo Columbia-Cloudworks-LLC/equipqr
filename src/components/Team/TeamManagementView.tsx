@@ -94,7 +94,7 @@ export function TeamManagementView() {
 
       <TeamSelector
         teams={filteredTeams}
-        selectedTeamId={selectedTeamId}
+        selectedTeam={selectedTeamId}
         onSelectTeam={setSelectedTeamId}
         getTeamEquipmentCount={getTeamEquipmentCount}
         isLoading={isLoading}
@@ -141,7 +141,7 @@ export function TeamManagementView() {
               <TabsContent value="settings" className="space-y-4">
                 <TeamSettings
                   team={selectedTeam}
-                  onUpdateTeam={handleUpdateTeam}
+                  onUpdateTeam={(id, name) => handleUpdateTeam(id, { name })}
                   onDeleteTeam={handleDeleteTeam}
                   isUpdating={isUpdatingTeam}
                   isDeleting={isDeletingTeam}

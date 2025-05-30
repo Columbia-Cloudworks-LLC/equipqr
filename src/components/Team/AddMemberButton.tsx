@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddMemberForm } from './AddMemberForm';
 import { UserPlus } from "lucide-react";
+import { UserRole } from '@/types/supabase-enums';
 
 interface OrganizationMember {
   id: string;
   email: string;
   full_name?: string;
-  role: string;
+  role: UserRole;
 }
 
 interface AddMemberButtonProps {
