@@ -20,6 +20,18 @@ interface PendingInvitation {
   created_at: string;
 }
 
+// Helper function to generate a random token
+function generateInvitationToken(length: number = 32): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  return result;
+}
+
 export function useOrganizationMembers(organizationId: string) {
   const [members, setMembers] = useState<Member[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
@@ -93,14 +105,27 @@ export function useOrganizationMembers(organizationId: string) {
   const handleInviteMember = useCallback(async (email: string, role: UserRole) => {
     if (!organizationId) return;
 
+    // Filter out admin role for organization invitations as it's not supported
+    const validRole = role === 'admin' ? 'manager' : role;
+
     setIsInviting(true);
     try {
+      // Get current user for created_by field
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+
+      const token = generateInvitationToken();
+
       const { error } = await supabase
         .from('organization_invitations')
         .insert({
           org_id: organizationId,
           email: email.toLowerCase(),
-          role
+          role: validRole,
+          token: token,
+          created_by: user.id
         });
 
       if (error) throw error;
