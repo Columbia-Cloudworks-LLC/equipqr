@@ -108,8 +108,8 @@ export async function getAllUserWorkOrders(params: GetAllUserWorkOrdersParams = 
       created_at: wo.opened_at,
       updated_at: wo.updated_at,
       equipment_name: wo.equipment?.name,
-      submitted_by_name: wo.submitted_by_profile?.display_name || wo.submitted_by_profile?.email,
-      assigned_to_name: wo.assigned_to_profile?.display_name || wo.assigned_to_profile?.email
+      submitted_by_name: wo.submitted_by_profile?.[0]?.display_name || wo.submitted_by_profile?.[0]?.email,
+      assigned_to_name: wo.assigned_to_profile?.[0]?.display_name || wo.assigned_to_profile?.[0]?.email
     })) || [];
   } catch (error) {
     console.error('Error in getAllUserWorkOrders:', error);
@@ -221,7 +221,7 @@ export async function getMyWorkOrders(organizationId?: string): Promise<WorkOrde
       created_at: wo.opened_at,
       updated_at: wo.updated_at,
       equipment_name: wo.equipment?.name,
-      submitted_by_name: wo.submitted_by_profile?.display_name || wo.submitted_by_profile?.email
+      submitted_by_name: wo.submitted_by_profile?.[0]?.display_name || wo.submitted_by_profile?.[0]?.email
     })) || [];
   } catch (error) {
     console.error('Error in getMyWorkOrders:', error);

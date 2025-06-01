@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrder, CreateWorkOrderParams, UpdateWorkOrderParams, WorkOrderStatus } from '@/types/workOrders';
 import { logWorkOrderChange } from './workOrderAudit';
@@ -48,8 +47,8 @@ export async function getWorkOrders(equipmentId: string): Promise<WorkOrder[]> {
       created_at: wo.opened_at, // Use opened_at as created_at for consistency
       updated_at: wo.updated_at,
       equipment_name: wo.equipment?.name,
-      submitted_by_name: wo.submitted_by_profile?.display_name || wo.submitted_by_profile?.email,
-      assigned_to_name: wo.assigned_to_profile?.display_name || wo.assigned_to_profile?.email
+      submitted_by_name: wo.submitted_by_profile?.[0]?.display_name || wo.submitted_by_profile?.[0]?.email,
+      assigned_to_name: wo.assigned_to_profile?.[0]?.display_name || wo.assigned_to_profile?.[0]?.email
     })) || [];
   } catch (error) {
     console.error('Error in getWorkOrders:', error);
@@ -327,8 +326,8 @@ export async function getWorkOrder(workOrderId: string): Promise<WorkOrder | nul
       created_at: data.opened_at,
       updated_at: data.updated_at,
       equipment_name: data.equipment?.name,
-      submitted_by_name: data.submitted_by_profile?.display_name || data.submitted_by_profile?.email,
-      assigned_to_name: data.assigned_to_profile?.display_name || data.assigned_to_profile?.email
+      submitted_by_name: data.submitted_by_profile?.[0]?.display_name || data.submitted_by_profile?.[0]?.email,
+      assigned_to_name: data.assigned_to_profile?.[0]?.display_name || data.assigned_to_profile?.[0]?.email
     };
   } catch (error) {
     console.error('Error in getWorkOrder:', error);
