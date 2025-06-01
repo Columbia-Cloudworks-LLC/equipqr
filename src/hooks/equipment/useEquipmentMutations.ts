@@ -11,6 +11,7 @@ import { invalidateEquipmentCache } from '@/services/equipment/services/cacheSer
 import { supabase } from '@/integrations/supabase/client';
 import { CreateEquipmentParams } from '@/types/equipment';
 import { isValidUuid } from '@/utils/validationUtils';
+import { getAppUserIdFromAuthId, ensureAppUserExists } from '@/utils/userMappingUtils';
 
 interface UseEquipmentMutationsProps {
   redirectToLogin: (message: string) => void;
@@ -60,13 +61,28 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
         throw new Error('Authentication required: Please sign in to continue');
       }
       
-      const currentUserId = sessionData.session.user.id;
+      const authUserId = sessionData.session.user.id;
+      const userEmail = sessionData.session.user.email;
       
       // Pre-flight validation of form data
       const validationError = validateFormData(formData);
       if (validationError) {
         console.error('Form validation failed:', validationError, formData);
         throw new Error(validationError);
+      }
+      
+      // Get or create app_user record
+      console.log('Getting app_user ID for auth user:', authUserId);
+      let appUserId = await getAppUserIdFromAuthId(authUserId);
+      
+      if (!appUserId) {
+        // Try to create app_user record if it doesn't exist
+        console.log('App user record not found, creating one...');
+        appUserId = await ensureAppUserExists(authUserId, userEmail);
+        
+        if (!appUserId) {
+          throw new Error('Failed to create or retrieve user record. Please sign out and sign back in.');
+        }
       }
       
       // Additional validation with detailed logging
@@ -78,12 +94,13 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
         trimmed: formData.org_id?.trim(),
         isValid: isValidUuid(formData.org_id || '')
       });
+      console.log('Using app_user ID:', appUserId);
       
       // Convert to the expected CreateEquipmentParams type with proper status type handling
       const processedData = {
         ...formData,
-        // Add the required created_by field
-        created_by: currentUserId,
+        // Use the correct app_user.id instead of auth.users.id
+        created_by: appUserId,
         // Cast the string status to EquipmentStatus for type safety
         status: formData.status as EquipmentStatus,
         // Ensure org_id is properly set and validated - trim whitespace
@@ -142,6 +159,14 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
         return;
       }
       
+      // Handle app_user creation errors
+      if (errorMessage.includes('Failed to create or retrieve user record')) {
+        toast.error('User Account Error', {
+          description: errorMessage,
+        });
+        return;
+      }
+      
       // Handle organization-specific errors with enhanced messaging
       if (errorMessage.includes('Organization is required') ||
           errorMessage.includes('Organization cannot be empty') ||
@@ -149,6 +174,24 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
         toast.error('Organization Error', {
           description: errorMessage + ' Please refresh the page and ensure you have selected a valid organization.',
         });
+        return;
+      }
+      
+      // Handle foreign key constraint errors specifically
+      if (errorMessage.includes('violates foreign key constraint')) {
+        if (errorMessage.includes('created_by')) {
+          toast.error('User Account Error', {
+            description: 'There was an issue with your user account. Please sign out and sign back in.',
+          });
+        } else if (errorMessage.includes('org_id')) {
+          toast.error('Organization Error', {
+            description: 'Invalid organization selected. Please select a valid organization and try again.',
+          });
+        } else {
+          toast.error('Database Error', {
+            description: 'There was a database constraint error. Please check your data and try again.',
+          });
+        }
         return;
       }
       

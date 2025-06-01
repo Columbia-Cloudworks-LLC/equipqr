@@ -45,7 +45,9 @@ export async function insertEquipment(processedEquipment: any) {
     // Handle team_id - convert empty string to null and validate if present
     team_id: equipmentDataForDb.team_id && equipmentDataForDb.team_id.trim() !== '' 
       ? (isValidUuid(equipmentDataForDb.team_id.trim()) ? equipmentDataForDb.team_id.trim() : null)
-      : null
+      : null,
+    // Ensure created_by is properly validated
+    created_by: equipmentDataForDb.created_by.trim()
   };
   
   // Final validation of cleaned data
@@ -55,6 +57,10 @@ export async function insertEquipment(processedEquipment: any) {
   
   if (!cleanedData.name) {
     throw new Error('Equipment name is required after cleaning');
+  }
+  
+  if (!cleanedData.created_by || !isValidUuid(cleanedData.created_by)) {
+    throw new Error('Invalid creator ID after cleaning. Please sign out and sign back in.');
   }
   
   console.log('Cleaned data for database insert:', cleanedData);
@@ -73,16 +79,27 @@ export async function insertEquipment(processedEquipment: any) {
       throw new Error('Permission denied: You do not have permission to create equipment in this organization');
     }
     
-    // Handle organization not found errors
-    if (error.message?.includes('violates foreign key constraint') && 
-        error.message?.includes('org_id')) {
-      throw new Error('Invalid organization selected. Please select a valid organization and try again.');
+    // Handle foreign key constraint errors with specific guidance
+    if (error.message?.includes('violates foreign key constraint')) {
+      if (error.message?.includes('created_by')) {
+        throw new Error('User account error: Please sign out and sign back in to refresh your account information.');
+      } else if (error.message?.includes('org_id')) {
+        throw new Error('Invalid organization selected. Please select a valid organization and try again.');
+      } else if (error.message?.includes('team_id')) {
+        throw new Error('Invalid team selected. Please select a valid team or leave it unassigned.');
+      } else {
+        throw new Error('Database constraint error. Please check your data and try again.');
+      }
     }
     
-    // Handle user ID constraint errors
-    if (error.message?.includes('violates foreign key constraint') && 
-        error.message?.includes('created_by')) {
-      throw new Error('User authentication error. Please sign out and sign back in.');
+    // Handle specific constraint violations
+    if (error.message?.includes('duplicate key value')) {
+      throw new Error('Equipment with this information already exists. Please use different values.');
+    }
+    
+    // Handle other database errors
+    if (error.code === 'PGRST116') {
+      throw new Error('Database connection error. Please try again in a moment.');
     }
     
     throw new Error(`Failed to create equipment: ${error.message}`);
