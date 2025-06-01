@@ -54,6 +54,7 @@ export function EquipmentForm({
     showDraftAlert,
     lastSaved,
     isAutoSaving,
+    orgContextReady,
     handleChange,
     handleSelectChange,
     handleDateChange,
@@ -63,6 +64,11 @@ export function EquipmentForm({
     handleFormSubmit,
     validate
   } = useEquipmentForm({ initialEquipment: equipment });
+  
+  // Show loading while organization context is loading (for new equipment)
+  if (!equipment && !orgContextReady) {
+    return <LoadingState />;
+  }
   
   // If we're editing, don't allow changing the organization
   const isEditing = !!equipment;
@@ -76,12 +82,20 @@ export function EquipmentForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
+    // Enhanced validation
     const validationError = validate();
     if (validationError) {
       toast.error(validationError);
       return;
     }
+    
+    // Final safety check for org_id
+    if (!formData.org_id?.trim()) {
+      toast.error('Organization is required. Please select an organization and try again.');
+      return;
+    }
+    
+    console.log('Form submission with validated data:', formData);
     
     // Clear persisted data on successful submission
     handleFormSubmit();

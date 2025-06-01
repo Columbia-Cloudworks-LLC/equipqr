@@ -10,7 +10,7 @@ interface UseEquipmentFormProps {
 }
 
 export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {}) {
-  const { organizations, selectedOrganization } = useOrganization();
+  const { organizations, selectedOrganization, isReady: orgContextReady } = useOrganization();
   const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(
     initialEquipment?.org_id || selectedOrganization?.id
   );
@@ -79,19 +79,21 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     setDraftData(null);
   };
 
-  // Update org_id in form data when selectedOrgId changes
+  // Update org_id in form data when selectedOrgId changes - but only if org context is ready
   useEffect(() => {
-    if (selectedOrgId) {
+    if (orgContextReady && selectedOrgId) {
+      console.log('Setting form org_id to:', selectedOrgId);
       setFormData(prev => ({ ...prev, org_id: selectedOrgId }));
     }
-  }, [selectedOrgId]);
+  }, [selectedOrgId, orgContextReady]);
 
-  // Update selectedOrgId if selectedOrganization changes and we don't have an initial org
+  // Update selectedOrgId when organization context loads
   useEffect(() => {
-    if (!initialEquipment?.org_id && selectedOrganization?.id && !selectedOrgId) {
+    if (orgContextReady && !isEditing && !selectedOrgId && selectedOrganization?.id) {
+      console.log('Setting selectedOrgId from context:', selectedOrganization.id);
       setSelectedOrgId(selectedOrganization.id);
     }
-  }, [selectedOrganization, initialEquipment, selectedOrgId]);
+  }, [orgContextReady, selectedOrganization, isEditing, selectedOrgId]);
 
   // Get teams data, filtered by selected organization
   const { 
@@ -147,14 +149,20 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     setFormData((prev) => ({ ...prev, attributes }));
   };
   
-  // Validation
+  // Enhanced validation
   const validate = (): string | null => {
-    if (!formData.name) {
+    if (!formData.name?.trim()) {
       return 'Please enter equipment name';
     }
     
-    if (!formData.org_id) {
+    if (!formData.org_id?.trim()) {
       return 'Please select an organization';
+    }
+    
+    // Additional validation for UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(formData.org_id)) {
+      return 'Invalid organization selected. Please refresh the page and try again.';
     }
     
     return null;
@@ -171,6 +179,7 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     showDraftAlert,
     lastSaved,
     isAutoSaving,
+    orgContextReady,
     handleChange,
     handleSelectChange,
     handleDateChange,

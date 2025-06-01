@@ -9,6 +9,7 @@ interface OrganizationContextType {
   selectedOrganization: UserOrganization | null;
   isLoading: boolean;
   error: string | null;
+  isReady: boolean; // New flag to indicate when context is fully loaded
   selectOrganization: (orgId: string) => void;
   refreshOrganizations: () => Promise<void>;
 }
@@ -18,6 +19,7 @@ const OrganizationContext = createContext<OrganizationContextType>({
   selectedOrganization: null,
   isLoading: false,
   error: null,
+  isReady: false,
   selectOrganization: () => {},
   refreshOrganizations: async () => {},
 });
@@ -37,16 +39,19 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const [isReady, setIsReady] = useState(false);
 
   const fetchOrganizations = async (): Promise<UserOrganization[]> => {
     try {
       setIsLoading(true);
       setError(null);
+      setIsReady(false);
       
       console.log("OrganizationContext: Fetching organizations...");
       
       if (!user) {
         console.log('OrganizationContext: No user, skipping org fetch');
+        setIsReady(true);
         return [];
       }
       
@@ -63,6 +68,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
         if (storedOrg) {
           console.log('OrganizationContext: Using stored organization:', storedOrg);
           setSelectedOrganization(storedOrg);
+          setIsReady(true);
           return orgs;
         } else {
           // Remove invalid stored selection
@@ -76,6 +82,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
         console.log('OrganizationContext: Using primary organization:', primaryOrg);
         setSelectedOrganization(primaryOrg);
         localStorage.setItem(SELECTED_ORG_KEY, primaryOrg.id);
+        setIsReady(true);
         return orgs;
       }
       
@@ -99,11 +106,13 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
         }
       }
       
+      setIsReady(true);
       return orgs;
     } catch (error) {
       console.error('OrganizationContext: Error fetching organizations:', error);
       setError(error instanceof Error ? error.message : 'Failed to load organizations');
       toast.error("Failed to load organizations");
+      setIsReady(true);
       return [];
     } finally {
       setIsLoading(false);
@@ -118,6 +127,8 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
       // Reset state when user is not available
       setOrganizations([]);
       setSelectedOrganization(null);
+      setIsReady(true);
+      setIsLoading(false);
     }
   }, [refreshCounter, user]);
 
@@ -148,6 +159,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
         selectedOrganization,
         isLoading,
         error,
+        isReady,
         selectOrganization,
         refreshOrganizations,
       }}

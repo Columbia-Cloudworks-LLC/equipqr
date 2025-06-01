@@ -36,6 +36,19 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
       
       const currentUserId = sessionData.session.user.id;
       
+      // CRITICAL: Validate org_id before proceeding
+      if (!formData.org_id || formData.org_id.trim() === '') {
+        console.error('Missing or empty org_id in form data:', formData);
+        throw new Error('Organization is required. Please select an organization and try again.');
+      }
+      
+      // Additional validation for UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(formData.org_id)) {
+        console.error('Invalid org_id format:', formData.org_id);
+        throw new Error('Invalid organization selected. Please refresh the page and try again.');
+      }
+      
       // Convert to the expected CreateEquipmentParams type with proper status type handling
       const processedData = {
         ...formData,
@@ -43,16 +56,16 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
         created_by: currentUserId,
         // Cast the string status to EquipmentStatus for type safety
         status: formData.status as EquipmentStatus,
-        // Ensure org_id is set (it should be from the form, but this is a safety check)
-        org_id: formData.org_id
+        // Ensure org_id is properly set and validated
+        org_id: formData.org_id.trim()
       };
       
       // Validate required fields
-      if (!processedData.org_id) {
-        throw new Error('Organization ID is required');
+      if (!processedData.name || processedData.name.trim() === '') {
+        throw new Error('Equipment name is required');
       }
       
-      console.log('Creating equipment with processed data:', processedData);
+      console.log('Creating equipment with validated data:', processedData);
       
       // Create a correctly typed parameter for createEquipment
       const equipmentParams: CreateEquipmentParams = processedData as unknown as CreateEquipmentParams;
@@ -101,6 +114,15 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
         });
         
         redirectToLogin('Please sign in to continue adding equipment');
+        return;
+      }
+      
+      // Handle organization-specific errors
+      if (errorMessage.includes('Organization is required') ||
+          errorMessage.includes('Invalid organization selected')) {
+        toast.error('Organization Error', {
+          description: errorMessage + ' Please refresh the page and ensure you have selected a valid organization.',
+        });
         return;
       }
       
