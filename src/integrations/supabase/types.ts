@@ -1844,6 +1844,10 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: Json
       }
+      calculate_org_user_billing_corrected: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       calculate_storage_overage: {
         Args: { p_org_id: string; p_period_start: string; p_period_end: string }
         Returns: {

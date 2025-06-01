@@ -39,42 +39,105 @@ export function useOrganizationMembers(organizationId: string) {
   const [isInviting, setIsInviting] = useState(false);
 
   const fetchMembers = useCallback(async () => {
-    if (!organizationId) return;
+    if (!organizationId) {
+      console.warn('No organization ID provided');
+      setMembers([]);
+      return;
+    }
 
     try {
+      console.log('Fetching organization members for org:', organizationId);
+      
+      // Use the database function to get organization members with proper relationships
       const { data: membersData, error: membersError } = await supabase
-        .from('user_roles')
-        .select(`
-          id,
-          role,
-          user_id,
-          profiles:user_id (
-            id,
-            email,
-            full_name
-          )
-        `)
-        .eq('org_id', organizationId);
+        .rpc('get_organization_members', { org_id: organizationId });
 
-      if (membersError) throw membersError;
+      if (membersError) {
+        console.error('Error fetching members via RPC:', membersError);
+        throw membersError;
+      }
+
+      console.log('Fetched members via RPC:', membersData);
 
       const formattedMembers = membersData?.map((member: any) => ({
         id: member.user_id,
-        email: member.profiles?.email || '',
-        full_name: member.profiles?.full_name,
+        email: member.email || '',
+        full_name: member.name,
         role: member.role,
-        created_at: member.created_at
+        created_at: member.joined_at || new Date().toISOString()
       })) || [];
 
       setMembers(formattedMembers);
     } catch (error) {
       console.error('Error fetching members:', error);
-      toast.error('Failed to load organization members');
+      
+      // Fallback to direct query if RPC fails
+      try {
+        console.log('Attempting fallback query for organization members');
+        
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('user_roles')
+          .select(`
+            id,
+            role,
+            user_id,
+            assigned_at
+          `)
+          .eq('org_id', organizationId);
+
+        if (fallbackError) throw fallbackError;
+
+        // Get user profiles separately to avoid foreign key issues
+        const userIds = fallbackData?.map(role => role.user_id) || [];
+        
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('user_profiles')
+            .select('id, display_name')
+            .in('id', userIds);
+
+          if (profilesError) {
+            console.error('Error fetching user profiles:', profilesError);
+          }
+
+          // Get auth users for email information
+          const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
+          
+          if (usersError) {
+            console.error('Error fetching auth users:', usersError);
+          }
+
+          const formattedFallbackMembers = fallbackData?.map((member: any) => {
+            const profile = profilesData?.find(p => p.id === member.user_id);
+            const authUser = users?.find(u => u.id === member.user_id);
+            
+            return {
+              id: member.user_id,
+              email: authUser?.email || 'Unknown email',
+              full_name: profile?.display_name,
+              role: member.role,
+              created_at: member.assigned_at || new Date().toISOString()
+            };
+          }) || [];
+
+          setMembers(formattedFallbackMembers);
+        } else {
+          setMembers([]);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError);
+        toast.error('Failed to load organization members');
+        setMembers([]);
+      }
     }
   }, [organizationId]);
 
   const fetchPendingInvitations = useCallback(async () => {
-    if (!organizationId) return;
+    if (!organizationId) {
+      console.warn('No organization ID provided for invitations');
+      setPendingInvitations([]);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -89,13 +152,17 @@ export function useOrganizationMembers(organizationId: string) {
     } catch (error) {
       console.error('Error fetching pending invitations:', error);
       toast.error('Failed to load pending invitations');
+      setPendingInvitations([]);
     }
   }, [organizationId]);
 
   const refetchMembers = useCallback(async () => {
     setIsLoading(true);
-    await Promise.all([fetchMembers(), fetchPendingInvitations()]);
-    setIsLoading(false);
+    try {
+      await Promise.all([fetchMembers(), fetchPendingInvitations()]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [fetchMembers, fetchPendingInvitations]);
 
   useEffect(() => {
@@ -103,7 +170,10 @@ export function useOrganizationMembers(organizationId: string) {
   }, [refetchMembers]);
 
   const handleInviteMember = useCallback(async (email: string, role: UserRole) => {
-    if (!organizationId) return;
+    if (!organizationId) {
+      console.error('No organization ID available for invitation');
+      return;
+    }
 
     // Filter out admin role for organization invitations as it's not supported
     const validRole = role === 'admin' ? 'manager' : role;
@@ -145,7 +215,10 @@ export function useOrganizationMembers(organizationId: string) {
   }, [organizationId, fetchPendingInvitations]);
 
   const handleRemoveMember = useCallback(async (memberId: string) => {
-    if (!organizationId) return;
+    if (!organizationId) {
+      console.error('No organization ID available for member removal');
+      return;
+    }
 
     try {
       const result = await removeOrganizationMember(organizationId, memberId);

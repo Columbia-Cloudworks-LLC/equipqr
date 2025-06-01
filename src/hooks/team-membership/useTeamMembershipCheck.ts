@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { getTeamAccessDetails } from '@/services/team/validation';
+import { getTeamAccessDetails } from '@/services/team/validation/teamAccessValidation';
 
 /**
  * Hook to handle team membership checks
@@ -23,36 +23,33 @@ export function useTeamMembershipCheck(
   setRetryTimeout: (value: number | null) => void
 ) {
   const checkDetailedTeamAccess = useCallback(async (teamId: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      console.warn('No current user ID available for team access check');
+      return;
+    }
     
     try {
       setIsCheckingAccess(true);
-      // Clear previous state
       setError(null);
       
-      console.log(`Checking detailed team access for team ${teamId}, checking user ${currentUserId}`);
+      console.log(`Checking detailed team access for team ${teamId}, user ${currentUserId}`);
       
-      // Use the enhanced team access details function with improved logic for org roles
+      // Use the local validation service instead of edge function
       const accessDetails = await getTeamAccessDetails(teamId, currentUserId);
       
       console.log('Team access details result:', accessDetails);
       
-      // Use the hasAccess flag directly - it now considers both direct membership and org role access
+      // Update all state based on access details
       const hasAccess = accessDetails.hasAccess || false;
       
-      // Track if user has org-level access and their org role
       setHasOrgAccess(accessDetails.hasOrgAccess || false);
       setOrganizationRole(accessDetails.orgRole || null);
-      
-      // Set member status based on direct membership or org access
       setIsMember(hasAccess);
       
-      // Only set access role if it's not null to prevent overriding with null
       if (accessDetails.role !== null) {
         setAccessRole(accessDetails.role);
       }
       
-      // Set additional context for debugging
       setAccessReason(accessDetails.accessReason);
       setHasCrossOrgAccess(accessDetails.hasCrossOrgAccess || false);
       setTeamOrgName(accessDetails.orgName);
@@ -63,7 +60,6 @@ export function useTeamMembershipCheck(
       
       // Only show errors if there's no access
       if (!hasAccess) {
-        // Enhanced error message for cross-organization scenario
         if (accessDetails.teamOrgId && accessDetails.userOrgId && accessDetails.teamOrgId !== accessDetails.userOrgId) {
           setError(`You don't have sufficient permissions to access this team in organization "${accessDetails.orgName || 'Unknown'}". This team belongs to a different organization than your primary one.`);
         } else {
@@ -89,7 +85,11 @@ export function useTeamMembershipCheck(
           setRetryTimeout(timeout as unknown as number);
         } else {
           // After 3 failures, show error
-          setError('Failed to verify team membership. Please try again.');
+          if (error.message?.includes('not found') || error.message?.includes('deleted')) {
+            setError('This team has been deleted or no longer exists. Please select another team.');
+          } else {
+            setError('Failed to verify team membership. Please try again.');
+          }
           // On error, assume no membership to show the repair option
           setIsMember(false);
         }
