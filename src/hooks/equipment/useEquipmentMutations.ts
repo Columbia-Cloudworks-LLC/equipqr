@@ -21,13 +21,38 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
 
   // Create equipment mutation
   const createMutation = useMutation({
-    mutationFn: (formData: Partial<Equipment>) => {
+    mutationFn: async (formData: Partial<Equipment>) => {
+      // Get current authenticated user
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Error getting session:', sessionError);
+        throw new Error('Authentication required: Please sign in to continue');
+      }
+      
+      if (!sessionData?.session?.user) {
+        throw new Error('Authentication required: Please sign in to continue');
+      }
+      
+      const currentUserId = sessionData.session.user.id;
+      
       // Convert to the expected CreateEquipmentParams type with proper status type handling
       const processedData = {
         ...formData,
+        // Add the required created_by field
+        created_by: currentUserId,
         // Cast the string status to EquipmentStatus for type safety
-        status: formData.status as EquipmentStatus
+        status: formData.status as EquipmentStatus,
+        // Ensure org_id is set (it should be from the form, but this is a safety check)
+        org_id: formData.org_id
       };
+      
+      // Validate required fields
+      if (!processedData.org_id) {
+        throw new Error('Organization ID is required');
+      }
+      
+      console.log('Creating equipment with processed data:', processedData);
       
       // Create a correctly typed parameter for createEquipment
       const equipmentParams: CreateEquipmentParams = processedData as unknown as CreateEquipmentParams;
