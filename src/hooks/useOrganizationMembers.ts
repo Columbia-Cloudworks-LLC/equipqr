@@ -88,7 +88,7 @@ export function useOrganizationMembers(organizationId: string) {
         if (fallbackError) throw fallbackError;
 
         // Get user profiles separately to avoid foreign key issues
-        const userIds = fallbackData?.map(role => role.user_id) || [];
+        const userIds = fallbackData?.map((role: any) => role.user_id) || [];
         
         if (userIds.length > 0) {
           const { data: profilesData, error: profilesError } = await supabase
@@ -101,15 +101,17 @@ export function useOrganizationMembers(organizationId: string) {
           }
 
           // Get auth users for email information
-          const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
+          const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
           
           if (usersError) {
             console.error('Error fetching auth users:', usersError);
           }
 
+          const users = authData?.users || [];
+
           const formattedFallbackMembers = fallbackData?.map((member: any) => {
-            const profile = profilesData?.find(p => p.id === member.user_id);
-            const authUser = users?.find(u => u.id === member.user_id);
+            const profile = profilesData?.find((p: any) => p.id === member.user_id);
+            const authUser = users?.find((u: any) => u.id === member.user_id);
             
             return {
               id: member.user_id,
