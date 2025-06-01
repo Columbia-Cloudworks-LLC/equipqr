@@ -2,8 +2,16 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
+ * This file contains utilities for user mapping that were used when we incorrectly
+ * tried to map auth.users.id to app_user.id for equipment creation.
+ * 
+ * These functions are kept for backwards compatibility but are no longer used
+ * in equipment creation since we now use auth.users.id directly.
+ */
+
+/**
  * Maps auth.users.id to app_user.id
- * This is needed because equipment.created_by references app_user.id, not auth.users.id
+ * @deprecated - No longer used for equipment creation
  */
 export async function getAppUserIdFromAuthId(authUserId: string): Promise<string | null> {
   try {
@@ -35,7 +43,7 @@ export async function getAppUserIdFromAuthId(authUserId: string): Promise<string
 
 /**
  * Ensures an app_user record exists for the given auth user
- * Creates one if it doesn't exist
+ * @deprecated - No longer used for equipment creation
  */
 export async function ensureAppUserExists(authUserId: string, email?: string, displayName?: string): Promise<string | null> {
   try {

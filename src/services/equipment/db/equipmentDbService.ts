@@ -25,7 +25,7 @@ export async function insertEquipment(processedEquipment: any) {
   }
   
   if (!processedEquipment.created_by || !isValidUuid(processedEquipment.created_by)) {
-    throw new Error('Valid creator ID is required');
+    throw new Error('Valid creator ID is required (must be auth.users.id)');
   }
   
   // Ensure no attributes field is included in the database insert
@@ -46,7 +46,7 @@ export async function insertEquipment(processedEquipment: any) {
     team_id: equipmentDataForDb.team_id && equipmentDataForDb.team_id.trim() !== '' 
       ? (isValidUuid(equipmentDataForDb.team_id.trim()) ? equipmentDataForDb.team_id.trim() : null)
       : null,
-    // Ensure created_by is properly validated
+    // Ensure created_by is properly validated - this should be auth.users.id
     created_by: equipmentDataForDb.created_by.trim()
   };
   
@@ -60,10 +60,11 @@ export async function insertEquipment(processedEquipment: any) {
   }
   
   if (!cleanedData.created_by || !isValidUuid(cleanedData.created_by)) {
-    throw new Error('Invalid creator ID after cleaning. Please sign out and sign back in.');
+    throw new Error('Invalid creator ID after cleaning. This should be the authenticated user ID.');
   }
   
   console.log('Cleaned data for database insert:', cleanedData);
+  console.log('About to insert equipment with created_by (auth.users.id):', cleanedData.created_by);
   
   const { data, error } = await supabase
     .from('equipment')
@@ -73,6 +74,12 @@ export async function insertEquipment(processedEquipment: any) {
     
   if (error) {
     console.error('Error creating equipment:', error);
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
     
     // More user-friendly error message for RLS failures
     if (error.message?.includes('new row violates row-level security policy')) {
@@ -82,7 +89,11 @@ export async function insertEquipment(processedEquipment: any) {
     // Handle foreign key constraint errors with specific guidance
     if (error.message?.includes('violates foreign key constraint')) {
       if (error.message?.includes('created_by')) {
-        throw new Error('User account error: Please sign out and sign back in to refresh your account information.');
+        console.error('Foreign key constraint failed for created_by field:', {
+          provided_value: cleanedData.created_by,
+          constraint_details: error.details
+        });
+        throw new Error('User account error: The user ID provided does not exist in the system. Please sign out and sign back in.');
       } else if (error.message?.includes('org_id')) {
         throw new Error('Invalid organization selected. Please select a valid organization and try again.');
       } else if (error.message?.includes('team_id')) {
@@ -105,5 +116,6 @@ export async function insertEquipment(processedEquipment: any) {
     throw new Error(`Failed to create equipment: ${error.message}`);
   }
   
+  console.log('Successfully created equipment:', data);
   return data as Equipment;
 }

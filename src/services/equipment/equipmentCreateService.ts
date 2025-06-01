@@ -5,15 +5,15 @@ import { EquipmentStatus } from '@/types/supabase-enums';
 import { saveEquipmentAttributes } from './attributesService';
 import { insertEquipment } from './db/equipmentDbService';
 
-// Function to create equipment - make sure it accepts the correct type
+// Function to create equipment - use auth.users.id directly for created_by
 export async function createEquipment(params: CreateEquipmentParams) {
   try {
-    // Ensure created_by is provided and is an app_user.id
+    console.log('Creating equipment with params:', params);
+
+    // Ensure created_by is provided - this should be auth.users.id
     if (!params.created_by) {
       throw new Error('created_by field is required');
     }
-
-    console.log('Creating equipment with app_user ID:', params.created_by);
 
     // Extract attributes before processing equipment data
     const attributes = params.attributes || [];
@@ -26,7 +26,7 @@ export async function createEquipment(params: CreateEquipmentParams) {
       ...equipmentDataWithoutAttributes,
       // Explicitly map to one of the allowed string literals that Supabase expects
       status: mapToAllowedStatus(params.status as EquipmentStatus),
-      // Ensure created_by is the app_user.id, not auth.users.id
+      // Use the auth.users.id directly - no mapping needed
       created_by: params.created_by
     };
 
