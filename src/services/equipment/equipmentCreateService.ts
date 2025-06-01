@@ -1,18 +1,17 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { CreateEquipmentParams } from '@/types/equipment';
 import { EquipmentStatus } from '@/types/supabase-enums';
 import { saveEquipmentAttributes } from './attributesService';
 import { insertEquipment } from './db/equipmentDbService';
 
-// Function to create equipment - use auth.users.id directly for created_by
+// Function to create equipment - uses auth.users.id directly for created_by
 export async function createEquipment(params: CreateEquipmentParams) {
   try {
     console.log('Creating equipment with params:', params);
 
     // Ensure created_by is provided - this should be auth.users.id
     if (!params.created_by) {
-      throw new Error('created_by field is required');
+      throw new Error('created_by field is required and must be auth.users.id');
     }
 
     // Extract attributes before processing equipment data
@@ -30,7 +29,7 @@ export async function createEquipment(params: CreateEquipmentParams) {
       created_by: params.created_by
     };
 
-    console.log('Processed params for equipment creation:', processedParams);
+    console.log('Processed params for equipment creation with auth.users.id:', processedParams);
 
     // Insert the equipment record using the database service
     const createdEquipment = await insertEquipment(processedParams);

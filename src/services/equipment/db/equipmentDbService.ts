@@ -93,7 +93,7 @@ export async function insertEquipment(processedEquipment: any) {
           provided_value: cleanedData.created_by,
           constraint_details: error.details
         });
-        throw new Error('User account error: The user ID provided does not exist in the system. Please sign out and sign back in.');
+        throw new Error('Authentication error: Your user session may be invalid. Please sign out and sign back in.');
       } else if (error.message?.includes('org_id')) {
         throw new Error('Invalid organization selected. Please select a valid organization and try again.');
       } else if (error.message?.includes('team_id')) {
@@ -116,6 +116,6 @@ export async function insertEquipment(processedEquipment: any) {
     throw new Error(`Failed to create equipment: ${error.message}`);
   }
   
-  console.log('Successfully created equipment:', data);
+  console.log('Successfully created equipment with auth.users.id:', data);
   return data as Equipment;
 }

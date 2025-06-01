@@ -256,7 +256,7 @@ export type Database = {
       equipment: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
           deleted_at: string | null
           id: string
           install_date: string | null
@@ -281,7 +281,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
           deleted_at?: string | null
           id?: string
           install_date?: string | null
@@ -306,7 +306,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           deleted_at?: string | null
           id?: string
           install_date?: string | null
@@ -330,13 +330,6 @@ export type Database = {
           warranty_expiration?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "equipment_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "app_user"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "equipment_org_id_fkey"
             columns: ["org_id"]
@@ -426,7 +419,7 @@ export type Database = {
       equipment_work_notes: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
           deleted_at: string | null
           edited_at: string | null
           edited_by: string | null
@@ -441,7 +434,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
           deleted_at?: string | null
           edited_at?: string | null
           edited_by?: string | null
@@ -456,7 +449,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           deleted_at?: string | null
           edited_at?: string | null
           edited_by?: string | null
@@ -618,7 +611,7 @@ export type Database = {
           object_key: string
           size_bytes: number | null
           status: Database["public"]["Enums"]["image_status"]
-          uploaded_by: string
+          uploaded_by: string | null
           width: number | null
           work_note_id: string | null
         }
@@ -634,7 +627,7 @@ export type Database = {
           object_key: string
           size_bytes?: number | null
           status?: Database["public"]["Enums"]["image_status"]
-          uploaded_by: string
+          uploaded_by?: string | null
           width?: number | null
           work_note_id?: string | null
         }
@@ -650,7 +643,7 @@ export type Database = {
           object_key?: string
           size_bytes?: number | null
           status?: Database["public"]["Enums"]["image_status"]
-          uploaded_by?: string
+          uploaded_by?: string | null
           width?: number | null
           work_note_id?: string | null
         }
@@ -660,13 +653,6 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "image_upload_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "app_user"
             referencedColumns: ["id"]
           },
           {
@@ -1284,13 +1270,6 @@ export type Database = {
             referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "scan_history_scanned_by_user_id_fkey"
-            columns: ["scanned_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "app_user"
-            referencedColumns: ["id"]
-          },
         ]
       }
       subscription_features: {
@@ -1323,7 +1302,7 @@ export type Database = {
       team: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
           deleted_at: string | null
           id: string
           name: string
@@ -1331,7 +1310,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
           deleted_at?: string | null
           id?: string
           name: string
@@ -1339,20 +1318,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           deleted_at?: string | null
           id?: string
           name?: string
           org_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "team_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "app_user"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "team_org_id_fkey"
             columns: ["org_id"]
@@ -1596,7 +1568,7 @@ export type Database = {
       work_note: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
           deleted_at: string | null
           equipment_id: string | null
           hours_worked: number | null
@@ -1607,7 +1579,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
           deleted_at?: string | null
           equipment_id?: string | null
           hours_worked?: number | null
@@ -1618,7 +1590,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           deleted_at?: string | null
           equipment_id?: string | null
           hours_worked?: number | null
@@ -1628,13 +1600,6 @@ export type Database = {
           work_order_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "work_note_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "app_user"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "work_note_equipment_id_fkey"
             columns: ["equipment_id"]
@@ -1658,7 +1623,7 @@ export type Database = {
           assigned_to: string | null
           closed_at: string | null
           completed_at: string | null
-          created_by: string
+          created_by: string | null
           customer_id: string | null
           deleted_at: string | null
           description: string | null
@@ -1677,7 +1642,7 @@ export type Database = {
           assigned_to?: string | null
           closed_at?: string | null
           completed_at?: string | null
-          created_by: string
+          created_by?: string | null
           customer_id?: string | null
           deleted_at?: string | null
           description?: string | null
@@ -1696,7 +1661,7 @@ export type Database = {
           assigned_to?: string | null
           closed_at?: string | null
           completed_at?: string | null
-          created_by?: string
+          created_by?: string | null
           customer_id?: string | null
           deleted_at?: string | null
           description?: string | null
@@ -1710,20 +1675,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "work_order_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "app_user"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_order_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "app_user"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "work_order_customer_id_fkey"
             columns: ["customer_id"]
@@ -2009,7 +1960,7 @@ export type Database = {
         Args: { equipment_id: string }
         Returns: {
           created_at: string
-          created_by: string
+          created_by: string | null
           deleted_at: string | null
           edited_at: string | null
           edited_by: string | null
