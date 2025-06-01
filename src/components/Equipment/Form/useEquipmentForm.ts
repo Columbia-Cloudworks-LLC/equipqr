@@ -87,11 +87,14 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     }
   }, [selectedOrgId, orgContextReady]);
 
-  // Update selectedOrgId when organization context loads
+  // Update selectedOrgId when organization context loads - wait for context to be ready
   useEffect(() => {
-    if (orgContextReady && !isEditing && !selectedOrgId && selectedOrganization?.id) {
-      console.log('Setting selectedOrgId from context:', selectedOrganization.id);
-      setSelectedOrgId(selectedOrganization.id);
+    if (orgContextReady && !isEditing && selectedOrganization?.id) {
+      // Only set if we don't already have a selectedOrgId or if it doesn't match
+      if (!selectedOrgId || selectedOrgId !== selectedOrganization.id) {
+        console.log('Setting selectedOrgId from context:', selectedOrganization.id);
+        setSelectedOrgId(selectedOrganization.id);
+      }
     }
   }, [orgContextReady, selectedOrganization, isEditing, selectedOrgId]);
 
@@ -149,20 +152,26 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     setFormData((prev) => ({ ...prev, attributes }));
   };
   
-  // Enhanced validation
+  // Enhanced validation with more robust checks
   const validate = (): string | null => {
     if (!formData.name?.trim()) {
       return 'Please enter equipment name';
     }
     
+    // Critical organization validation
     if (!formData.org_id?.trim()) {
-      return 'Please select an organization';
+      return 'Organization is required. Please refresh the page if you cannot see your organization.';
     }
     
-    // Additional validation for UUID format
+    // Validate UUID format for org_id
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(formData.org_id)) {
       return 'Invalid organization selected. Please refresh the page and try again.';
+    }
+    
+    // Ensure org_id is not an empty string or just whitespace
+    if (formData.org_id.trim() === '') {
+      return 'Organization cannot be empty. Please select a valid organization.';
     }
     
     return null;

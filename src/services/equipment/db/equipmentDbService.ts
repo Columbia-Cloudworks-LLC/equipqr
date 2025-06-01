@@ -31,7 +31,7 @@ export async function insertEquipment(processedEquipment: any) {
   // Ensure no attributes field is included in the database insert
   const { attributes, ...equipmentDataForDb } = processedEquipment;
   
-  // Additional data cleaning
+  // Additional data cleaning with more robust checks
   const cleanedData = {
     ...equipmentDataForDb,
     org_id: equipmentDataForDb.org_id.trim(),
@@ -42,11 +42,20 @@ export async function insertEquipment(processedEquipment: any) {
     manufacturer: equipmentDataForDb.manufacturer?.trim() || null,
     location: equipmentDataForDb.location?.trim() || null,
     notes: equipmentDataForDb.notes?.trim() || null,
-    // Handle team_id - convert empty string to null
+    // Handle team_id - convert empty string to null and validate if present
     team_id: equipmentDataForDb.team_id && equipmentDataForDb.team_id.trim() !== '' 
-      ? equipmentDataForDb.team_id.trim() 
+      ? (isValidUuid(equipmentDataForDb.team_id.trim()) ? equipmentDataForDb.team_id.trim() : null)
       : null
   };
+  
+  // Final validation of cleaned data
+  if (!cleanedData.org_id || !isValidUuid(cleanedData.org_id)) {
+    throw new Error('Invalid organization ID after cleaning. Please refresh the page and try again.');
+  }
+  
+  if (!cleanedData.name) {
+    throw new Error('Equipment name is required after cleaning');
+  }
   
   console.log('Cleaned data for database insert:', cleanedData);
   
@@ -68,6 +77,12 @@ export async function insertEquipment(processedEquipment: any) {
     if (error.message?.includes('violates foreign key constraint') && 
         error.message?.includes('org_id')) {
       throw new Error('Invalid organization selected. Please select a valid organization and try again.');
+    }
+    
+    // Handle user ID constraint errors
+    if (error.message?.includes('violates foreign key constraint') && 
+        error.message?.includes('created_by')) {
+      throw new Error('User authentication error. Please sign out and sign back in.');
     }
     
     throw new Error(`Failed to create equipment: ${error.message}`);

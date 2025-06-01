@@ -50,7 +50,9 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
       console.log("OrganizationContext: Fetching organizations...");
       
       if (!user) {
-        console.log('OrganizationContext: No user, skipping org fetch');
+        console.log('OrganizationContext: No user, setting ready state');
+        setOrganizations([]);
+        setSelectedOrganization(null);
         setIsReady(true);
         return [];
       }
@@ -61,49 +63,38 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
       console.log('OrganizationContext: Fetched organizations:', orgs);
       setOrganizations(orgs);
       
+      // Ensure we always have a selected organization if any exist
+      let orgToSelect: UserOrganization | null = null;
+      
       // Check localStorage for previously selected organization
       const storedOrgId = localStorage.getItem(SELECTED_ORG_KEY);
       if (storedOrgId) {
-        const storedOrg = orgs.find(org => org.id === storedOrgId);
-        if (storedOrg) {
-          console.log('OrganizationContext: Using stored organization:', storedOrg);
-          setSelectedOrganization(storedOrg);
-          setIsReady(true);
-          return orgs;
-        } else {
+        orgToSelect = orgs.find(org => org.id === storedOrgId) || null;
+        if (!orgToSelect) {
           // Remove invalid stored selection
           localStorage.removeItem(SELECTED_ORG_KEY);
         }
       }
       
       // Fallback to primary organization if no valid stored selection
-      const primaryOrg = orgs.find(org => org.is_primary);
-      if (primaryOrg) {
-        console.log('OrganizationContext: Using primary organization:', primaryOrg);
-        setSelectedOrganization(primaryOrg);
-        localStorage.setItem(SELECTED_ORG_KEY, primaryOrg.id);
-        setIsReady(true);
-        return orgs;
+      if (!orgToSelect) {
+        orgToSelect = orgs.find(org => org.is_primary) || null;
       }
       
       // Fallback to the first organization in the list
-      if (orgs.length > 0 && !selectedOrganization) {
-        console.log('OrganizationContext: Using first available organization:', orgs[0]);
-        setSelectedOrganization(orgs[0]);
-        localStorage.setItem(SELECTED_ORG_KEY, orgs[0].id);
-      } else if (selectedOrganization) {
-        // Make sure the selected organization is still in the list
-        const stillExists = orgs.some(org => org.id === selectedOrganization.id);
-        if (!stillExists && orgs.length > 0) {
-          setSelectedOrganization(orgs[0]);
-          localStorage.setItem(SELECTED_ORG_KEY, orgs[0].id);
-        } else if (stillExists) {
-          // Update the selected organization with fresh data
-          const updatedOrg = orgs.find(org => org.id === selectedOrganization.id);
-          if (updatedOrg) {
-            setSelectedOrganization(updatedOrg);
-          }
-        }
+      if (!orgToSelect && orgs.length > 0) {
+        orgToSelect = orgs[0];
+      }
+      
+      // Set the selected organization and persist the choice
+      if (orgToSelect) {
+        console.log('OrganizationContext: Setting selected organization:', orgToSelect);
+        setSelectedOrganization(orgToSelect);
+        localStorage.setItem(SELECTED_ORG_KEY, orgToSelect.id);
+      } else {
+        // No organizations available
+        setSelectedOrganization(null);
+        localStorage.removeItem(SELECTED_ORG_KEY);
       }
       
       setIsReady(true);

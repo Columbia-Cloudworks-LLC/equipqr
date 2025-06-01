@@ -18,8 +18,14 @@ export function OrganizationSection({
   isExternalOrg, 
   onChange 
 }: OrganizationSectionProps) {
-  // Only show organization selector if there are multiple orgs and we're not editing
-  if (organizations.length <= 1 || isEditing) {
+  // For editing, just show the external org alert if applicable
+  if (isEditing) {
+    return isExternalOrg ? <ExternalOrgAlert /> : null;
+  }
+  
+  // For new equipment, only show organization selector if there are multiple orgs
+  if (organizations.length <= 1) {
+    // Even with single org, show external org alert if applicable
     return isExternalOrg ? <ExternalOrgAlert /> : null;
   }
   

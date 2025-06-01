@@ -10,6 +10,7 @@ import { refreshEquipment } from '@/services/equipment/equipmentListService';
 import { invalidateEquipmentCache } from '@/services/equipment/services/cacheService';
 import { supabase } from '@/integrations/supabase/client';
 import { CreateEquipmentParams } from '@/types/equipment';
+import { isValidUuid } from '@/utils/validationUtils';
 
 interface UseEquipmentMutationsProps {
   redirectToLogin: (message: string) => void;
@@ -18,6 +19,31 @@ interface UseEquipmentMutationsProps {
 export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutationsProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Enhanced form data validation
+  const validateFormData = (formData: Partial<Equipment>): string | null => {
+    // Critical organization validation
+    if (!formData.org_id || typeof formData.org_id !== 'string') {
+      return 'Organization is required. Please select an organization and try again.';
+    }
+    
+    // Check for empty string or whitespace-only
+    if (formData.org_id.trim() === '') {
+      return 'Organization cannot be empty. Please select a valid organization.';
+    }
+    
+    // Validate UUID format
+    if (!isValidUuid(formData.org_id)) {
+      return 'Invalid organization selected. Please refresh the page and try again.';
+    }
+    
+    // Validate equipment name
+    if (!formData.name || formData.name.trim() === '') {
+      return 'Equipment name is required';
+    }
+    
+    return null;
+  };
 
   // Create equipment mutation
   const createMutation = useMutation({
@@ -36,18 +62,22 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
       
       const currentUserId = sessionData.session.user.id;
       
-      // CRITICAL: Validate org_id before proceeding
-      if (!formData.org_id || formData.org_id.trim() === '') {
-        console.error('Missing or empty org_id in form data:', formData);
-        throw new Error('Organization is required. Please select an organization and try again.');
+      // Pre-flight validation of form data
+      const validationError = validateFormData(formData);
+      if (validationError) {
+        console.error('Form validation failed:', validationError, formData);
+        throw new Error(validationError);
       }
       
-      // Additional validation for UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(formData.org_id)) {
-        console.error('Invalid org_id format:', formData.org_id);
-        throw new Error('Invalid organization selected. Please refresh the page and try again.');
-      }
+      // Additional validation with detailed logging
+      console.log('Form data received for creation:', formData);
+      console.log('Organization ID check:', {
+        org_id: formData.org_id,
+        type: typeof formData.org_id,
+        length: formData.org_id?.length,
+        trimmed: formData.org_id?.trim(),
+        isValid: isValidUuid(formData.org_id || '')
+      });
       
       // Convert to the expected CreateEquipmentParams type with proper status type handling
       const processedData = {
@@ -56,16 +86,11 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
         created_by: currentUserId,
         // Cast the string status to EquipmentStatus for type safety
         status: formData.status as EquipmentStatus,
-        // Ensure org_id is properly set and validated
-        org_id: formData.org_id.trim()
+        // Ensure org_id is properly set and validated - trim whitespace
+        org_id: formData.org_id!.trim()
       };
       
-      // Validate required fields
-      if (!processedData.name || processedData.name.trim() === '') {
-        throw new Error('Equipment name is required');
-      }
-      
-      console.log('Creating equipment with validated data:', processedData);
+      console.log('Processed data for equipment creation:', processedData);
       
       // Create a correctly typed parameter for createEquipment
       const equipmentParams: CreateEquipmentParams = processedData as unknown as CreateEquipmentParams;
@@ -117,8 +142,9 @@ export function useEquipmentMutations({ redirectToLogin }: UseEquipmentMutations
         return;
       }
       
-      // Handle organization-specific errors
+      // Handle organization-specific errors with enhanced messaging
       if (errorMessage.includes('Organization is required') ||
+          errorMessage.includes('Organization cannot be empty') ||
           errorMessage.includes('Invalid organization selected')) {
         toast.error('Organization Error', {
           description: errorMessage + ' Please refresh the page and ensure you have selected a valid organization.',
