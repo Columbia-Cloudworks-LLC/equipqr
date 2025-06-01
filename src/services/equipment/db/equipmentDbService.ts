@@ -4,15 +4,18 @@ import { Equipment } from "@/types";
 
 /**
  * Insert equipment into the database
- * @param processedEquipment - The processed equipment data
+ * @param processedEquipment - The processed equipment data (without attributes field)
  * @returns The created equipment record
  */
 export async function insertEquipment(processedEquipment: any) {
   console.log('Creating equipment with data:', processedEquipment);
   
+  // Ensure no attributes field is included in the database insert
+  const { attributes, ...equipmentDataForDb } = processedEquipment;
+  
   const { data, error } = await supabase
     .from('equipment')
-    .insert(processedEquipment)
+    .insert(equipmentDataForDb)
     .select()
     .single();
     

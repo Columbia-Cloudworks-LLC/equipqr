@@ -2,6 +2,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CreateEquipmentParams } from '@/types/equipment';
 import { EquipmentStatus } from '@/types/supabase-enums';
+import { saveEquipmentAttributes } from './attributesService';
+import { insertEquipment } from './db/equipmentDbService';
 
 // Function to create equipment - make sure it accepts the correct type
 export async function createEquipment(params: CreateEquipmentParams) {
@@ -11,28 +13,37 @@ export async function createEquipment(params: CreateEquipmentParams) {
       throw new Error('created_by field is required');
     }
 
+    // Extract attributes before processing equipment data
+    const attributes = params.attributes || [];
+    
+    // Remove attributes from the equipment data since it's not a database column
+    const { attributes: _, ...equipmentDataWithoutAttributes } = params;
+
     // Create a processed object with specific status values for DB compatibility
     const processedParams = {
-      ...params,
+      ...equipmentDataWithoutAttributes,
       // Explicitly map to one of the allowed string literals that Supabase expects
       status: mapToAllowedStatus(params.status as EquipmentStatus)
     };
 
     console.log('Processed params for equipment creation:', processedParams);
 
-    // Insert the equipment record
-    const { data, error } = await supabase
-      .from('equipment')
-      .insert(processedParams)
-      .select()
-      .single();
+    // Insert the equipment record using the database service
+    const createdEquipment = await insertEquipment(processedParams);
 
-    if (error) {
-      console.error("Error creating equipment:", error);
-      throw new Error(error.message);
+    // After successfully creating equipment, save attributes if any exist
+    if (attributes.length > 0 && createdEquipment.id) {
+      try {
+        await saveEquipmentAttributes(createdEquipment.id, attributes);
+        console.log('Successfully saved equipment attributes');
+      } catch (attributesError) {
+        console.error('Error saving equipment attributes:', attributesError);
+        // Note: We don't throw here because the equipment was successfully created
+        // The attributes failure is logged but doesn't fail the entire operation
+      }
     }
 
-    return { equipment: data, error: null };
+    return { equipment: createdEquipment, error: null };
   } catch (error: any) {
     console.error("Error creating equipment:", error);
     return { equipment: null, error: error.message };
