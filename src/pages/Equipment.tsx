@@ -13,6 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePersistedFilters } from '@/hooks/usePersistedFilters';
+import { EquipmentImportButton } from '@/components/Equipment/Import';
+import { ImportResult } from '@/services/equipment/equipmentImportService';
 
 const EquipmentPage = () => {
   const { user, isLoading: authLoading, checkSession } = useAuth();
@@ -72,6 +74,15 @@ const EquipmentPage = () => {
     }
   }, [error]);
 
+  // Handle import completion
+  const handleImportComplete = (result: ImportResult) => {
+    if (result.success && result.imported > 0) {
+      // Refetch equipment data to show newly imported items
+      refetch();
+      toast.success(`Successfully imported ${result.imported} equipment records`);
+    }
+  };
+
   // If still loading auth, show loading state
   if (authLoading) {
     return (
@@ -106,12 +117,13 @@ const EquipmentPage = () => {
       <div className="flex-1 space-y-6 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
           <h1 className="text-2xl font-bold tracking-tight">Equipment</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {(filters.status !== 'all' || filters.team !== 'all' || filters.search) && (
               <Button variant="outline" onClick={clearFilters} size="sm">
                 Clear Filters
               </Button>
             )}
+            <EquipmentImportButton onImportComplete={handleImportComplete} />
             <Button asChild className="sm:self-end">
               <Link to="/equipment/new">
                 <Package className="mr-2 h-4 w-4" />

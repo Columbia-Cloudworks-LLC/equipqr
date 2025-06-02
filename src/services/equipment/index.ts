@@ -1,3 +1,4 @@
+
 // Re-export all functions from the module files
 
 // Core equipment services
@@ -9,6 +10,7 @@ export * from './equipmentDeleteService';
 export * from './equipmentDuplicationService';
 export * from './scanService';
 export * from './attributesService';
+export * from './equipmentImportService';
 
 // Service modules
 export * from './services/authService';
