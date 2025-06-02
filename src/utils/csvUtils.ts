@@ -1,4 +1,5 @@
 
+
 import { Equipment } from '@/types';
 
 /**
@@ -122,7 +123,7 @@ export function generateEquipmentJson(equipment: Equipment[]): string {
     notes: item.notes,
     team_name: item.team_name,
     org_name: item.org_name,
-    custom_attributes: item.custom_attributes,
+    attributes: item.attributes,
     created_at: item.created_at,
     updated_at: item.updated_at
   }));
@@ -154,7 +155,7 @@ export function generateEquipmentXml(equipment: Equipment[]): string {
     <org_name>${escapeXml(item.org_name || '')}</org_name>
     <created_at>${escapeXml(item.created_at || '')}</created_at>
     <updated_at>${escapeXml(item.updated_at || '')}</updated_at>
-    ${item.custom_attributes ? `<custom_attributes>${escapeXml(JSON.stringify(item.custom_attributes))}</custom_attributes>` : ''}
+    ${item.attributes ? `<attributes>${escapeXml(JSON.stringify(item.attributes))}</attributes>` : ''}
   </equipment>`;
   }).join('\n');
   
@@ -176,3 +177,4 @@ function escapeXml(unsafe: string): string {
     }
   });
 }
+
