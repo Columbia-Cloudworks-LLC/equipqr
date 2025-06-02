@@ -1,75 +1,60 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { getWorkNotes, WorkNote } from '@/services/workNotes';
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { retry } from '@/utils/edgeFunctions/retry';
-
-// Organization type for filtering
-export interface Organization {
-  id: string;
-  name: string;
-  is_external?: boolean;
-}
+import { getWorkNotes } from '@/services/workNotes/workNotesService';
+import { getUserOrganizations } from '@/services/organizations';
+import { WorkNote } from '@/types/workNotes';
 
 export function useWorkNotesQuery(equipmentId: string) {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  
-  // Fetch work notes with proper permission filtering
+  // Query for work notes
   const { 
     data: workNotes = [], 
-    isLoading, 
-    error,
-    refetch: refetchNotes,
-    isError
+    isLoading: notesLoading, 
+    error: notesError,
+    isError: isNotesError,
+    refetch: refetchNotes 
   } = useQuery({
     queryKey: ['workNotes', equipmentId],
-    queryFn: () => retry(() => getWorkNotes(equipmentId), 3),
-    staleTime: 60000, // Consider data fresh for 1 minute
-    retry: 3, // Retry 3 times before considering it failed
-    retryDelay: (attempt) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30000), // Exponential backoff with a 30s max
-    meta: {
-      onError: (err: Error) => {
-        console.error('Error fetching work notes:', err);
-        toast.error('Failed to load work notes', {
-          description: err.message || 'An unknown error occurred'
-        });
+    queryFn: () => getWorkNotes(equipmentId),
+    enabled: !!equipmentId,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    retry: (failureCount, error) => {
+      console.error('Work notes query failed:', error);
+      // Only retry if it's not a permission error
+      if (error?.message?.includes('permission')) {
+        return false;
       }
+      return failureCount < 2;
     }
   });
-  
-  // Extract organizations from notes for filtering
-  useEffect(() => {
-    if (workNotes.length > 0) {
-      const orgMap = new Map<string, Organization>();
-      
-      workNotes.forEach(note => {
-        if (note.organization_name) {
-          orgMap.set(note.organization_name, {
-            id: note.organization_name,
-            name: note.organization_name,
-            is_external: note.is_external_org
-          });
-        }
-      });
-      
-      setOrganizations(Array.from(orgMap.values()));
-    }
-  }, [workNotes]);
 
-  // All notes returned are already filtered by permissions in the service layer
-  // So publicNotes and allNotes are the same for permission-filtered results
-  const publicNotes = workNotes.filter(note => note.is_public);
-  const allNotes = workNotes; // Already filtered by permissions in service
-  
+  // Query for organizations (for filtering)
+  const { data: organizations = [] } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: getUserOrganizations,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Filter notes by visibility
+  const publicNotes = workNotes.filter((note: WorkNote) => note.is_public);
+  const allNotes = workNotes; // All notes the user has permission to see
+
+  console.log('Work notes query results:', {
+    equipmentId,
+    totalNotes: workNotes.length,
+    publicNotes: publicNotes.length,
+    isLoading: notesLoading,
+    error: notesError,
+    isError: isNotesError
+  });
+
   return {
-    workNotes,
+    workNotes: allNotes,
     publicNotes,
     allNotes,
     organizations,
-    isLoading,
-    error,
-    isError,
+    isLoading: notesLoading,
+    error: notesError,
+    isError: isNotesError,
     refetchNotes
   };
 }

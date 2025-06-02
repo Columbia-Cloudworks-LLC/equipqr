@@ -1809,7 +1809,7 @@ export type Database = {
         }[]
       }
       can_access_equipment: {
-        Args: { p_uid: string; p_equipment_id: string }
+        Args: { user_id: string; equipment_id: string }
         Returns: boolean
       }
       can_access_team: {
@@ -1829,7 +1829,7 @@ export type Database = {
         Returns: boolean
       }
       can_edit_equipment: {
-        Args: { p_uid: string; p_equipment_id: string }
+        Args: { user_id: string; equipment_id: string }
         Returns: boolean
       }
       can_edit_unassigned_equipment: {
