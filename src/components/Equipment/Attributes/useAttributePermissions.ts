@@ -26,10 +26,14 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
       try {
         // If we have an equipment ID, check permissions
         if (equipmentId) {
-          // Use the can_edit_equipment function from Supabase
+          // Use the correct parameter names for the Supabase function
           const { data, error } = await supabase.rpc(
-            'can_edit_equipment',
-            { p_uid: user.id, p_equipment_id: equipmentId }
+            'check_equipment_permissions',
+            { 
+              _user_id: user.id, 
+              _equipment_id: equipmentId,
+              _action: 'edit'
+            }
           );
           
           if (error) {

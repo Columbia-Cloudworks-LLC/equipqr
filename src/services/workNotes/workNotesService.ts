@@ -27,13 +27,24 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
 
     console.log('Authenticated user ID:', user.user.id);
 
-    // Fetch work notes with proper joins for user information
+    // Fetch work notes with explicit column references to avoid ambiguity
     const { data, error } = await supabase
       .from('equipment_work_notes')
       .select(`
-        *,
-        creator:created_by(display_name, email),
-        editor:edited_by(display_name, email)
+        id,
+        equipment_id,
+        note,
+        created_by,
+        created_at,
+        updated_at,
+        work_order_id,
+        edited_by,
+        edited_at,
+        image_urls,
+        hours_worked,
+        is_public,
+        created_by_user:user_profiles!equipment_work_notes_created_by_fkey(display_name, email),
+        edited_by_user:user_profiles!equipment_work_notes_edited_by_fkey(display_name, email)
       `)
       .eq('equipment_id', equipmentId)
       .is('deleted_at', null)
@@ -65,8 +76,8 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       image_urls: note.image_urls || [],
       hours_worked: note.hours_worked,
       is_public: note.is_public || false,
-      creator_name: note.creator?.display_name || note.creator?.email || 'Unknown User',
-      editor_name: note.editor?.display_name || note.editor?.email || null
+      creator_name: note.created_by_user?.display_name || note.created_by_user?.email || 'Unknown User',
+      editor_name: note.edited_by_user?.display_name || note.edited_by_user?.email || null
     }));
 
     console.log('Transformed work notes:', workNotes);
@@ -118,8 +129,19 @@ export async function createWorkNote(params: {
       .from('equipment_work_notes')
       .insert(noteData)
       .select(`
-        *,
-        creator:created_by(display_name, email)
+        id,
+        equipment_id,
+        note,
+        created_by,
+        created_at,
+        updated_at,
+        work_order_id,
+        edited_by,
+        edited_at,
+        image_urls,
+        hours_worked,
+        is_public,
+        created_by_user:user_profiles!equipment_work_notes_created_by_fkey(display_name, email)
       `)
       .single();
 
@@ -143,7 +165,7 @@ export async function createWorkNote(params: {
       image_urls: data.image_urls || [],
       hours_worked: data.hours_worked,
       is_public: data.is_public || false,
-      creator_name: data.creator?.display_name || data.creator?.email || 'Unknown User',
+      creator_name: data.created_by_user?.display_name || data.created_by_user?.email || 'Unknown User',
       editor_name: null
     };
   } catch (error) {
@@ -181,9 +203,20 @@ export async function updateWorkNote(
       .update(updateData)
       .eq('id', id)
       .select(`
-        *,
-        creator:created_by(display_name, email),
-        editor:edited_by(display_name, email)
+        id,
+        equipment_id,
+        note,
+        created_by,
+        created_at,
+        updated_at,
+        work_order_id,
+        edited_by,
+        edited_at,
+        image_urls,
+        hours_worked,
+        is_public,
+        created_by_user:user_profiles!equipment_work_notes_created_by_fkey(display_name, email),
+        edited_by_user:user_profiles!equipment_work_notes_edited_by_fkey(display_name, email)
       `)
       .single();
 
@@ -205,8 +238,8 @@ export async function updateWorkNote(
       image_urls: data.image_urls || [],
       hours_worked: data.hours_worked,
       is_public: data.is_public || false,
-      creator_name: data.creator?.display_name || data.creator?.email || 'Unknown User',
-      editor_name: data.editor?.display_name || data.editor?.email || null
+      creator_name: data.created_by_user?.display_name || data.created_by_user?.email || 'Unknown User',
+      editor_name: data.edited_by_user?.display_name || data.edited_by_user?.email || null
     };
   } catch (error) {
     console.error('Error in updateWorkNote:', error);

@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getWorkNotes } from '@/services/workNotes/workNotesService';
-import { getUserOrganizations } from '@/services/organizations';
+import { getUserOrganizations } from '@/services/organization';
 import { WorkNote } from '@/types/workNotes';
 
 export function useWorkNotesQuery(equipmentId: string) {
