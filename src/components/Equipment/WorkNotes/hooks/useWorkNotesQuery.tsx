@@ -1,7 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getWorkNotes } from '@/services/workNotes/workNotesService';
-import { getUserOrganizations } from '@/services/organization';
 import { WorkNote } from '@/types/workNotes';
 
 export function useWorkNotesQuery(equipmentId: string) {
@@ -27,13 +26,6 @@ export function useWorkNotesQuery(equipmentId: string) {
     }
   });
 
-  // Query for organizations (for filtering)
-  const { data: organizations = [] } = useQuery({
-    queryKey: ['organizations'],
-    queryFn: getUserOrganizations,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
   // Filter notes by visibility
   const publicNotes = workNotes.filter((note: WorkNote) => note.is_public);
   const allNotes = workNotes; // All notes the user has permission to see
@@ -51,7 +43,7 @@ export function useWorkNotesQuery(equipmentId: string) {
     workNotes: allNotes,
     publicNotes,
     allNotes,
-    organizations,
+    organizations: [], // Remove the organizations query since it was causing issues
     isLoading: notesLoading,
     error: notesError,
     isError: isNotesError,

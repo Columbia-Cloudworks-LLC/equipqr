@@ -27,7 +27,7 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
 
     console.log('Authenticated user ID:', user.user.id);
 
-    // Fetch work notes with explicit column references to avoid ambiguity
+    // Fetch work notes with a simpler approach - get basic data first
     const { data, error } = await supabase
       .from('equipment_work_notes')
       .select(`
@@ -43,8 +43,7 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
         image_urls,
         hours_worked,
         is_public,
-        created_by_user:user_profiles!equipment_work_notes_created_by_fkey(display_name, email),
-        edited_by_user:user_profiles!equipment_work_notes_edited_by_fkey(display_name, email)
+        deleted_at
       `)
       .eq('equipment_id', equipmentId)
       .is('deleted_at', null)
@@ -62,6 +61,28 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       return [];
     }
 
+    // Get user profiles for creators and editors separately to avoid join issues
+    const userIds = [...new Set([
+      ...data.map(note => note.created_by).filter(Boolean),
+      ...data.map(note => note.edited_by).filter(Boolean)
+    ])];
+
+    let userProfiles: any = {};
+    
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, display_name')
+        .in('id', userIds);
+      
+      if (profiles) {
+        userProfiles = profiles.reduce((acc: any, profile: any) => {
+          acc[profile.id] = profile;
+          return acc;
+        }, {});
+      }
+    }
+
     // Transform the data to match our WorkNote interface
     const workNotes: WorkNote[] = data.map(note => ({
       id: note.id,
@@ -76,8 +97,9 @@ export async function getWorkNotes(equipmentId: string): Promise<WorkNote[]> {
       image_urls: note.image_urls || [],
       hours_worked: note.hours_worked,
       is_public: note.is_public || false,
-      creator_name: note.created_by_user?.display_name || note.created_by_user?.email || 'Unknown User',
-      editor_name: note.edited_by_user?.display_name || note.edited_by_user?.email || null
+      deleted_at: note.deleted_at,
+      creator_name: userProfiles[note.created_by]?.display_name || 'Unknown User',
+      editor_name: note.edited_by ? (userProfiles[note.edited_by]?.display_name || 'Unknown User') : null
     }));
 
     console.log('Transformed work notes:', workNotes);
@@ -141,7 +163,7 @@ export async function createWorkNote(params: {
         image_urls,
         hours_worked,
         is_public,
-        created_by_user:user_profiles!equipment_work_notes_created_by_fkey(display_name, email)
+        deleted_at
       `)
       .single();
 
@@ -151,6 +173,13 @@ export async function createWorkNote(params: {
     }
 
     console.log('Created work note:', data);
+
+    // Get creator profile
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('display_name')
+      .eq('id', data.created_by)
+      .single();
 
     return {
       id: data.id,
@@ -165,7 +194,8 @@ export async function createWorkNote(params: {
       image_urls: data.image_urls || [],
       hours_worked: data.hours_worked,
       is_public: data.is_public || false,
-      creator_name: data.created_by_user?.display_name || data.created_by_user?.email || 'Unknown User',
+      deleted_at: data.deleted_at,
+      creator_name: profile?.display_name || 'Unknown User',
       editor_name: null
     };
   } catch (error) {
@@ -215,8 +245,7 @@ export async function updateWorkNote(
         image_urls,
         hours_worked,
         is_public,
-        created_by_user:user_profiles!equipment_work_notes_created_by_fkey(display_name, email),
-        edited_by_user:user_profiles!equipment_work_notes_edited_by_fkey(display_name, email)
+        deleted_at
       `)
       .single();
 
@@ -224,6 +253,18 @@ export async function updateWorkNote(
       console.error('Error updating work note:', error);
       throw error;
     }
+
+    // Get user profiles for creator and editor
+    const userIds = [data.created_by, data.edited_by].filter(Boolean);
+    const { data: profiles } = await supabase
+      .from('user_profiles')
+      .select('id, display_name')
+      .in('id', userIds);
+
+    const userProfiles = profiles?.reduce((acc: any, profile: any) => {
+      acc[profile.id] = profile;
+      return acc;
+    }, {}) || {};
 
     return {
       id: data.id,
@@ -238,8 +279,9 @@ export async function updateWorkNote(
       image_urls: data.image_urls || [],
       hours_worked: data.hours_worked,
       is_public: data.is_public || false,
-      creator_name: data.created_by_user?.display_name || data.created_by_user?.email || 'Unknown User',
-      editor_name: data.edited_by_user?.display_name || data.edited_by_user?.email || null
+      deleted_at: data.deleted_at,
+      creator_name: userProfiles[data.created_by]?.display_name || 'Unknown User',
+      editor_name: data.edited_by ? (userProfiles[data.edited_by]?.display_name || 'Unknown User') : null
     };
   } catch (error) {
     console.error('Error in updateWorkNote:', error);

@@ -16,6 +16,7 @@ export interface WorkNote {
   
   // Extended fields from joins
   creator_name?: string;
+  editor_name?: string;
   creator_org_name?: string;
   organization_name?: string;
   is_external_org?: boolean;
