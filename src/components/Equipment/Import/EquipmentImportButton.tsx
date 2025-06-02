@@ -74,7 +74,6 @@ export function EquipmentImportButton({ onImportComplete }: EquipmentImportButto
           <DropdownMenuTrigger asChild>
             <Button 
               variant="default" 
-              size="sm"
               className="rounded-l-none px-2 border-l border-primary-foreground/20"
             >
               <ChevronDown className="h-4 w-4" />
