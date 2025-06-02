@@ -43,7 +43,7 @@ export function useWorkNotesQuery(equipmentId: string) {
     workNotes: allNotes,
     publicNotes,
     allNotes,
-    organizations: [], // Remove the organizations query since it was causing issues
+    organizations: [], // Empty array since we removed the organizations query
     isLoading: notesLoading,
     error: notesError,
     isError: isNotesError,
