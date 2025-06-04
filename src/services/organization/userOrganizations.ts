@@ -10,24 +10,68 @@ export interface UserOrganization extends Organization {
 }
 
 /**
+ * Wait for a valid session with retries
+ */
+async function waitForValidSession(maxRetries = 5, delayMs = 1000): Promise<{ session: any; userId: string } | null> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    console.log(`Session check attempt ${attempt}/${maxRetries}`);
+    
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error(`Session error on attempt ${attempt}:`, sessionError);
+        if (attempt === maxRetries) return null;
+        await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+        continue;
+      }
+      
+      if (sessionData?.session?.user?.id) {
+        console.log(`Valid session found on attempt ${attempt}`);
+        return {
+          session: sessionData.session,
+          userId: sessionData.session.user.id
+        };
+      }
+      
+      console.log(`No session on attempt ${attempt}, retrying...`);
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+      }
+    } catch (error) {
+      console.error(`Session check failed on attempt ${attempt}:`, error);
+      if (attempt === maxRetries) return null;
+      await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Fetch all organizations the current user has access to
  * Includes organizations they are a member of or have a role in
  */
 export async function getAllUserOrganizations(forceRefresh: boolean = false): Promise<UserOrganization[]> {
   try {
-    // Get current user
-    const { data: session, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session.session) {
-      throw new Error('User must be logged in to fetch organizations');
+    console.log('Starting getAllUserOrganizations...');
+    
+    // Wait for a valid session with retries
+    const sessionResult = await waitForValidSession();
+    if (!sessionResult) {
+      console.error('Failed to get valid session after retries');
+      throw new Error('Authentication session not available. Please sign in again.');
     }
-    const userId = session.session.user.id;
+    
+    const { userId } = sessionResult;
+    console.log('Valid session confirmed for user:', userId);
     
     // Get user's primary organization from profile
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('org_id')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
       
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
@@ -52,7 +96,7 @@ export async function getAllUserOrganizations(forceRefresh: boolean = false): Pr
     
     if (rolesError) {
       console.error('Error fetching user roles:', rolesError);
-      throw rolesError;
+      throw new Error(`Failed to fetch user roles: ${rolesError.message}`);
     }
     
     // Get app_user record
@@ -133,8 +177,10 @@ export async function getAllUserOrganizations(forceRefresh: boolean = false): Pr
       return a.name.localeCompare(b.name);
     });
     
+    console.log(`Successfully fetched ${organizations.length} organizations`);
     return organizations;
   } catch (error) {
+    console.error('Error in getAllUserOrganizations:', error);
     handleOrganizationError(error);
     return [];
   }
@@ -145,10 +191,13 @@ export async function getAllUserOrganizations(forceRefresh: boolean = false): Pr
  */
 export async function canManageOrganization(orgId: string): Promise<boolean> {
   try {
-    const { data: session } = await supabase.auth.getSession();
-    if (!session?.session) return false;
+    const sessionResult = await waitForValidSession(3, 500); // Shorter retry for this check
+    if (!sessionResult) {
+      console.error('No valid session for canManageOrganization check');
+      return false;
+    }
 
-    const userId = session.session.user.id;
+    const userId = sessionResult.userId;
     
     const { data, error } = await supabase
       .from('user_roles')
