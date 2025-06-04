@@ -10,7 +10,233 @@ EquipQR is a comprehensive fleet equipment management platform that revolutioniz
 
 ---
 
-## 🚀 Core Platform Features
+## 🚀 Quick Start for Developers
+
+### Prerequisites
+
+Before setting up EquipQR for development, ensure you have:
+
+- **Node.js** (version 18 or higher)
+- **npm** or **yarn** package manager
+- **Git** for version control
+- **Supabase Account** (free tier available at [supabase.com](https://supabase.com))
+- **Stripe Account** (for billing features - [stripe.com](https://stripe.com))
+- **Mapbox Account** (for map features - [mapbox.com](https://mapbox.com))
+
+### Development Setup
+
+#### 1. Clone and Install
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd equipqr
+
+# Install dependencies
+npm install
+```
+
+#### 2. Environment Configuration
+
+```bash
+# Copy the example environment file
+cp .env.example .env.local
+
+# Edit .env.local with your actual values
+# See detailed configuration guide below
+```
+
+#### 3. Supabase Setup
+
+**Create a Supabase Project:**
+1. Go to [supabase.com/dashboard](https://supabase.com/dashboard)
+2. Click "New Project"
+3. Choose your organization and create the project
+4. Wait for the project to be ready (usually 2-3 minutes)
+
+**Get Your Supabase Credentials:**
+1. In your Supabase dashboard, go to **Settings > API**
+2. Copy your **Project URL** and **anon public key**
+3. Update `.env.local` with these values:
+   ```bash
+   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+   VITE_SUPABASE_ANON_KEY=your_anon_key_here
+   ```
+
+**Update Hardcoded Project References:**
+The current codebase has hardcoded Supabase project references that need to be updated:
+
+1. **Update `src/integrations/supabase/client.ts`:**
+   ```typescript
+   const SUPABASE_URL = "https://your-project-ref.supabase.co";
+   const SUPABASE_PUBLISHABLE_KEY = "your_anon_key_here";
+   ```
+
+2. **Update `src/utils/auth/authUtils.ts`:**
+   ```typescript
+   const supabaseUrl = "https://your-project-ref.supabase.co";
+   ```
+
+**Configure Authentication:**
+1. In Supabase dashboard, go to **Authentication > Providers**
+2. Enable **Email** provider (enabled by default)
+3. Enable **Google** provider:
+   - Add your Google OAuth client ID and secret
+   - Add authorized redirect URIs: `https://your-project-ref.supabase.co/auth/v1/callback`
+
+**Set Up Edge Function Secrets:**
+1. Go to **Edge Functions > Manage secrets** in your Supabase dashboard
+2. Add the following secrets:
+   - `STRIPE_SECRET_KEY`: Your Stripe secret key (sk_test_... for development)
+   - `MAPBOX_ACCESS_TOKEN`: Your Mapbox secret access token
+   - `OPENAI_API_KEY`: Your OpenAI API key (if using AI features)
+
+#### 4. Stripe Configuration
+
+1. Create a Stripe account at [stripe.com](https://stripe.com)
+2. Get your API keys from the [Stripe Dashboard](https://dashboard.stripe.com/apikeys)
+3. For development, use **test keys** (they start with `pk_test_` and `sk_test_`)
+4. Update `.env.local`:
+   ```bash
+   VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
+   ```
+5. Add your secret key to Supabase Edge Function secrets (see above)
+
+#### 5. Mapbox Configuration
+
+1. Create a Mapbox account at [mapbox.com](https://mapbox.com)
+2. Get your access token from [account.mapbox.com/access-tokens](https://account.mapbox.com/access-tokens/)
+3. Update `.env.local`:
+   ```bash
+   VITE_MAPBOX_ACCESS_TOKEN=pk.your_mapbox_token_here
+   ```
+
+#### 6. Database Schema Setup
+
+The database schema is automatically applied when you connect to Supabase through the Lovable interface. If you're setting up manually:
+
+1. The migration files are in `supabase/migrations/`
+2. Apply them using the Supabase CLI or dashboard
+3. Ensure Row Level Security (RLS) policies are enabled
+
+#### 7. Start Development Server
+
+```bash
+# Start the development server
+npm run dev
+
+# The app will be available at http://localhost:5173
+```
+
+### Complete Environment Configuration
+
+Your `.env.local` file should look like this:
+
+```bash
+# Supabase
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Stripe
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key
+
+# Mapbox
+VITE_MAPBOX_ACCESS_TOKEN=pk.your_mapbox_token
+
+# Application URLs
+VITE_APP_BASE_URL=http://localhost:5173
+VITE_SITE_URL=http://localhost:5173
+
+# Development
+NODE_ENV=development
+VITE_DEBUG=true
+```
+
+---
+
+## 🛠 Troubleshooting
+
+### Common Setup Issues
+
+**"Invalid JWT" or Authentication Errors:**
+- Verify your Supabase URL and anon key are correct
+- Check that the hardcoded values in the codebase match your project
+- Ensure authentication providers are properly configured
+
+**Map Not Loading:**
+- Verify your Mapbox access token is valid
+- Check browser console for CORS or network errors
+- Ensure the token has the required scopes
+
+**Billing Features Not Working:**
+- Confirm Stripe publishable key is correct (starts with `pk_test_` for development)
+- Verify Stripe secret key is added to Supabase Edge Function secrets
+- Check Stripe webhook configuration if testing subscriptions
+
+**Database Connection Issues:**
+- Ensure your Supabase project is active and not paused
+- Check Row Level Security policies are properly configured
+- Verify database migrations have been applied
+
+### Development Tips
+
+1. **Use Browser DevTools:** Check the Console and Network tabs for errors
+2. **Supabase Logs:** Monitor real-time logs in your Supabase dashboard
+3. **Edge Function Logs:** Check Edge Function logs for backend errors
+4. **Test with Different Browsers:** Some features may behave differently across browsers
+
+---
+
+## 🚀 Deployment Considerations
+
+### Production Setup Differences
+
+**Environment Variables:**
+- Use production/live API keys instead of test keys
+- Update `VITE_APP_BASE_URL` to your production domain
+- Set `NODE_ENV=production`
+
+**Supabase Production:**
+- Enable database backups
+- Configure proper RLS policies
+- Set up monitoring and alerts
+- Review and tighten security settings
+
+**Domain Configuration:**
+- Configure custom domains in Supabase
+- Update OAuth provider redirect URLs
+- Set up SSL certificates
+- Configure CORS settings
+
+**Performance:**
+- Enable Supabase CDN
+- Configure caching strategies
+- Optimize database queries
+- Set up monitoring
+
+---
+
+## 📚 Useful Links
+
+### Development Resources
+- [Supabase Documentation](https://supabase.com/docs)
+- [Stripe API Documentation](https://stripe.com/docs/api)
+- [Mapbox GL JS Documentation](https://docs.mapbox.com/mapbox-gl-js/)
+- [React Query Documentation](https://tanstack.com/query/latest)
+
+### Service Dashboards
+- [Supabase Dashboard](https://supabase.com/dashboard)
+- [Stripe Dashboard](https://dashboard.stripe.com)
+- [Mapbox Account](https://account.mapbox.com)
+
+### API Key Locations
+- [Supabase API Settings](https://supabase.com/dashboard/project/_/settings/api)
+- [Stripe API Keys](https://dashboard.stripe.com/apikeys)
+- [Mapbox Access Tokens](https://account.mapbox.com/access-tokens/)
+
+---
+
+## 🎯 Core Platform Features
 
 ### **Smart Asset Tracking & QR Technology**
 - **Dynamic QR Code Generation**: Automatically generate unique QR codes for every asset with embedded metadata
@@ -194,39 +420,6 @@ EquipQR is a comprehensive fleet equipment management platform that revolutioniz
 - **Optimized Database Queries**: Strategic query optimization for large equipment datasets
 - **Edge Function Processing**: Serverless architecture for scalable business logic execution
 - **Real-Time Updates**: Efficient WebSocket connections for live data synchronization
-
----
-
-## 🚀 Getting Started
-
-### **Quick Start Guide**
-```bash
-# Clone and setup
-git clone <repository-url>
-cd equipqr
-npm install
-
-# Configure environment
-cp .env.example .env.local
-# Add your Supabase credentials
-
-# Start development
-npm run dev
-# Access at http://localhost:5173
-```
-
-### **Initial Setup Workflow**
-1. **Account Creation**: Sign up using Google OAuth or email/password authentication
-2. **Organization Setup**: Create your organization profile and configure basic settings
-3. **Team Creation**: Build your first team and invite initial members
-4. **Equipment Registration**: Add your first equipment items with QR code generation
-5. **Workflow Testing**: Submit a test work order to validate team collaboration
-
-### **Production Deployment**
-- **Vercel/Netlify**: One-click deployment with automatic builds from Git
-- **Custom Domain**: Configure branded domains through hosting provider settings
-- **Environment Variables**: Secure configuration management for production secrets
-- **Performance Monitoring**: Built-in analytics and performance tracking
 
 ---
 
