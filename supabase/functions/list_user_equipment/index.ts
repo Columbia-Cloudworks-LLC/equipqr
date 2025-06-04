@@ -1,53 +1,78 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { fetchUserEquipment } from "./services/equipmentDataService.ts";
-import { formatEquipmentResponse } from "./equipment-formatter.ts";
 
-// CORS headers for cross-origin requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-};
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createAdminClient, getAuthenticatedUser, createErrorResponse, createSuccessResponse } from '../_shared/supabaseAdminClient.ts';
 
-serve(async (req: Request) => {
-  // Handle CORS preflight request
+serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      },
+    });
   }
 
   try {
-    const { user_id, org_id } = await req.json();
-    
-    if (!user_id) {
-      return new Response(
-        JSON.stringify({ error: "Missing user_id parameter" }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    // Authenticate the user
+    const user = await getAuthenticatedUser(req);
+    const adminClient = createAdminClient();
+
+    // Parse query parameters
+    const url = new URL(req.url);
+    const limit = parseInt(url.searchParams.get('limit') || '50');
+    const offset = parseInt(url.searchParams.get('offset') || '0');
+    const teamId = url.searchParams.get('team_id');
+
+    // Build query
+    let query = adminClient
+      .from('equipment')
+      .select(`
+        id,
+        name,
+        manufacturer,
+        model,
+        serial_number,
+        asset_id,
+        status,
+        location,
+        install_date,
+        warranty_expiration,
+        notes,
+        org_id,
+        team_id,
+        created_at,
+        updated_at
+      `)
+      .eq('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    // Add team filter if specified
+    if (teamId) {
+      query = query.eq('team_id', teamId);
     }
 
-    // Fetch equipment for the user
-    const equipmentResult = await fetchUserEquipment(user_id, org_id);
+    const { data: equipment, error } = await query;
 
-    if (!equipmentResult.success) {
-      return new Response(
-        JSON.stringify({ error: equipmentResult.error }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    if (error) {
+      console.error('Error fetching equipment:', error);
+      return createErrorResponse('Failed to fetch equipment', 500);
     }
 
-    // Format equipment data for the response
-    const formattedEquipment = formatEquipmentResponse(equipmentResult.equipment);
+    return createSuccessResponse({ 
+      equipment: equipment || [],
+      pagination: {
+        limit,
+        offset,
+        count: equipment?.length || 0
+      }
+    });
 
-    return new Response(
-      JSON.stringify(formattedEquipment),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
   } catch (error) {
-    console.error('Error processing request:', error);
-    
-    return new Response(
-      JSON.stringify({ error: "Internal server error", details: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    console.error('Error in list_user_equipment function:', error);
+    return createErrorResponse(error.message, 401);
   }
 });

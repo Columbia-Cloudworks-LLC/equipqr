@@ -1,20 +1,11 @@
 
+import { SUPABASE_CONFIG } from '@/config/environment';
+
 /**
- * Get the Supabase project ref from SUPABASE_URL environment variable or URL
+ * Get the Supabase project ref from configuration
  */
-export function getSupabaseProjectRef(): string | null {
-  // Extract from SUPABASE_URL
-  const supabaseUrl = "https://oxeheowbfsshpyldlskb.supabase.co";
-  
-  if (supabaseUrl) {
-    const match = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
-    if (match && match[1]) {
-      return match[1];
-    }
-  }
-  
-  console.warn('Could not extract project ref from SUPABASE_URL');
-  return null;
+export function getSupabaseProjectRef(): string {
+  return SUPABASE_CONFIG.projectRef;
 }
 
 /**

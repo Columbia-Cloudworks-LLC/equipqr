@@ -1,14 +1,16 @@
 
+import { APP_CONFIG } from '@/config/environment';
+
 /**
- * Get the site URL for auth redirects
+ * Get the site URL for authentication redirects
  */
-export function getSiteUrl() {
-  return window.location.origin;
+export function getSiteUrl(): string {
+  return APP_CONFIG.siteUrl;
 }
 
 /**
- * Get the callback URL for authentication redirects
+ * Get the authentication callback URL
  */
-export function getAuthCallbackUrl() {
-  return `${getSiteUrl()}/auth/callback`;
+export function getAuthCallbackUrl(): string {
+  return `${APP_CONFIG.siteUrl}/auth/callback`;
 }

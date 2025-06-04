@@ -1,12 +1,14 @@
 
+import { STORAGE_KEYS } from '@/config/environment';
+
 /**
  * Reset auth state
  */
 export function resetAuthState() {
   // Clear auth-related storage
-  localStorage.removeItem('authReturnTo');
-  sessionStorage.removeItem('invitationPath');
-  sessionStorage.removeItem('authRedirectCount');
+  localStorage.removeItem(STORAGE_KEYS.authReturnTo);
+  sessionStorage.removeItem(STORAGE_KEYS.invitationPath);
+  sessionStorage.removeItem(STORAGE_KEYS.authRedirectCount);
 }
 
 /**
@@ -15,12 +17,11 @@ export function resetAuthState() {
 export function performFullAuthReset() {
   resetAuthState();
   
-  // Clear all Supabase-related storage
-  const projectRef = "oxeheowbfsshpyldlskb";
+  // Clear all Supabase-related storage using centralized keys
   const keys = [
-    `sb-${projectRef}-auth-token`,
-    `sb-${projectRef}-auth-token-code-verifier`,
-    "supabase.auth.token"
+    STORAGE_KEYS.authToken,
+    STORAGE_KEYS.authTokenCodeVerifier,
+    STORAGE_KEYS.supabaseAuthToken
   ];
   
   keys.forEach(key => {
