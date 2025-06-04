@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { APP_CONFIG } from '@/config/environment';
 
 export async function logWorkOrderChange(
   workOrderId: string,
@@ -11,9 +10,7 @@ export async function logWorkOrderChange(
   try {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) {
-      if (APP_CONFIG.debug) {
-        console.warn('No authenticated user for audit log');
-      }
+      console.warn('No authenticated user for audit log');
       return;
     }
 

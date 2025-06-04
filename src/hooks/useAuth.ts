@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthMethods } from './useAuthMethods';
-import { APP_CONFIG, STORAGE_KEYS } from '@/config/environment';
 
 /**
  * Unified hook for authentication functionality
@@ -16,16 +15,12 @@ export function useAuth() {
 
   // Initialize auth state and set up listener
   useEffect(() => {
-    if (APP_CONFIG.debug) {
-      console.log('useAuth: Initializing auth state');
-    }
+    console.log('useAuth: Initializing auth state');
     setIsLoading(true);
     
     // Set up the auth state listener first
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (APP_CONFIG.debug) {
-        console.log('useAuth: Auth state change event:', event, session ? 'Has session' : 'No session');
-      }
+      console.log('useAuth: Auth state change event:', event, session ? 'Has session' : 'No session');
       
       // Update state synchronously
       setSession(session);
@@ -34,21 +29,15 @@ export function useAuth() {
       
       // Handle specific events
       if (event === 'SIGNED_OUT') {
-        if (APP_CONFIG.debug) {
-          console.log('useAuth: User signed out, clearing state');
-        }
+        console.log('useAuth: User signed out, clearing state');
         setSession(null);
         setUser(null);
       } else if (event === 'SIGNED_IN' && session) {
-        if (APP_CONFIG.debug) {
-          console.log('useAuth: User signed in successfully');
-        }
+        console.log('useAuth: User signed in successfully');
         setSession(session);
         setUser(session.user);
       } else if (event === 'TOKEN_REFRESHED' && session) {
-        if (APP_CONFIG.debug) {
-          console.log('useAuth: Token refreshed successfully');
-        }
+        console.log('useAuth: Token refreshed successfully');
         setSession(session);
         setUser(session.user);
       }
@@ -61,9 +50,7 @@ export function useAuth() {
         if (error) {
           console.error('useAuth: Error getting initial session:', error);
         } else {
-          if (APP_CONFIG.debug) {
-            console.log('useAuth: Initial session check:', session ? 'Has session' : 'No session');
-          }
+          console.log('useAuth: Initial session check:', session ? 'Has session' : 'No session');
           setSession(session);
           setUser(session?.user ?? null);
         }
@@ -84,9 +71,7 @@ export function useAuth() {
   // Check session validity with better error handling
   const checkSession = useCallback(async () => {
     try {
-      if (APP_CONFIG.debug) {
-        console.log('useAuth: Checking session validity');
-      }
+      console.log('useAuth: Checking session validity');
       const { data, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -95,18 +80,14 @@ export function useAuth() {
       }
       
       const isValid = !!data?.session;
-      if (APP_CONFIG.debug) {
-        console.log('useAuth: Session valid:', isValid);
-      }
+      console.log('useAuth: Session valid:', isValid);
       
       // Update state if needed
       if (isValid && !session) {
         setSession(data.session);
         setUser(data.session?.user ?? null);
       } else if (!isValid && session) {
-        if (APP_CONFIG.debug) {
-          console.log('useAuth: Session invalid, clearing state');
-        }
+        console.log('useAuth: Session invalid, clearing state');
         setSession(null);
         setUser(null);
       }
@@ -121,9 +102,7 @@ export function useAuth() {
   // Function to repair session with improved logic
   const repairSession = useCallback(async () => {
     try {
-      if (APP_CONFIG.debug) {
-        console.log('useAuth: Attempting to repair session');
-      }
+      console.log('useAuth: Attempting to repair session');
       
       // First check if we have a session
       const { data: sessionData, error } = await supabase.auth.getSession();
@@ -134,9 +113,7 @@ export function useAuth() {
       }
       
       if (!sessionData?.session) {
-        if (APP_CONFIG.debug) {
-          console.log('useAuth: No session data found to repair');
-        }
+        console.log('useAuth: No session data found to repair');
         
         // Try to refresh session if we have a refresh token
         try {
@@ -148,9 +125,7 @@ export function useAuth() {
           }
           
           if (refreshData?.session) {
-            if (APP_CONFIG.debug) {
-              console.log('useAuth: Session successfully refreshed');
-            }
+            console.log('useAuth: Session successfully refreshed');
             setSession(refreshData.session);
             setUser(refreshData.session.user);
             return true;
@@ -163,9 +138,7 @@ export function useAuth() {
       }
       
       // Session exists, validate it
-      if (APP_CONFIG.debug) {
-        console.log('useAuth: Session found, validating');
-      }
+      console.log('useAuth: Session found, validating');
       setSession(sessionData.session);
       setUser(sessionData.session.user);
       return true;
@@ -178,9 +151,7 @@ export function useAuth() {
   // Complete auth reset
   const resetAuthSystem = useCallback(async () => {
     try {
-      if (APP_CONFIG.debug) {
-        console.log('useAuth: Performing complete auth system reset');
-      }
+      console.log('useAuth: Performing complete auth system reset');
       
       // Clear auth state
       setUser(null);
@@ -193,14 +164,12 @@ export function useAuth() {
         console.error('useAuth: Error during explicit sign-out in reset:', e);
       }
       
-      // Clear storage using centralized keys
+      // Clear storage
+      const projectRef = "oxeheowbfsshpyldlskb";
       const keys = [
-        STORAGE_KEYS.authToken,
-        STORAGE_KEYS.authTokenCodeVerifier,
-        STORAGE_KEYS.supabaseAuthToken,
-        STORAGE_KEYS.authReturnTo,
-        STORAGE_KEYS.authRedirectCount,
-        STORAGE_KEYS.invitationPath
+        `sb-${projectRef}-auth-token`,
+        `sb-${projectRef}-auth-token-code-verifier`,
+        "supabase.auth.token"
       ];
       
       keys.forEach(key => {
@@ -208,9 +177,12 @@ export function useAuth() {
         sessionStorage.removeItem(key);
       });
       
-      if (APP_CONFIG.debug) {
-        console.log('useAuth: Auth system reset complete');
-      }
+      // Clear auth-related storage
+      localStorage.removeItem('authReturnTo');
+      sessionStorage.removeItem('authRedirectCount');
+      sessionStorage.removeItem('invitationPath');
+      
+      console.log('useAuth: Auth system reset complete');
     } catch (error) {
       console.error('useAuth: Error during auth system reset:', error);
     } finally {

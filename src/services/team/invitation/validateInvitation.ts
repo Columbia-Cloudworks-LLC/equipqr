@@ -1,15 +1,12 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { APP_CONFIG } from '@/config/environment';
 
 /**
  * Validate an invitation token
  */
 export async function validateInvitationToken(token: string) {
   try {
-    if (APP_CONFIG.debug) {
-      console.log("Validating token:", token);
-    }
+    console.log("Validating token:", token);
     
     // Check if we're being rate limited first
     try {
@@ -20,9 +17,7 @@ export async function validateInvitationToken(token: string) {
       
       // If the edge function worked, use its result
       if (!edgeError && edgeData) {
-        if (APP_CONFIG.debug) {
-          console.log("Team invitation validated via edge function:", edgeData.valid);
-        }
+        console.log("Team invitation validated via edge function:", edgeData.valid);
         return edgeData;
       }
       
@@ -36,13 +31,9 @@ export async function validateInvitationToken(token: string) {
         };
       }
       
-      if (APP_CONFIG.debug) {
-        console.log("Falling back to direct DB query for validation");
-      }
+      console.log("Falling back to direct DB query for validation");
     } catch (edgeError) {
-      if (APP_CONFIG.debug) {
-        console.warn("Edge function error, using direct query:", edgeError);
-      }
+      console.warn("Edge function error, using direct query:", edgeError);
     }
     
     // Direct database query as fallback
@@ -68,15 +59,11 @@ export async function validateInvitationToken(token: string) {
       return { valid: false, error: 'Invalid or expired invitation link.' };
     }
     
-    if (APP_CONFIG.debug) {
-      console.log("Invitation found:", data);
-    }
+    console.log("Invitation found:", data);
     
     // Ensure team information is present
     if (!data.team || !data.team.name) {
-      if (APP_CONFIG.debug) {
-        console.warn("Team information missing in invitation:", data);
-      }
+      console.warn("Team information missing in invitation:", data);
       
       // Try to fetch team information separately with proper table referencing
       const { data: teamData, error: teamError } = await supabase

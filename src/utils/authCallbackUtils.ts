@@ -1,14 +1,14 @@
 
 /**
- * Get the site URL for authentication redirects
+ * Get the site URL for auth redirects
  */
-export function getSiteUrl(): string {
-  return "https://equipqr.ai";
+export function getSiteUrl() {
+  return window.location.origin;
 }
 
 /**
- * Get the authentication callback URL
+ * Get the callback URL for authentication redirects
  */
-export function getAuthCallbackUrl(): string {
-  return "https://equipqr.ai/auth/callback";
+export function getAuthCallbackUrl() {
+  return `${getSiteUrl()}/auth/callback`;
 }

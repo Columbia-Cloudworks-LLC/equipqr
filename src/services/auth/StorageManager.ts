@@ -1,121 +1,133 @@
 
-import { STORAGE_KEYS } from '@/config/environment';
+import { Session } from '@supabase/supabase-js';
 
 /**
- * Manages authentication-related storage operations
+ * Storage manager for authentication-related storage operations
+ * Handles cross-browser compatibility issues and provides utilities
+ * for managing auth tokens and session data
  */
 export class StorageManager {
+  private projectRef: string = "oxeheowbfsshpyldlskb"; // Your Supabase project reference
   
   /**
-   * Get an item from storage
+   * Get the current session key
    */
-  async getItem(key: string): Promise<string | null> {
+  public getSessionKey(): string {
+    return `sb-${this.projectRef}-auth-token`;
+  }
+  
+  /**
+   * Get the legacy session key
+   */
+  public getLegacySessionKey(): string {
+    return 'supabase.auth.token';
+  }
+
+  /**
+   * Get an item from localStorage with error handling
+   */
+  public async getItem(key: string): Promise<string | null> {
     try {
-      const value = localStorage.getItem(key) || sessionStorage.getItem(key);
-      return value;
+      return localStorage.getItem(key);
     } catch (error) {
-      console.warn(`StorageManager: Error getting item ${key}:`, error);
+      console.error(`Error getting item from localStorage: ${key}`, error);
       return null;
     }
   }
 
   /**
-   * Set an item in storage
+   * Set an item in localStorage with error handling
    */
-  async setItem(key: string, value: string): Promise<void> {
+  public async setItem(key: string, value: string): Promise<void> {
     try {
       localStorage.setItem(key, value);
     } catch (error) {
-      console.warn(`StorageManager: Error setting item ${key}:`, error);
-      // Fallback to session storage
-      try {
-        sessionStorage.setItem(key, value);
-      } catch (fallbackError) {
-        console.error(`StorageManager: Failed to set item ${key} in both storages:`, fallbackError);
-      }
+      console.error(`Error setting item in localStorage: ${key}`, error);
     }
   }
 
   /**
-   * Remove an item from storage
+   * Remove an item from localStorage with error handling
    */
-  async removeItem(key: string): Promise<void> {
+  public async removeItem(key: string): Promise<void> {
     try {
       localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
     } catch (error) {
-      console.warn(`StorageManager: Error removing item ${key}:`, error);
+      console.error(`Error removing item from localStorage: ${key}`, error);
     }
   }
 
   /**
-   * Get the session storage key for the current Supabase project
+   * Clear all auth-related data from storage
    */
-  getSessionKey(): string {
-    return STORAGE_KEYS.authToken;
-  }
-
-  /**
-   * Get the legacy session storage key
-   */
-  getLegacySessionKey(): string {
-    return STORAGE_KEYS.supabaseAuthToken;
-  }
-
-  /**
-   * Clear all authentication-related data
-   */
-  async clearAuthData(): Promise<void> {
-    console.log('StorageManager: Clearing all auth data');
-    
-    const keysToRemove = [
-      STORAGE_KEYS.authToken,
-      STORAGE_KEYS.authTokenCodeVerifier,
-      STORAGE_KEYS.supabaseAuthToken,
-      STORAGE_KEYS.authReturnTo,
-      STORAGE_KEYS.authRedirectCount,
-      STORAGE_KEYS.invitationPath
-    ];
-
-    for (const key of keysToRemove) {
-      await this.removeItem(key);
-    }
-  }
-
-  /**
-   * Repair storage by removing corrupted entries
-   */
-  async repairStorage(): Promise<boolean> {
+  public async clearAuthData(): Promise<void> {
     try {
-      console.log('StorageManager: Attempting storage repair');
+      // Remove session tokens
+      await this.removeItem(this.getSessionKey());
+      await this.removeItem(this.getLegacySessionKey());
       
-      // Check for corrupted auth tokens and remove them
-      const authToken = await this.getItem(STORAGE_KEYS.authToken);
-      if (authToken && this.isCorruptedToken(authToken)) {
-        await this.removeItem(STORAGE_KEYS.authToken);
-        console.log('StorageManager: Removed corrupted auth token');
-      }
-
-      return true;
+      // Clear any invitation data
+      sessionStorage.removeItem('invitationPath');
+      sessionStorage.removeItem('invitationType');
     } catch (error) {
-      console.error('StorageManager: Storage repair failed:', error);
-      return false;
+      console.error('Error clearing auth data:', error);
     }
   }
 
   /**
-   * Check if a token appears to be corrupted
+   * Repair storage inconsistencies between localStorage and sessionStorage
    */
-  private isCorruptedToken(token: string): boolean {
+  public async repairStorage(): Promise<boolean> {
     try {
-      // Basic validation - JWT tokens should have 3 parts separated by dots
-      const parts = token.split('.');
-      return parts.length !== 3;
-    } catch {
-      return true;
+      console.log('StorageManager: Attempting to repair session storage');
+      let repaired = false;
+      
+      // Check for session in localStorage
+      const sessionKey = this.getSessionKey();
+      const sessionData = localStorage.getItem(sessionKey);
+      
+      if (sessionData) {
+        try {
+          // Validate JSON and session structure
+          const session = JSON.parse(sessionData);
+          if (session?.access_token && session?.refresh_token) {
+            console.log('StorageManager: Found valid session in localStorage');
+            repaired = true;
+          }
+        } catch (e) {
+          console.error('StorageManager: Found corrupt session in localStorage:', e);
+          
+          // Reset corrupted session
+          localStorage.removeItem(sessionKey);
+          repaired = false;
+        }
+      } else {
+        // Check legacy storage
+        const legacyKey = this.getLegacySessionKey();
+        const legacyData = localStorage.getItem(legacyKey);
+        
+        if (legacyData) {
+          try {
+            // Attempt to migrate legacy session format
+            const session = JSON.parse(legacyData);
+            if (session?.access_token && session?.refresh_token) {
+              console.log('StorageManager: Found legacy session, migrating');
+              localStorage.setItem(sessionKey, legacyData);
+              repaired = true;
+            }
+          } catch (e) {
+            console.error('StorageManager: Legacy session is corrupt:', e);
+          }
+        }
+      }
+      
+      return repaired;
+    } catch (error) {
+      console.error('StorageManager: Error repairing storage:', error);
+      return false;
     }
   }
 }
 
-// Export singleton instance
+// Create singleton instance
 export const storageManager = new StorageManager();

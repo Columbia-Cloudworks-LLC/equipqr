@@ -3,19 +3,23 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+const SUPABASE_URL = "https://oxeheowbfsshpyldlskb.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94ZWhlb3diZnNzaHB5bGRsc2tiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3OTY2MDUsImV4cCI6MjA2MjM3MjYwNX0.fTBztDcwSK57B7cMM20gF6xwto27zyzlbO-GypqNi4s";
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(
-  "https://oxeheowbfsshpyldlskb.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94ZWhlb3diZnNzaHB5bGRsc2tiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3OTY2MDUsImV4cCI6MjA2MjM3MjYwNX0.fTBztDcwSK57B7cMM20gF6xwto27zyzlbO-GypqNi4s",
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
   {
     auth: {
-      storage: localStorage,
+      storage: localStorage, // Use direct localStorage for simplicity and reliability
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      flowType: 'pkce'
+      flowType: 'pkce',
+      debug: true // Enable debug mode for better logging
     },
     global: {
       headers: {
@@ -25,8 +29,9 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Set up auth event listener
+// Set up auth event listener outside the client creation
 supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Client: Auth state change detected:', event);
   if (event === 'SIGNED_OUT') {
     console.log('Client: User signed out, clearing local storage');
   }
