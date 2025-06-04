@@ -49,6 +49,20 @@ export class StorageManager {
   }
 
   /**
+   * Get the session storage key for the current Supabase project
+   */
+  getSessionKey(): string {
+    return STORAGE_KEYS.authToken;
+  }
+
+  /**
+   * Get the legacy session storage key
+   */
+  getLegacySessionKey(): string {
+    return STORAGE_KEYS.supabaseAuthToken;
+  }
+
+  /**
    * Clear all authentication-related data
    */
   async clearAuthData(): Promise<void> {
