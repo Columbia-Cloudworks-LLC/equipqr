@@ -1,11 +1,9 @@
 
-import { SUPABASE_CONFIG } from '@/config/environment';
-
 /**
  * Get the Supabase project ref from configuration
  */
 export function getSupabaseProjectRef(): string {
-  return SUPABASE_CONFIG.projectRef;
+  return "oxeheowbfsshpyldlskb";
 }
 
 /**

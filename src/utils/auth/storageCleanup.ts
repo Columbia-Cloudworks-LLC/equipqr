@@ -1,17 +1,10 @@
 
-import { getSupabaseProjectRef } from './authUtils';
-
 /**
  * Clear all Supabase-related storage data in browser
  */
 export function clearAllAuthStorageData(): void {
   // Get Supabase project ref
-  const projectRef = getSupabaseProjectRef();
-  
-  if (!projectRef) {
-    console.warn('Could not determine Supabase project ref');
-    return;
-  }
+  const projectRef = "oxeheowbfsshpyldlskb";
   
   // Clear all known Supabase auth storage keys
   const keysToRemove = [
@@ -65,12 +58,12 @@ export function clearAllAuthStorageData(): void {
  */
 export function clearAuthCookies(): void {
   try {
-    const projectRef = getSupabaseProjectRef();
+    const projectRef = "oxeheowbfsshpyldlskb";
     const cookies = document.cookie.split(';');
     
     for (const cookie of cookies) {
       const [name] = cookie.split('=').map(c => c.trim());
-      if (name && (name.includes('supabase') || (projectRef && name.includes(projectRef)))) {
+      if (name && (name.includes('supabase') || name.includes(projectRef))) {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
         console.log(`Cleared cookie: ${name}`);
       }

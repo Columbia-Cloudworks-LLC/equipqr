@@ -1,5 +1,5 @@
 
-import { STORAGE_KEYS, SUPABASE_CONFIG } from '@/config/environment';
+import { STORAGE_KEYS } from '@/config/environment';
 
 /**
  * Manages authentication-related storage operations
