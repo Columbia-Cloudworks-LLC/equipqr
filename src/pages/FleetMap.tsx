@@ -11,7 +11,6 @@ import { MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useEquipmentFilters } from '@/components/Equipment/hooks/useEquipmentFilters';
-import Layout from '@/components/Layout/Layout';
 
 export default function FleetMap() {
   const { selectedOrganization } = useOrganization();
@@ -61,37 +60,33 @@ export default function FleetMap() {
   // Show loading state while checking access
   if (accessLoading) {
     return (
-      <Layout>
-        <div className="container mx-auto px-4 py-6 space-y-6">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-96 w-full" />
-        </div>
-      </Layout>
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
     );
   }
 
   // Show paywall if user doesn't have access to fleet map
   if (!hasAccess) {
     return (
-      <Layout>
-        <div className="container mx-auto px-4 py-6">
-          <FeaturePaywall
-            featureKey="fleet_map"
-            featureName="Fleet Map"
-            description="Get a bird's-eye view of your entire fleet with our interactive map feature"
-            benefits={[
-              "Interactive map showing all equipment locations",
-              "Real-time location updates when equipment is scanned",
-              "Filter equipment by status, team, and organization",
-              "Detailed equipment information in popup windows",
-              "Export location data for reporting"
-            ]}
-            icon={<MapPin className="h-8 w-8 text-blue-600" />}
-            userRole={userRole}
-            gracePeriodInfo={gracePeriodInfo}
-          />
-        </div>
-      </Layout>
+      <div className="container mx-auto px-4 py-6">
+        <FeaturePaywall
+          featureKey="fleet_map"
+          featureName="Fleet Map"
+          description="Get a bird's-eye view of your entire fleet with our interactive map feature"
+          benefits={[
+            "Interactive map showing all equipment locations",
+            "Real-time location updates when equipment is scanned",
+            "Filter equipment by status, team, and organization",
+            "Detailed equipment information in popup windows",
+            "Export location data for reporting"
+          ]}
+          icon={<MapPin className="h-8 w-8 text-blue-600" />}
+          userRole={userRole}
+          gracePeriodInfo={gracePeriodInfo}
+        />
+      </div>
     );
   }
 
@@ -102,37 +97,35 @@ export default function FleetMap() {
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        <GracePeriodBanner />
-        
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
-          <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
-        </div>
-        
-        <FleetMapFilters
-          filters={{
-            search: searchQuery,
-            status: filterStatus,
-            team: filterTeam
-          }}
-          teams={teams.map(name => ({ id: name, name }))}
-          onFilterSearchChange={setSearchQuery}
-          onFilterStatusChange={setFilterStatus}
-          onFilterTeamChange={setFilterTeam}
-          onClearFilters={handleClearFilters}
-        />
-
-        <FleetMapContent
-          isLoading={equipmentLoading}
-          filteredEquipment={filteredEquipment}
-          equipmentWithLocation={filteredEquipment}
-          selectedEquipmentId={selectedEquipmentId}
-          onEquipmentSelected={setSelectedEquipmentId}
-          selectedEquipment={selectedEquipment}
-        />
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <GracePeriodBanner />
+      
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
+        <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
       </div>
-    </Layout>
+      
+      <FleetMapFilters
+        filters={{
+          search: searchQuery,
+          status: filterStatus,
+          team: filterTeam
+        }}
+        teams={teams.map(name => ({ id: name, name }))}
+        onFilterSearchChange={setSearchQuery}
+        onFilterStatusChange={setFilterStatus}
+        onFilterTeamChange={setFilterTeam}
+        onClearFilters={handleClearFilters}
+      />
+
+      <FleetMapContent
+        isLoading={equipmentLoading}
+        filteredEquipment={filteredEquipment}
+        equipmentWithLocation={filteredEquipment}
+        selectedEquipmentId={selectedEquipmentId}
+        onEquipmentSelected={setSelectedEquipmentId}
+        selectedEquipment={selectedEquipment}
+      />
+    </div>
   );
 }

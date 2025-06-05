@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Loader2 } from 'lucide-react';
-import Layout from '@/components/Layout/Layout';
+import { Layout } from '@/components/Layout/Layout';
 import { OrganizationSettingsHeader } from '@/components/Organization/Settings/OrganizationSettingsHeader';
 import { OrganizationSettingsTabs } from '@/components/Organization/Settings/OrganizationSettingsTabs';
 import { UserRole } from '@/types/supabase-enums';

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, Package } from 'lucide-react';
 import { Equipment } from '@/types';
 import { EquipmentList } from '@/components/Equipment/EquipmentList';
-import Layout from '@/components/Layout/Layout';
+import { Layout } from '@/components/Layout/Layout';
 import { useQuery } from '@tanstack/react-query';
 import { getEquipment } from '@/services/equipment/equipmentListService';
 import { toast } from 'sonner';

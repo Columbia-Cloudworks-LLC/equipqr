@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import Layout from '@/components/Layout/Layout';
+import { Layout } from '@/components/Layout/Layout';
 import { Button } from '@/components/ui/button';
 import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
 import { recordEnhancedScan } from '@/services/equipment/enhancedScanService';

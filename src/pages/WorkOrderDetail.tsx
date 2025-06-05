@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Layout from '@/components/Layout/Layout';
+import { Layout } from '@/components/Layout/Layout';
 import { WorkOrderDetailView } from '@/components/WorkOrders/WorkOrderDetailView';
 import { getWorkOrder, updateWorkOrder } from '@/services/workOrders';
 import { canManageWorkOrders } from '@/services/workOrders/workOrderPermissions';

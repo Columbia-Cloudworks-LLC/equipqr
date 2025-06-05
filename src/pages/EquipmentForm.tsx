@@ -1,6 +1,8 @@
+
 import { useLocation } from 'react-router-dom';
 import { EquipmentForm as EquipmentFormComponent } from '@/components/Equipment/EquipmentForm';
-import Layout from '@/components/Layout/Layout';
+import { Layout } from '@/components/Layout/Layout';
+
 import { useAuthenticationCheck } from '@/hooks/useAuthenticationCheck';
 import { useEquipmentFormData } from '@/hooks/useEquipmentFormData';
 import { AuthCheckingState } from '@/components/Equipment/Form/AuthCheckingState';

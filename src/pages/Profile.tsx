@@ -1,5 +1,5 @@
 
-import Layout from '@/components/Layout/Layout';
+import { Layout } from '@/components/Layout/Layout';
 import { ProfileForm } from '@/components/Profile/ProfileForm';
 import { ProfileLoadingState } from '@/components/Profile/LoadingState';
 import { useProfileData } from '@/hooks/profile/useProfileData';

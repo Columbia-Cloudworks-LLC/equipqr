@@ -1,15 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { getDeviceInfo, getLocationInfo, type DeviceInfo, type LocationInfo } from "@/utils/deviceDetection";
-import { 
-  anonymizeScanData, 
-  getAnonymizationConfig,
-  shouldCollectData 
-} from "@/utils/privacy/anonymizationUtils";
-import { 
-  getUserPrivacyPreferences, 
-  preferencesToConfig, 
-  hasUserConsent 
-} from "@/services/privacy/privacyConfigService";
+import { getDeviceInfo, getLocationInfo, getSessionId, type DeviceInfo, type LocationInfo } from "@/utils/deviceDetection";
 import { toast } from "sonner";
 
 export interface EnhancedScanData {
@@ -80,33 +71,18 @@ async function getAppUserId(authUserId: string): Promise<string | null> {
 }
 
 /**
- * Record an enhanced scan event with privacy-focused data collection
+ * Record an enhanced scan event with comprehensive device and audit information
  */
 export async function recordEnhancedScan(
   equipmentId: string, 
   scanMethod: 'qr_code' | 'direct' | 'search' = 'qr_code'
 ): Promise<boolean> {
   try {
-    console.log(`Recording privacy-enhanced scan for equipment ${equipmentId} via ${scanMethod}`);
+    console.log(`Recording enhanced scan for equipment ${equipmentId} via ${scanMethod}`);
     
     // Get current user session
     const { data: sessionData } = await supabase.auth.getSession();
     const authUserId = sessionData?.session?.user?.id;
-    const isAuthenticated = !!authUserId;
-    
-    // Get user privacy preferences
-    const privacyPreferences = await getUserPrivacyPreferences(authUserId);
-    const userConsent = hasUserConsent(privacyPreferences);
-    const config = preferencesToConfig(privacyPreferences, isAuthenticated);
-    
-    // Check if we should collect data at all
-    if (!shouldCollectData(config, userConsent)) {
-      console.log('Data collection disabled by privacy settings');
-      toast.success("QR code scanned", { 
-        description: "Equipment accessed (privacy mode - no tracking)"
-      });
-      return true;
-    }
     
     // Convert auth user ID to app_user ID if user is authenticated
     let appUserId: string | null = null;
@@ -117,19 +93,16 @@ export async function recordEnhancedScan(
       }
     }
     
-    // Collect device information (will be anonymized based on config)
+    // Collect device information
     const deviceInfo = getDeviceInfo();
     
-    // Collect location information only if user consents
-    let locationInfo: LocationInfo = {};
-    if (privacyPreferences.allow_location_tracking) {
-      locationInfo = await getLocationInfo();
-    }
+    // Collect location information (with user permission)
+    const locationInfo = await getLocationInfo();
     
-    // Create base scan record
-    const baseScanData = {
+    // Create enhanced scan record
+    const scanData: EnhancedScanData = {
       equipment_id: equipmentId,
-      scanned_by_user_id: appUserId,
+      scanned_by_user_id: appUserId, // Use app_user ID instead of auth user ID
       user_agent: deviceInfo.userAgent,
       device_type: deviceInfo.deviceType,
       browser_name: deviceInfo.browserName,
@@ -139,43 +112,27 @@ export async function recordEnhancedScan(
       latitude: locationInfo.latitude,
       longitude: locationInfo.longitude,
       location_accuracy: locationInfo.accuracy,
-      session_id: sessionStorage.getItem('equipqr_session_id'),
+      session_id: getSessionId(),
       referrer_url: document.referrer || window.location.href,
       scan_method: scanMethod,
       device_fingerprint: deviceInfo.deviceFingerprint,
       timezone: deviceInfo.timezone,
-      language: deviceInfo.language,
-      // Note: scanned_from_ip is handled by the database/server
+      language: deviceInfo.language
     };
-    
-    // Apply privacy anonymization
-    const anonymizedScanData = anonymizeScanData(baseScanData, config, userConsent);
-    
-    console.log('Privacy config applied:', {
-      isAuthenticated,
-      userConsent,
-      config: {
-        anonymizeIpAddresses: config.anonymizeIpAddresses,
-        sanitizeUserAgents: config.sanitizeUserAgents,
-        reduceFingerprinting: config.reduceFingerprinting,
-        protectLocationData: config.protectLocationData,
-        sessionManagement: config.sessionManagement
-      }
-    });
     
     // Insert scan record
     const { error } = await supabase
       .from('scan_history')
-      .insert(anonymizedScanData);
+      .insert(scanData);
       
     if (error) {
-      console.error('Error recording privacy-enhanced scan:', error);
+      console.error('Error recording enhanced scan:', error);
       
       // For anonymous users or permission issues, still show success
       if (error.code === '42501' || error.message.includes('permission denied')) {
         console.log('Anonymous scan recorded (client-side tracking)');
         toast.success("QR code scan recorded", { 
-          description: "Equipment access logged with privacy protection"
+          description: "Equipment access logged for audit purposes"
         });
         return true;
       }
@@ -183,11 +140,10 @@ export async function recordEnhancedScan(
       throw error;
     }
     
-    // Show success message based on privacy settings
-    const privacyNote = userConsent ? "with your consent" : "anonymously";
+    // Show success message based on scan method and authentication status
     const methodText = scanMethod === 'qr_code' ? 'QR code scan' : 'equipment access';
     toast.success(`${methodText} recorded successfully`, {
-      description: `Scan history logged ${privacyNote} for audit purposes`
+      description: authUserId ? "Scan history logged for audit purposes" : "Anonymous scan tracked"
     });
     
     return true;
