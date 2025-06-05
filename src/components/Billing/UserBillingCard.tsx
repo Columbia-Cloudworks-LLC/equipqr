@@ -1,15 +1,14 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, CreditCard, RefreshCw, Info, Building } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Users, DollarSign, Shield, Info } from 'lucide-react';
 import { useUserBilling } from '@/hooks/useUserBilling';
 
 export function UserBillingCard() {
-  const { billingInfo, gracePeriodInfo, isLoading, error, userRole, refreshBilling } = useUserBilling();
-
-  const isOwner = userRole === 'owner';
+  const { billingInfo, isLoading, error } = useUserBilling();
 
   if (isLoading) {
     return (
@@ -20,18 +19,16 @@ export function UserBillingCard() {
             User Billing
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="h-4 bg-muted animate-pulse rounded" />
-            <div className="h-8 bg-muted animate-pulse rounded" />
-            <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
-          </div>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
         </CardContent>
       </Card>
     );
   }
 
-  if (error || !billingInfo) {
+  if (error) {
     return (
       <Card>
         <CardHeader>
@@ -41,94 +38,92 @@ export function UserBillingCard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6">
-            <p className="text-muted-foreground mb-4">
-              {error || 'Unable to load billing information'}
-            </p>
-            <Button onClick={refreshBilling} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
   }
 
-  const monthlyAmount = billingInfo.monthly_cost_cents / 100;
+  if (!billingInfo) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            User Billing
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>No billing information available.</AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const monthlyCost = billingInfo.monthly_cost_cents / 100;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            User Billing
-          </div>
-          <div className="flex items-center gap-2">
-            {!billingInfo.billing_required && (
-              <Badge variant="outline" className="text-xs">
-                <Info className="h-3 w-3 mr-1" />
-                No Equipment
-              </Badge>
-            )}
-            <Button onClick={refreshBilling} variant="ghost" size="sm">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          User Billing
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Organization Members</p>
-            <p className="text-2xl font-bold">{billingInfo.total_users}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Monthly Cost</p>
-            <p className="text-2xl font-bold text-blue-600">${monthlyAmount.toFixed(2)}</p>
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">Equipment Count</p>
-          <div className="flex items-center gap-2">
-            <Building className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{billingInfo.equipment_count} items</span>
-          </div>
-        </div>
-
-        {billingInfo.billing_required ? (
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-semibold text-blue-900">Monthly Billing</h4>
-                <p className="text-blue-700 text-sm">
-                  {billingInfo.total_users} members × $10.00 per month
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-blue-900">
-                  ${monthlyAmount.toFixed(2)}
-                </div>
-                <div className="text-xs text-blue-600">per month</div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="p-4 bg-green-50 rounded-lg">
-            <h4 className="font-semibold text-green-900">Free Tier</h4>
-            <p className="text-green-700 text-sm">
-              No billing required until you add equipment to your organization.
-            </p>
-          </div>
+        {billingInfo.exemption_applied && (
+          <Alert>
+            <Shield className="h-4 w-4" />
+            <AlertDescription>
+              {billingInfo.exemption_details?.type === 'organization' ? (
+                billingInfo.exemption_details.exemption_type === 'full' ? 
+                  'Your organization has a full billing exemption.' :
+                  `Your organization has a partial billing exemption (${billingInfo.exemption_details.free_user_count} free users).`
+              ) : (
+                `${billingInfo.exemption_details?.exempt_users || 0} users have individual billing exemptions.`
+              )}
+            </AlertDescription>
+          </Alert>
         )}
 
-        <div className="text-xs text-muted-foreground">
-          <p>• Your organization is billed $10/month per member</p>
-          <p>• Billing starts when first equipment is added</p>
-          <p>• 30-day grace period for new equipment</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center p-3 bg-muted rounded-lg">
+            <div className="text-2xl font-bold">{billingInfo.total_users}</div>
+            <div className="text-sm text-muted-foreground">Total Users</div>
+          </div>
+          <div className="text-center p-3 bg-muted rounded-lg">
+            <div className="text-2xl font-bold">{billingInfo.billable_users}</div>
+            <div className="text-sm text-muted-foreground">Billable Users</div>
+          </div>
         </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Monthly Cost:</span>
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-green-600" />
+            <span className="text-lg font-bold">${monthlyCost.toFixed(2)}</span>
+            {billingInfo.exemption_applied && (
+              <Badge variant="secondary" className="ml-2">
+                <Shield className="h-3 w-3 mr-1" />
+                Exempted
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {!billingInfo.billing_required && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Billing will be activated when you add your first equipment.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

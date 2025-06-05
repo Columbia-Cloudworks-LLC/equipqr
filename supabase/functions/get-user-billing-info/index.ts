@@ -50,7 +50,7 @@ serve(async (req) => {
       throw new Error("org_id is required");
     }
 
-    logStep("Checking user billing info", { orgId: org_id, userId: user.id });
+    logStep("Checking user billing info with exemptions", { orgId: org_id, userId: user.id });
 
     // Verify user has access to this organization
     const { data: userRole, error: roleError } = await supabaseClient
@@ -70,14 +70,14 @@ serve(async (req) => {
       });
     }
 
-    // Calculate user billing info - ALL users are billable
+    // Calculate user billing info with exemptions - ALL users are billable unless exempted
     const { data: billingInfo, error: billingError } = await supabaseClient
-      .rpc('calculate_org_user_billing_corrected', {
+      .rpc('calculate_org_user_billing_with_exemptions', {
         p_org_id: org_id
       });
 
     if (billingError) {
-      logStep("Error calculating billing info", billingError);
+      logStep("Error calculating billing info with exemptions", billingError);
       throw new Error("Failed to calculate billing information");
     }
 
@@ -92,9 +92,10 @@ serve(async (req) => {
       throw new Error("Failed to get grace period information");
     }
 
-    logStep("Billing info calculated", { 
+    logStep("Billing info with exemptions calculated", { 
       billingInfo, 
-      gracePeriodInfo 
+      gracePeriodInfo,
+      exemptionApplied: billingInfo?.exemption_applied || false
     });
 
     return new Response(JSON.stringify({

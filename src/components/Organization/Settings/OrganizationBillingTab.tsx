@@ -3,6 +3,7 @@ import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { UserBillingCard } from '@/components/Billing/UserBillingCard';
 import { UserBillingManagement } from '@/components/Billing/UserBillingManagement';
+import { BillingExemptionsCard } from '@/components/Billing/BillingExemptionsCard';
 import { NewGracePeriodBanner } from '@/components/Billing/NewGracePeriodBanner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
@@ -33,9 +34,10 @@ export function OrganizationBillingTab() {
         <NewGracePeriodBanner />
         <div className="grid gap-6 md:grid-cols-2">
           <UserBillingCard />
-          <div className="space-y-6">
-            <UserBillingManagement />
-          </div>
+          <BillingExemptionsCard />
+        </div>
+        <div className="space-y-6">
+          <UserBillingManagement />
         </div>
       </div>
     </ErrorBoundary>

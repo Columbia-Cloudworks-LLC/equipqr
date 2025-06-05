@@ -10,6 +10,14 @@ interface UserBillingInfo {
   monthly_cost_cents: number;
   equipment_count: number;
   billing_required: boolean;
+  exemption_applied?: boolean;
+  exemption_details?: {
+    type: 'organization' | 'individual';
+    exemption_type?: 'full' | 'partial';
+    free_user_count?: number;
+    reason?: string;
+    exempt_users?: number;
+  };
 }
 
 interface GracePeriodInfo {
@@ -52,7 +60,7 @@ export function useUserBilling(): UseUserBillingResult {
       setIsLoading(true);
       setError(null);
 
-      console.log('Fetching user billing info for organization:', selectedOrganization.id);
+      console.log('Fetching user billing info with exemptions for organization:', selectedOrganization.id);
 
       const { data, error } = await supabase.functions.invoke('get-user-billing-info', {
         body: {
@@ -66,7 +74,7 @@ export function useUserBilling(): UseUserBillingResult {
         return;
       }
 
-      console.log('User billing result:', data);
+      console.log('User billing result with exemptions:', data);
       setBillingInfo(data.billing_info);
       setGracePeriodInfo(data.grace_period_info);
       setUserRole(data.user_role || selectedOrganization.role || 'viewer');

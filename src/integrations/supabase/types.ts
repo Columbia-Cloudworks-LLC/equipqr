@@ -801,6 +801,50 @@ export type Database = {
           },
         ]
       }
+      organization_billing_exemptions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          exemption_type: string
+          expires_at: string | null
+          free_user_count: number | null
+          id: string
+          is_active: boolean
+          org_id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          exemption_type: string
+          expires_at?: string | null
+          free_user_count?: number | null
+          id?: string
+          is_active?: boolean
+          org_id: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          exemption_type?: string
+          expires_at?: string | null
+          free_user_count?: number | null
+          id?: string
+          is_active?: boolean
+          org_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_billing_exemptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_billing_state: {
         Row: {
           billing_required: boolean
@@ -1455,6 +1499,39 @@ export type Database = {
           },
         ]
       }
+      user_billing_exemptions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          exemption_type: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          exemption_type: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          exemption_type?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -1799,6 +1876,10 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: Json
       }
+      calculate_org_user_billing_with_exemptions: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       calculate_storage_overage: {
         Args: { p_org_id: string; p_period_start: string; p_period_end: string }
         Returns: {
@@ -2131,6 +2212,15 @@ export type Database = {
       set_user_default_org: {
         Args: { user_id_param: string; org_id_param: string }
         Returns: boolean
+      }
+      setup_billing_exemption_by_email: {
+        Args: {
+          p_email: string
+          p_exemption_type: string
+          p_free_user_count?: number
+          p_reason?: string
+        }
+        Returns: Json
       }
       simplified_equipment_create_permission: {
         Args: { p_user_id: string; p_team_id?: string }
