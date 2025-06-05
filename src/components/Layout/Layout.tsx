@@ -1,39 +1,75 @@
+import React from 'react';
 
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
-  SidebarProvider
-} from '@/components/ui/sidebar';
-import { AppSidebar } from './AppSidebar';
-import { Navbar } from './Navbar';
-import { Link } from 'react-router-dom';
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarItem,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+} from "@/components/ui/breadcrumb"
+import { Separator } from "@/components/ui/separator"
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
+import {
+  BellIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  HomeIcon,
+  LayoutDashboardIcon,
+  ListChecks,
+  LucideIcon,
+  MessageSquareIcon,
+  Plus,
+  Settings,
+  TagIcon,
+  UserIcon,
+  Users,
+} from "lucide-react"
+import { UserMenu } from '../UserMenu';
+import { NotificationDropdown } from '../NotificationDropdown';
+import { SidebarProvider, SidebarInset } from '@/contexts/SidebarContext';
+import AppSidebar from '../AppSidebar';
+import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { PrivacyBanner } from '@/components/Privacy/PrivacyBanner';
 
-export function Layout({ children }: LayoutProps) {
-  const isMobile = useIsMobile();
-  
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider defaultOpen={!isMobile}>
-      <div className="flex w-full h-screen overflow-hidden bg-background">
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <div className="flex flex-1 flex-col min-w-0 h-full">
-          <Navbar />
-          <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+        <SidebarInset className="flex-1">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href="/">
+                    Dashboard
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+            <div className="ml-auto flex items-center space-x-4">
+              <NotificationDropdown />
+              <UserMenu />
+            </div>
+          </header>
+          <main className="flex-1 p-4">
             {children}
           </main>
-          <footer className="border-t py-3 px-4 text-xs text-center text-muted-foreground bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
-            <div className="flex justify-center gap-4 mb-1">
-              <Link to="/terms" className="hover:text-primary hover:underline transition-colors">Terms of Service</Link>
-              <Link to="/privacy" className="hover:text-primary hover:underline transition-colors">Privacy Policy</Link>
-            </div>
-            <div>
-              © {new Date().getFullYear()} Columbia Cloudworks LLC. All rights reserved.
-            </div>
-          </footer>
-        </div>
+        </SidebarInset>
       </div>
+      <PrivacyBanner />
     </SidebarProvider>
   );
 }
