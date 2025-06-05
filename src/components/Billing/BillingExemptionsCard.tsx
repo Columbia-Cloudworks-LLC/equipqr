@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +45,16 @@ export function BillingExemptionsCard() {
         return;
       }
 
-      setExemption(data);
+      // Type assertion to ensure exemption_type is properly typed
+      if (data) {
+        const typedExemption: BillingExemption = {
+          ...data,
+          exemption_type: data.exemption_type as 'full' | 'partial'
+        };
+        setExemption(typedExemption);
+      } else {
+        setExemption(null);
+      }
     } catch (error) {
       console.error('Error fetching billing exemption:', error);
     } finally {
