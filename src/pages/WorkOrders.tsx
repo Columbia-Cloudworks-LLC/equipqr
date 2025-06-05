@@ -9,7 +9,7 @@ import { Search, Filter, RefreshCw } from 'lucide-react';
 import { WorkOrdersList } from '@/components/WorkOrders/WorkOrdersList';
 import { getAllUserWorkOrders } from '@/services/workOrders/workOrderManagementService';
 import { toast } from 'sonner';
-import { Layout } from '@/components/Layout/Layout';
+import Layout from '@/components/Layout/Layout';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
 export default function WorkOrders() {

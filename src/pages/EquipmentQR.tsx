@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Layout } from '@/components/Layout/Layout';
+import Layout from '@/components/Layout/Layout';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, Smartphone } from 'lucide-react';
 import QRCodeGenerator from '@/components/Equipment/QRCodeGenerator';

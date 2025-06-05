@@ -1,45 +1,62 @@
-import React from 'react';
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarItem,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import React from 'react';
+import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { PrivacyBanner } from '@/components/Privacy/PrivacyBanner';
+import { useSidebar } from '@/components/ui/sidebar/sidebar-context';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar/sidebar-context';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar/sidebar-components';
+import { SidebarTrigger } from '@/components/ui/sidebar/sidebar-trigger';
+import { Separator } from '@/components/ui/separator';
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/breadcrumb";
+import { Bell, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-import {
-  BellIcon,
-  CalendarIcon,
-  CheckCircleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  HomeIcon,
-  LayoutDashboardIcon,
-  ListChecks,
-  LucideIcon,
-  MessageSquareIcon,
-  Plus,
-  Settings,
-  TagIcon,
-  UserIcon,
-  Users,
-} from "lucide-react"
-import { UserMenu } from '../UserMenu';
-import { NotificationDropdown } from '../NotificationDropdown';
-import { SidebarProvider, SidebarInset } from '@/contexts/SidebarContext';
-import AppSidebar from '../AppSidebar';
-import { useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
-import { PrivacyBanner } from '@/components/Privacy/PrivacyBanner';
+// Simple UserMenu component
+function UserMenu() {
+  return (
+    <Button variant="ghost" size="icon">
+      <User className="h-5 w-5" />
+    </Button>
+  );
+}
+
+// Simple NotificationDropdown component
+function NotificationDropdown() {
+  return (
+    <Button variant="ghost" size="icon">
+      <Bell className="h-5 w-5" />
+    </Button>
+  );
+}
+
+// Simple AppSidebar component
+function AppSidebar() {
+  return (
+    <Sidebar>
+      <SidebarHeader>
+        <div className="px-3 py-2">
+          <h2 className="text-lg font-semibold">EquipQR</h2>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <div className="px-3 py-2">
+          <p className="text-sm text-muted-foreground">Navigation</p>
+        </div>
+      </SidebarContent>
+      <SidebarFooter>
+        <div className="px-3 py-2">
+          <p className="text-xs text-muted-foreground">Footer</p>
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

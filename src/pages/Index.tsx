@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCombinedDashboardData } from '@/hooks/useCombinedDashboardData';
-import { Layout } from '@/components/Layout/Layout';
+import Layout from '@/components/Layout/Layout';
 import { DashboardStats } from '@/components/Dashboard/DashboardStats';
 import { TeamsSection } from '@/components/Dashboard/TeamsSection';
 import { RecentEquipmentSection } from '@/components/Dashboard/RecentEquipmentSection';

@@ -1,5 +1,5 @@
 
-import { Layout } from '@/components/Layout/Layout';
+import Layout from '@/components/Layout/Layout';
 import { AuthLoadingState } from '@/components/Team/AuthLoadingState';
 import { TeamManagementView } from '@/components/Team/TeamManagementView';
 import { TeamManagementProvider } from '@/contexts/TeamManagementContext';
