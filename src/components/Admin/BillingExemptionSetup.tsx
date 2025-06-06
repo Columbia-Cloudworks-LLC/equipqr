@@ -45,8 +45,8 @@ export function BillingExemptionSetup() {
         <div className="space-y-2">
           <h3 className="font-semibold">Exemptions to be created:</h3>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-            <li>3-A Equipment (info@3aequipment.com): Partial exemption (first 5 users free)</li>
-            <li>Columbia Cloudworks (admin@columbiacloudworks.com): Full exemption (all billing waived)</li>
+            <li>3-A Equipment (matt@3aequip.com): Partial exemption (first 5 users free)</li>
+            <li>Columbia Cloudworks (nicholas.king@columbiacloudworks.com): Full exemption (all billing waived)</li>
           </ul>
         </div>
 
