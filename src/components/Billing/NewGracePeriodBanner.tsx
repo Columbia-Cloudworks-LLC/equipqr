@@ -16,8 +16,16 @@ export function NewGracePeriodBanner() {
   const [isUpgrading, setIsUpgrading] = React.useState(false);
   const isMobile = useIsMobile();
 
-  // Don't show banner if loading or no grace period
-  if (isLoading || !gracePeriodInfo?.has_grace_period || !gracePeriodInfo?.is_active) {
+  // Don't show banner if loading, no grace period, or has active subscription
+  if (isLoading || 
+      !gracePeriodInfo?.has_grace_period || 
+      !gracePeriodInfo?.is_active ||
+      billingInfo?.has_active_subscription) {
+    return null;
+  }
+
+  // Don't show if billing is not required (no equipment or no billable users)
+  if (!billingInfo?.billing_required) {
     return null;
   }
 
@@ -72,7 +80,7 @@ export function NewGracePeriodBanner() {
   const billableUsers = billingInfo?.billable_users || 0;
   const monthlyCost = billingInfo ? (billingInfo.monthly_cost_cents / 100) : 0;
   
-  // Format the user text with link
+  // Format the user text
   const userText = isMobile 
     ? `${userCount} user${userCount !== 1 ? 's' : ''}`
     : `${userCount} user${userCount !== 1 ? 's' : ''}`;

@@ -12,6 +12,7 @@ import { QuickLinksCard } from '@/components/Dashboard/QuickLinksCard';
 import { DashboardEquipmentMap } from '@/components/Dashboard/DashboardEquipmentMap';
 import { InvitationAlert } from '@/components/Dashboard/InvitationAlert';
 import { NewGracePeriodBanner } from '@/components/Billing/NewGracePeriodBanner';
+import { ActiveBillingBanner } from '@/components/Billing/ActiveBillingBanner';
 import { Loader2, Package, Users, Activity, Wrench } from 'lucide-react';
 
 export default function Index() {
@@ -86,6 +87,7 @@ export default function Index() {
   return (
     <Layout>
       <div className="container mx-auto p-6 space-y-6">
+        <ActiveBillingBanner />
         <NewGracePeriodBanner />
         <InvitationAlert invitations={invitations} />
         
