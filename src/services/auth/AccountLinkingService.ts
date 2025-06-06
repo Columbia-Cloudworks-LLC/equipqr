@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -15,13 +16,13 @@ export class AccountLinkingService {
   ): Promise<{ success: boolean; token?: string; error?: string }> {
     try {
       // Check if the existing user exists by looking up their profile
-      const { data: existingProfile, error: profileError } = await supabase
+      const profileResult = await supabase
         .from('user_profiles')
         .select('id')
         .eq('email', existingEmail)
-        .single() as { data: { id: string } | null; error: any };
+        .single();
       
-      if (profileError || !existingProfile) {
+      if (profileResult.error || !profileResult.data) {
         return { success: false, error: 'Existing user not found' };
       }
 
@@ -36,7 +37,7 @@ export class AccountLinkingService {
       const { data, error } = await supabase
         .from('account_link_requests')
         .insert({
-          existing_user_id: existingProfile.id,
+          existing_user_id: profileResult.data.id,
           new_provider: newProvider,
           new_provider_email: newProviderEmail,
           verification_token: tokenData,
