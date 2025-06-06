@@ -123,7 +123,7 @@ serve(async (req) => {
     const hasBillableUsers = billingInfo?.billable_users > 0;
     const billingRequired = hasEquipment && hasBillableUsers;
     const exemptionApplied = billingInfo?.exemption_applied || false;
-    const hasFullExemption = orgExemption?.exemption_type === 'full';
+    const hasFullExemption = billingInfo?.exemption_applied && billingInfo?.exemption_details?.exemption_type === 'full';
 
     logStep("Billing status determination", {
       hasActiveSubscription,
@@ -131,7 +131,8 @@ serve(async (req) => {
       hasBillableUsers,
       billingRequired,
       exemptionApplied,
-      hasFullExemption
+      hasFullExemption,
+      exemptionDetails: billingInfo?.exemption_details
     });
 
     // Enhanced grace period info with exemption awareness

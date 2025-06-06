@@ -16,7 +16,7 @@ export function NewGracePeriodBanner() {
   const [isUpgrading, setIsUpgrading] = React.useState(false);
   const isMobile = useIsMobile();
 
-  // Enhanced logging for debugging
+  // Enhanced logging for debugging exemption detection
   console.log('[NewGracePeriodBanner] Render state:', {
     isLoading,
     gracePeriodInfo,
@@ -27,7 +27,7 @@ export function NewGracePeriodBanner() {
     billingRequired: billingInfo?.billing_required,
     exemptionApplied: billingInfo?.exemption_applied,
     exemptionType: billingInfo?.exemption_details?.exemption_type,
-    hasFullExemption: gracePeriodInfo?.has_full_exemption
+    hasFullExemption: billingInfo?.exemption_applied && billingInfo?.exemption_details?.exemption_type === 'full'
   });
 
   // Don't show banner if loading
@@ -48,9 +48,9 @@ export function NewGracePeriodBanner() {
     return null;
   }
 
-  // Don't show banner if organization has full exemption
+  // Don't show banner if organization has full exemption (CRITICAL FIX)
   if (billingInfo?.exemption_applied && billingInfo?.exemption_details?.exemption_type === 'full') {
-    console.log('[NewGracePeriodBanner] Not showing: full exemption applied');
+    console.log('[NewGracePeriodBanner] Not showing: full exemption applied - exemption_type:', billingInfo?.exemption_details?.exemption_type);
     return null;
   }
 

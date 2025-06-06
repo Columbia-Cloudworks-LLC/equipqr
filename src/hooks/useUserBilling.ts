@@ -35,6 +35,7 @@ interface GracePeriodInfo {
   equipment_count: number;
   billing_required: boolean;
   exemption_aware?: boolean;
+  has_full_exemption?: boolean;
 }
 
 interface UseUserBillingResult {
