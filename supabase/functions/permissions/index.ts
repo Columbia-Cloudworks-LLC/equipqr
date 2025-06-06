@@ -87,12 +87,12 @@ async function checkEquipmentPermissions(
       // Simplified delete permission check for organization ownership
       console.log('Checking delete permission for equipment:', resourceId);
       
-      // Get equipment organization
+      // Get equipment organization - FIX: Use .is() for NULL check
       const { data: equipmentData, error: equipmentError } = await supabase
         .from('equipment')
         .select('org_id')
         .eq('id', resourceId)
-        .eq('deleted_at', null)
+        .is('deleted_at', null)
         .single();
       
       if (equipmentError || !equipmentData) {
