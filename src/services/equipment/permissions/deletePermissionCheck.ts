@@ -34,27 +34,19 @@ export async function checkDeletePermission(equipmentId: string): Promise<Permis
       };
     }
     
-    // Additional check: Only the organization that owns equipment can delete it
+    // Get equipment details for additional context
     const { data: equipment } = await supabase
       .from('equipment')
       .select('org_id, team_id')
       .eq('id', equipmentId)
       .single();
     
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', authUserId)
-      .single();
-    
-    const isOrgOwner = userProfile && equipment && userProfile.org_id === equipment.org_id;
-    
     return {
       authUserId,
       teamId: equipment?.team_id || null,
       orgId: equipment?.org_id || null,
-      hasPermission: (data?.has_permission || false) && isOrgOwner,
-      reason: isOrgOwner ? (data?.reason || 'Permission granted') : 'Only the equipment owner organization can delete equipment'
+      hasPermission: data?.has_permission || false,
+      reason: data?.reason || 'Permission check completed'
     };
   } catch (error: any) {
     console.error('Error checking delete permission:', error);

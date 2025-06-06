@@ -25,7 +25,7 @@ export async function deleteEquipment(id: string): Promise<boolean> {
     const authUserId = sessionData.session.user.id;
     console.log('Deleting equipment:', id, 'User:', authUserId);
     
-    // Check access using unified permissions function
+    // Check access using unified permissions function with delete action
     const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('permissions', {
       body: {
         userId: authUserId,
@@ -36,15 +36,15 @@ export async function deleteEquipment(id: string): Promise<boolean> {
     });
     
     if (permissionError) {
-      console.error('Error checking equipment access:', permissionError);
+      console.error('Error checking equipment delete permission:', permissionError);
       throw new Error(`Access check failed: ${permissionError.message}`);
     }
     
-    console.log('Permission check response:', permissionCheck);
+    console.log('Delete permission check response:', permissionCheck);
     
     if (!permissionCheck || !permissionCheck.has_permission) {
       const reason = permissionCheck?.reason || 'unknown';
-      console.error('Access denied:', reason);
+      console.error('Delete access denied:', reason);
       throw new Error('You do not have permission to delete this equipment');
     }
     
