@@ -68,7 +68,7 @@ export function useAuthPage() {
   const handleTroubleshooting = async () => {
     try {
       setIsLoading(true);
-      const recovered = await sessionRecovery.attemptRecovery();
+      const recovered = await sessionRecovery.attemptSessionRecovery();
       if (recovered) {
         setMessage('Session recovered successfully! Please try again.');
       } else {
