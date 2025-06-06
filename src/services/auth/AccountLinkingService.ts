@@ -16,7 +16,8 @@ export class AccountLinkingService {
   ): Promise<{ success: boolean; token?: string; error?: string }> {
     try {
       // Check if the existing user exists by looking up their profile
-      const profileResult = await supabase
+      // Use explicit typing to avoid deep type instantiation
+      const profileResult: { data: { id: string } | null; error: any } = await supabase
         .from('user_profiles')
         .select('id')
         .eq('email', existingEmail)
