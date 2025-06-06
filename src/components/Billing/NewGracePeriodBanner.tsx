@@ -16,18 +16,51 @@ export function NewGracePeriodBanner() {
   const [isUpgrading, setIsUpgrading] = React.useState(false);
   const isMobile = useIsMobile();
 
-  // Don't show banner if loading, no grace period, or has active subscription
-  if (isLoading || 
-      !gracePeriodInfo?.has_grace_period || 
-      !gracePeriodInfo?.is_active ||
-      billingInfo?.has_active_subscription) {
+  // Enhanced logging for debugging
+  console.log('[NewGracePeriodBanner] Render state:', {
+    isLoading,
+    gracePeriodInfo,
+    billingInfo,
+    hasGracePeriod: gracePeriodInfo?.has_grace_period,
+    isActive: gracePeriodInfo?.is_active,
+    hasActiveSubscription: billingInfo?.has_active_subscription,
+    billingRequired: billingInfo?.billing_required,
+    exemptionApplied: billingInfo?.exemption_applied,
+    exemptionType: billingInfo?.exemption_details?.exemption_type,
+    hasFullExemption: gracePeriodInfo?.has_full_exemption
+  });
+
+  // Don't show banner if loading
+  if (isLoading) {
+    console.log('[NewGracePeriodBanner] Not showing: loading');
     return null;
   }
 
-  // Don't show if billing is not required (no equipment or no billable users)
-  if (!billingInfo?.billing_required) {
+  // Don't show banner if has active subscription
+  if (billingInfo?.has_active_subscription) {
+    console.log('[NewGracePeriodBanner] Not showing: has active subscription');
     return null;
   }
+
+  // Don't show banner if billing is not required (no equipment or no billable users)
+  if (!billingInfo?.billing_required) {
+    console.log('[NewGracePeriodBanner] Not showing: billing not required');
+    return null;
+  }
+
+  // Don't show banner if organization has full exemption
+  if (billingInfo?.exemption_applied && billingInfo?.exemption_details?.exemption_type === 'full') {
+    console.log('[NewGracePeriodBanner] Not showing: full exemption applied');
+    return null;
+  }
+
+  // Don't show banner if no grace period exists or is not active
+  if (!gracePeriodInfo?.has_grace_period || !gracePeriodInfo?.is_active) {
+    console.log('[NewGracePeriodBanner] Not showing: no grace period or not active');
+    return null;
+  }
+
+  console.log('[NewGracePeriodBanner] Showing banner');
 
   const daysRemaining = gracePeriodInfo.days_remaining || 0;
   const isUrgent = daysRemaining <= 7;
@@ -76,7 +109,7 @@ export function NewGracePeriodBanner() {
   };
 
   // Get user count and monthly cost from billing info
-  const userCount = billingInfo?.total_users || gracePeriodInfo?.equipment_count || 0;
+  const userCount = billingInfo?.total_users || 0;
   const billableUsers = billingInfo?.billable_users || 0;
   const monthlyCost = billingInfo ? (billingInfo.monthly_cost_cents / 100) : 0;
   
@@ -96,18 +129,14 @@ export function NewGracePeriodBanner() {
     const exemptionType = exemptionDetails?.exemption_type;
     const freeUserCount = exemptionDetails?.free_user_count;
     
-    if (exemptionType === 'full') {
-      bannerTitle = isUrgent ? 'Grace Period Ending Soon' : 'Billing Exemption Active';
-      bannerMessage = `You have a full billing exemption. Your organization has ${userText}${costText}. ${isUrgent ? 'Complete setup to continue seamless service.' : 'No billing setup required during exemption period.'}`;
-      showSetupButton = isUrgent; // Only show setup button if urgent for full exemptions
-    } else if (exemptionType === 'partial') {
+    if (exemptionType === 'partial') {
       const exemptUsers = Math.min(userCount, freeUserCount || 0);
       const exemptText = `${exemptUsers} user${exemptUsers !== 1 ? 's' : ''} exempt`;
       bannerTitle = isUrgent ? 'Billing Setup Required' : 'Partial Exemption Active';
       bannerMessage = `You have a partial billing exemption (${exemptText}). Your organization has ${userText}${costText}. ${isUrgent ? 'Setup billing to avoid service interruption.' : 'Complete setup when ready.'}`;
     } else {
-      bannerTitle = isUrgent ? 'Billing Setup Required' : 'Grace Period Active';
-      bannerMessage = `Your organization has ${userText}${costText}. ${isUrgent ? 'Setup billing to avoid service interruption.' : 'Complete setup when ready.'}`;
+      bannerTitle = isUrgent ? 'Grace Period Ending Soon' : 'Grace Period Active';
+      bannerMessage = `Your organization has ${userText}${costText}. ${isUrgent ? 'Complete setup to continue seamless service.' : 'Complete setup when ready.'}`;
     }
   } else {
     bannerTitle = isUrgent ? 'Billing Setup Required' : 'Grace Period Active';

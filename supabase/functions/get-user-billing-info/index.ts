@@ -80,6 +80,17 @@ serve(async (req) => {
 
     logStep("Active subscription check", { activeSubscription, subscriptionError });
 
+    // Check for billing exemptions directly
+    const { data: orgExemption, error: exemptionError } = await supabaseClient
+      .from('organization_billing_exemptions')
+      .select('*')
+      .eq('org_id', org_id)
+      .eq('is_active', true)
+      .or('expires_at.is.null,expires_at.gt.now()')
+      .single();
+
+    logStep("Organization exemption check", { orgExemption, exemptionError });
+
     // Calculate user billing info with exemptions
     const { data: billingInfo, error: billingError } = await supabaseClient
       .rpc('calculate_org_user_billing_with_exemptions', {
@@ -90,6 +101,8 @@ serve(async (req) => {
       logStep("Error calculating billing info with exemptions", billingError);
       throw new Error("Failed to calculate billing information");
     }
+
+    logStep("Billing calculation result", billingInfo);
 
     // Get grace period info
     const { data: gracePeriodInfo, error: gracePeriodError } = await supabaseClient
@@ -102,21 +115,39 @@ serve(async (req) => {
       throw new Error("Failed to get grace period information");
     }
 
+    logStep("Grace period info", gracePeriodInfo);
+
     // Determine billing status
     const hasActiveSubscription = !!activeSubscription;
     const hasEquipment = billingInfo?.equipment_count > 0;
     const hasBillableUsers = billingInfo?.billable_users > 0;
     const billingRequired = hasEquipment && hasBillableUsers;
     const exemptionApplied = billingInfo?.exemption_applied || false;
+    const hasFullExemption = orgExemption?.exemption_type === 'full';
 
-    // Enhanced grace period info with subscription awareness
+    logStep("Billing status determination", {
+      hasActiveSubscription,
+      hasEquipment,
+      hasBillableUsers,
+      billingRequired,
+      exemptionApplied,
+      hasFullExemption
+    });
+
+    // Enhanced grace period info with exemption awareness
     const enhancedGracePeriodInfo = gracePeriodInfo ? {
       ...gracePeriodInfo,
-      // Grace period should be active if:
-      // 1. It's naturally active AND billing is required AND no active subscription
-      is_active: gracePeriodInfo.is_active && billingRequired && !hasActiveSubscription,
-      exemption_aware: exemptionApplied,
-      billing_required: billingRequired
+      // Grace period should NOT be active if:
+      // 1. Has active subscription OR
+      // 2. Has full exemption OR
+      // 3. No billing required (no equipment or no billable users)
+      is_active: gracePeriodInfo.is_active && 
+                 !hasActiveSubscription && 
+                 !hasFullExemption && 
+                 billingRequired,
+      exemption_aware: true,
+      billing_required: billingRequired,
+      has_full_exemption: hasFullExemption
     } : null;
 
     // Enhanced billing info with subscription status
@@ -136,7 +167,8 @@ serve(async (req) => {
       enhancedGracePeriodInfo,
       hasActiveSubscription,
       billingRequired,
-      exemptionApplied
+      exemptionApplied,
+      hasFullExemption
     });
 
     return new Response(JSON.stringify({
