@@ -15,17 +15,20 @@ export class AccountLinkingService {
     newProviderEmail: string
   ): Promise<{ success: boolean; token?: string; error?: string }> {
     try {
-      // Check if the existing user exists by looking up their profile
-      // Use explicit typing to avoid deep type instantiation
-      const profileResult: { data: { id: string } | null; error: any } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('email', existingEmail)
-        .single();
+      // Use RPC function to avoid TypeScript deep instantiation issues
+      const { data: userLookupData, error: userLookupError } = await supabase
+        .rpc('lookup_user_by_email', { p_email: existingEmail });
       
-      if (profileResult.error || !profileResult.data) {
+      if (userLookupError) {
+        console.error('Error looking up user:', userLookupError);
+        return { success: false, error: 'Failed to lookup existing user' };
+      }
+
+      if (!userLookupData || userLookupData.length === 0) {
         return { success: false, error: 'Existing user not found' };
       }
+
+      const existingUserId = userLookupData[0].user_id;
 
       // Generate verification token
       const { data: tokenData, error: tokenError } = await supabase.rpc('generate_verification_token');
@@ -38,7 +41,7 @@ export class AccountLinkingService {
       const { data, error } = await supabase
         .from('account_link_requests')
         .insert({
-          existing_user_id: profileResult.data.id,
+          existing_user_id: existingUserId,
           new_provider: newProvider,
           new_provider_email: newProviderEmail,
           verification_token: tokenData,
