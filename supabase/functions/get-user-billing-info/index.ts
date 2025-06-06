@@ -80,18 +80,7 @@ serve(async (req) => {
 
     logStep("Active subscription check", { activeSubscription, subscriptionError });
 
-    // Check for billing exemptions directly
-    const { data: orgExemption, error: exemptionError } = await supabaseClient
-      .from('organization_billing_exemptions')
-      .select('*')
-      .eq('org_id', org_id)
-      .eq('is_active', true)
-      .or('expires_at.is.null,expires_at.gt.now()')
-      .single();
-
-    logStep("Organization exemption check", { orgExemption, exemptionError });
-
-    // Calculate user billing info with exemptions
+    // Calculate user billing info with exemptions using the fixed function
     const { data: billingInfo, error: billingError } = await supabaseClient
       .rpc('calculate_org_user_billing_with_exemptions', {
         p_org_id: org_id
@@ -123,7 +112,7 @@ serve(async (req) => {
     const hasBillableUsers = billingInfo?.billable_users > 0;
     const billingRequired = hasEquipment && hasBillableUsers;
     const exemptionApplied = billingInfo?.exemption_applied || false;
-    const hasFullExemption = billingInfo?.exemption_applied && billingInfo?.exemption_details?.exemption_type === 'full';
+    const hasFullExemption = exemptionApplied && billingInfo?.exemption_details?.exemption_type === 'full';
 
     logStep("Billing status determination", {
       hasActiveSubscription,
