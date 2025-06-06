@@ -5,9 +5,9 @@ import { createEquipment } from './equipmentCreateService';
 import { saveEquipmentAttributes } from './attributesService';
 
 /**
- * Get the app_user ID for the current authenticated user
+ * Get the current authenticated user's ID (auth.users.id)
  */
-async function getCurrentAppUserId(): Promise<string> {
+async function getCurrentAuthUserId(): Promise<string> {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   
   if (sessionError) {
@@ -20,21 +20,7 @@ async function getCurrentAppUserId(): Promise<string> {
     throw new Error('User must be logged in to duplicate equipment');
   }
 
-  const authUserId = sessionData.session.user.id;
-  
-  // Get the app_user ID that corresponds to this auth user
-  const { data: appUser, error: appUserError } = await supabase
-    .from('app_user')
-    .select('id')
-    .eq('auth_uid', authUserId)
-    .single();
-    
-  if (appUserError || !appUser) {
-    console.error('Error finding app_user record:', appUserError);
-    throw new Error('User profile not found');
-  }
-  
-  return appUser.id;
+  return sessionData.session.user.id;
 }
 
 /**
@@ -72,8 +58,8 @@ export async function duplicateEquipment(equipmentId: string): Promise<{ equipme
   try {
     console.log('Starting equipment duplication for ID:', equipmentId);
     
-    // Get current app_user ID (not auth user ID)
-    const currentAppUserId = await getCurrentAppUserId();
+    // Get current auth user ID (auth.users.id) - no mapping needed
+    const currentAuthUserId = await getCurrentAuthUserId();
     
     // Get the original equipment with all its details
     const originalEquipment = await getEquipmentById(equipmentId);
@@ -98,10 +84,11 @@ export async function duplicateEquipment(equipmentId: string): Promise<{ equipme
       notes: originalEquipment.notes,
       install_date: originalEquipment.install_date,
       warranty_expiration: originalEquipment.warranty_expiration,
-      created_by: currentAppUserId, // Use app_user.id, not auth.users.id
+      created_by: currentAuthUserId, // Use auth.users.id directly
     };
     
     console.log('Creating duplicate equipment with data:', duplicateData);
+    console.log('Using auth.users.id directly for created_by:', currentAuthUserId);
     
     // Create the new equipment record
     const createResult = await createEquipment(duplicateData);
