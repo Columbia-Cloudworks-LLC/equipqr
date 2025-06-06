@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { OrganizationSelector } from "@/components/Organization/OrganizationSelector";
-import { User, Building, LogOut, Shield } from "lucide-react";
+import { User, Building, LogOut } from "lucide-react";
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
@@ -38,9 +38,6 @@ export function UserMenu() {
   const handleOrganizationChange = (orgId: string) => {
     selectOrganization(orgId);
   };
-
-  // Check if current user is an organization owner for admin access
-  const isOrgOwner = selectedOrganization?.role === 'owner';
 
   return (
     <DropdownMenu>
@@ -82,12 +79,6 @@ export function UserMenu() {
             <Building className="mr-2 h-4 w-4" />
             <span>Organization</span>
           </DropdownMenuItem>
-          {isOrgOwner && (
-            <DropdownMenuItem onClick={() => navigate("/admin/exemptions")}>
-              <Shield className="mr-2 h-4 w-4" />
-              <span>Admin: Exemptions</span>
-            </DropdownMenuItem>
-          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>

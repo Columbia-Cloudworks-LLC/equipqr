@@ -25,7 +25,6 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import WorkOrders from './pages/WorkOrders';
 import WorkOrderDetail from './pages/WorkOrderDetail';
-import AdminExemptions from './pages/AdminExemptions';
 
 const AppRoutes = () => {
   const { user, isLoading } = useAuth();
@@ -68,7 +67,6 @@ const AppRoutes = () => {
       <Route path="/organization" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
       <Route path="/settings/organization" element={<Navigate to="/organization" replace />} />
       <Route path="/my-invitations" element={<ProtectedRoute><MyInvitations /></ProtectedRoute>} />
-      <Route path="/admin/exemptions" element={<ProtectedRoute><AdminExemptions /></ProtectedRoute>} />
       
       {/* Fallback routes */}
       <Route path="/404" element={<NotFound />} />
