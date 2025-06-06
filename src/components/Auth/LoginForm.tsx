@@ -12,7 +12,7 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, signInWithMicrosoft } = useAuth();
   const navigate = useNavigate();
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -32,6 +32,18 @@ export function LoginForm() {
     try {
       setIsLoading(true);
       await signInWithGoogle();
+      // Auth redirect will handle navigation
+    } catch (error) {
+      // Error is already handled in the auth context
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMicrosoftSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithMicrosoft();
       // Auth redirect will handle navigation
     } catch (error) {
       // Error is already handled in the auth context
@@ -91,15 +103,26 @@ export function LoginForm() {
             <span className="bg-card text-muted-foreground px-2">Or</span>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={handleGoogleSignIn}
-          disabled={isLoading}
-        >
-          Sign in with Google
-        </Button>
+        <div className="w-full space-y-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+          >
+            Sign in with Google
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleMicrosoftSignIn}
+            disabled={isLoading}
+          >
+            Sign in with Microsoft
+          </Button>
+        </div>
       </CardFooter>
     </form>
   );

@@ -201,6 +201,7 @@ export function useAuth() {
     isLoading,
     signIn,
     signInWithGoogle: authMethods.signInWithGoogle,
+    signInWithMicrosoft: authMethods.signInWithMicrosoft,
     signOut: authMethods.signOut,
     signUp: authMethods.signUp,
     resetPassword: authMethods.resetPassword,

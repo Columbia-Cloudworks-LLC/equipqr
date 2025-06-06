@@ -67,6 +67,41 @@ export class AuthMethods {
   }
 
   /**
+   * Sign in with Microsoft OAuth
+   */
+  public async signInWithMicrosoft(): Promise<void> {
+    try {
+      // Use window location for redirects for consistency
+      const siteUrl = window.location.origin;
+      const callbackUrl = `${siteUrl}/auth/callback`;
+      
+      console.log("AuthMethods: Microsoft sign-in using callback URL:", callbackUrl);
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: callbackUrl,
+          queryParams: {
+            prompt: 'select_account'
+          }
+        },
+      });
+
+      if (error) {
+        console.error('AuthMethods: Microsoft sign-in error:', error);
+        toast.error("Failed to sign in with Microsoft", {
+          description: error.message
+        });
+        throw error;
+      }
+    } catch (error) {
+      console.error('AuthMethods: Unexpected error during Microsoft sign-in:', error);
+      toast.error("An unexpected error occurred");
+      throw error;
+    }
+  }
+
+  /**
    * Create a new user account
    */
   public async signUp(email: string, password: string, userData?: any): Promise<void> {

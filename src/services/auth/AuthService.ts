@@ -129,6 +129,13 @@ export class AuthService {
   }
 
   /**
+   * Sign in with Microsoft OAuth
+   */
+  public async signInWithMicrosoft(): Promise<void> {
+    return authMethods.signInWithMicrosoft();
+  }
+
+  /**
    * Create a new user account
    */
   public async signUp(email: string, password: string, userData?: any): Promise<void> {

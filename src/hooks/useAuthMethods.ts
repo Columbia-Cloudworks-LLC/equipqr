@@ -47,6 +47,43 @@ export function useAuthMethods() {
   };
 
   /**
+   * Sign in with Microsoft OAuth
+   */
+  const signInWithMicrosoft = async () => {
+    try {
+      // Get the correct site URL for redirects
+      const siteUrl = getSiteUrl();
+      const callbackUrl = getAuthCallbackUrl();
+      
+      console.log("Microsoft sign-in using site URL:", siteUrl);
+      console.log("Microsoft sign-in using callback URL:", callbackUrl);
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: callbackUrl,
+          queryParams: {
+            // Add prompt parameter for consistent login experience
+            prompt: 'select_account'
+          }
+        },
+      });
+
+      if (error) {
+        console.error('Microsoft sign-in error:', error);
+        toast.error("Failed to sign in with Microsoft", {
+          description: error.message
+        });
+        throw error;
+      }
+    } catch (error) {
+      console.error('Unexpected error during Microsoft sign-in:', error);
+      toast.error("An unexpected error occurred");
+      throw error;
+    }
+  };
+
+  /**
    * Sign in with email and password
    */
   const signIn = async (email: string, password: string): Promise<Session | null> => {
@@ -177,6 +214,7 @@ export function useAuthMethods() {
 
   return {
     signInWithGoogle,
+    signInWithMicrosoft,
     signIn,
     signUp,
     resetPassword,

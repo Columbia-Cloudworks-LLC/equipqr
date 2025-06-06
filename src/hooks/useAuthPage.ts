@@ -1,126 +1,102 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-
-export interface AuthPageState {
-  returnTo?: string;
-  message?: string;
-  isInvitation?: boolean;
-  invitationType?: 'team' | 'organization';
-}
+import { useAuth } from '@/contexts/AuthContext';
+import { sessionRecovery } from '@/services/auth/SessionRecovery';
 
 export function useAuthPage() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
-  const [email, setEmail] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [shouldRedirect, setShouldRedirect] = useState<boolean>(false);
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   
-  const { signInWithGoogle, resetAuthSystem, user, session } = useAuth();
+  const { user, session, signInWithGoogle, signInWithMicrosoft } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // Extract state information
-  const state = location.state as AuthPageState | undefined;
-  
-  const message = state?.message;
-  const isInvitation = state?.isInvitation;
-  const invitationType = state?.invitationType;
-  const returnTo = state?.returnTo || localStorage.getItem('authReturnTo') || '/';
-  
-  // Check for invitation in session storage and set the tab appropriately
-  useEffect(() => {
-    // Try to get invitation details from session storage
-    const invitationPath = sessionStorage.getItem('invitationPath');
-    const invitationType = sessionStorage.getItem('invitationType');
 
-    // If there's an invitation pending (either from state or session storage), default to signup tab for new users
-    if ((invitationPath || isInvitation) && !document.cookie.includes('sb-')) {
-      // Only switch to signup if there's no auth cookie, suggesting this is a new user
+  // Check URL parameters for messages and invitation state
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const errorMessage = urlParams.get('error_description') || urlParams.get('error');
+    const invitationPath = sessionStorage.getItem('invitationPath');
+    
+    if (errorMessage) {
+      setMessage(errorMessage);
+    }
+    
+    // Set initial tab based on URL or presence of invitation
+    const tab = urlParams.get('tab');
+    if (tab === 'signup' || invitationPath) {
       setActiveTab('signup');
     }
-  }, [isInvitation]);
-  
-  // Handle authentication check and redirect logic
-  useEffect(() => {
-    const checkAndRedirect = async () => {
-      // Mark as initialized after first check
-      if (!isInitialized) {
-        setIsInitialized(true);
-        return;
-      }
-      
-      // Check if user is already authenticated and should be redirected
-      if (user && session) {
-        console.log("Auth page: User already authenticated, setting redirect flag");
-        setShouldRedirect(true);
-      }
-    };
     
-    checkAndRedirect();
-  }, [user, session, isInitialized]);
-  
-  // Handle the actual redirect in a separate effect to avoid early returns
+    setIsInitialized(true);
+  }, [location]);
+
+  // Redirect authenticated users
   useEffect(() => {
-    if (shouldRedirect && isInitialized) {
-      console.log("Auth page: Redirecting to", returnTo);
+    if (user && session && isInitialized) {
+      const returnTo = localStorage.getItem('authReturnTo') || '/';
+      localStorage.removeItem('authReturnTo');
       navigate(returnTo, { replace: true });
     }
-  }, [shouldRedirect, isInitialized, navigate, returnTo]);
-  
+  }, [user, session, isInitialized, navigate]);
+
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
       await signInWithGoogle();
-      // AuthRedirect will handle navigation once authenticated
     } catch (error) {
-      // Error handled in auth context
-      console.error("Google sign-in error:", error);
+      // Error handling is done in the auth context
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle troubleshooting button click
-  const handleTroubleshooting = () => {
-    resetAuthSystem();
-    toast.success("Authentication system reset", {
-      description: "All authentication data has been cleared. Please try signing in again."
-    });
-    
-    // Reset redirect count to prevent redirect loops
-    sessionStorage.removeItem('authRedirectCount');
-    setIsInitialized(false);
-    setShouldRedirect(false);
+  const handleMicrosoftSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithMicrosoft();
+    } catch (error) {
+      // Error handling is done in the auth context
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Handle tab change
+  const handleTroubleshooting = async () => {
+    try {
+      setIsLoading(true);
+      const recovered = await sessionRecovery.attemptRecovery();
+      if (recovered) {
+        setMessage('Session recovered successfully! Please try again.');
+      } else {
+        setMessage('Unable to recover session. Please try signing in again.');
+      }
+    } catch (error) {
+      setMessage('Recovery attempt failed. Please try refreshing the page.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleTabChange = (value: string) => {
     setActiveTab(value as 'login' | 'signup');
+    setMessage(null); // Clear any existing messages when switching tabs
   };
 
-  // Get page title and description based on invitation context
-  const getPageContent = () => {
-    if (isInvitation) {
-      const entityType = state?.invitationType || sessionStorage.getItem('invitationType') || 'team';
-      
-      return {
-        title: `Accept ${entityType.charAt(0).toUpperCase() + entityType.slice(1)} Invitation`,
-        description: `Sign in or create an account to accept your ${entityType} invitation`,
-        message: message || `You need to sign in or create an account to accept this ${entityType} invitation`
-      };
-    }
-    
-    return {
-      title: 'Welcome to EquipQR',
-      description: activeTab === 'login' 
-        ? 'Sign in to your account to continue' 
-        : 'Create an account to get started',
-      message
-    };
-  };
+  // Determine page title and description
+  const isInvitation = !!sessionStorage.getItem('invitationPath');
+  const pageTitle = isInvitation
+    ? (activeTab === 'signup' ? 'Accept Invitation' : 'Sign In to Continue')
+    : (activeTab === 'signup' ? 'Create Account' : 'Welcome Back');
+  
+  const pageDescription = isInvitation
+    ? 'Complete your account setup to join the team'
+    : (activeTab === 'signup' 
+        ? 'Create your equipqr account to get started' 
+        : 'Sign in to your equipqr account');
 
   return {
     activeTab,
@@ -128,15 +104,15 @@ export function useAuthPage() {
     email,
     setEmail,
     isLoading,
-    setIsLoading,
     isInitialized,
     user,
     session,
-    message: getPageContent().message,
-    pageTitle: getPageContent().title,
-    pageDescription: getPageContent().description,
+    message,
+    pageTitle,
+    pageDescription,
     isInvitation,
     handleGoogleSignIn,
+    handleMicrosoftSignIn,
     handleTroubleshooting,
     handleTabChange
   };

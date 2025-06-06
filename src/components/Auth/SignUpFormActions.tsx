@@ -2,13 +2,15 @@
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
 import { GoogleSignInButton } from "./GoogleSignInButton";
+import { MicrosoftSignInButton } from "./MicrosoftSignInButton";
 
 interface SignUpFormActionsProps {
   isLoading: boolean;
   handleGoogleSignIn: () => Promise<void>;
+  handleMicrosoftSignIn: () => Promise<void>;
 }
 
-export function SignUpFormActions({ isLoading, handleGoogleSignIn }: SignUpFormActionsProps) {
+export function SignUpFormActions({ isLoading, handleGoogleSignIn, handleMicrosoftSignIn }: SignUpFormActionsProps) {
   return (
     <CardFooter className="flex-col gap-4">
       <Button
@@ -26,7 +28,10 @@ export function SignUpFormActions({ isLoading, handleGoogleSignIn }: SignUpFormA
           <span className="bg-card text-muted-foreground px-2">Or</span>
         </div>
       </div>
-      <GoogleSignInButton onClick={handleGoogleSignIn} isLoading={isLoading} />
+      <div className="w-full space-y-2">
+        <GoogleSignInButton onClick={handleGoogleSignIn} isLoading={isLoading} />
+        <MicrosoftSignInButton onClick={handleMicrosoftSignIn} isLoading={isLoading} />
+      </div>
     </CardFooter>
   );
 }

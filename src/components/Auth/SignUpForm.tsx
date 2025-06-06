@@ -9,6 +9,7 @@ interface SignUpFormProps {
   email: string;
   setEmail: (email: string) => void;
   handleGoogleSignIn: () => Promise<void>;
+  handleMicrosoftSignIn: () => Promise<void>;
   isLoading: boolean;
   onBackToLogin: () => void;
 }
@@ -16,7 +17,8 @@ interface SignUpFormProps {
 export function SignUpForm({ 
   email: initialEmail, 
   setEmail, 
-  handleGoogleSignIn, 
+  handleGoogleSignIn,
+  handleMicrosoftSignIn,
   isLoading, 
   onBackToLogin 
 }: SignUpFormProps) {
@@ -58,6 +60,7 @@ export function SignUpForm({
       <SignUpFormActions
         isLoading={isLoading}
         handleGoogleSignIn={handleGoogleSignIn}
+        handleMicrosoftSignIn={handleMicrosoftSignIn}
       />
     </form>
   );

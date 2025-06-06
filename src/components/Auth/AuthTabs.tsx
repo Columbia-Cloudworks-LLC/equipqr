@@ -10,6 +10,7 @@ interface AuthTabsProps {
   email: string;
   setEmail: (email: string) => void;
   handleGoogleSignIn: () => Promise<void>;
+  handleMicrosoftSignIn: () => Promise<void>;
   isLoading: boolean;
   handleTroubleshooting: () => void;
   onBackToLogin: () => void;
@@ -21,6 +22,7 @@ export function AuthTabs({
   email,
   setEmail,
   handleGoogleSignIn,
+  handleMicrosoftSignIn,
   isLoading,
   handleTroubleshooting,
   onBackToLogin
@@ -40,6 +42,7 @@ export function AuthTabs({
             email={email}
             setEmail={setEmail}
             handleGoogleSignIn={handleGoogleSignIn}
+            handleMicrosoftSignIn={handleMicrosoftSignIn}
             isLoading={isLoading}
             onBackToLogin={onBackToLogin}
           />

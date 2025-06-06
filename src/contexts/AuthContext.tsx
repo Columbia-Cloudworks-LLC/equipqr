@@ -10,6 +10,7 @@ interface AuthContextType {
   user: Session['user'] | null;
   isLoading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithMicrosoft: () => Promise<void>;
   signOut: () => Promise<void>;
   checkSession: () => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<Session | null>;
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   signInWithGoogle: async () => {},
+  signInWithMicrosoft: async () => {},
   signOut: async () => {},
   checkSession: async () => false,
   signIn: async () => null,
@@ -40,7 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user, 
     session, 
     isLoading, 
-    signInWithGoogle, 
+    signInWithGoogle,
+    signInWithMicrosoft,
     signIn, 
     signUp, 
     resetPassword, 
@@ -56,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     signInWithGoogle,
+    signInWithMicrosoft,
     signIn,
     signUp,
     resetPassword,

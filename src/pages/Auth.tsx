@@ -21,6 +21,7 @@ export default function Auth() {
     pageDescription,
     isInvitation,
     handleGoogleSignIn,
+    handleMicrosoftSignIn,
     handleTroubleshooting,
     handleTabChange
   } = useAuthPage();
@@ -53,6 +54,7 @@ export default function Auth() {
               email={email}
               setEmail={setEmail}
               handleGoogleSignIn={handleGoogleSignIn}
+              handleMicrosoftSignIn={handleMicrosoftSignIn}
               isLoading={isLoading}
               handleTroubleshooting={handleTroubleshooting}
               onBackToLogin={() => setActiveTab('login')}
