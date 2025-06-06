@@ -9,10 +9,10 @@ export async function setupBillingExemptions() {
     console.log('Setting up partial exemption for 3-A Equipment...');
     const { data: data1, error: error1 } = await supabase.functions.invoke('setup-billing-exemption', {
       body: {
-        email: 'owner@3aequipment.com', // Using a representative email for 3-A Equipment
+        email: 'info@3aequipment.com', // Updated to a more professional email
         exemption_type: 'partial',
         free_user_count: 5,
-        reason: 'Promotional exemption - First 5 users free for 3-A Equipment'
+        reason: 'Partnership exemption - First 5 users free for 3-A Equipment'
       }
     });
 
@@ -27,9 +27,9 @@ export async function setupBillingExemptions() {
     console.log('Setting up full exemption for Columbia Cloudworks...');
     const { data: data2, error: error2 } = await supabase.functions.invoke('setup-billing-exemption', {
       body: {
-        email: 'owner@columbiacloudworks.com', // Using a representative email for Columbia Cloudworks
+        email: 'admin@columbiacloudworks.com', // Updated to a more professional email
         exemption_type: 'full',
-        reason: 'Permanent billing exemption for Columbia Cloudworks'
+        reason: 'Strategic partnership - Full billing exemption for Columbia Cloudworks'
       }
     });
 
