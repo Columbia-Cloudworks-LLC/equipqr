@@ -23,9 +23,9 @@ export async function deleteEquipment(id: string): Promise<boolean> {
     }
     
     const authUserId = sessionData.session.user.id;
-    console.log('Deleting equipment:', id, 'User:', authUserId);
+    console.log('Delete request:', { equipmentId: id, userId: authUserId });
     
-    // Check access using unified permissions function with delete action
+    // Check delete permission using the simplified approach
     const { data: permissionCheck, error: permissionError } = await supabase.functions.invoke('permissions', {
       body: {
         userId: authUserId,
@@ -36,30 +36,44 @@ export async function deleteEquipment(id: string): Promise<boolean> {
     });
     
     if (permissionError) {
-      console.error('Error checking equipment delete permission:', permissionError);
-      throw new Error(`Access check failed: ${permissionError.message}`);
+      console.error('Permission check failed:', permissionError);
+      throw new Error(`Permission check failed: ${permissionError.message}`);
     }
     
-    console.log('Delete permission check response:', permissionCheck);
+    console.log('Delete permission result:', permissionCheck);
     
-    if (!permissionCheck || !permissionCheck.has_permission) {
-      const reason = permissionCheck?.reason || 'unknown';
-      console.error('Delete access denied:', reason);
-      throw new Error('You do not have permission to delete this equipment');
+    if (!permissionCheck?.has_permission) {
+      const reason = permissionCheck?.reason || 'unknown reason';
+      console.error('Delete permission denied:', { reason, userId: authUserId, equipmentId: id });
+      
+      // Provide more specific error messages
+      if (reason.includes('not found')) {
+        throw new Error('Equipment not found or has been deleted');
+      } else if (reason.includes('organization')) {
+        throw new Error('You can only delete equipment owned by your organization');
+      } else if (reason.includes('role')) {
+        throw new Error('Insufficient permissions: Only organization owners, managers, and admins can delete equipment');
+      } else {
+        throw new Error(`Delete permission denied: ${reason}`);
+      }
     }
     
-    // Soft delete by setting deleted_at
-    const { error } = await supabase
+    console.log('Permission granted, proceeding with deletion');
+    
+    // Perform the soft delete
+    const { error: deleteError } = await supabase
       .from('equipment')
       .update({
         deleted_at: new Date().toISOString(),
       })
       .eq('id', id);
       
-    if (error) {
-      console.error('Error deleting equipment:', error);
-      throw error;
+    if (deleteError) {
+      console.error('Database delete error:', deleteError);
+      throw new Error(`Failed to delete equipment: ${deleteError.message}`);
     }
+    
+    console.log('Equipment successfully deleted:', id);
     
     // Set cache busting flag for equipment list refresh
     try {
@@ -71,9 +85,10 @@ export async function deleteEquipment(id: string): Promise<boolean> {
     toast.success('Equipment deleted successfully');
     return true;
   } catch (error) {
-    console.error('Error in deleteEquipment:', error);
+    console.error('Equipment deletion failed:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     toast.error('Failed to delete equipment', {
-      description: error instanceof Error ? error.message : 'An unknown error occurred'
+      description: errorMessage
     });
     throw error;
   }

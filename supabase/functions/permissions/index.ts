@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
@@ -84,7 +83,67 @@ async function checkEquipmentPermissions(
       };
     }
     
-    if ((action === 'read' || action === 'edit' || action === 'delete') && resourceId) {
+    if (action === 'delete' && resourceId) {
+      // Simplified delete permission check for organization ownership
+      console.log('Checking delete permission for equipment:', resourceId);
+      
+      // Get equipment organization
+      const { data: equipmentData, error: equipmentError } = await supabase
+        .from('equipment')
+        .select('org_id')
+        .eq('id', resourceId)
+        .eq('deleted_at', null)
+        .single();
+      
+      if (equipmentError || !equipmentData) {
+        console.error('Equipment not found or error:', equipmentError);
+        return { has_permission: false, reason: 'Equipment not found' };
+      }
+      
+      // Get user's organization
+      const { data: userProfile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('org_id')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError || !userProfile) {
+        console.error('User profile not found or error:', profileError);
+        return { has_permission: false, reason: 'User profile not found' };
+      }
+      
+      // Check if user belongs to the same organization as equipment
+      if (userProfile.org_id !== equipmentData.org_id) {
+        console.log('User org mismatch:', userProfile.org_id, 'vs equipment org:', equipmentData.org_id);
+        return { has_permission: false, reason: 'User not in equipment organization' };
+      }
+      
+      // Check user's role in the organization
+      const { data: userRole, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('org_id', equipmentData.org_id)
+        .single();
+      
+      if (roleError || !userRole) {
+        console.error('User role not found or error:', roleError);
+        return { has_permission: false, reason: 'User role not found' };
+      }
+      
+      // Only owners, managers, and admins can delete equipment
+      const canDelete = ['owner', 'manager', 'admin'].includes(userRole.role);
+      console.log('Delete permission result:', canDelete, 'for role:', userRole.role);
+      
+      return {
+        has_permission: canDelete,
+        reason: canDelete ? 'sufficient_org_role' : 'insufficient_org_role',
+        role: userRole.role,
+        org_id: equipmentData.org_id
+      };
+    }
+    
+    if ((action === 'read' || action === 'edit') && resourceId) {
       // Equipment access/edit permission
       const rpcAction = action === 'read' ? 'view' : action;
       const { data, error } = await supabase.rpc('rpc_check_equipment_permission', {

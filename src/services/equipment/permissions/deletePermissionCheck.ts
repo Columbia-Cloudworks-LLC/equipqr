@@ -15,6 +15,7 @@ export async function checkDeletePermission(equipmentId: string): Promise<Permis
     
     const authUserId = sessionData.session.user.id;
     
+    // Use the unified permissions function
     const { data, error } = await supabase.functions.invoke('permissions', {
       body: {
         userId: authUserId,
@@ -34,7 +35,7 @@ export async function checkDeletePermission(equipmentId: string): Promise<Permis
       };
     }
     
-    // Get equipment details for additional context
+    // Get equipment details for context
     const { data: equipment } = await supabase
       .from('equipment')
       .select('org_id, team_id')
