@@ -16,7 +16,8 @@ export class AccountLinkingService {
   ): Promise<{ success: boolean; token?: string; error?: string }> {
     try {
       // Use RPC function to avoid TypeScript deep instantiation issues
-      const { data: userLookupData, error: userLookupError } = await supabase
+      // Cast to any to bypass TypeScript type restrictions for new RPC function
+      const { data: userLookupData, error: userLookupError } = await (supabase as any)
         .rpc('lookup_user_by_email', { p_email: existingEmail });
       
       if (userLookupError) {
@@ -24,7 +25,8 @@ export class AccountLinkingService {
         return { success: false, error: 'Failed to lookup existing user' };
       }
 
-      if (!userLookupData || userLookupData.length === 0) {
+      // Handle the response more defensively
+      if (!userLookupData || !Array.isArray(userLookupData) || userLookupData.length === 0) {
         return { success: false, error: 'Existing user not found' };
       }
 
