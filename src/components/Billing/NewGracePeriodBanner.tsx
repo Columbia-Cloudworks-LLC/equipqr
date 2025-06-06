@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Clock, AlertTriangle, CreditCard } from 'lucide-react';
@@ -10,7 +11,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export function NewGracePeriodBanner() {
-  const { gracePeriodInfo, isLoading, userRole } = useUserBilling();
+  const { billingInfo, gracePeriodInfo, isLoading, userRole } = useUserBilling();
   const { selectedOrganization } = useOrganization();
   const [isUpgrading, setIsUpgrading] = React.useState(false);
   const isMobile = useIsMobile();
@@ -64,13 +65,20 @@ export function NewGracePeriodBanner() {
     }
   };
 
-  const equipmentText = isMobile 
-    ? `${gracePeriodInfo.equipment_count} equipment item${gracePeriodInfo.equipment_count !== 1 ? 's' : ''}`
-    : `Your organization has ${gracePeriodInfo.equipment_count} equipment item${gracePeriodInfo.equipment_count !== 1 ? 's' : ''} that require${gracePeriodInfo.equipment_count === 1 ? 's' : ''} a subscription`;
+  // Get user count and monthly cost from billing info
+  const userCount = billingInfo?.total_users || gracePeriodInfo?.equipment_count || 0;
+  const monthlyCost = billingInfo ? (billingInfo.monthly_cost_cents / 100) : 0;
+  
+  // Format the user text with link
+  const userText = isMobile 
+    ? `${userCount} user${userCount !== 1 ? 's' : ''}`
+    : `${userCount} user${userCount !== 1 ? 's' : ''}`;
 
+  const costText = monthlyCost > 0 ? ` (${monthlyCost.toFixed(2)}$/month)` : '';
+  
   const urgentText = isMobile 
-    ? 'Equipment access will be restricted after this period.'
-    : 'After this period, access to equipment features will be restricted.';
+    ? 'User access will be restricted after this period.'
+    : 'After this period, access to user features will be restricted.';
 
   return (
     <Alert className={`mb-4 md:mb-6 ${isUrgent ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}>
@@ -90,7 +98,15 @@ export function NewGracePeriodBanner() {
                     {isUrgent ? 'Billing Setup Required' : 'Grace Period Active'}
                   </p>
                   <p className="text-xs leading-relaxed">
-                    <strong>{daysRemaining} day{daysRemaining !== 1 ? 's' : ''}</strong> remaining to set up billing. {equipmentText}.
+                    <strong>{daysRemaining} day{daysRemaining !== 1 ? 's' : ''}</strong> remaining to set up billing. 
+                    Your organization has{' '}
+                    <Link 
+                      to="/organization?tab=members" 
+                      className="underline hover:no-underline font-medium"
+                    >
+                      {userText}
+                    </Link>
+                    {costText}.
                     {isUrgent && ` ${urgentText}`}
                   </p>
                 </div>
@@ -119,7 +135,14 @@ export function NewGracePeriodBanner() {
                   </p>
                   <p className="text-sm">
                     You have <strong>{daysRemaining} day{daysRemaining !== 1 ? 's' : ''}</strong> remaining 
-                    to set up billing for your equipment tracking. {equipmentText}.
+                    to set up billing. Your organization has{' '}
+                    <Link 
+                      to="/organization?tab=members" 
+                      className="underline hover:no-underline font-medium"
+                    >
+                      {userText}
+                    </Link>
+                    {costText}.
                     {isUrgent && ` ${urgentText}`}
                   </p>
                 </div>
