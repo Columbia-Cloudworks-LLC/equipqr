@@ -81,7 +81,7 @@ serve(async (req) => {
       throw new Error("Failed to calculate billing information");
     }
 
-    // Get grace period info
+    // Get grace period info - ALWAYS return grace period info regardless of exemptions
     const { data: gracePeriodInfo, error: gracePeriodError } = await supabaseClient
       .rpc('get_org_grace_period_info', {
         p_org_id: org_id
@@ -92,15 +92,25 @@ serve(async (req) => {
       throw new Error("Failed to get grace period information");
     }
 
+    // Enhance grace period info with exemption awareness
+    const enhancedGracePeriodInfo = gracePeriodInfo ? {
+      ...gracePeriodInfo,
+      // Grace period should be active if:
+      // 1. It's naturally active, OR
+      // 2. There's a billing exemption and equipment exists (show exemption-aware grace period)
+      is_active: gracePeriodInfo.is_active || (billingInfo?.exemption_applied && gracePeriodInfo.has_grace_period),
+      exemption_aware: billingInfo?.exemption_applied || false
+    } : null;
+
     logStep("Billing info with exemptions calculated", { 
       billingInfo, 
-      gracePeriodInfo,
+      gracePeriodInfo: enhancedGracePeriodInfo,
       exemptionApplied: billingInfo?.exemption_applied || false
     });
 
     return new Response(JSON.stringify({
       billing_info: billingInfo,
-      grace_period_info: gracePeriodInfo,
+      grace_period_info: enhancedGracePeriodInfo,
       user_role: userRole.role
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
