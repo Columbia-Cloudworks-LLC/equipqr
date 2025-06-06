@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_link_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          existing_user_id: string
+          expires_at: string
+          id: string
+          new_provider: string
+          new_provider_email: string
+          status: string
+          verification_token: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          existing_user_id: string
+          expires_at?: string
+          id?: string
+          new_provider: string
+          new_provider_email: string
+          status?: string
+          verification_token: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          existing_user_id?: string
+          expires_at?: string
+          id?: string
+          new_provider?: string
+          new_provider_email?: string
+          status?: string
+          verification_token?: string
+        }
+        Relationships: []
+      }
       app_user: {
         Row: {
           auth_uid: string
@@ -89,6 +125,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      auth_events: {
+        Row: {
+          created_at: string
+          email: string
+          error_code: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          provider: string
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          provider: string
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          provider?: string
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       billing_customer: {
         Row: {
@@ -1499,6 +1580,45 @@ export type Database = {
           },
         ]
       }
+      user_auth_methods: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_primary: boolean
+          last_used_at: string | null
+          provider: string
+          provider_id: string | null
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_primary?: boolean
+          last_used_at?: string | null
+          provider: string
+          provider_id?: string | null
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_primary?: boolean
+          last_used_at?: string | null
+          provider?: string
+          provider_id?: string | null
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       user_billing_exemptions: {
         Row: {
           created_at: string
@@ -1949,6 +2069,10 @@ export type Database = {
         Args: { p_user_id: string; p_equipment_id: string }
         Returns: boolean
       }
+      check_duplicate_email_signup: {
+        Args: { p_email: string; p_provider?: string }
+        Returns: Json
+      }
       check_equipment_create_permission: {
         Args: { p_user_id: string; p_team_id?: string; p_org_id?: string }
         Returns: {
@@ -1994,6 +2118,10 @@ export type Database = {
         Returns: boolean
       }
       gen_invitation_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_verification_token: {
         Args: Record<PropertyKey, never>
         Returns: string
       }

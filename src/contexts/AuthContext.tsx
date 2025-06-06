@@ -2,7 +2,7 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth as useAuthHook } from '@/hooks/useAuth';
+import { useEnhancedAuth } from '@/hooks/useEnhancedAuth';
 
 interface AuthContextType {
   supabaseClient: typeof supabase;
@@ -37,7 +37,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Get authentication state and methods using our simplified hook
+  // Get enhanced authentication state and methods
   const { 
     user, 
     session, 
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession,
     resetAuthSystem,
     repairSession
-  } = useAuthHook();
+  } = useEnhancedAuth();
 
   const value: AuthContextType = {
     supabaseClient: supabase,
