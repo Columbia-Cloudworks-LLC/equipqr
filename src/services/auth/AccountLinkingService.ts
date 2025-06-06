@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -15,10 +14,14 @@ export class AccountLinkingService {
     newProviderEmail: string
   ): Promise<{ success: boolean; token?: string; error?: string }> {
     try {
-      // First check if the existing user exists
-      const { data: existingUser } = await supabase.auth.admin.getUserByEmail(existingEmail);
+      // Check if the existing user exists by looking up their profile
+      const { data: existingProfile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('email', existingEmail)
+        .single();
       
-      if (!existingUser) {
+      if (profileError || !existingProfile) {
         return { success: false, error: 'Existing user not found' };
       }
 
@@ -33,7 +36,7 @@ export class AccountLinkingService {
       const { data, error } = await supabase
         .from('account_link_requests')
         .insert({
-          existing_user_id: existingUser.user.id,
+          existing_user_id: existingProfile.id,
           new_provider: newProvider,
           new_provider_email: newProviderEmail,
           verification_token: tokenData,
@@ -185,12 +188,20 @@ export class AccountLinkingService {
 
     try {
       // Check if this email already exists with a different provider
-      const duplicateCheck = await supabase.rpc('check_duplicate_email_signup', {
+      const { data: duplicateCheckData, error: duplicateError } = await supabase.rpc('check_duplicate_email_signup', {
         p_email: session.user.email,
         p_provider: provider
       });
 
-      if (duplicateCheck.data?.has_duplicate && duplicateCheck.data?.can_link) {
+      if (duplicateError) {
+        console.error('Error checking duplicate email:', duplicateError);
+        return { requiresLinking: false };
+      }
+
+      // Type-safe handling of RPC response
+      const duplicateResult = duplicateCheckData as any;
+      
+      if (duplicateResult?.has_duplicate && duplicateResult?.can_link) {
         // Create a link request
         const linkResult = await this.createLinkRequest(
           existingEmail,

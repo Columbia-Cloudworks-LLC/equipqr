@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -55,7 +54,18 @@ export class AuthErrorDetection {
         return { has_duplicate: false };
       }
 
-      return data;
+      // Type-safe handling of RPC response
+      if (data && typeof data === 'object' && data !== null) {
+        const result = data as any;
+        return {
+          has_duplicate: Boolean(result.has_duplicate),
+          existing_user_id: result.existing_user_id,
+          existing_providers: result.existing_providers,
+          can_link: Boolean(result.can_link)
+        };
+      }
+
+      return { has_duplicate: false };
     } catch (error) {
       console.error('Error in duplicate email check:', error);
       return { has_duplicate: false };
