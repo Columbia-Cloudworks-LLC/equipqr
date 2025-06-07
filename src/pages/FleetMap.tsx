@@ -25,6 +25,61 @@ export default function FleetMap() {
     error: accessError
   } = useEnhancedFeatureAccess('fleet_map'); // Use API key format
   
+  // Always call useQuery - this prevents the hooks order violation
+  const { data: equipment = [], isLoading: equipmentLoading, error: equipmentError } = useQuery({
+    queryKey: ['fleet-equipment', selectedOrganization?.id],
+    queryFn: async () => {
+      if (!selectedOrganization?.id) {
+        return [];
+      }
+      
+      const { data, error } = await supabase
+        .from('equipment')
+        .select(`
+          *,
+          team:team_id (name),
+          org:org_id (name)
+        `)
+        .eq('org_id', selectedOrganization.id)
+        .is('deleted_at', null);
+
+      if (error) {
+        throw error;
+      }
+
+      return data?.map(item => ({
+        ...item,
+        team_name: item.team?.name || null,
+        org_name: item.org?.name || 'Unknown Organization'
+      })) || [];
+    },
+    enabled: !!selectedOrganization && hasAccess && orgContextReady && fleetMapFeature.enabled,
+    retry: 3,
+    retryDelay: 1000
+  });
+  
+  // Always call useEquipmentFilters - this prevents the hooks order violation
+  const {
+    filteredEquipment,
+    filterStatus,
+    setFilterStatus,
+    filterTeam,
+    setFilterTeam,
+    searchQuery,
+    setSearchQuery,
+    teams,
+    equipmentCounts
+  } = useEquipmentFilters(equipment);
+
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
+  const selectedEquipment = filteredEquipment.find(eq => eq.id === selectedEquipmentId) || null;
+
+  const handleClearFilters = () => {
+    setFilterStatus('all');
+    setFilterTeam('all');
+    setSearchQuery('');
+  };
+
   // Check if feature is enabled at the configuration level
   if (!fleetMapFeature.enabled) {
     return (
@@ -88,60 +143,6 @@ export default function FleetMap() {
     );
   }
   
-  // Fetch equipment data for fleet map
-  const { data: equipment = [], isLoading: equipmentLoading, error: equipmentError } = useQuery({
-    queryKey: ['fleet-equipment', selectedOrganization?.id],
-    queryFn: async () => {
-      if (!selectedOrganization?.id) {
-        return [];
-      }
-      
-      const { data, error } = await supabase
-        .from('equipment')
-        .select(`
-          *,
-          team:team_id (name),
-          org:org_id (name)
-        `)
-        .eq('org_id', selectedOrganization.id)
-        .is('deleted_at', null);
-
-      if (error) {
-        throw error;
-      }
-
-      return data?.map(item => ({
-        ...item,
-        team_name: item.team?.name || null,
-        org_name: item.org?.name || 'Unknown Organization'
-      })) || [];
-    },
-    enabled: !!selectedOrganization && hasAccess && orgContextReady,
-    retry: 3,
-    retryDelay: 1000
-  });
-  
-  const {
-    filteredEquipment,
-    filterStatus,
-    setFilterStatus,
-    filterTeam,
-    setFilterTeam,
-    searchQuery,
-    setSearchQuery,
-    teams,
-    equipmentCounts
-  } = useEquipmentFilters(equipment);
-
-  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
-  const selectedEquipment = filteredEquipment.find(eq => eq.id === selectedEquipmentId) || null;
-
-  const handleClearFilters = () => {
-    setFilterStatus('all');
-    setFilterTeam('all');
-    setSearchQuery('');
-  };
-
   // Error display
   if (equipmentError) {
     return (
