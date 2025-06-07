@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
- * Provides core authentication methods
+ * Provides core authentication methods with enhanced Microsoft OAuth support
  */
 export class AuthMethods {
   /**
@@ -36,7 +36,6 @@ export class AuthMethods {
    */
   public async signInWithGoogle(): Promise<void> {
     try {
-      // Use window location for redirects for consistency
       const siteUrl = window.location.origin;
       const callbackUrl = `${siteUrl}/auth/callback`;
       
@@ -47,7 +46,9 @@ export class AuthMethods {
         options: {
           redirectTo: callbackUrl,
           queryParams: {
-            prompt: 'select_account'
+            prompt: 'select_account',
+            scope: 'openid email profile',
+            access_type: 'offline'
           }
         },
       });
@@ -67,22 +68,29 @@ export class AuthMethods {
   }
 
   /**
-   * Sign in with Microsoft OAuth
+   * Sign in with Microsoft OAuth - Enhanced for email retrieval
    */
   public async signInWithMicrosoft(): Promise<void> {
     try {
-      // Use window location for redirects for consistency
       const siteUrl = window.location.origin;
       const callbackUrl = `${siteUrl}/auth/callback`;
       
       console.log("AuthMethods: Microsoft sign-in using callback URL:", callbackUrl);
       
+      // Enhanced Microsoft OAuth configuration
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
         options: {
           redirectTo: callbackUrl,
           queryParams: {
-            prompt: 'select_account'
+            // Force consent to ensure email permission is granted
+            prompt: 'consent',
+            // Explicitly request email and profile scopes
+            scope: 'openid email profile User.Read',
+            // Ensure we get the authorization code
+            response_type: 'code',
+            // Use query response mode for better compatibility
+            response_mode: 'query'
           }
         },
       });
@@ -94,6 +102,8 @@ export class AuthMethods {
         });
         throw error;
       }
+
+      console.log('Microsoft OAuth redirect initiated with enhanced parameters');
     } catch (error) {
       console.error('AuthMethods: Unexpected error during Microsoft sign-in:', error);
       toast.error("An unexpected error occurred");
