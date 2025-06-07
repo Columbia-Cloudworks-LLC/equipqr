@@ -10,7 +10,6 @@ import { Link } from 'react-router-dom';
 interface FleetMapContentProps {
   isLoading: boolean;
   filteredEquipment: Equipment[];
-  equipmentWithLocation: Equipment[];
   selectedEquipmentId: string | null;
   onEquipmentSelected: (equipmentId: string | null) => void;
   selectedEquipment: Equipment | null;
@@ -19,14 +18,12 @@ interface FleetMapContentProps {
 export function FleetMapContent({
   isLoading,
   filteredEquipment,
-  equipmentWithLocation,
   selectedEquipmentId,
   onEquipmentSelected,
   selectedEquipment
 }: FleetMapContentProps) {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-      {/* Map */}
       <div className="xl:col-span-3">
         <Card>
           <CardContent className="p-0">
@@ -62,7 +59,6 @@ export function FleetMapContent({
         </Card>
       </div>
 
-      {/* Equipment Details Sidebar */}
       <div className="xl:col-span-1">
         <FleetMapSidebar selectedEquipment={selectedEquipment} />
       </div>

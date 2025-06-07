@@ -7,27 +7,19 @@ export function useEquipmentFilters(equipment: Equipment[]) {
   const [filterTeam, setFilterTeam] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Enhanced logging for debugging
-  console.log('useEquipmentFilters - Input equipment count:', equipment?.length || 0);
-  console.log('useEquipmentFilters - Current filters:', { filterStatus, filterTeam, searchQuery });
-
-  // Extract unique teams with enhanced error handling and logging
+  // Extract unique teams
   const teams = useMemo(() => {
     if (!Array.isArray(equipment)) {
-      console.warn('useEquipmentFilters - Invalid equipment data (not array):', equipment);
       return [];
     }
     
-    const uniqueTeams = [...new Set(equipment
+    return [...new Set(equipment
       .filter(item => item?.team_name)
       .map(item => item?.team_name)
     )];
-    
-    console.log('useEquipmentFilters - Extracted unique teams:', uniqueTeams);
-    return uniqueTeams;
   }, [equipment]);
 
-  // Enhanced equipment analysis for debugging
+  // Equipment analysis for debugging
   const equipmentAnalysis = useMemo(() => {
     if (!Array.isArray(equipment)) {
       return { total: 0, withTeam: 0, noTeam: 0, teamBreakdown: {} };
@@ -36,40 +28,30 @@ export function useEquipmentFilters(equipment: Equipment[]) {
     const withTeam = equipment.filter(item => item?.team_name).length;
     const noTeam = equipment.filter(item => !item?.team_name).length;
     
-    // Create team breakdown
     const teamBreakdown = equipment.reduce((acc, item) => {
       const teamName = item?.team_name || 'No Team';
       acc[teamName] = (acc[teamName] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     
-    const analysis = {
+    return {
       total: equipment.length,
       withTeam,
       noTeam,
       teamBreakdown
     };
-    
-    console.log('useEquipmentFilters - Equipment analysis:', analysis);
-    return analysis;
   }, [equipment]);
 
-  // Enhanced filtering with comprehensive logging
+  // Apply filters
   const filteredEquipment = useMemo(() => {
-    console.log('useEquipmentFilters - Starting filter application...');
-    
     if (!Array.isArray(equipment)) {
-      console.warn('useEquipmentFilters - Cannot filter: equipment data is not an array');
       return [];
     }
     
-    const filtered = equipment.filter((item, index) => {
-      if (!item) {
-        console.warn(`useEquipmentFilters - Null item at index ${index}`);
-        return false;
-      }
+    return equipment.filter((item) => {
+      if (!item) return false;
       
-      // Search filter with safe string handling
+      // Search filter
       const itemName = (item?.name || '').toLowerCase();
       const itemModel = (item?.model || '').toLowerCase();
       const itemSerial = (item?.serial_number || '').toLowerCase();
@@ -85,55 +67,17 @@ export function useEquipmentFilters(equipment: Equipment[]) {
       // Status filter
       const matchesStatus = filterStatus === 'all' || item?.status === filterStatus;
       
-      // Enhanced team filter logic
+      // Team filter
       let matchesTeam = true;
       
       if (filterTeam === 'no-team') {
-        // "No Team" means equipment without a team assignment
-        const hasNoTeam = !item?.team_name;
-        matchesTeam = hasNoTeam;
-        
-        if (searchQuery || filterStatus !== 'all') {
-          // Only log for specific cases to avoid spam
-          console.log(`useEquipmentFilters - "No Team" filter for "${item.name}": team_name="${item.team_name}", matches=${matchesTeam}`);
-        }
+        matchesTeam = !item?.team_name;
       } else if (filterTeam !== 'all') {
-        // Specific team filter - match by team name
         matchesTeam = item?.team_name === filterTeam;
-        
-        if (searchQuery || filterStatus !== 'all') {
-          // Only log for specific cases to avoid spam
-          console.log(`useEquipmentFilters - Team filter for "${item.name}": team_name="${item.team_name}", filterTeam="${filterTeam}", matches=${matchesTeam}`);
-        }
       }
       
-      const finalMatch = matchesSearch && matchesStatus && matchesTeam;
-      
-      // Log detailed filter results for first few items or when debugging specific cases
-      if (index < 3 || (!finalMatch && (searchQuery || filterStatus !== 'all' || filterTeam !== 'all'))) {
-        console.log(`useEquipmentFilters - Item "${item.name}" filter results:`, {
-          search: { query: searchQuery, matches: matchesSearch },
-          status: { filter: filterStatus, value: item?.status, matches: matchesStatus },
-          team: { filter: filterTeam, value: item?.team_name, matches: matchesTeam },
-          finalMatch
-        });
-      }
-      
-      return finalMatch;
+      return matchesSearch && matchesStatus && matchesTeam;
     });
-
-    console.log(`useEquipmentFilters - Filter results: ${filtered.length} out of ${equipment.length} items match`);
-    
-    // Log summary of filtered results by team
-    const filteredTeamBreakdown = filtered.reduce((acc, item) => {
-      const teamName = item?.team_name || 'No Team';
-      acc[teamName] = (acc[teamName] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    console.log('useEquipmentFilters - Filtered equipment team breakdown:', filteredTeamBreakdown);
-    
-    return filtered;
   }, [equipment, searchQuery, filterStatus, filterTeam]);
 
   return {

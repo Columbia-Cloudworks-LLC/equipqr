@@ -33,9 +33,6 @@ export function FleetMapFilters({
   onFilterSearchChange,
   onClearFilters
 }: FleetMapFiltersProps) {
-  console.log('FleetMapFilters - Current filters:', filters);
-  console.log('FleetMapFilters - Available teams:', teams);
-  
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -58,10 +55,7 @@ export function FleetMapFilters({
               <Input
                 placeholder="Search by name, manufacturer, model..."
                 value={filters.search}
-                onChange={(e) => {
-                  console.log('Search filter changed to:', e.target.value);
-                  onFilterSearchChange(e.target.value);
-                }}
+                onChange={(e) => onFilterSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -71,10 +65,7 @@ export function FleetMapFilters({
             <label className="text-sm font-medium">Status</label>
             <select
               value={filters.status}
-              onChange={(e) => {
-                console.log('Status filter changed to:', e.target.value);
-                onFilterStatusChange(e.target.value);
-              }}
+              onChange={(e) => onFilterStatusChange(e.target.value)}
               className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
             >
               <option value="all">All Statuses</option>
@@ -88,10 +79,7 @@ export function FleetMapFilters({
             <label className="text-sm font-medium">Team</label>
             <select
               value={filters.team}
-              onChange={(e) => {
-                console.log('Team filter changed to:', e.target.value);
-                onFilterTeamChange(e.target.value);
-              }}
+              onChange={(e) => onFilterTeamChange(e.target.value)}
               className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
             >
               <option value="all">All Teams</option>
@@ -104,24 +92,15 @@ export function FleetMapFilters({
           
           <div className="space-y-2">
             <label className="text-sm font-medium">Quick Actions</label>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  console.log('Clearing all filters');
-                  onClearFilters();
-                }}
-                className="flex-1"
-              >
-                Clear All
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearFilters}
+              className="w-full"
+            >
+              Clear All
+            </Button>
           </div>
-        </div>
-        
-        <div className="text-xs text-muted-foreground mt-2">
-          Active filters: Status={filters.status}, Team={filters.team}, Search="{filters.search}"
         </div>
       </CardContent>
     </Card>

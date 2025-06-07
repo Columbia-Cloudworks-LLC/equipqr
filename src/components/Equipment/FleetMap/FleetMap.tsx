@@ -44,17 +44,8 @@ export function FleetMap({
     retryCount: 0
   });
 
-  console.log('FleetMap: Component render', { 
-    equipmentCount: equipment.length,
-    mapState,
-    hasContainer: !!mapContainer.current,
-    hasMap: !!map.current
-  });
-
   // Fetch Mapbox token
   const fetchMapboxToken = useCallback(async (): Promise<string> => {
-    console.log('FleetMap: Fetching token...');
-    
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError || !sessionData?.session?.access_token) {
@@ -71,7 +62,6 @@ export function FleetMap({
       throw new Error('Failed to retrieve map token');
     }
 
-    console.log('FleetMap: Token retrieved successfully');
     return data.token;
   }, []);
 
@@ -81,11 +71,8 @@ export function FleetMap({
       throw new Error('Map container not available');
     }
 
-    console.log('FleetMap: Initializing map...');
-    
     // Clean up existing map
     if (map.current) {
-      console.log('FleetMap: Cleaning up existing map');
       map.current.remove();
       map.current = null;
     }
@@ -108,13 +95,11 @@ export function FleetMap({
       }, 10000);
 
       map.current!.on('load', () => {
-        console.log('FleetMap: Map loaded successfully');
         clearTimeout(timeout);
         resolve();
       });
 
       map.current!.on('error', (e) => {
-        console.error('FleetMap: Map error:', e);
         clearTimeout(timeout);
         reject(new Error(`Map error: ${e.error?.message || 'Unknown error'}`));
       });
@@ -124,30 +109,21 @@ export function FleetMap({
   // Main initialization effect
   useEffect(() => {
     if (initializationAttempted.current) {
-      console.log('FleetMap: Initialization already attempted, skipping');
       return;
     }
 
     let isMounted = true;
 
     const initializeFleetMap = async () => {
-      console.log('FleetMap: Starting initialization...');
       initializationAttempted.current = true;
 
       try {
         setMapState(prev => ({ ...prev, loadingState: 'loading', error: null }));
         
-        // Wait a moment for DOM to be ready
+        // Wait for DOM to be ready
         await new Promise(resolve => setTimeout(resolve, 100));
         
         if (!isMounted) return;
-
-        console.log('FleetMap: Container check:', {
-          hasContainer: !!mapContainer.current,
-          containerReady: mapContainer.current && 
-                         mapContainer.current.offsetWidth > 0 && 
-                         mapContainer.current.offsetHeight > 0
-        });
 
         const token = await fetchMapboxToken();
         
@@ -157,7 +133,6 @@ export function FleetMap({
         
         if (!isMounted) return;
 
-        console.log('FleetMap: Initialization complete');
         setMapState(prev => ({ 
           ...prev, 
           loadingState: 'ready',
@@ -165,8 +140,6 @@ export function FleetMap({
         }));
 
       } catch (error) {
-        console.error('FleetMap: Initialization failed:', error);
-        
         if (!isMounted) return;
         
         const errorMessage = error instanceof Error ? error.message : 'Failed to initialize map';
@@ -184,16 +157,13 @@ export function FleetMap({
     return () => {
       isMounted = false;
     };
-  }, []); // Only run once on mount
+  }, [fetchMapboxToken, initializeMap]);
 
   // Equipment markers effect
   useEffect(() => {
     if (mapState.loadingState !== 'ready' || !map.current) {
-      console.log('FleetMap: Skipping marker update - map not ready');
       return;
     }
-
-    console.log('FleetMap: Updating markers for', equipment.length, 'equipment items');
 
     // Clear existing markers
     Object.values(markers.current).forEach(marker => marker.remove());
@@ -203,8 +173,6 @@ export function FleetMap({
       const location = getDisplayLocation(item);
       return location.hasLocation && location.coordinates;
     });
-
-    console.log(`FleetMap: ${equipmentWithLocation.length} items have location data`);
 
     if (equipmentWithLocation.length === 0) {
       return;
@@ -229,7 +197,6 @@ export function FleetMap({
         .addTo(map.current!);
 
       el.addEventListener('click', () => {
-        console.log(`FleetMap: Marker clicked for equipment "${item.name}"`);
         onEquipmentSelected?.(selectedEquipmentId === item.id ? null : item.id);
       });
 
@@ -264,7 +231,6 @@ export function FleetMap({
   // Cleanup effect
   useEffect(() => {
     return () => {
-      console.log('FleetMap: Component cleanup');
       if (map.current) {
         map.current.remove();
         map.current = null;
@@ -275,7 +241,6 @@ export function FleetMap({
   }, []);
 
   const handleRetry = useCallback(() => {
-    console.log('FleetMap: Manual retry triggered');
     initializationAttempted.current = false;
     setMapState({
       loadingState: 'loading',
@@ -293,16 +258,12 @@ export function FleetMap({
       window.location.reload();
     }, 100);
   }, []);
-
-  console.log('FleetMap: Rendering with state:', mapState);
   
   return (
     <Card style={{ height }}>
       <CardContent className="p-0 h-full relative">
-        {/* Always render the map container */}
         <div ref={mapContainer} className="w-full h-full rounded-lg" />
         
-        {/* Loading overlay */}
         {mapState.loadingState === 'loading' && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
             <div className="text-center">
@@ -312,7 +273,6 @@ export function FleetMap({
           </div>
         )}
         
-        {/* Error overlay */}
         {mapState.loadingState === 'error' && (
           <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex items-center justify-center rounded-lg">
             <Alert className="w-full max-w-md mx-4">

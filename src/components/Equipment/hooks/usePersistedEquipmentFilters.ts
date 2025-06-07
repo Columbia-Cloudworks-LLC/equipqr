@@ -19,7 +19,7 @@ export function usePersistedEquipmentFilters(equipment: Equipment[], persistedFi
     setFilterSearch 
   } = usePersistedFilters('equipment-filters');
   
-  // Override with passed filters if provided (from parent component)
+  // Override with passed filters if provided
   const activeFilters = persistedFilters || filters;
   
   // Local state for immediate UI updates
@@ -34,13 +34,9 @@ export function usePersistedEquipmentFilters(equipment: Equipment[], persistedFi
     setLocalSearch(activeFilters.search);
   }, [activeFilters.status, activeFilters.team, activeFilters.search]);
 
-  // Log equipment data for debugging
-  console.log('usePersistedEquipmentFilters received equipment count:', equipment?.length || 0);
-
-  // Extract unique teams for filtering with error handling
+  // Extract unique teams for filtering
   const teams = useMemo(() => {
     if (!Array.isArray(equipment)) {
-      console.warn('usePersistedEquipmentFilters received invalid equipment data:', equipment);
       return [];
     }
     
@@ -50,33 +46,26 @@ export function usePersistedEquipmentFilters(equipment: Equipment[], persistedFi
     )];
   }, [equipment]);
 
-  // Count items by team status for debugging
+  // Count items by team status
   const itemCounts = useMemo(() => {
     if (!Array.isArray(equipment)) return { total: 0, withTeam: 0, noTeam: 0 };
     
     const withTeam = equipment.filter(item => item?.team_id !== null).length;
     const noTeam = equipment.filter(item => item?.team_id === null).length;
     
-    console.log(`Equipment counts - Total: ${equipment.length}, With Team: ${withTeam}, No Team: ${noTeam}`);
     return { total: equipment.length, withTeam, noTeam };
   }, [equipment]);
 
-  // Apply filters with enhanced debugging and robustness
+  // Apply filters
   const filteredEquipment = useMemo(() => {
-    console.log('Applying filters - Status:', localStatus, 'Team:', localTeam, 'Search:', localSearch);
-    
     if (!Array.isArray(equipment)) {
-      console.warn('Cannot filter equipment: equipment data is not an array');
       return [];
     }
     
     return equipment.filter((item) => {
-      if (!item) {
-        console.warn('Encountered null item while filtering equipment');
-        return false;
-      }
+      if (!item) return false;
       
-      // Safe string comparisons - protect against undefined values
+      // Safe string comparisons
       const itemName = (item?.name || '').toLowerCase();
       const itemModel = (item?.model || '').toLowerCase();
       const itemSerial = (item?.serial_number || '').toLowerCase();
@@ -91,53 +80,38 @@ export function usePersistedEquipmentFilters(equipment: Equipment[], persistedFi
       
       let matchesTeam = true;
       
-      // Enhanced logic for "No Team" filter
       if (localTeam === 'no-team') {
-        // Consider an item to be "no team" if either has_no_team is true OR team_id is null
         const hasNoTeamFlag = Boolean(item?.has_no_team);
         const nullTeamId = item?.team_id === null;
-        
-        // Log details for debugging when filtering for "No Team" items
-        console.log(`"No Team" filter - Item "${item.name}" - has_no_team: ${hasNoTeamFlag}, team_id: ${item.team_id === null ? 'null' : item.team_id}`);
-        
         matchesTeam = hasNoTeamFlag || nullTeamId;
       } else if (localTeam !== 'all') {
-        // For specific team filtering
         matchesTeam = item?.team_name === localTeam;
       }
       
-      const matches = matchesSearch && matchesStatus && matchesTeam;
-      
-      return matches;
+      return matchesSearch && matchesStatus && matchesTeam;
     });
   }, [equipment, localSearch, localStatus, localTeam]);
 
-  // Debounced update functions to persist changes
+  // Update functions
   const updateStatus = (status: string) => {
     setLocalStatus(status);
-    if (persistedFilters) {
-      // If using passed filters, don't persist automatically
-      return;
+    if (!persistedFilters) {
+      setFilterStatus(status);
     }
-    setFilterStatus(status);
   };
 
   const updateTeam = (team: string) => {
     setLocalTeam(team);
-    if (persistedFilters) {
-      // If using passed filters, don't persist automatically
-      return;
+    if (!persistedFilters) {
+      setFilterTeam(team);
     }
-    setFilterTeam(team);
   };
 
   const updateSearch = (search: string) => {
     setLocalSearch(search);
-    if (persistedFilters) {
-      // If using passed filters, don't persist automatically
-      return;
+    if (!persistedFilters) {
+      setFilterSearch(search);
     }
-    setFilterSearch(search);
   };
 
   return {
