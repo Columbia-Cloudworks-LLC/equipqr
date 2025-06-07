@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Equipment } from '@/types';
 import { usePersistedFilters } from '@/hooks/usePersistedFilters';
+import { DataConfig } from '@/config/app';
 
 interface PersistedFilters {
   status: string;
@@ -46,17 +47,28 @@ export function usePersistedEquipmentFilters(equipment: Equipment[], persistedFi
     )];
   }, [equipment]);
 
-  // Count items by team status
+  // Count items by team status with configuration-aware limits
   const itemCounts = useMemo(() => {
-    if (!Array.isArray(equipment)) return { total: 0, withTeam: 0, noTeam: 0 };
+    if (!Array.isArray(equipment)) return { 
+      total: 0, 
+      withTeam: 0, 
+      noTeam: 0,
+      maxPageSize: DataConfig.pagination.maxPageSize
+    };
     
     const withTeam = equipment.filter(item => item?.team_id !== null).length;
     const noTeam = equipment.filter(item => item?.team_id === null).length;
     
-    return { total: equipment.length, withTeam, noTeam };
+    return { 
+      total: equipment.length, 
+      withTeam, 
+      noTeam,
+      maxPageSize: DataConfig.pagination.maxPageSize,
+      defaultPageSize: DataConfig.pagination.defaultPageSize
+    };
   }, [equipment]);
 
-  // Apply filters
+  // Apply filters with enhanced capabilities
   const filteredEquipment = useMemo(() => {
     if (!Array.isArray(equipment)) {
       return [];
@@ -65,16 +77,18 @@ export function usePersistedEquipmentFilters(equipment: Equipment[], persistedFi
     return equipment.filter((item) => {
       if (!item) return false;
       
-      // Safe string comparisons
+      // Enhanced search with multiple fields
       const itemName = (item?.name || '').toLowerCase();
       const itemModel = (item?.model || '').toLowerCase();
       const itemSerial = (item?.serial_number || '').toLowerCase();
+      const itemLocation = (item?.location || '').toLowerCase();
       const searchLower = localSearch.toLowerCase();
       
-      const matchesSearch = 
+      const matchesSearch = !localSearch ||
         itemName.includes(searchLower) ||
         itemModel.includes(searchLower) ||
-        itemSerial.includes(searchLower);
+        itemSerial.includes(searchLower) ||
+        itemLocation.includes(searchLower);
         
       const matchesStatus = localStatus === 'all' || item?.status === localStatus;
       

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { FeatureFlags, ApiConfig } from '@/config/app';
 
 interface FeatureAccessResult {
   has_access: boolean;
@@ -36,6 +37,15 @@ export function useFeatureAccess(featureKey: string): UseFeatureAccessResult {
     if (!user || !selectedOrganization || !featureKey) {
       setHasAccess(false);
       setIsLoading(false);
+      return;
+    }
+
+    // Check if feature is enabled in configuration
+    const featureConfig = FeatureFlags[featureKey as keyof typeof FeatureFlags];
+    if (!featureConfig?.enabled) {
+      setHasAccess(false);
+      setIsLoading(false);
+      setError('Feature is currently disabled');
       return;
     }
 

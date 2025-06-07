@@ -12,10 +12,34 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useEquipmentFilters } from '@/components/Equipment/hooks/useEquipmentFilters';
 import { Layout } from '@/components/Layout/Layout';
+import { useFeatureFlag } from '@/hooks/useAppConfig';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function FleetMap() {
   const { selectedOrganization } = useOrganization();
+  const fleetMapFeature = useFeatureFlag('fleetMap');
   const { hasAccess, isLoading: accessLoading } = useFeatureAccess('fleet_map');
+  
+  // Check if feature is enabled at the configuration level
+  if (!fleetMapFeature.enabled) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
+            <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
+          </div>
+          
+          <Alert>
+            <MapPin className="h-4 w-4" />
+            <AlertDescription>
+              The Fleet Map feature is currently disabled. Please contact your administrator for more information.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Layout>
+    );
+  }
   
   // Fetch equipment data for fleet map
   const { data: equipment = [], isLoading: equipmentLoading, error: equipmentError } = useQuery({

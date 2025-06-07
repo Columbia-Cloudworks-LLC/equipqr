@@ -9,6 +9,7 @@ import { MapPin, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { MapConfig, ApiConfig } from '@/config/app';
 
 interface FleetMapProps {
   equipment: Equipment[];
@@ -24,8 +25,6 @@ interface MapState {
   error: string | null;
   retryCount: number;
 }
-
-const MAX_RETRIES = 3;
 
 export function FleetMap({ 
   equipment, 
@@ -81,9 +80,11 @@ export function FleetMap({
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-98.5, 39.8],
-      zoom: 4,
+      style: MapConfig.style,
+      center: MapConfig.defaultCenter,
+      zoom: MapConfig.defaultZoom,
+      maxZoom: MapConfig.maxZoom,
+      minZoom: MapConfig.minZoom,
       projection: 'mercator'
     });
 
@@ -92,7 +93,7 @@ export function FleetMap({
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Map initialization timeout'));
-      }, 10000);
+      }, ApiConfig.requestTimeout);
 
       map.current!.on('load', () => {
         clearTimeout(timeout);
@@ -200,17 +201,20 @@ export function FleetMap({
         onEquipmentSelected?.(selectedEquipmentId === item.id ? null : item.id);
       });
 
-      const popup = new mapboxgl.Popup({ offset: 25 })
-        .setHTML(`
-          <div class="p-2">
-            <h3 class="font-semibold">${item.name}</h3>
-            <p class="text-sm text-gray-600">Status: ${item.status}</p>
-            ${item.team_name ? `<p class="text-sm text-gray-600">Team: ${item.team_name}</p>` : ''}
-            <p class="text-sm text-gray-500">${location.displayText}</p>
-          </div>
-        `);
+      if (MapConfig.markers.showPopups) {
+        const popup = new mapboxgl.Popup({ offset: 25 })
+          .setHTML(`
+            <div class="p-2">
+              <h3 class="font-semibold">${item.name}</h3>
+              <p class="text-sm text-gray-600">Status: ${item.status}</p>
+              ${item.team_name ? `<p class="text-sm text-gray-600">Team: ${item.team_name}</p>` : ''}
+              <p class="text-sm text-gray-500">${location.displayText}</p>
+            </div>
+          `);
 
-      marker.setPopup(popup);
+        marker.setPopup(popup);
+      }
+
       markers.current[item.id] = marker;
     });
 
@@ -282,7 +286,7 @@ export function FleetMap({
                   <div className="font-medium">Map Loading Error</div>
                   <div className="text-sm text-muted-foreground mt-1">{mapState.error}</div>
                 </div>
-                {mapState.retryCount < MAX_RETRIES && (
+                {mapState.retryCount < ApiConfig.retryConfig.maxRetries && (
                   <Button 
                     onClick={handleRetry}
                     size="sm"
@@ -290,7 +294,7 @@ export function FleetMap({
                     className="w-full"
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
-                    Try Again (Attempt {mapState.retryCount + 1}/{MAX_RETRIES + 1})
+                    Try Again (Attempt {mapState.retryCount + 1}/{ApiConfig.retryConfig.maxRetries + 1})
                   </Button>
                 )}
               </AlertDescription>

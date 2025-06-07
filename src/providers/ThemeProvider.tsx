@@ -1,5 +1,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { UIConfig } from '@/config/app';
 
 type Theme = "dark" | "light" | "system";
 
@@ -18,8 +19,8 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undef
 
 export function ThemeProvider({
   children,
-  defaultTheme = "system",
-  storageKey = "ui-theme",
+  defaultTheme = UIConfig.theme.defaultTheme,
+  storageKey = UIConfig.theme.storageKey,
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(

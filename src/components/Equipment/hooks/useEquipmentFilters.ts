@@ -1,6 +1,7 @@
 
 import { useState, useMemo } from 'react';
 import { Equipment } from '@/types';
+import { DataConfig } from '@/config/app';
 
 export function useEquipmentFilters(equipment: Equipment[]) {
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -38,11 +39,12 @@ export function useEquipmentFilters(equipment: Equipment[]) {
       total: equipment.length,
       withTeam,
       noTeam,
-      teamBreakdown
+      teamBreakdown,
+      maxAttributes: DataConfig.equipment.maxAttributesPerItem
     };
   }, [equipment]);
 
-  // Apply filters
+  // Apply filters with enhanced search capabilities
   const filteredEquipment = useMemo(() => {
     if (!Array.isArray(equipment)) {
       return [];
@@ -51,18 +53,20 @@ export function useEquipmentFilters(equipment: Equipment[]) {
     return equipment.filter((item) => {
       if (!item) return false;
       
-      // Search filter
+      // Enhanced search filter with multiple fields
       const itemName = (item?.name || '').toLowerCase();
       const itemModel = (item?.model || '').toLowerCase();
       const itemSerial = (item?.serial_number || '').toLowerCase();
       const itemManufacturer = (item?.manufacturer || '').toLowerCase();
+      const itemLocation = (item?.location || '').toLowerCase();
       const searchLower = searchQuery.toLowerCase();
       
       const matchesSearch = !searchQuery || 
         itemName.includes(searchLower) ||
         itemModel.includes(searchLower) ||
         itemSerial.includes(searchLower) ||
-        itemManufacturer.includes(searchLower);
+        itemManufacturer.includes(searchLower) ||
+        itemLocation.includes(searchLower);
         
       // Status filter
       const matchesStatus = filterStatus === 'all' || item?.status === filterStatus;
