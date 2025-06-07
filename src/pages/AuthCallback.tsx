@@ -78,7 +78,7 @@ export default function AuthCallback() {
         const debugData = {
           provider: userObj.app_metadata?.provider,
           hasEmail: !!userObj.email,
-          emailVerified: userObj.email_verified,
+          emailConfirmedAt: userObj.email_confirmed_at,
           identityCount: userObj.identities?.length || 0,
           appMetadataKeys: userObj.app_metadata ? Object.keys(userObj.app_metadata) : [],
           userMetadataKeys: userObj.user_metadata ? Object.keys(userObj.user_metadata) : []
@@ -183,7 +183,7 @@ export default function AuthCallback() {
                   <AlertDescription className="text-xs">
                     Provider: {debugInfo.provider || 'unknown'} | 
                     Email: {debugInfo.hasEmail ? 'provided' : 'missing'} |
-                    Verified: {debugInfo.emailVerified ? 'yes' : 'no'}
+                    Confirmed: {debugInfo.emailConfirmedAt ? 'yes' : 'no'}
                   </AlertDescription>
                 </Alert>
               )}

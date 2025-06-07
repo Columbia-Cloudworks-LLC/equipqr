@@ -36,7 +36,7 @@ export class MicrosoftOAuthDebugger {
       console.log('User ID:', details.data.user?.id);
       console.log('Email provided:', !!details.data.user?.email);
       console.log('Email value:', details.data.user?.email ? `${details.data.user.email.substring(0, 3)}***` : 'NONE');
-      console.log('Email verified:', details.data.user?.email_verified);
+      console.log('Email confirmed at:', details.data.user?.email_confirmed_at);
       console.log('Provider:', details.data.user?.app_metadata?.provider);
       console.log('Identities count:', details.data.user?.identities?.length || 0);
       
@@ -144,6 +144,3 @@ export class MicrosoftOAuthDebugger {
     console.groupEnd();
   }
 }
-
-// Export the class
-export { MicrosoftOAuthDebugger };
