@@ -29,17 +29,34 @@ export function FleetMap({
   const [error, setError] = useState<string | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
 
-  // Get Mapbox token from edge function
+  // Get Mapbox token from edge function with proper authorization
   useEffect(() => {
     console.log('FleetMap: Starting token retrieval...');
     const getMapboxToken = async () => {
       try {
-        console.log('FleetMap: Calling get_mapbox_token edge function...');
-        const { data, error } = await supabase.functions.invoke('get_mapbox_token');
+        setIsLoading(true);
+        setError(null);
+        
+        console.log('FleetMap: Getting session for authorization...');
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        if (!sessionData?.session?.access_token) {
+          console.error('FleetMap: No session found');
+          setError('Authentication required. Please sign in again.');
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('FleetMap: Calling get_mapbox_token edge function with auth header...');
+        const { data, error } = await supabase.functions.invoke('get_mapbox_token', {
+          headers: {
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+        });
         
         if (error) {
           console.error('FleetMap: Edge function error:', error);
-          setError('Map service is not configured. Please contact your administrator.');
+          setError('Failed to load map configuration');
           setIsLoading(false);
           return;
         }
@@ -47,16 +64,16 @@ export function FleetMap({
         console.log('FleetMap: Edge function response:', data);
         
         if (data?.token) {
-          console.log('FleetMap: Token received, length:', data.token.length);
+          console.log('FleetMap: Token received successfully');
           setMapboxToken(data.token);
         } else {
           console.error('FleetMap: No token in response');
-          setError('Map service is not available.');
+          setError('Map configuration not available');
           setIsLoading(false);
         }
       } catch (err) {
         console.error('FleetMap: Exception calling token function:', err);
-        setError('Map service is temporarily unavailable.');
+        setError('Failed to load map configuration');
         setIsLoading(false);
       }
     };
