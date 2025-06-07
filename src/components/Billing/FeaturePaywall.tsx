@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Lock, MapPin, Users, Zap } from 'lucide-react';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useEnhancedFeatureAccess } from '@/hooks/useEnhancedFeatureAccess';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { OrganizationTransitionLoader } from '@/components/Organization/OrganizationTransitionLoader';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useState } from 'react';
@@ -18,15 +19,11 @@ interface FeaturePaywallProps {
 
 export function FeaturePaywall({ featureKey, featureName, children }: FeaturePaywallProps) {
   const { selectedOrganization } = useOrganization();
-  const { hasAccess, isLoading } = useFeatureAccess(featureKey);
+  const { hasAccess, isLoading, isOrgTransitioning } = useEnhancedFeatureAccess(featureKey);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+  if (isLoading || isOrgTransitioning) {
+    return <OrganizationTransitionLoader message="Checking feature access..." showCard={false} />;
   }
 
   if (hasAccess) {

@@ -4,9 +4,9 @@ import { FleetMapFilters } from '@/components/FleetMap/FleetMapFilters';
 import { FleetMapContent } from '@/components/FleetMap/FleetMapContent';
 import { FeaturePaywall } from '@/components/Billing/FeaturePaywall';
 import { GracePeriodBanner } from '@/components/Billing/GracePeriodBanner';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useEnhancedFeatureAccess } from '@/hooks/useEnhancedFeatureAccess';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { Skeleton } from '@/components/ui/skeleton';
+import { OrganizationTransitionLoader, OrganizationTransitionSkeleton } from '@/components/Organization/OrganizationTransitionLoader';
 import { MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -16,9 +16,13 @@ import { useFeatureFlag } from '@/hooks/useAppConfig';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function FleetMap() {
-  const { selectedOrganization } = useOrganization();
+  const { selectedOrganization, isReady: orgContextReady } = useOrganization();
   const fleetMapFeature = useFeatureFlag('fleetMap');
-  const { hasAccess, isLoading: accessLoading } = useFeatureAccess('fleet_map');
+  const { 
+    hasAccess, 
+    isLoading: accessLoading, 
+    isOrgTransitioning 
+  } = useEnhancedFeatureAccess('fleet_map');
   
   // Check if feature is enabled at the configuration level
   if (!fleetMapFeature.enabled) {
@@ -37,6 +41,15 @@ export default function FleetMap() {
             </AlertDescription>
           </Alert>
         </div>
+      </Layout>
+    );
+  }
+  
+  // Show organization transition loading state
+  if (isOrgTransitioning || !orgContextReady) {
+    return (
+      <Layout>
+        <OrganizationTransitionSkeleton />
       </Layout>
     );
   }
@@ -69,7 +82,7 @@ export default function FleetMap() {
         org_name: item.org?.name || 'Unknown Organization'
       })) || [];
     },
-    enabled: !!selectedOrganization && hasAccess,
+    enabled: !!selectedOrganization && hasAccess && orgContextReady,
     retry: 3,
     retryDelay: 1000
   });
@@ -89,14 +102,14 @@ export default function FleetMap() {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
   const selectedEquipment = filteredEquipment.find(eq => eq.id === selectedEquipmentId) || null;
 
-  // Show loading state while checking access
+  // Show loading state while checking access or during organization transitions
   if (accessLoading) {
     return (
       <Layout>
-        <div className="space-y-6">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-96 w-full" />
-        </div>
+        <OrganizationTransitionLoader 
+          message="Loading Fleet Map access..."
+          showCard={false}
+        />
       </Layout>
     );
   }
