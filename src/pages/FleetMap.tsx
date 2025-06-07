@@ -11,6 +11,7 @@ import { MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useEquipmentFilters } from '@/components/Equipment/hooks/useEquipmentFilters';
+import { Layout } from '@/components/Layout/Layout';
 
 export default function FleetMap() {
   const { selectedOrganization } = useOrganization();
@@ -60,17 +61,19 @@ export default function FleetMap() {
   // Show loading state while checking access
   if (accessLoading) {
     return (
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-96 w-full" />
-      </div>
+      <Layout>
+        <div className="space-y-6">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </Layout>
     );
   }
 
   // Show paywall if user doesn't have access to fleet map
   if (!hasAccess) {
     return (
-      <div className="container mx-auto px-4 py-6">
+      <Layout>
         <FeaturePaywall
           featureKey="fleet_map"
           featureName="Fleet Map"
@@ -86,7 +89,7 @@ export default function FleetMap() {
           userRole={userRole}
           gracePeriodInfo={gracePeriodInfo}
         />
-      </div>
+      </Layout>
     );
   }
 
@@ -97,35 +100,37 @@ export default function FleetMap() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
-      <GracePeriodBanner />
-      
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
-        <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
-      </div>
-      
-      <FleetMapFilters
-        filters={{
-          search: searchQuery,
-          status: filterStatus,
-          team: filterTeam
-        }}
-        teams={teams.map(name => ({ id: name, name }))}
-        onFilterSearchChange={setSearchQuery}
-        onFilterStatusChange={setFilterStatus}
-        onFilterTeamChange={setFilterTeam}
-        onClearFilters={handleClearFilters}
-      />
+    <Layout>
+      <div className="space-y-6">
+        <GracePeriodBanner />
+        
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
+          <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
+        </div>
+        
+        <FleetMapFilters
+          filters={{
+            search: searchQuery,
+            status: filterStatus,
+            team: filterTeam
+          }}
+          teams={teams.map(name => ({ id: name, name }))}
+          onFilterSearchChange={setSearchQuery}
+          onFilterStatusChange={setFilterStatus}
+          onFilterTeamChange={setFilterTeam}
+          onClearFilters={handleClearFilters}
+        />
 
-      <FleetMapContent
-        isLoading={equipmentLoading}
-        filteredEquipment={filteredEquipment}
-        equipmentWithLocation={filteredEquipment}
-        selectedEquipmentId={selectedEquipmentId}
-        onEquipmentSelected={setSelectedEquipmentId}
-        selectedEquipment={selectedEquipment}
-      />
-    </div>
+        <FleetMapContent
+          isLoading={equipmentLoading}
+          filteredEquipment={filteredEquipment}
+          equipmentWithLocation={filteredEquipment}
+          selectedEquipmentId={selectedEquipmentId}
+          onEquipmentSelected={setSelectedEquipmentId}
+          selectedEquipment={selectedEquipment}
+        />
+      </div>
+    </Layout>
   );
 }
