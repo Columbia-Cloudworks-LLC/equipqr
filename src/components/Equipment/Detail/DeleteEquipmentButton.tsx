@@ -15,7 +15,8 @@ import { Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteEquipment } from '@/services/equipment';
 import { useNavigate } from 'react-router-dom';
-import { useCacheInvalidation } from '@/hooks/useCacheInvalidation';
+import { useCacheManager } from '@/services/cache/cacheManager';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface DeleteEquipmentButtonProps {
   equipmentId: string;
@@ -32,7 +33,8 @@ export function DeleteEquipmentButton({
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { invalidateEquipmentData } = useCacheInvalidation();
+  const cacheManager = useCacheManager();
+  const { selectedOrganization } = useOrganization();
 
   // Don't render the button if user doesn't have permission
   if (!canDelete) {
@@ -51,9 +53,11 @@ export function DeleteEquipmentButton({
     try {
       await deleteEquipment(equipmentId);
       
-      // Invalidate all equipment-related caches to refresh dashboard and equipment list
-      console.log('Equipment deleted, invalidating equipment data caches');
-      await invalidateEquipmentData();
+      // Use centralized cache invalidation
+      if (selectedOrganization?.id) {
+        console.log('Equipment deleted, invalidating equipment data caches');
+        await cacheManager.invalidateEquipmentData(selectedOrganization.id);
+      }
       
       // Close the dialog
       setIsOpen(false);

@@ -2,6 +2,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { clearDashboardCache } from "@/services/dashboard/dashboardService";
+import { authenticationService } from "@/services/auth/authenticationService";
+import { errorHandlingService } from "@/services/errors/errorHandlingService";
 
 /**
  * Soft delete equipment
@@ -12,18 +14,13 @@ export async function deleteEquipment(id: string): Promise<boolean> {
       throw new Error('Equipment ID is required');
     }
     
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('Session error:', sessionError);
-      throw new Error('Authentication error: Please sign in again');
+    // Use centralized authentication validation
+    const authResult = await authenticationService.validateAuthentication();
+    if (!authResult.isValid) {
+      throw new Error(authResult.error || 'Authentication required');
     }
     
-    if (!sessionData?.session?.user) {
-      throw new Error('User must be logged in to delete equipment');
-    }
-    
-    const authUserId = sessionData.session.user.id;
+    const authUserId = authResult.user!.id;
     console.log('Delete request:', { equipmentId: id, userId: authUserId });
     
     // Check delete permission using the simplified approach
@@ -84,9 +81,15 @@ export async function deleteEquipment(id: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('Equipment deletion failed:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    toast.error('Failed to delete equipment', {
-      description: errorMessage
+    
+    // Use centralized error handling
+    const processedError = errorHandlingService.processError(error, {
+      operation: 'delete equipment',
+      equipmentId: id
+    });
+    
+    toast.error(processedError.title, {
+      description: processedError.message
     });
     throw error;
   }
