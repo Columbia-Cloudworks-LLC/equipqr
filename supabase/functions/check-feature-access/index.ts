@@ -1,5 +1,4 @@
 
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -67,7 +66,60 @@ serve(async (req) => {
     const featureCategory = feature_key === 'fleet_map' ? 'premium' : 'base';
     console.log(`Feature ${feature_key} categorized as ${featureCategory}`);
 
-    // Use the enhanced database function that checks exemptions and categories
+    // Check for active billing exemptions FIRST (highest priority)
+    let exemption_details = null;
+    let hasExemption = false;
+
+    const { data: exemptions, error: exemptionError } = await supabaseClient
+      .from('organization_billing_exemptions')
+      .select('*')
+      .eq('org_id', org_id)
+      .eq('is_active', true)
+      .single();
+
+    if (!exemptionError && exemptions) {
+      // Check if exemption is still valid (not expired)
+      const isValidExemption = !exemptions.expires_at || new Date(exemptions.expires_at) > new Date();
+      
+      if (isValidExemption) {
+        hasExemption = true;
+        exemption_details = {
+          type: exemptions.exemption_type,
+          reason: exemptions.reason,
+          expires_at: exemptions.expires_at,
+          free_user_count: exemptions.free_user_count
+        };
+        console.log(`Found valid active exemption:`, exemption_details);
+      } else {
+        console.log(`Found expired exemption for org ${org_id}, expires_at: ${exemptions.expires_at}`);
+      }
+    } else {
+      console.log(`No active exemptions found for org ${org_id}`);
+    }
+
+    // If we have a valid exemption, grant access immediately
+    if (hasExemption) {
+      console.log(`Granting access due to valid exemption`);
+      
+      const response = {
+        has_access: true,
+        subscription_details: null,
+        grace_period_info: null,
+        exemption_details,
+        user_role: userRole.role,
+        feature_category: featureCategory,
+        reason: "exemption_granted"
+      };
+
+      console.log(`Final response (exemption granted):`, response);
+
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // No exemption found, proceed with normal subscription/grace period checks
     const { data: hasAccess, error: accessError } = await supabaseClient
       .rpc('get_org_feature_access_categorized', {
         p_org_id: org_id,
@@ -80,31 +132,11 @@ serve(async (req) => {
       throw new Error("Failed to check feature access");
     }
 
-    console.log(`Feature access result: ${hasAccess} for category ${featureCategory}`);
+    console.log(`Database function result: ${hasAccess} for category ${featureCategory}`);
 
-    // Get additional details for debugging
+    // Get additional details for response
     let subscription_details = null;
-    let exemption_details = null;
-
-    // Check for active billing exemptions
-    const { data: exemptions, error: exemptionError } = await supabaseClient
-      .from('organization_billing_exemptions')
-      .select('*')
-      .eq('org_id', org_id)
-      .eq('is_active', true)
-      .single();
-
-    if (!exemptionError && exemptions) {
-      exemption_details = {
-        type: exemptions.exemption_type,
-        reason: exemptions.reason,
-        expires_at: exemptions.expires_at,
-        free_user_count: exemptions.free_user_count
-      };
-      console.log(`Found active exemption:`, exemption_details);
-    } else {
-      console.log(`No active exemptions found for org ${org_id}`);
-    }
+    let gracePeriodInfo = null;
 
     // Get subscription details if they have access
     if (hasAccess) {
@@ -123,7 +155,6 @@ serve(async (req) => {
     }
 
     // Get grace period information (only relevant for base features)
-    let gracePeriodInfo = null;
     if (featureCategory === 'base') {
       const { data: gracePeriodData } = await supabaseClient
         .rpc('get_org_grace_period_info', {
@@ -132,12 +163,10 @@ serve(async (req) => {
       gracePeriodInfo = gracePeriodData;
     }
 
-    // Determine access reason
+    // Determine access reason based on database function result and feature category
     let accessReason = "no_subscription";
     if (hasAccess) {
-      if (exemption_details) {
-        accessReason = "exemption_granted";
-      } else if (subscription_details) {
+      if (subscription_details) {
         accessReason = "subscription_active";
       } else if (featureCategory === 'base' && gracePeriodInfo?.grace_period_active) {
         accessReason = "grace_period_active";
@@ -156,13 +185,13 @@ serve(async (req) => {
       has_access: hasAccess,
       subscription_details,
       grace_period_info: gracePeriodInfo,
-      exemption_details,
+      exemption_details: null, // No exemption in this path
       user_role: userRole.role,
       feature_category: featureCategory,
       reason: accessReason
     };
 
-    console.log(`Final response:`, response);
+    console.log(`Final response (no exemption):`, response);
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -178,4 +207,3 @@ serve(async (req) => {
     });
   }
 });
-

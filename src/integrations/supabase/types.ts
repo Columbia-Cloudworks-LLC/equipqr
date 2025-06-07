@@ -2094,6 +2094,16 @@ export type Database = {
         Args: { _user_id: string; _equipment_id: string; _action: string }
         Returns: boolean
       }
+      check_org_billing_exemptions: {
+        Args: { p_org_id: string }
+        Returns: {
+          exemption_type: string
+          reason: string
+          expires_at: string
+          free_user_count: number
+          is_active: boolean
+        }[]
+      }
       check_team_access: {
         Args: { user_id: string; team_id: string }
         Returns: boolean
