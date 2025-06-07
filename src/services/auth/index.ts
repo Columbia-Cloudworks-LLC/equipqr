@@ -34,6 +34,6 @@ export async function initializeAuthServices(): Promise<void> {
  */
 export async function safeGetAppUserId(authUserId: string): Promise<string | null> {
   // Import from authUtils to avoid circular dependencies
-  const { getAppUserId } = await import('../authUtils');
+  const { getAppUserId } = await import('@/utils/authUtils');
   return getAppUserId(authUserId);
 }

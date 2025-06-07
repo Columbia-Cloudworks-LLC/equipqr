@@ -69,7 +69,7 @@ export class DatabaseFunctions {
   public static async generateVerificationToken(): Promise<string | null> {
     try {
       // Try to use the RPC function first
-      const { data, error } = await supabase.rpc('generate_verification_token');
+      const { data, error } = await supabase.rpc('gen_invitation_token');
       
       if (!error && data) {
         return data;
@@ -89,20 +89,11 @@ export class DatabaseFunctions {
   }
 
   /**
-   * Lookup user by email
+   * Lookup user by email using direct database query
    */
   public static async lookupUserByEmail(email: string): Promise<{ user_id: string } | null> {
     try {
-      // Try RPC function first
-      const { data, error } = await supabase.rpc('lookup_user_by_email', {
-        p_email: email
-      });
-
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        return data[0];
-      }
-
-      // Fallback: check user_auth_methods table
+      // Direct query to user_auth_methods table
       const { data: authMethod, error: authError } = await supabase
         .from('user_auth_methods')
         .select('user_id')
