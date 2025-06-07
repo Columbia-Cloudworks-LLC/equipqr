@@ -23,9 +23,9 @@ export default function FleetMap() {
     isLoading: accessLoading, 
     isOrgTransitioning,
     error: accessError
-  } = useEnhancedFeatureAccess('fleet_map'); // Use API key format
+  } = useEnhancedFeatureAccess('fleet_map');
   
-  // Always call useQuery - this prevents the hooks order violation
+  // Equipment query - only fetch if we have access
   const { data: equipment = [], isLoading: equipmentLoading, error: equipmentError } = useQuery({
     queryKey: ['fleet-equipment', selectedOrganization?.id],
     queryFn: async () => {
@@ -58,7 +58,7 @@ export default function FleetMap() {
     retryDelay: 1000
   });
   
-  // Always call useEquipmentFilters - this prevents the hooks order violation
+  // Equipment filters
   const {
     filteredEquipment,
     filterStatus,
@@ -110,12 +110,12 @@ export default function FleetMap() {
     );
   }
   
-  // Show loading state while checking access or during organization transitions
+  // Show loading state while checking access
   if (accessLoading) {
     return (
       <Layout>
         <OrganizationTransitionLoader 
-          message="Loading Fleet Map access..."
+          message="Checking Fleet Map access..."
           showCard={false}
         />
       </Layout>
@@ -124,6 +124,7 @@ export default function FleetMap() {
 
   // Show access error if there's an issue checking permissions
   if (accessError) {
+    console.error('Fleet Map access error:', accessError);
     return (
       <Layout>
         <div className="space-y-6">
@@ -135,7 +136,7 @@ export default function FleetMap() {
           <Alert>
             <MapPin className="h-4 w-4" />
             <AlertDescription>
-              Error checking Fleet Map access: {accessError}
+              Error checking Fleet Map access. Please try refreshing the page or contact support if the issue persists.
             </AlertDescription>
           </Alert>
         </div>
@@ -143,7 +144,19 @@ export default function FleetMap() {
     );
   }
   
-  // Error display
+  // If no access, show paywall
+  if (!hasAccess) {
+    return (
+      <Layout>
+        <FeaturePaywall
+          featureKey="fleet_map"
+          featureName="Fleet Map"
+        />
+      </Layout>
+    );
+  }
+  
+  // Equipment loading or error states
   if (equipmentError) {
     return (
       <Layout>
@@ -165,49 +178,45 @@ export default function FleetMap() {
     );
   }
 
+  // Main Fleet Map interface - user has access
   return (
     <Layout>
-      <FeaturePaywall
-        featureKey="fleet_map"
-        featureName="Fleet Map"
-      >
-        <div className="space-y-6">
-          <GracePeriodBanner />
-          
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
-            <p className="text-muted-foreground">
-              View all equipment locations on an interactive map
-              {equipmentCounts.total > 0 && (
-                <span className="ml-2 text-xs bg-muted px-2 py-1 rounded">
-                  {filteredEquipment.length} of {equipmentCounts.total} items
-                </span>
-              )}
-            </p>
-          </div>
-          
-          <FleetMapFilters
-            filters={{
-              search: searchQuery,
-              status: filterStatus,
-              team: filterTeam
-            }}
-            teams={teams.map(name => ({ id: name, name }))}
-            onFilterSearchChange={setSearchQuery}
-            onFilterStatusChange={setFilterStatus}
-            onFilterTeamChange={setFilterTeam}
-            onClearFilters={handleClearFilters}
-          />
-
-          <FleetMapContent
-            isLoading={equipmentLoading}
-            filteredEquipment={filteredEquipment}
-            selectedEquipmentId={selectedEquipmentId}
-            onEquipmentSelected={setSelectedEquipmentId}
-            selectedEquipment={selectedEquipment}
-          />
+      <div className="space-y-6">
+        <GracePeriodBanner />
+        
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
+          <p className="text-muted-foreground">
+            View all equipment locations on an interactive map
+            {equipmentCounts.total > 0 && (
+              <span className="ml-2 text-xs bg-muted px-2 py-1 rounded">
+                {filteredEquipment.length} of {equipmentCounts.total} items
+              </span>
+            )}
+          </p>
         </div>
-      </FeaturePaywall>
+        
+        <FleetMapFilters
+          filters={{
+            search: searchQuery,
+            status: filterStatus,
+            team: filterTeam
+          }}
+          teams={teams.map(name => ({ id: name, name }))}
+          onFilterSearchChange={setSearchQuery}
+          onFilterStatusChange={setFilterStatus}
+          onFilterTeamChange={setFilterTeam}
+          onClearFilters={handleClearFilters}
+        />
+
+        <FleetMapContent
+          isLoading={equipmentLoading}
+          filteredEquipment={filteredEquipment}
+          selectedEquipmentId={selectedEquipmentId}
+          onEquipmentSelected={setSelectedEquipmentId}
+          selectedEquipment={selectedEquipment}
+        />
+      </div>
     </Layout>
   );
 }
