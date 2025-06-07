@@ -36,7 +36,7 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const lastCheckedOrgRef = useRef<string | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const isCancelledRef = useRef(false);
 
   const checkAccess = useCallback(async () => {
     if (!user || !selectedOrganization || !featureKey || !orgContextReady) {
@@ -76,13 +76,8 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Cancel any previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
-    const { signal } = abortControllerRef.current;
+    // Reset cancellation flag for this request
+    isCancelledRef.current = false;
 
     try {
       setIsLoading(true);
@@ -99,12 +94,12 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
         body: {
           org_id: currentOrgId,
           feature_key: featureKey
-        },
-        signal
+        }
       });
 
-      if (signal.aborted) {
-        console.log('Enhanced Feature Access: Request aborted');
+      // Check if this request was cancelled
+      if (isCancelledRef.current) {
+        console.log('Enhanced Feature Access: Request cancelled');
         return;
       }
 
@@ -132,8 +127,8 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
       }
 
     } catch (err) {
-      if (signal.aborted) {
-        console.log('Enhanced Feature Access: Request aborted due to error');
+      if (isCancelledRef.current) {
+        console.log('Enhanced Feature Access: Request cancelled due to error');
         return;
       }
       
@@ -141,7 +136,7 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
       setError(err instanceof Error ? err.message : 'Unknown error');
       setHasAccess(false);
     } finally {
-      if (!signal.aborted) {
+      if (!isCancelledRef.current) {
         setIsLoading(false);
         setIsOrgTransitioning(false);
       }
@@ -153,9 +148,7 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
     
     // Cleanup function
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      isCancelledRef.current = true;
     };
   }, [checkAccess]);
 
