@@ -84,6 +84,25 @@ export function FeaturePaywall({
   const daysRemaining = gracePeriodInfo?.days_remaining || 0;
   const isUrgent = daysRemaining <= 7;
 
+  // Get pricing details based on feature
+  const getPricingInfo = () => {
+    if (featureKey === 'fleet_map') {
+      return {
+        price: '$10',
+        period: 'per month',
+        description: 'Flat organizational fee'
+      };
+    }
+    // Default pricing for other features
+    return {
+      price: '$10',
+      period: 'per user per month',
+      description: '$10 per user per month'
+    };
+  };
+
+  const pricingInfo = getPricingInfo();
+
   return (
     <Card className="max-w-2xl mx-auto">
       {hasGracePeriod && (
@@ -139,11 +158,11 @@ export function FeaturePaywall({
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-semibold text-blue-900">Pricing</h4>
-              <p className="text-blue-700 text-sm">$10 per user per month</p>
+              <p className="text-blue-700 text-sm">{pricingInfo.description}</p>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-blue-900">$10</div>
-              <div className="text-xs text-blue-600">per user/month</div>
+              <div className="text-2xl font-bold text-blue-900">{pricingInfo.price}</div>
+              <div className="text-xs text-blue-600">{pricingInfo.period}</div>
             </div>
           </div>
         </div>

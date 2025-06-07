@@ -116,30 +116,21 @@ serve(async (req) => {
     let lineItems = [];
     
     if (feature_key === 'fleet_map') {
-      // Get current user count for the organization
-      const { data: userCount } = await supabaseClient
-        .from('user_roles')
-        .select('user_id', { count: 'exact' })
-        .eq('org_id', org_id);
-
-      const totalUsers = userCount?.length || 1;
-      // No free users - bill for all users
-      const billableUsers = totalUsers;
-
+      // Fleet map is a flat $10/month organizational add-on
       lineItems.push({
         price_data: {
           currency: "usd",
           product_data: {
             name: "Fleet Map Feature",
-            description: `Access to interactive fleet map for ${org.name}`
+            description: `Fleet Map add-on for ${org.name} - $10/month organizational feature`
           },
-          unit_amount: 1000, // $10.00 per user
+          unit_amount: 1000, // $10.00 flat fee
           recurring: { interval: "month" },
         },
-        quantity: billableUsers,
+        quantity: 1, // Always 1 for organizational features
       });
 
-      logStep("Fleet map pricing calculated", { totalUsers, billableUsers });
+      logStep("Fleet map pricing set", { amount: 1000, quantity: 1, description: "Organizational add-on feature" });
     }
 
     if (lineItems.length === 0) {
