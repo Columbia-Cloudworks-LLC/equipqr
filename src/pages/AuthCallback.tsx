@@ -40,10 +40,10 @@ export default function AuthCallback() {
     const redirectCount = parseInt(storedCount, 10) + 1;
     sessionStorage.setItem('authRedirectCount', redirectCount.toString());
     
-    // Simplified session handling - no complex retry logic
+    // Enhanced session handling for Microsoft OAuth
     if (!isLoading) {
       if (user) {
-        console.log("User authenticated, proceeding to redirect");
+        console.log("User authenticated successfully, proceeding to redirect");
         setStatus('success');
         
         // Reset redirect count on successful login
@@ -64,9 +64,19 @@ export default function AuthCallback() {
       } else {
         console.log("Authentication failed or no user found");
         
+        // Check for specific Microsoft OAuth database errors
+        if (window.location.href.includes('error=')) {
+          const errorParam = urlParams.get('error_description') || urlParams.get('error');
+          if (errorParam && errorParam.includes('database')) {
+            setError("There was a database issue during sign-in. This may be due to an existing account with the same email. Please try signing in with your original method or contact support.");
+            setStatus('error');
+            return;
+          }
+        }
+        
         // If we've redirected too many times, show an error
         if (redirectCount >= 3) {
-          setError("Authentication failed after multiple attempts. Please try again or clear your browser cache.");
+          setError("Authentication failed after multiple attempts. This may be due to an account linking issue. Please try signing in with your original method or clear your browser cache.");
           setStatus('error');
         } else {
           // Simple redirect back to auth without complex verification

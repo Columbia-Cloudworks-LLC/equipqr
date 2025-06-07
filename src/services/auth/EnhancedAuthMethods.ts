@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { authErrorDetection } from './AuthErrorDetection';
 import { accountLinkingService } from './AccountLinkingService';
+import { microsoftOAuthHandler } from './MicrosoftOAuthHandler';
 
 /**
  * Enhanced authentication methods with error detection and account linking
@@ -70,55 +71,25 @@ export class EnhancedAuthMethods {
    */
   public async signInWithProvider(provider: 'google' | 'azure'): Promise<void> {
     try {
+      // Special handling for Microsoft OAuth
+      if (provider === 'azure') {
+        return await microsoftOAuthHandler.initiateOAuth();
+      }
+
+      // Google OAuth handling
       const siteUrl = window.location.origin;
       const callbackUrl = `${siteUrl}/auth/callback`;
       
       console.log(`Enhanced ${provider} sign-in using callback URL:`, callbackUrl);
       
-      // Enhanced OAuth options with explicit scopes and parameters
       const oauthOptions: any = {
         redirectTo: callbackUrl,
         queryParams: {
-          prompt: 'select_account'
-        }
-      };
-
-      // Microsoft-specific enhancements
-      if (provider === 'azure') {
-        console.log('Configuring Microsoft Azure OAuth with enhanced parameters');
-        
-        // Add Microsoft-specific query parameters to ensure email access
-        oauthOptions.queryParams = {
-          ...oauthOptions.queryParams,
-          // Explicitly request email and profile scopes
-          scope: 'openid email profile User.Read',
-          // Force consent to ensure we get the email permission
-          prompt: 'consent',
-          // Request specific response types
-          response_type: 'code',
-          // Ensure we get both access and ID tokens
-          response_mode: 'query'
-        };
-
-        // Add additional options for Microsoft
-        oauthOptions.options = {
-          // Skip if user already has session to avoid conflicts
-          skipBrowserRedirect: false,
-          // Ensure we can access user email
-          scopes: 'openid email profile User.Read'
-        };
-
-        console.log('Microsoft OAuth options:', JSON.stringify(oauthOptions, null, 2));
-      }
-
-      // Google-specific enhancements
-      if (provider === 'google') {
-        oauthOptions.queryParams = {
-          ...oauthOptions.queryParams,
+          prompt: 'select_account',
           scope: 'openid email profile',
           access_type: 'offline'
-        };
-      }
+        }
+      };
 
       // Log the OAuth attempt
       await authErrorDetection.logAuthEvent({
@@ -312,100 +283,59 @@ export class EnhancedAuthMethods {
 
       // Enhanced Microsoft OAuth callback handling
       if (provider === 'azure') {
-        console.log('Processing Microsoft OAuth callback');
+        const result = await microsoftOAuthHandler.handleOAuthCallback(session);
         
-        // Check if we received email from Microsoft
-        if (!email) {
-          console.error('Microsoft OAuth: No email received in user object');
-          console.log('Full user object (sanitized):', {
-            id: session.user.id,
-            email: session.user.email,
-            email_verified: session.user.email_verified,
-            app_metadata: session.user.app_metadata,
-            user_metadata: session.user.user_metadata,
-            identities: session.user.identities?.map(identity => ({
-              provider: identity.provider,
-              identity_data_keys: identity.identity_data ? Object.keys(identity.identity_data) : []
-            }))
-          });
-
-          // Try to get email from identities
-          const microsoftIdentity = session.user.identities?.find(
-            (identity: any) => identity.provider === 'azure'
-          );
-          
-          if (microsoftIdentity?.identity_data?.email) {
-            console.log('Found email in Microsoft identity data');
-            // Note: We can't modify the session, but we can log this for debugging
-          } else {
-            console.error('No email found in Microsoft identity data either');
+        if (!result.success) {
+          if (result.requiresLinking) {
+            console.log('Microsoft OAuth: Account linking required');
+            return;
           }
-
-          toast.error("Microsoft sign-in incomplete", {
-            description: "We couldn't retrieve your email address. Please ensure your Microsoft account has email permissions enabled.",
-            duration: 8000
-          });
-
-          // Log the OAuth error with detailed information
-          await authErrorDetection.logAuthEvent({
-            event_type: 'oauth_email_missing',
-            provider,
-            email: 'missing',
-            success: false,
-            error_code: 'email_not_provided',
-            error_message: 'Microsoft OAuth did not provide user email',
-            metadata: {
-              user_id: userId,
-              has_identities: !!session.user.identities,
-              identity_count: session.user.identities?.length || 0,
-              microsoft_identity_found: !!microsoftIdentity,
-              app_metadata_keys: session.user.app_metadata ? Object.keys(session.user.app_metadata) : []
-            }
-          });
-
+          
+          // Error was already handled and toasted by the handler
           return;
         }
-
-        console.log('Microsoft OAuth: Email successfully received');
+        
+        // Success case handled by the handler
+        return;
       }
 
-      // Log successful OAuth sign-in
-      await authErrorDetection.logAuthEvent({
-        event_type: 'oauth_sign_in_success',
-        provider,
-        email: email || 'not_provided',
-        success: true,
-        metadata: {
-          user_id: userId,
-          email_verified: session.user.email_verified,
-          provider_specific_data: provider === 'azure' ? 'microsoft_oauth' : 'other_oauth'
-        }
-      });
-
-      // Update last used timestamp
-      if (email) {
-        await accountLinkingService.updateLastUsed(userId, provider);
-      }
-
-      // Check if account linking is needed
-      if (email) {
-        const linkingResult = await accountLinkingService.handleOAuthLinking(
+      // Google OAuth handling
+      if (provider === 'google') {
+        // Log successful OAuth sign-in
+        await authErrorDetection.logAuthEvent({
+          event_type: 'oauth_sign_in_success',
           provider,
-          session,
-          email
-        );
+          email: email || 'not_provided',
+          success: true,
+          metadata: {
+            user_id: userId,
+            email_verified: session.user.email_verified
+          }
+        });
 
-        if (linkingResult.requiresLinking) {
-          console.log('Account linking required for', provider);
-          return;
+        // Update last used timestamp
+        if (email) {
+          await accountLinkingService.updateLastUsed(userId, provider);
         }
-      }
 
-      // Success message with provider-specific text
-      const providerName = provider === 'azure' ? 'Microsoft' : provider;
-      toast.success(`Successfully signed in with ${providerName}`, {
-        description: email ? `Welcome back, ${email}` : 'Welcome back!'
-      });
+        // Check if account linking is needed
+        if (email) {
+          const linkingResult = await accountLinkingService.handleOAuthLinking(
+            provider,
+            session,
+            email
+          );
+
+          if (linkingResult.requiresLinking) {
+            console.log('Account linking required for', provider);
+            return;
+          }
+        }
+
+        toast.success(`Successfully signed in with Google`, {
+          description: email ? `Welcome back, ${email}` : 'Welcome back!'
+        });
+      }
 
     } catch (error) {
       console.error('Error handling OAuth callback:', error);

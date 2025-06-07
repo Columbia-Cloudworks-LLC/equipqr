@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { DatabaseFunctions } from './DatabaseFunctions';
 
 /**
  * Service for handling account linking between different authentication methods
@@ -15,27 +16,19 @@ export class AccountLinkingService {
     newProviderEmail: string
   ): Promise<{ success: boolean; token?: string; error?: string }> {
     try {
-      // Use RPC function to avoid TypeScript deep instantiation issues
-      // Cast to any to bypass TypeScript type restrictions for new RPC function
-      const { data: userLookupData, error: userLookupError } = await (supabase as any)
-        .rpc('lookup_user_by_email', { p_email: existingEmail });
+      // Use enhanced database functions
+      const userLookupResult = await DatabaseFunctions.lookupUserByEmail(existingEmail);
       
-      if (userLookupError) {
-        console.error('Error looking up user:', userLookupError);
-        return { success: false, error: 'Failed to lookup existing user' };
-      }
-
-      // Handle the response more defensively
-      if (!userLookupData || !Array.isArray(userLookupData) || userLookupData.length === 0) {
+      if (!userLookupResult) {
         return { success: false, error: 'Existing user not found' };
       }
 
-      const existingUserId = userLookupData[0].user_id;
+      const existingUserId = userLookupResult.user_id;
 
       // Generate verification token
-      const { data: tokenData, error: tokenError } = await supabase.rpc('generate_verification_token');
+      const token = await DatabaseFunctions.generateVerificationToken();
       
-      if (tokenError || !tokenData) {
+      if (!token) {
         return { success: false, error: 'Failed to generate verification token' };
       }
 
@@ -46,7 +39,7 @@ export class AccountLinkingService {
           existing_user_id: existingUserId,
           new_provider: newProvider,
           new_provider_email: newProviderEmail,
-          verification_token: tokenData,
+          verification_token: token,
           status: 'pending'
         })
         .select()
@@ -57,7 +50,7 @@ export class AccountLinkingService {
         return { success: false, error: 'Failed to create link request' };
       }
 
-      return { success: true, token: tokenData };
+      return { success: true, token };
     } catch (error) {
       console.error('Error in createLinkRequest:', error);
       return { success: false, error: 'An unexpected error occurred' };
@@ -194,19 +187,29 @@ export class AccountLinkingService {
     }
 
     try {
-      // Check if this email already exists with a different provider
-      const { data: duplicateCheckData, error: duplicateError } = await supabase.rpc('check_duplicate_email_signup', {
-        p_email: session.user.email,
-        p_provider: provider
-      });
+      // Use enhanced duplicate checking
+      let duplicateResult;
+      
+      try {
+        // Try RPC function first
+        const { data: duplicateCheckData, error: duplicateError } = await supabase.rpc('check_duplicate_email_signup', {
+          p_email: session.user.email,
+          p_provider: provider
+        });
 
-      if (duplicateError) {
-        console.error('Error checking duplicate email:', duplicateError);
-        return { requiresLinking: false };
+        if (duplicateError) {
+          throw duplicateError;
+        }
+        
+        duplicateResult = duplicateCheckData as any;
+      } catch (rpcError) {
+        console.log('RPC function not available, using fallback');
+        // Use fallback method
+        duplicateResult = await DatabaseFunctions.checkDuplicateEmailFallback(
+          session.user.email,
+          provider
+        );
       }
-
-      // Type-safe handling of RPC response
-      const duplicateResult = duplicateCheckData as any;
       
       if (duplicateResult?.has_duplicate && duplicateResult?.can_link) {
         // Create a link request
