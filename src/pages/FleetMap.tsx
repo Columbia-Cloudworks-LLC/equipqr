@@ -144,42 +144,28 @@ export default function FleetMap() {
     );
   }
   
-  // If no access, show paywall
-  if (!hasAccess) {
-    return (
-      <Layout>
-        <FeaturePaywall
-          featureKey="fleet_map"
-          featureName="Fleet Map"
-        />
-      </Layout>
-    );
-  }
-  
-  // Equipment loading or error states
-  if (equipmentError) {
-    return (
-      <Layout>
-        <div className="space-y-6">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
-            <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
-          </div>
-          
-          <div className="text-center py-12">
-            <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2">Error Loading Equipment</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {equipmentError instanceof Error ? equipmentError.message : 'Failed to load equipment data'}
-            </p>
-          </div>
+  // Equipment loading or error states for authenticated users
+  const renderEquipmentError = () => (
+    <Layout>
+      <div className="space-y-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
+          <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
         </div>
-      </Layout>
-    );
-  }
+        
+        <div className="text-center py-12">
+          <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-medium mb-2">Error Loading Equipment</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            {equipmentError instanceof Error ? equipmentError.message : 'Failed to load equipment data'}
+          </p>
+        </div>
+      </div>
+    </Layout>
+  );
 
-  // Main Fleet Map interface - user has access
-  return (
+  // Main Fleet Map interface - render children inside FeaturePaywall
+  const fleetMapContent = (
     <Layout>
       <div className="space-y-6">
         <GracePeriodBanner />
@@ -196,27 +182,48 @@ export default function FleetMap() {
           </p>
         </div>
         
-        <FleetMapFilters
-          filters={{
-            search: searchQuery,
-            status: filterStatus,
-            team: filterTeam
-          }}
-          teams={teams.map(name => ({ id: name, name }))}
-          onFilterSearchChange={setSearchQuery}
-          onFilterStatusChange={setFilterStatus}
-          onFilterTeamChange={setFilterTeam}
-          onClearFilters={handleClearFilters}
-        />
+        {equipmentError ? (
+          <div className="text-center py-12">
+            <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-medium mb-2">Error Loading Equipment</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {equipmentError instanceof Error ? equipmentError.message : 'Failed to load equipment data'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <FleetMapFilters
+              filters={{
+                search: searchQuery,
+                status: filterStatus,
+                team: filterTeam
+              }}
+              teams={teams.map(name => ({ id: name, name }))}
+              onFilterSearchChange={setSearchQuery}
+              onFilterStatusChange={setFilterStatus}
+              onFilterTeamChange={setFilterTeam}
+              onClearFilters={handleClearFilters}
+            />
 
-        <FleetMapContent
-          isLoading={equipmentLoading}
-          filteredEquipment={filteredEquipment}
-          selectedEquipmentId={selectedEquipmentId}
-          onEquipmentSelected={setSelectedEquipmentId}
-          selectedEquipment={selectedEquipment}
-        />
+            <FleetMapContent
+              isLoading={equipmentLoading}
+              filteredEquipment={filteredEquipment}
+              selectedEquipmentId={selectedEquipmentId}
+              onEquipmentSelected={setSelectedEquipmentId}
+              selectedEquipment={selectedEquipment}
+            />
+          </>
+        )}
       </div>
     </Layout>
+  );
+
+  return (
+    <FeaturePaywall
+      featureKey="fleet_map"
+      featureName="Fleet Map"
+    >
+      {fleetMapContent}
+    </FeaturePaywall>
   );
 }
