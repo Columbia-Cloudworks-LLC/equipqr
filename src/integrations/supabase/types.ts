@@ -787,6 +787,9 @@ export type Database = {
           current_storage_bytes: number | null
           deleted_at: string | null
           frozen_at: string | null
+          grace_period_end: string | null
+          grace_period_notified: boolean | null
+          grace_period_start: string | null
           id: string
           last_storage_check: string | null
           name: string
@@ -803,6 +806,9 @@ export type Database = {
           current_storage_bytes?: number | null
           deleted_at?: string | null
           frozen_at?: string | null
+          grace_period_end?: string | null
+          grace_period_notified?: boolean | null
+          grace_period_start?: string | null
           id?: string
           last_storage_check?: string | null
           name: string
@@ -819,6 +825,9 @@ export type Database = {
           current_storage_bytes?: number | null
           deleted_at?: string | null
           frozen_at?: string | null
+          grace_period_end?: string | null
+          grace_period_notified?: boolean | null
+          grace_period_start?: string | null
           id?: string
           last_storage_check?: string | null
           name?: string
