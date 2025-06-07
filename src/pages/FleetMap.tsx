@@ -15,7 +15,7 @@ import { Layout } from '@/components/Layout/Layout';
 
 export default function FleetMap() {
   const { selectedOrganization } = useOrganization();
-  const { hasAccess, isLoading: accessLoading, userRole, gracePeriodInfo } = useFeatureAccess('fleet_map');
+  const { hasAccess, isLoading: accessLoading } = useFeatureAccess('fleet_map');
   
   // Fetch equipment data directly for fleet map
   const { data: equipment = [], isLoading: equipmentLoading } = useQuery({
@@ -77,18 +77,9 @@ export default function FleetMap() {
         <FeaturePaywall
           featureKey="fleet_map"
           featureName="Fleet Map"
-          description="Get a bird's-eye view of your entire fleet with our interactive map feature"
-          benefits={[
-            "Interactive map showing all equipment locations",
-            "Real-time location updates when equipment is scanned",
-            "Filter equipment by status, team, and organization",
-            "Detailed equipment information in popup windows",
-            "Export location data for reporting"
-          ]}
-          icon={<MapPin className="h-8 w-8 text-blue-600" />}
-          userRole={userRole}
-          gracePeriodInfo={gracePeriodInfo}
-        />
+        >
+          {/* This will never render as FeaturePaywall handles the paywall display internally */}
+        </FeaturePaywall>
       </Layout>
     );
   }
