@@ -9,7 +9,6 @@ import { DashboardStats } from '@/components/Dashboard/DashboardStats';
 import { TeamsSection } from '@/components/Dashboard/TeamsSection';
 import { RecentEquipmentSection } from '@/components/Dashboard/RecentEquipmentSection';
 import { QuickLinksCard } from '@/components/Dashboard/QuickLinksCard';
-import { DashboardEquipmentMap } from '@/components/Dashboard/DashboardEquipmentMap';
 import { InvitationAlert } from '@/components/Dashboard/InvitationAlert';
 import { NewGracePeriodBanner } from '@/components/Billing/NewGracePeriodBanner';
 import { ActiveBillingBanner } from '@/components/Billing/ActiveBillingBanner';
@@ -108,8 +107,8 @@ export default function Index() {
 
         <DashboardStats stats={stats} />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3 space-y-6">
             <RecentEquipmentSection 
               recentEquipment={recentEquipment}
               isLoading={isEquipmentLoading}
@@ -124,7 +123,6 @@ export default function Index() {
           </div>
           <div className="space-y-6">
             <QuickLinksCard />
-            <DashboardEquipmentMap equipment={equipment} isLoading={isDashboardLoading} />
           </div>
         </div>
       </div>
