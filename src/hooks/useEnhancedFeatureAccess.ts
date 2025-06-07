@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { FeatureFlags } from '@/config/app';
+import { apiToConfigFeatureKey, isValidFeatureKey, configToApiFeatureKey } from '@/utils/featureKeyMapping';
 
 interface FeatureAccessResult {
   has_access: boolean;
@@ -51,13 +52,47 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
       return;
     }
 
+    // Validate and convert feature key
+    if (!isValidFeatureKey(featureKey)) {
+      console.error('Enhanced Feature Access: Invalid feature key', featureKey);
+      setError(`Invalid feature key: ${featureKey}`);
+      setHasAccess(false);
+      setIsLoading(false);
+      return;
+    }
+
+    const configKey = apiToConfigFeatureKey(featureKey);
+    if (!configKey) {
+      console.error('Enhanced Feature Access: Could not map feature key', featureKey);
+      setError(`Could not map feature key: ${featureKey}`);
+      setHasAccess(false);
+      setIsLoading(false);
+      return;
+    }
+
     // Check if feature is enabled in configuration
-    const featureConfig = FeatureFlags[featureKey as keyof typeof FeatureFlags];
+    const featureConfig = FeatureFlags[configKey];
     if (!featureConfig?.enabled) {
-      console.log('Enhanced Feature Access: Feature disabled in config', featureKey);
+      console.log('Enhanced Feature Access: Feature disabled in config', { 
+        featureKey, 
+        configKey, 
+        featureConfig 
+      });
       setHasAccess(false);
       setIsLoading(false);
       setError('Feature is currently disabled');
+      return;
+    }
+
+    // If feature doesn't require subscription, grant access immediately
+    if (!featureConfig.requiresSubscription) {
+      console.log('Enhanced Feature Access: Feature does not require subscription, granting access', {
+        featureKey,
+        configKey
+      });
+      setHasAccess(true);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
@@ -84,8 +119,9 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
       setError(null);
       lastCheckedOrgRef.current = currentOrgId;
 
-      console.log('Enhanced Feature Access: Checking access', { 
+      console.log('Enhanced Feature Access: Checking subscription access', { 
         featureKey, 
+        configKey,
         orgId: currentOrgId,
         orgName: selectedOrganization.name
       });
@@ -111,10 +147,12 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
       }
 
       const result = data as FeatureAccessResult;
-      console.log('Enhanced Feature Access: Result', {
+      console.log('Enhanced Feature Access: Subscription check result', {
         hasAccess: result.has_access,
         reason: result.reason,
-        orgId: currentOrgId
+        orgId: currentOrgId,
+        featureKey,
+        configKey
       });
 
       setHasAccess(result.has_access);
@@ -123,7 +161,7 @@ export function useEnhancedFeatureAccess(featureKey: string): UseEnhancedFeature
       setUserRole(result.user_role || null);
 
       if (!result.has_access && result.reason) {
-        console.log('Enhanced Feature Access: Access denied', result.reason);
+        console.log('Enhanced Feature Access: Subscription access denied', result.reason);
       }
 
     } catch (err) {

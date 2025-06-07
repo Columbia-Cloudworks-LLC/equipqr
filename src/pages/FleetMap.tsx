@@ -21,8 +21,9 @@ export default function FleetMap() {
   const { 
     hasAccess, 
     isLoading: accessLoading, 
-    isOrgTransitioning 
-  } = useEnhancedFeatureAccess('fleet_map');
+    isOrgTransitioning,
+    error: accessError
+  } = useEnhancedFeatureAccess('fleet_map'); // Use API key format
   
   // Check if feature is enabled at the configuration level
   if (!fleetMapFeature.enabled) {
@@ -50,6 +51,39 @@ export default function FleetMap() {
     return (
       <Layout>
         <OrganizationTransitionSkeleton />
+      </Layout>
+    );
+  }
+  
+  // Show loading state while checking access or during organization transitions
+  if (accessLoading) {
+    return (
+      <Layout>
+        <OrganizationTransitionLoader 
+          message="Loading Fleet Map access..."
+          showCard={false}
+        />
+      </Layout>
+    );
+  }
+
+  // Show access error if there's an issue checking permissions
+  if (accessError) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
+            <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
+          </div>
+          
+          <Alert>
+            <MapPin className="h-4 w-4" />
+            <AlertDescription>
+              Error checking Fleet Map access: {accessError}
+            </AlertDescription>
+          </Alert>
+        </div>
       </Layout>
     );
   }
@@ -101,18 +135,6 @@ export default function FleetMap() {
 
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
   const selectedEquipment = filteredEquipment.find(eq => eq.id === selectedEquipmentId) || null;
-
-  // Show loading state while checking access or during organization transitions
-  if (accessLoading) {
-    return (
-      <Layout>
-        <OrganizationTransitionLoader 
-          message="Loading Fleet Map access..."
-          showCard={false}
-        />
-      </Layout>
-    );
-  }
 
   const handleClearFilters = () => {
     setFilterStatus('all');

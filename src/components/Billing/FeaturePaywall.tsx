@@ -19,11 +19,16 @@ interface FeaturePaywallProps {
 
 export function FeaturePaywall({ featureKey, featureName, children }: FeaturePaywallProps) {
   const { selectedOrganization } = useOrganization();
-  const { hasAccess, isLoading, isOrgTransitioning } = useEnhancedFeatureAccess(featureKey);
+  const { hasAccess, isLoading, isOrgTransitioning, error } = useEnhancedFeatureAccess(featureKey);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
   if (isLoading || isOrgTransitioning) {
     return <OrganizationTransitionLoader message="Checking feature access..." showCard={false} />;
+  }
+
+  // Show error if access check failed
+  if (error) {
+    console.error('FeaturePaywall: Access check error', error);
   }
 
   if (hasAccess) {
@@ -102,6 +107,11 @@ export function FeaturePaywall({ featureKey, featureName, children }: FeaturePay
           <CardDescription>
             {featureDetails.description}
           </CardDescription>
+          {error && (
+            <div className="text-xs text-muted-foreground mt-2">
+              Debug: {error}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center">
