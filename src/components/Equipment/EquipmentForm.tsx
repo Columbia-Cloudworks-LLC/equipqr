@@ -187,12 +187,13 @@ export function EquipmentForm({
             onChange={handleChange} 
           />
           
-          {/* Custom Attributes Section */}
+          {/* Custom Attributes Section - now with organization context */}
           <div className="pt-4 border-t">
             <AttributesEditor 
               attributes={formData.attributes || []} 
               onChange={handleAttributesChange}
               equipmentId={equipment?.id}
+              orgId={selectedOrgId}
             />
           </div>
         </CardContent>

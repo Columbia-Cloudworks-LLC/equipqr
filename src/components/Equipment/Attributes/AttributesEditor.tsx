@@ -13,6 +13,7 @@ interface AttributesEditorProps {
   className?: string;
   readOnly?: boolean;
   equipmentId?: string;
+  orgId?: string; // Added organization context
 }
 
 export function AttributesEditor({ 
@@ -20,9 +21,10 @@ export function AttributesEditor({
   onChange, 
   className, 
   readOnly = false,
-  equipmentId
+  equipmentId,
+  orgId
 }: AttributesEditorProps) {
-  const { canEdit, isCheckingPermission, permissionCheckError } = useAttributePermissions(equipmentId, readOnly);
+  const { canEdit, isCheckingPermission, permissionCheckError } = useAttributePermissions(equipmentId, readOnly, orgId);
   const isMobile = useIsMobile();
 
   const handleUpdateAttribute = (index: number, field: 'key' | 'value', value: string) => {

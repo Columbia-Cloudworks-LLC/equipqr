@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * Custom hook to handle attribute editing permissions
  */
-export function useAttributePermissions(equipmentId?: string, readOnly: boolean = false) {
+export function useAttributePermissions(equipmentId?: string, readOnly: boolean = false, orgId?: string) {
   const { user } = useAuthState();
   const [canEdit, setCanEdit] = useState(false);
   const [isCheckingPermission, setIsCheckingPermission] = useState(false);
@@ -24,9 +24,8 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
       setPermissionCheckError(null);
       
       try {
-        // If we have an equipment ID, check permissions
+        // If we have an equipment ID, check permissions using the dedicated function
         if (equipmentId) {
-          // Use the correct parameter names for the Supabase function
           const { data, error } = await supabase.rpc(
             'check_equipment_permissions',
             { 
@@ -41,33 +40,59 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
           }
           
           console.log(`Permission check for user ${user.id} to edit equipment ${equipmentId}: ${data}`);
-          setCanEdit(!!data); // Convert to boolean
+          setCanEdit(!!data);
           return;
         }
         
-        // Fallback to checking user roles directly (for new equipment)
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id as any) // Type casting for compatibility
-          .maybeSingle();
+        // For new equipment, check if user can create equipment in the specified organization
+        if (orgId) {
+          console.log(`Checking create permissions for org ${orgId}`);
           
-        if (error) {
-          console.error('Error checking user roles:', error);
+          // Check user's role in the specific organization
+          const { data: roleData, error: roleError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('org_id', orgId)
+            .single();
+            
+          if (roleError) {
+            // If no specific role found, user might not have access to this org
+            console.log('No role found for user in specified org:', roleError);
+            setCanEdit(false);
+            return;
+          }
+          
+          if (roleData && ['owner', 'manager', 'admin'].includes(roleData.role)) {
+            setCanEdit(true);
+            return;
+          }
+          
+          setCanEdit(false);
+          return;
+        }
+        
+        // Fallback: check if user has any admin-level role in any organization
+        const { data: adminRoles, error: adminError } = await supabase
+          .from('user_roles')
+          .select('role, org_id')
+          .eq('user_id', user.id)
+          .in('role', ['owner', 'manager', 'admin']);
+          
+        if (adminError) {
+          console.error('Error checking admin roles:', adminError);
           setPermissionCheckError("Couldn't verify edit permissions");
           setCanEdit(false);
           return;
         }
           
-        if (data && data.role && ['owner', 'manager'].includes(data.role)) {
-          setCanEdit(true);
-        } else {
-          // Default to true for new equipment creation
-          setCanEdit(true);
-        }
+        // If user has any admin role, allow editing (for new equipment without org context)
+        setCanEdit(adminRoles && adminRoles.length > 0);
+        
       } catch (error) {
         console.error('Error checking permissions:', error);
-        setPermissionCheckError("Error checking edit permissions");
+        const errorMessage = error instanceof Error ? error.message : "Error checking edit permissions";
+        setPermissionCheckError(errorMessage);
         setCanEdit(false);
       } finally {
         setIsCheckingPermission(false);
@@ -75,7 +100,7 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
     };
     
     checkPermission();
-  }, [user, equipmentId, readOnly]);
+  }, [user, equipmentId, readOnly, orgId]);
 
   return { 
     canEdit, 
