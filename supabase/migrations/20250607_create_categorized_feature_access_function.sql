@@ -1,4 +1,5 @@
 
+
 -- Create the get_org_feature_access_categorized function that properly handles exemptions
 
 CREATE OR REPLACE FUNCTION public.get_org_feature_access_categorized(
@@ -106,3 +107,4 @@ BEGIN
   RETURN FALSE;
 END;
 $function$;
+
