@@ -63,7 +63,7 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
             return;
           }
           
-          if (roleData && ['owner', 'manager', 'admin'].includes(roleData.role)) {
+          if (roleData && ['owner', 'manager'].includes(roleData.role)) {
             setCanEdit(true);
             return;
           }
@@ -77,7 +77,7 @@ export function useAttributePermissions(equipmentId?: string, readOnly: boolean 
           .from('user_roles')
           .select('role, org_id')
           .eq('user_id', user.id)
-          .in('role', ['owner', 'manager', 'admin']);
+          .in('role', ['owner', 'manager']);
           
         if (adminError) {
           console.error('Error checking admin roles:', adminError);
