@@ -47,7 +47,8 @@ export function useCombinedDashboardData(orgId?: string) {
       return result;
     },
     enabled: !!session && !!orgId && isOrgReady,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 30, // Reduced from 5 minutes to 30 seconds for more responsive updates
+    gcTime: 1000 * 60 * 2, // Reduced garbage collection time to 2 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: true
   });
@@ -86,11 +87,12 @@ export function useCombinedDashboardData(orgId?: string) {
       .slice(0, 4);
   }, [equipment]);
 
-  // Refetch dashboard data
-  const refetchDashboard = () => {
+  // Enhanced refetch function that forces fresh data
+  const refetchDashboard = async () => {
     if (isOrgReady) {
-      console.log('Manually refetching dashboard data');
-      return refetch();
+      console.log('Manually refetching dashboard data with fresh fetch');
+      // Use refetch which will trigger a fresh API call
+      return await refetch();
     }
     console.log('Cannot refetch: organization or session not ready');
     return Promise.resolve();

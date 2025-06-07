@@ -15,6 +15,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePersistedFilters } from '@/hooks/usePersistedFilters';
 import { EquipmentImportButton } from '@/components/Equipment/Import';
 import { ImportResult } from '@/services/equipment/equipmentImportService';
+import { useCacheInvalidation } from '@/hooks/useCacheInvalidation';
 
 const EquipmentPage = () => {
   const { user, isLoading: authLoading, checkSession } = useAuth();
@@ -22,6 +23,7 @@ const EquipmentPage = () => {
   const { 
     selectedOrganization 
   } = useOrganization();
+  const { invalidateEquipmentData } = useCacheInvalidation();
   
   // Use persisted filters (excluding organization since that's managed globally)
   const { 
@@ -74,12 +76,19 @@ const EquipmentPage = () => {
     }
   }, [error]);
 
-  // Handle import completion
-  const handleImportComplete = (result: ImportResult) => {
+  // Handle import completion with enhanced cache invalidation
+  const handleImportComplete = async (result: ImportResult) => {
     if (result.success && result.imported > 0) {
-      // Refetch equipment data to show newly imported items
-      refetch();
-      toast.success(`Successfully imported ${result.imported} equipment records`);
+      console.log(`Import completed: ${result.imported} records imported`);
+      
+      // The import dialog already handles cache invalidation,
+      // but we can also refetch the local data for immediate UI update
+      try {
+        await refetch();
+        console.log('Equipment list refetched after import');
+      } catch (error) {
+        console.error('Error refetching equipment after import:', error);
+      }
     }
   };
 

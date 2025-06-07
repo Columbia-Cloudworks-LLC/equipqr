@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,6 +9,7 @@ import { Upload, AlertCircle, CheckCircle, X, FileText } from 'lucide-react';
 import { parseCSV, ValidationError } from '@/utils/csvParser';
 import { importEquipmentFromCSV, ImportResult, ImportProgress } from '@/services/equipment/equipmentImportService';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useCacheInvalidation } from '@/hooks/useCacheInvalidation';
 import { toast } from 'sonner';
 
 interface EquipmentImportDialogProps {
@@ -26,6 +26,7 @@ export function EquipmentImportDialog({
   onImportComplete 
 }: EquipmentImportDialogProps) {
   const { selectedOrganization } = useOrganization();
+  const { invalidateEquipmentData } = useCacheInvalidation();
   const [stage, setStage] = useState<ImportStage>('select');
   const [file, setFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<any>(null);
@@ -79,8 +80,14 @@ export function EquipmentImportDialog({
       setImportResult(result);
       setStage('complete');
 
-      if (result.success) {
+      if (result.success && result.imported > 0) {
         toast.success(`Successfully imported ${result.imported} equipment records`);
+        
+        // Invalidate all equipment-related caches to refresh dashboard and equipment list
+        console.log('Import completed, invalidating equipment data caches');
+        await invalidateEquipmentData();
+        
+        // Call the original callback
         onImportComplete?.(result);
       } else {
         toast.error('Import failed with validation errors');
@@ -90,7 +97,7 @@ export function EquipmentImportDialog({
       toast.error('Import failed unexpectedly');
       setStage('preview');
     }
-  }, [csvData, selectedOrganization, onImportComplete]);
+  }, [csvData, selectedOrganization, invalidateEquipmentData, onImportComplete]);
 
   const handleClose = useCallback(() => {
     setStage('select');

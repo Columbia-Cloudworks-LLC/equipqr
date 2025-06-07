@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { retry } from '@/utils/edgeFunctions/retry';
 import { toast } from 'sonner';
@@ -59,15 +58,15 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
         return dashboardCache.data;
       }
       
-      // If we're debounced but cache is expired, still use cache but mark for refresh
-      if (isDebounced) {
+      // If we're debounced but cache is expired, still use cache but mark for refresh (unless forcing)
+      if (isDebounced && !forceRefresh) {
         console.log('Debounced: using slightly stale cache');
         return dashboardCache.data;
       }
     }
     
-    // Skip fetching if tab is not visible and we have any cache
-    if (!isDocumentVisible && dashboardCache && dashboardCache.orgId === orgId) {
+    // Skip fetching if tab is not visible and we have any cache (unless forcing refresh)
+    if (!forceRefresh && !isDocumentVisible && dashboardCache && dashboardCache.orgId === orgId) {
       console.log('Tab inactive: using existing cache regardless of age');
       return dashboardCache.data;
     }
@@ -95,7 +94,7 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
     lastFetchTime = now;
     
     // Enhanced logging to debug API calls
-    console.log(`Fetching dashboard data from edge function for user: ${userId}, org: ${orgId}`);
+    console.log(`Fetching dashboard data from edge function for user: ${userId}, org: ${orgId}${forceRefresh ? ' (forced refresh)' : ''}`);
     
     // Call the edge function with retry logic
     const { data, error } = await retry(
@@ -136,8 +135,8 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
   } catch (error) {
     console.error('Dashboard service error:', error);
     
-    // If we have cache, return it even if stale during errors
-    if (dashboardCache && dashboardCache.orgId === orgId) {
+    // If we have cache, return it even if stale during errors (unless forcing refresh)
+    if (!forceRefresh && dashboardCache && dashboardCache.orgId === orgId) {
       console.log('Error occurred, falling back to stale cache');
       return dashboardCache.data;
     }
@@ -159,7 +158,7 @@ export async function getDashboardData(orgId?: string, forceRefresh = false) {
 }
 
 /**
- * Clear dashboard cache - ENHANCED to force refresh after team operations
+ * Clear dashboard cache - ENHANCED to force refresh after operations
  */
 export function clearDashboardCache() {
   console.log('Clearing dashboard cache - fresh data will be fetched on next request');
@@ -172,6 +171,5 @@ export function clearDashboardCache() {
  */
 export async function refreshDashboardData(orgId?: string) {
   console.log('Force refreshing dashboard data');
-  clearDashboardCache(); // Clear cache first
-  return getDashboardData(orgId, true);
+  return getDashboardData(orgId, true); // Pass forceRefresh=true to bypass all caching
 }
