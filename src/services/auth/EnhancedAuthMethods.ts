@@ -15,21 +15,7 @@ export class EnhancedAuthMethods {
    */
   public async signIn(email: string, password: string): Promise<Session | null> {
     try {
-      // Log sign-in attempt
-      await authErrorDetection.logAuthEvent({
-        event_type: 'sign_in_attempt',
-        provider: 'email',
-        email,
-        success: false // Will update if successful
-      });
-
-      // Check for suspicious patterns
-      const patterns = await authErrorDetection.analyzeAuthPatterns(email);
-      if (patterns.suspicious) {
-        toast.warning('Security Notice', {
-          description: 'Multiple failed attempts detected. Please verify your credentials carefully.'
-        });
-      }
+      console.log('EnhancedAuthMethods: Email sign-in attempt for:', email.substring(0, 3) + '***');
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -37,6 +23,7 @@ export class EnhancedAuthMethods {
       });
 
       if (error) {
+        console.error('EnhancedAuthMethods: Email sign-in error:', error);
         authErrorDetection.handleAuthError(error, {
           email,
           provider: 'email',
@@ -45,32 +32,22 @@ export class EnhancedAuthMethods {
         throw error;
       }
 
-      // Log successful sign-in
-      await authErrorDetection.logAuthEvent({
-        event_type: 'sign_in_success',
-        provider: 'email',
-        email,
-        success: true
-      });
-
-      // Update last used timestamp
-      if (data.session?.user) {
-        await accountLinkingService.updateLastUsed(data.session.user.id, 'email');
-      }
-
+      console.log('EnhancedAuthMethods: Email sign-in successful');
       toast.success("Successfully signed in");
       return data.session;
     } catch (error) {
-      console.error('Enhanced sign-in error:', error);
+      console.error('EnhancedAuthMethods: Enhanced sign-in error:', error);
       throw error;
     }
   }
 
   /**
-   * Enhanced OAuth sign-in with improved Microsoft authentication
+   * Enhanced OAuth sign-in with improved provider handling
    */
   public async signInWithProvider(provider: 'google' | 'azure'): Promise<void> {
     try {
+      console.log(`EnhancedAuthMethods: Starting ${provider} OAuth sign-in`);
+      
       // Special handling for Microsoft OAuth
       if (provider === 'azure') {
         return await microsoftOAuthHandler.initiateOAuth();
@@ -80,9 +57,9 @@ export class EnhancedAuthMethods {
       const siteUrl = window.location.origin;
       const callbackUrl = `${siteUrl}/auth/callback`;
       
-      console.log(`Enhanced ${provider} sign-in using callback URL:`, callbackUrl);
+      console.log(`EnhancedAuthMethods: Google OAuth using callback URL:`, callbackUrl);
       
-      const oauthOptions: any = {
+      const oauthOptions = {
         redirectTo: callbackUrl,
         queryParams: {
           prompt: 'select_account',
@@ -91,40 +68,13 @@ export class EnhancedAuthMethods {
         }
       };
 
-      // Log the OAuth attempt
-      await authErrorDetection.logAuthEvent({
-        event_type: 'oauth_sign_in_attempt',
-        provider,
-        email: 'unknown', // Will be updated after successful auth
-        success: false,
-        metadata: { 
-          callback_url: callbackUrl,
-          query_params: oauthOptions.queryParams 
-        }
-      });
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: oauthOptions,
       });
 
       if (error) {
-        console.error(`Enhanced ${provider} sign-in error:`, error);
-        
-        // Log the OAuth error
-        await authErrorDetection.logAuthEvent({
-          event_type: 'oauth_sign_in_error',
-          provider,
-          email: 'unknown',
-          success: false,
-          error_code: error.message,
-          error_message: error.message,
-          metadata: { 
-            callback_url: callbackUrl,
-            query_params: oauthOptions.queryParams 
-          }
-        });
-
+        console.error(`EnhancedAuthMethods: ${provider} sign-in error:`, error);
         authErrorDetection.handleAuthError(error, {
           provider,
           action: 'oauth_sign_in'
@@ -132,55 +82,20 @@ export class EnhancedAuthMethods {
         throw error;
       }
 
-      console.log(`${provider} OAuth redirect initiated successfully`);
+      console.log(`EnhancedAuthMethods: ${provider} OAuth redirect initiated successfully`);
     } catch (error) {
-      console.error(`Unexpected error during enhanced ${provider} sign-in:`, error);
+      console.error(`EnhancedAuthMethods: Unexpected error during ${provider} sign-in:`, error);
       toast.error("An unexpected error occurred during sign-in");
       throw error;
     }
   }
 
   /**
-   * Enhanced sign up with duplicate detection and linking
+   * Enhanced sign up with duplicate detection
    */
   public async signUp(email: string, password: string, userData?: any): Promise<void> {
     try {
-      // Check for duplicate email first
-      const duplicateCheck = await authErrorDetection.checkDuplicateEmail(email, 'email');
-      
-      if (duplicateCheck.has_duplicate) {
-        // Show account linking option
-        const providers = duplicateCheck.existing_providers || [];
-        const providerText = providers.length > 1 
-          ? `multiple providers (${providers.join(', ')})` 
-          : providers[0];
-          
-        toast.error("Account already exists", {
-          description: `An account with this email already exists using ${providerText}. Please sign in instead.`,
-          duration: 6000
-        });
-        
-        // Log the duplicate attempt
-        await authErrorDetection.logAuthEvent({
-          event_type: 'duplicate_signup_attempt',
-          provider: 'email',
-          email,
-          success: false,
-          error_code: 'duplicate_email',
-          error_message: 'Account already exists',
-          metadata: { existing_providers: providers }
-        });
-        
-        return;
-      }
-
-      // Log sign-up attempt
-      await authErrorDetection.logAuthEvent({
-        event_type: 'sign_up_attempt',
-        provider: 'email',
-        email,
-        success: false // Will update if successful
-      });
+      console.log('EnhancedAuthMethods: Sign-up attempt for:', email.substring(0, 3) + '***');
 
       const { error } = await supabase.auth.signUp({
         email,
@@ -191,6 +106,7 @@ export class EnhancedAuthMethods {
       });
 
       if (error) {
+        console.error('EnhancedAuthMethods: Sign-up error:', error);
         authErrorDetection.handleAuthError(error, {
           email,
           provider: 'email',
@@ -199,19 +115,12 @@ export class EnhancedAuthMethods {
         throw error;
       }
       
-      // Log successful sign-up
-      await authErrorDetection.logAuthEvent({
-        event_type: 'sign_up_success',
-        provider: 'email',
-        email,
-        success: true
-      });
-      
+      console.log('EnhancedAuthMethods: Sign-up successful');
       toast.success("Account created successfully", {
         description: "Please check your email for verification instructions"
       });
     } catch (error) {
-      console.error('Enhanced sign-up error:', error);
+      console.error('EnhancedAuthMethods: Enhanced sign-up error:', error);
       throw error;
     }
   }
@@ -221,19 +130,14 @@ export class EnhancedAuthMethods {
    */
   public async resetPassword(email: string): Promise<void> {
     try {
-      // Log password reset attempt
-      await authErrorDetection.logAuthEvent({
-        event_type: 'password_reset_attempt',
-        provider: 'email',
-        email,
-        success: false // Will update if successful
-      });
+      console.log('EnhancedAuthMethods: Password reset for:', email.substring(0, 3) + '***');
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
       if (error) {
+        console.error('EnhancedAuthMethods: Password reset error:', error);
         authErrorDetection.handleAuthError(error, {
           email,
           provider: 'email',
@@ -242,77 +146,61 @@ export class EnhancedAuthMethods {
         throw error;
       }
       
-      // Log successful password reset request
-      await authErrorDetection.logAuthEvent({
-        event_type: 'password_reset_success',
-        provider: 'email',
-        email,
-        success: true
-      });
-      
+      console.log('EnhancedAuthMethods: Password reset email sent successfully');
       toast.success("Password reset email sent");
     } catch (error) {
-      console.error('Enhanced password reset error:', error);
+      console.error('EnhancedAuthMethods: Enhanced password reset error:', error);
       throw error;
     }
   }
 
   /**
-   * Enhanced OAuth callback handler with comprehensive debugging
+   * Improved OAuth callback handler with proper provider detection
    */
   public async handleOAuthCallback(session: any): Promise<void> {
     if (!session?.user) {
-      console.warn('OAuth callback received without user session');
+      console.warn('EnhancedAuthMethods: OAuth callback received without user session');
       return;
     }
 
     try {
-      const provider = session.user.app_metadata?.provider || 'unknown';
+      // Proper provider detection from multiple sources
+      const provider = this.detectProvider(session);
       const email = session.user.email;
       const userId = session.user.id;
 
-      console.log('OAuth callback details:', {
+      console.log('EnhancedAuthMethods: OAuth callback details:', {
         provider,
         email: email ? `${email.substring(0, 3)}***` : 'NO EMAIL',
         userId: userId ? `${userId.substring(0, 8)}...` : 'NO USER ID',
         hasAppMetadata: !!session.user.app_metadata,
-        hasUserMetadata: !!session.user.user_metadata,
-        appMetadataKeys: session.user.app_metadata ? Object.keys(session.user.app_metadata) : [],
-        userMetadataKeys: session.user.user_metadata ? Object.keys(session.user.user_metadata) : []
+        appMetadataProvider: session.user.app_metadata?.provider,
+        identitiesCount: session.user.identities?.length || 0,
+        firstIdentityProvider: session.user.identities?.[0]?.provider
       });
 
-      // Enhanced Microsoft OAuth callback handling
+      // Handle Microsoft OAuth
       if (provider === 'azure') {
+        console.log('EnhancedAuthMethods: Handling Microsoft OAuth callback');
         const result = await microsoftOAuthHandler.handleOAuthCallback(session);
         
         if (!result.success) {
           if (result.requiresLinking) {
-            console.log('Microsoft OAuth: Account linking required');
+            console.log('EnhancedAuthMethods: Microsoft OAuth requires account linking');
             return;
           }
-          
-          // Error was already handled and toasted by the handler
+          console.error('EnhancedAuthMethods: Microsoft OAuth callback failed');
           return;
         }
         
-        // Success case handled by the handler
+        console.log('EnhancedAuthMethods: Microsoft OAuth callback successful');
         return;
       }
 
-      // Google OAuth handling
+      // Handle Google OAuth
       if (provider === 'google') {
-        // Log successful OAuth sign-in
-        await authErrorDetection.logAuthEvent({
-          event_type: 'oauth_sign_in_success',
-          provider,
-          email: email || 'not_provided',
-          success: true,
-          metadata: {
-            user_id: userId,
-            email_verified: session.user.email_verified
-          }
-        });
-
+        console.log('EnhancedAuthMethods: Handling Google OAuth callback');
+        
         // Update last used timestamp
         if (email) {
           await accountLinkingService.updateLastUsed(userId, provider);
@@ -327,33 +215,67 @@ export class EnhancedAuthMethods {
           );
 
           if (linkingResult.requiresLinking) {
-            console.log('Account linking required for', provider);
+            console.log('EnhancedAuthMethods: Google OAuth requires account linking');
             return;
           }
         }
 
-        toast.success(`Successfully signed in with Google`, {
+        toast.success('Successfully signed in with Google', {
           description: email ? `Welcome back, ${email}` : 'Welcome back!'
         });
+        
+        console.log('EnhancedAuthMethods: Google OAuth callback successful');
+        return;
       }
 
-    } catch (error) {
-      console.error('Error handling OAuth callback:', error);
-      
-      // Log the callback error
-      await authErrorDetection.logAuthEvent({
-        event_type: 'oauth_callback_error',
-        provider: session.user.app_metadata?.provider || 'unknown',
-        email: session.user.email || 'unknown',
-        success: false,
-        error_code: error instanceof Error ? error.message : 'unknown_error',
-        error_message: error instanceof Error ? error.message : 'Unknown callback error'
+      // Handle unknown provider
+      console.warn('EnhancedAuthMethods: Unknown OAuth provider:', provider);
+      toast.success('Successfully signed in', {
+        description: email ? `Welcome back, ${email}` : 'Welcome back!'
       });
 
+    } catch (error) {
+      console.error('EnhancedAuthMethods: Error handling OAuth callback:', error);
+      
       toast.error("Authentication processing failed", {
         description: "There was an issue completing your sign-in. Please try again."
       });
     }
+  }
+
+  /**
+   * Detect the OAuth provider from session data
+   */
+  private detectProvider(session: any): string {
+    // Check app_metadata first (most reliable)
+    if (session.user.app_metadata?.provider) {
+      const provider = session.user.app_metadata.provider;
+      console.log('EnhancedAuthMethods: Provider from app_metadata:', provider);
+      return provider;
+    }
+
+    // Check identities array
+    if (session.user.identities && session.user.identities.length > 0) {
+      const provider = session.user.identities[0].provider;
+      console.log('EnhancedAuthMethods: Provider from identities:', provider);
+      return provider;
+    }
+
+    // Check the email domain as a fallback for Microsoft
+    if (session.user.email) {
+      const email = session.user.email.toLowerCase();
+      if (email.includes('@outlook.') || email.includes('@hotmail.') || email.includes('@live.')) {
+        console.log('EnhancedAuthMethods: Provider detected from email domain: azure');
+        return 'azure';
+      }
+      if (email.includes('@gmail.')) {
+        console.log('EnhancedAuthMethods: Provider detected from email domain: google');
+        return 'google';
+      }
+    }
+
+    console.warn('EnhancedAuthMethods: Could not detect provider, defaulting to unknown');
+    return 'unknown';
   }
 }
 

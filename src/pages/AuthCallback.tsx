@@ -13,82 +13,77 @@ export default function AuthCallback() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
+  const [redirectCount, setRedirectCount] = useState(0);
 
   useEffect(() => {
+    console.log("AuthCallback: Starting callback process");
     console.log("AuthCallback: Current URL:", window.location.href);
     console.log("AuthCallback: Auth loading state:", isLoading);
     console.log("AuthCallback: User state:", user ? "Has user" : "No user");
     
-    // Extract any OAuth error from URL parameters
+    // Check for OAuth errors in URL
     const urlParams = new URLSearchParams(window.location.search);
     const oauthError = urlParams.get('error');
     const oauthErrorDescription = urlParams.get('error_description');
     
     if (oauthError) {
-      console.error("OAuth error detected in URL:", { oauthError, oauthErrorDescription });
+      console.error("AuthCallback: OAuth error detected:", { oauthError, oauthErrorDescription });
       setError(`OAuth Error: ${oauthErrorDescription || oauthError}`);
       setStatus('error');
       return;
     }
+
+    // Track redirect attempts
+    const storedCount = parseInt(sessionStorage.getItem('authRedirectCount') || '0', 10);
+    setRedirectCount(storedCount + 1);
+    sessionStorage.setItem('authRedirectCount', (storedCount + 1).toString());
     
-    // Get any stored invitation path or return URL
-    const invitationPath = sessionStorage.getItem('invitationPath');
-    const returnTo = localStorage.getItem("authReturnTo") || '/';
-    
-    // Increment the redirect attempt counter to prevent infinite loops
-    const storedCount = sessionStorage.getItem('authRedirectCount') || '0';
-    const redirectCount = parseInt(storedCount, 10) + 1;
-    sessionStorage.setItem('authRedirectCount', redirectCount.toString());
-    
-    // Enhanced session handling for Microsoft OAuth
+    // Process authentication state
     if (!isLoading) {
       if (user) {
-        console.log("User authenticated successfully, proceeding to redirect");
+        console.log("AuthCallback: User authenticated, processing redirect");
         setStatus('success');
         
-        // Reset redirect count on successful login
+        // Clear redirect count on success
         sessionStorage.removeItem('authRedirectCount');
         
-        // Short delay to show success state, then redirect
+        // Get redirect destinations
+        const invitationPath = sessionStorage.getItem('invitationPath');
+        const returnTo = localStorage.getItem("authReturnTo") || '/';
+        
+        // Redirect after showing success state
         setTimeout(() => {
           if (invitationPath) {
-            console.log("Redirecting to stored invitation path:", invitationPath);
+            console.log("AuthCallback: Redirecting to invitation path:", invitationPath);
             sessionStorage.removeItem('invitationPath');
             navigate(invitationPath);
           } else {
-            console.log("Redirecting to return URL:", returnTo);
+            console.log("AuthCallback: Redirecting to return URL:", returnTo);
             localStorage.removeItem("authReturnTo");
             navigate(returnTo);
           }
         }, 1000);
       } else {
-        console.log("Authentication failed or no user found");
+        console.log("AuthCallback: No user found after auth");
         
-        // Check for specific Microsoft OAuth database errors
-        if (window.location.href.includes('error=')) {
-          const errorParam = urlParams.get('error_description') || urlParams.get('error');
-          if (errorParam && errorParam.includes('database')) {
-            setError("There was a database issue during sign-in. This may be due to an existing account with the same email. Please try signing in with your original method or contact support.");
-            setStatus('error');
-            return;
-          }
-        }
-        
-        // If we've redirected too many times, show an error
+        // Check for too many redirect attempts
         if (redirectCount >= 3) {
-          setError("Authentication failed after multiple attempts. This may be due to an account linking issue. Please try signing in with your original method or clear your browser cache.");
+          console.error("AuthCallback: Too many redirect attempts");
+          setError("Authentication failed after multiple attempts. Please try signing in again.");
           setStatus('error');
         } else {
-          // Simple redirect back to auth without complex verification
+          // Simple redirect back to auth
+          console.log("AuthCallback: Redirecting back to auth page");
           navigate('/auth');
         }
       }
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, redirectCount]);
 
   // Reset the auth system
-  const handleResetAuth = () => {
-    resetAuthSystem();
+  const handleResetAuth = async () => {
+    console.log("AuthCallback: Resetting auth system");
+    await resetAuthSystem();
     sessionStorage.removeItem('authRedirectCount');
     navigate('/auth');
   };

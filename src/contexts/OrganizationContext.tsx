@@ -9,7 +9,7 @@ interface OrganizationContextType {
   selectedOrganization: UserOrganization | null;
   isLoading: boolean;
   error: string | null;
-  isReady: boolean; // New flag to indicate when context is fully loaded
+  isReady: boolean;
   selectOrganization: (orgId: string) => void;
   refreshOrganizations: () => Promise<void>;
 }
@@ -33,66 +33,63 @@ interface OrganizationProviderProps {
 const SELECTED_ORG_KEY = 'equipqr_selected_organization';
 
 export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [organizations, setOrganizations] = useState<UserOrganization[]>([]);
   const [selectedOrganization, setSelectedOrganization] = useState<UserOrganization | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [refreshCounter, setRefreshCounter] = useState(0);
   const [isReady, setIsReady] = useState(false);
 
   const fetchOrganizations = async (): Promise<UserOrganization[]> => {
+    if (!user || authLoading) {
+      console.log('OrganizationContext: Skipping fetch - no user or auth loading');
+      setOrganizations([]);
+      setSelectedOrganization(null);
+      setIsReady(true);
+      return [];
+    }
+
     try {
       setIsLoading(true);
       setError(null);
       setIsReady(false);
       
-      console.log("OrganizationContext: Fetching organizations...");
+      console.log("OrganizationContext: Fetching organizations for user:", user.id.substring(0, 8) + '...');
       
-      if (!user) {
-        console.log('OrganizationContext: No user, setting ready state');
-        setOrganizations([]);
-        setSelectedOrganization(null);
-        setIsReady(true);
-        return [];
-      }
-      
-      // Always force refresh when explicitly called
       const orgs = await getAllUserOrganizations(true);
       
-      console.log('OrganizationContext: Fetched organizations:', orgs);
+      console.log('OrganizationContext: Fetched organizations:', orgs.length);
       setOrganizations(orgs);
       
-      // Ensure we always have a selected organization if any exist
+      // Handle organization selection
       let orgToSelect: UserOrganization | null = null;
       
-      // Check localStorage for previously selected organization
+      // Check for previously selected organization
       const storedOrgId = localStorage.getItem(SELECTED_ORG_KEY);
       if (storedOrgId) {
         orgToSelect = orgs.find(org => org.id === storedOrgId) || null;
         if (!orgToSelect) {
-          // Remove invalid stored selection
           localStorage.removeItem(SELECTED_ORG_KEY);
         }
       }
       
-      // Fallback to primary organization if no valid stored selection
+      // Fallback to primary organization
       if (!orgToSelect) {
         orgToSelect = orgs.find(org => org.is_primary) || null;
       }
       
-      // Fallback to the first organization in the list
+      // Fallback to first organization
       if (!orgToSelect && orgs.length > 0) {
         orgToSelect = orgs[0];
       }
       
-      // Set the selected organization and persist the choice
+      // Set the selected organization
       if (orgToSelect) {
-        console.log('OrganizationContext: Setting selected organization:', orgToSelect);
+        console.log('OrganizationContext: Setting selected organization:', orgToSelect.name);
         setSelectedOrganization(orgToSelect);
         localStorage.setItem(SELECTED_ORG_KEY, orgToSelect.id);
       } else {
-        // No organizations available
+        console.log('OrganizationContext: No organizations available');
         setSelectedOrganization(null);
         localStorage.removeItem(SELECTED_ORG_KEY);
       }
@@ -102,7 +99,12 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     } catch (error) {
       console.error('OrganizationContext: Error fetching organizations:', error);
       setError(error instanceof Error ? error.message : 'Failed to load organizations');
-      toast.error("Failed to load organizations");
+      
+      // Don't show toast for auth-related errors during sign-in flow
+      if (!window.location.pathname.includes('/auth')) {
+        toast.error("Failed to load organizations");
+      }
+      
       setIsReady(true);
       return [];
     } finally {
@@ -110,25 +112,32 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     }
   };
 
-  // Load organizations when user changes or refresh is triggered
+  // Load organizations when user changes
   useEffect(() => {
-    if (user) {
+    console.log('OrganizationContext: User or auth state changed:', {
+      hasUser: !!user,
+      authLoading,
+      userId: user?.id.substring(0, 8) + '...' || 'none'
+    });
+
+    if (user && !authLoading) {
       fetchOrganizations();
-    } else {
-      // Reset state when user is not available
+    } else if (!user && !authLoading) {
+      // User signed out, clear state
+      console.log('OrganizationContext: User signed out, clearing state');
       setOrganizations([]);
       setSelectedOrganization(null);
       setIsReady(true);
       setIsLoading(false);
+      setError(null);
     }
-  }, [refreshCounter, user]);
+  }, [user, authLoading]);
 
   const selectOrganization = (orgId: string) => {
     console.log('OrganizationContext: Selecting organization:', orgId);
     const org = organizations.find(org => org.id === orgId);
     if (org) {
       setSelectedOrganization(org);
-      // Persist selection to localStorage
       localStorage.setItem(SELECTED_ORG_KEY, orgId);
     } else {
       console.warn(`OrganizationContext: Attempted to select non-existent organization: ${orgId}`);
@@ -137,10 +146,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
   const refreshOrganizations = async (): Promise<void> => {
     console.log('OrganizationContext: Refreshing organizations...');
-    setRefreshCounter(prev => prev + 1);
-    // Actually wait for the fetch to complete
     await fetchOrganizations();
-    return;
   };
 
   return (
