@@ -4,6 +4,7 @@ import { Equipment, EquipmentAttribute } from '@/types';
 import { useTeamsData } from './useTeamsData';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormPersistence } from '@/hooks/useFormPersistence';
+import { useEquipmentCreatePermissions } from '@/hooks/useEquipmentCreatePermissions';
 
 interface UseEquipmentFormProps {
   initialEquipment?: Equipment;
@@ -11,6 +12,12 @@ interface UseEquipmentFormProps {
 
 export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {}) {
   const { organizations, selectedOrganization, isReady: orgContextReady } = useOrganization();
+  
+  // Get organizations where user can create equipment
+  const { permittedOrganizations, isCheckingPermissions } = useEquipmentCreatePermissions({ 
+    organizations 
+  });
+  
   const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(
     initialEquipment?.org_id || selectedOrganization?.id
   );
@@ -89,14 +96,20 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
 
   // Update selectedOrgId when organization context loads - wait for context to be ready
   useEffect(() => {
-    if (orgContextReady && !isEditing && selectedOrganization?.id) {
-      // Only set if we don't already have a selectedOrgId or if it doesn't match
-      if (!selectedOrgId || selectedOrgId !== selectedOrganization.id) {
-        console.log('Setting selectedOrgId from context:', selectedOrganization.id);
-        setSelectedOrgId(selectedOrganization.id);
+    if (orgContextReady && !isEditing && !isCheckingPermissions && permittedOrganizations.length > 0) {
+      // Find the selected organization in permitted organizations
+      const selectedInPermitted = permittedOrganizations.find(org => org.id === selectedOrganization?.id);
+      
+      if (selectedInPermitted && (!selectedOrgId || selectedOrgId !== selectedInPermitted.id)) {
+        console.log('Setting selectedOrgId from permitted orgs:', selectedInPermitted.id);
+        setSelectedOrgId(selectedInPermitted.id);
+      } else if (!selectedInPermitted && permittedOrganizations.length > 0) {
+        // If selected org is not in permitted list, use the first permitted org
+        console.log('Selected org not permitted, using first permitted org:', permittedOrganizations[0].id);
+        setSelectedOrgId(permittedOrganizations[0].id);
       }
     }
-  }, [orgContextReady, selectedOrganization, isEditing, selectedOrgId]);
+  }, [orgContextReady, selectedOrganization, isEditing, selectedOrgId, permittedOrganizations, isCheckingPermissions]);
 
   // Get teams data, filtered by selected organization
   const { 
@@ -174,6 +187,11 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
       return 'Organization cannot be empty. Please select a valid organization.';
     }
     
+    // Check if selected organization is in the permitted list
+    if (!isEditing && !permittedOrganizations.some(org => org.id === formData.org_id)) {
+      return 'You do not have permission to create equipment in the selected organization.';
+    }
+    
     return null;
   };
 
@@ -183,12 +201,12 @@ export function useEquipmentForm({ initialEquipment }: UseEquipmentFormProps = {
     teamsLoading,
     teamsError,
     selectedTeamIsExternal,
-    organizations,
+    organizations: permittedOrganizations, // Use filtered organizations
     selectedOrgId,
     showDraftAlert,
     lastSaved,
     isAutoSaving,
-    orgContextReady,
+    orgContextReady: orgContextReady && !isCheckingPermissions, // Include permission check state
     handleChange,
     handleSelectChange,
     handleDateChange,

@@ -2,9 +2,10 @@
 import { Label } from '@/components/ui/label';
 import { OrganizationSelector } from '@/components/Organization/OrganizationSelector';
 import { ExternalOrgAlert } from './ExternalOrgAlert';
+import { UserOrganization } from '@/services/organization/userOrganizations';
 
 interface OrganizationSectionProps {
-  organizations: any[];
+  organizations: UserOrganization[];
   selectedOrgId: string;
   isEditing: boolean;
   isExternalOrg: boolean;
@@ -23,8 +24,10 @@ export function OrganizationSection({
     return isExternalOrg ? <ExternalOrgAlert /> : null;
   }
   
-  // For new equipment, only show organization selector if there are multiple orgs
-  if (organizations.length <= 1) {
+  // For new equipment, show organization selector only if user has multiple orgs with create permissions
+  const shouldShowSelector = organizations.length > 1;
+  
+  if (!shouldShowSelector) {
     // Even with single org, show external org alert if applicable
     return isExternalOrg ? <ExternalOrgAlert /> : null;
   }
@@ -39,6 +42,7 @@ export function OrganizationSection({
           onChange={onChange}
           className="w-full"
           disabled={isEditing}
+          placeholder="Select organization where you can create equipment"
         />
       </div>
       

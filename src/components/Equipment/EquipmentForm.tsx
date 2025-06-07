@@ -78,6 +78,27 @@ export function EquipmentForm({
     org => org.id === selectedOrgId && !org.is_primary
   );
 
+  // Show warning if user has no organizations with create permissions
+  if (!isEditing && organizations.length === 0 && orgContextReady) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Unable to Create Equipment</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground mb-4">
+              You don't have permission to create equipment in any organization.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Please contact your organization administrator to request the appropriate permissions.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
