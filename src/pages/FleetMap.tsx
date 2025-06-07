@@ -70,20 +70,6 @@ export default function FleetMap() {
     );
   }
 
-  // Show paywall if user doesn't have access to fleet map
-  if (!hasAccess) {
-    return (
-      <Layout>
-        <FeaturePaywall
-          featureKey="fleet_map"
-          featureName="Fleet Map"
-        >
-          {/* This will never render as FeaturePaywall handles the paywall display internally */}
-        </FeaturePaywall>
-      </Layout>
-    );
-  }
-
   const handleClearFilters = () => {
     setFilterStatus('all');
     setFilterTeam('all');
@@ -92,36 +78,41 @@ export default function FleetMap() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <GracePeriodBanner />
-        
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
-          <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
-        </div>
-        
-        <FleetMapFilters
-          filters={{
-            search: searchQuery,
-            status: filterStatus,
-            team: filterTeam
-          }}
-          teams={teams.map(name => ({ id: name, name }))}
-          onFilterSearchChange={setSearchQuery}
-          onFilterStatusChange={setFilterStatus}
-          onFilterTeamChange={setFilterTeam}
-          onClearFilters={handleClearFilters}
-        />
+      <FeaturePaywall
+        featureKey="fleet_map"
+        featureName="Fleet Map"
+      >
+        <div className="space-y-6">
+          <GracePeriodBanner />
+          
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold mb-2">Fleet Map</h1>
+            <p className="text-muted-foreground">View all equipment locations on an interactive map</p>
+          </div>
+          
+          <FleetMapFilters
+            filters={{
+              search: searchQuery,
+              status: filterStatus,
+              team: filterTeam
+            }}
+            teams={teams.map(name => ({ id: name, name }))}
+            onFilterSearchChange={setSearchQuery}
+            onFilterStatusChange={setFilterStatus}
+            onFilterTeamChange={setFilterTeam}
+            onClearFilters={handleClearFilters}
+          />
 
-        <FleetMapContent
-          isLoading={equipmentLoading}
-          filteredEquipment={filteredEquipment}
-          equipmentWithLocation={filteredEquipment}
-          selectedEquipmentId={selectedEquipmentId}
-          onEquipmentSelected={setSelectedEquipmentId}
-          selectedEquipment={selectedEquipment}
-        />
-      </div>
+          <FleetMapContent
+            isLoading={equipmentLoading}
+            filteredEquipment={filteredEquipment}
+            equipmentWithLocation={filteredEquipment}
+            selectedEquipmentId={selectedEquipmentId}
+            onEquipmentSelected={setSelectedEquipmentId}
+            selectedEquipment={selectedEquipment}
+          />
+        </div>
+      </FeaturePaywall>
     </Layout>
   );
 }
