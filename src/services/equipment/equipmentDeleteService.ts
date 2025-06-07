@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { clearDashboardCache } from "@/services/dashboard/dashboardService";
 
 /**
  * Soft delete equipment
@@ -75,12 +76,9 @@ export async function deleteEquipment(id: string): Promise<boolean> {
     
     console.log('Equipment successfully deleted:', id);
     
-    // Set cache busting flag for equipment list refresh
-    try {
-      window.localStorage.setItem('equipment_cache_bust', 'true');
-    } catch (e) {
-      console.warn('Could not set cache bust flag:', e);
-    }
+    // Clear dashboard cache to ensure fresh data on next load
+    console.log('Clearing dashboard cache after equipment deletion');
+    clearDashboardCache();
     
     toast.success('Equipment deleted successfully');
     return true;

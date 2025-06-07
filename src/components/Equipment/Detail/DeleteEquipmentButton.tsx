@@ -14,8 +14,8 @@ import {
 import { Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteEquipment } from '@/services/equipment';
-import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useCacheInvalidation } from '@/hooks/useCacheInvalidation';
 
 interface DeleteEquipmentButtonProps {
   equipmentId: string;
@@ -31,8 +31,8 @@ export function DeleteEquipmentButton({
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { invalidateEquipmentData } = useCacheInvalidation();
 
   // Don't render the button if user doesn't have permission
   if (!canDelete) {
@@ -51,8 +51,9 @@ export function DeleteEquipmentButton({
     try {
       await deleteEquipment(equipmentId);
       
-      // Invalidate queries to refresh equipment list
-      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      // Invalidate all equipment-related caches to refresh dashboard and equipment list
+      console.log('Equipment deleted, invalidating equipment data caches');
+      await invalidateEquipmentData();
       
       // Close the dialog
       setIsOpen(false);
