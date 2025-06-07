@@ -62,11 +62,16 @@ serve(async (req) => {
 
     console.log(`User has role ${userRole.role} in org ${org_id}`);
 
-    // Use the enhanced database function that checks exemptions
+    // Determine feature category based on feature key
+    const featureCategory = feature_key === 'fleet_map' ? 'premium' : 'base';
+    console.log(`Feature ${feature_key} categorized as ${featureCategory}`);
+
+    // Use the enhanced database function that checks exemptions and categories
     const { data: hasAccess, error: accessError } = await supabaseClient
-      .rpc('get_org_feature_access', {
+      .rpc('get_org_feature_access_categorized', {
         p_org_id: org_id,
-        p_feature_key: feature_key
+        p_feature_key: feature_key,
+        p_feature_category: featureCategory
       });
 
     if (accessError) {
@@ -74,7 +79,7 @@ serve(async (req) => {
       throw new Error("Failed to check feature access");
     }
 
-    console.log(`Feature access result: ${hasAccess}`);
+    console.log(`Feature access result: ${hasAccess} for category ${featureCategory}`);
 
     // Get additional details for debugging
     let subscription_details = null;
@@ -116,11 +121,35 @@ serve(async (req) => {
       subscription_details = subDetails;
     }
 
-    // Get grace period information
-    const { data: gracePeriodInfo } = await supabaseClient
-      .rpc('get_org_grace_period_info', {
-        p_org_id: org_id
-      });
+    // Get grace period information (only relevant for base features)
+    let gracePeriodInfo = null;
+    if (featureCategory === 'base') {
+      const { data: gracePeriodData } = await supabaseClient
+        .rpc('get_org_grace_period_info', {
+          p_org_id: org_id
+        });
+      gracePeriodInfo = gracePeriodData;
+    }
+
+    // Determine access reason
+    let accessReason = "no_subscription";
+    if (hasAccess) {
+      if (exemption_details) {
+        accessReason = "exemption_granted";
+      } else if (subscription_details) {
+        accessReason = "subscription_active";
+      } else if (featureCategory === 'base' && gracePeriodInfo?.grace_period_active) {
+        accessReason = "grace_period_active";
+      } else {
+        accessReason = "access_granted";
+      }
+    } else {
+      if (featureCategory === 'premium') {
+        accessReason = "premium_subscription_required";
+      } else {
+        accessReason = "no_subscription";
+      }
+    }
 
     const response = {
       has_access: hasAccess,
@@ -128,7 +157,8 @@ serve(async (req) => {
       grace_period_info: gracePeriodInfo,
       exemption_details,
       user_role: userRole.role,
-      reason: hasAccess ? "access_granted" : (exemption_details ? "exemption_check_failed" : "no_subscription")
+      feature_category: featureCategory,
+      reason: accessReason
     };
 
     console.log(`Final response:`, response);

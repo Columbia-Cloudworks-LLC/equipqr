@@ -2196,6 +2196,14 @@ export type Database = {
         Args: { p_org_id: string; p_feature_key: string }
         Returns: boolean
       }
+      get_org_feature_access_categorized: {
+        Args: {
+          p_org_id: string
+          p_feature_key: string
+          p_feature_category?: string
+        }
+        Returns: boolean
+      }
       get_org_grace_period_info: {
         Args: { p_org_id: string }
         Returns: Json
