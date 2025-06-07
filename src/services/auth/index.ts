@@ -1,4 +1,5 @@
 
+
 // Re-export methods from our new unified auth service
 export { authService } from '@/services/auth/AuthService';
 export { sessionManager } from '@/services/auth/SessionManager';
@@ -17,6 +18,9 @@ export { resetAuthState, performFullAuthReset } from './authReset';
  */
 export async function initializeAuthServices(): Promise<void> {
   try {
+    // Import DatabaseFunctions to use it
+    const { DatabaseFunctions } = await import('@/services/auth/DatabaseFunctions');
+    
     // Ensure database functions are available
     await DatabaseFunctions.ensureDuplicateEmailFunction();
     console.log('Authentication services initialized successfully');
@@ -37,3 +41,4 @@ export async function safeGetAppUserId(authUserId: string): Promise<string | nul
   const { getAppUserId } = await import('@/utils/authUtils');
   return getAppUserId(authUserId);
 }
+
