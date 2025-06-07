@@ -95,6 +95,52 @@ export function useEnhancedAuth() {
     }
   }, []);
 
+  const checkSession = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log('useEnhancedAuth: Checking session validity');
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('useEnhancedAuth: Error checking session:', error);
+        return false;
+      }
+      
+      const isValid = !!session;
+      console.log('useEnhancedAuth: Session check result:', isValid);
+      return isValid;
+    } catch (error) {
+      console.error('useEnhancedAuth: Error during session check:', error);
+      return false;
+    }
+  }, []);
+
+  const repairSession = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log('useEnhancedAuth: Attempting session repair');
+      
+      // Try to refresh the session
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('useEnhancedAuth: Error repairing session:', error);
+        return false;
+      }
+      
+      if (data?.session) {
+        console.log('useEnhancedAuth: Session repaired successfully');
+        setSession(data.session);
+        setUser(data.session.user);
+        return true;
+      }
+      
+      console.log('useEnhancedAuth: Session repair failed - no session returned');
+      return false;
+    } catch (error) {
+      console.error('useEnhancedAuth: Error during session repair:', error);
+      return false;
+    }
+  }, []);
+
   const resetAuthSystem = useCallback(async () => {
     try {
       console.log('useEnhancedAuth: Performing complete auth system reset');
@@ -146,6 +192,8 @@ export function useEnhancedAuth() {
     signUp,
     resetPassword,
     signOut,
+    checkSession,
+    repairSession,
     resetAuthSystem
   };
 }
