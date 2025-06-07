@@ -17,18 +17,15 @@ interface FleetMapProps {
   onEquipmentSelected?: (equipmentId: string | null) => void;
 }
 
-type LoadingPhase = 'idle' | 'fetching-token' | 'initializing-map' | 'loading-complete';
+type LoadingState = 'loading' | 'ready' | 'error';
 
 interface MapState {
-  loadingPhase: LoadingPhase;
-  token: string | null;
+  loadingState: LoadingState;
   error: string | null;
   retryCount: number;
 }
 
 const MAX_RETRIES = 3;
-const CONTAINER_CHECK_TIMEOUT = 5000;
-const MAP_LOAD_TIMEOUT = 10000;
 
 export function FleetMap({ 
   equipment, 
@@ -39,11 +36,10 @@ export function FleetMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
-  const initializationTimeout = useRef<NodeJS.Timeout | null>(null);
+  const initializationAttempted = useRef(false);
   
   const [mapState, setMapState] = useState<MapState>({
-    loadingPhase: 'idle',
-    token: null,
+    loadingState: 'loading',
     error: null,
     retryCount: 0
   });
@@ -55,85 +51,49 @@ export function FleetMap({
     hasMap: !!map.current
   });
 
-  // Enhanced token retrieval with better error handling
+  // Fetch Mapbox token
   const fetchMapboxToken = useCallback(async (): Promise<string> => {
-    console.log('FleetMap: Starting token fetch...');
+    console.log('FleetMap: Fetching token...');
     
-    try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        throw new Error(`Session error: ${sessionError.message}`);
-      }
-      
-      if (!sessionData?.session?.access_token) {
-        throw new Error('No valid session found');
-      }
-
-      console.log('FleetMap: Session valid, calling edge function...');
-      
-      const { data, error: tokenError } = await supabase.functions.invoke('get_mapbox_token', {
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
-      });
-      
-      if (tokenError) {
-        throw new Error(`Token retrieval failed: ${tokenError.message}`);
-      }
-      
-      if (!data?.token || !data.token.startsWith('pk.')) {
-        throw new Error('Invalid token format received');
-      }
-
-      console.log('FleetMap: Token successfully retrieved');
-      return data.token;
-      
-    } catch (error) {
-      console.error('FleetMap: Token fetch error:', error);
-      throw error;
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !sessionData?.session?.access_token) {
+      throw new Error('Authentication required');
     }
-  }, []);
 
-  // Check if container is ready for map initialization
-  const isContainerReady = useCallback((): boolean => {
-    const container = mapContainer.current;
-    const isReady = container && 
-                   container.offsetWidth > 0 && 
-                   container.offsetHeight > 0 &&
-                   container.getBoundingClientRect().width > 0;
-    
-    console.log('FleetMap: Container ready check:', {
-      hasContainer: !!container,
-      offsetWidth: container?.offsetWidth,
-      offsetHeight: container?.offsetHeight,
-      isReady
+    const { data, error: tokenError } = await supabase.functions.invoke('get_mapbox_token', {
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`,
+      },
     });
     
-    return isReady;
-  }, []);
-
-  // Initialize the map with the token
-  const initializeMap = useCallback(async (token: string): Promise<void> => {
-    console.log('FleetMap: Starting map initialization...');
-    
-    if (!isContainerReady()) {
-      throw new Error('Container not ready for map initialization');
+    if (tokenError || !data?.token) {
+      throw new Error('Failed to retrieve map token');
     }
 
+    console.log('FleetMap: Token retrieved successfully');
+    return data.token;
+  }, []);
+
+  // Initialize map with token
+  const initializeMap = useCallback(async (token: string): Promise<void> => {
+    if (!mapContainer.current) {
+      throw new Error('Map container not available');
+    }
+
+    console.log('FleetMap: Initializing map...');
+    
     // Clean up existing map
     if (map.current) {
-      console.log('FleetMap: Cleaning up existing map...');
+      console.log('FleetMap: Cleaning up existing map');
       map.current.remove();
       map.current = null;
     }
 
-    console.log('FleetMap: Setting Mapbox access token...');
     mapboxgl.accessToken = token;
     
-    console.log('FleetMap: Creating map instance...');
     map.current = new mapboxgl.Map({
-      container: mapContainer.current!,
+      container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
       center: [-98.5, 39.8],
       zoom: 4,
@@ -144,9 +104,8 @@ export function FleetMap({
     
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        console.error('FleetMap: Map load timeout');
-        reject(new Error('Map loading timeout'));
-      }, MAP_LOAD_TIMEOUT);
+        reject(new Error('Map initialization timeout'));
+      }, 10000);
 
       map.current!.on('load', () => {
         console.log('FleetMap: Map loaded successfully');
@@ -157,70 +116,51 @@ export function FleetMap({
       map.current!.on('error', (e) => {
         console.error('FleetMap: Map error:', e);
         clearTimeout(timeout);
-        reject(new Error(`Map initialization failed: ${e.error?.message || 'Unknown error'}`));
+        reject(new Error(`Map error: ${e.error?.message || 'Unknown error'}`));
       });
     });
-  }, [isContainerReady]);
+  }, []);
 
   // Main initialization effect
   useEffect(() => {
+    if (initializationAttempted.current) {
+      console.log('FleetMap: Initialization already attempted, skipping');
+      return;
+    }
+
     let isMounted = true;
 
     const initializeFleetMap = async () => {
-      // Skip if already in progress or completed
-      if (mapState.loadingPhase !== 'idle') {
-        console.log('FleetMap: Skipping initialization, already in progress:', mapState.loadingPhase);
-        return;
-      }
+      console.log('FleetMap: Starting initialization...');
+      initializationAttempted.current = true;
 
-      console.log('FleetMap: Starting initialization sequence...');
-      
       try {
-        // Phase 1: Fetch token
-        setMapState(prev => ({ ...prev, loadingPhase: 'fetching-token', error: null }));
+        setMapState(prev => ({ ...prev, loadingState: 'loading', error: null }));
         
-        const token = await fetchMapboxToken();
-        
-        if (!isMounted) return;
-
-        console.log('FleetMap: Token retrieved, waiting for container...');
-        
-        // Phase 2: Wait for container and initialize map
-        setMapState(prev => ({ ...prev, loadingPhase: 'initializing-map', token }));
-        
-        // Wait a brief moment for container to be ready
+        // Wait a moment for DOM to be ready
         await new Promise(resolve => setTimeout(resolve, 100));
         
         if (!isMounted) return;
 
-        // Check container readiness with timeout
-        const containerReadyPromise = new Promise<void>((resolve, reject) => {
-          const checkContainer = () => {
-            if (isContainerReady()) {
-              resolve();
-            } else {
-              setTimeout(checkContainer, 50);
-            }
-          };
-          
-          setTimeout(() => reject(new Error('Container readiness timeout')), CONTAINER_CHECK_TIMEOUT);
-          checkContainer();
+        console.log('FleetMap: Container check:', {
+          hasContainer: !!mapContainer.current,
+          containerReady: mapContainer.current && 
+                         mapContainer.current.offsetWidth > 0 && 
+                         mapContainer.current.offsetHeight > 0
         });
 
-        await containerReadyPromise;
+        const token = await fetchMapboxToken();
         
         if (!isMounted) return;
         
-        console.log('FleetMap: Container ready, initializing map...');
         await initializeMap(token);
         
         if (!isMounted) return;
 
-        // Phase 3: Complete
         console.log('FleetMap: Initialization complete');
         setMapState(prev => ({ 
           ...prev, 
-          loadingPhase: 'loading-complete',
+          loadingState: 'ready',
           retryCount: 0 
         }));
 
@@ -232,7 +172,7 @@ export function FleetMap({
         const errorMessage = error instanceof Error ? error.message : 'Failed to initialize map';
         setMapState(prev => ({ 
           ...prev, 
-          loadingPhase: 'idle',
+          loadingState: 'error',
           error: errorMessage,
           retryCount: prev.retryCount + 1
         }));
@@ -243,19 +183,13 @@ export function FleetMap({
 
     return () => {
       isMounted = false;
-      if (initializationTimeout.current) {
-        clearTimeout(initializationTimeout.current);
-      }
     };
   }, []); // Only run once on mount
 
   // Equipment markers effect
   useEffect(() => {
-    if (mapState.loadingPhase !== 'loading-complete' || !map.current) {
-      console.log('FleetMap: Skipping marker update - map not ready', {
-        loadingPhase: mapState.loadingPhase,
-        hasMap: !!map.current
-      });
+    if (mapState.loadingState !== 'ready' || !map.current) {
+      console.log('FleetMap: Skipping marker update - map not ready');
       return;
     }
 
@@ -325,7 +259,7 @@ export function FleetMap({
       
       map.current.fitBounds(bounds, { padding: 50, maxZoom: 15 });
     }
-  }, [equipment, selectedEquipmentId, onEquipmentSelected, mapState.loadingPhase]);
+  }, [equipment, selectedEquipmentId, onEquipmentSelected, mapState.loadingState]);
 
   // Cleanup effect
   useEffect(() => {
@@ -342,9 +276,9 @@ export function FleetMap({
 
   const handleRetry = useCallback(() => {
     console.log('FleetMap: Manual retry triggered');
+    initializationAttempted.current = false;
     setMapState({
-      loadingPhase: 'idle',
-      token: null,
+      loadingState: 'loading',
       error: null,
       retryCount: 0
     });
@@ -353,76 +287,56 @@ export function FleetMap({
       map.current.remove();
       map.current = null;
     }
+    
+    // Trigger re-initialization
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   }, []);
 
-  // Error state
-  if (mapState.error) {
-    console.log('FleetMap: Rendering error state:', mapState.error);
-    
-    return (
-      <Card style={{ height }}>
-        <CardContent className="flex items-center justify-center h-full">
-          <Alert className="w-full max-w-md">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="space-y-3">
-              <div>
-                <div className="font-medium">Map Loading Error</div>
-                <div className="text-sm text-muted-foreground mt-1">{mapState.error}</div>
-              </div>
-              {mapState.retryCount < MAX_RETRIES && (
-                <Button 
-                  onClick={handleRetry}
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Try Again (Attempt {mapState.retryCount + 1}/{MAX_RETRIES + 1})
-                </Button>
-              )}
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Loading state
-  if (mapState.loadingPhase !== 'loading-complete') {
-    const getLoadingMessage = () => {
-      switch (mapState.loadingPhase) {
-        case 'fetching-token':
-          return 'Authenticating with map services...';
-        case 'initializing-map':
-          return 'Initializing map...';
-        default:
-          return 'Preparing map...';
-      }
-    };
-
-    console.log('FleetMap: Rendering loading state:', mapState.loadingPhase);
-    
-    return (
-      <Card style={{ height }}>
-        <CardContent className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <MapPin className="h-8 w-8 mx-auto mb-2 animate-pulse text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">{getLoadingMessage()}</p>
-            <div className="text-xs text-muted-foreground mt-1">
-              Phase: {mapState.loadingPhase}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  console.log('FleetMap: Rendering map container');
+  console.log('FleetMap: Rendering with state:', mapState);
   
   return (
     <Card style={{ height }}>
-      <CardContent className="p-0 h-full">
+      <CardContent className="p-0 h-full relative">
+        {/* Always render the map container */}
         <div ref={mapContainer} className="w-full h-full rounded-lg" />
+        
+        {/* Loading overlay */}
+        {mapState.loadingState === 'loading' && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+            <div className="text-center">
+              <MapPin className="h-8 w-8 mx-auto mb-2 animate-pulse text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Initializing map...</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Error overlay */}
+        {mapState.loadingState === 'error' && (
+          <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex items-center justify-center rounded-lg">
+            <Alert className="w-full max-w-md mx-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="space-y-3">
+                <div>
+                  <div className="font-medium">Map Loading Error</div>
+                  <div className="text-sm text-muted-foreground mt-1">{mapState.error}</div>
+                </div>
+                {mapState.retryCount < MAX_RETRIES && (
+                  <Button 
+                    onClick={handleRetry}
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Try Again (Attempt {mapState.retryCount + 1}/{MAX_RETRIES + 1})
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
