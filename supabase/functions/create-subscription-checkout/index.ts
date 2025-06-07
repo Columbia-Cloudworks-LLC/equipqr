@@ -112,17 +112,17 @@ serve(async (req) => {
       logStep("Created Stripe customer", { customerId });
     }
 
-    // Define pricing based on feature
+    // Define pricing based on feature - Fleet Map is now a flat organizational fee
     let lineItems = [];
     
     if (feature_key === 'fleet_map') {
-      // Fleet map is a flat $10/month organizational add-on
+      // Fleet map is a flat $10/month organizational add-on (not per-user)
       lineItems.push({
         price_data: {
           currency: "usd",
           product_data: {
             name: "Fleet Map Feature",
-            description: `Fleet Map add-on for ${org.name} - $10/month organizational feature`
+            description: `Fleet Map add-on for ${org.name} - Organizational feature with real-time equipment tracking`
           },
           unit_amount: 1000, // $10.00 flat fee
           recurring: { interval: "month" },
@@ -130,7 +130,11 @@ serve(async (req) => {
         quantity: 1, // Always 1 for organizational features
       });
 
-      logStep("Fleet map pricing set", { amount: 1000, quantity: 1, description: "Organizational add-on feature" });
+      logStep("Fleet map pricing set", { 
+        amount: 1000, 
+        quantity: 1, 
+        description: "Flat organizational add-on feature" 
+      });
     }
 
     if (lineItems.length === 0) {

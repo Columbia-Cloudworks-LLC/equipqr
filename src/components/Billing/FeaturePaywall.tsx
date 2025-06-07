@@ -1,50 +1,46 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Users, CreditCard, Check, Clock, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Lock, MapPin, Users, Zap } from 'lucide-react';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface FeaturePaywallProps {
   featureKey: string;
   featureName: string;
-  description: string;
-  benefits: string[];
-  icon?: React.ReactNode;
-  userRole?: string;
-  gracePeriodInfo?: any;
+  children: React.ReactNode;
 }
 
-export function FeaturePaywall({ 
-  featureKey, 
-  featureName, 
-  description, 
-  benefits, 
-  icon,
-  userRole,
-  gracePeriodInfo 
-}: FeaturePaywallProps) {
+export function FeaturePaywall({ featureKey, featureName, children }: FeaturePaywallProps) {
   const { selectedOrganization } = useOrganization();
-  const [isLoading, setIsLoading] = React.useState(false);
+  const { hasAccess, isLoading } = useFeatureAccess(featureKey);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (hasAccess) {
+    return <>{children}</>;
+  }
 
   const handleUpgrade = async () => {
     if (!selectedOrganization) {
-      toast.error('No organization selected');
+      toast.error('Please select an organization first');
       return;
     }
 
-    if (!['owner', 'manager'].includes(userRole || '')) {
-      toast.error('Only owners and managers can manage subscriptions');
-      return;
-    }
-
+    setIsCheckoutLoading(true);
     try {
-      setIsLoading(true);
-      console.log('Starting subscription checkout for:', { featureKey, orgId: selectedOrganization.id });
-
       const { data, error } = await supabase.functions.invoke('create-subscription-checkout', {
         body: {
           feature_key: featureKey,
@@ -53,142 +49,101 @@ export function FeaturePaywall({
       });
 
       if (error) {
-        console.error('Checkout error:', error);
-        toast.error(error.message || 'Failed to start checkout process');
-        return;
+        throw error;
       }
 
       if (data?.url) {
-        console.log('Redirecting to Stripe checkout:', data.url);
-        window.open(data.url, '_blank');
-      } else {
-        toast.error('Failed to create checkout session');
+        window.location.href = data.url;
       }
-
-    } catch (err) {
-      console.error('Error creating checkout:', err);
-      toast.error('Failed to start subscription process');
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      toast.error('Failed to start upgrade process. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsCheckoutLoading(false);
     }
   };
 
-  const getIcon = () => {
-    if (icon) return icon;
-    if (featureKey === 'fleet_map') return <MapPin className="h-8 w-8 text-blue-600" />;
-    return <CreditCard className="h-8 w-8 text-blue-600" />;
-  };
-
-  const canManage = ['owner', 'manager'].includes(userRole || '');
-  const hasGracePeriod = gracePeriodInfo?.has_grace_period && gracePeriodInfo?.is_active;
-  const daysRemaining = gracePeriodInfo?.days_remaining || 0;
-  const isUrgent = daysRemaining <= 7;
-
-  // Get pricing details based on feature
-  const getPricingInfo = () => {
-    if (featureKey === 'fleet_map') {
-      return {
-        price: '$10',
-        period: 'per month',
-        description: 'Flat organizational fee'
-      };
+  const getFeatureDetails = () => {
+    switch (featureKey) {
+      case 'fleet_map':
+        return {
+          icon: <MapPin className="h-8 w-8 text-blue-500" />,
+          description: 'Advanced fleet mapping with real-time equipment tracking and location analytics',
+          price: '$10/month',
+          priceDescription: 'Flat organizational fee',
+          benefits: [
+            'Real-time equipment location tracking',
+            'Interactive fleet map visualization',
+            'Location-based equipment analytics',
+            'Advanced mapping features'
+          ]
+        };
+      default:
+        return {
+          icon: <Zap className="h-8 w-8 text-yellow-500" />,
+          description: 'Unlock premium features for your organization',
+          price: 'Contact Sales',
+          priceDescription: 'Custom pricing',
+          benefits: ['Premium features', 'Advanced functionality', 'Enhanced capabilities']
+        };
     }
-    // Default pricing for other features
-    return {
-      price: '$10',
-      period: 'per user per month',
-      description: '$10 per user per month'
-    };
   };
 
-  const pricingInfo = getPricingInfo();
+  const featureDetails = getFeatureDetails();
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      {hasGracePeriod && (
-        <div className={`p-4 border-b ${isUrgent ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
-          <div className="flex items-center gap-2">
-            {isUrgent ? (
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-            ) : (
-              <Clock className="h-5 w-5 text-amber-600" />
-            )}
-            <div className={`flex-1 ${isUrgent ? 'text-red-800' : 'text-amber-800'}`}>
-              <p className="font-semibold">Grace Period Active</p>
-              <p className="text-sm">
-                You have {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining to subscribe before losing access to premium features.
-              </p>
+    <div className="flex items-center justify-center min-h-[60vh] p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            {featureDetails.icon}
+          </div>
+          <CardTitle className="flex items-center justify-center gap-2">
+            <Lock className="h-5 w-5" />
+            {featureName}
+          </CardTitle>
+          <CardDescription>
+            {featureDetails.description}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-primary">
+              {featureDetails.price}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {featureDetails.priceDescription}
             </div>
           </div>
-        </div>
-      )}
-      
-      <CardHeader className="text-center pb-4">
-        <div className="flex justify-center mb-4">
-          {getIcon()}
-        </div>
-        <CardTitle className="text-2xl flex items-center justify-center gap-2">
-          {featureName}
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            Premium
-          </Badge>
-        </CardTitle>
-        <p className="text-muted-foreground mt-2">
-          {description}
-        </p>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        <div className="space-y-3">
-          <h3 className="font-semibold flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            What you'll get:
-          </h3>
-          <ul className="space-y-2">
-            {benefits.map((benefit, index) => (
-              <li key={index} className="flex items-start gap-2">
-                <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span className="text-sm">{benefit}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
 
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-semibold text-blue-900">Pricing</h4>
-              <p className="text-blue-700 text-sm">{pricingInfo.description}</p>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-900">{pricingInfo.price}</div>
-              <div className="text-xs text-blue-600">{pricingInfo.period}</div>
-            </div>
+          <div className="space-y-3">
+            <h4 className="font-semibold text-sm">What you'll get:</h4>
+            <ul className="space-y-2">
+              {featureDetails.benefits.map((benefit, index) => (
+                <li key={index} className="flex items-center gap-2 text-sm">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full flex-shrink-0" />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
 
-        {canManage ? (
           <Button 
-            onClick={handleUpgrade} 
-            disabled={isLoading}
+            onClick={handleUpgrade}
             className="w-full"
-            size="lg"
+            disabled={isCheckoutLoading}
           >
-            {isLoading ? 'Starting checkout...' : `Upgrade to unlock ${featureName}`}
+            {isCheckoutLoading ? 'Setting up...' : `Upgrade to ${featureName}`}
           </Button>
-        ) : (
-          <div className="text-center p-4 bg-amber-50 rounded-lg">
-            <p className="text-amber-800 text-sm">
-              Only organization owners and managers can upgrade features.
-              Contact your administrator to unlock {featureName}.
-            </p>
-          </div>
-        )}
 
-        <p className="text-xs text-muted-foreground text-center">
-          Secure payment processing by Stripe. Cancel anytime.
-        </p>
-      </CardContent>
-    </Card>
+          <div className="text-center">
+            <Badge variant="outline" className="text-xs">
+              <Users className="h-3 w-3 mr-1" />
+              Organization Add-on
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
