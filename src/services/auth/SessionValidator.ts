@@ -1,183 +1,98 @@
 
 import { Session } from '@supabase/supabase-js';
-import { getEnvironmentConfig } from '@/config/environment';
+import { supabase } from '@/integrations/supabase/client';
+import { retry } from '@/utils/edgeFunctions/retry';
 
 /**
- * Enhanced session validator with environment awareness
+ * SessionValidator handles validation of authentication tokens and refresh operations
  */
 export class SessionValidator {
-  private config = getEnvironmentConfig();
-  
+  private refreshTokenCooldown: number = 5000; // 5 seconds
+  private lastTokenRefresh: number = 0;
+
   /**
-   * Validate if a session is valid and not expired
+   * Validate a session by checking token expiry and other criteria
+   * @param session The session to validate
+   * @returns Promise<boolean> indicating if the session is valid
    */
   public async validateToken(session: Session | null): Promise<boolean> {
-    if (!session) {
-      if (this.config.enableDebugLogs) {
-        console.log('SessionValidator: No session provided');
-      }
-      return false;
-    }
-    
-    if (!session.access_token || !session.refresh_token) {
-      if (this.config.enableDebugLogs) {
-        console.log('SessionValidator: Session missing required tokens');
-      }
-      return false;
-    }
+    if (!session) return false;
+    if (!session.access_token) return false;
+    if (!session.refresh_token) return false;
     
     try {
-      // Decode and validate the access token
-      const payload = this.decodeJWTPayload(session.access_token);
-      if (!payload) {
-        console.error('SessionValidator: Failed to decode JWT payload');
-        return false;
-      }
-      
-      // Check if token is expired
+      // Decode the JWT to check expiration
+      const payload = JSON.parse(atob(session.access_token.split('.')[1]));
       const expiry = payload.exp * 1000; // Convert to milliseconds
       const now = Date.now();
       const timeRemaining = expiry - now;
       
+      // Token is expired
       if (now >= expiry) {
-        console.warn(`SessionValidator: Token expired ${Math.abs(timeRemaining) / 1000} seconds ago in ${this.config.environment}`);
-        return false;
+        console.warn(`SessionValidator: Token expired ${Math.abs(timeRemaining) / 1000} seconds ago`);
+        
+        // Check refresh cooldown to avoid rate limiting
+        if (now - this.lastTokenRefresh < this.refreshTokenCooldown) {
+          console.warn('SessionValidator: Token refresh on cooldown');
+          return false;
+        }
+        
+        this.lastTokenRefresh = now;
+        
+        // Try to refresh the token with retry logic
+        try {
+          const { session: refreshedSession } = await retry(
+            async () => this.refreshToken(),
+            2,
+            2000,
+            this.isRateLimitError
+          );
+          
+          if (!refreshedSession) {
+            console.error('SessionValidator: Failed to refresh expired token');
+            return false;
+          }
+          
+          console.log('SessionValidator: Token refreshed successfully');
+          return true;
+        } catch (refreshError) {
+          if (this.isRateLimitError(refreshError)) {
+            console.warn('SessionValidator: Rate limit during token refresh, backing off');
+            // Wait longer before the next attempt
+            this.refreshTokenCooldown = Math.min(this.refreshTokenCooldown * 2, 30000);
+          }
+          
+          console.error('SessionValidator: Error refreshing token:', refreshError);
+          return false;
+        }
       }
       
-      // Check if token expires soon (within 5 minutes)
-      const fiveMinutes = 5 * 60 * 1000;
-      const expiresSoon = timeRemaining < fiveMinutes;
-      
-      if (this.config.enableDebugLogs) {
-        console.log(`SessionValidator: Token valid for ${Math.floor(timeRemaining / 1000)} seconds in ${this.config.environment}${expiresSoon ? ' (expires soon)' : ''}`);
-      }
-      
-      // Validate session structure
-      if (!this.validateSessionStructure(session)) {
-        console.error('SessionValidator: Session structure validation failed');
-        return false;
-      }
-      
+      // Token is still valid
+      console.log(`SessionValidator: Token valid, expires in ${timeRemaining / 1000} seconds`);
       return true;
     } catch (error) {
-      console.error('SessionValidator: Error validating session token:', error);
+      console.error('SessionValidator: Error validating token:', error);
       return false;
     }
   }
-  
+
   /**
-   * Decode JWT payload safely
+   * Refresh the authentication token
+   * @returns Promise with the refreshed session data
    */
-  private decodeJWTPayload(token: string): any | null {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        console.error('SessionValidator: Invalid JWT format');
-        return null;
-      }
-      
-      const payload = parts[1];
-      const decoded = atob(payload);
-      return JSON.parse(decoded);
-    } catch (error) {
-      console.error('SessionValidator: Error decoding JWT:', error);
-      return null;
-    }
+  private async refreshToken() {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) throw error;
+    return data;
   }
-  
+
   /**
-   * Validate session object structure
+   * Check if an error is a rate limit error
+   * @param error The error to check
+   * @returns boolean indicating if this is a rate limit error
    */
-  private validateSessionStructure(session: Session): boolean {
-    const requiredFields = ['access_token', 'refresh_token', 'user'];
-    
-    for (const field of requiredFields) {
-      if (!(field in session) || !session[field as keyof Session]) {
-        console.error(`SessionValidator: Missing required field: ${field}`);
-        return false;
-      }
-    }
-    
-    // Validate user object
-    if (!session.user?.id || !session.user?.email) {
-      console.error('SessionValidator: Invalid user object in session');
-      return false;
-    }
-    
-    return true;
-  }
-  
-  /**
-   * Check if session needs refresh (expires within threshold)
-   */
-  public shouldRefreshSession(session: Session | null, thresholdMinutes: number = 10): boolean {
-    if (!session?.access_token) return false;
-    
-    try {
-      const payload = this.decodeJWTPayload(session.access_token);
-      if (!payload) return false;
-      
-      const expiry = payload.exp * 1000;
-      const now = Date.now();
-      const threshold = thresholdMinutes * 60 * 1000;
-      
-      return (expiry - now) < threshold;
-    } catch (error) {
-      console.error('SessionValidator: Error checking refresh need:', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Get session expiry information
-   */
-  public getSessionExpiryInfo(session: Session | null): {
-    isValid: boolean;
-    expiresAt: Date | null;
-    minutesRemaining: number;
-    needsRefresh: boolean;
-  } {
-    if (!session?.access_token) {
-      return {
-        isValid: false,
-        expiresAt: null,
-        minutesRemaining: 0,
-        needsRefresh: false
-      };
-    }
-    
-    try {
-      const payload = this.decodeJWTPayload(session.access_token);
-      if (!payload) {
-        return {
-          isValid: false,
-          expiresAt: null,
-          minutesRemaining: 0,
-          needsRefresh: false
-        };
-      }
-      
-      const expiry = payload.exp * 1000;
-      const now = Date.now();
-      const minutesRemaining = Math.max(0, Math.floor((expiry - now) / (60 * 1000)));
-      const isValid = expiry > now;
-      const needsRefresh = this.shouldRefreshSession(session);
-      
-      return {
-        isValid,
-        expiresAt: new Date(expiry),
-        minutesRemaining,
-        needsRefresh
-      };
-    } catch (error) {
-      console.error('SessionValidator: Error getting expiry info:', error);
-      return {
-        isValid: false,
-        expiresAt: null,
-        minutesRemaining: 0,
-        needsRefresh: false
-      };
-    }
+  private isRateLimitError(error: any): boolean {
+    return error?.message?.includes('429') || error?.status === 429;
   }
 }
 

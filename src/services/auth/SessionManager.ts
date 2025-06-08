@@ -5,7 +5,6 @@ import { storageManager } from './StorageManager';
 import { sessionValidator } from './SessionValidator';
 import { sessionRecovery } from './SessionRecovery';
 import { sessionUtils } from './SessionUtils';
-import { getEnvironmentConfig } from '@/config/environment';
 import { debounce } from '@/utils/edgeFunctions/retry';
 
 // Create a debounced token refresh function
@@ -16,30 +15,29 @@ const debouncedRefreshToken = debounce(async () => {
 }, 1500);
 
 /**
- * Enhanced SessionManager with environment awareness to prevent session mixing
+ * SessionManager handles authentication session operations including
+ * validation, refresh, and persistence checks
  */
 export class SessionManager {
   private lastSessionCheck: number = 0;
   private sessionCheckCooldown: number = 2000; // 2 seconds
   private sessionValid: boolean | null = null;
-  private config = getEnvironmentConfig();
   
   /**
-   * Check if a session exists and is valid with environment isolation
+   * Check if a session exists and is valid
+   * @returns Promise<boolean> indicating if there is a valid session
    */
   public async checkSession(): Promise<boolean> {
     try {
       // Implement cooldown to prevent excessive checks
       const now = Date.now();
       if (now - this.lastSessionCheck < this.sessionCheckCooldown) {
-        if (this.config.enableDebugLogs) {
-          console.log('SessionManager: Session check on cooldown, using cached result');
-        }
+        console.log('SessionManager: Session check on cooldown, using cached result');
         return this.sessionValid !== null ? this.sessionValid : false;
       }
       
       this.lastSessionCheck = now;
-      console.log(`SessionManager: Performing session check in ${this.config.environment} environment`);
+      console.log('SessionManager: Performing session check');
       
       // Get session from Supabase Auth API
       const { data } = await supabase.auth.getSession();
@@ -52,13 +50,13 @@ export class SessionManager {
         if (sessionRepaired) {
           // Try again with repaired storage
           const { data: retryData } = await supabase.auth.getSession();
-          const isValid = !!retryData?.session && await sessionValidator.validateToken(retryData.session);
-          console.log(`SessionManager: After repair, session valid: ${isValid} in ${this.config.environment}`);
+          const isValid = !!retryData?.session;
+          console.log('SessionManager: After repair, session valid:', isValid);
           this.sessionValid = isValid;
           return isValid;
         }
         
-        console.log(`SessionManager: No valid session after checks in ${this.config.environment}`);
+        console.log('SessionManager: No valid session after checks');
         this.sessionValid = false;
         return false;
       }
@@ -66,17 +64,18 @@ export class SessionManager {
       // Validate the session token
       const isTokenValid = await sessionValidator.validateToken(data.session);
       
-      console.log(`SessionManager: Session token valid: ${isTokenValid} in ${this.config.environment}`);
+      console.log('SessionManager: Session token valid:', isTokenValid);
       this.sessionValid = isTokenValid;
       return isTokenValid;
     } catch (error) {
-      console.error(`SessionManager: Error checking session in ${this.config.environment}:`, error);
+      console.error('SessionManager: Error checking session:', error);
       return false;
     }
   }
 
   /**
    * Attempt to repair and recover a broken session (delegates to SessionRecovery)
+   * @returns Promise<boolean> indicating if recovery succeeded
    */
   public async attemptSessionRecovery(): Promise<boolean> {
     return sessionRecovery.attemptSessionRecovery();
@@ -84,6 +83,8 @@ export class SessionManager {
 
   /**
    * Validate a session by checking token expiry and other criteria (delegates to SessionValidator)
+   * @param session The session to validate
+   * @returns Promise<boolean> indicating if the session is valid
    */
   public validateToken(session: Session | null): Promise<boolean> {
     return sessionValidator.validateToken(session);
@@ -100,25 +101,8 @@ export class SessionManager {
    * Fix session storage inconsistencies after sign-in
    */
   public async fixSessionAfterSignIn(): Promise<void> {
-    console.log(`SessionManager: Fixing session storage after sign-in in ${this.config.environment}`);
+    console.log('SessionManager: Fixing session storage after sign-in');
     await storageManager.repairStorage();
-    
-    // Synchronize session to ensure consistency
-    await sessionUtils.synchronizeSession();
-  }
-  
-  /**
-   * Diagnose session issues for troubleshooting
-   */
-  public async diagnoseSessionIssues(): Promise<Record<string, any>> {
-    return sessionRecovery.diagnoseSessionIssues();
-  }
-  
-  /**
-   * Force session synchronization
-   */
-  public async synchronizeSession(): Promise<boolean> {
-    return sessionUtils.synchronizeSession();
   }
 }
 

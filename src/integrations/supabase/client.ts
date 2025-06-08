@@ -3,35 +3,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { ApiConfig, AppConfig } from '@/config/app';
-import { environmentAwareStorageManager } from '@/services/auth/EnvironmentAwareStorageManager';
-import { getEnvironmentConfig } from '@/config/environment';
-
-const envConfig = getEnvironmentConfig();
-
-// Create environment-aware storage adapter for Supabase
-const createEnvironmentAwareStorage = () => {
-  return {
-    getItem: async (key: string) => {
-      const value = await environmentAwareStorageManager.getItem(key);
-      if (envConfig.enableDebugLogs && value) {
-        console.log(`Supabase Storage: Retrieved ${key} from ${envConfig.environment}`);
-      }
-      return value;
-    },
-    setItem: async (key: string, value: string) => {
-      await environmentAwareStorageManager.setItem(key, value);
-      if (envConfig.enableDebugLogs) {
-        console.log(`Supabase Storage: Stored ${key} in ${envConfig.environment}`);
-      }
-    },
-    removeItem: async (key: string) => {
-      await environmentAwareStorageManager.removeItem(key);
-      if (envConfig.enableDebugLogs) {
-        console.log(`Supabase Storage: Removed ${key} from ${envConfig.environment}`);
-      }
-    }
-  };
-};
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -41,17 +12,16 @@ export const supabase = createClient<Database>(
   ApiConfig.supabase.anonKey,
   {
     auth: {
-      storage: createEnvironmentAwareStorage(), // Use environment-aware storage
+      storage: localStorage, // Use direct localStorage for simplicity and reliability
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
-      debug: envConfig.enableDebugLogs // Environment-aware debug setting
+      debug: true // Enable debug mode for better logging
     },
     global: {
       headers: {
-        'x-client-info': `${AppConfig.name.toLowerCase()}-${envConfig.environment}@${AppConfig.build.date}`,
-        'x-environment': envConfig.environment
+        'x-client-info': `${AppConfig.name.toLowerCase()}-web@${AppConfig.build.date}`
       }
     }
   }
@@ -59,22 +29,8 @@ export const supabase = createClient<Database>(
 
 // Set up auth event listener outside the client creation
 supabase.auth.onAuthStateChange((event, session) => {
-  console.log(`Client (${envConfig.environment}): Auth state change detected:`, event);
+  console.log('Client: Auth state change detected:', event);
   if (event === 'SIGNED_OUT') {
-    console.log(`Client (${envConfig.environment}): User signed out, clearing local storage`);
-  } else if (event === 'SIGNED_IN') {
-    console.log(`Client (${envConfig.environment}): User signed in successfully`);
-  } else if (event === 'TOKEN_REFRESHED') {
-    console.log(`Client (${envConfig.environment}): Token refreshed`);
+    console.log('Client: User signed out, clearing local storage');
   }
 });
-
-// Initialize environment safety on client creation
-if (typeof window !== 'undefined') {
-  console.log(`Supabase Client: Initialized for ${envConfig.environment} environment`);
-  
-  // Log environment information for debugging
-  if (envConfig.enableDebugLogs) {
-    console.log('Environment Config:', envConfig);
-  }
-}
