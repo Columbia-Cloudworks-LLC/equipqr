@@ -82,8 +82,11 @@ export type Database = {
           entity_id: string | null
           entity_type: string
           id: string
+          ip_address: unknown | null
           org_id: string | null
+          session_id: string | null
           ts: string
+          user_agent: string | null
         }
         Insert: {
           action: string
@@ -94,8 +97,11 @@ export type Database = {
           entity_id?: string | null
           entity_type: string
           id?: string
+          ip_address?: unknown | null
           org_id?: string | null
+          session_id?: string | null
           ts?: string
+          user_agent?: string | null
         }
         Update: {
           action?: string
@@ -106,8 +112,11 @@ export type Database = {
           entity_id?: string | null
           entity_type?: string
           id?: string
+          ip_address?: unknown | null
           org_id?: string | null
+          session_id?: string | null
           ts?: string
+          user_agent?: string | null
         }
         Relationships: [
           {
@@ -168,6 +177,36 @@ export type Database = {
           success?: boolean
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      auth_rate_limits: {
+        Row: {
+          attempt_count: number | null
+          attempt_type: string
+          blocked_until: string | null
+          created_at: string | null
+          id: string
+          identifier: string
+          window_start: string | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          attempt_type: string
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier: string
+          window_start?: string | null
+        }
+        Update: {
+          attempt_count?: number | null
+          attempt_type?: string
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier?: string
+          window_start?: string | null
         }
         Relationships: []
       }
@@ -2104,6 +2143,15 @@ export type Database = {
           is_active: boolean
         }[]
       }
+      check_rate_limit: {
+        Args: {
+          p_identifier: string
+          p_attempt_type: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
       check_team_access: {
         Args: { user_id: string; team_id: string }
         Returns: boolean
@@ -2338,6 +2386,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_security_event: {
+        Args: {
+          p_event_type: string
+          p_entity_type: string
+          p_entity_id: string
+          p_details?: Json
+        }
+        Returns: undefined
+      }
       reactivate_organization: {
         Args: { p_org_id: string }
         Returns: boolean
@@ -2354,6 +2411,10 @@ export type Database = {
           equipment_id?: string
         }
         Returns: Json
+      }
+      sanitize_text: {
+        Args: { input_text: string }
+        Returns: string
       }
       send_assignment_notification: {
         Args: {
@@ -2417,6 +2478,10 @@ export type Database = {
         Args: { _user_id: string; _org_id: string }
         Returns: boolean
       }
+      validate_email: {
+        Args: { email_text: string }
+        Returns: boolean
+      }
       validate_team_access_with_org: {
         Args: { p_user_id: string; p_team_id: string }
         Returns: {
@@ -2426,6 +2491,10 @@ export type Database = {
           team_org_id: string
           access_reason: string
         }[]
+      }
+      validate_uuid_format: {
+        Args: { uuid_text: string }
+        Returns: boolean
       }
     }
     Enums: {
