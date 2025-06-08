@@ -1,4 +1,5 @@
 
+
 interface AuthLogoProps {
   className?: string;
 }
@@ -14,3 +15,4 @@ export function AuthLogo({ className = "" }: AuthLogoProps) {
     </div>
   );
 }
+
