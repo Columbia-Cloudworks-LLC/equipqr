@@ -57,22 +57,22 @@
   
   html {
     height: 100vh;
-    overflow: hidden;
+    /* Remove overflow: hidden to allow scrolling */
   }
   
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     height: 100vh;
-    overflow: hidden;
+    /* Remove overflow: hidden to allow scrolling */
     margin: 0;
     padding: 0;
   }
   
   #root {
-    height: 100vh;
+    min-height: 100vh;
     width: 100vw;
-    overflow: hidden;
+    /* Remove overflow: hidden and change height to min-height for scrollable content */
   }
 }
 

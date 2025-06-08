@@ -35,33 +35,37 @@ export default function Auth() {
     <div className="bg-background min-h-screen">
       <AuthHeader />
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] px-4 py-8">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl">
-              {pageTitle}
-            </CardTitle>
-            <CardDescription>
-              {pageDescription}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AuthMessageAlert message={message} isInvitation={isInvitation} />
-            
-            <AuthTabs 
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-              email={email}
-              setEmail={setEmail}
-              handleGoogleSignIn={handleGoogleSignIn}
-              handleMicrosoftSignIn={handleMicrosoftSignIn}
-              isLoading={isLoading}
-              handleTroubleshooting={handleTroubleshooting}
-              onBackToLogin={() => setActiveTab('login')}
-            />
-          </CardContent>
-          <AuthCardFooter />
-        </Card>
+      <div className="w-full py-8 px-4">
+        <div className="flex justify-center">
+          <div className="w-full max-w-md">
+            <Card>
+              <CardHeader className="space-y-1 text-center">
+                <CardTitle className="text-2xl">
+                  {pageTitle}
+                </CardTitle>
+                <CardDescription>
+                  {pageDescription}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AuthMessageAlert message={message} isInvitation={isInvitation} />
+                
+                <AuthTabs 
+                  activeTab={activeTab}
+                  onTabChange={handleTabChange}
+                  email={email}
+                  setEmail={setEmail}
+                  handleGoogleSignIn={handleGoogleSignIn}
+                  handleMicrosoftSignIn={handleMicrosoftSignIn}
+                  isLoading={isLoading}
+                  handleTroubleshooting={handleTroubleshooting}
+                  onBackToLogin={() => setActiveTab('login')}
+                />
+              </CardContent>
+              <AuthCardFooter />
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
