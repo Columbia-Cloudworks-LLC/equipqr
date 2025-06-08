@@ -20,21 +20,38 @@ export class PermissionValidator {
         return { allowed: false, reason: 'User not authenticated' };
       }
 
-      // Use direct SQL query instead of RPC for equipment permissions
-      const { data, error } = await supabase
+      // Get equipment details
+      const { data: equipment, error: equipmentError } = await supabase
         .from('equipment')
-        .select('id, organization_id, team_id')
+        .select('id, org_id, team_id')
         .eq('id', equipmentId)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        console.error('Equipment access check error:', error);
+      if (equipmentError) {
+        console.error('Equipment access check error:', equipmentError);
         return { allowed: false, reason: 'Equipment not found' };
       }
 
-      // For now, allow access if user is authenticated
-      // This should be enhanced with proper permission checking
-      return { allowed: true };
+      if (!equipment) {
+        return { allowed: false, reason: 'Equipment not found' };
+      }
+
+      // Use the database function for permission checking
+      const { data: hasPermission, error: permissionError } = await supabase.rpc(
+        'check_equipment_permissions',
+        {
+          _user_id: userId,
+          _equipment_id: equipmentId,
+          _action: action
+        }
+      );
+
+      if (permissionError) {
+        console.error('Permission check error:', permissionError);
+        return { allowed: false, reason: 'Permission check failed' };
+      }
+
+      return { allowed: hasPermission === true };
     } catch (error) {
       console.error('Permission validation error:', error);
       return { allowed: false, reason: 'Validation error' };
@@ -53,20 +70,21 @@ export class PermissionValidator {
         return { allowed: false, reason: 'User not authenticated' };
       }
 
-      // Check if user is a member of the team
-      const { data, error } = await supabase
-        .from('team_members')
-        .select('id')
-        .eq('team_id', teamId)
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Use the database function for team access checking
+      const { data: hasAccess, error } = await supabase.rpc(
+        'can_access_team',
+        {
+          p_uid: userId,
+          p_team_id: teamId
+        }
+      );
 
       if (error) {
         console.error('Team access check error:', error);
         return { allowed: false, reason: 'Access check failed' };
       }
 
-      return { allowed: !!data };
+      return { allowed: hasAccess === true };
     } catch (error) {
       console.error('Team access validation error:', error);
       return { allowed: false, reason: 'Validation error' };
@@ -88,15 +106,36 @@ export class PermissionValidator {
         return { allowed: false, reason: 'User not authenticated' };
       }
 
-      // First check if user can access the equipment
-      const equipmentAccess = await this.validateEquipmentAccess(equipmentId, 'view');
-      if (!equipmentAccess.allowed) {
-        return equipmentAccess;
+      // Use appropriate database function based on action
+      let functionName: string;
+      switch (action) {
+        case 'view':
+          functionName = 'can_view_work_orders';
+          break;
+        case 'manage':
+          functionName = 'can_manage_work_orders';
+          break;
+        case 'submit':
+          functionName = 'can_submit_work_orders';
+          break;
+        default:
+          return { allowed: false, reason: 'Invalid action' };
       }
 
-      // For now, allow work order access if equipment access is allowed
-      // This should be enhanced with role-based checking
-      return { allowed: true };
+      const { data: hasPermission, error } = await supabase.rpc(
+        functionName,
+        {
+          p_user_id: userId,
+          p_equipment_id: equipmentId
+        }
+      );
+
+      if (error) {
+        console.error('Work order permission check error:', error);
+        return { allowed: false, reason: 'Permission check failed' };
+      }
+
+      return { allowed: hasPermission === true };
     } catch (error) {
       console.error('Work order permission validation error:', error);
       return { allowed: false, reason: 'Validation error' };
