@@ -106,36 +106,50 @@ export class PermissionValidator {
         return { allowed: false, reason: 'User not authenticated' };
       }
 
-      // Use appropriate database function based on action
-      let functionName: string;
-      switch (action) {
-        case 'view':
-          functionName = 'can_view_work_orders';
-          break;
-        case 'manage':
-          functionName = 'can_manage_work_orders';
-          break;
-        case 'submit':
-          functionName = 'can_submit_work_orders';
-          break;
-        default:
-          return { allowed: false, reason: 'Invalid action' };
-      }
+      // Use explicit function calls based on action to avoid TypeScript errors
+      let hasPermission: boolean = false;
+      let error: any = null;
 
-      const { data: hasPermission, error } = await supabase.rpc(
-        functionName,
-        {
-          p_user_id: userId,
-          p_equipment_id: equipmentId
-        }
-      );
+      if (action === 'view') {
+        const { data, error: viewError } = await supabase.rpc(
+          'can_view_work_orders',
+          {
+            p_user_id: userId,
+            p_equipment_id: equipmentId
+          }
+        );
+        hasPermission = data === true;
+        error = viewError;
+      } else if (action === 'manage') {
+        const { data, error: manageError } = await supabase.rpc(
+          'can_manage_work_orders',
+          {
+            p_user_id: userId,
+            p_equipment_id: equipmentId
+          }
+        );
+        hasPermission = data === true;
+        error = manageError;
+      } else if (action === 'submit') {
+        const { data, error: submitError } = await supabase.rpc(
+          'can_submit_work_orders',
+          {
+            p_user_id: userId,
+            p_equipment_id: equipmentId
+          }
+        );
+        hasPermission = data === true;
+        error = submitError;
+      } else {
+        return { allowed: false, reason: 'Invalid action' };
+      }
 
       if (error) {
         console.error('Work order permission check error:', error);
         return { allowed: false, reason: 'Permission check failed' };
       }
 
-      return { allowed: hasPermission === true };
+      return { allowed: hasPermission };
     } catch (error) {
       console.error('Work order permission validation error:', error);
       return { allowed: false, reason: 'Validation error' };
