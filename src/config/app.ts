@@ -1,9 +1,13 @@
+import { detectEnvironment, getEnvironmentConfig } from './environment';
 
 /**
  * Enhanced application-wide configuration settings
  * This file centralizes all app configuration to improve maintainability
  * and enable easy deployment across different environments
  */
+
+// Get environment configuration
+const envConfig = getEnvironmentConfig();
 
 // API and Service Configuration
 export const ApiConfig = {
@@ -24,7 +28,7 @@ export const ApiConfig = {
 export const UIConfig = {
   theme: {
     defaultTheme: 'system' as const,
-    storageKey: 'ui-theme'
+    storageKey: envConfig.storagePrefix + '-ui-theme' // Environment-aware theme storage
   },
   layout: {
     sidebarCollapsible: true,
@@ -92,7 +96,11 @@ export const SecurityConfig = {
       requireLowercase: true,
       requireNumbers: true,
       requireSpecialChars: false
-    }
+    },
+    // Environment-aware settings
+    enableDebugLogs: envConfig.enableDebugLogs,
+    enableVerboseAuth: envConfig.enableVerboseAuth,
+    sessionNamespace: envConfig.sessionNamespace
   },
   permissions: {
     strictRoleEnforcement: true,
@@ -119,7 +127,7 @@ export const MapConfig = {
   }
 };
 
-// Application Metadata
+// Application Metadata with Environment Information
 export const AppConfig = {
   /**
    * Application version number
@@ -138,11 +146,17 @@ export const AppConfig = {
   description: 'QR-based asset tracking system for fleet and office equipment management',
   
   /**
+   * Environment information
+   */
+  environment: envConfig.environment,
+  environmentConfig: envConfig,
+  
+  /**
    * Build information
    */
   build: {
     date: new Date().toISOString().split('T')[0],
-    environment: 'production'
+    environment: envConfig.environment
   },
   
   /**
@@ -178,7 +192,8 @@ export const Config = {
   data: DataConfig,
   security: SecurityConfig,
   map: MapConfig,
-  regional: RegionalConfig
+  regional: RegionalConfig,
+  environment: envConfig
 };
 
 export default Config;
