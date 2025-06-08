@@ -34,7 +34,7 @@ export class SecurityAudit {
    * Log authentication event
    */
   static async logAuthEvent(
-    eventType: 'login_attempt' | 'login_success' | 'login_failure' | 'logout',
+    eventType: 'login_attempt' | 'login_success' | 'login_failure' | 'logout' | 'signup_attempt' | 'signup_success' | 'signup_failure',
     email?: string,
     details?: Record<string, any>
   ): Promise<void> {

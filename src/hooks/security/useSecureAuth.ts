@@ -61,6 +61,7 @@ export function useSecureAuth() {
     }
 
     try {
+      await SecurityAudit.logAuthEvent('signup_attempt', email);
       await auth.signUp(email, password, userData);
       await SecurityAudit.logAuthEvent('signup_success', email);
       setIsBlocked(false);
