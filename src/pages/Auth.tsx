@@ -5,6 +5,7 @@ import { AuthHeader } from '@/components/Auth/AuthHeader';
 import { AuthMessageAlert } from '@/components/Auth/AuthMessageAlert';
 import { AuthTabs } from '@/components/Auth/AuthTabs';
 import { AuthCardFooter } from '@/components/Auth/AuthCardFooter';
+import { AuthLogo } from '@/components/Auth/AuthLogo';
 
 export default function Auth() {
   const {
@@ -39,13 +40,16 @@ export default function Auth() {
         <div className="flex justify-center">
           <div className="w-full max-w-md">
             <Card>
-              <CardHeader className="space-y-1 text-center">
-                <CardTitle className="text-2xl">
-                  {pageTitle}
-                </CardTitle>
-                <CardDescription>
-                  {pageDescription}
-                </CardDescription>
+              <CardHeader className="space-y-4 text-center">
+                <AuthLogo className="mb-2" />
+                <div className="space-y-1">
+                  <CardTitle className="text-xl sm:text-2xl">
+                    {pageTitle}
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    {pageDescription}
+                  </CardDescription>
+                </div>
               </CardHeader>
               <CardContent>
                 <AuthMessageAlert message={message} isInvitation={isInvitation} />
