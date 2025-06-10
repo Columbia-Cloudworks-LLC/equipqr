@@ -47,22 +47,24 @@ export default function EquipmentDetail() {
     }
   }, [error, equipment]);
 
-  // Record scan ONLY when coming from QR code
+  // Record scan ONLY when coming from QR code AND equipment data is successfully loaded
   useEffect(() => {
-    if (equipment && id && !scanRecorded) {
+    if (equipment && id && !scanRecorded && !isError) {
       // Check URL search params for QR source
       const urlParams = new URLSearchParams(location.search);
       const isFromQr = urlParams.get('source') === 'qr';
       
       if (isFromQr) {
-        console.log('QR code scan detected, recording scan');
+        console.log('QR code scan detected for authorized equipment access, recording scan');
+        // Since getEquipmentById() succeeded, we know the user has access to this equipment
+        // Now we can safely record the scan with the enhanced service that does its own permission validation
         recordEnhancedScan(id, 'qr_code');
         setScanRecorded(true);
       } else {
         console.log('Direct access detected, no scan recorded');
       }
     }
-  }, [equipment, id, scanRecorded, location.search]);
+  }, [equipment, id, scanRecorded, location.search, isError]);
 
   if (isLoading) {
     return (

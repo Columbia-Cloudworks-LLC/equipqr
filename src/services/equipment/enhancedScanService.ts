@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceInfo, getLocationInfo, getSessionId, type DeviceInfo, type LocationInfo } from "@/utils/deviceDetection";
 import { toast } from "sonner";
@@ -72,6 +71,7 @@ async function getAppUserId(authUserId: string): Promise<string | null> {
 
 /**
  * Record an enhanced scan event with comprehensive device and audit information
+ * Uses the new database function that validates permissions and records the scan
  */
 export async function recordEnhancedScan(
   equipmentId: string, 
@@ -84,13 +84,12 @@ export async function recordEnhancedScan(
     const { data: sessionData } = await supabase.auth.getSession();
     const authUserId = sessionData?.session?.user?.id;
     
-    // Convert auth user ID to app_user ID if user is authenticated
-    let appUserId: string | null = null;
-    if (authUserId) {
-      appUserId = await getAppUserId(authUserId);
-      if (!appUserId) {
-        console.warn('Could not find app_user record for authenticated user');
-      }
+    if (!authUserId) {
+      console.log('No authenticated user found for scan recording');
+      toast.info("Equipment scanned successfully", { 
+        description: "Sign in to record scan history and access all features"
+      });
+      return true; // Return true for anonymous scans to not break the UI flow
     }
     
     // Collect device information
@@ -99,10 +98,8 @@ export async function recordEnhancedScan(
     // Collect location information (with user permission)
     const locationInfo = await getLocationInfo();
     
-    // Create enhanced scan record
-    const scanData: EnhancedScanData = {
-      equipment_id: equipmentId,
-      scanned_by_user_id: appUserId, // Use app_user ID instead of auth user ID
+    // Create scan data object
+    const scanData = {
       user_agent: deviceInfo.userAgent,
       device_type: deviceInfo.deviceType,
       browser_name: deviceInfo.browserName,
@@ -120,38 +117,55 @@ export async function recordEnhancedScan(
       language: deviceInfo.language
     };
     
-    // Insert scan record
-    const { error } = await supabase
-      .from('scan_history')
-      .insert(scanData);
-      
+    // Use the new database function that validates permissions and records the scan
+    const { data, error } = await supabase.rpc('record_equipment_scan', {
+      p_equipment_id: equipmentId,
+      p_user_id: authUserId,
+      p_scan_data: scanData
+    });
+    
     if (error) {
-      console.error('Error recording enhanced scan:', error);
-      
-      // For anonymous users or permission issues, still show success
-      if (error.code === '42501' || error.message.includes('permission denied')) {
-        console.log('Anonymous scan recorded (client-side tracking)');
-        toast.success("QR code scan recorded", { 
-          description: "Equipment access logged for audit purposes"
-        });
-        return true;
-      }
-      
+      console.error('Error calling record_equipment_scan:', error);
       throw error;
     }
     
-    // Show success message based on scan method and authentication status
+    if (!data?.success) {
+      const errorMsg = data?.error || 'Unknown error occurred';
+      console.error('Scan recording failed:', errorMsg);
+      
+      // Handle permission denied specifically
+      if (errorMsg.includes('Access denied')) {
+        toast.error("Access denied", {
+          description: "You don't have permission to scan this equipment"
+        });
+      } else {
+        toast.error("Failed to record scan", {
+          description: errorMsg
+        });
+      }
+      return false;
+    }
+    
+    // Show success message based on scan method
     const methodText = scanMethod === 'qr_code' ? 'QR code scan' : 'equipment access';
+    const locationUpdated = data.location_updated;
+    
     toast.success(`${methodText} recorded successfully`, {
-      description: authUserId ? "Scan history logged for audit purposes" : "Anonymous scan tracked"
+      description: locationUpdated 
+        ? "Scan history and location updated" 
+        : "Scan history logged for audit purposes"
     });
     
     return true;
   } catch (error: any) {
     console.error('Error in recordEnhancedScan:', error);
     
-    // Don't show error toast for anonymous users with permission issues
-    if (!(error.code === '42501' || error.message?.includes('permission denied'))) {
+    // Handle specific permission errors gracefully
+    if (error.message?.includes('Access denied') || error.message?.includes('permission')) {
+      toast.error("Access denied", {
+        description: "You don't have permission to scan this equipment"
+      });
+    } else {
       toast.error("Failed to record scan", {
         description: error.message || "An unexpected error occurred"
       });
