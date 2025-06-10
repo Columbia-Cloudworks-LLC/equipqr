@@ -1,10 +1,44 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { PermissionValidator } from '@/services/security/PermissionValidator';
 
 /**
  * Utility functions for authentication operations
  */
+
+/**
+ * Process date fields in an object to ensure proper formatting
+ * @param data - Object containing date fields
+ * @param dateFields - Array of field names that should be processed as dates
+ * @returns Processed object with properly formatted dates
+ */
+export function processDateFields(data: any, dateFields: string[]): any {
+  if (!data || !dateFields || dateFields.length === 0) {
+    return data;
+  }
+
+  const processedData = { ...data };
+  
+  dateFields.forEach(field => {
+    if (processedData[field]) {
+      // If it's already a valid ISO string, keep it
+      if (typeof processedData[field] === 'string' && processedData[field].includes('T')) {
+        return;
+      }
+      
+      // Try to convert to ISO string
+      try {
+        const date = new Date(processedData[field]);
+        if (!isNaN(date.getTime())) {
+          processedData[field] = date.toISOString();
+        }
+      } catch (error) {
+        console.warn(`Failed to process date field ${field}:`, error);
+      }
+    }
+  });
+  
+  return processedData;
+}
 
 /**
  * Safely get app_user.id from auth.user.id

@@ -177,11 +177,14 @@ export class PermissionValidator {
         };
       }
 
+      // Type-safe parsing of the JSON response
+      const result = typeof data === 'string' ? JSON.parse(data) : data;
+      
       return {
-        allowed: data.allowed,
-        attemptsRemaining: data.attempts_remaining || 0,
-        timeUntilReset: data.time_until_reset || 0,
-        reason: data.reason
+        allowed: !!result.allowed,
+        attemptsRemaining: result.attempts_remaining || 0,
+        timeUntilReset: result.time_until_reset || 0,
+        reason: result.reason
       };
     } catch (error) {
       console.error('Rate limit validation error:', error);
