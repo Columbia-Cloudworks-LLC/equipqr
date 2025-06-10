@@ -42,12 +42,20 @@ export async function insertEquipment(processedEquipment: any) {
     manufacturer: equipmentDataForDb.manufacturer?.trim() || null,
     location: equipmentDataForDb.location?.trim() || null,
     notes: equipmentDataForDb.notes?.trim() || null,
+    asset_id: equipmentDataForDb.asset_id?.trim() || null,
+    location_address: equipmentDataForDb.location_address?.trim() || null,
+    location_coordinates: equipmentDataForDb.location_coordinates?.trim() || null,
     // Handle team_id - convert empty string to null and validate if present
     team_id: equipmentDataForDb.team_id && equipmentDataForDb.team_id.trim() !== '' 
       ? (isValidUuid(equipmentDataForDb.team_id.trim()) ? equipmentDataForDb.team_id.trim() : null)
       : null,
     // Ensure created_by is properly validated - this should be auth.users.id
-    created_by: equipmentDataForDb.created_by.trim()
+    created_by: equipmentDataForDb.created_by.trim(),
+    // Set default status if not provided
+    status: equipmentDataForDb.status || 'active',
+    // Set dates properly
+    install_date: equipmentDataForDb.install_date || null,
+    warranty_expiration: equipmentDataForDb.warranty_expiration || null
   };
   
   // Final validation of cleaned data

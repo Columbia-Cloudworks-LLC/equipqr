@@ -15,16 +15,15 @@ export async function checkCreatePermission(teamId?: string | null): Promise<Per
     
     const authUserId = sessionData.session.user.id;
     
-    const { data, error } = await supabase.functions.invoke('permissions', {
-      body: {
-        userId: authUserId,
-        resource: 'equipment',
-        action: 'create',
-        targetId: teamId || null
-      }
+    // Use the fixed database function directly
+    const { data, error } = await supabase.rpc('check_equipment_create_permission', {
+      p_user_id: authUserId,
+      p_team_id: teamId || null,
+      p_org_id: null // Let the function determine the org
     });
     
     if (error) {
+      console.error('Permission check error:', error);
       return {
         authUserId,
         teamId: teamId || null,
@@ -34,12 +33,17 @@ export async function checkCreatePermission(teamId?: string | null): Promise<Per
       };
     }
     
+    console.log('Permission check result:', data);
+    
+    // The function returns a table, so we need the first row
+    const result = Array.isArray(data) ? data[0] : data;
+    
     return {
       authUserId,
       teamId: teamId || null,
-      orgId: data?.org_id || null,
-      hasPermission: data?.has_permission || false,
-      reason: data?.reason || 'Permission check completed'
+      orgId: result?.org_id || null,
+      hasPermission: result?.has_permission || false,
+      reason: result?.reason || 'Permission check completed'
     };
   } catch (error: any) {
     console.error('Error checking create permission:', error);

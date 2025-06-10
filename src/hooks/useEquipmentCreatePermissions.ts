@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuthState } from '@/hooks/useAuthState';
 import { checkCreatePermission } from '@/services/equipment/permissions/createPermissionCheck';
 import { UserOrganization } from '@/services/organization/userOrganizations';
+import { validateUserAccess } from '@/services/equipment/utils/schemaValidator';
 
 interface UseEquipmentCreatePermissionsProps {
   organizations: UserOrganization[];
@@ -23,21 +24,38 @@ export function useEquipmentCreatePermissions({ organizations }: UseEquipmentCre
       setIsCheckingPermissions(true);
       
       try {
-        // Check permissions for each organization
+        // First validate user access
+        const userValidation = await validateUserAccess();
+        if (!userValidation.isValid) {
+          console.error('User validation failed:', userValidation.error);
+          setPermittedOrganizations([]);
+          return;
+        }
+        
+        // For each organization, check if user can create equipment
         const permissionChecks = await Promise.all(
           organizations.map(async (org) => {
-            // For equipment creation without a specific team, we pass null as teamId
-            const result = await checkCreatePermission(null);
-            
-            // Check if the user can create equipment in this specific organization
-            // This is determined by checking if they have appropriate roles
-            const canCreate = ['owner', 'manager'].includes(org.role || '') || 
-                            result.hasPermission;
-            
-            return {
-              org,
-              canCreate
-            };
+            try {
+              // Check basic create permission without team
+              const result = await checkCreatePermission(null);
+              
+              // Also check if the user has appropriate roles in this org
+              const canCreate = ['owner', 'manager'].includes(org.role || '') || 
+                              result.hasPermission;
+              
+              return {
+                org,
+                canCreate,
+                reason: result.reason
+              };
+            } catch (error) {
+              console.error(`Permission check failed for org ${org.id}:`, error);
+              return {
+                org,
+                canCreate: ['owner', 'manager'].includes(org.role || ''),
+                reason: 'fallback_role_check'
+              };
+            }
           })
         );
 
@@ -46,7 +64,9 @@ export function useEquipmentCreatePermissions({ organizations }: UseEquipmentCre
           .filter(check => check.canCreate)
           .map(check => check.org);
 
+        console.log('Permitted organizations for equipment creation:', permitted.length);
         setPermittedOrganizations(permitted);
+        
       } catch (error) {
         console.error('Error checking equipment creation permissions:', error);
         // Fallback: filter by role only
