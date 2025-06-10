@@ -16,15 +16,23 @@ export function useDiagnostics() {
       const dbAccess = await testDatabaseAccess();
       console.log('🗄️ Database Access:', dbAccess);
       
-      // Test 3: Check if required functions exist
-      const { data: functions, error: functionsError } = await supabase.rpc('pg_get_functiondef', {
-        funcid: 'check_equipment_create_permission'
-      }).catch(() => ({ data: null, error: 'Function not accessible' }));
-      
-      console.log('⚙️ Function Access:', { 
-        available: !functionsError,
-        error: functionsError 
-      });
+      // Test 3: Check if required functions exist by trying to call one
+      try {
+        const { data: functionTest, error: functionError } = await supabase.rpc('can_create_equipment_safe', {
+          p_user_id: userValidation.userId || '',
+          p_team_id: null
+        });
+        
+        console.log('⚙️ Function Access:', { 
+          available: !functionError,
+          error: functionError?.message 
+        });
+      } catch (error) {
+        console.log('⚙️ Function Access:', { 
+          available: false,
+          error: 'Function not accessible'
+        });
+      }
       
       // Test 4: Check user organizations
       if (userValidation.isValid && userValidation.userId) {
