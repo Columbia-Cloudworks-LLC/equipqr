@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceInfo, getLocationInfo, getSessionId, type DeviceInfo, type LocationInfo } from "@/utils/deviceDetection";
 import { toast } from "sonner";
@@ -92,7 +91,8 @@ async function logPermissionDebug(
   details?: any
 ): Promise<void> {
   try {
-    await supabase.rpc('log_permission_debug', {
+    // Use type assertion since this is a new function not in the generated types yet
+    await supabase.rpc('log_permission_debug' as any, {
       p_function_name: functionName,
       p_user_id: userId,
       p_equipment_id: equipmentId || null,
@@ -263,11 +263,14 @@ export async function recordEnhancedScan(
   } catch (error: any) {
     console.error('Error in recordEnhancedScan:', error);
     
+    // Get session data again for error logging since it might be out of scope
+    const { data: errorSessionData } = await supabase.auth.getSession();
+    
     // Log the unexpected error
-    if (sessionData?.session?.user?.id) {
+    if (errorSessionData?.session?.user?.id) {
       await logPermissionDebug(
         'recordEnhancedScan_unexpected_error',
-        sessionData.session.user.id,
+        errorSessionData.session.user.id,
         equipmentId,
         undefined,
         false,
@@ -374,4 +377,3 @@ export async function canViewScanHistory(equipmentId: string): Promise<boolean> 
     return false;
   }
 }
-
