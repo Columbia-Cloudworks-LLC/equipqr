@@ -87,12 +87,17 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
     console.log('Equipment data loaded successfully:', equipmentData.name);
 
     // Transform the database result to match our Equipment interface
+    // Handle the case where created_by_user might be an array or single object
+    const createdByUser = Array.isArray(equipmentData.created_by_user) 
+      ? equipmentData.created_by_user[0] 
+      : equipmentData.created_by_user;
+
     const transformedEquipment = {
       ...equipmentData,
       // Map the related data fields
       organization: equipmentData.organization ? { name: equipmentData.organization.name } : null,
       team: equipmentData.team ? { name: equipmentData.team.name } : null,
-      created_by_user: equipmentData.created_by_user ? { display_name: equipmentData.created_by_user.display_name } : null,
+      created_by_user: createdByUser ? { display_name: createdByUser.display_name } : null,
       // Keep team_name for compatibility
       team_name: equipmentData.team?.name || null
     };
