@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ScanData {
@@ -27,6 +26,10 @@ export interface ScanHistoryEntry {
   longitude: number | null;
   location_accuracy: number | null;
   scan_method: string | null;
+  session_id: string | null;
+  timezone: string | null;
+  screen_resolution: string | null;
+  language: string | null;
 }
 
 // Export as alias for backward compatibility
@@ -160,7 +163,11 @@ export async function getEnhancedScanHistory(
       latitude: record.latitude,
       longitude: record.longitude,
       location_accuracy: record.location_accuracy,
-      scan_method: record.scan_method
+      scan_method: record.scan_method,
+      session_id: record.session_id || null,
+      timezone: record.timezone || null,
+      screen_resolution: record.screen_resolution || null,
+      language: record.language || null
     }));
     
   } catch (error) {
