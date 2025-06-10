@@ -58,50 +58,29 @@ export function useDiagnostics() {
         error: equipmentError?.message 
       });
       
-      // Test 6: Run data integrity diagnostics using raw SQL call
+      // Test 6: Run comprehensive system diagnostics
       try {
-        // Use a direct SQL call instead of rpc to avoid type issues
-        const { data: integrityResults, error: integrityError } = await supabase
-          .from('equipment')
-          .select(`
-            id,
-            created_by,
-            org_id,
-            team_id,
-            status
-          `)
-          .is('created_by', null)
-          .limit(5);
+        const { data: diagnosticResults, error: diagnosticError } = await supabase.rpc('diagnose_equipment_system');
         
-        const nullCreatedByCount = integrityResults?.length || 0;
-        
-        console.log('🔧 Data Integrity Check:', {
-          null_created_by_count: nullCreatedByCount,
-          sample_records: integrityResults,
-          error: integrityError?.message
+        console.log('🔧 System Diagnostics:', {
+          results: diagnosticResults,
+          error: diagnosticError?.message
         });
         
-        // Additional check for invalid organization references
-        const { data: invalidOrgCheck, error: invalidOrgError } = await supabase
-          .from('equipment')
-          .select(`
-            id,
-            org_id,
-            organization:org_id(id, name)
-          `)
-          .is('organization.id', null)
-          .limit(5);
-        
-        console.log('🔧 Invalid Org References:', {
-          count: invalidOrgCheck?.length || 0,
-          sample_records: invalidOrgCheck,
-          error: invalidOrgError?.message
-        });
+        // Check if any diagnostic failed
+        const hasFailures = diagnosticResults?.some((result: any) => result.status === 'FAIL');
+        if (hasFailures) {
+          console.warn('⚠️ System diagnostics found issues:', 
+            diagnosticResults?.filter((result: any) => result.status === 'FAIL')
+          );
+        } else {
+          console.log('✅ All system diagnostics passed');
+        }
         
       } catch (error) {
-        console.log('🔧 Data Integrity Check:', {
+        console.log('🔧 System Diagnostics:', {
           available: false,
-          error: 'Direct integrity check failed'
+          error: 'Diagnostic function failed'
         });
       }
       

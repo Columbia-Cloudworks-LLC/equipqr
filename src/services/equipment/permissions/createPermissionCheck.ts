@@ -15,7 +15,7 @@ export async function checkCreatePermission(teamId?: string | null): Promise<Per
     
     const authUserId = sessionData.session.user.id;
     
-    // Use the fixed database function directly
+    // Use the fixed database function
     const { data, error } = await supabase.rpc('check_equipment_create_permission', {
       p_user_id: authUserId,
       p_team_id: teamId || null,
