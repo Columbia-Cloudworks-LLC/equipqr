@@ -31,8 +31,8 @@ export function AuthLogo({ className = "" }: AuthLogoProps) {
   if (imageError) {
     return (
       <div className={`flex justify-center ${className}`}>
-        <div className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 bg-primary rounded-lg flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-lg sm:text-xl md:text-2xl">EQ</span>
+        <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 bg-primary rounded-lg flex items-center justify-center">
+          <span className="text-primary-foreground font-bold text-xl sm:text-2xl md:text-3xl">EQ</span>
         </div>
       </div>
     );
@@ -43,7 +43,7 @@ export function AuthLogo({ className = "" }: AuthLogoProps) {
       <img
         src={logoSrc}
         alt="EquipQR Logo"
-        className="h-12 w-auto sm:h-16 md:h-20 object-contain"
+        className="h-16 w-auto sm:h-20 md:h-24 object-contain"
         onError={handleImageError}
         onLoad={handleImageLoad}
       />
