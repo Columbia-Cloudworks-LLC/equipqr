@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Smartphone, Monitor, Tablet, MapPin, Clock, User, Globe, Download, Search, Filter, Map } from 'lucide-react';
-import { getEnhancedScanHistory, canViewScanHistory, type ScanHistoryRecord } from '@/services/equipment/enhancedScanService';
+import { getEnhancedScanHistory, canViewScanHistory, type ScanHistoryEntry } from '@/services/equipment/enhancedScanService';
 import { formatDistanceToNow } from 'date-fns';
 import { LocationMap } from './LocationMap';
 
@@ -16,8 +15,8 @@ interface ScanHistoryProps {
 }
 
 export function ScanHistory({ equipmentId }: ScanHistoryProps) {
-  const [scanHistory, setScanHistory] = useState<ScanHistoryRecord[]>([]);
-  const [filteredHistory, setFilteredHistory] = useState<ScanHistoryRecord[]>([]);
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
+  const [filteredHistory, setFilteredHistory] = useState<ScanHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [canView, setCanView] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -107,7 +106,7 @@ export function ScanHistory({ equipmentId }: ScanHistoryProps) {
     }
   };
 
-  const formatDeviceInfo = (record: ScanHistoryRecord) => {
+  const formatDeviceInfo = (record: ScanHistoryEntry) => {
     const parts = [];
     if (record.device_type) parts.push(record.device_type);
     if (record.browser_name) {

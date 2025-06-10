@@ -29,6 +29,9 @@ export interface ScanHistoryEntry {
   scan_method: string | null;
 }
 
+// Export as alias for backward compatibility
+export type ScanHistoryRecord = ScanHistoryEntry;
+
 /**
  * Records an equipment scan with enhanced data collection
  */
@@ -80,12 +83,11 @@ export async function recordEnhancedScan(
       }
     }
 
-    // Use the new enhanced scan recording function
-    const { data, error } = await supabase.rpc('enhanced_record_equipment_scan', {
+    // Use the database function directly since it exists in our migration
+    const { data, error } = await supabase.rpc('record_equipment_scan', {
       p_equipment_id: equipmentId,
       p_user_id: userId,
-      p_scan_method: scanMethod,
-      p_additional_data: scanData
+      p_scan_data: scanData
     });
 
     if (error) {
@@ -93,9 +95,11 @@ export async function recordEnhancedScan(
       return false;
     }
 
-    if (!data?.success) {
-      console.error('Scan recording failed:', data?.error);
-      return false;
+    if (data && typeof data === 'object' && 'success' in data) {
+      if (!(data as any).success) {
+        console.error('Scan recording failed:', (data as any).error);
+        return false;
+      }
     }
 
     console.log('Scan recorded successfully:', data);
@@ -139,7 +143,25 @@ export async function getEnhancedScanHistory(
     }
 
     console.log(`Retrieved ${data?.length || 0} scan history entries`);
-    return data || [];
+    
+    // Ensure proper typing for the return data
+    return (data || []).map((record: any): ScanHistoryEntry => ({
+      id: record.id,
+      ts: record.ts,
+      scanned_by_user_id: record.scanned_by_user_id,
+      user_display_name: record.user_display_name,
+      user_org_name: record.user_org_name,
+      scanned_from_ip: record.scanned_from_ip || null,
+      user_agent: record.user_agent,
+      device_type: record.device_type,
+      browser_name: record.browser_name,
+      browser_version: record.browser_version,
+      operating_system: record.operating_system,
+      latitude: record.latitude,
+      longitude: record.longitude,
+      location_accuracy: record.location_accuracy,
+      scan_method: record.scan_method
+    }));
     
   } catch (error) {
     console.error('Enhanced scan history error:', error);

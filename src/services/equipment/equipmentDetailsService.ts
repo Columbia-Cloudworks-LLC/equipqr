@@ -28,8 +28,8 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
     const { data: accessCheck, error: accessError } = await supabase.rpc(
       'can_access_equipment',
       {
-        p_user_id: userId,
-        p_equipment_id: equipmentId
+        user_id: userId,
+        equipment_id: equipmentId
       }
     );
 
@@ -60,15 +60,15 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
       throw new Error('Equipment not found');
     }
 
-    // Check additional permissions
-    const { data: editPermission } = await supabase.rpc(
-      'rpc_check_equipment_permission',
-      {
-        p_user_id: userId,
-        p_action: 'edit',
-        p_equipment_id: equipmentId
+    // Check additional permissions using the unified permissions function
+    const { data: editPermission } = await supabase.functions.invoke('permissions', {
+      body: {
+        userId: userId,
+        resource: 'equipment',
+        action: 'edit',
+        resourceId: equipmentId
       }
-    );
+    });
 
     // Get scan history if user has permission
     let scanHistory: any[] = [];
@@ -93,6 +93,9 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
     throw error;
   }
 }
+
+// Export getEquipmentById as an alias for backward compatibility
+export const getEquipmentById = getEquipmentDetails;
 
 /**
  * Record a scan for equipment

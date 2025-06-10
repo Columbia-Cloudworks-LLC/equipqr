@@ -6,10 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import type { ScanHistoryRecord } from '@/services/equipment/enhancedScanService';
+import type { ScanHistoryEntry } from '@/services/equipment/enhancedScanService';
 
 interface LocationMapProps {
-  scanRecords: ScanHistoryRecord[];
+  scanRecords: ScanHistoryEntry[];
   height?: string;
   highlightedRecordId?: string | null;
   onRecordHighlighted?: (recordId: string | null) => void;
