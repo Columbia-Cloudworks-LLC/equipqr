@@ -1,84 +1,162 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { PermissionValidator } from '@/services/security/PermissionValidator';
 
 /**
- * Get the app_user.id from auth.users.id
- * Handles the type conversion between UUID and string
+ * Utility functions for authentication operations
  */
-export async function getAppUserId(authUid: string): Promise<string | null> {
+
+/**
+ * Safely get app_user.id from auth.user.id
+ * @param authUserId - The auth.users.id value
+ * @returns Promise resolving to app_user.id if found, or null
+ */
+export async function getAppUserId(authUserId: string): Promise<string | null> {
   try {
-    // Log the input for debugging
-    console.log(`Getting app_user.id for auth.uid: ${authUid}`);
-    
-    // Cast UUID explicitly to ensure proper comparison
     const { data, error } = await supabase
       .from('app_user')
       .select('id')
-      .eq('auth_uid', authUid)
-      .maybeSingle();
+      .eq('auth_uid', authUserId)
+      .single();
 
     if (error) {
-      console.error('Error fetching app_user ID:', error);
+      console.error('Error getting app_user.id:', error);
+      
+      // Log security event for failed app user lookup
+      await PermissionValidator.logSecurityEvent(
+        'app_user_lookup_failed',
+        'auth',
+        authUserId,
+        {
+          error: error.message,
+          timestamp: new Date().toISOString()
+        },
+        'warning'
+      );
+      
       return null;
     }
-    
-    if (!data) {
-      console.error(`No app_user found for auth_uid: ${authUid}`);
-      return null;
-    }
-    
-    console.log(`Found app_user.id: ${data.id} for auth_uid: ${authUid}`);
-    return data.id;
+
+    return data?.id || null;
   } catch (error) {
-    console.error('Unexpected error in getAppUserId:', error);
+    console.error('Unexpected error getting app_user.id:', error);
     return null;
   }
 }
 
 /**
- * Process date fields to ensure they are in the correct format for database operations
- * For null/undefined values, return null to ensure proper database handling
- * For string values, ensure they are valid dates or return null
- * 
- * @param data - The object containing date fields to process
- * @param dateFields - Array of field names that should be treated as dates
- * @returns The processed object with correctly formatted date fields
+ * Get user's organization ID safely
+ * @param authUserId - The auth.users.id value
+ * @returns Promise resolving to organization ID if found, or null
  */
-export function processDateFields(data: Record<string, any>, dateFields: string[] = []): Record<string, any> {
-  const processed = { ...data };
+export async function getUserOrgId(authUserId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.rpc('get_user_org_id_safe', {
+      user_id_param: authUserId
+    });
 
-  for (const field of dateFields) {
-    if (field in processed) {
-      const value = processed[field];
-      
-      if (value === null || value === undefined || value === '') {
-        // Null values should remain null
-        processed[field] = null;
-      } else if (typeof value === 'string') {
-        // Check if it's a valid date
-        const date = new Date(value);
-        processed[field] = !isNaN(date.getTime()) ? value : null;
-      }
+    if (error) {
+      console.error('Error getting user org ID:', error);
+      return null;
     }
-  }
 
-  return processed;
+    return data;
+  } catch (error) {
+    console.error('Unexpected error getting user org ID:', error);
+    return null;
+  }
 }
 
 /**
- * Get the Supabase project ref from SUPABASE_URL environment variable or URL
+ * Check if user belongs to organization
+ * @param authUserId - The auth.users.id value
+ * @param orgId - The organization ID
+ * @returns Promise resolving to boolean
  */
-export function getSupabaseProjectRef(): string | null {
-  // Extract from SUPABASE_URL
-  const supabaseUrl = "https://oxeheowbfsshpyldlskb.supabase.co";
-  
-  if (supabaseUrl) {
-    const match = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
-    if (match && match[1]) {
-      return match[1];
+export async function userBelongsToOrg(authUserId: string, orgId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('user_belongs_to_org_safe', {
+      user_id_param: authUserId,
+      org_id_param: orgId
+    });
+
+    if (error) {
+      console.error('Error checking org membership:', error);
+      return false;
     }
+
+    return !!data;
+  } catch (error) {
+    console.error('Unexpected error checking org membership:', error);
+    return false;
   }
-  
-  console.warn('Could not extract project ref from SUPABASE_URL');
-  return null;
+}
+
+/**
+ * Check if user has specific role in organization
+ * @param authUserId - The auth.users.id value
+ * @param orgId - The organization ID
+ * @param role - The role to check
+ * @returns Promise resolving to boolean
+ */
+export async function userHasRole(authUserId: string, orgId: string, role: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('user_has_role_safe', {
+      user_id_param: authUserId,
+      org_id_param: orgId,
+      role_param: role
+    });
+
+    if (error) {
+      console.error('Error checking user role:', error);
+      return false;
+    }
+
+    return !!data;
+  } catch (error) {
+    console.error('Unexpected error checking user role:', error);
+    return false;
+  }
+}
+
+/**
+ * Format user ID for logging (partial obfuscation for privacy)
+ * @param userId - The user ID to format
+ * @returns Partially obfuscated user ID
+ */
+export function formatUserIdForLogging(userId: string): string {
+  if (!userId || userId.length < 8) {
+    return 'INVALID_ID';
+  }
+  return `${userId.substring(0, 8)}...`;
+}
+
+/**
+ * Validate UUID format
+ * @param uuid - The UUID string to validate
+ * @returns Boolean indicating if UUID is valid
+ */
+export function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
+/**
+ * Get safe client identifier for rate limiting
+ * @returns String identifier for rate limiting
+ */
+export function getClientIdentifier(): string {
+  try {
+    // Use a combination of factors for identification
+    const userAgent = navigator.userAgent.substring(0, 50);
+    const language = navigator.language;
+    const platform = navigator.platform;
+    
+    // Create a simple hash-like identifier
+    const identifier = btoa(`${userAgent}-${language}-${platform}`).substring(0, 32);
+    return identifier;
+  } catch (error) {
+    console.error('Error generating client identifier:', error);
+    return 'unknown_client';
+  }
 }

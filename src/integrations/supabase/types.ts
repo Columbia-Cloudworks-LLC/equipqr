@@ -2121,6 +2121,16 @@ export type Database = {
         Args: { p_email: string; p_provider?: string }
         Returns: Json
       }
+      check_enhanced_rate_limit: {
+        Args: {
+          p_identifier: string
+          p_attempt_type: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+          p_escalation_factor?: number
+        }
+        Returns: Json
+      }
       check_equipment_create_permission: {
         Args: { p_user_id: string; p_team_id?: string; p_org_id?: string }
         Returns: {
@@ -2392,6 +2402,17 @@ export type Database = {
           p_entity_type: string
           p_entity_id: string
           p_details?: Json
+        }
+        Returns: undefined
+      }
+      log_security_event_enhanced: {
+        Args: {
+          p_event_type: string
+          p_entity_type: string
+          p_entity_id: string
+          p_details?: Json
+          p_severity?: string
+          p_source_ip?: unknown
         }
         Returns: undefined
       }

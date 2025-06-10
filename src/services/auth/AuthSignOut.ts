@@ -1,86 +1,114 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { storageManager } from './StorageManager';
-import { toast } from 'sonner';
+import { PermissionValidator } from '@/services/security/PermissionValidator';
 
 /**
- * Handles sign out operations and state cleanup
+ * Enhanced sign-out service with security auditing
  */
 export class AuthSignOut {
   /**
-   * Sign out the current user with enhanced error handling and token cleanup
+   * Sign out the current user with security logging
    */
   public async signOut(): Promise<void> {
     try {
-      console.log('AuthSignOut: Starting signOut process');
+      console.log('AuthSignOut: Starting sign-out process');
       
-      // Check session validity before attempting logout
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('AuthSignOut: Current session before signOut:', 
-        sessionData?.session ? { 
-          id: sessionData.session.access_token.substring(0, 8) + '...',
-          expires_at: new Date(sessionData.session.expires_at * 1000).toISOString(),
-          valid: !!sessionData.session 
-        } : 'No session');
+      // Get current user info before signing out for audit logging
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
       
-      // Clear our own auth state first
-      await storageManager.clearAuthData();
-      
-      // IMPROVED: Use a more comprehensive logout approach
-      try {
-        // First try specific scope
-        await supabase.auth.signOut({ scope: 'local' });
-        
-        // Then try global scope (affects all browser tabs)
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (signOutError) {
-        console.error('AuthSignOut: Error during supabase.auth.signOut:', signOutError);
+      // Log security event
+      if (userId) {
+        await PermissionValidator.logSecurityEvent(
+          'user_logout',
+          'auth',
+          userId,
+          {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent.substring(0, 100)
+          },
+          'info'
+        );
       }
 
-      // Double-check session state after logout
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data?.session) {
-          console.warn('AuthSignOut: Session still exists after signOut, forcing cleanup');
-        } else {
-          console.log('AuthSignOut: Sign-out completed successfully');
-          toast.success("Signed out successfully");
+      // Clear session data from storage
+      await storageManager.clearAuthData();
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('AuthSignOut: Error during sign-out:', error);
+        
+        // Log sign-out failure
+        if (userId) {
+          await PermissionValidator.logSecurityEvent(
+            'logout_failure',
+            'auth',
+            userId,
+            {
+              error: error.message,
+              timestamp: new Date().toISOString()
+            },
+            'error'
+          );
         }
-      } catch (checkError) {
-        console.error('AuthSignOut: Error checking session after signOut:', checkError);
+        
+        throw error;
       }
       
+      console.log('AuthSignOut: Sign-out completed successfully');
     } catch (error) {
-      console.error('AuthSignOut: Error during signOut:', error);
-      toast.error("There was an issue during sign out, but local tokens have been cleared.");
+      console.error('AuthSignOut: Unexpected error during sign-out:', error);
       throw error;
     }
   }
-  
+
   /**
-   * Perform a complete auth system reset
+   * Perform a complete auth system reset with enhanced security logging
    */
   public async resetAuthSystem(): Promise<void> {
     try {
       console.log('AuthSignOut: Performing complete auth system reset');
       
-      // First try explicit sign out
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (e) {
-        console.error('AuthSignOut: Error during explicit signOut in reset:', e);
-      }
+      // Get current user for audit logging
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
       
-      // Then clear all storage
+      // Log system reset event
+      if (userId) {
+        await PermissionValidator.logSecurityEvent(
+          'auth_system_reset',
+          'auth',
+          userId,
+          {
+            reason: 'Complete auth system reset requested',
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent.substring(0, 100)
+          },
+          'warning'
+        );
+      }
+
+      // Clear all storage
       await storageManager.clearAuthData();
       
-      // Clear auth redirect helpers
-      sessionStorage.removeItem('authRedirectCount');
-      localStorage.removeItem('authReturnTo');
+      // Clear any session storage
+      try {
+        sessionStorage.clear();
+      } catch (e) {
+        console.warn('AuthSignOut: Could not clear session storage:', e);
+      }
       
-      console.log('AuthSignOut: Auth system reset complete');
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Force page reload to ensure clean state
+      window.location.reload();
     } catch (error) {
       console.error('AuthSignOut: Error during auth system reset:', error);
+      throw error;
     }
   }
 }

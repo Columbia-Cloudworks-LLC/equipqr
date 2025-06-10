@@ -2,113 +2,78 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Database functions for authentication and account linking
+ * Database functions service to ensure required functions exist
  */
 export class DatabaseFunctions {
   /**
-   * Create the check_duplicate_email_signup function if it doesn't exist
+   * Ensure the duplicate email check function exists
    */
   public static async ensureDuplicateEmailFunction(): Promise<void> {
     try {
-      // Test if the function exists by calling it
-      await supabase.rpc('check_duplicate_email_signup', {
-        p_email: 'test@example.com',
-        p_provider: 'test'
+      // Test if the function exists by calling it with a safe email
+      const { error } = await supabase.rpc('get_user_by_email_safe', {
+        email_param: 'test@example.com'
       });
-      
-      console.log('Database function check_duplicate_email_signup exists');
+
+      // If function doesn't exist, we'll get a specific error
+      if (error && error.message.includes('function')) {
+        console.warn('DatabaseFunctions: get_user_by_email_safe function may not exist');
+      } else {
+        console.log('DatabaseFunctions: get_user_by_email_safe function is available');
+      }
     } catch (error) {
-      console.log('Creating check_duplicate_email_signup function');
-      
-      // The function doesn't exist, so we need to create it
-      // Note: In a real application, this would be done via migration
-      // For now, we'll handle the error gracefully and use fallback logic
+      console.error('DatabaseFunctions: Error checking duplicate email function:', error);
     }
   }
 
   /**
-   * Fallback duplicate email check using direct queries
+   * Test enhanced rate limiting function
    */
-  public static async checkDuplicateEmailFallback(
-    email: string, 
-    provider: string
-  ): Promise<{
-    has_duplicate: boolean;
-    existing_providers: string[];
-    can_link: boolean;
-  }> {
+  public static async testRateLimitFunction(): Promise<boolean> {
     try {
-      // Check user_auth_methods table for existing providers
-      const { data: authMethods, error } = await supabase
-        .from('user_auth_methods')
-        .select('provider')
-        .eq('email', email);
+      const { data, error } = await supabase.rpc('check_enhanced_rate_limit', {
+        p_identifier: 'test_user',
+        p_attempt_type: 'test',
+        p_max_attempts: 5,
+        p_window_minutes: 15
+      });
 
       if (error) {
-        console.error('Error checking user_auth_methods:', error);
-        return { has_duplicate: false, existing_providers: [], can_link: false };
+        console.error('DatabaseFunctions: Rate limit function test failed:', error);
+        return false;
       }
 
-      const existingProviders = authMethods?.map(method => method.provider) || [];
-      const hasDuplicate = existingProviders.length > 0 && !existingProviders.includes(provider);
-
-      return {
-        has_duplicate: hasDuplicate,
-        existing_providers: existingProviders,
-        can_link: hasDuplicate
-      };
+      console.log('DatabaseFunctions: Rate limit function is working:', data);
+      return true;
     } catch (error) {
-      console.error('Error in fallback duplicate email check:', error);
-      return { has_duplicate: false, existing_providers: [], can_link: false };
+      console.error('DatabaseFunctions: Rate limit function test error:', error);
+      return false;
     }
   }
 
   /**
-   * Create verification token for account linking
+   * Test security event logging function
    */
-  public static async generateVerificationToken(): Promise<string | null> {
+  public static async testSecurityEventLogging(): Promise<boolean> {
     try {
-      // Try to use the RPC function first
-      const { data, error } = await supabase.rpc('gen_invitation_token');
-      
-      if (!error && data) {
-        return data;
+      const { error } = await supabase.rpc('log_security_event_enhanced', {
+        p_event_type: 'test_event',
+        p_entity_type: 'test',
+        p_entity_id: '00000000-0000-0000-0000-000000000000',
+        p_details: JSON.stringify({ test: true }),
+        p_severity: 'info'
+      });
+
+      if (error) {
+        console.error('DatabaseFunctions: Security event logging test failed:', error);
+        return false;
       }
 
-      // Fallback: generate a simple token
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let result = '';
-      for (let i = 0; i < 32; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
+      console.log('DatabaseFunctions: Security event logging function is working');
+      return true;
     } catch (error) {
-      console.error('Error generating verification token:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Lookup user by email using direct database query
-   */
-  public static async lookupUserByEmail(email: string): Promise<{ user_id: string } | null> {
-    try {
-      // Direct query to user_auth_methods table
-      const { data: authMethod, error: authError } = await supabase
-        .from('user_auth_methods')
-        .select('user_id')
-        .eq('email', email)
-        .limit(1)
-        .single();
-
-      if (!authError && authMethod) {
-        return { user_id: authMethod.user_id };
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error looking up user by email:', error);
-      return null;
+      console.error('DatabaseFunctions: Security event logging test error:', error);
+      return false;
     }
   }
 }

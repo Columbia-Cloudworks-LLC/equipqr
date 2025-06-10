@@ -1,107 +1,157 @@
+
 /**
- * Debounce function to avoid rapid-fire API calls
+ * Enhanced retry utility with rate limiting awareness
  */
-export function debounce<T extends (...args: any[]) => Promise<any>>(
-  fn: T, 
-  delay: number
-): T {
-  let timeout: NodeJS.Timeout | null = null;
-  let lastResult: any = null;
-  let lastCall = 0;
-  
-  return ((...args: Parameters<T>) => {
-    return new Promise((resolve, reject) => {
-      // Check if we've already called recently
-      const now = Date.now();
-      if (now - lastCall < delay) {
-        console.log('Debounced function call, returning last result');
-        resolve(lastResult);
-        return;
-      }
-      
-      // Clear any pending timeout
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      
-      // Set a new timeout
-      timeout = setTimeout(async () => {
-        try {
-          lastCall = Date.now();
-          lastResult = await fn(...args);
-          resolve(lastResult);
-        } catch (err) {
-          reject(err);
-        } finally {
-          timeout = null;
-        }
-      }, delay);
-    });
-  }) as T;
-}
 
 /**
  * Retry a function with exponential backoff
  */
 export async function retry<T>(
   fn: () => Promise<T>,
-  maxRetries: number = 3,
-  initialDelay: number = 1000,
-  isRateLimit?: (error: any) => boolean
+  maxAttempts: number = 3,
+  baseDelay: number = 1000,
+  shouldRetry?: (error: any) => boolean
 ): Promise<T> {
-  let retries = 0;
-  let delay = initialDelay;
+  let lastError: any;
   
-  while (true) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn();
     } catch (error) {
-      retries++;
-      console.log(`Attempt ${retries} failed:`, error);
+      lastError = error;
       
-      // Check if we've hit our retry limit
-      if (retries >= maxRetries) throw error;
-      
-      // If this is a rate limiting error and we have a check function, use it
-      if (isRateLimit && isRateLimit(error)) {
-        console.warn('Rate limit detected, increasing backoff');
-        delay = Math.min(delay * 3, 30000); // More aggressive backoff for rate limits
-      } else {
-        delay *= 2; // Standard exponential backoff
+      // Check if we should retry this error
+      if (shouldRetry && !shouldRetry(error)) {
+        throw error;
       }
       
-      console.log(`Retrying in ${delay}ms...`);
+      // Don't retry on the last attempt
+      if (attempt === maxAttempts) {
+        break;
+      }
+      
+      // Calculate delay with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      
+      console.log(`Retry attempt ${attempt} failed, retrying in ${delay}ms:`, error);
+      
+      // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
+  
+  throw lastError;
 }
 
 /**
- * Cache function to avoid redundant API calls
- * Stores results with a key generated from the function arguments
+ * Debounce function to limit rapid successive calls
  */
-export function withCache<T, Args extends any[]>(
-  fn: (...args: Args) => Promise<T>,
-  keyGenerator: (...args: Args) => string,
-  expiryMs: number = 60000 // Default cache for 1 minute
-): (...args: Args) => Promise<T> {
-  const cache: Record<string, { data: T; timestamp: number }> = {};
-  
-  return async (...args: Args): Promise<T> => {
-    const cacheKey = keyGenerator(...args);
-    const now = Date.now();
-    const cachedItem = cache[cacheKey];
-    
-    // Return cached item if it exists and hasn't expired
-    if (cachedItem && now - cachedItem.timestamp < expiryMs) {
-      console.log(`Cache hit for ${cacheKey}`);
-      return cachedItem.data;
-    }
-    
-    // Otherwise, call the function and cache the result
-    console.log(`Cache miss for ${cacheKey}, fetching...`);
-    const result = await fn(...args);
-    cache[cacheKey] = { data: result, timestamp: now };
-    return result;
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => Promise<ReturnType<T>> {
+  let timeoutId: NodeJS.Timeout;
+  let resolvers: Array<{
+    resolve: (value: ReturnType<T>) => void;
+    reject: (error: any) => void;
+  }> = [];
+
+  return (...args: Parameters<T>): Promise<ReturnType<T>> => {
+    return new Promise<ReturnType<T>>((resolve, reject) => {
+      // Clear previous timeout
+      clearTimeout(timeoutId);
+      
+      // Add this call's resolvers to the list
+      resolvers.push({ resolve, reject });
+      
+      // Set new timeout
+      timeoutId = setTimeout(async () => {
+        const currentResolvers = resolvers;
+        resolvers = [];
+        
+        try {
+          const result = await func(...args);
+          
+          // Resolve all pending calls with the same result
+          currentResolvers.forEach(({ resolve }) => resolve(result));
+        } catch (error) {
+          // Reject all pending calls with the same error
+          currentResolvers.forEach(({ reject }) => reject(error));
+        }
+      }, delay);
+    });
   };
+}
+
+/**
+ * Rate limit aware retry function
+ */
+export async function retryWithRateLimit<T>(
+  fn: () => Promise<T>,
+  maxAttempts: number = 3,
+  baseDelay: number = 1000,
+  rateLimitMultiplier: number = 5
+): Promise<T> {
+  return retry(
+    fn,
+    maxAttempts,
+    baseDelay,
+    (error: any) => {
+      // Check if this is a rate limit error
+      if (isRateLimitError(error)) {
+        console.warn('Rate limit detected, backing off...');
+        return true;
+      }
+      
+      // Check if this is a temporary network error
+      if (isNetworkError(error)) {
+        return true;
+      }
+      
+      // Don't retry authentication errors
+      if (isAuthError(error)) {
+        return false;
+      }
+      
+      return false;
+    }
+  );
+}
+
+/**
+ * Check if an error is a rate limit error
+ */
+export function isRateLimitError(error: any): boolean {
+  return (
+    error?.status === 429 ||
+    error?.message?.includes('429') ||
+    error?.message?.includes('rate limit') ||
+    error?.message?.includes('too many requests')
+  );
+}
+
+/**
+ * Check if an error is a network error
+ */
+export function isNetworkError(error: any): boolean {
+  return (
+    error?.message?.includes('network') ||
+    error?.message?.includes('timeout') ||
+    error?.message?.includes('ECONNRESET') ||
+    error?.message?.includes('ENOTFOUND') ||
+    error?.code === 'NETWORK_ERROR'
+  );
+}
+
+/**
+ * Check if an error is an authentication error
+ */
+export function isAuthError(error: any): boolean {
+  return (
+    error?.status === 401 ||
+    error?.status === 403 ||
+    error?.message?.includes('unauthorized') ||
+    error?.message?.includes('forbidden') ||
+    error?.message?.includes('invalid token')
+  );
 }

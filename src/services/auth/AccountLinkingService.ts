@@ -1,277 +1,186 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { DatabaseFunctions } from './DatabaseFunctions';
+import { PermissionValidator } from '@/services/security/PermissionValidator';
 
 /**
- * Service for handling account linking between different authentication methods
+ * Enhanced account linking service with security improvements
  */
 export class AccountLinkingService {
   /**
-   * Create an account linking request
-   */
-  public async createLinkRequest(
-    existingEmail: string,
-    newProvider: string,
-    newProviderEmail: string
-  ): Promise<{ success: boolean; token?: string; error?: string }> {
-    try {
-      // Use enhanced database functions
-      const userLookupResult = await DatabaseFunctions.lookupUserByEmail(existingEmail);
-      
-      if (!userLookupResult) {
-        return { success: false, error: 'Existing user not found' };
-      }
-
-      const existingUserId = userLookupResult.user_id;
-
-      // Generate verification token
-      const token = await DatabaseFunctions.generateVerificationToken();
-      
-      if (!token) {
-        return { success: false, error: 'Failed to generate verification token' };
-      }
-
-      // Create the link request
-      const { data, error } = await supabase
-        .from('account_link_requests')
-        .insert({
-          existing_user_id: existingUserId,
-          new_provider: newProvider,
-          new_provider_email: newProviderEmail,
-          verification_token: token,
-          status: 'pending'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating link request:', error);
-        return { success: false, error: 'Failed to create link request' };
-      }
-
-      return { success: true, token };
-    } catch (error) {
-      console.error('Error in createLinkRequest:', error);
-      return { success: false, error: 'An unexpected error occurred' };
-    }
-  }
-
-  /**
-   * Verify and complete account linking
-   */
-  public async completeLinking(
-    token: string,
-    newUserSession: any
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      // Get the link request
-      const { data: linkRequest, error: requestError } = await supabase
-        .from('account_link_requests')
-        .select('*')
-        .eq('verification_token', token)
-        .eq('status', 'pending')
-        .single();
-
-      if (requestError || !linkRequest) {
-        return { success: false, error: 'Invalid or expired link request' };
-      }
-
-      // Check if request has expired
-      if (new Date(linkRequest.expires_at) < new Date()) {
-        // Mark as expired
-        await supabase
-          .from('account_link_requests')
-          .update({ status: 'expired' })
-          .eq('id', linkRequest.id);
-        
-        return { success: false, error: 'Link request has expired' };
-      }
-
-      // Create auth method record for the existing user
-      const { error: authMethodError } = await supabase
-        .from('user_auth_methods')
-        .insert({
-          user_id: linkRequest.existing_user_id,
-          provider: linkRequest.new_provider,
-          provider_id: newUserSession.user.id,
-          email: linkRequest.new_provider_email,
-          is_primary: false,
-          verified_at: new Date().toISOString()
-        });
-
-      if (authMethodError) {
-        console.error('Error creating auth method:', authMethodError);
-        return { success: false, error: 'Failed to link account' };
-      }
-
-      // Mark the link request as completed
-      await supabase
-        .from('account_link_requests')
-        .update({ 
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', linkRequest.id);
-
-      // Delete the temporary user account (the new one that was just created)
-      try {
-        await supabase.auth.admin.deleteUser(newUserSession.user.id);
-      } catch (deleteError) {
-        console.warn('Failed to delete temporary user account:', deleteError);
-        // Don't fail the entire operation if we can't delete the temp account
-      }
-
-      return { success: true };
-    } catch (error) {
-      console.error('Error completing account linking:', error);
-      return { success: false, error: 'An unexpected error occurred' };
-    }
-  }
-
-  /**
-   * Get authentication methods for a user
-   */
-  public async getUserAuthMethods(userId: string): Promise<Array<{
-    id: string;
-    provider: string;
-    email: string;
-    is_primary: boolean;
-    verified_at: string | null;
-    last_used_at: string | null;
-  }>> {
-    try {
-      const { data, error } = await supabase
-        .from('user_auth_methods')
-        .select('id, provider, email, is_primary, verified_at, last_used_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching user auth methods:', error);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error in getUserAuthMethods:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Update last used timestamp for an auth method
-   */
-  public async updateLastUsed(userId: string, provider: string): Promise<void> {
-    try {
-      await supabase
-        .from('user_auth_methods')
-        .update({ last_used_at: new Date().toISOString() })
-        .eq('user_id', userId)
-        .eq('provider', provider);
-    } catch (error) {
-      console.error('Error updating last used:', error);
-    }
-  }
-
-  /**
-   * Handle account linking flow from OAuth providers
+   * Handle OAuth account linking with enhanced security
    */
   public async handleOAuthLinking(
     provider: string,
     session: any,
-    existingEmail?: string
-  ): Promise<{ requiresLinking: boolean; linkToken?: string }> {
-    if (!existingEmail) {
-      return { requiresLinking: false };
-    }
-
+    email: string
+  ): Promise<{ success: boolean; requiresLinking: boolean; error?: string }> {
     try {
-      // Use enhanced duplicate checking
-      let duplicateResult;
-      
-      try {
-        // Try RPC function first
-        const { data: duplicateCheckData, error: duplicateError } = await supabase.rpc('check_duplicate_email_signup', {
-          p_email: session.user.email,
-          p_provider: provider
-        });
+      console.log('AccountLinkingService: Checking for existing accounts with email:', 
+        email.substring(0, 3) + '***');
 
-        if (duplicateError) {
-          throw duplicateError;
-        }
+      // Check for existing users with this email
+      const { data: existingUsers, error: queryError } = await supabase.rpc(
+        'get_user_by_email_safe',
+        { email_param: email }
+      );
+
+      if (queryError) {
+        console.error('AccountLinkingService: Error checking existing users:', queryError);
         
-        duplicateResult = duplicateCheckData as any;
-      } catch (rpcError) {
-        console.log('RPC function not available, using fallback');
-        // Use fallback method
-        duplicateResult = await DatabaseFunctions.checkDuplicateEmailFallback(
-          session.user.email,
-          provider
+        await PermissionValidator.logSecurityEvent(
+          'account_linking_check_failed',
+          'auth',
+          session.user?.id || 'unknown',
+          {
+            provider,
+            email: email.substring(0, 3) + '***',
+            error: queryError.message,
+            timestamp: new Date().toISOString()
+          },
+          'error'
         );
+
+        return { success: false, requiresLinking: false, error: 'Account verification failed' };
       }
+
+      if (!existingUsers || existingUsers.length === 0) {
+        // No existing account, proceed normally
+        console.log('AccountLinkingService: No existing account found, proceeding');
+        return { success: true, requiresLinking: false };
+      }
+
+      const existingUser = existingUsers[0];
+      const currentUserId = session.user.id;
+
+      // If the existing user ID matches current user ID, no linking needed
+      if (existingUser.id === currentUserId) {
+        console.log('AccountLinkingService: User IDs match, no linking needed');
+        return { success: true, requiresLinking: false };
+      }
+
+      // Different user IDs - potential account linking scenario
+      console.log('AccountLinkingService: Different user IDs detected, account linking required');
       
-      if (duplicateResult?.has_duplicate && duplicateResult?.can_link) {
-        // Create a link request
-        const linkResult = await this.createLinkRequest(
-          existingEmail,
+      await PermissionValidator.logSecurityEvent(
+        'account_linking_required',
+        'auth',
+        currentUserId,
+        {
           provider,
-          session.user.email
-        );
+          email: email.substring(0, 3) + '***',
+          existingUserId: existingUser.id.substring(0, 8) + '...',
+          timestamp: new Date().toISOString()
+        },
+        'warning'
+      );
 
-        if (linkResult.success) {
-          toast.info('Account Linking Required', {
-            description: 'We found an existing account with this email. Check your email for linking instructions.'
-          });
+      // Show user-friendly message about account linking
+      toast.warning("Account already exists", {
+        description: `An account with ${email} already exists. Please sign in with your original method or contact support for account linking.`
+      });
 
-          return { 
-            requiresLinking: true, 
-            linkToken: linkResult.token 
-          };
-        }
-      }
-
-      return { requiresLinking: false };
+      return { success: false, requiresLinking: true };
     } catch (error) {
-      console.error('Error in OAuth linking flow:', error);
-      return { requiresLinking: false };
+      console.error('AccountLinkingService: Unexpected error:', error);
+      
+      await PermissionValidator.logSecurityEvent(
+        'account_linking_error',
+        'auth',
+        session?.user?.id || 'unknown',
+        {
+          provider,
+          email: email.substring(0, 3) + '***',
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString()
+        },
+        'error'
+      );
+
+      return { success: false, requiresLinking: false, error: 'Account linking check failed' };
     }
   }
 
   /**
-   * Remove an authentication method (except primary)
+   * Update last used timestamp for authentication method
    */
-  public async removeAuthMethod(authMethodId: string): Promise<{ success: boolean; error?: string }> {
+  public async updateLastUsed(userId: string, provider: string): Promise<void> {
     try {
-      // First check if this is the primary method
-      const { data: authMethod, error: fetchError } = await supabase
-        .from('user_auth_methods')
-        .select('is_primary')
-        .eq('id', authMethodId)
-        .single();
-
-      if (fetchError) {
-        return { success: false, error: 'Auth method not found' };
-      }
-
-      if (authMethod.is_primary) {
-        return { success: false, error: 'Cannot remove primary authentication method' };
-      }
-
-      // Remove the auth method
       const { error } = await supabase
         .from('user_auth_methods')
-        .delete()
-        .eq('id', authMethodId);
+        .upsert({
+          user_id: userId,
+          provider: provider,
+          last_used_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,provider'
+        });
 
       if (error) {
-        return { success: false, error: 'Failed to remove authentication method' };
+        console.error('AccountLinkingService: Error updating last used timestamp:', error);
+        
+        await PermissionValidator.logSecurityEvent(
+          'auth_method_update_failed',
+          'auth',
+          userId,
+          {
+            provider,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          },
+          'warning'
+        );
+      } else {
+        console.log('AccountLinkingService: Updated last used timestamp for provider:', provider);
+      }
+    } catch (error) {
+      console.error('AccountLinkingService: Unexpected error updating last used:', error);
+    }
+  }
+
+  /**
+   * Check for potential duplicate email during signup
+   */
+  public async checkDuplicateEmail(email: string, provider: string = 'email'): Promise<{
+    hasDuplicate: boolean;
+    existingUserId?: string;
+    canLink?: boolean;
+  }> {
+    try {
+      console.log('AccountLinkingService: Checking for duplicate email during signup');
+
+      const { data: existingUsers } = await supabase.rpc('get_user_by_email_safe', {
+        email_param: email
+      });
+
+      if (!existingUsers || existingUsers.length === 0) {
+        return { hasDuplicate: false };
       }
 
-      return { success: true };
+      const existingUser = existingUsers[0];
+      
+      await PermissionValidator.logSecurityEvent(
+        'signup_duplicate_email_detected',
+        'auth',
+        'system',
+        {
+          email: email.substring(0, 3) + '***',
+          provider,
+          existingUserId: existingUser.id.substring(0, 8) + '...',
+          timestamp: new Date().toISOString()
+        },
+        'info'
+      );
+
+      return {
+        hasDuplicate: true,
+        existingUserId: existingUser.id,
+        canLink: true // Can potentially be linked
+      };
     } catch (error) {
-      console.error('Error removing auth method:', error);
-      return { success: false, error: 'An unexpected error occurred' };
+      console.error('AccountLinkingService: Error checking duplicate email:', error);
+      return { hasDuplicate: false };
     }
   }
 }

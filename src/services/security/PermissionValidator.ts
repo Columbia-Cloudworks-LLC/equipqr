@@ -1,43 +1,26 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { authenticationService } from '@/services/auth/authenticationService';
 
 /**
- * Enhanced permission validation utility
+ * Permission validation service with enhanced security checks
  */
 export class PermissionValidator {
   /**
-   * Validate user can access equipment
+   * Validate equipment access permissions
    */
   static async validateEquipmentAccess(
     equipmentId: string,
     action: 'view' | 'edit' | 'delete'
   ): Promise<{ allowed: boolean; reason?: string }> {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData?.session?.user?.id;
+      const { userId, error } = await authenticationService.getAuthenticatedUserId();
       
-      if (!userId) {
-        return { allowed: false, reason: 'User not authenticated' };
+      if (error || !userId) {
+        return { allowed: false, reason: 'Authentication required' };
       }
 
-      // Get equipment details
-      const { data: equipment, error: equipmentError } = await supabase
-        .from('equipment')
-        .select('id, org_id, team_id')
-        .eq('id', equipmentId)
-        .maybeSingle();
-
-      if (equipmentError) {
-        console.error('Equipment access check error:', equipmentError);
-        return { allowed: false, reason: 'Equipment not found' };
-      }
-
-      if (!equipment) {
-        return { allowed: false, reason: 'Equipment not found' };
-      }
-
-      // Use the database function for permission checking
-      const { data: hasPermission, error: permissionError } = await supabase.rpc(
+      const { data, error: permissionError } = await supabase.rpc(
         'check_equipment_permissions',
         {
           _user_id: userId,
@@ -51,40 +34,115 @@ export class PermissionValidator {
         return { allowed: false, reason: 'Permission check failed' };
       }
 
-      return { allowed: hasPermission === true };
+      return { allowed: !!data };
     } catch (error) {
-      console.error('Permission validation error:', error);
+      console.error('Equipment access validation error:', error);
       return { allowed: false, reason: 'Validation error' };
     }
   }
 
   /**
-   * Validate user can access team
+   * Validate work order access permissions
    */
-  static async validateTeamAccess(teamId: string): Promise<{ allowed: boolean; reason?: string }> {
+  static async validateWorkOrderAccess(
+    equipmentId: string,
+    action: 'view' | 'manage' | 'submit'
+  ): Promise<{ allowed: boolean; reason?: string }> {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData?.session?.user?.id;
+      const { userId, error } = await authenticationService.getAuthenticatedUserId();
       
-      if (!userId) {
-        return { allowed: false, reason: 'User not authenticated' };
+      if (error || !userId) {
+        return { allowed: false, reason: 'Authentication required' };
       }
 
-      // Use the database function for team access checking
-      const { data: hasAccess, error } = await supabase.rpc(
-        'can_access_team',
+      let functionName: string;
+      switch (action) {
+        case 'view':
+          functionName = 'can_view_work_orders';
+          break;
+        case 'manage':
+          functionName = 'can_manage_work_orders';
+          break;
+        case 'submit':
+          functionName = 'can_submit_work_orders';
+          break;
+        default:
+          return { allowed: false, reason: 'Invalid action' };
+      }
+
+      const { data, error: permissionError } = await supabase.rpc(functionName, {
+        p_user_id: userId,
+        p_equipment_id: equipmentId
+      });
+
+      if (permissionError) {
+        console.error('Work order permission check error:', permissionError);
+        return { allowed: false, reason: 'Permission check failed' };
+      }
+
+      return { allowed: !!data };
+    } catch (error) {
+      console.error('Work order access validation error:', error);
+      return { allowed: false, reason: 'Validation error' };
+    }
+  }
+
+  /**
+   * Validate team access permissions
+   */
+  static async validateTeamAccess(
+    teamId: string,
+    requiredRoles?: string[]
+  ): Promise<{ allowed: boolean; reason?: string; role?: string }> {
+    try {
+      const { userId, error } = await authenticationService.getAuthenticatedUserId();
+      
+      if (error || !userId) {
+        return { allowed: false, reason: 'Authentication required' };
+      }
+
+      const { data, error: accessError } = await supabase.rpc(
+        'check_team_access_detailed',
         {
-          p_uid: userId,
-          p_team_id: teamId
+          user_id: userId,
+          team_id: teamId
         }
       );
 
-      if (error) {
-        console.error('Team access check error:', error);
+      if (accessError) {
+        console.error('Team access check error:', accessError);
         return { allowed: false, reason: 'Access check failed' };
       }
 
-      return { allowed: hasAccess === true };
+      if (!data || data.length === 0) {
+        return { allowed: false, reason: 'No access data' };
+      }
+
+      const accessInfo = data[0];
+      
+      if (!accessInfo.has_access) {
+        return { 
+          allowed: false, 
+          reason: accessInfo.access_reason || 'Access denied'
+        };
+      }
+
+      // Check required roles if specified
+      if (requiredRoles && requiredRoles.length > 0) {
+        const userRole = accessInfo.team_role;
+        if (!userRole || !requiredRoles.includes(userRole)) {
+          return { 
+            allowed: false, 
+            reason: `Insufficient permissions. Required: ${requiredRoles.join(', ')}`,
+            role: userRole
+          };
+        }
+      }
+
+      return { 
+        allowed: true, 
+        role: accessInfo.team_role 
+      };
     } catch (error) {
       console.error('Team access validation error:', error);
       return { allowed: false, reason: 'Validation error' };
@@ -92,67 +150,74 @@ export class PermissionValidator {
   }
 
   /**
-   * Validate user can manage work orders
+   * Enhanced rate limit check using new database function
    */
-  static async validateWorkOrderAccess(
-    equipmentId: string,
-    action: 'view' | 'manage' | 'submit'
-  ): Promise<{ allowed: boolean; reason?: string }> {
+  static async checkRateLimit(
+    identifier: string,
+    attemptType: string,
+    maxAttempts: number = 5,
+    windowMinutes: number = 15
+  ): Promise<{ allowed: boolean; attemptsRemaining: number; timeUntilReset: number; reason?: string }> {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData?.session?.user?.id;
-      
-      if (!userId) {
-        return { allowed: false, reason: 'User not authenticated' };
-      }
-
-      // Use explicit function calls based on action to avoid TypeScript errors
-      let hasPermission: boolean = false;
-      let error: any = null;
-
-      if (action === 'view') {
-        const { data, error: viewError } = await supabase.rpc(
-          'can_view_work_orders',
-          {
-            p_user_id: userId,
-            p_equipment_id: equipmentId
-          }
-        );
-        hasPermission = data === true;
-        error = viewError;
-      } else if (action === 'manage') {
-        const { data, error: manageError } = await supabase.rpc(
-          'can_manage_work_orders',
-          {
-            p_user_id: userId,
-            p_equipment_id: equipmentId
-          }
-        );
-        hasPermission = data === true;
-        error = manageError;
-      } else if (action === 'submit') {
-        const { data, error: submitError } = await supabase.rpc(
-          'can_submit_work_orders',
-          {
-            p_user_id: userId,
-            p_equipment_id: equipmentId
-          }
-        );
-        hasPermission = data === true;
-        error = submitError;
-      } else {
-        return { allowed: false, reason: 'Invalid action' };
-      }
+      const { data, error } = await supabase.rpc('check_enhanced_rate_limit', {
+        p_identifier: identifier,
+        p_attempt_type: attemptType,
+        p_max_attempts: maxAttempts,
+        p_window_minutes: windowMinutes
+      });
 
       if (error) {
-        console.error('Work order permission check error:', error);
-        return { allowed: false, reason: 'Permission check failed' };
+        console.error('Rate limit check error:', error);
+        // On error, allow but log the issue
+        return { 
+          allowed: true, 
+          attemptsRemaining: maxAttempts, 
+          timeUntilReset: 0,
+          reason: 'Rate limit check failed'
+        };
       }
 
-      return { allowed: hasPermission };
+      return {
+        allowed: data.allowed,
+        attemptsRemaining: data.attempts_remaining || 0,
+        timeUntilReset: data.time_until_reset || 0,
+        reason: data.reason
+      };
     } catch (error) {
-      console.error('Work order permission validation error:', error);
-      return { allowed: false, reason: 'Validation error' };
+      console.error('Rate limit validation error:', error);
+      return { 
+        allowed: true, 
+        attemptsRemaining: maxAttempts, 
+        timeUntilReset: 0,
+        reason: 'Validation error'
+      };
+    }
+  }
+
+  /**
+   * Log security events using enhanced database function
+   */
+  static async logSecurityEvent(
+    eventType: string,
+    entityType: string,
+    entityId: string,
+    details?: Record<string, any>,
+    severity: 'info' | 'warning' | 'error' | 'critical' = 'info'
+  ): Promise<void> {
+    try {
+      const { error } = await supabase.rpc('log_security_event_enhanced', {
+        p_event_type: eventType,
+        p_entity_type: entityType,
+        p_entity_id: entityId,
+        p_details: details ? JSON.stringify(details) : null,
+        p_severity: severity
+      });
+
+      if (error) {
+        console.error('Security event logging failed:', error);
+      }
+    } catch (error) {
+      console.error('Security event logging error:', error);
     }
   }
 }
