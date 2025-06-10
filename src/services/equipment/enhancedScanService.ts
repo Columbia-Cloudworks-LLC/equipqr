@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceInfo, getLocationInfo, getSessionId, type DeviceInfo, type LocationInfo } from "@/utils/deviceDetection";
 import { toast } from "sonner";
@@ -44,6 +45,16 @@ export interface ScanHistoryRecord {
   language?: string;
   user_display_name?: string;
   user_org_name?: string;
+}
+
+// Type for the record_equipment_scan function response
+interface RecordScanResponse {
+  success: boolean;
+  scan_id?: string;
+  location_updated?: boolean;
+  message?: string;
+  error?: string;
+  reason?: string;
 }
 
 /**
@@ -117,12 +128,15 @@ export async function recordEnhancedScan(
       language: deviceInfo.language
     };
     
-    // Use the new database function that validates permissions and records the scan
-    const { data, error } = await supabase.rpc('record_equipment_scan', {
-      p_equipment_id: equipmentId,
-      p_user_id: authUserId,
-      p_scan_data: scanData
-    });
+    // Use the database function with type assertion to handle the missing type definition
+    const { data, error } = await supabase.rpc(
+      'record_equipment_scan' as any,
+      {
+        p_equipment_id: equipmentId,
+        p_user_id: authUserId,
+        p_scan_data: scanData
+      }
+    ) as { data: RecordScanResponse | null; error: any };
     
     if (error) {
       console.error('Error calling record_equipment_scan:', error);
@@ -193,12 +207,15 @@ export async function getEnhancedScanHistory(
       return [];
     }
     
-    // Use the database function with permission checking
-    const { data, error } = await supabase.rpc('get_equipment_scan_history', {
-      p_equipment_id: equipmentId,
-      p_user_id: userId,
-      p_limit: limit
-    });
+    // Use the database function with permission checking and type assertion
+    const { data, error } = await supabase.rpc(
+      'get_equipment_scan_history' as any,
+      {
+        p_equipment_id: equipmentId,
+        p_user_id: userId,
+        p_limit: limit
+      }
+    ) as { data: ScanHistoryRecord[] | null; error: any };
     
     if (error) {
       console.error('Error fetching enhanced scan history:', error);
@@ -229,10 +246,13 @@ export async function canViewScanHistory(equipmentId: string): Promise<boolean> 
       return false;
     }
     
-    const { data, error } = await supabase.rpc('can_view_scan_history', {
-      p_user_id: userId,
-      p_equipment_id: equipmentId
-    });
+    const { data, error } = await supabase.rpc(
+      'can_view_scan_history' as any,
+      {
+        p_user_id: userId,
+        p_equipment_id: equipmentId
+      }
+    ) as { data: boolean | null; error: any };
     
     if (error) {
       console.error('Error checking scan history permission:', error);
