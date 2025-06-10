@@ -62,34 +62,22 @@ export function AuthLogo({ className = "" }: AuthLogoProps) {
     setIsLoading(false);
   };
 
-  // Show loading state briefly to prevent flash
-  if (isLoading && !imageError) {
-    return (
-      <div className={`flex justify-center ${className}`}>
-        <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 bg-muted rounded-lg flex items-center justify-center animate-pulse">
-          <span className="text-muted-foreground font-bold text-xl sm:text-2xl md:text-3xl">EQ</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Show fallback if image failed to load
-  if (imageError) {
-    return (
-      <div className={`flex justify-center ${className}`}>
-        <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 bg-primary rounded-lg flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-xl sm:text-2xl md:text-3xl">EQ</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={`flex justify-center ${className}`}>
+    <div className={`flex justify-center relative ${className}`}>
+      {/* Loading placeholder - shown while loading or on error */}
+      <div 
+        className={`h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 bg-${imageError ? 'primary' : 'muted'} rounded-lg flex items-center justify-center ${isLoading && !imageError ? 'animate-pulse' : ''} transition-opacity duration-300 ${!isLoading && !imageError ? 'opacity-0 absolute' : 'opacity-100'}`}
+      >
+        <span className={`${imageError ? 'text-primary-foreground' : 'text-muted-foreground'} font-bold text-xl sm:text-2xl md:text-3xl`}>
+          EQ
+        </span>
+      </div>
+      
+      {/* Actual logo image - always rendered so handlers can fire */}
       <img
         src={logoSrc}
         alt="EquipQR Logo"
-        className="h-16 w-auto sm:h-20 md:h-24 object-contain"
+        className={`h-16 w-auto sm:h-20 md:h-24 object-contain transition-opacity duration-300 ${isLoading || imageError ? 'opacity-0' : 'opacity-100'}`}
         onError={handleImageError}
         onLoad={handleImageLoad}
       />
