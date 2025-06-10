@@ -6,6 +6,7 @@ import { AuthMessageAlert } from '@/components/Auth/AuthMessageAlert';
 import { AuthTabs } from '@/components/Auth/AuthTabs';
 import { AuthCardFooter } from '@/components/Auth/AuthCardFooter';
 import { AuthLogo } from '@/components/Auth/AuthLogo';
+import { LogoutMonitor } from '@/components/Auth/LogoutMonitor';
 
 export default function Auth() {
   const {
@@ -34,6 +35,7 @@ export default function Auth() {
 
   return (
     <div className="bg-background min-h-screen">
+      <LogoutMonitor />
       <AuthHeader />
 
       <div className="w-full py-8 px-4">

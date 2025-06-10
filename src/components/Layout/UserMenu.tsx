@@ -3,6 +3,7 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { logoutService } from "@/services/auth/LogoutService";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +18,7 @@ import { OrganizationSelector } from "@/components/Organization/OrganizationSele
 import { User, Building, LogOut } from "lucide-react";
 
 export function UserMenu() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { 
     organizations, 
@@ -26,8 +27,13 @@ export function UserMenu() {
   } = useOrganization();
 
   const handleLogout = async () => {
-    await signOut();
-    navigate("/auth");
+    try {
+      await logoutService.logout();
+    } catch (error) {
+      console.error('UserMenu: Logout failed:', error);
+      // Fallback: try emergency logout
+      await logoutService.emergencyLogout();
+    }
   };
 
   const getInitials = () => {

@@ -2,11 +2,10 @@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getSiteUrl, getAuthCallbackUrl } from '@/utils/authCallbackUtils';
-import { resetAuthState, performFullAuthReset } from '@/utils/auth';
 import { Session } from '@supabase/supabase-js';
 
 /**
- * Custom hook providing authentication methods
+ * Simplified authentication methods hook
  */
 export function useAuthMethods() {
   /**
@@ -14,7 +13,6 @@ export function useAuthMethods() {
    */
   const signInWithGoogle = async () => {
     try {
-      // Get the correct site URL for redirects
       const siteUrl = getSiteUrl();
       const callbackUrl = getAuthCallbackUrl();
       
@@ -26,7 +24,6 @@ export function useAuthMethods() {
         options: {
           redirectTo: callbackUrl,
           queryParams: {
-            // Add prompt parameter for consistent login experience
             prompt: 'select_account'
           }
         },
@@ -51,7 +48,6 @@ export function useAuthMethods() {
    */
   const signInWithMicrosoft = async () => {
     try {
-      // Get the correct site URL for redirects
       const siteUrl = getSiteUrl();
       const callbackUrl = getAuthCallbackUrl();
       
@@ -63,7 +59,6 @@ export function useAuthMethods() {
         options: {
           redirectTo: callbackUrl,
           queryParams: {
-            // Add prompt parameter for consistent login experience
             prompt: 'select_account'
           }
         },
@@ -163,61 +158,11 @@ export function useAuthMethods() {
     }
   };
 
-  /**
-   * Sign out the current user with enhanced error handling and token cleanup
-   */
-  const signOut = async () => {
-    try {
-      console.log('Logout: Starting signOut process');
-      
-      // Check session validity before attempting logout
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('Logout: Current session before signOut:', 
-        sessionData?.session ? { 
-          id: sessionData.session.access_token.substring(0, 8) + '...',
-          expires_at: new Date(sessionData.session.expires_at * 1000).toISOString(),
-          valid: !!sessionData.session 
-        } : 'No session');
-      
-      // IMPROVED: Use a more comprehensive logout approach
-      try {
-        // First try specific scope
-        await supabase.auth.signOut({ scope: 'local' });
-        
-        // Then try global scope (affects all browser tabs)
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (signOutError) {
-        console.error('Logout: Error during supabase.auth.signOut:', signOutError);
-      }
-      
-      // ENHANCED: Use the more thorough cleanup
-      performFullAuthReset();
-      
-      console.log('Logout: signOut completed successfully');
-      
-      // Re-check session state after logout
-      const { data: checkData } = await supabase.auth.getSession();
-      console.log('Logout: Session after signOut:', 
-        checkData?.session ? 'Still has session (error)' : 'No session (success)');
-      
-    } catch (error) {
-      console.error('Logout: Error during signOut:', error);
-      
-      // Even if server-side logout fails, ensure client-side tokens are removed
-      performFullAuthReset();
-      toast.error("There was an issue during sign out, but local tokens have been cleared.");
-      
-      // Throw the error for upstream handling if needed
-      throw error;
-    }
-  };
-
   return {
     signInWithGoogle,
     signInWithMicrosoft,
     signIn,
     signUp,
-    resetPassword,
-    signOut
+    resetPassword
   };
 }
