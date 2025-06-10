@@ -11,9 +11,9 @@ SET search_path TO 'public'
 AS $function$
 DECLARE
   v_has_permission BOOLEAN := FALSE;
-  v_permission_result JSONB;
   v_scan_id UUID;
   v_equipment_record RECORD;
+  v_app_user_id UUID;
 BEGIN
   -- First, validate that the equipment exists and is not deleted
   SELECT * INTO v_equipment_record
@@ -27,25 +27,21 @@ BEGIN
     );
   END IF;
   
-  -- Check equipment access permission using our existing RPC function
-  SELECT rpc_check_equipment_permission(p_user_id, 'view', NULL, p_equipment_id) INTO v_permission_result;
+  -- Check equipment access permission using our existing function
+  SELECT public.can_access_equipment(p_user_id, p_equipment_id) INTO v_has_permission;
   
-  IF v_permission_result IS NULL OR NOT (v_permission_result->>'has_permission')::boolean THEN
+  IF NOT v_has_permission THEN
     RETURN jsonb_build_object(
       'success', false,
       'error', 'Access denied: User does not have permission to access this equipment',
-      'reason', COALESCE(v_permission_result->>'reason', 'unknown')
+      'reason', 'insufficient_permissions'
     );
   END IF;
   
   -- Convert auth user ID to app_user ID if needed
-  DECLARE
-    v_app_user_id UUID;
-  BEGIN
-    SELECT id INTO v_app_user_id
-    FROM public.app_user
-    WHERE auth_uid = p_user_id;
-  END;
+  SELECT id INTO v_app_user_id
+  FROM public.app_user
+  WHERE auth_uid = p_user_id;
   
   -- Insert the scan record with all available data
   INSERT INTO public.scan_history (
@@ -115,6 +111,83 @@ EXCEPTION WHEN OTHERS THEN
     'success', false,
     'error', 'Failed to record scan: ' || SQLERRM
   );
+END;
+$function$;
+
+-- Create a function to get equipment scan history with permission validation
+CREATE OR REPLACE FUNCTION public.get_equipment_scan_history(
+  p_equipment_id UUID,
+  p_user_id UUID,
+  p_limit INTEGER DEFAULT 50
+) RETURNS TABLE(
+  id UUID,
+  ts TIMESTAMP WITH TIME ZONE,
+  scanned_by_user_id UUID,
+  scanned_from_ip INET,
+  user_agent TEXT,
+  device_type TEXT,
+  browser_name TEXT,
+  browser_version TEXT,
+  operating_system TEXT,
+  screen_resolution TEXT,
+  latitude NUMERIC,
+  longitude NUMERIC,
+  location_accuracy NUMERIC,
+  session_id TEXT,
+  referrer_url TEXT,
+  scan_method TEXT,
+  device_fingerprint TEXT,
+  timezone TEXT,
+  language TEXT,
+  user_display_name TEXT,
+  user_org_name TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_has_permission BOOLEAN := FALSE;
+BEGIN
+  -- Check if user can view scan history for this equipment
+  SELECT public.can_view_scan_history(p_user_id, p_equipment_id) INTO v_has_permission;
+  
+  IF NOT v_has_permission THEN
+    -- Return empty result set instead of error for cleaner handling
+    RETURN;
+  END IF;
+  
+  -- Return scan history with user and organization details
+  RETURN QUERY
+  SELECT 
+    sh.id,
+    sh.ts,
+    sh.scanned_by_user_id,
+    sh.scanned_from_ip,
+    sh.user_agent,
+    sh.device_type,
+    sh.browser_name,
+    sh.browser_version,
+    sh.operating_system,
+    sh.screen_resolution,
+    sh.latitude,
+    sh.longitude,
+    sh.location_accuracy,
+    sh.session_id,
+    sh.referrer_url,
+    sh.scan_method,
+    sh.device_fingerprint,
+    sh.timezone,
+    sh.language,
+    up.display_name as user_display_name,
+    org.name as user_org_name
+  FROM public.scan_history sh
+  LEFT JOIN public.app_user au ON sh.scanned_by_user_id = au.id
+  LEFT JOIN public.user_profiles up ON au.auth_uid::UUID = up.id
+  LEFT JOIN public.organization org ON up.org_id = org.id
+  WHERE sh.equipment_id = p_equipment_id
+  ORDER BY sh.ts DESC
+  LIMIT p_limit;
 END;
 $function$;
 
