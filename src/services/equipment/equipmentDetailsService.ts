@@ -44,20 +44,24 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
 
     console.log('Equipment data loaded successfully:', equipment.name);
 
-    // Check permissions using the fixed RPC function
+    // Check permissions using the corrected edge function call
     let hasReadPermission = true; // Already verified by successful equipment fetch
     let hasEditPermission = false;
     
     try {
       console.log('Checking edit permission for equipment:', equipmentId);
       
-      const { data: editPermissionResult, error: editPermissionError } = await supabase.rpc(
-        'rpc_check_equipment_permission',
+      // Call the edge function with non-prefixed parameters
+      const { data: editPermissionResult, error: editPermissionError } = await supabase.functions.invoke(
+        'permissions',
         {
-          p_user_id: userId,
-          p_action: 'edit',
-          p_team_id: null,
-          p_equipment_id: equipmentId
+          body: {
+            userId: userId,
+            resource: 'equipment',
+            action: 'edit',
+            resourceId: equipmentId,
+            targetId: null
+          }
         }
       );
 
@@ -65,8 +69,10 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
         console.warn('Edit permission check failed, defaulting to false:', editPermissionError);
         hasEditPermission = false;
       } else {
-        hasEditPermission = editPermissionResult?.has_permission || false;
-        console.log('Edit permission result:', editPermissionResult);
+        // Handle the response properly with type safety
+        const permissionData = editPermissionResult as { has_permission?: boolean; [key: string]: any };
+        hasEditPermission = permissionData?.has_permission || false;
+        console.log('Edit permission result:', permissionData);
       }
       
     } catch (editPermissionError) {

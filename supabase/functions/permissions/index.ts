@@ -57,19 +57,20 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Handle equipment permissions using corrected function
+    // Handle equipment permissions using corrected function with proper parameter mapping
     if (resource === 'equipment') {
       let permissionResult;
       
       try {
-        console.log(`Calling rpc_check_equipment_permission with corrected parameters`);
+        console.log(`Calling rpc_check_equipment_permission with mapped parameters`);
         
         // Map client actions to database function actions
         let dbAction = action;
         if (action === 'read') dbAction = 'view';
         
+        // Map non-prefixed client parameters to prefixed database parameters
         const rpcParams = {
-          p_user_id: userId,  // Use p_ prefix for all parameters
+          p_user_id: userId,
           p_action: dbAction,
           p_team_id: targetId || null,
           p_equipment_id: resourceId || null
