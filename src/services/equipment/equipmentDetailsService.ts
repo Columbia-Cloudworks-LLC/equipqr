@@ -24,21 +24,22 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
 
     const userId = session.session.user.id;
     
-    // Check access permission using the corrected function
-    const { data: accessCheck, error: accessError } = await supabase.rpc(
-      'can_access_equipment',
-      {
-        user_id: userId,
-        equipment_id: equipmentId
+    // Check access permission using the standardized permissions function
+    const { data: permissionResult, error: permissionError } = await supabase.functions.invoke('permissions', {
+      body: {
+        userId: userId,
+        resource: 'equipment',
+        action: 'read',
+        resourceId: equipmentId
       }
-    );
+    });
 
-    if (accessError) {
-      console.error('Error checking equipment access:', accessError);
-      throw new Error('Permission check failed');
+    if (permissionError) {
+      console.error('Permission check failed:', permissionError);
+      throw new Error(`Permission check failed: ${permissionError.message}`);
     }
 
-    if (!accessCheck) {
+    if (!permissionResult?.has_permission) {
       throw new Error('Access denied to this equipment');
     }
 
@@ -60,8 +61,8 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
       throw new Error('Equipment not found');
     }
 
-    // Check additional permissions using the unified permissions function
-    const { data: editPermission } = await supabase.functions.invoke('permissions', {
+    // Check edit permissions
+    const { data: editPermissionResult, error: editPermissionError } = await supabase.functions.invoke('permissions', {
       body: {
         userId: userId,
         resource: 'equipment',
@@ -81,8 +82,8 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
     const result: EquipmentDetails = {
       ...equipment,
       scanHistory,
-      canEdit: editPermission?.has_permission || false,
-      canDelete: editPermission?.has_permission || false // Same permission for now
+      canEdit: editPermissionResult?.has_permission || false,
+      canDelete: editPermissionResult?.has_permission || false // Same permission for now
     };
 
     console.log(`Equipment details loaded successfully for ${equipmentId}`);

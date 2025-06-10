@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ScanData {
@@ -86,7 +87,7 @@ export async function recordEnhancedScan(
       }
     }
 
-    // Use the database function directly since it exists in our migration
+    // Use the standardized database function with proper parameter naming
     const { data, error } = await supabase.rpc('record_equipment_scan', {
       p_equipment_id: equipmentId,
       p_user_id: userId,
@@ -133,7 +134,7 @@ export async function getEnhancedScanHistory(
 
     const userId = session.session.user.id;
     
-    // Use the updated function with proper parameter naming
+    // Use the standardized function with proper parameter naming
     const { data, error } = await supabase.rpc('get_equipment_scan_history', {
       p_equipment_id: equipmentId,
       p_user_id: userId,
@@ -188,6 +189,7 @@ export async function canViewScanHistory(equipmentId: string): Promise<boolean> 
 
     const userId = session.session.user.id;
     
+    // Use the standardized function with proper parameter naming
     const { data, error } = await supabase.rpc('can_view_scan_history', {
       p_user_id: userId,
       p_equipment_id: equipmentId

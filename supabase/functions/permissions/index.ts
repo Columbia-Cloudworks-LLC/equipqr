@@ -57,7 +57,7 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Handle equipment permissions
+    // Handle equipment permissions using standardized function
     if (resource === 'equipment') {
       let permissionResult;
       

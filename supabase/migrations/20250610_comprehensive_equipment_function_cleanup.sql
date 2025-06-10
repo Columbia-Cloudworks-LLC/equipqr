@@ -167,7 +167,7 @@ BEGIN
      AND (p_scan_data->>'location_accuracy')::NUMERIC < 100 
      AND v_equipment_record.location_override = false THEN
     
-    UPDATE public.equipment 
+    UPDATE public.equipment
     SET 
       last_scan_latitude = (p_scan_data->>'latitude')::NUMERIC,
       last_scan_longitude = (p_scan_data->>'longitude')::NUMERIC,
@@ -181,20 +181,144 @@ BEGIN
   RETURN jsonb_build_object(
     'success', true,
     'scan_id', v_scan_id,
-    'location_updated', (p_scan_data->>'latitude') IS NOT NULL AND v_equipment_record.location_override = false,
     'message', 'Scan recorded successfully'
-  );
-  
-EXCEPTION WHEN OTHERS THEN
-  RETURN jsonb_build_object(
-    'success', false,
-    'error', 'Failed to record scan: ' || SQLERRM
   );
 END;
 $function$;
 
--- 3. Fixed can_view_scan_history function with proper parameter naming
+-- 3. Fixed get_equipment_scan_history function with proper parameter naming
+CREATE OR REPLACE FUNCTION public.get_equipment_scan_history(
+  p_equipment_id UUID,
+  p_user_id UUID,
+  p_limit INTEGER DEFAULT 50
+) RETURNS TABLE(
+  id UUID,
+  ts TIMESTAMP WITH TIME ZONE,
+  scanned_by_user_id UUID,
+  user_display_name TEXT,
+  user_org_name TEXT,
+  scanned_from_ip INET,
+  user_agent TEXT,
+  device_type TEXT,
+  browser_name TEXT,
+  browser_version TEXT,
+  operating_system TEXT,
+  latitude NUMERIC,
+  longitude NUMERIC,
+  location_accuracy NUMERIC,
+  scan_method TEXT,
+  session_id TEXT,
+  timezone TEXT,
+  screen_resolution TEXT,
+  language TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  -- Check if user can view scan history
+  IF NOT public.can_view_scan_history(p_user_id, p_equipment_id) THEN
+    RETURN;
+  END IF;
+  
+  RETURN QUERY
+  SELECT 
+    sh.id,
+    sh.ts,
+    sh.scanned_by_user_id,
+    up.display_name,
+    org.name,
+    sh.scanned_from_ip,
+    sh.user_agent,
+    sh.device_type,
+    sh.browser_name,
+    sh.browser_version,
+    sh.operating_system,
+    sh.latitude,
+    sh.longitude,
+    sh.location_accuracy,
+    sh.scan_method,
+    sh.session_id,
+    sh.timezone,
+    sh.screen_resolution,
+    sh.language
+  FROM public.scan_history sh
+  LEFT JOIN public.app_user au ON sh.scanned_by_user_id = au.id
+  LEFT JOIN public.user_profiles up ON au.auth_uid::UUID = up.id
+  LEFT JOIN public.organization org ON up.org_id = org.id
+  WHERE sh.equipment_id = p_equipment_id
+  ORDER BY sh.ts DESC
+  LIMIT p_limit;
+END;
+$function$;
+
+-- 4. Fixed can_view_scan_history function with proper parameter naming
 CREATE OR REPLACE FUNCTION public.can_view_scan_history(p_user_id uuid, p_equipment_id uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_equipment_org_id UUID;
+  v_equipment_team_id UUID;
+  v_user_org_id UUID;
+  v_app_user_id UUID;
+  v_team_role TEXT;
+  v_org_role TEXT;
+BEGIN
+  -- Get equipment details
+  SELECT e.org_id, e.team_id INTO v_equipment_org_id, v_equipment_team_id
+  FROM public.equipment e
+  WHERE e.id = p_equipment_id AND e.deleted_at IS NULL;
+  
+  IF v_equipment_org_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Get user's organization
+  SELECT up.org_id INTO v_user_org_id
+  FROM public.user_profiles up
+  WHERE up.id = p_user_id;
+  
+  -- Get user's organization role
+  SELECT ur.role INTO v_org_role
+  FROM public.user_roles ur
+  WHERE ur.user_id = p_user_id AND ur.org_id = v_equipment_org_id;
+  
+  -- Organization owners and managers can always view scan history
+  IF v_org_role IN ('owner', 'manager', 'admin') THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- If equipment has a team, check team role
+  IF v_equipment_team_id IS NOT NULL THEN
+    -- Get app_user ID with explicit casting
+    SELECT au.id INTO v_app_user_id
+    FROM public.app_user au
+    WHERE au.auth_uid = p_user_id::text;
+    
+    IF v_app_user_id IS NOT NULL THEN
+      -- Get team role
+      SELECT tr.role INTO v_team_role
+      FROM public.team_member tm
+      JOIN public.team_roles tr ON tr.team_member_id = tm.id
+      WHERE tm.user_id = v_app_user_id AND tm.team_id = v_equipment_team_id;
+      
+      -- Technicians and managers can view scan history
+      IF v_team_role IN ('manager', 'technician', 'admin', 'owner') THEN
+        RETURN TRUE;
+      END IF;
+    END IF;
+  END IF;
+  
+  RETURN FALSE;
+END;
+$function$;
+
+-- 5. Fixed can_edit_equipment function with proper parameter naming
+CREATE OR REPLACE FUNCTION public.can_edit_equipment(p_user_id uuid, p_equipment_id uuid)
  RETURNS boolean
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -222,119 +346,42 @@ BEGIN
   FROM public.user_profiles up
   WHERE up.id = p_user_id;
   
-  -- Get user's organization role with explicit table alias
+  -- Get user's organization role with explicit table aliases
   SELECT ur.role INTO v_org_role
   FROM public.user_roles ur
   WHERE ur.user_id = p_user_id AND ur.org_id = v_equipment_org_id;
   
-  -- Organization owners and managers can always view scan history
+  -- Organization owners and managers can edit any equipment
   IF v_org_role IN ('owner', 'manager', 'admin') THEN
     RETURN TRUE;
   END IF;
   
-  -- If equipment has a team, check team role
-  IF v_equipment_team_id IS NOT NULL THEN
-    -- Get app_user ID with explicit casting
-    SELECT au.id INTO v_app_user_id
-    FROM public.app_user au
-    WHERE au.auth_uid = p_user_id::text;
-    
-    IF v_app_user_id IS NOT NULL THEN
-      -- Get team role with explicit table aliases
-      SELECT tr.role INTO v_team_role
-      FROM public.team_member tm
-      JOIN public.team_roles tr ON tr.team_member_id = tm.id
-      WHERE tm.user_id = v_app_user_id AND tm.team_id = v_equipment_team_id;
-      
-      -- Technicians and managers can view scan history
-      IF v_team_role IN ('manager', 'technician', 'admin', 'owner') THEN
-        RETURN TRUE;
-      END IF;
-    END IF;
+  -- If equipment is unassigned, use the dedicated function
+  IF v_equipment_team_id IS NULL THEN
+    RETURN public.can_edit_unassigned_equipment(p_user_id, p_equipment_id);
   END IF;
   
-  RETURN FALSE;
+  -- Get app_user ID with explicit table alias
+  SELECT au.id INTO v_app_user_id
+  FROM public.app_user au
+  WHERE au.auth_uid::text = p_user_id::text;
+  
+  IF v_app_user_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Check team role with explicit table aliases
+  SELECT tr.role INTO v_team_role
+  FROM public.team_member tm
+  JOIN public.team_roles tr ON tr.team_member_id = tm.id
+  WHERE tm.user_id = v_app_user_id AND tm.team_id = v_equipment_team_id;
+  
+  -- Team managers and above can edit equipment
+  RETURN v_team_role IN ('manager', 'owner', 'admin');
 END;
 $function$;
 
--- 4. Fixed get_equipment_scan_history function with proper parameter naming
-CREATE OR REPLACE FUNCTION public.get_equipment_scan_history(
-  p_equipment_id UUID,
-  p_user_id UUID,
-  p_limit INTEGER DEFAULT 50
-) RETURNS TABLE(
-  id UUID,
-  ts TIMESTAMP WITH TIME ZONE,
-  scanned_by_user_id UUID,
-  scanned_from_ip INET,
-  user_agent TEXT,
-  device_type TEXT,
-  browser_name TEXT,
-  browser_version TEXT,
-  operating_system TEXT,
-  screen_resolution TEXT,
-  latitude NUMERIC,
-  longitude NUMERIC,
-  location_accuracy NUMERIC,
-  session_id TEXT,
-  referrer_url TEXT,
-  scan_method TEXT,
-  device_fingerprint TEXT,
-  timezone TEXT,
-  language TEXT,
-  user_display_name TEXT,
-  user_org_name TEXT
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  v_has_permission BOOLEAN := FALSE;
-BEGIN
-  -- Check if user can view scan history for this equipment
-  SELECT public.can_view_scan_history(p_user_id, p_equipment_id) INTO v_has_permission;
-  
-  IF NOT v_has_permission THEN
-    -- Return empty result set instead of error for cleaner handling
-    RETURN;
-  END IF;
-  
-  -- Return scan history with user and organization details
-  RETURN QUERY
-  SELECT 
-    sh.id,
-    sh.ts,
-    sh.scanned_by_user_id,
-    sh.scanned_from_ip,
-    sh.user_agent,
-    sh.device_type,
-    sh.browser_name,
-    sh.browser_version,
-    sh.operating_system,
-    sh.screen_resolution,
-    sh.latitude,
-    sh.longitude,
-    sh.location_accuracy,
-    sh.session_id,
-    sh.referrer_url,
-    sh.scan_method,
-    sh.device_fingerprint,
-    sh.timezone,
-    sh.language,
-    up.display_name as user_display_name,
-    org.name as user_org_name
-  FROM public.scan_history sh
-  LEFT JOIN public.app_user au ON sh.scanned_by_user_id = au.id
-  LEFT JOIN public.user_profiles up ON au.auth_uid::UUID = up.id
-  LEFT JOIN public.organization org ON up.org_id = org.id
-  WHERE sh.equipment_id = p_equipment_id
-  ORDER BY sh.ts DESC
-  LIMIT p_limit;
-END;
-$function$;
-
--- 5. Update the unified RPC function to handle all actions properly
+-- 6. Fixed rpc_check_equipment_permission function with proper parameter naming
 CREATE OR REPLACE FUNCTION public.rpc_check_equipment_permission(
   p_user_id uuid, 
   p_action text, 
@@ -351,7 +398,6 @@ DECLARE
   permission_data RECORD;
   v_equipment_team_id UUID;
   v_equipment_org_id UUID;
-  v_user_org_id UUID;
 BEGIN
   RAISE NOTICE 'rpc_check_equipment_permission called: user_id=%, action=%, team_id=%, equipment_id=%',
     p_user_id, p_action, p_team_id, p_equipment_id;
@@ -368,87 +414,38 @@ BEGIN
     );
     
   ELSIF p_action = 'edit' AND p_equipment_id IS NOT NULL THEN
-    -- For equipment editing
+    -- Get equipment details
     SELECT e.team_id, e.org_id INTO v_equipment_team_id, v_equipment_org_id
     FROM public.equipment e
     WHERE e.id = p_equipment_id AND e.deleted_at IS NULL;
     
-    IF v_equipment_team_id IS NULL THEN
-      result := jsonb_build_object(
-        'has_permission', public.can_edit_unassigned_equipment(p_user_id, p_equipment_id),
-        'reason', 'unassigned_equipment'
-      );
-    ELSE
-      result := jsonb_build_object(
-        'has_permission', public.can_edit_equipment(p_user_id, p_equipment_id),
-        'reason', 'team_equipment'
-      );
-    END IF;
+    result := jsonb_build_object(
+      'has_permission', public.can_edit_equipment(p_user_id, p_equipment_id),
+      'org_id', v_equipment_org_id,
+      'reason', CASE WHEN v_equipment_team_id IS NULL THEN 'unassigned_equipment' ELSE 'team_equipment' END
+    );
     
-  ELSIF p_action = 'view' AND p_equipment_id IS NOT NULL THEN
-    -- For equipment viewing
+  ELSIF p_action IN ('view', 'read', 'scan') AND p_equipment_id IS NOT NULL THEN
+    -- Get equipment org for response
+    SELECT e.org_id INTO v_equipment_org_id
+    FROM public.equipment e
+    WHERE e.id = p_equipment_id AND e.deleted_at IS NULL;
+    
     result := jsonb_build_object(
       'has_permission', public.can_access_equipment(p_user_id, p_equipment_id),
+      'org_id', v_equipment_org_id,
       'reason', 'access_check'
     );
     
-  ELSIF p_action = 'scan' AND p_equipment_id IS NOT NULL THEN
-    -- For equipment scanning (same as view)
-    result := jsonb_build_object(
-      'has_permission', public.can_access_equipment(p_user_id, p_equipment_id),
-      'reason', 'scan_access'
-    );
-    
   ELSE
+    -- Invalid action or missing parameters
     result := jsonb_build_object(
-      'has_permission', false,
-      'reason', 'invalid_action_or_missing_parameters'
+      'has_permission', false, 
+      'reason', 'invalid_request',
+      'error', 'Invalid action or missing required parameters'
     );
   END IF;
   
-  RAISE NOTICE 'Permission result: %', result;
   RETURN result;
 END;
 $function$;
-
--- 6. Create enhanced scan recording function
-CREATE OR REPLACE FUNCTION public.enhanced_record_equipment_scan(
-  p_equipment_id UUID,
-  p_user_id UUID DEFAULT NULL,
-  p_scan_method TEXT DEFAULT 'qr_code',
-  p_additional_data JSONB DEFAULT '{}'::jsonb
-) RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  v_current_user_id UUID;
-  v_scan_data JSONB;
-BEGIN
-  -- Use provided user ID or current authenticated user
-  v_current_user_id := COALESCE(p_user_id, auth.uid());
-  
-  IF v_current_user_id IS NULL THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', 'Authentication required'
-    );
-  END IF;
-  
-  -- Collect browser/device information from headers if available
-  v_scan_data := jsonb_build_object(
-    'scan_method', p_scan_method,
-    'user_agent', current_setting('request.headers', true)::json->>'user-agent',
-    'session_id', current_setting('request.headers', true)::json->>'x-session-id'
-  ) || p_additional_data;
-  
-  -- Call the main scan recording function
-  RETURN public.record_equipment_scan(p_equipment_id, v_current_user_id, v_scan_data);
-END;
-$function$;
-
--- 7. Clean up old migration functions that are no longer needed
-DROP FUNCTION IF EXISTS public.can_access_equipment(user_id uuid, equipment_id uuid);
-DROP FUNCTION IF EXISTS public.record_equipment_scan(equipment_id uuid, user_id uuid, scan_data jsonb);
-DROP FUNCTION IF EXISTS public.simplified_equipment_create_permission(uuid, uuid);
