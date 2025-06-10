@@ -16,8 +16,8 @@ export function AuthLogo({ className = "" }: AuthLogoProps) {
   const isDarkMode = getCurrentTheme();
   
   const logoSrc = isDarkMode 
-    ? "https://oxeheowbfsshpyldlskb.supabase.co/storage/v1/object/public/equipqr-images/app/EquipQR%20Logo%20Square%20Dark.png"
-    : "https://oxeheowbfsshpyldlskb.supabase.co/storage/v1/object/public/equipqr-images/app/EquipQR%20Logo%20Square%20Light.png";
+    ? "https://oxeheowbfsshpyldlskb.supabase.co/storage/v1/object/public/equipqr-images/app/EquipQR-Dark-SQ.png"
+    : "https://oxeheowbfsshpyldlskb.supabase.co/storage/v1/object/public/equipqr-images/app/EquipQR-Light-SQ.png";
 
   const handleImageError = () => {
     console.error('Failed to load logo image:', logoSrc);
