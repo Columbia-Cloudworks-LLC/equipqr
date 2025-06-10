@@ -24,18 +24,11 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
 
     const userId = session.session.user.id;
     
-    // Get equipment data using LEFT JOIN to handle NULL created_by values
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select(`
-        *,
-        organization:org_id(name),
-        team:team_id(name),
-        created_by_user:created_by(display_name)
-      `)
-      .eq('id', equipmentId)
-      .is('deleted_at', null)
-      .single();
+    // Use the database function to get equipment data with related information
+    const { data: equipmentData, error: equipmentError } = await supabase.rpc(
+      'get_equipment_with_details',
+      { p_equipment_id: equipmentId }
+    );
 
     if (equipmentError) {
       console.error('Error fetching equipment:', equipmentError);
@@ -43,48 +36,32 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
       // Provide more specific error handling
       if (equipmentError.code === 'PGRST116') {
         throw new Error('Equipment not found');
-      } else if (equipmentError.message?.includes('foreign key')) {
-        console.warn('Foreign key issue detected, attempting fallback query');
-        
-        // Fallback query without joins
-        const { data: basicEquipment, error: basicError } = await supabase
-          .from('equipment')
-          .select('*')
-          .eq('id', equipmentId)
-          .is('deleted_at', null)
-          .single();
-          
-        if (basicError || !basicEquipment) {
-          throw new Error('Equipment not found or access denied');
-        }
-        
-        // Manually fetch related data
-        const [orgData, teamData] = await Promise.allSettled([
-          supabase.from('organization').select('name').eq('id', basicEquipment.org_id).single(),
-          basicEquipment.team_id ? 
-            supabase.from('team').select('name').eq('id', basicEquipment.team_id).single() : 
-            Promise.resolve({ data: null })
-        ]);
-        
-        // Construct equipment object with fallback data
-        const equipment = {
-          ...basicEquipment,
-          organization: orgData.status === 'fulfilled' ? orgData.value.data : { name: 'Unknown Organization' },
-          team: teamData.status === 'fulfilled' && teamData.value.data ? teamData.value.data : null,
-          created_by_user: basicEquipment.created_by ? { display_name: 'Unknown User' } : null
-        };
-        
-        console.log('Equipment data loaded via fallback query:', equipment.name);
       } else {
         throw new Error('Equipment not found or access denied');
       }
     }
+
+    // The function returns an array, get the first (and only) result
+    const equipment = Array.isArray(equipmentData) ? equipmentData[0] : equipmentData;
 
     if (!equipment) {
       throw new Error('Equipment not found');
     }
 
     console.log('Equipment data loaded successfully:', equipment.name);
+
+    // Transform the database result to match our Equipment interface
+    const transformedEquipment = {
+      ...equipment,
+      // Map the related data fields
+      organization: equipment.organization_name ? { name: equipment.organization_name } : null,
+      team: equipment.team_name ? { name: equipment.team_name } : null,
+      created_by_user: equipment.created_by_display_name ? { display_name: equipment.created_by_display_name } : null,
+      // Clean up the transformed fields
+      organization_name: undefined,
+      team_name: equipment.team_name, // Keep team_name for compatibility
+      created_by_display_name: undefined
+    };
 
     // Check permissions using the corrected edge function call
     let hasReadPermission = true; // Already verified by successful equipment fetch
@@ -131,7 +108,7 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
     }
 
     const result: EquipmentDetails = {
-      ...equipment,
+      ...transformedEquipment,
       scanHistory,
       canEdit: hasEditPermission,
       canDelete: hasEditPermission // Same permission for now
