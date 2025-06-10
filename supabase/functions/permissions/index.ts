@@ -57,44 +57,81 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Handle equipment permissions using corrected function with proper parameter mapping
+    // Handle equipment permissions
     if (resource === 'equipment') {
       let permissionResult;
       
       try {
-        console.log(`Calling rpc_check_equipment_permission with mapped parameters`);
-        
-        // Map client actions to database function actions
-        let dbAction = action;
-        if (action === 'read') dbAction = 'view';
-        
-        // Map non-prefixed client parameters to prefixed database parameters
-        const rpcParams = {
-          p_user_id: userId,
-          p_action: dbAction,
-          p_team_id: targetId || null,
-          p_equipment_id: resourceId || null
-        };
-        
-        console.log('RPC parameters:', JSON.stringify(rpcParams, null, 2));
-        
-        const { data: rpcData, error: rpcError } = await supabase.rpc(
-          'rpc_check_equipment_permission',
-          rpcParams
-        );
+        if (action === 'create') {
+          console.log('Using check_equipment_create_permission for create action');
+          
+          // Use the dedicated create permission function with prefixed parameters
+          const { data: createData, error: createError } = await supabase.rpc(
+            'check_equipment_create_permission',
+            {
+              p_user_id: userId,
+              p_team_id: targetId || null,
+              p_org_id: null // Let the function determine the org
+            }
+          );
 
-        if (rpcError) {
-          console.error('Database RPC error details:', {
-            message: rpcError.message,
-            details: rpcError.details,
-            hint: rpcError.hint,
-            code: rpcError.code
+          if (createError) {
+            console.error('Create permission check error:', createError);
+            throw new Error(`Create permission check failed: ${createError.message}`);
+          }
+
+          console.log('Create permission result:', createData);
+          
+          // The function returns a table, so we need the first row
+          const createResult = Array.isArray(createData) ? createData[0] : createData;
+          
+          return createSuccessResponse({
+            has_permission: createResult?.has_permission || false,
+            reason: createResult?.reason || 'Create permission check completed',
+            org_id: createResult?.org_id || null
           });
-          throw new Error(`Database permission check failed: ${rpcError.message}`);
-        }
+          
+        } else {
+          console.log(`Using rpc_check_equipment_permission for ${action} action with non-prefixed parameters`);
+          
+          // Map client actions to database function actions
+          let dbAction = action;
+          if (action === 'read') dbAction = 'view';
+          
+          // Use non-prefixed parameters for the general permission function
+          const rpcParams = {
+            user_id: userId,
+            action: dbAction,
+            team_id: targetId || null,
+            equipment_id: resourceId || null
+          };
+          
+          console.log('RPC parameters (non-prefixed):', JSON.stringify(rpcParams, null, 2));
+          
+          const { data: rpcData, error: rpcError } = await supabase.rpc(
+            'rpc_check_equipment_permission',
+            rpcParams
+          );
 
-        console.log('RPC response data:', JSON.stringify(rpcData, null, 2));
-        permissionResult = rpcData;
+          if (rpcError) {
+            console.error('Database RPC error details:', {
+              message: rpcError.message,
+              details: rpcError.details,
+              hint: rpcError.hint,
+              code: rpcError.code
+            });
+            throw new Error(`Database permission check failed: ${rpcError.message}`);
+          }
+
+          console.log('RPC response data:', JSON.stringify(rpcData, null, 2));
+          permissionResult = rpcData;
+          
+          return createSuccessResponse({
+            has_permission: permissionResult?.has_permission || false,
+            reason: permissionResult?.reason || 'Permission check completed',
+            org_id: permissionResult?.org_id || null
+          });
+        }
         
       } catch (error) {
         console.error('Equipment permission check failed:', error);
@@ -114,12 +151,6 @@ serve(async (req) => {
           500
         );
       }
-      
-      return createSuccessResponse({
-        has_permission: permissionResult?.has_permission || false,
-        reason: permissionResult?.reason || 'Permission check completed',
-        org_id: permissionResult?.org_id || null
-      });
     }
     
     // Handle team permissions
