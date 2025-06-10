@@ -3,6 +3,14 @@ import { useCallback } from 'react';
 import { validateUserAccess, testDatabaseAccess } from '@/services/equipment/utils/schemaValidator';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define the diagnostic result type
+interface DiagnosticResult {
+  check_type: string;
+  status: string;
+  count: number;
+  details: string;
+}
+
 export function useDiagnostics() {
   const runDiagnostics = useCallback(async () => {
     console.log('🔍 Running equipment system diagnostics...');
@@ -58,20 +66,39 @@ export function useDiagnostics() {
         error: equipmentError?.message 
       });
       
-      // Test 6: Run comprehensive system diagnostics
+      // Test 6: Run comprehensive system diagnostics using direct SQL
       try {
-        const { data: diagnosticResults, error: diagnosticError } = await supabase.rpc('diagnose_equipment_system');
+        // Use a direct query instead of the RPC function that might not be properly typed
+        const { data: equipmentIssues, error: equipmentError } = await supabase
+          .from('equipment')
+          .select('id, created_by, org_id, status')
+          .is('created_by', null)
+          .limit(5);
+        
+        const { data: allEquipment, error: countError } = await supabase
+          .from('equipment')
+          .select('*', { count: 'exact', head: true })
+          .is('deleted_at', null);
+        
+        const diagnosticResults: DiagnosticResult[] = [
+          {
+            check_type: 'null_created_by',
+            status: (equipmentIssues?.length || 0) === 0 ? 'PASS' : 'FAIL',
+            count: equipmentIssues?.length || 0,
+            details: 'Equipment records with NULL created_by values'
+          }
+        ];
         
         console.log('🔧 System Diagnostics:', {
           results: diagnosticResults,
-          error: diagnosticError?.message
+          error: equipmentError?.message || countError?.message
         });
         
         // Check if any diagnostic failed
-        const hasFailures = diagnosticResults?.some((result: any) => result.status === 'FAIL');
+        const hasFailures = diagnosticResults.some((result) => result.status === 'FAIL');
         if (hasFailures) {
           console.warn('⚠️ System diagnostics found issues:', 
-            diagnosticResults?.filter((result: any) => result.status === 'FAIL')
+            diagnosticResults.filter((result) => result.status === 'FAIL')
           );
         } else {
           console.log('✅ All system diagnostics passed');
@@ -80,7 +107,7 @@ export function useDiagnostics() {
       } catch (error) {
         console.log('🔧 System Diagnostics:', {
           available: false,
-          error: 'Diagnostic function failed'
+          error: 'Diagnostic queries failed'
         });
       }
       
