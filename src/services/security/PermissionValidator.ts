@@ -58,25 +58,38 @@ export class PermissionValidator {
         return { allowed: false, reason: 'Authentication required' };
       }
 
-      let functionName: string;
+      // Use explicit function calls instead of dynamic function names
+      let data: boolean | null = null;
+      let permissionError: any = null;
+
       switch (action) {
         case 'view':
-          functionName = 'can_view_work_orders';
+          const viewResult = await supabase.rpc('can_view_work_orders', {
+            p_user_id: userId,
+            p_equipment_id: equipmentId
+          });
+          data = viewResult.data;
+          permissionError = viewResult.error;
           break;
         case 'manage':
-          functionName = 'can_manage_work_orders';
+          const manageResult = await supabase.rpc('can_manage_work_orders', {
+            p_user_id: userId,
+            p_equipment_id: equipmentId
+          });
+          data = manageResult.data;
+          permissionError = manageResult.error;
           break;
         case 'submit':
-          functionName = 'can_submit_work_orders';
+          const submitResult = await supabase.rpc('can_submit_work_orders', {
+            p_user_id: userId,
+            p_equipment_id: equipmentId
+          });
+          data = submitResult.data;
+          permissionError = submitResult.error;
           break;
         default:
           return { allowed: false, reason: 'Invalid action' };
       }
-
-      const { data, error: permissionError } = await supabase.rpc(functionName, {
-        p_user_id: userId,
-        p_equipment_id: equipmentId
-      });
 
       if (permissionError) {
         console.error('Work order permission check error:', permissionError);
