@@ -58,6 +58,21 @@ export function useDiagnostics() {
         error: equipmentError?.message 
       });
       
+      // Test 6: Run data integrity diagnostics
+      try {
+        const { data: integrityResults, error: integrityError } = await supabase.rpc('diagnose_equipment_data_integrity');
+        
+        console.log('🔧 Data Integrity Check:', {
+          results: integrityResults,
+          error: integrityError?.message
+        });
+      } catch (error) {
+        console.log('🔧 Data Integrity Check:', {
+          available: false,
+          error: 'Diagnostic function not accessible'
+        });
+      }
+      
       console.log('✅ Diagnostics complete');
       
     } catch (error) {
