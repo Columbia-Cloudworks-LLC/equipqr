@@ -2420,6 +2420,10 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: boolean
       }
+      record_equipment_scan: {
+        Args: { p_equipment_id: string; p_user_id: string; p_scan_data: Json }
+        Returns: Json
+      }
       remove_organization_member: {
         Args: { p_org_id: string; p_user_id: string; p_removed_by: string }
         Returns: Json

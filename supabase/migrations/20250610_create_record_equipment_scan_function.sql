@@ -1,4 +1,5 @@
 
+
 -- Create a unified function to validate equipment access and record scan
 CREATE OR REPLACE FUNCTION public.record_equipment_scan(
   p_equipment_id UUID,
@@ -38,10 +39,10 @@ BEGIN
     );
   END IF;
   
-  -- Convert auth user ID to app_user ID if needed
+  -- Convert auth user ID to app_user ID if needed - FIX: Cast UUID to text
   SELECT id INTO v_app_user_id
   FROM public.app_user
-  WHERE auth_uid = p_user_id;
+  WHERE auth_uid = p_user_id::text;
   
   -- Insert the scan record with all available data
   INSERT INTO public.scan_history (
@@ -204,3 +205,4 @@ CREATE POLICY "Authenticated users can insert scan records" ON public.scan_histo
 CREATE POLICY "Authenticated users can view scan records" ON public.scan_history
   FOR SELECT TO authenticated
   USING (true); -- Permission validation happens at the application level
+
