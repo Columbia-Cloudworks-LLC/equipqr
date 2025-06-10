@@ -28,7 +28,14 @@ export default function EquipmentDetail() {
     queryKey: ['equipment', id],
     queryFn: () => getEquipmentById(id as string),
     enabled: !!id,
-    retry: 1,
+    retry: (failureCount, error) => {
+      // Only retry on specific errors, not on access denied
+      const errorMessage = (error as Error)?.message || '';
+      if (errorMessage.includes('access denied') || errorMessage.includes('not found')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     staleTime: 1000 * 60 * 5,
   });
   
@@ -36,14 +43,18 @@ export default function EquipmentDetail() {
     if (error) {
       console.error('Equipment detail error:', error);
       const errorMessage = (error as Error)?.message || 'Unknown error occurred';
-      toast.error("Failed to load equipment details", {
-        description: errorMessage,
-      });
+      
+      // Don't show toast for access denied errors as they're expected
+      if (!errorMessage.toLowerCase().includes('access denied')) {
+        toast.error("Failed to load equipment details", {
+          description: errorMessage,
+        });
+      }
     }
 
     // Check if user can edit this equipment (based on organization/team)
     if (equipment) {
-      setCanEdit(!equipment.is_external_org || equipment.can_edit);
+      setCanEdit(equipment.canEdit || false);
     }
   }, [error, equipment]);
 
@@ -57,7 +68,6 @@ export default function EquipmentDetail() {
       if (isFromQr) {
         console.log('QR code scan detected for authorized equipment access, recording scan');
         // Since getEquipmentById() succeeded, we know the user has access to this equipment
-        // Now we can safely record the scan with the enhanced service that does its own permission validation
         recordEnhancedScan(id, 'qr_code');
         setScanRecorded(true);
       } else {

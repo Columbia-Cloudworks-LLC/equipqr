@@ -57,22 +57,22 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Handle equipment permissions using standardized function
+    // Handle equipment permissions using corrected function
     if (resource === 'equipment') {
       let permissionResult;
       
       try {
-        console.log(`Calling rpc_check_equipment_permission with correct parameter names`);
+        console.log(`Calling rpc_check_equipment_permission with corrected parameters`);
         
         // Map client actions to database function actions
         let dbAction = action;
         if (action === 'read') dbAction = 'view';
         
         const rpcParams = {
-          user_id: userId,  // Remove p_ prefix - database function expects user_id
-          action: dbAction,
-          team_id: targetId || null,
-          equipment_id: resourceId || null
+          p_user_id: userId,  // Use p_ prefix for all parameters
+          p_action: dbAction,
+          p_team_id: targetId || null,
+          p_equipment_id: resourceId || null
         };
         
         console.log('RPC parameters:', JSON.stringify(rpcParams, null, 2));

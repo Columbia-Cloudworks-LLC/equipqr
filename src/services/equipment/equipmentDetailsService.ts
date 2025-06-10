@@ -24,56 +24,7 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
 
     const userId = session.session.user.id;
     
-    // Check access permission using the standardized permissions function
-    let hasReadPermission = false;
-    let hasEditPermission = false;
-    
-    try {
-      console.log('Checking read permission for equipment:', equipmentId);
-      
-      const { data: permissionResult, error: permissionError } = await supabase.functions.invoke('permissions', {
-        body: {
-          userId: userId,
-          resource: 'equipment',
-          action: 'read',  // Use 'read' which gets mapped to 'view' in the edge function
-          resourceId: equipmentId
-        }
-      });
-
-      if (permissionError) {
-        console.error('Permission check failed:', permissionError);
-        // Don't throw immediately - try fallback approach
-        console.log('Attempting fallback permission check...');
-        
-        // Fallback: Try to access equipment directly and let RLS handle it
-        const { data: equipmentTest, error: equipmentTestError } = await supabase
-          .from('equipment')
-          .select('id, org_id')
-          .eq('id', equipmentId)
-          .is('deleted_at', null)
-          .single();
-          
-        if (equipmentTestError) {
-          throw new Error(`Access denied: Cannot access equipment ${equipmentId}`);
-        }
-        
-        hasReadPermission = !!equipmentTest;
-        console.log('Fallback permission check successful');
-      } else {
-        hasReadPermission = permissionResult?.has_permission || false;
-        console.log('Permission check result:', permissionResult);
-      }
-
-      if (!hasReadPermission) {
-        throw new Error('Access denied to this equipment');
-      }
-
-    } catch (permissionCheckError) {
-      console.error('Permission check error:', permissionCheckError);
-      throw new Error(`Failed to verify equipment access: ${permissionCheckError.message}`);
-    }
-
-    // Get equipment data
+    // Get equipment data directly first - let RLS handle basic access control
     const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
       .select(`
@@ -91,24 +42,31 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
       throw new Error('Equipment not found or access denied');
     }
 
-    // Check edit permissions with enhanced error handling
+    console.log('Equipment data loaded successfully:', equipment.name);
+
+    // Check permissions using the fixed RPC function
+    let hasReadPermission = true; // Already verified by successful equipment fetch
+    let hasEditPermission = false;
+    
     try {
       console.log('Checking edit permission for equipment:', equipmentId);
       
-      const { data: editPermissionResult, error: editPermissionError } = await supabase.functions.invoke('permissions', {
-        body: {
-          userId: userId,
-          resource: 'equipment',
-          action: 'edit',
-          resourceId: equipmentId
+      const { data: editPermissionResult, error: editPermissionError } = await supabase.rpc(
+        'rpc_check_equipment_permission',
+        {
+          p_user_id: userId,
+          p_action: 'edit',
+          p_team_id: null,
+          p_equipment_id: equipmentId
         }
-      });
+      );
 
       if (editPermissionError) {
         console.warn('Edit permission check failed, defaulting to false:', editPermissionError);
         hasEditPermission = false;
       } else {
         hasEditPermission = editPermissionResult?.has_permission || false;
+        console.log('Edit permission result:', editPermissionResult);
       }
       
     } catch (editPermissionError) {
