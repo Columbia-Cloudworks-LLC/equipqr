@@ -1,4 +1,3 @@
-
 -- Phase 1: Comprehensive Equipment Function Cleanup
 -- Fix all parameter naming conflicts and table alias issues
 
@@ -78,7 +77,163 @@ BEGIN
 END;
 $function$;
 
--- 2. Fixed record_equipment_scan function with proper parameter naming
+-- 2. Fixed can_edit_equipment function with proper parameter naming
+CREATE OR REPLACE FUNCTION public.can_edit_equipment(p_user_id uuid, p_equipment_id uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_equipment_org_id UUID;
+  v_equipment_team_id UUID;
+  v_user_org_id UUID;
+  v_app_user_id UUID;
+  v_team_role TEXT;
+  v_org_role TEXT;
+BEGIN
+  -- Get equipment details with explicit table alias
+  SELECT e.org_id, e.team_id INTO v_equipment_org_id, v_equipment_team_id
+  FROM public.equipment e
+  WHERE e.id = p_equipment_id AND e.deleted_at IS NULL;
+  
+  IF v_equipment_org_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Get user's organization with explicit table alias
+  SELECT up.org_id INTO v_user_org_id
+  FROM public.user_profiles up
+  WHERE up.id = p_user_id;
+  
+  -- Get user's organization role with explicit table aliases
+  SELECT ur.role INTO v_org_role
+  FROM public.user_roles ur
+  WHERE ur.user_id = p_user_id AND ur.org_id = v_equipment_org_id;
+  
+  -- Organization owners and managers can edit any equipment
+  IF v_org_role IN ('owner', 'manager', 'admin') THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- If equipment is unassigned, use the dedicated function
+  IF v_equipment_team_id IS NULL THEN
+    RETURN public.can_edit_unassigned_equipment(p_user_id, p_equipment_id);
+  END IF;
+  
+  -- Get app_user ID with explicit table alias
+  SELECT au.id INTO v_app_user_id
+  FROM public.app_user au
+  WHERE au.auth_uid::text = p_user_id::text;
+  
+  IF v_app_user_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Check team role with explicit table aliases
+  SELECT tr.role INTO v_team_role
+  FROM public.team_member tm
+  JOIN public.team_roles tr ON tr.team_member_id = tm.id
+  WHERE tm.user_id = v_app_user_id AND tm.team_id = v_equipment_team_id;
+  
+  -- Team managers and above can edit equipment
+  RETURN v_team_role IN ('manager', 'owner', 'admin');
+END;
+$function$;
+
+-- 3. Fixed rpc_check_equipment_permission function with proper parameter naming and complete implementation
+CREATE OR REPLACE FUNCTION public.rpc_check_equipment_permission(
+  user_id uuid, 
+  action text, 
+  team_id uuid DEFAULT NULL::uuid, 
+  equipment_id uuid DEFAULT NULL::uuid
+)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  result JSONB;
+  permission_data RECORD;
+  v_equipment_team_id UUID;
+  v_equipment_org_id UUID;
+  v_user_org_id UUID;
+BEGIN
+  RAISE NOTICE 'rpc_check_equipment_permission called: user_id=%, action=%, team_id=%, equipment_id=%',
+    user_id, action, team_id, equipment_id;
+  
+  IF action = 'create' THEN
+    -- For equipment creation
+    SELECT * INTO permission_data
+    FROM public.check_equipment_create_permission(user_id, team_id);
+    
+    result := jsonb_build_object(
+      'has_permission', permission_data.has_permission, 
+      'org_id', permission_data.org_id,
+      'reason', permission_data.reason
+    );
+    
+  ELSIF action = 'edit' AND equipment_id IS NOT NULL THEN
+    -- Get equipment details
+    SELECT e.team_id, e.org_id INTO v_equipment_team_id, v_equipment_org_id
+    FROM public.equipment e
+    WHERE e.id = equipment_id AND e.deleted_at IS NULL;
+    
+    result := jsonb_build_object(
+      'has_permission', public.can_edit_equipment(user_id, equipment_id),
+      'org_id', v_equipment_org_id,
+      'reason', CASE WHEN v_equipment_team_id IS NULL THEN 'unassigned_equipment' ELSE 'team_equipment' END
+    );
+    
+  ELSIF action IN ('view', 'read', 'scan') AND equipment_id IS NOT NULL THEN
+    -- Get equipment org for response
+    SELECT e.org_id INTO v_equipment_org_id
+    FROM public.equipment e
+    WHERE e.id = equipment_id AND e.deleted_at IS NULL;
+    
+    result := jsonb_build_object(
+      'has_permission', public.can_access_equipment(user_id, equipment_id),
+      'org_id', v_equipment_org_id,
+      'reason', 'access_check'
+    );
+    
+  ELSIF action = 'delete' AND equipment_id IS NOT NULL THEN
+    -- For equipment deletion - check organization ownership
+    SELECT e.org_id INTO v_equipment_org_id
+    FROM public.equipment e
+    WHERE e.id = equipment_id AND e.deleted_at IS NULL;
+    
+    -- Get user's organization
+    SELECT up.org_id INTO v_user_org_id
+    FROM public.user_profiles up
+    WHERE up.id = user_id;
+    
+    -- Only organization owners can delete equipment
+    result := jsonb_build_object(
+      'has_permission', v_user_org_id = v_equipment_org_id AND EXISTS (
+        SELECT 1 FROM public.user_roles ur
+        WHERE ur.user_id = user_id AND ur.org_id = v_equipment_org_id AND ur.role = 'owner'
+      ),
+      'org_id', v_equipment_org_id,
+      'reason', 'delete_check'
+    );
+    
+  ELSE
+    -- Invalid action or missing parameters
+    result := jsonb_build_object(
+      'has_permission', false, 
+      'reason', 'invalid_request',
+      'error', 'Invalid action or missing required parameters'
+    );
+  END IF;
+  
+  RAISE NOTICE 'Permission check result: %', result;
+  RETURN result;
+END;
+$function$;
+
+-- 4. Fixed record_equipment_scan function with proper parameter naming
 CREATE OR REPLACE FUNCTION public.record_equipment_scan(
   p_equipment_id UUID,
   p_user_id UUID,
@@ -186,7 +341,7 @@ BEGIN
 END;
 $function$;
 
--- 3. Fixed get_equipment_scan_history function with proper parameter naming
+-- 5. Fixed get_equipment_scan_history function with proper parameter naming
 CREATE OR REPLACE FUNCTION public.get_equipment_scan_history(
   p_equipment_id UUID,
   p_user_id UUID,
@@ -253,7 +408,7 @@ BEGIN
 END;
 $function$;
 
--- 4. Fixed can_view_scan_history function with proper parameter naming
+-- 6. Fixed can_view_scan_history function with proper parameter naming
 CREATE OR REPLACE FUNCTION public.can_view_scan_history(p_user_id uuid, p_equipment_id uuid)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -314,138 +469,5 @@ BEGIN
   END IF;
   
   RETURN FALSE;
-END;
-$function$;
-
--- 5. Fixed can_edit_equipment function with proper parameter naming
-CREATE OR REPLACE FUNCTION public.can_edit_equipment(p_user_id uuid, p_equipment_id uuid)
- RETURNS boolean
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-DECLARE
-  v_equipment_org_id UUID;
-  v_equipment_team_id UUID;
-  v_user_org_id UUID;
-  v_app_user_id UUID;
-  v_team_role TEXT;
-  v_org_role TEXT;
-BEGIN
-  -- Get equipment details with explicit table alias
-  SELECT e.org_id, e.team_id INTO v_equipment_org_id, v_equipment_team_id
-  FROM public.equipment e
-  WHERE e.id = p_equipment_id AND e.deleted_at IS NULL;
-  
-  IF v_equipment_org_id IS NULL THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Get user's organization with explicit table alias
-  SELECT up.org_id INTO v_user_org_id
-  FROM public.user_profiles up
-  WHERE up.id = p_user_id;
-  
-  -- Get user's organization role with explicit table aliases
-  SELECT ur.role INTO v_org_role
-  FROM public.user_roles ur
-  WHERE ur.user_id = p_user_id AND ur.org_id = v_equipment_org_id;
-  
-  -- Organization owners and managers can edit any equipment
-  IF v_org_role IN ('owner', 'manager', 'admin') THEN
-    RETURN TRUE;
-  END IF;
-  
-  -- If equipment is unassigned, use the dedicated function
-  IF v_equipment_team_id IS NULL THEN
-    RETURN public.can_edit_unassigned_equipment(p_user_id, p_equipment_id);
-  END IF;
-  
-  -- Get app_user ID with explicit table alias
-  SELECT au.id INTO v_app_user_id
-  FROM public.app_user au
-  WHERE au.auth_uid::text = p_user_id::text;
-  
-  IF v_app_user_id IS NULL THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Check team role with explicit table aliases
-  SELECT tr.role INTO v_team_role
-  FROM public.team_member tm
-  JOIN public.team_roles tr ON tr.team_member_id = tm.id
-  WHERE tm.user_id = v_app_user_id AND tm.team_id = v_equipment_team_id;
-  
-  -- Team managers and above can edit equipment
-  RETURN v_team_role IN ('manager', 'owner', 'admin');
-END;
-$function$;
-
--- 6. Fixed rpc_check_equipment_permission function with proper parameter naming
-CREATE OR REPLACE FUNCTION public.rpc_check_equipment_permission(
-  p_user_id uuid, 
-  p_action text, 
-  p_team_id uuid DEFAULT NULL::uuid, 
-  p_equipment_id uuid DEFAULT NULL::uuid
-)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-DECLARE
-  result JSONB;
-  permission_data RECORD;
-  v_equipment_team_id UUID;
-  v_equipment_org_id UUID;
-BEGIN
-  RAISE NOTICE 'rpc_check_equipment_permission called: user_id=%, action=%, team_id=%, equipment_id=%',
-    p_user_id, p_action, p_team_id, p_equipment_id;
-  
-  IF p_action = 'create' THEN
-    -- For equipment creation
-    SELECT * INTO permission_data
-    FROM public.check_equipment_create_permission(p_user_id, p_team_id);
-    
-    result := jsonb_build_object(
-      'has_permission', permission_data.has_permission, 
-      'org_id', permission_data.org_id,
-      'reason', permission_data.reason
-    );
-    
-  ELSIF p_action = 'edit' AND p_equipment_id IS NOT NULL THEN
-    -- Get equipment details
-    SELECT e.team_id, e.org_id INTO v_equipment_team_id, v_equipment_org_id
-    FROM public.equipment e
-    WHERE e.id = p_equipment_id AND e.deleted_at IS NULL;
-    
-    result := jsonb_build_object(
-      'has_permission', public.can_edit_equipment(p_user_id, p_equipment_id),
-      'org_id', v_equipment_org_id,
-      'reason', CASE WHEN v_equipment_team_id IS NULL THEN 'unassigned_equipment' ELSE 'team_equipment' END
-    );
-    
-  ELSIF p_action IN ('view', 'read', 'scan') AND p_equipment_id IS NOT NULL THEN
-    -- Get equipment org for response
-    SELECT e.org_id INTO v_equipment_org_id
-    FROM public.equipment e
-    WHERE e.id = p_equipment_id AND e.deleted_at IS NULL;
-    
-    result := jsonb_build_object(
-      'has_permission', public.can_access_equipment(p_user_id, p_equipment_id),
-      'org_id', v_equipment_org_id,
-      'reason', 'access_check'
-    );
-    
-  ELSE
-    -- Invalid action or missing parameters
-    result := jsonb_build_object(
-      'has_permission', false, 
-      'reason', 'invalid_request',
-      'error', 'Invalid action or missing required parameters'
-    );
-  END IF;
-  
-  RETURN result;
 END;
 $function$;

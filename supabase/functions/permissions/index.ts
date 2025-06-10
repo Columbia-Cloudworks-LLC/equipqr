@@ -61,81 +61,57 @@ serve(async (req) => {
     if (resource === 'equipment') {
       let permissionResult;
       
-      switch (action) {
-        case 'create':
-          const { data: createData, error: createError } = await supabase.rpc(
-            'rpc_check_equipment_permission',
-            { 
-              p_user_id: userId,
-              p_action: 'create',
-              p_team_id: targetId || null
-            }
-          );
-          
-          if (createError) throw createError;
-          permissionResult = createData;
-          break;
-          
-        case 'read':
-        case 'view':
-        case 'scan':
-          if (!resourceId) {
-            return createErrorResponse("Missing resourceId for equipment access check");
-          }
-          
-          const { data: viewData, error: viewError } = await supabase.rpc(
-            'rpc_check_equipment_permission',
-            { 
-              p_user_id: userId,
-              p_action: 'view',
-              p_equipment_id: resourceId
-            }
-          );
-          
-          if (viewError) throw viewError;
-          permissionResult = viewData;
-          break;
-          
-        case 'edit':
-        case 'update':
-          if (!resourceId) {
-            return createErrorResponse("Missing resourceId for equipment edit check");
-          }
-          
-          const { data: editData, error: editError } = await supabase.rpc(
-            'rpc_check_equipment_permission',
-            { 
-              p_user_id: userId,
-              p_action: 'edit',
-              p_equipment_id: resourceId
-            }
-          );
-          
-          if (editError) throw editError;
-          permissionResult = editData;
-          break;
-          
-        case 'delete':
-          if (!resourceId) {
-            return createErrorResponse("Missing resourceId for equipment delete check");
-          }
-          
-          // For delete, check if user can edit (same permissions)
-          const { data: deleteData, error: deleteError } = await supabase.rpc(
-            'rpc_check_equipment_permission',
-            { 
-              p_user_id: userId,
-              p_action: 'edit',
-              p_equipment_id: resourceId
-            }
-          );
-          
-          if (deleteError) throw deleteError;
-          permissionResult = deleteData;
-          break;
-          
-        default:
-          return createErrorResponse(`Unsupported action: ${action} for equipment`);
+      try {
+        console.log(`Calling rpc_check_equipment_permission with correct parameter names`);
+        
+        // Map client actions to database function actions
+        let dbAction = action;
+        if (action === 'read') dbAction = 'view';
+        
+        const rpcParams = {
+          user_id: userId,  // Remove p_ prefix - database function expects user_id
+          action: dbAction,
+          team_id: targetId || null,
+          equipment_id: resourceId || null
+        };
+        
+        console.log('RPC parameters:', JSON.stringify(rpcParams, null, 2));
+        
+        const { data: rpcData, error: rpcError } = await supabase.rpc(
+          'rpc_check_equipment_permission',
+          rpcParams
+        );
+
+        if (rpcError) {
+          console.error('Database RPC error details:', {
+            message: rpcError.message,
+            details: rpcError.details,
+            hint: rpcError.hint,
+            code: rpcError.code
+          });
+          throw new Error(`Database permission check failed: ${rpcError.message}`);
+        }
+
+        console.log('RPC response data:', JSON.stringify(rpcData, null, 2));
+        permissionResult = rpcData;
+        
+      } catch (error) {
+        console.error('Equipment permission check failed:', error);
+        
+        // Enhanced error details for debugging
+        const errorDetails = {
+          error_type: 'permission_check_failure',
+          original_error: error.message,
+          resource,
+          action,
+          userId: userId.substring(0, 8) + '...',
+          timestamp: new Date().toISOString()
+        };
+        
+        return createErrorResponse(
+          `Permission check failed: ${error.message}. Details: ${JSON.stringify(errorDetails)}`,
+          500
+        );
       }
       
       return createSuccessResponse({
@@ -147,50 +123,72 @@ serve(async (req) => {
     
     // Handle team permissions
     if (resource === 'team') {
-      const { data: teamData, error: teamError } = await supabase.rpc(
-        'check_team_access_detailed',
-        {
-          user_id: userId,
-          team_id: resourceId || targetId
+      try {
+        console.log(`Calling check_team_access_detailed for team ${resourceId || targetId}`);
+        
+        const { data: teamData, error: teamError } = await supabase.rpc(
+          'check_team_access_detailed',
+          {
+            user_id: userId,
+            team_id: resourceId || targetId
+          }
+        );
+        
+        if (teamError) {
+          console.error('Team access check error:', teamError);
+          throw teamError;
         }
-      );
-      
-      if (teamError) throw teamError;
-      
-      if (!teamData || teamData.length === 0) {
+        
+        if (!teamData || teamData.length === 0) {
+          return createSuccessResponse({
+            has_permission: false,
+            reason: 'No team access data found'
+          });
+        }
+        
+        const accessInfo = teamData[0];
         return createSuccessResponse({
-          has_permission: false,
-          reason: 'No team access data found'
+          has_permission: accessInfo.has_access || false,
+          reason: accessInfo.access_reason || 'Team access check completed',
+          role: accessInfo.team_role,
+          org_id: accessInfo.team_org_id
         });
+        
+      } catch (error) {
+        console.error('Team permission check failed:', error);
+        return createErrorResponse(`Team permission check failed: ${error.message}`, 500);
       }
-      
-      const accessInfo = teamData[0];
-      return createSuccessResponse({
-        has_permission: accessInfo.has_access || false,
-        reason: accessInfo.access_reason || 'Team access check completed',
-        role: accessInfo.team_role,
-        org_id: accessInfo.team_org_id
-      });
     }
     
     // Handle organization permissions
     if (resource === 'organization') {
-      const { data: orgRole, error: orgError } = await supabase.rpc(
-        'get_org_role',
-        {
-          p_auth_user_id: userId,
-          p_org_id: resourceId || targetId
+      try {
+        console.log(`Calling get_org_role for org ${resourceId || targetId}`);
+        
+        const { data: orgRole, error: orgError } = await supabase.rpc(
+          'get_org_role',
+          {
+            p_auth_user_id: userId,
+            p_org_id: resourceId || targetId
+          }
+        );
+        
+        if (orgError) {
+          console.error('Organization role check error:', orgError);
+          throw orgError;
         }
-      );
-      
-      if (orgError) throw orgError;
-      
-      return createSuccessResponse({
-        has_permission: !!orgRole,
-        reason: orgRole ? 'Organization member' : 'Not an organization member',
-        role: orgRole,
-        org_id: resourceId || targetId
-      });
+        
+        return createSuccessResponse({
+          has_permission: !!orgRole,
+          reason: orgRole ? 'Organization member' : 'Not an organization member',
+          role: orgRole,
+          org_id: resourceId || targetId
+        });
+        
+      } catch (error) {
+        console.error('Organization permission check failed:', error);
+        return createErrorResponse(`Organization permission check failed: ${error.message}`, 500);
+      }
     }
     
     return createErrorResponse(`Unsupported resource type: ${resource}`);
