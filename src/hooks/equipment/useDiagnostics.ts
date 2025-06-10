@@ -58,18 +58,50 @@ export function useDiagnostics() {
         error: equipmentError?.message 
       });
       
-      // Test 6: Run data integrity diagnostics
+      // Test 6: Run data integrity diagnostics using raw SQL call
       try {
-        const { data: integrityResults, error: integrityError } = await supabase.rpc('diagnose_equipment_data_integrity');
+        // Use a direct SQL call instead of rpc to avoid type issues
+        const { data: integrityResults, error: integrityError } = await supabase
+          .from('equipment')
+          .select(`
+            id,
+            created_by,
+            org_id,
+            team_id,
+            status
+          `)
+          .is('created_by', null)
+          .limit(5);
+        
+        const nullCreatedByCount = integrityResults?.length || 0;
         
         console.log('🔧 Data Integrity Check:', {
-          results: integrityResults,
+          null_created_by_count: nullCreatedByCount,
+          sample_records: integrityResults,
           error: integrityError?.message
         });
+        
+        // Additional check for invalid organization references
+        const { data: invalidOrgCheck, error: invalidOrgError } = await supabase
+          .from('equipment')
+          .select(`
+            id,
+            org_id,
+            organization:org_id(id, name)
+          `)
+          .is('organization.id', null)
+          .limit(5);
+        
+        console.log('🔧 Invalid Org References:', {
+          count: invalidOrgCheck?.length || 0,
+          sample_records: invalidOrgCheck,
+          error: invalidOrgError?.message
+        });
+        
       } catch (error) {
         console.log('🔧 Data Integrity Check:', {
           available: false,
-          error: 'Diagnostic function not accessible'
+          error: 'Direct integrity check failed'
         });
       }
       
