@@ -24,7 +24,7 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
 
     const userId = session.session.user.id;
     
-    // Get equipment data directly first - let RLS handle basic access control
+    // Get equipment data using LEFT JOIN to handle NULL created_by values
     const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
       .select(`
@@ -37,9 +37,51 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
       .is('deleted_at', null)
       .single();
 
-    if (equipmentError || !equipment) {
+    if (equipmentError) {
       console.error('Error fetching equipment:', equipmentError);
-      throw new Error('Equipment not found or access denied');
+      
+      // Provide more specific error handling
+      if (equipmentError.code === 'PGRST116') {
+        throw new Error('Equipment not found');
+      } else if (equipmentError.message?.includes('foreign key')) {
+        console.warn('Foreign key issue detected, attempting fallback query');
+        
+        // Fallback query without joins
+        const { data: basicEquipment, error: basicError } = await supabase
+          .from('equipment')
+          .select('*')
+          .eq('id', equipmentId)
+          .is('deleted_at', null)
+          .single();
+          
+        if (basicError || !basicEquipment) {
+          throw new Error('Equipment not found or access denied');
+        }
+        
+        // Manually fetch related data
+        const [orgData, teamData] = await Promise.allSettled([
+          supabase.from('organization').select('name').eq('id', basicEquipment.org_id).single(),
+          basicEquipment.team_id ? 
+            supabase.from('team').select('name').eq('id', basicEquipment.team_id).single() : 
+            Promise.resolve({ data: null })
+        ]);
+        
+        // Construct equipment object with fallback data
+        const equipment = {
+          ...basicEquipment,
+          organization: orgData.status === 'fulfilled' ? orgData.value.data : { name: 'Unknown Organization' },
+          team: teamData.status === 'fulfilled' && teamData.value.data ? teamData.value.data : null,
+          created_by_user: basicEquipment.created_by ? { display_name: 'Unknown User' } : null
+        };
+        
+        console.log('Equipment data loaded via fallback query:', equipment.name);
+      } else {
+        throw new Error('Equipment not found or access denied');
+      }
+    }
+
+    if (!equipment) {
+      throw new Error('Equipment not found');
     }
 
     console.log('Equipment data loaded successfully:', equipment.name);

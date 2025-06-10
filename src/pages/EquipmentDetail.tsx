@@ -7,7 +7,7 @@ import { getEquipmentById } from '@/services/equipment/equipmentDetailsService';
 import { recordEnhancedScan } from '@/services/equipment/enhancedScanService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { EquipmentDetailLoading } from '@/components/Equipment/Detail/EquipmentDetailLoading';
 import { EquipmentDetailError } from '@/components/Equipment/Detail/EquipmentDetailError';
 import { EquipmentDetailContent } from '@/components/Equipment/Detail/EquipmentDetailContent';
@@ -17,6 +17,7 @@ export default function EquipmentDetail() {
   const location = useLocation();
   const [canEdit, setCanEdit] = useState(true);
   const [scanRecorded, setScanRecorded] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   const {
     data: equipment,
@@ -25,7 +26,7 @@ export default function EquipmentDetail() {
     refetch,
     isError
   } = useQuery({
-    queryKey: ['equipment', id],
+    queryKey: ['equipment', id, retryCount],
     queryFn: () => getEquipmentById(id as string),
     enabled: !!id,
     retry: (failureCount, error) => {
@@ -76,6 +77,11 @@ export default function EquipmentDetail() {
     }
   }, [equipment, id, scanRecorded, location.search, isError]);
 
+  const handleRetry = () => {
+    setRetryCount(prevCount => prevCount + 1);
+    refetch();
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -87,7 +93,23 @@ export default function EquipmentDetail() {
   if (isError || !equipment) {
     return (
       <Layout>
-        <EquipmentDetailError error={error as Error} />
+        <div className="flex-1 p-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <Button variant="ghost" asChild>
+              <Link to="/equipment">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Equipment
+              </Link>
+            </Button>
+            
+            <Button variant="outline" onClick={handleRetry}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Retry
+            </Button>
+          </div>
+          
+          <EquipmentDetailError error={error as Error} />
+        </div>
       </Layout>
     );
   }
