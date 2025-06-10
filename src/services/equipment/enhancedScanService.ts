@@ -81,6 +81,31 @@ async function getAppUserId(authUserId: string): Promise<string | null> {
 }
 
 /**
+ * Log detailed debug information for permission failures
+ */
+async function logPermissionDebug(
+  functionName: string,
+  userId: string,
+  equipmentId?: string,
+  teamId?: string,
+  result?: boolean,
+  details?: any
+): Promise<void> {
+  try {
+    await supabase.rpc('log_permission_debug', {
+      p_function_name: functionName,
+      p_user_id: userId,
+      p_equipment_id: equipmentId || null,
+      p_team_id: teamId || null,
+      p_result: result,
+      p_details: details ? JSON.stringify(details) : null
+    });
+  } catch (error) {
+    console.error('Failed to log permission debug info:', error);
+  }
+}
+
+/**
  * Record an enhanced scan event with comprehensive device and audit information
  * Uses the new database function that validates permissions and records the scan
  */
@@ -102,6 +127,16 @@ export async function recordEnhancedScan(
       });
       return true; // Return true for anonymous scans to not break the UI flow
     }
+    
+    // Log the scan attempt for debugging
+    await logPermissionDebug(
+      'recordEnhancedScan_start',
+      authUserId,
+      equipmentId,
+      undefined,
+      undefined,
+      { scan_method: scanMethod, timestamp: new Date().toISOString() }
+    );
     
     // Collect device information
     const deviceInfo = getDeviceInfo();
@@ -128,6 +163,12 @@ export async function recordEnhancedScan(
       language: deviceInfo.language
     };
     
+    console.log('Calling record_equipment_scan with data:', {
+      equipmentId,
+      userId: authUserId.substring(0, 8) + '...',
+      scanMethod
+    });
+    
     // Use the database function with type assertion to handle the missing type definition
     const { data, error } = await supabase.rpc(
       'record_equipment_scan' as any,
@@ -140,17 +181,51 @@ export async function recordEnhancedScan(
     
     if (error) {
       console.error('Error calling record_equipment_scan:', error);
+      
+      // Log the error for debugging
+      await logPermissionDebug(
+        'recordEnhancedScan_db_error',
+        authUserId,
+        equipmentId,
+        undefined,
+        false,
+        { 
+          error: error.message || 'Unknown database error',
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        }
+      );
+      
       throw error;
     }
     
     if (!data?.success) {
       const errorMsg = data?.error || 'Unknown error occurred';
-      console.error('Scan recording failed:', errorMsg);
+      console.error('Scan recording failed:', errorMsg, 'Reason:', data?.reason);
+      
+      // Log the permission failure for debugging
+      await logPermissionDebug(
+        'recordEnhancedScan_permission_failed',
+        authUserId,
+        equipmentId,
+        undefined,
+        false,
+        { 
+          error: errorMsg,
+          reason: data?.reason,
+          function_result: data
+        }
+      );
       
       // Handle permission denied specifically
       if (errorMsg.includes('Access denied')) {
         toast.error("Access denied", {
           description: "You don't have permission to scan this equipment"
+        });
+      } else if (errorMsg.includes('Equipment not found')) {
+        toast.error("Equipment not found", {
+          description: "The equipment you're trying to scan doesn't exist or has been deleted"
         });
       } else {
         toast.error("Failed to record scan", {
@@ -159,6 +234,20 @@ export async function recordEnhancedScan(
       }
       return false;
     }
+    
+    // Log successful scan for debugging
+    await logPermissionDebug(
+      'recordEnhancedScan_success',
+      authUserId,
+      equipmentId,
+      undefined,
+      true,
+      { 
+        scan_id: data.scan_id,
+        location_updated: data.location_updated,
+        message: data.message
+      }
+    );
     
     // Show success message based on scan method
     const methodText = scanMethod === 'qr_code' ? 'QR code scan' : 'equipment access';
@@ -174,10 +263,30 @@ export async function recordEnhancedScan(
   } catch (error: any) {
     console.error('Error in recordEnhancedScan:', error);
     
+    // Log the unexpected error
+    if (sessionData?.session?.user?.id) {
+      await logPermissionDebug(
+        'recordEnhancedScan_unexpected_error',
+        sessionData.session.user.id,
+        equipmentId,
+        undefined,
+        false,
+        { 
+          error: error.message || 'Unknown error',
+          stack: error.stack,
+          name: error.name
+        }
+      );
+    }
+    
     // Handle specific permission errors gracefully
     if (error.message?.includes('Access denied') || error.message?.includes('permission')) {
       toast.error("Access denied", {
         description: "You don't have permission to scan this equipment"
+      });
+    } else if (error.message?.includes('column reference') && error.message?.includes('ambiguous')) {
+      toast.error("System error", {
+        description: "There's a configuration issue. Please contact support."
       });
     } else {
       toast.error("Failed to record scan", {
@@ -265,3 +374,4 @@ export async function canViewScanHistory(equipmentId: string): Promise<boolean> 
     return false;
   }
 }
+
