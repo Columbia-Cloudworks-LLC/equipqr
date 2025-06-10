@@ -30,7 +30,7 @@ export async function checkAccessPermission(equipmentId: string): Promise<Permis
     return {
       authUserId,
       teamId: null,
-      orgId: null,
+      orgId: data?.org_id || null,
       hasPermission: data?.has_permission || false,
       reason: data?.reason || 'Permission check completed'
     };
@@ -74,7 +74,7 @@ export async function checkEquipmentEditPermission(equipmentId: string): Promise
     return {
       authUserId,
       teamId: null,
-      orgId: null,
+      orgId: data?.org_id || null,
       hasPermission: data?.has_permission || false,
       reason: data?.reason || 'Permission check completed'
     };

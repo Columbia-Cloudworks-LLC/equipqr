@@ -1,214 +1,124 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { Equipment } from "@/types";
-import { getEquipmentAttributes } from "./attributesService";
-import { MemoryCache, cacheItem, getCachedItem } from "@/utils/cacheUtils";
-import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
+import { Equipment } from '@/types';
+import { recordEnhancedScan, getEnhancedScanHistory } from './enhancedScanService';
 
-interface PermissionResponse {
-  has_permission: boolean;
-  reason?: string;
-  role?: string;
+export interface EquipmentDetails extends Equipment {
+  scanHistory?: any[];
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 /**
- * Get a single equipment by ID with its attributes
+ * Get detailed equipment information including permissions and scan history
  */
-export async function getEquipmentById(id: string): Promise<Equipment> {
+export async function getEquipmentDetails(equipmentId: string): Promise<EquipmentDetails | null> {
   try {
-    // Create a cache key for this specific equipment ID
-    const cacheKey = `equipment_details_${id}`;
-    const cachedData = sessionStorage.getItem(cacheKey);
+    console.log(`Getting equipment details for ${equipmentId}`);
     
-    // Check if we have cached data that's less than 5 minutes old
-    if (cachedData) {
-      try {
-        const { data, timestamp } = JSON.parse(cachedData);
-        const now = Date.now();
-        // Cache valid for 5 minutes
-        if (now - timestamp < 5 * 60 * 1000) {
-          console.log('Using cached equipment details');
-          return data as Equipment;
-        }
-      } catch (e) {
-        console.error('Error parsing cached equipment data:', e);
-        // Continue with fresh fetch if cache parsing fails
-      }
+    // First check if user can access this equipment
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session?.user) {
+      throw new Error('Authentication required');
     }
+
+    const userId = session.session.user.id;
     
-    // Get current user's auth ID
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-      console.error('Session error:', sessionError);
-      throw new Error('Authentication error: Please log in again');
+    // Check access permission using the corrected function
+    const { data: accessCheck, error: accessError } = await supabase.rpc(
+      'can_access_equipment',
+      {
+        p_user_id: userId,
+        p_equipment_id: equipmentId
+      }
+    );
+
+    if (accessError) {
+      console.error('Error checking equipment access:', accessError);
+      throw new Error('Permission check failed');
     }
-    
-    if (!sessionData?.session?.user) {
-      console.error('No session user found');
-      throw new Error('User must be logged in to view equipment details');
+
+    if (!accessCheck) {
+      throw new Error('Access denied to this equipment');
     }
-    
-    const authUserId = sessionData.session.user.id;
-    console.log('Getting equipment by ID. Auth user ID:', authUserId);
-    
-    // Check if user has permission to access this equipment
-    try {
-      // Try using the RPC function first
-      const { data: permData, error: permError } = await supabase.rpc(
-        'rpc_check_equipment_permission',
-        { 
-          user_id: authUserId, 
-          action: 'view',
-          equipment_id: id
-        }
-      );
-      
-      if (permError) {
-        console.error('Permission check failed:', permError);
-        throw new Error('Permission check failed: ' + permError.message);
-      }
-      
-      // Safely handle and type the permission response
-      let accessResponse: PermissionResponse;
-      
-      if (!permData) {
-        accessResponse = { has_permission: false, reason: 'No response from permission check' };
-      } else if (Array.isArray(permData)) {
-        // Handle array response (unlikely but possible)
-        accessResponse = permData.length > 0 && typeof permData[0] === 'object' && permData[0] !== null && 'has_permission' in permData[0]
-          ? { has_permission: !!permData[0].has_permission, reason: String(permData[0].reason || '') }
-          : { has_permission: false, reason: 'Invalid response format (array)' };
-      } else if (typeof permData === 'object' && permData !== null) {
-        // Handle object response (expected format)
-        accessResponse = 'has_permission' in permData
-          ? { has_permission: !!permData.has_permission, reason: String(permData.reason || '') }
-          : { has_permission: false, reason: 'Invalid response format (object without has_permission)' };
-      } else {
-        accessResponse = { has_permission: false, reason: 'Unexpected response format: ' + typeof permData };
-      }
-      
-      if (!accessResponse.has_permission) {
-        console.error('User does not have access to this equipment. Reason:', accessResponse.reason);
-        throw new Error('You do not have permission to view this equipment');
-      }
-    } catch (permissionError) {
-      console.error('Permission check failed with error:', permissionError);
-      console.log('Attempting direct fallback query without permission check...');
-      
-      // Check if the equipment exists at least
-      const { count, error: countError } = await supabase
-        .from('equipment')
-        .select('*', { count: 'exact', head: true })
-        .eq('id', id)
-        .is('deleted_at', null);
-      
-      if (countError || !count) {
-        console.error('Equipment not found or access denied:', countError);
-        throw new Error('Equipment not found or you do not have permission to view it');
-      }
-      
-      // We'll continue with the query, but this is a fallback that might still fail
-      // if RLS policies prevent access
-    }
-    
-    // First fetch the equipment with new location fields
-    const { data: equipment, error } = await supabase
+
+    // Get equipment data
+    const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
       .select(`
         *,
-        team:team_id (name, org_id),
-        org:org_id (name)
+        organization:org_id(name),
+        team:team_id(name),
+        created_by_user:created_by(display_name)
       `)
-      .eq('id', id)
+      .eq('id', equipmentId)
       .is('deleted_at', null)
       .single();
-      
-    if (error) {
-      console.error('Error fetching equipment by id:', error);
-      throw error;
+
+    if (equipmentError || !equipment) {
+      console.error('Error fetching equipment:', equipmentError);
+      throw new Error('Equipment not found');
     }
-    
-    // Get user's primary organization
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('org_id')
-      .eq('id', authUserId)
-      .single();
-    
-    const userOrgId = userProfile?.org_id;
-    const isExternalOrg = equipment.team?.org_id && userOrgId && equipment.team.org_id !== userOrgId;
-    
-    // Check edit permissions - use direct database query for better performance
-    let canEdit = false;
-    try {
-      const { data: editData, error: editPermError } = await supabase.rpc(
-        'rpc_check_equipment_permission',
-        { 
-          user_id: authUserId, 
-          action: 'edit',
-          equipment_id: id
-        }
-      );
-      
-      if (editPermError) {
-        console.error('Edit permission check failed:', editPermError);
-        // Don't throw, just default to no edit permission
-      } else {
-        // Safely handle and type the edit permission response
-        let editResponse: PermissionResponse;
-        
-        if (!editData) {
-          editResponse = { has_permission: false, reason: 'No response from edit permission check' };
-        } else if (Array.isArray(editData)) {
-          // Handle array response (unlikely but possible)
-          editResponse = editData.length > 0 && typeof editData[0] === 'object' && editData[0] !== null && 'has_permission' in editData[0]
-            ? { has_permission: !!editData[0].has_permission, reason: String(editData[0].reason || '') }
-            : { has_permission: false, reason: 'Invalid edit response format (array)' };
-        } else if (typeof editData === 'object' && editData !== null) {
-          // Handle object response (expected format)
-          editResponse = 'has_permission' in editData
-            ? { has_permission: !!editData.has_permission, reason: String(editData.reason || '') }
-            : { has_permission: false, reason: 'Invalid edit response format (object without has_permission)' };
-        } else {
-          editResponse = { has_permission: false, reason: 'Unexpected edit response format: ' + typeof editData };
-        }
-        
-        canEdit = editResponse.has_permission || false;
-        console.log('Edit permission check result:', editResponse);
+
+    // Check additional permissions
+    const { data: editPermission } = await supabase.rpc(
+      'rpc_check_equipment_permission',
+      {
+        p_user_id: userId,
+        p_action: 'edit',
+        p_equipment_id: equipmentId
       }
-    } catch (editError) {
-      console.error('Failed to check edit permissions:', editError);
-      // Default to no edit permissions on error
-      canEdit = false;
-    }
-    
-    // Then fetch the attributes efficiently
-    const attributes = await getEquipmentAttributes(id);
-    console.log('Equipment attributes fetched:', attributes);
-    
-    // Build the complete equipment object
-    const fullEquipment = {
-      ...equipment,
-      team_name: equipment.team?.name || null, 
-      org_name: equipment.org?.name || 'Unknown Organization',
-      is_external_org: isExternalOrg,
-      can_edit: canEdit,
-      attributes
-    } as Equipment;
-    
-    // Cache the result for 5 minutes
+    );
+
+    // Get scan history if user has permission
+    let scanHistory: any[] = [];
     try {
-      sessionStorage.setItem(cacheKey, JSON.stringify({
-        data: fullEquipment,
-        timestamp: Date.now()
-      }));
-    } catch (e) {
-      console.warn('Failed to cache equipment details:', e);
+      scanHistory = await getEnhancedScanHistory(equipmentId, 20);
+    } catch (error) {
+      console.log('Could not load scan history:', error);
     }
+
+    const result: EquipmentDetails = {
+      ...equipment,
+      scanHistory,
+      canEdit: editPermission?.has_permission || false,
+      canDelete: editPermission?.has_permission || false // Same permission for now
+    };
+
+    console.log(`Equipment details loaded successfully for ${equipmentId}`);
+    return result;
     
-    return fullEquipment;
   } catch (error) {
-    console.error('Error in getEquipmentById:', error);
+    console.error('Error getting equipment details:', error);
     throw error;
+  }
+}
+
+/**
+ * Record a scan for equipment
+ */
+export async function recordEquipmentScan(
+  equipmentId: string,
+  scanMethod: string = 'qr_code'
+): Promise<boolean> {
+  try {
+    console.log(`Recording scan for equipment ${equipmentId}`);
+    return await recordEnhancedScan(equipmentId, scanMethod);
+  } catch (error) {
+    console.error('Error recording equipment scan:', error);
+    return false;
+  }
+}
+
+/**
+ * Get equipment scan history
+ */
+export async function getEquipmentScanHistory(equipmentId: string, limit: number = 50) {
+  try {
+    console.log(`Getting scan history for equipment ${equipmentId}`);
+    return await getEnhancedScanHistory(equipmentId, limit);
+  } catch (error) {
+    console.error('Error getting equipment scan history:', error);
+    return [];
   }
 }
