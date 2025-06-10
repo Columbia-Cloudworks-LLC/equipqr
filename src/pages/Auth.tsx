@@ -39,7 +39,7 @@ export default function Auth() {
       <div className="w-full py-8 px-4">
         <div className="flex justify-center">
           <div className="w-full max-w-md">
-            <Card>
+            <Card className="dark:bg-[#121c4c]">
               <CardHeader className="space-y-4 text-center">
                 <AuthLogo className="mb-2" />
                 <div className="space-y-1">
