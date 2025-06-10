@@ -34,8 +34,8 @@ export function AuthLogo({ className = "" }: AuthLogoProps) {
   }, [theme]);
   
   const logoSrc = isDarkMode 
-    ? "https://oxeheowbfsshpyldlskb.supabase.co/storage/v1/object/public/equipqr-images/app/EquipQR%20Logo%20Dark%20(ChatGPT).png"
-    : "https://oxeheowbfsshpyldlskb.supabase.co/storage/v1/object/public/equipqr-images/app/EquipQR%20Logo%20(ChatGPT).png";
+    ? "https://oxeheowbfsshpyldlskb.supabase.co/storage/v1/object/public/equipqr-images/app/EquipQR%20Logo%20Square%20Dark.png"
+    : "https://oxeheowbfsshpyldlskb.supabase.co/storage/v1/object/public/equipqr-images/app/EquipQR%20Logo%20Square%20Light.png";
 
   return (
     <div className={`flex justify-center ${className}`}>
