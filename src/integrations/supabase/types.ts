@@ -2396,6 +2396,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_permission_debug: {
+        Args: {
+          p_function_name: string
+          p_user_id: string
+          p_equipment_id?: string
+          p_team_id?: string
+          p_result?: boolean
+          p_details?: string
+        }
+        Returns: undefined
+      }
       log_security_event: {
         Args: {
           p_event_type: string
