@@ -8,39 +8,6 @@ export interface EquipmentDetails extends Equipment {
   canDelete?: boolean;
 }
 
-// Define the type for the equipment data returned from the RPC function
-interface EquipmentWithDetailsRow {
-  id: string;
-  name: string;
-  manufacturer: string | null;
-  model: string | null;
-  serial_number: string | null;
-  asset_id: string | null;
-  status: string;
-  location: string | null;
-  location_address: string | null;
-  location_coordinates: string | null;
-  notes: string | null;
-  install_date: string | null;
-  warranty_expiration: string | null;
-  org_id: string;
-  team_id: string | null;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  organization_name: string | null;
-  team_name: string | null;
-  created_by_display_name: string | null;
-  last_scan_latitude: number | null;
-  last_scan_longitude: number | null;
-  last_scan_accuracy: number | null;
-  last_scan_timestamp: string | null;
-  last_scan_by_user_id: string | null;
-  location_override: boolean | null;
-  location_source: string | null;
-}
-
 /**
  * Get detailed equipment information including permissions and scan history
  */
