@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Equipment } from '@/types';
 import { recordEnhancedScan, getEnhancedScanHistory } from './enhancedScanService';
@@ -23,18 +24,19 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
 
     const userId = session.session.user.id;
     
-    // Use the safer database function that handles NULL created_by values
-    const { data: equipmentData, error: equipmentError } = await supabase.rpc(
-      'get_equipment_with_details_safe',
-      { p_equipment_id: equipmentId }
-    );
+    // Use the safer database function with proper type casting
+    const { data: equipmentData, error: equipmentError } = await supabase
+      .rpc('get_equipment_with_details_safe' as any, {
+        p_equipment_id: equipmentId
+      });
 
     if (equipmentError) {
       console.error('Error fetching equipment:', equipmentError);
       throw new Error('Equipment not found or access denied');
     }
 
-    if (!equipmentData || equipmentData.length === 0) {
+    // Ensure we have data and it's an array
+    if (!equipmentData || !Array.isArray(equipmentData) || equipmentData.length === 0) {
       throw new Error('Equipment not found');
     }
 
