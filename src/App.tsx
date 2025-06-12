@@ -11,6 +11,7 @@ import Equipment from "./pages/Equipment";
 import WorkOrders from "./pages/WorkOrders";
 import Teams from "./pages/Teams";
 import FleetMap from "./pages/FleetMap";
+import Organization from "./pages/Organization";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,7 +37,7 @@ const App = () => (
                   <Route path="/teams" element={<Teams />} />
                   <Route path="/fleet-map" element={<FleetMap />} />
                   {/* Placeholder routes for future pages */}
-                  <Route path="/organization" element={<div>Organization page coming soon...</div>} />
+                  <Route path="/organization" element={<Organization />} />
                   <Route path="/scanner" element={<div>QR Scanner page coming soon...</div>} />
                   <Route path="/billing" element={<div>Billing page coming soon...</div>} />
                   <Route path="/settings" element={<div>Settings page coming soon...</div>} />
