@@ -23,50 +23,49 @@ export async function getEquipmentDetails(equipmentId: string): Promise<Equipmen
 
     const userId = session.session.user.id;
     
-    // Use a raw SQL query to get equipment data with related information
-    const { data: equipmentData, error: equipmentError } = await supabase
-      .from('equipment')
-      .select(`
-        *,
-        organization:organization!inner(name),
-        team:team(name),
-        created_by_user:user_profiles!equipment_created_by_fkey(display_name)
-      `)
-      .eq('id', equipmentId)
-      .is('deleted_at', null)
-      .single();
+    // Use the safer database function that handles NULL created_by values
+    const { data: equipmentData, error: equipmentError } = await supabase.rpc(
+      'get_equipment_with_details_safe',
+      { p_equipment_id: equipmentId }
+    );
 
     if (equipmentError) {
       console.error('Error fetching equipment:', equipmentError);
-      
-      // Provide more specific error handling
-      if (equipmentError.code === 'PGRST116') {
-        throw new Error('Equipment not found');
-      } else {
-        throw new Error('Equipment not found or access denied');
-      }
+      throw new Error('Equipment not found or access denied');
     }
 
-    if (!equipmentData) {
+    if (!equipmentData || equipmentData.length === 0) {
       throw new Error('Equipment not found');
     }
 
-    console.log('Equipment data loaded successfully:', equipmentData.name);
+    // Get the first (and should be only) result
+    const rawEquipment = equipmentData[0];
+    console.log('Equipment data loaded successfully:', rawEquipment.name);
 
     // Transform the database result to match our Equipment interface
-    // Handle the case where created_by_user might be an array or single object
-    const createdByUser = Array.isArray(equipmentData.created_by_user) 
-      ? equipmentData.created_by_user[0] 
-      : equipmentData.created_by_user;
-
     const transformedEquipment = {
-      ...equipmentData,
+      id: rawEquipment.id,
+      name: rawEquipment.name,
+      manufacturer: rawEquipment.manufacturer,
+      model: rawEquipment.model,
+      serial_number: rawEquipment.serial_number,
+      status: rawEquipment.status,
+      location: rawEquipment.location,
+      notes: rawEquipment.notes,
+      install_date: rawEquipment.install_date,
+      warranty_expiration: rawEquipment.warranty_expiration,
+      org_id: rawEquipment.org_id,
+      team_id: rawEquipment.team_id,
+      created_by: rawEquipment.created_by,
+      created_at: rawEquipment.created_at,
+      updated_at: rawEquipment.updated_at,
+      deleted_at: rawEquipment.deleted_at,
       // Map the related data fields
-      organization: equipmentData.organization ? { name: equipmentData.organization.name } : null,
-      team: equipmentData.team ? { name: equipmentData.team.name } : null,
-      created_by_user: createdByUser ? { display_name: createdByUser.display_name } : null,
+      organization: rawEquipment.organization_name ? { name: rawEquipment.organization_name } : null,
+      team: rawEquipment.team_name ? { name: rawEquipment.team_name } : null,
+      created_by_user: rawEquipment.created_by_display_name ? { display_name: rawEquipment.created_by_display_name } : null,
       // Keep team_name for compatibility
-      team_name: equipmentData.team?.name || null
+      team_name: rawEquipment.team_name || null
     };
 
     // Check permissions using the corrected edge function call

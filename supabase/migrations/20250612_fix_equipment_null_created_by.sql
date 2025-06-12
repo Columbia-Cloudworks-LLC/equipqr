@@ -14,7 +14,45 @@ BEGIN
     RAISE NOTICE 'Found % equipment records with NULL created_by values', null_count;
 END $$;
 
--- Step 2: Update equipment records with NULL created_by to use organization owner
+-- Step 2: Fix the enum validation function that's causing the error
+CREATE OR REPLACE FUNCTION public.validate_equipment_input_enhanced()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  -- Validate and sanitize name (required)
+  IF NEW.name IS NULL OR trim(NEW.name) = '' THEN
+    RAISE EXCEPTION 'Equipment name cannot be empty';
+  END IF;
+  NEW.name = public.sanitize_text(NEW.name);
+  
+  -- Validate and sanitize optional fields
+  NEW.manufacturer = public.sanitize_text(NEW.manufacturer);
+  NEW.model = public.sanitize_text(NEW.model);
+  NEW.serial_number = public.sanitize_text(NEW.serial_number);
+  NEW.location = public.sanitize_text(NEW.location);
+  NEW.notes = public.sanitize_text(NEW.notes);
+  
+  -- Validate org_id format
+  IF NOT public.validate_uuid_format(NEW.org_id::TEXT) THEN
+    RAISE EXCEPTION 'Invalid organization ID format';
+  END IF;
+  
+  -- Validate team_id format if provided
+  IF NEW.team_id IS NOT NULL AND NOT public.validate_uuid_format(NEW.team_id::TEXT) THEN
+    RAISE EXCEPTION 'Invalid team ID format';
+  END IF;
+  
+  -- Validate status against actual enum values
+  IF NEW.status NOT IN ('active', 'inactive', 'maintenance', 'storage', 'retired') THEN
+    RAISE EXCEPTION 'Invalid equipment status. Must be one of: active, inactive, maintenance, storage, retired';
+  END IF;
+  
+  RETURN NEW;
+END;
+$function$;
+
+-- Step 3: Update equipment records with NULL created_by to use organization owner
 UPDATE public.equipment 
 SET created_by = org.owner_user_id,
     updated_at = now()
@@ -24,7 +62,7 @@ WHERE equipment.created_by IS NULL
   AND org.owner_user_id IS NOT NULL
   AND equipment.deleted_at IS NULL;
 
--- Step 3: For any remaining NULL values, try to use the first user in the organization
+-- Step 4: For any remaining NULL values, try to use the first user in the organization
 UPDATE public.equipment 
 SET created_by = ur.user_id,
     updated_at = now()
@@ -40,7 +78,7 @@ WHERE equipment.created_by IS NULL
     LIMIT 1
   );
 
--- Step 4: As a last resort, try to use any valid user from the auth.users table
+-- Step 5: As a last resort, try to use any valid user from the auth.users table
 UPDATE public.equipment 
 SET created_by = (
     SELECT id 
@@ -53,7 +91,7 @@ updated_at = now()
 WHERE created_by IS NULL 
   AND deleted_at IS NULL;
 
--- Step 5: Check if there are still any NULL values
+-- Step 6: Check if there are still any NULL values
 DO $$
 DECLARE
     remaining_null_count INTEGER;
@@ -79,7 +117,7 @@ BEGIN
     END IF;
 END $$;
 
--- Step 6: Only delete records that absolutely cannot be fixed (should be very rare)
+-- Step 7: Only delete records that absolutely cannot be fixed (should be very rare)
 DELETE FROM public.equipment 
 WHERE created_by IS NULL 
   AND deleted_at IS NULL
@@ -90,11 +128,11 @@ WHERE created_by IS NULL
     SELECT DISTINCT org_id FROM public.user_roles
   );
 
--- Step 7: Now it should be safe to add the NOT NULL constraint
+-- Step 8: Now it should be safe to add the NOT NULL constraint
 ALTER TABLE public.equipment 
 ALTER COLUMN created_by SET NOT NULL;
 
--- Step 8: Add the foreign key constraint
+-- Step 9: Add the foreign key constraint
 ALTER TABLE public.equipment 
 DROP CONSTRAINT IF EXISTS fk_equipment_created_by;
 
@@ -102,7 +140,7 @@ ALTER TABLE public.equipment
 ADD CONSTRAINT fk_equipment_created_by 
 FOREIGN KEY (created_by) REFERENCES auth.users(id);
 
--- Step 9: Create a trigger to ensure created_by is never NULL for new equipment
+-- Step 10: Create a trigger to ensure created_by is never NULL for new equipment
 CREATE OR REPLACE FUNCTION public.ensure_equipment_created_by()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -150,7 +188,7 @@ CREATE TRIGGER trigger_ensure_equipment_created_by
   FOR EACH ROW
   EXECUTE FUNCTION public.ensure_equipment_created_by();
 
--- Step 10: Fix the permission check function
+-- Step 11: Fix the permission check function
 CREATE OR REPLACE FUNCTION public.check_equipment_create_permission(p_user_id uuid, p_team_id uuid DEFAULT NULL::uuid, p_org_id uuid DEFAULT NULL::uuid)
  RETURNS TABLE(
    has_permission boolean,
@@ -238,7 +276,7 @@ BEGIN
 END;
 $function$;
 
--- Step 11: Update the main RPC function
+-- Step 12: Update the main RPC function
 CREATE OR REPLACE FUNCTION public.rpc_check_equipment_permission(user_id uuid, action text, team_id uuid DEFAULT NULL::uuid, equipment_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -355,7 +393,7 @@ BEGIN
 END;
 $function$;
 
--- Step 12: Create the safer equipment details function
+-- Step 13: Create the safer equipment details function
 CREATE OR REPLACE FUNCTION public.get_equipment_with_details_safe(p_equipment_id uuid)
  RETURNS TABLE(
    id uuid,
