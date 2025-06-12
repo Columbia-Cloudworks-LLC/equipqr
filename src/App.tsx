@@ -12,6 +12,7 @@ import WorkOrders from "./pages/WorkOrders";
 import Teams from "./pages/Teams";
 import FleetMap from "./pages/FleetMap";
 import Organization from "./pages/Organization";
+import Billing from "./pages/Billing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,10 +37,10 @@ const App = () => (
                   <Route path="/work-orders" element={<WorkOrders />} />
                   <Route path="/teams" element={<Teams />} />
                   <Route path="/fleet-map" element={<FleetMap />} />
-                  {/* Placeholder routes for future pages */}
                   <Route path="/organization" element={<Organization />} />
+                  <Route path="/billing" element={<Billing />} />
+                  {/* Placeholder routes for future pages */}
                   <Route path="/scanner" element={<div>QR Scanner page coming soon...</div>} />
-                  <Route path="/billing" element={<div>Billing page coming soon...</div>} />
                   <Route path="/settings" element={<div>Settings page coming soon...</div>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
