@@ -41,7 +41,7 @@ const App = () => (
                   <Route path="/billing" element={<Billing />} />
                   {/* Placeholder routes for future pages */}
                   <Route path="/scanner" element={<div>QR Scanner page coming soon...</div>} />
-                  <Route path="/settings" element={<div>Settings page coming soon...</div>} />
+                  <Route path="/settings" element={<Settings />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
