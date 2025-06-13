@@ -1,113 +1,171 @@
 
 import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useUserSettings } from '@/hooks/useUserSettings';
-import { toast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
-import DateTimeSettings from '@/components/settings/DateTimeSettings';
-import UnitsSettings from '@/components/settings/UnitsSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
-import { RefreshCw, Save } from 'lucide-react';
+import UnitsSettings from '@/components/settings/UnitsSettings';
+import DateTimeSettings from '@/components/settings/DateTimeSettings';
+import { toast } from 'sonner';
 
-const Settings = () => {
-  const { settings, updateSetting, resetSettings, isLoading } = useUserSettings();
+const PrivacySettings = () => {
+  const { settings, updateSetting } = useSettings();
 
-  const handleSave = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been saved successfully.",
-    });
-  };
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Privacy & Security</CardTitle>
+        <CardDescription>
+          Manage your privacy settings and data sharing preferences.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="profileVisibility">Profile Visibility</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="public"
+                  name="profileVisibility"
+                  value="public"
+                  checked={settings.profileVisibility === 'public'}
+                  onChange={() => updateSetting('profileVisibility', 'public')}
+                />
+                <Label htmlFor="public" className="text-sm">Public - Anyone can see your profile</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="team"
+                  name="profileVisibility"
+                  value="team"
+                  checked={settings.profileVisibility === 'team'}
+                  onChange={() => updateSetting('profileVisibility', 'team')}
+                />
+                <Label htmlFor="team" className="text-sm">Team - Only team members can see your profile</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="private"
+                  name="profileVisibility"
+                  value="private"
+                  checked={settings.profileVisibility === 'private'}
+                  onChange={() => updateSetting('profileVisibility', 'private')}
+                />
+                <Label htmlFor="private" className="text-sm">Private - Only you can see your profile</Label>
+              </div>
+            </div>
+          </div>
 
-  const handleReset = () => {
-    resetSettings();
-    toast({
-      title: "Settings reset",
-      description: "All settings have been restored to their default values.",
-    });
-  };
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="dataSharing">Data Sharing</Label>
+              <p className="text-sm text-muted-foreground">
+                Allow anonymized usage data to help improve EquipQR
+              </p>
+            </div>
+            <Switch
+              id="dataSharing"
+              checked={settings.dataSharing}
+              onCheckedChange={(checked) => updateSetting('dataSharing', checked)}
+            />
+          </div>
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading settings...</p>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="analyticsOptOut">Analytics Opt-out</Label>
+              <p className="text-sm text-muted-foreground">
+                Opt out of analytics tracking
+              </p>
+            </div>
+            <Switch
+              id="analyticsOptOut"
+              checked={settings.analyticsOptOut}
+              onCheckedChange={(checked) => updateSetting('analyticsOptOut', checked)}
+            />
+          </div>
         </div>
-      </div>
-    );
-  }
+      </CardContent>
+    </Card>
+  );
+};
+
+const SettingsContent = () => {
+  const { resetSettings } = useSettings();
+
+  const handleResetSettings = () => {
+    resetSettings();
+    toast.success('Settings have been reset to default values');
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your personal preferences and account settings.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleReset}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reset to Defaults
-          </Button>
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Changes
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground mt-2">
+          Manage your account preferences and application settings.
+        </p>
       </div>
+
+      <Tabs defaultValue="personalization" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="personalization">Personalization</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="units">Units</TabsTrigger>
+          <TabsTrigger value="datetime">Date & Time</TabsTrigger>
+          <TabsTrigger value="privacy">Privacy</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="personalization">
+          <PersonalizationSettings />
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <NotificationSettings />
+        </TabsContent>
+
+        <TabsContent value="units">
+          <UnitsSettings />
+        </TabsContent>
+
+        <TabsContent value="datetime">
+          <DateTimeSettings />
+        </TabsContent>
+
+        <TabsContent value="privacy">
+          <PrivacySettings />
+        </TabsContent>
+      </Tabs>
 
       <Card>
         <CardHeader>
-          <CardTitle>User Preferences</CardTitle>
+          <CardTitle>Reset Settings</CardTitle>
           <CardDescription>
-            Customize EquipQR to match your preferences. Changes are saved automatically.
+            Reset all settings to their default values. This action cannot be undone.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="personalization" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="personalization">Personalization</TabsTrigger>
-              <TabsTrigger value="datetime">Date & Time</TabsTrigger>
-              <TabsTrigger value="units">Units & Numbers</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="personalization" className="mt-6">
-              <PersonalizationSettings
-                settings={settings}
-                onUpdate={updateSetting}
-              />
-            </TabsContent>
-
-            <TabsContent value="datetime" className="mt-6">
-              <DateTimeSettings
-                settings={settings}
-                onUpdate={updateSetting}
-              />
-            </TabsContent>
-
-            <TabsContent value="units" className="mt-6">
-              <UnitsSettings
-                settings={settings}
-                onUpdate={updateSetting}
-              />
-            </TabsContent>
-
-            <TabsContent value="notifications" className="mt-6">
-              <NotificationSettings
-                settings={settings}
-                onUpdate={updateSetting}
-              />
-            </TabsContent>
-          </Tabs>
+          <Button variant="destructive" onClick={handleResetSettings}>
+            Reset All Settings
+          </Button>
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+const Settings = () => {
+  return (
+    <SettingsProvider>
+      <SettingsContent />
+    </SettingsProvider>
   );
 };
 
