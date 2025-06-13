@@ -13,6 +13,7 @@ import Teams from "./pages/Teams";
 import FleetMap from "./pages/FleetMap";
 import Organization from "./pages/Organization";
 import Billing from "./pages/Billing";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
