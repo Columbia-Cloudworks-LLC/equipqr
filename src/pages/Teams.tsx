@@ -5,52 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Users, Mail, Settings, Crown, Shield, User } from 'lucide-react';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { getTeamsByOrganization } from '@/services/dataService';
 import TeamForm from '@/components/teams/TeamForm';
 
 const Teams = () => {
+  const { currentOrganization, isLoading } = useOrganization();
   const [showForm, setShowForm] = useState(false);
 
-  // Mock teams data
-  const teams = [
-    {
-      id: '1',
-      name: 'Maintenance Team',
-      description: 'Responsible for equipment maintenance and repairs',
-      memberCount: 8,
-      workOrderCount: 15,
-      members: [
-        { id: '1', name: 'John Smith', email: 'john@company.com', role: 'manager', avatar: null },
-        { id: '2', name: 'Sarah Davis', email: 'sarah@company.com', role: 'technician', avatar: null },
-        { id: '3', name: 'Mike Johnson', email: 'mike@company.com', role: 'technician', avatar: null },
-        { id: '4', name: 'Lisa Wilson', email: 'lisa@company.com', role: 'requestor', avatar: null },
-      ]
-    },
-    {
-      id: '2',
-      name: 'Operations Team',
-      description: 'Fleet operations and logistics coordination',
-      memberCount: 12,
-      workOrderCount: 8,
-      members: [
-        { id: '5', name: 'Tom Brown', email: 'tom@company.com', role: 'manager', avatar: null },
-        { id: '6', name: 'Emily Johnson', email: 'emily@company.com', role: 'technician', avatar: null },
-        { id: '7', name: 'David Wilson', email: 'david@company.com', role: 'technician', avatar: null },
-        { id: '8', name: 'Anna Lee', email: 'anna@company.com', role: 'viewer', avatar: null },
-      ]
-    },
-    {
-      id: '3',
-      name: 'Safety Team',
-      description: 'Safety inspections and compliance monitoring',
-      memberCount: 5,
-      workOrderCount: 0,
-      members: [
-        { id: '9', name: 'Robert Chen', email: 'robert@company.com', role: 'manager', avatar: null },
-        { id: '10', name: 'Maria Garcia', email: 'maria@company.com', role: 'technician', avatar: null },
-        { id: '11', name: 'James Taylor', email: 'james@company.com', role: 'requestor', avatar: null },
-      ]
-    }
-  ];
+  if (isLoading || !currentOrganization) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Teams</h1>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-48 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const teams = getTeamsByOrganization(currentOrganization.id);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -91,7 +74,9 @@ const Teams = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Teams</h1>
-          <p className="text-muted-foreground">Manage your organization teams and members</p>
+          <p className="text-muted-foreground">
+            Manage teams for {currentOrganization.name}
+          </p>
         </div>
         <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
@@ -187,7 +172,7 @@ const Teams = () => {
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No teams found</h3>
             <p className="text-muted-foreground mb-4">
-              Get started by creating your first team.
+              Get started by creating your first team for {currentOrganization.name}.
             </p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="h-4 w-4 mr-2" />

@@ -6,57 +6,39 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Filter, QrCode, MapPin, Calendar, Package } from 'lucide-react';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { getEquipmentByOrganization } from '@/services/dataService';
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 
 const Equipment = () => {
+  const { currentOrganization, isLoading } = useOrganization();
   const [showForm, setShowForm] = useState(false);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Mock equipment data - will be replaced with real data
-  const equipment = [
-    {
-      id: '1',
-      name: 'Forklift FL-001',
-      manufacturer: 'Toyota',
-      model: 'FG25',
-      serialNumber: 'TY2023FL001',
-      status: 'active',
-      location: 'Warehouse A',
-      installationDate: '2023-01-15',
-      warrantyExpiration: '2026-01-15',
-      lastMaintenance: '2024-05-15',
-      notes: 'Recently serviced, good condition'
-    },
-    {
-      id: '2',
-      name: 'Generator GN-045',
-      manufacturer: 'Caterpillar',
-      model: 'C18',
-      serialNumber: 'CAT2023GN045',
-      status: 'maintenance',
-      location: 'Maintenance Bay 2',
-      installationDate: '2022-08-20',
-      warrantyExpiration: '2025-08-20',
-      lastMaintenance: '2024-05-20',
-      notes: 'Scheduled for preventive maintenance'
-    },
-    {
-      id: '3',
-      name: 'Excavator EX-102',
-      manufacturer: 'John Deere',
-      model: '320E',
-      serialNumber: 'JD2024EX102',
-      status: 'active',
-      location: 'Construction Site B',
-      installationDate: '2024-03-10',
-      warrantyExpiration: '2027-03-10',
-      lastMaintenance: '2024-05-10',
-      notes: 'New equipment, excellent condition'
-    }
-  ];
+  if (isLoading || !currentOrganization) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-32 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const equipment = getEquipmentByOrganization(currentOrganization.id);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -85,7 +67,9 @@ const Equipment = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
-          <p className="text-muted-foreground">Manage your fleet equipment and assets</p>
+          <p className="text-muted-foreground">
+            Manage equipment for {currentOrganization.name}
+          </p>
         </div>
         <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
@@ -186,7 +170,7 @@ const Equipment = () => {
             <p className="text-muted-foreground mb-4">
               {searchQuery || statusFilter !== 'all' 
                 ? 'No equipment matches your current filters.' 
-                : 'Get started by adding your first piece of equipment.'}
+                : `Get started by adding your first piece of equipment to ${currentOrganization.name}.`}
             </p>
             {(!searchQuery && statusFilter === 'all') && (
               <Button onClick={() => setShowForm(true)}>
