@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
 
 const AppSidebar = () => {
   const location = useLocation();
@@ -93,7 +94,7 @@ const AppSidebar = () => {
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <QrCode className="h-5 w-5 text-primary-foreground" />
           </div>
@@ -102,6 +103,7 @@ const AppSidebar = () => {
             <p className="text-xs text-muted-foreground">Fleet Management</p>
           </div>
         </div>
+        <OrganizationSwitcher />
       </SidebarHeader>
 
       <SidebarContent>
