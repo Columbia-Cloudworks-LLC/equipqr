@@ -51,7 +51,7 @@ const organizationData = {
         manufacturer: 'Toyota',
         model: 'FG25',
         serialNumber: 'ACME-FL001',
-        status: 'active',
+        status: 'active' as const,
         location: 'Warehouse A',
         installationDate: '2023-01-15',
         warrantyExpiration: '2026-01-15',
@@ -64,7 +64,7 @@ const organizationData = {
         manufacturer: 'Caterpillar',
         model: 'C15',
         serialNumber: 'ACME-GN001',
-        status: 'maintenance',
+        status: 'maintenance' as const,
         location: 'Maintenance Bay',
         installationDate: '2022-08-20',
         warrantyExpiration: '2025-08-20',
@@ -80,9 +80,9 @@ const organizationData = {
         memberCount: 3,
         workOrderCount: 5,
         members: [
-          { id: '1', name: 'John Smith', email: 'john@acme.com', role: 'manager' },
-          { id: '2', name: 'Sarah Davis', email: 'sarah@acme.com', role: 'technician' },
-          { id: '3', name: 'Mike Johnson', email: 'mike@acme.com', role: 'technician' }
+          { id: '1', name: 'John Smith', email: 'john@acme.com', role: 'manager' as const },
+          { id: '2', name: 'Sarah Davis', email: 'sarah@acme.com', role: 'technician' as const },
+          { id: '3', name: 'Mike Johnson', email: 'mike@acme.com', role: 'technician' as const }
         ]
       }
     ],
@@ -102,7 +102,7 @@ const organizationData = {
         manufacturer: 'John Deere',
         model: '320E',
         serialNumber: 'TECH-EX201',
-        status: 'active',
+        status: 'active' as const,
         location: 'Construction Site Alpha',
         installationDate: '2024-01-10',
         warrantyExpiration: '2027-01-10',
@@ -115,7 +115,7 @@ const organizationData = {
         manufacturer: 'Liebherr',
         model: 'LTM 1030',
         serialNumber: 'TECH-CR301',
-        status: 'active',
+        status: 'active' as const,
         location: 'Construction Site Beta',
         installationDate: '2023-06-15',
         warrantyExpiration: '2026-06-15',
@@ -128,7 +128,7 @@ const organizationData = {
         manufacturer: 'Caterpillar',
         model: 'D6T',
         serialNumber: 'TECH-BD401',
-        status: 'maintenance',
+        status: 'maintenance' as const,
         location: 'Service Center',
         installationDate: '2023-03-20',
         warrantyExpiration: '2026-03-20',
@@ -144,10 +144,10 @@ const organizationData = {
         memberCount: 8,
         workOrderCount: 12,
         members: [
-          { id: '1', name: 'Tom Brown', email: 'tom@techcorp.com', role: 'manager' },
-          { id: '2', name: 'Emily Johnson', email: 'emily@techcorp.com', role: 'technician' },
-          { id: '3', name: 'David Wilson', email: 'david@techcorp.com', role: 'technician' },
-          { id: '4', name: 'Anna Lee', email: 'anna@techcorp.com', role: 'requestor' }
+          { id: '1', name: 'Tom Brown', email: 'tom@techcorp.com', role: 'manager' as const },
+          { id: '2', name: 'Emily Johnson', email: 'emily@techcorp.com', role: 'technician' as const },
+          { id: '3', name: 'David Wilson', email: 'david@techcorp.com', role: 'technician' as const },
+          { id: '4', name: 'Anna Lee', email: 'anna@techcorp.com', role: 'requestor' as const }
         ]
       },
       {
@@ -157,8 +157,8 @@ const organizationData = {
         memberCount: 4,
         workOrderCount: 3,
         members: [
-          { id: '5', name: 'Robert Chen', email: 'robert@techcorp.com', role: 'manager' },
-          { id: '6', name: 'Maria Garcia', email: 'maria@techcorp.com', role: 'technician' }
+          { id: '5', name: 'Robert Chen', email: 'robert@techcorp.com', role: 'manager' as const },
+          { id: '6', name: 'Maria Garcia', email: 'maria@techcorp.com', role: 'technician' as const }
         ]
       }
     ],
@@ -178,7 +178,7 @@ const organizationData = {
         manufacturer: 'Ford',
         model: 'Transit',
         serialNumber: 'STARTUP-VN101',
-        status: 'active',
+        status: 'active' as const,
         location: 'Headquarters',
         installationDate: '2024-02-01',
         warrantyExpiration: '2027-02-01',
@@ -194,8 +194,8 @@ const organizationData = {
         memberCount: 2,
         workOrderCount: 1,
         members: [
-          { id: '1', name: 'Alex Parker', email: 'alex@startupfleet.com', role: 'manager' },
-          { id: '2', name: 'Jamie Taylor', email: 'jamie@startupfleet.com', role: 'technician' }
+          { id: '1', name: 'Alex Parker', email: 'alex@startupfleet.com', role: 'manager' as const },
+          { id: '2', name: 'Jamie Taylor', email: 'jamie@startupfleet.com', role: 'technician' as const }
         ]
       }
     ],
