@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, ChevronsUpDown, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +21,13 @@ interface OrganizationSwitcherProps {
 
 const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }) => {
   const { currentOrganization, userOrganizations, switchOrganization, isLoading } = useOrganization();
+  const navigate = useNavigate();
+
+  const handleOrganizationSwitch = (organizationId: string) => {
+    switchOrganization(organizationId);
+    // Navigate to dashboard after switching organizations
+    navigate('/');
+  };
 
   if (!currentOrganization || isLoading) {
     return (
@@ -70,7 +78,7 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }
         {userOrganizations.map((organization) => (
           <DropdownMenuItem
             key={organization.id}
-            onClick={() => switchOrganization(organization.id)}
+            onClick={() => handleOrganizationSwitch(organization.id)}
             className="flex items-center gap-2 p-2 cursor-pointer"
             disabled={organization.userStatus !== 'active'}
           >
