@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const notesPerPage = 5;
 
   // Mock current user role - in real app this would come from auth context
-  const currentUserRole: 'owner' | 'manager' | 'technician' | 'requestor' | 'viewer' = 'manager';
+  const currentUserRole = 'manager' as 'owner' | 'manager' | 'technician' | 'requestor' | 'viewer';
 
   // Filter notes based on user role
   const visibleNotes = notes.filter(note => {
