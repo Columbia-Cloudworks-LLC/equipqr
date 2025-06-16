@@ -12,12 +12,22 @@ import EquipmentDetailsTab from '@/components/equipment/EquipmentDetailsTab';
 import EquipmentNotesTab from '@/components/equipment/EquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
 import EquipmentScansTab from '@/components/equipment/EquipmentScansTab';
+import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 
 const EquipmentDetails = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const navigate = useNavigate();
   const { currentOrganization, isLoading } = useOrganization();
   const [activeTab, setActiveTab] = useState('details');
+  const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
+
+  const handleCreateWorkOrder = () => {
+    setIsWorkOrderFormOpen(true);
+  };
+
+  const handleCloseWorkOrderForm = () => {
+    setIsWorkOrderFormOpen(false);
+  };
 
   if (isLoading || !currentOrganization || !equipmentId) {
     return (
@@ -185,6 +195,7 @@ const EquipmentDetails = () => {
           <EquipmentWorkOrdersTab 
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
+            onCreateWorkOrder={handleCreateWorkOrder}
           />
         </TabsContent>
 
@@ -195,6 +206,13 @@ const EquipmentDetails = () => {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Work Order Form */}
+      <WorkOrderForm
+        open={isWorkOrderFormOpen}
+        onClose={handleCloseWorkOrderForm}
+        equipmentId={equipmentId}
+      />
     </div>
   );
 };

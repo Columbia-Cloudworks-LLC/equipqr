@@ -9,11 +9,13 @@ import { getWorkOrdersByEquipmentId, WorkOrder } from '@/services/dataService';
 interface EquipmentWorkOrdersTabProps {
   equipmentId: string;
   organizationId: string;
+  onCreateWorkOrder?: () => void;
 }
 
 const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
   equipmentId,
   organizationId,
+  onCreateWorkOrder,
 }) => {
   const workOrders = getWorkOrdersByEquipmentId(organizationId, equipmentId);
 
@@ -64,7 +66,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
             {workOrders.length} {workOrders.length === 1 ? 'work order' : 'work orders'}
           </p>
         </div>
-        <Button>
+        <Button onClick={onCreateWorkOrder}>
           <Plus className="h-4 w-4 mr-2" />
           Create Work Order
         </Button>
@@ -80,7 +82,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
               <p className="text-muted-foreground mb-4">
                 No work orders have been created for this equipment yet.
               </p>
-              <Button>
+              <Button onClick={onCreateWorkOrder}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create First Work Order
               </Button>

@@ -18,9 +18,10 @@ interface WorkOrderFormProps {
   open: boolean;
   onClose: () => void;
   workOrder?: any;
+  equipmentId?: string;
 }
 
-const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder }) => {
+const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder, equipmentId }) => {
   const isEdit = !!workOrder;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -61,7 +62,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder 
 
                 <div className="space-y-2">
                   <Label htmlFor="equipment">Equipment *</Label>
-                  <Select defaultValue={workOrder?.equipment}>
+                  <Select defaultValue={equipmentId || workOrder?.equipment}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select equipment" />
                     </SelectTrigger>
