@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 
 const Equipment = () => {
+  const navigate = useNavigate();
   const { currentOrganization, isLoading } = useOrganization();
   const [showForm, setShowForm] = useState(false);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
@@ -153,8 +155,13 @@ const Equipment = () => {
                   <QrCode className="h-4 w-4 mr-2" />
                   QR Code
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  Edit
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => navigate(`/equipment/${item.id}`)}
+                >
+                  View Details
                 </Button>
               </div>
             </CardContent>

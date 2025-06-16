@@ -10,6 +10,7 @@ import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import AppSidebar from "@/components/layout/AppSidebar";
 import Dashboard from "./pages/Dashboard";
 import Equipment from "./pages/Equipment";
+import EquipmentDetails from "./pages/EquipmentDetails";
 import WorkOrders from "./pages/WorkOrders";
 import Teams from "./pages/Teams";
 import FleetMap from "./pages/FleetMap";
@@ -39,6 +40,7 @@ const App = () => (
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/equipment" element={<Equipment />} />
+                      <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
                       <Route path="/work-orders" element={<WorkOrders />} />
                       <Route path="/teams" element={<Teams />} />
                       <Route path="/fleet-map" element={<FleetMap />} />
