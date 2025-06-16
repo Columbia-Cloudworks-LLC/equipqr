@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Users, Mail, Settings, Crown, Shield, User } from 'lucide-react';
+import { Plus, Users, Settings, Crown, User } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { getTeamsByOrganization } from '@/services/dataService';
 import TeamForm from '@/components/teams/TeamForm';
@@ -12,6 +13,7 @@ import TeamForm from '@/components/teams/TeamForm';
 const Teams = () => {
   const { currentOrganization, isLoading } = useOrganization();
   const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
 
   if (isLoading || !currentOrganization) {
     return (
@@ -40,7 +42,7 @@ const Teams = () => {
       case 'owner':
         return <Crown className="h-4 w-4 text-yellow-600" />;
       case 'manager':
-        return <Shield className="h-4 w-4 text-blue-600" />;
+        return <Users className="h-4 w-4 text-blue-600" />;
       case 'technician':
         return <User className="h-4 w-4 text-green-600" />;
       case 'requestor':
@@ -152,11 +154,12 @@ const Teams = () => {
 
               {/* Actions */}
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Invite
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => navigate(`/teams/${team.id}`)}
+                >
                   View Details
                 </Button>
               </div>
