@@ -16,6 +16,7 @@ import WorkOrderDetails from "./pages/WorkOrderDetails";
 import Teams from "./pages/Teams";
 import TeamDetails from "./pages/TeamDetails";
 import FleetMap from "./pages/FleetMap";
+import Reports from "./pages/Reports";
 import Organization from "./pages/Organization";
 import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
@@ -49,6 +50,7 @@ const App = () => (
                       <Route path="/teams" element={<Teams />} />
                       <Route path="/teams/:teamId" element={<TeamDetails />} />
                       <Route path="/fleet-map" element={<FleetMap />} />
+                      <Route path="/reports" element={<Reports />} />
                       <Route path="/organization" element={<Organization />} />
                       <Route path="/billing" element={<Billing />} />
                       <Route path="/scanner" element={<QRScanner />} />

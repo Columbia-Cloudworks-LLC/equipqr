@@ -23,7 +23,8 @@ import {
   Building,
   QrCode,
   CreditCard,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -58,6 +59,11 @@ const AppSidebar = () => {
       title: "Fleet Map",
       url: "/fleet-map",
       icon: MapPin,
+    },
+    {
+      title: "Reports",
+      url: "/reports",
+      icon: BarChart3,
     },
   ];
 
