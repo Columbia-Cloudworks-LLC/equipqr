@@ -1,5 +1,8 @@
 
 import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -8,11 +11,39 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
+import CustomAttributesSection from './CustomAttributesSection';
+import { useCustomAttributes, type CustomAttribute } from '@/hooks/useCustomAttributes';
+
+const equipmentFormSchema = z.object({
+  name: z.string().min(1, "Equipment name is required"),
+  manufacturer: z.string().min(1, "Manufacturer is required"),
+  model: z.string().min(1, "Model is required"),
+  serialNumber: z.string().min(1, "Serial number is required"),
+  status: z.enum(['active', 'maintenance', 'inactive']),
+  location: z.string().min(1, "Location is required"),
+  installationDate: z.string().optional(),
+  warrantyExpiration: z.string().optional(),
+  notes: z.string().optional(),
+  customAttributes: z.array(z.object({
+    id: z.string(),
+    key: z.string(),
+    value: z.string()
+  })).optional()
+});
+
+type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
 
 interface EquipmentFormProps {
   open: boolean;
@@ -22,11 +53,44 @@ interface EquipmentFormProps {
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment }) => {
   const isEdit = !!equipment;
+  const [customAttributesError, setCustomAttributesError] = React.useState(false);
+  
+  const { validateAttributes } = useCustomAttributes();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted');
+  const form = useForm<EquipmentFormData>({
+    resolver: zodResolver(equipmentFormSchema),
+    defaultValues: {
+      name: equipment?.name || '',
+      manufacturer: equipment?.manufacturer || '',
+      model: equipment?.model || '',
+      serialNumber: equipment?.serialNumber || '',
+      status: equipment?.status || 'active',
+      location: equipment?.location || '',
+      installationDate: equipment?.installationDate || '',
+      warrantyExpiration: equipment?.warrantyExpiration || '',
+      notes: equipment?.notes || '',
+      customAttributes: equipment?.customAttributes || []
+    }
+  });
+
+  const handleCustomAttributesChange = (attributes: CustomAttribute[]) => {
+    form.setValue('customAttributes', attributes);
+    setCustomAttributesError(false);
+  };
+
+  const onSubmit = (data: EquipmentFormData) => {
+    // Validate custom attributes separately
+    const currentAttributes = form.getValues('customAttributes') || [];
+    if (currentAttributes.length > 0) {
+      const keys = currentAttributes.map(attr => attr.key.trim()).filter(Boolean);
+      const uniqueKeys = new Set(keys);
+      if (keys.length !== uniqueKeys.size || currentAttributes.some(attr => !attr.key.trim())) {
+        setCustomAttributesError(true);
+        return;
+      }
+    }
+
+    console.log('Equipment form submitted:', data);
     onClose();
   };
 
@@ -40,130 +104,186 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Basic Information */}
-            <Card>
-              <CardContent className="pt-4 space-y-4">
-                <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                  Basic Information
-                </h3>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="name">Equipment Name *</Label>
-                  <Input
-                    id="name"
-                    placeholder="e.g., Forklift FL-001"
-                    defaultValue={equipment?.name}
-                    required
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Basic Information */}
+              <Card>
+                <CardContent className="pt-4 space-y-4">
+                  <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                    Basic Information
+                  </h3>
+                  
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Equipment Name *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Forklift FL-001" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="manufacturer">Manufacturer *</Label>
-                  <Input
-                    id="manufacturer"
-                    placeholder="e.g., Toyota"
-                    defaultValue={equipment?.manufacturer}
-                    required
+                  <FormField
+                    control={form.control}
+                    name="manufacturer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Manufacturer *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Toyota" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="model">Model *</Label>
-                  <Input
-                    id="model"
-                    placeholder="e.g., FG25"
-                    defaultValue={equipment?.model}
-                    required
+                  <FormField
+                    control={form.control}
+                    name="model"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Model *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., FG25" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="serialNumber">Serial Number *</Label>
-                  <Input
-                    id="serialNumber"
-                    placeholder="e.g., TY2023FL001"
-                    defaultValue={equipment?.serialNumber}
-                    required
+                  <FormField
+                    control={form.control}
+                    name="serialNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Serial Number *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., TY2023FL001" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Status and Location */}
-            <Card>
-              <CardContent className="pt-4 space-y-4">
-                <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                  Status & Location
-                </h3>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status *</Label>
-                  <Select defaultValue={equipment?.status || 'active'}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
-                  <Input
-                    id="location"
-                    placeholder="e.g., Warehouse A"
-                    defaultValue={equipment?.location}
-                    required
+              {/* Status and Location */}
+              <Card>
+                <CardContent className="pt-4 space-y-4">
+                  <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                    Status & Location
+                  </h3>
+                  
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="maintenance">Maintenance</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="installationDate">Installation Date</Label>
-                  <Input
-                    id="installationDate"
-                    type="date"
-                    defaultValue={equipment?.installationDate}
+                  <FormField
+                    control={form.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Location *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Warehouse A" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="warrantyExpiration">Warranty Expiration</Label>
-                  <Input
-                    id="warrantyExpiration"
-                    type="date"
-                    defaultValue={equipment?.warrantyExpiration}
+                  <FormField
+                    control={form.control}
+                    name="installationDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Installation Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Additional information about this equipment..."
-              className="min-h-[100px]"
-              defaultValue={equipment?.notes}
+                  <FormField
+                    control={form.control}
+                    name="warrantyExpiration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Warranty Expiration</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Custom Attributes */}
+            <CustomAttributesSection
+              initialAttributes={equipment?.customAttributes || []}
+              onChange={handleCustomAttributesChange}
+              hasError={customAttributesError}
             />
-          </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              {isEdit ? 'Update Equipment' : 'Add Equipment'}
-            </Button>
-          </div>
-        </form>
+            {/* Notes */}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Additional information about this equipment..."
+                      className="min-h-[100px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {isEdit ? 'Update Equipment' : 'Add Equipment'}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
