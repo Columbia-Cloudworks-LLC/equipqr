@@ -13,6 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Lock, Package } from "lucide-react";
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { getEquipmentByOrganization, getEquipmentById } from '@/services/dataService';
 
 interface WorkOrderFormProps {
   open: boolean;
@@ -23,6 +27,12 @@ interface WorkOrderFormProps {
 
 const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder, equipmentId }) => {
   const isEdit = !!workOrder;
+  const { currentOrganization } = useOrganization();
+  
+  // Get equipment data
+  const allEquipment = currentOrganization ? getEquipmentByOrganization(currentOrganization.id) : [];
+  const preSelectedEquipment = equipmentId && currentOrganization ? 
+    getEquipmentById(currentOrganization.id, equipmentId) : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,13 +41,68 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder,
     onClose();
   };
 
+  const renderEquipmentField = () => {
+    if (preSelectedEquipment) {
+      return (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            Equipment *
+            <Lock className="h-3 w-3 text-muted-foreground" />
+          </Label>
+          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border">
+            <Package className="h-4 w-4 text-muted-foreground" />
+            <div className="flex-1">
+              <div className="font-medium">{preSelectedEquipment.name}</div>
+              <div className="text-sm text-muted-foreground">
+                {preSelectedEquipment.manufacturer} {preSelectedEquipment.model} • {preSelectedEquipment.serialNumber}
+              </div>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              Pre-selected
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Equipment is pre-selected from the equipment details page
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="equipment">Equipment *</Label>
+        <Select defaultValue={workOrder?.equipment}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select equipment" />
+          </SelectTrigger>
+          <SelectContent>
+            {allEquipment.map((equipment) => (
+              <SelectItem key={equipment.id} value={equipment.id}>
+                <div className="flex flex-col">
+                  <span>{equipment.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {equipment.manufacturer} {equipment.model} • {equipment.location}
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Work Order' : 'Create New Work Order'}</DialogTitle>
           <DialogDescription>
-            {isEdit ? 'Update work order information' : 'Enter the details for the new work order'}
+            {isEdit ? 'Update work order information' : 
+             preSelectedEquipment ? 
+               `Create a new work order for ${preSelectedEquipment.name}` :
+               'Enter the details for the new work order'
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -54,26 +119,16 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder,
                   <Label htmlFor="title">Title *</Label>
                   <Input
                     id="title"
-                    placeholder="e.g., Annual maintenance for Forklift FL-001"
+                    placeholder={preSelectedEquipment ? 
+                      `Maintenance for ${preSelectedEquipment.name}` : 
+                      "e.g., Annual maintenance for Forklift FL-001"
+                    }
                     defaultValue={workOrder?.title}
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="equipment">Equipment *</Label>
-                  <Select defaultValue={equipmentId || workOrder?.equipment}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select equipment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="forklift-fl-001">Forklift FL-001</SelectItem>
-                      <SelectItem value="generator-gn-045">Generator GN-045</SelectItem>
-                      <SelectItem value="excavator-ex-102">Excavator EX-102</SelectItem>
-                      <SelectItem value="compressor-cp-023">Compressor CP-023</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {renderEquipmentField()}
 
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority *</Label>
@@ -174,7 +229,10 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder,
             <Label htmlFor="description">Description *</Label>
             <Textarea
               id="description"
-              placeholder="Detailed description of the work to be performed..."
+              placeholder={preSelectedEquipment ? 
+                `Describe the maintenance work needed for ${preSelectedEquipment.name}...` :
+                "Detailed description of the work to be performed..."
+              }
               className="min-h-[120px]"
               defaultValue={workOrder?.description}
               required
