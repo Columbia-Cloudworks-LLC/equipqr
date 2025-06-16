@@ -201,7 +201,7 @@ const organizationData = {
       {
         id: '2',
         title: 'Generator Maintenance',
-        description: 'Scheduled maintenance for Generator GN-001',
+        description: 'Scheduled maintenance for Generator GN-001 including oil change, filter replacement, and comprehensive system diagnostics. This is a critical maintenance task that requires careful attention to safety protocols.',
         equipmentId: '2',
         priority: 'high' as const,
         status: 'in_progress' as const,
@@ -212,6 +212,21 @@ const organizationData = {
         createdDate: '2024-05-20T10:00:00Z',
         dueDate: '2024-06-20T17:00:00Z',
         estimatedHours: 8
+      },
+      {
+        id: '3',
+        title: 'Forklift Hydraulic System Check',
+        description: 'Investigate potential hydraulic leak and check fluid levels',
+        equipmentId: '1',
+        priority: 'medium' as const,
+        status: 'assigned' as const,
+        assigneeId: '3',
+        assigneeName: 'Mike Johnson',
+        teamId: '1',
+        teamName: 'Maintenance Team',
+        createdDate: '2024-06-12T09:00:00Z',
+        dueDate: '2024-06-25T17:00:00Z',
+        estimatedHours: 3
       }
     ],
     scans: [
@@ -426,4 +441,35 @@ export const getWorkOrdersByEquipmentId = (organizationId: string, equipmentId: 
 export const getScansByEquipmentId = (organizationId: string, equipmentId: string): Scan[] => {
   const data = organizationData[organizationId as keyof typeof organizationData];
   return data?.scans?.filter(scan => scan.equipmentId === equipmentId) || [];
+};
+
+export const getWorkOrderById = (organizationId: string, workOrderId: string): WorkOrder | undefined => {
+  const data = organizationData[organizationId as keyof typeof organizationData];
+  return data?.workOrders?.find(workOrder => workOrder.id === workOrderId);
+};
+
+export const getAllWorkOrdersByOrganization = (organizationId: string): WorkOrder[] => {
+  const data = organizationData[organizationId as keyof typeof organizationData];
+  return data?.workOrders || [];
+};
+
+export const updateWorkOrderStatus = (
+  organizationId: string, 
+  workOrderId: string, 
+  newStatus: WorkOrder['status']
+): boolean => {
+  const data = organizationData[organizationId as keyof typeof organizationData];
+  if (!data?.workOrders) return false;
+  
+  const workOrderIndex = data.workOrders.findIndex(wo => wo.id === workOrderId);
+  if (workOrderIndex === -1) return false;
+  
+  data.workOrders[workOrderIndex].status = newStatus;
+  
+  // Set completion date if marking as completed
+  if (newStatus === 'completed') {
+    data.workOrders[workOrderIndex].completedDate = new Date().toISOString();
+  }
+  
+  return true;
 };

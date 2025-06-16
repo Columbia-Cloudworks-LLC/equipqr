@@ -6,68 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Filter, Calendar, User, Wrench, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { getAllWorkOrdersByOrganization } from '@/services/dataService';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 
 const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const { currentOrganization } = useOrganization();
 
-  // Mock work orders data
-  const workOrders = [
-    {
-      id: '1',
-      title: 'Forklift FL-001 Annual Maintenance',
-      description: 'Scheduled annual maintenance including oil change, filter replacement, and safety inspection',
-      equipment: 'Forklift FL-001',
-      status: 'assigned',
-      priority: 'medium',
-      assignee: 'John Smith',
-      reporter: 'Mike Johnson',
-      createdDate: '2024-06-08',
-      dueDate: '2024-06-15',
-      estimatedHours: 4
-    },
-    {
-      id: '2',
-      title: 'Generator GN-045 Fuel System Check',
-      description: 'Investigate fuel efficiency issues and potential leak in fuel system',
-      equipment: 'Generator GN-045',
-      status: 'in_progress',
-      priority: 'high',
-      assignee: 'Sarah Davis',
-      reporter: 'Tom Wilson',
-      createdDate: '2024-06-07',
-      dueDate: '2024-06-10',
-      estimatedHours: 6
-    },
-    {
-      id: '3',
-      title: 'Excavator EX-102 Hydraulic Inspection',
-      description: 'Routine hydraulic system inspection and fluid level check',
-      equipment: 'Excavator EX-102',
-      status: 'submitted',
-      priority: 'low',
-      assignee: null,
-      reporter: 'Lisa Brown',
-      createdDate: '2024-06-09',
-      dueDate: '2024-06-20',
-      estimatedHours: 2
-    },
-    {
-      id: '4',
-      title: 'Compressor CP-023 Belt Replacement',
-      description: 'Replace worn drive belt and check tension settings',
-      equipment: 'Compressor CP-023',
-      status: 'completed',
-      priority: 'medium',
-      assignee: 'John Smith',
-      reporter: 'Mike Johnson',
-      createdDate: '2024-06-05',
-      dueDate: '2024-06-08',
-      estimatedHours: 2
-    }
-  ];
+  // Get work orders from data service
+  const allWorkOrders = currentOrganization ? getAllWorkOrdersByOrganization(currentOrganization.id) : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -103,11 +54,10 @@ const WorkOrders = () => {
     }
   };
 
-  const filteredWorkOrders = workOrders.filter(order => {
+  const filteredWorkOrders = allWorkOrders.filter(order => {
     const matchesSearch = order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.equipment.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.assignee?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.reporter.toLowerCase().includes(searchQuery.toLowerCase());
+                         order.assigneeName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         order.teamName?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -188,15 +138,17 @@ const WorkOrders = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Wrench className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Equipment:</span>
-                    <span className="text-muted-foreground">{order.equipment}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">Assignee:</span>
-                    <span className="text-muted-foreground">{order.assignee || 'Unassigned'}</span>
+                    <span className="text-muted-foreground">{order.assigneeName || 'Unassigned'}</span>
                   </div>
+                  {order.teamName && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Team:</span>
+                      <span className="text-muted-foreground">{order.teamName}</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -205,30 +157,38 @@ const WorkOrders = () => {
                     <span className="font-medium">Created:</span>
                     <span className="text-muted-foreground">{new Date(order.createdDate).toLocaleDateString()}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Due:</span>
-                    <span className="text-muted-foreground">{new Date(order.dueDate).toLocaleDateString()}</span>
-                  </div>
+                  {order.dueDate && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Due:</span>
+                      <span className="text-muted-foreground">{new Date(order.dueDate).toLocaleDateString()}</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Est. Hours:</span>
-                    <span className="text-muted-foreground">{order.estimatedHours}h</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Reporter:</span>
-                    <span className="text-muted-foreground">{order.reporter}</span>
-                  </div>
+                  {order.estimatedHours && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Est. Hours:</span>
+                      <span className="text-muted-foreground">{order.estimatedHours}h</span>
+                    </div>
+                  )}
+                  {order.completedDate && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Completed:</span>
+                      <span className="text-muted-foreground">{new Date(order.completedDate).toLocaleDateString()}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm">
-                  View Details
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/work-orders/${order.id}`}>
+                    View Details
+                  </Link>
                 </Button>
                 {order.status === 'submitted' && (
                   <Button variant="outline" size="sm">
