@@ -19,6 +19,7 @@ import FleetMap from "./pages/FleetMap";
 import Organization from "./pages/Organization";
 import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
+import QRScanner from "./pages/QRScanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,8 +51,7 @@ const App = () => (
                       <Route path="/fleet-map" element={<FleetMap />} />
                       <Route path="/organization" element={<Organization />} />
                       <Route path="/billing" element={<Billing />} />
-                      {/* Placeholder routes for future pages */}
-                      <Route path="/scanner" element={<div>QR Scanner page coming soon...</div>} />
+                      <Route path="/scanner" element={<QRScanner />} />
                       <Route path="/settings" element={<Settings />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
