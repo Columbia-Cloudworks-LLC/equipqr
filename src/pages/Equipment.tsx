@@ -7,20 +7,38 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Filter, QrCode, MapPin, Calendar, Package } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { getEquipmentByOrganization } from '@/services/dataService';
+import { useSession } from '@/contexts/SessionContext';
+import { useEquipmentByOrganization } from '@/hooks/useSupabaseData';
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 
 const Equipment = () => {
   const navigate = useNavigate();
-  const { currentOrganization, isLoading } = useOrganization();
+  const { getCurrentOrganization, isLoading: sessionLoading } = useSession();
+  const currentOrganization = getCurrentOrganization();
+  const { data: equipment = [], isLoading: equipmentLoading } = useEquipmentByOrganization();
+  
   const [showForm, setShowForm] = useState(false);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  if (isLoading || !currentOrganization) {
+  const isLoading = sessionLoading || equipmentLoading;
+
+  if (!currentOrganization) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
+          <p className="text-muted-foreground">
+            Please select an organization to view equipment.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div>
@@ -39,8 +57,6 @@ const Equipment = () => {
       </div>
     );
   }
-
-  const equipment = getEquipmentByOrganization(currentOrganization.id);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -137,12 +153,14 @@ const Equipment = () => {
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">{item.location}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">
-                    Last maintenance: {new Date(item.lastMaintenance).toLocaleDateString()}
-                  </span>
-                </div>
+                {item.lastMaintenance && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      Last maintenance: {new Date(item.lastMaintenance).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-2">

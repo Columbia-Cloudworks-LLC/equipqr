@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, MapPin, Calendar, Package, QrCode } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { getEquipmentById } from '@/services/dataService';
+import { useSession } from '@/contexts/SessionContext';
+import { useEquipmentById } from '@/hooks/useSupabaseData';
 import EquipmentDetailsTab from '@/components/equipment/EquipmentDetailsTab';
 import EquipmentNotesTab from '@/components/equipment/EquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
@@ -17,9 +17,14 @@ import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 const EquipmentDetails = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const navigate = useNavigate();
-  const { currentOrganization, isLoading } = useOrganization();
+  const { getCurrentOrganization, isLoading: sessionLoading } = useSession();
+  const currentOrganization = getCurrentOrganization();
+  const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(equipmentId);
+  
   const [activeTab, setActiveTab] = useState('details');
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
+
+  const isLoading = sessionLoading || equipmentLoading;
 
   const handleCreateWorkOrder = () => {
     setIsWorkOrderFormOpen(true);
@@ -29,7 +34,31 @@ const EquipmentDetails = () => {
     setIsWorkOrderFormOpen(false);
   };
 
-  if (isLoading || !currentOrganization || !equipmentId) {
+  if (!currentOrganization) {
+    return (
+      <div className="space-y-6">
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/equipment')}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Equipment
+        </Button>
+        <Card>
+          <CardContent className="text-center py-12">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Organization Selected</h3>
+            <p className="text-muted-foreground">
+              Please select an organization to view equipment details.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="h-8 bg-muted animate-pulse rounded" />
@@ -37,8 +66,6 @@ const EquipmentDetails = () => {
       </div>
     );
   }
-
-  const equipment = getEquipmentById(currentOrganization.id, equipmentId);
 
   if (!equipment) {
     return (
@@ -152,7 +179,10 @@ const EquipmentDetails = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-lg font-semibold">
-                  {new Date(equipment.lastMaintenance).toLocaleDateString()}
+                  {equipment.lastMaintenance ? 
+                    new Date(equipment.lastMaintenance).toLocaleDateString() : 
+                    'Not recorded'
+                  }
                 </p>
               </CardContent>
             </Card>
