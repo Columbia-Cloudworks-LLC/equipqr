@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UserPlus, Settings, Building2 } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import MembersList from '@/components/organization/MembersList';
 import InviteMemberDialog from '@/components/organization/InviteMemberDialog';
 import PremiumFeatures from '@/components/organization/PremiumFeatures';
@@ -15,7 +14,7 @@ import { OrganizationMember, InvitationData } from '@/types/organization';
 import { toast } from '@/hooks/use-toast';
 
 const Organization = () => {
-  const { currentOrganization, isLoading } = useOrganization();
+  const { currentOrganization, isLoading } = useSimpleOrganization();
   const [members, setMembers] = useState<OrganizationMember[]>(mockMembers);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
