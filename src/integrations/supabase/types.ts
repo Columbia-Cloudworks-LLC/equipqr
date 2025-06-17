@@ -454,6 +454,10 @@ export type Database = {
           status: string
         }[]
       }
+      get_user_organization_role: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: string
+      }
       get_user_team_memberships: {
         Args: { user_uuid: string; org_id: string }
         Returns: {
@@ -462,6 +466,14 @@ export type Database = {
           role: string
           joined_date: string
         }[]
+      }
+      user_has_organization_access: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      user_is_organization_admin: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
       }
     }
     Enums: {

@@ -47,6 +47,7 @@ export const useTeamMembership = (): TeamMembershipContextType => {
         });
 
       if (fetchError) {
+        console.error('Error fetching team memberships:', fetchError);
         throw fetchError;
       }
 

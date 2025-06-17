@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Crown, Users, User, Settings, Trash2 } from 'lucide-react';
+import { Users, User, Settings, Trash2 } from 'lucide-react';
 import { Team, TeamMember } from '@/services/dataService';
 import { usePermissions } from '@/hooks/usePermissions';
 import RoleChangeDialog from './RoleChangeDialog';

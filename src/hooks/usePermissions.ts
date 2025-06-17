@@ -1,6 +1,6 @@
 
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useTeam } from '@/contexts/TeamContext';
+import { useTeamMembership } from '@/hooks/useTeamMembership';
 import { WorkOrder } from '@/services/dataService';
 
 export interface PermissionHooks {
@@ -34,7 +34,7 @@ export interface WorkOrderPermissions {
 
 export const usePermissions = (): PermissionHooks => {
   const { currentOrganization } = useOrganization();
-  const { canManageTeam: teamCanManage, hasTeamAccess } = useTeam();
+  const { canManageTeam: teamCanManage, hasTeamAccess } = useTeamMembership();
 
   const canManageOrganization = (): boolean => {
     if (!currentOrganization) return false;
@@ -108,7 +108,7 @@ export const usePermissions = (): PermissionHooks => {
 
 export const useWorkOrderPermissions = (workOrder?: WorkOrder): WorkOrderPermissions => {
   const { currentOrganization } = useOrganization();
-  const { canManageTeam, hasTeamAccess } = useTeam();
+  const { canManageTeam, hasTeamAccess } = useTeamMembership();
 
   if (!currentOrganization) {
     return {
