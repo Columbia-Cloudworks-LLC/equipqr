@@ -1,72 +1,60 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { SettingsProvider } from "@/contexts/SettingsContext";
+import { Routes, Route } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
-import AppSidebar from "@/components/layout/AppSidebar";
-import Dashboard from "./pages/Dashboard";
-import Equipment from "./pages/Equipment";
-import EquipmentDetails from "./pages/EquipmentDetails";
-import WorkOrders from "./pages/WorkOrders";
-import WorkOrderDetails from "./pages/WorkOrderDetails";
-import Teams from "./pages/Teams";
-import TeamDetails from "./pages/TeamDetails";
-import FleetMap from "./pages/FleetMap";
-import Reports from "./pages/Reports";
-import Organization from "./pages/Organization";
-import Billing from "./pages/Billing";
-import Settings from "./pages/Settings";
-import QRScanner from "./pages/QRScanner";
-import NotFound from "./pages/NotFound";
+import { UserProvider } from "@/contexts/UserContext";
+import { SettingsProvider } from "@/contexts/SettingsContext";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import Dashboard from "@/pages/Dashboard";
+import Equipment from "@/pages/Equipment";
+import EquipmentDetails from "@/pages/EquipmentDetails";
+import WorkOrders from "@/pages/WorkOrders";
+import WorkOrderDetails from "@/pages/WorkOrderDetails";
+import Teams from "@/pages/Teams";
+import TeamDetails from "@/pages/TeamDetails";
+import FleetMap from "@/pages/FleetMap";
+import Organization from "@/pages/Organization";
+import QRScanner from "@/pages/QRScanner";
+import Billing from "@/pages/Billing";
+import Settings from "@/pages/Settings";
+import Reports from "@/pages/Reports";
+import NotFound from "@/pages/NotFound";
+import "./App.css";
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <SettingsProvider>
+function App() {
+  return (
+    <UserProvider>
       <OrganizationProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <SidebarProvider>
-              <div className="min-h-screen flex w-full">
-                <AppSidebar />
-                <main className="flex-1 flex flex-col">
-                  <div className="border-b px-4 py-2">
-                    <SidebarTrigger />
-                  </div>
-                  <div className="flex-1 p-6">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/equipment" element={<Equipment />} />
-                      <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
-                      <Route path="/work-orders" element={<WorkOrders />} />
-                      <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
-                      <Route path="/teams" element={<Teams />} />
-                      <Route path="/teams/:teamId" element={<TeamDetails />} />
-                      <Route path="/fleet-map" element={<FleetMap />} />
-                      <Route path="/reports" element={<Reports />} />
-                      <Route path="/organization" element={<Organization />} />
-                      <Route path="/billing" element={<Billing />} />
-                      <Route path="/scanner" element={<QRScanner />} />
-                      <Route path="/settings" element={<Settings />} />
-                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </div>
-                </main>
-              </div>
-            </SidebarProvider>
-          </BrowserRouter>
-        </TooltipProvider>
+        <SettingsProvider>
+          <SidebarProvider>
+            <div className="flex h-screen w-full">
+              <AppSidebar />
+              <main className="flex-1 overflow-auto p-6">
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/equipment" element={<Equipment />} />
+                  <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
+                  <Route path="/work-orders" element={<WorkOrders />} />
+                  <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/teams/:teamId" element={<TeamDetails />} />
+                  <Route path="/fleet-map" element={<FleetMap />} />
+                  <Route path="/organization" element={<Organization />} />
+                  <Route path="/scanner" element={<QRScanner />} />
+                  <Route path="/billing" element={<Billing />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
+            <Toaster />
+          </SidebarProvider>
+        </SettingsProvider>
       </OrganizationProvider>
-    </SettingsProvider>
-  </QueryClientProvider>
-);
+    </UserProvider>
+  );
+}
 
 export default App;

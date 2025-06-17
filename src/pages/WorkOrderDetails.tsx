@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,13 +7,16 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { getWorkOrderById, getEquipmentById } from '@/services/dataService';
+import { useWorkOrderPermissions } from '@/hooks/usePermissions';
 import WorkOrderStatusManager from '@/components/work-orders/WorkOrderStatusManager';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
+import WorkOrderFormEnhanced from '@/components/work-orders/WorkOrderFormEnhanced';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
   const { currentOrganization } = useOrganization();
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
 
   if (!workOrderId || !currentOrganization) {
     return <Navigate to="/work-orders" replace />;
@@ -22,10 +24,25 @@ const WorkOrderDetails = () => {
 
   const workOrder = getWorkOrderById(currentOrganization.id, workOrderId);
   const equipment = workOrder ? getEquipmentById(currentOrganization.id, workOrder.equipmentId) : null;
+  const permissions = useWorkOrderPermissions(workOrder);
 
   if (!workOrder) {
     return <Navigate to="/work-orders" replace />;
   }
+
+  const handleEditWorkOrder = () => {
+    setIsEditFormOpen(true);
+  };
+
+  const handleCloseEditForm = () => {
+    setIsEditFormOpen(false);
+  };
+
+  const handleUpdateWorkOrder = (data: any) => {
+    console.log('Updating work order:', data);
+    // Here you would typically update the work order in your data service
+    setIsEditFormOpen(false);
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -88,10 +105,12 @@ const WorkOrderDetails = () => {
           <Badge className={getStatusColor(workOrder.status)}>
             {formatStatus(workOrder.status)}
           </Badge>
-          <Button variant="outline">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
+          {permissions.canEdit && (
+            <Button variant="outline" onClick={handleEditWorkOrder}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
         </div>
       </div>
 
@@ -189,6 +208,14 @@ const WorkOrderDetails = () => {
           </Card>
         </div>
       </div>
+
+      {/* Edit Work Order Form */}
+      <WorkOrderFormEnhanced
+        open={isEditFormOpen}
+        onClose={handleCloseEditForm}
+        workOrder={workOrder}
+        onSubmit={handleUpdateWorkOrder}
+      />
     </div>
   );
 };
