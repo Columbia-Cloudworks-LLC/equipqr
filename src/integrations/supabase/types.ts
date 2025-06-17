@@ -448,13 +448,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_user_team_access: {
-        Args: { user_uuid: string; team_uuid: string }
+      check_org_access_direct: {
+        Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
-      check_user_team_role: {
-        Args: { user_uuid: string; team_uuid: string; required_role: string }
-        Returns: boolean
+      get_user_org_role_direct: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: string
       }
       get_user_organization_membership: {
         Args: { user_uuid: string }
@@ -464,14 +464,6 @@ export type Database = {
           status: string
         }[]
       }
-      get_user_organization_role: {
-        Args: { user_uuid: string; org_id: string }
-        Returns: string
-      }
-      get_user_team_ids: {
-        Args: { user_uuid: string; org_id: string }
-        Returns: string[]
-      }
       get_user_team_memberships: {
         Args: { user_uuid: string; org_id: string }
         Returns: {
@@ -480,27 +472,6 @@ export type Database = {
           role: string
           joined_date: string
         }[]
-      }
-      user_has_organization_access: {
-        Args: { user_uuid: string; org_id: string }
-        Returns: boolean
-      }
-      user_has_team_equipment_access: {
-        Args: { user_uuid: string; equipment_team_id: string }
-        Returns: boolean
-      }
-      user_has_work_order_access: {
-        Args: {
-          user_uuid: string
-          work_order_team_id: string
-          work_order_assignee_id: string
-          work_order_created_by: string
-        }
-        Returns: boolean
-      }
-      user_is_organization_admin: {
-        Args: { user_uuid: string; org_id: string }
-        Returns: boolean
       }
     }
     Enums: {
