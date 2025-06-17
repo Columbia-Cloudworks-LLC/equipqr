@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
+import { SessionProvider } from '@/contexts/SessionContext';
 import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -33,30 +34,32 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <UserProvider>
-          <Router>
-            <SimpleOrganizationProvider>
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <main className="flex-1 p-6 lg:p-8 overflow-auto">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/equipment" element={<Equipment />} />
-                      <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
-                      <Route path="/work-orders" element={<WorkOrders />} />
-                      <Route path="/teams" element={<Teams />} />
-                      <Route path="/fleet-map" element={<FleetMap />} />
-                      <Route path="/organization" element={<Organization />} />
-                      <Route path="/scanner" element={<QRScanner />} />
-                      <Route path="/billing" element={<Billing />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/reports" element={<Reports />} />
-                    </Routes>
-                  </main>
-                </div>
-              </SidebarProvider>
-            </SimpleOrganizationProvider>
-          </Router>
+          <SessionProvider>
+            <Router>
+              <SimpleOrganizationProvider>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <main className="flex-1 p-6 lg:p-8 overflow-auto">
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/equipment" element={<Equipment />} />
+                        <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
+                        <Route path="/work-orders" element={<WorkOrders />} />
+                        <Route path="/teams" element={<Teams />} />
+                        <Route path="/fleet-map" element={<FleetMap />} />
+                        <Route path="/organization" element={<Organization />} />
+                        <Route path="/scanner" element={<QRScanner />} />
+                        <Route path="/billing" element={<Billing />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/reports" element={<Reports />} />
+                      </Routes>
+                    </main>
+                  </div>
+                </SidebarProvider>
+              </SimpleOrganizationProvider>
+            </Router>
+          </SessionProvider>
         </UserProvider>
       </AuthProvider>
       <Toaster />
