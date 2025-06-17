@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Users, Settings, Crown, User } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { getTeamsByOrganization } from '@/services/dataService';
 import TeamForm from '@/components/teams/TeamForm';
 
 const Teams = () => {
-  const { currentOrganization, isLoading } = useOrganization();
+  const { currentOrganization, isLoading } = useSimpleOrganization();
   const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
 
