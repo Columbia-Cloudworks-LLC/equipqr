@@ -438,7 +438,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_user_team_access: {
+        Args: { user_uuid: string; team_uuid: string }
+        Returns: boolean
+      }
+      check_user_team_role: {
+        Args: { user_uuid: string; team_uuid: string; required_role: string }
+        Returns: boolean
+      }
+      get_user_organization_membership: {
+        Args: { user_uuid: string }
+        Returns: {
+          organization_id: string
+          role: string
+          status: string
+        }[]
+      }
+      get_user_team_memberships: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: {
+          team_id: string
+          team_name: string
+          role: string
+          joined_date: string
+        }[]
+      }
     }
     Enums: {
       equipment_status: "active" | "maintenance" | "inactive"

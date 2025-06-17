@@ -7,21 +7,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Crown, Users, User, Settings, Trash2 } from 'lucide-react';
 import { Team, TeamMember } from '@/services/dataService';
+import { usePermissions } from '@/hooks/usePermissions';
 import RoleChangeDialog from './RoleChangeDialog';
 
 interface TeamMembersListProps {
   team: Team;
-  canManage: boolean;
 }
 
-const TeamMembersList: React.FC<TeamMembersListProps> = ({ team, canManage }) => {
+const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const { canManageTeam } = usePermissions();
+  
+  const canManage = canManageTeam(team.id);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'owner':
-        return <Crown className="h-4 w-4 text-yellow-600" />;
       case 'manager':
         return <Users className="h-4 w-4 text-blue-600" />;
       case 'technician':
@@ -37,8 +38,6 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team, canManage }) =>
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'owner':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'manager':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'technician':

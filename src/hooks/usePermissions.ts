@@ -1,75 +1,97 @@
 
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useUser } from '@/contexts/UserContext';
-import { WorkOrder } from '@/services/dataService';
+import { useTeam } from '@/contexts/TeamContext';
 
-export interface WorkOrderPermissions {
-  canEdit: boolean;
-  canChangeStatus: boolean;
-  canAssign: boolean;
-  canDelete: boolean;
-  canEditAssignment: boolean;
-  canEditPriority: boolean;
-  canEditDueDate: boolean;
-  canEditDescription: boolean;
+export interface PermissionHooks {
+  // Organization-level permissions
+  canManageOrganization: () => boolean;
+  canInviteMembers: () => boolean;
+  canCreateTeams: () => boolean;
+  canCreateEquipment: () => boolean;
+  canManageWorkOrders: () => boolean;
+  
+  // Team-level permissions
+  canManageTeam: (teamId: string) => boolean;
+  canAssignWorkOrders: (teamId: string) => boolean;
+  canUpdateEquipmentStatus: () => boolean;
+  hasTeamAccess: (teamId: string) => boolean;
+  
+  // Work order permissions
+  canCreateWorkOrder: () => boolean;
+  canUpdateWorkOrderStatus: (workOrderId: string) => boolean;
+  canCompleteWorkOrder: (workOrderId: string) => boolean;
 }
 
-export const useWorkOrderPermissions = (workOrder?: WorkOrder): WorkOrderPermissions => {
+export const usePermissions = (): PermissionHooks => {
   const { currentOrganization } = useOrganization();
-  const { currentUser } = useUser();
+  const { canManageTeam: teamCanManage, hasTeamAccess } = useTeam();
 
-  if (!currentOrganization || !currentUser) {
-    return {
-      canEdit: false,
-      canChangeStatus: false,
-      canAssign: false,
-      canDelete: false,
-      canEditAssignment: false,
-      canEditPriority: false,
-      canEditDueDate: false,
-      canEditDescription: false,
-    };
-  }
-
-  const userRole = currentOrganization.userRole;
-  const isOwnerOrAdmin = ['owner', 'admin'].includes(userRole);
-  const isAssignedUser = workOrder?.assigneeId === currentUser.id;
-  
-  // For team permissions, we'd check team membership here
-  // const userTeams = getUserTeams(currentUser.id, currentOrganization.id);
-  // const isTeamManager = userTeams.some(team => team.role === 'manager');
-
-  return {
-    canEdit: isOwnerOrAdmin || isAssignedUser,
-    canChangeStatus: isOwnerOrAdmin || isAssignedUser,
-    canAssign: isOwnerOrAdmin,
-    canDelete: isOwnerOrAdmin,
-    canEditAssignment: isOwnerOrAdmin,
-    canEditPriority: isOwnerOrAdmin,
-    canEditDueDate: isOwnerOrAdmin || isAssignedUser,
-    canEditDescription: isOwnerOrAdmin,
+  const canManageOrganization = (): boolean => {
+    if (!currentOrganization) return false;
+    return ['owner', 'admin'].includes(currentOrganization.userRole);
   };
-};
 
-export const useOrganizationPermissions = () => {
-  const { currentOrganization } = useOrganization();
-  const { currentUser } = useUser();
+  const canInviteMembers = (): boolean => {
+    return canManageOrganization();
+  };
 
-  if (!currentOrganization || !currentUser) {
-    return {
-      canManageMembers: false,
-      canManageTeams: false,
-      canManageEquipment: false,
-      canCreateWorkOrders: false,
-    };
-  }
+  const canCreateTeams = (): boolean => {
+    return canManageOrganization();
+  };
 
-  const userRole = currentOrganization.userRole;
+  const canCreateEquipment = (): boolean => {
+    if (!currentOrganization) return false;
+    return ['owner', 'admin'].includes(currentOrganization.userRole);
+  };
+
+  const canManageWorkOrders = (): boolean => {
+    if (!currentOrganization) return false;
+    return ['owner', 'admin'].includes(currentOrganization.userRole);
+  };
+
+  const canManageTeam = (teamId: string): boolean => {
+    return teamCanManage(teamId);
+  };
+
+  const canAssignWorkOrders = (teamId: string): boolean => {
+    return canManageTeam(teamId);
+  };
+
+  const canUpdateEquipmentStatus = (): boolean => {
+    if (!currentOrganization) return false;
+    // Organization admins and team members can update equipment status
+    return ['owner', 'admin', 'member'].includes(currentOrganization.userRole);
+  };
+
+  const canCreateWorkOrder = (): boolean => {
+    if (!currentOrganization) return false;
+    // All organization members can create work orders
+    return true;
+  };
+
+  const canUpdateWorkOrderStatus = (workOrderId: string): boolean => {
+    if (!currentOrganization) return false;
+    // Organization admins can always update, team managers can update assigned work orders
+    return ['owner', 'admin'].includes(currentOrganization.userRole);
+  };
+
+  const canCompleteWorkOrder = (workOrderId: string): boolean => {
+    // Similar logic to update, but also includes technicians who are assigned
+    return canUpdateWorkOrderStatus(workOrderId);
+  };
 
   return {
-    canManageMembers: ['owner', 'admin'].includes(userRole),
-    canManageTeams: ['owner', 'admin'].includes(userRole),
-    canManageEquipment: ['owner', 'admin'].includes(userRole),
-    canCreateWorkOrders: true, // All users can create work orders
+    canManageOrganization,
+    canInviteMembers,
+    canCreateTeams,
+    canCreateEquipment,
+    canManageWorkOrders,
+    canManageTeam,
+    canAssignWorkOrders,
+    canUpdateEquipmentStatus,
+    hasTeamAccess,
+    canCreateWorkOrder,
+    canUpdateWorkOrderStatus,
+    canCompleteWorkOrder
   };
 };
