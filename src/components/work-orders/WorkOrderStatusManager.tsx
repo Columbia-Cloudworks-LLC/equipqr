@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Play, Pause, CheckCircle, XCircle, Settings } from 'lucide-react';
 import { WorkOrder, updateWorkOrderStatus } from '@/services/dataService';
 
@@ -17,11 +17,9 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ workOrd
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
   const { currentOrganization } = useOrganization();
+  const { canUpdateWorkOrderStatus } = usePermissions();
 
-  // Mock current user role - in real app this would come from auth context
-  const currentUserRole = 'manager' as 'owner' | 'manager' | 'technician' | 'requestor' | 'viewer';
-
-  const canManageStatus = ['owner', 'manager', 'technician'].includes(currentUserRole);
+  const canManageStatus = canUpdateWorkOrderStatus(workOrder);
 
   const getNextStatusOptions = (currentStatus: WorkOrder['status']) => {
     switch (currentStatus) {
@@ -158,7 +156,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ workOrd
 
         {!canManageStatus && (
           <p className="text-sm text-muted-foreground">
-            You don't have permission to change the status of this work order.
+            You don't have permission to change the status of this work order. Only organization admins, team managers, and team members can update work order status.
           </p>
         )}
 

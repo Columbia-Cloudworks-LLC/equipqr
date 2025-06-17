@@ -1,20 +1,24 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, MessageSquare, Lock, Clock } from 'lucide-react';
+import { Plus, MessageSquare, Lock, Clock, Shield } from 'lucide-react';
 import { getNotesByEquipmentId, Note } from '@/services/dataService';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface EquipmentNotesTabProps {
   equipmentId: string;
   organizationId: string;
+  equipmentTeamId?: string;
 }
 
 const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   equipmentId,
   organizationId,
+  equipmentTeamId,
 }) => {
   const [notes, setNotes] = useState<Note[]>(getNotesByEquipmentId(organizationId, equipmentId));
   const [showAddNote, setShowAddNote] = useState(false);
@@ -22,16 +26,30 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const [newNotePrivate, setNewNotePrivate] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const notesPerPage = 5;
+  
+  const { canViewEquipment, canUpdateEquipmentStatus } = usePermissions();
 
-  // Mock current user role - in real app this would come from auth context
-  const currentUserRole = 'manager' as 'owner' | 'manager' | 'technician' | 'requestor' | 'viewer';
+  // Check if user can view this equipment's notes
+  const canViewNotes = canViewEquipment(equipmentTeamId);
+  const canAddNotes = canUpdateEquipmentStatus(equipmentTeamId);
 
-  // Filter notes based on user role
+  if (!canViewNotes) {
+    return (
+      <div className="text-center py-12">
+        <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Access Restricted</h3>
+        <p className="text-muted-foreground">
+          You don't have permission to view notes for this equipment. Contact your team manager for access.
+        </p>
+      </div>
+    );
+  }
+
+  // Filter notes based on user role and privacy settings
   const visibleNotes = notes.filter(note => {
-    if (currentUserRole === 'viewer' || currentUserRole === 'requestor') {
-      return !note.isPrivate;
-    }
-    return true;
+    // In a real implementation, you'd check if the current user is the author
+    // or has permission to view private notes
+    return !note.isPrivate || canAddNotes;
   });
 
   const totalPages = Math.ceil(visibleNotes.length / notesPerPage);
@@ -57,8 +75,6 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     setShowAddNote(false);
   };
 
-  const canAddNotes = ['owner', 'manager', 'technician'].includes(currentUserRole);
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -67,6 +83,11 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
           <h3 className="text-lg font-semibold">Equipment Notes</h3>
           <p className="text-sm text-muted-foreground">
             {visibleNotes.length} {visibleNotes.length === 1 ? 'note' : 'notes'}
+            {equipmentTeamId && (
+              <span className="ml-2 text-xs">
+                • Team-restricted access
+              </span>
+            )}
           </p>
         </div>
         {canAddNotes && (
@@ -76,6 +97,20 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
           </Button>
         )}
       </div>
+
+      {/* Team Access Notice */}
+      {equipmentTeamId && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-orange-800">
+              <Shield className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                This equipment is assigned to a team. Only team members and organization admins can view and add notes.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add Note Form */}
       {showAddNote && (
@@ -98,7 +133,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
                   onCheckedChange={setNewNotePrivate}
                 />
                 <label htmlFor="private-note" className="text-sm font-medium">
-                  Private note (only visible to managers and technicians)
+                  Private note (only visible to team managers and admins)
                 </label>
               </div>
               <div className="flex gap-2">

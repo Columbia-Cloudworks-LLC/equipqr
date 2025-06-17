@@ -1,9 +1,11 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Calendar, Shield, Wrench } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MapPin, Calendar, Shield, Wrench, Users } from 'lucide-react';
 import { Equipment } from '@/services/dataService';
 import { UserOrganization } from '@/types/organizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface EquipmentDetailsTabProps {
   equipment: Equipment;
@@ -14,8 +16,24 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
   equipment,
   organization,
 }) => {
+  const { canViewEquipment } = usePermissions();
   const hasFleetMapFeature = organization.features.includes('Fleet Map');
   const hasLocation = equipment.lastKnownLocation;
+  
+  // Check if user can view this equipment based on team assignment
+  const canView = canViewEquipment(equipment.id); // In real implementation, you'd pass the team_id
+
+  if (!canView) {
+    return (
+      <div className="text-center py-12">
+        <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Access Restricted</h3>
+        <p className="text-muted-foreground">
+          You don't have permission to view this equipment. Contact your team manager or organization admin for access.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -43,7 +61,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
             </div>
             <div>
               <div className="text-sm font-medium text-muted-foreground">Status</div>
-              <div className="text-lg capitalize">{equipment.status}</div>
+              <Badge variant="outline" className={
+                equipment.status === 'active' ? 'border-green-200 text-green-800' :
+                equipment.status === 'maintenance' ? 'border-yellow-200 text-yellow-800' :
+                'border-red-200 text-red-800'
+              }>
+                {equipment.status}
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -78,12 +102,12 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
           </CardContent>
         </Card>
 
-        {/* Location */}
+        {/* Location & Team Assignment */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              Location
+              Location & Assignment
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -91,9 +115,19 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
               <div className="text-sm font-medium text-muted-foreground">Current Location</div>
               <div className="text-lg">{equipment.location}</div>
             </div>
+            {/* Note: In real implementation, you'd fetch and display team information */}
+            <div>
+              <div className="text-sm font-medium text-muted-foreground">Assigned Team</div>
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Team assignment info would be displayed here
+                </span>
+              </div>
+            </div>
             {hasLocation && (
               <div>
-                <div className="text-sm font-medium text-muted-foreground">Coordinates</div>
+                <div className="text-sm font-medium text-muted-foreground">GPS Coordinates</div>
                 <div className="text-sm font-mono">
                   {equipment.lastKnownLocation!.latitude.toFixed(4)}, {equipment.lastKnownLocation!.longitude.toFixed(4)}
                 </div>

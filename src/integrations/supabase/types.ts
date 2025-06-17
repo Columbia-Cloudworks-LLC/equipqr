@@ -26,6 +26,7 @@ export type Database = {
           organization_id: string
           serial_number: string
           status: Database["public"]["Enums"]["equipment_status"]
+          team_id: string | null
           updated_at: string
           warranty_expiration: string | null
         }
@@ -45,6 +46,7 @@ export type Database = {
           organization_id: string
           serial_number: string
           status?: Database["public"]["Enums"]["equipment_status"]
+          team_id?: string | null
           updated_at?: string
           warranty_expiration?: string | null
         }
@@ -64,6 +66,7 @@ export type Database = {
           organization_id?: string
           serial_number?: string
           status?: Database["public"]["Enums"]["equipment_status"]
+          team_id?: string | null
           updated_at?: string
           warranty_expiration?: string | null
         }
@@ -73,6 +76,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -458,6 +468,10 @@ export type Database = {
         Args: { user_uuid: string; org_id: string }
         Returns: string
       }
+      get_user_team_ids: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: string[]
+      }
       get_user_team_memberships: {
         Args: { user_uuid: string; org_id: string }
         Returns: {
@@ -469,6 +483,19 @@ export type Database = {
       }
       user_has_organization_access: {
         Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      user_has_team_equipment_access: {
+        Args: { user_uuid: string; equipment_team_id: string }
+        Returns: boolean
+      }
+      user_has_work_order_access: {
+        Args: {
+          user_uuid: string
+          work_order_team_id: string
+          work_order_assignee_id: string
+          work_order_created_by: string
+        }
         Returns: boolean
       }
       user_is_organization_admin: {

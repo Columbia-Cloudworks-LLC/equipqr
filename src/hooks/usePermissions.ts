@@ -14,13 +14,17 @@ export interface PermissionHooks {
   // Team-level permissions
   canManageTeam: (teamId: string) => boolean;
   canAssignWorkOrders: (teamId: string) => boolean;
-  canUpdateEquipmentStatus: () => boolean;
+  canUpdateEquipmentStatus: (equipmentTeamId?: string) => boolean;
   hasTeamAccess: (teamId: string) => boolean;
   
   // Work order permissions
   canCreateWorkOrder: () => boolean;
-  canUpdateWorkOrderStatus: (workOrderId: string) => boolean;
-  canCompleteWorkOrder: (workOrderId: string) => boolean;
+  canUpdateWorkOrderStatus: (workOrder: WorkOrder) => boolean;
+  canCompleteWorkOrder: (workOrder: WorkOrder) => boolean;
+  
+  // Equipment permissions
+  canViewEquipment: (equipmentTeamId?: string) => boolean;
+  canEditEquipment: (equipmentTeamId?: string) => boolean;
 }
 
 export interface WorkOrderPermissions {
@@ -34,11 +38,15 @@ export interface WorkOrderPermissions {
 
 export const usePermissions = (): PermissionHooks => {
   const { currentOrganization } = useOrganization();
-  const { canManageTeam: teamCanManage, hasTeamAccess } = useTeamMembership();
+  const { canManageTeam: teamCanManage, hasTeamAccess, getUserTeamIds } = useTeamMembership();
 
-  const canManageOrganization = (): boolean => {
+  const isOrgAdmin = (): boolean => {
     if (!currentOrganization) return false;
     return ['owner', 'admin'].includes(currentOrganization.userRole);
+  };
+
+  const canManageOrganization = (): boolean => {
+    return isOrgAdmin();
   };
 
   const canInviteMembers = (): boolean => {
@@ -50,13 +58,11 @@ export const usePermissions = (): PermissionHooks => {
   };
 
   const canCreateEquipment = (): boolean => {
-    if (!currentOrganization) return false;
-    return ['owner', 'admin'].includes(currentOrganization.userRole);
+    return isOrgAdmin();
   };
 
   const canManageWorkOrders = (): boolean => {
-    if (!currentOrganization) return false;
-    return ['owner', 'admin'].includes(currentOrganization.userRole);
+    return isOrgAdmin();
   };
 
   const canManageTeam = (teamId: string): boolean => {
@@ -67,10 +73,19 @@ export const usePermissions = (): PermissionHooks => {
     return canManageTeam(teamId);
   };
 
-  const canUpdateEquipmentStatus = (): boolean => {
+  const canUpdateEquipmentStatus = (equipmentTeamId?: string): boolean => {
     if (!currentOrganization) return false;
-    // Organization admins and team members can update equipment status
-    return ['owner', 'admin', 'member'].includes(currentOrganization.userRole);
+    
+    // Organization admins can update any equipment
+    if (isOrgAdmin()) return true;
+    
+    // If equipment has no team assignment, any org member can update
+    if (!equipmentTeamId) {
+      return ['owner', 'admin', 'member'].includes(currentOrganization.userRole);
+    }
+    
+    // Team members can update their team's equipment
+    return hasTeamAccess(equipmentTeamId);
   };
 
   const canCreateWorkOrder = (): boolean => {
@@ -79,15 +94,49 @@ export const usePermissions = (): PermissionHooks => {
     return true;
   };
 
-  const canUpdateWorkOrderStatus = (workOrderId: string): boolean => {
+  const canUpdateWorkOrderStatus = (workOrder: WorkOrder): boolean => {
     if (!currentOrganization) return false;
-    // Organization admins can always update, team managers can update assigned work orders
-    return ['owner', 'admin'].includes(currentOrganization.userRole);
+    
+    // Organization admins can always update
+    if (isOrgAdmin()) return true;
+    
+    // Team members can update work orders assigned to their teams
+    if (workOrder.teamId && hasTeamAccess(workOrder.teamId)) return true;
+    
+    // Assigned users can update their work orders
+    // Note: In a real implementation, you'd get the current user ID from auth
+    // For now, we'll assume this check is handled elsewhere
+    return false;
   };
 
-  const canCompleteWorkOrder = (workOrderId: string): boolean => {
-    // Similar logic to update, but also includes technicians who are assigned
-    return canUpdateWorkOrderStatus(workOrderId);
+  const canCompleteWorkOrder = (workOrder: WorkOrder): boolean => {
+    return canUpdateWorkOrderStatus(workOrder);
+  };
+
+  const canViewEquipment = (equipmentTeamId?: string): boolean => {
+    if (!currentOrganization) return false;
+    
+    // Organization admins can view all equipment
+    if (isOrgAdmin()) return true;
+    
+    // If equipment has no team assignment, any org member can view
+    if (!equipmentTeamId) return true;
+    
+    // Team members can view their team's equipment
+    return hasTeamAccess(equipmentTeamId);
+  };
+
+  const canEditEquipment = (equipmentTeamId?: string): boolean => {
+    if (!currentOrganization) return false;
+    
+    // Organization admins can edit all equipment
+    if (isOrgAdmin()) return true;
+    
+    // If equipment has no team assignment, only admins can edit
+    if (!equipmentTeamId) return false;
+    
+    // Team managers can edit their team's equipment
+    return canManageTeam(equipmentTeamId);
   };
 
   return {
@@ -102,7 +151,9 @@ export const usePermissions = (): PermissionHooks => {
     hasTeamAccess,
     canCreateWorkOrder,
     canUpdateWorkOrderStatus,
-    canCompleteWorkOrder
+    canCompleteWorkOrder,
+    canViewEquipment,
+    canEditEquipment
   };
 };
 

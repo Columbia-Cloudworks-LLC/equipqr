@@ -19,6 +19,7 @@ export interface TeamMembershipContextType {
   hasTeamRole: (teamId: string, role: string) => boolean;
   hasTeamAccess: (teamId: string) => boolean;
   canManageTeam: (teamId: string) => boolean;
+  getUserTeamIds: () => string[];
 }
 
 export const useTeamMembership = (): TeamMembershipContextType => {
@@ -87,6 +88,10 @@ export const useTeamMembership = (): TeamMembershipContextType => {
     return isOrgAdmin || isTeamManager;
   };
 
+  const getUserTeamIds = (): string[] => {
+    return teamMemberships.map(tm => tm.team_id);
+  };
+
   useEffect(() => {
     fetchTeamMemberships();
   }, [user, currentOrganization]);
@@ -98,6 +103,7 @@ export const useTeamMembership = (): TeamMembershipContextType => {
     refetch: fetchTeamMemberships,
     hasTeamRole,
     hasTeamAccess,
-    canManageTeam
+    canManageTeam,
+    getUserTeamIds
   };
 };
