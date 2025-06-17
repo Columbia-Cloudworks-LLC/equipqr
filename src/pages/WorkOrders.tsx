@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Filter, Calendar, User, Wrench, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { getAllWorkOrdersByOrganization } from '@/services/dataService';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 
@@ -15,7 +14,7 @@ const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization } = useSimpleOrganization();
 
   // Get work orders from data service
   const allWorkOrders = currentOrganization ? getAllWorkOrdersByOrganization(currentOrganization.id) : [];
