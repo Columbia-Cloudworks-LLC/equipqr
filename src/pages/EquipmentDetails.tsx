@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, MapPin, Calendar, Package, QrCode } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useEquipmentById } from '@/hooks/useSupabaseData';
 import EquipmentDetailsTab from '@/components/equipment/EquipmentDetailsTab';
 import EquipmentNotesTab from '@/components/equipment/EquipmentNotesTab';
@@ -17,14 +17,13 @@ import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 const EquipmentDetails = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const navigate = useNavigate();
-  const { getCurrentOrganization, isLoading: sessionLoading } = useSession();
-  const currentOrganization = getCurrentOrganization();
+  const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
   const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(equipmentId);
   
   const [activeTab, setActiveTab] = useState('details');
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
 
-  const isLoading = sessionLoading || equipmentLoading;
+  const isLoading = orgLoading || equipmentLoading;
 
   const handleCreateWorkOrder = () => {
     setIsWorkOrderFormOpen(true);

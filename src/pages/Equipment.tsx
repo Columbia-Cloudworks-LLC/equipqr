@@ -7,15 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Filter, QrCode, MapPin, Calendar, Package } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useEquipmentByOrganization } from '@/hooks/useSupabaseData';
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 
 const Equipment = () => {
   const navigate = useNavigate();
-  const { getCurrentOrganization, isLoading: sessionLoading } = useSession();
-  const currentOrganization = getCurrentOrganization();
+  const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
   const { data: equipment = [], isLoading: equipmentLoading } = useEquipmentByOrganization();
   
   const [showForm, setShowForm] = useState(false);
@@ -23,7 +22,7 @@ const Equipment = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const isLoading = sessionLoading || equipmentLoading;
+  const isLoading = orgLoading || equipmentLoading;
 
   if (!currentOrganization) {
     return (
