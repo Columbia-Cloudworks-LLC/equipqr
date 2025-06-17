@@ -1,24 +1,62 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { Play, Pause, CheckCircle, XCircle, Settings } from 'lucide-react';
-import { WorkOrder, updateWorkOrderStatus } from '@/services/dataService';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { Play, Pause, CheckCircle, XCircle, Settings, AlertTriangle } from 'lucide-react';
+import { WorkOrder } from '@/services/dataService';
+import { WorkOrderService } from '@/services/WorkOrderService';
 
 interface WorkOrderStatusManagerProps {
   workOrder: WorkOrder;
+  onStatusUpdate?: (newStatus: WorkOrder['status']) => void;
 }
 
-const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ workOrder }) => {
-  const [isUpdating, setIsUpdating] = useState(false);
+const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ 
+  workOrder, 
+  onStatusUpdate 
+}) => {
   const { toast } = useToast();
   const { currentOrganization } = useSimpleOrganization();
-  const { canUpdateWorkOrderStatus } = usePermissions();
+  const permissions = useUnifiedPermissions();
 
-  const canManageStatus = canUpdateWorkOrderStatus(workOrder);
+  const workOrderService = currentOrganization 
+    ? new WorkOrderService(currentOrganization.id) 
+    : null;
+
+  const { execute: updateStatus, isLoading } = useAsyncOperation(
+    async (newStatus: WorkOrder['status']) => {
+      if (!workOrderService) throw new Error('Service not available');
+      return await workOrderService.updateStatus(workOrder.id, newStatus);
+    },
+    {
+      onSuccess: (result) => {
+        if (result?.success) {
+          toast({
+            title: "Status Updated",
+            description: `Work order status changed successfully`,
+          });
+          if (onStatusUpdate) {
+            onStatusUpdate(result.data as WorkOrder['status']);
+          }
+        }
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error || "Failed to update work order status",
+          variant: "destructive",
+        });
+      }
+    }
+  );
+
+  const workOrderPermissions = permissions.workOrders.getPermissions(workOrder);
 
   const getNextStatusOptions = (currentStatus: WorkOrder['status']) => {
     switch (currentStatus) {
@@ -55,62 +93,42 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ workOrd
   };
 
   const handleStatusUpdate = async (newStatus: WorkOrder['status']) => {
-    if (!currentOrganization) return;
-
-    setIsUpdating(true);
-    try {
-      const success = updateWorkOrderStatus(currentOrganization.id, workOrder.id, newStatus);
-      
-      if (success) {
-        toast({
-          title: "Status Updated",
-          description: `Work order status changed to ${newStatus.replace('_', ' ')}`,
-        });
-        
-        // In a real app, you would refresh the data or use a state management solution
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        throw new Error('Failed to update status');
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update work order status",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-    }
+    await updateStatus(newStatus);
   };
 
   const nextStatusOptions = getNextStatusOptions(workOrder.status);
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'submitted':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'accepted':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'assigned':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'in_progress':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'on_hold':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+    const statusColors = {
+      'submitted': 'bg-blue-100 text-blue-800 border-blue-200',
+      'accepted': 'bg-purple-100 text-purple-800 border-purple-200',
+      'assigned': 'bg-orange-100 text-orange-800 border-orange-200',
+      'in_progress': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'on_hold': 'bg-gray-100 text-gray-800 border-gray-200',
+      'completed': 'bg-green-100 text-green-800 border-green-200',
+      'cancelled': 'bg-red-100 text-red-800 border-red-200'
+    };
+    return statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
   const formatStatus = (status: string) => {
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
+
+  if (!permissions.context) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Unable to load permissions. Please refresh the page.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -127,7 +145,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ workOrd
           </div>
         </div>
 
-        {canManageStatus && nextStatusOptions.length > 0 && (
+        {workOrderPermissions.canChangeStatus && nextStatusOptions.length > 0 && (
           <div className="space-y-2">
             <label className="text-sm font-medium text-muted-foreground">
               Available Actions
@@ -142,7 +160,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ workOrd
                     size="sm"
                     className="w-full justify-start"
                     onClick={() => handleStatusUpdate(option.value as WorkOrder['status'])}
-                    disabled={isUpdating}
+                    disabled={isLoading}
                   >
                     <Icon className="h-4 w-4 mr-2" />
                     {option.label}
@@ -153,13 +171,17 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ workOrd
           </div>
         )}
 
-        {!canManageStatus && (
-          <p className="text-sm text-muted-foreground">
-            You don't have permission to change the status of this work order. Only organization admins, team managers, and team members can update work order status.
-          </p>
+        {!workOrderPermissions.canChangeStatus && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              You don't have permission to change the status of this work order. 
+              Only organization admins and team members can update work order status.
+            </AlertDescription>
+          </Alert>
         )}
 
-        {nextStatusOptions.length === 0 && canManageStatus && (
+        {nextStatusOptions.length === 0 && workOrderPermissions.canChangeStatus && (
           <p className="text-sm text-muted-foreground">
             No status changes available for {formatStatus(workOrder.status)} work orders.
           </p>
