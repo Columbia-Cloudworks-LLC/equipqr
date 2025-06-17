@@ -1,19 +1,34 @@
 
--- Fixed RLS policies to prevent infinite recursion
--- This migration consolidates and corrects all RLS policies
+-- Step 1: Temporarily disable RLS on organization_members to break the recursion
+ALTER TABLE organization_members DISABLE ROW LEVEL SECURITY;
 
--- Enable RLS on all tables
-ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE organization_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE equipment ENABLE ROW LEVEL SECURITY;
-ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE scans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+-- Step 2: Drop all existing RLS policies to start fresh
+DROP POLICY IF EXISTS "Users can view their organizations" ON organizations;
+DROP POLICY IF EXISTS "Organization admins can update organizations" ON organizations;
+DROP POLICY IF EXISTS "Users can view organization members" ON organization_members;
+DROP POLICY IF EXISTS "Organization admins can manage members" ON organization_members;
+DROP POLICY IF EXISTS "Users can view organization teams" ON teams;
+DROP POLICY IF EXISTS "Organization admins can manage teams" ON teams;
+DROP POLICY IF EXISTS "Team managers can update their teams" ON teams;
+DROP POLICY IF EXISTS "Users can view team members" ON team_members;
+DROP POLICY IF EXISTS "Organization admins can manage team members" ON team_members;
+DROP POLICY IF EXISTS "Team managers can manage their team members" ON team_members;
+DROP POLICY IF EXISTS "Users can view organization equipment" ON equipment;
+DROP POLICY IF EXISTS "Organization admins can manage equipment" ON equipment;
+DROP POLICY IF EXISTS "Users can view organization work orders" ON work_orders;
+DROP POLICY IF EXISTS "Users can create work orders" ON work_orders;
+DROP POLICY IF EXISTS "Organization admins can manage work orders" ON work_orders;
+DROP POLICY IF EXISTS "Organization admins can delete work orders" ON work_orders;
+DROP POLICY IF EXISTS "Assigned users can update work orders" ON work_orders;
+DROP POLICY IF EXISTS "Users can view all profiles" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can view organization scans" ON scans;
+DROP POLICY IF EXISTS "Users can create scans" ON scans;
+DROP POLICY IF EXISTS "Users can view organization notes" ON notes;
+DROP POLICY IF EXISTS "Users can create notes" ON notes;
+DROP POLICY IF EXISTS "Authors can update own notes" ON notes;
 
--- Security definer functions (updated to prevent recursion)
+-- Step 3: Update security definer functions to use direct table access (bypassing RLS)
 CREATE OR REPLACE FUNCTION public.get_user_organization_role(user_uuid uuid, org_id uuid)
 RETURNS text
 LANGUAGE sql
@@ -62,7 +77,12 @@ AS $$
   );
 $$;
 
--- Organization policies
+-- Step 4: Re-enable RLS on organization_members
+ALTER TABLE organization_members ENABLE ROW LEVEL SECURITY;
+
+-- Step 5: Create consolidated, non-recursive RLS policies
+
+-- Organizations policies
 CREATE POLICY "Users can view their organizations" 
   ON organizations 
   FOR SELECT 
@@ -73,7 +93,7 @@ CREATE POLICY "Organization admins can update organizations"
   FOR UPDATE 
   USING (public.user_is_organization_admin(auth.uid(), id));
 
--- Organization members policies
+-- Organization members policies (simplified to avoid recursion)
 CREATE POLICY "Users can view organization members" 
   ON organization_members 
   FOR SELECT 
