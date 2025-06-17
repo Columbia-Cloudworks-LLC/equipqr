@@ -452,7 +452,27 @@ export type Database = {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
+      check_org_access_secure: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      check_org_admin_secure: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      check_team_access_secure: {
+        Args: { user_uuid: string; team_uuid: string }
+        Returns: boolean
+      }
+      check_team_role_secure: {
+        Args: { user_uuid: string; team_uuid: string; required_role: string }
+        Returns: boolean
+      }
       get_user_org_role_direct: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: string
+      }
+      get_user_org_role_secure: {
         Args: { user_uuid: string; org_id: string }
         Returns: string
       }
