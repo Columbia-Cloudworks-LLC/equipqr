@@ -1,8 +1,6 @@
 
-import { useState } from 'react';
+import { useSession } from '@/contexts/SessionContext';
 
-// DEPRECATED: This hook has been replaced by SessionContext for better performance
-// Use useSession() from @/contexts/SessionContext instead
 export interface TeamMembership {
   team_id: string;
   team_name: string;
@@ -22,16 +20,33 @@ export interface TeamMembershipContextType {
 }
 
 export const useTeamMembership = (): TeamMembershipContextType => {
-  console.warn('useTeamMembership is deprecated. Use SessionContext instead.');
-  
+  const { 
+    sessionData, 
+    isLoading, 
+    error, 
+    hasTeamRole, 
+    hasTeamAccess, 
+    canManageTeam, 
+    getUserTeamIds,
+    refreshSession 
+  } = useSession();
+
+  // Convert session team memberships to the expected format
+  const teamMemberships: TeamMembership[] = (sessionData?.teamMemberships || []).map(tm => ({
+    team_id: tm.teamId,
+    team_name: tm.teamName,
+    role: tm.role,
+    joined_date: tm.joinedDate
+  }));
+
   return {
-    teamMemberships: [],
-    isLoading: false,
-    error: 'This hook is deprecated. Use SessionContext instead.',
-    refetch: async () => {},
-    hasTeamRole: () => false,
-    hasTeamAccess: () => false,
-    canManageTeam: () => false,
-    getUserTeamIds: () => []
+    teamMemberships,
+    isLoading,
+    error,
+    refetch: refreshSession,
+    hasTeamRole,
+    hasTeamAccess,
+    canManageTeam,
+    getUserTeamIds
   };
 };

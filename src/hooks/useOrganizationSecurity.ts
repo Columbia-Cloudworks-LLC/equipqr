@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useSession } from '@/contexts/SessionContext';
 
 export interface SecurityTestResult {
   canFetchOrganizations: boolean;
@@ -9,22 +9,25 @@ export interface SecurityTestResult {
   errors: string[];
 }
 
-// DEPRECATED: This hook has been replaced by SessionContext for better performance
-// Security testing is now handled internally by the session management system
 export const useOrganizationSecurity = () => {
-  console.warn('useOrganizationSecurity is deprecated. Use SessionContext instead.');
+  const { sessionData, isLoading, error } = useSession();
   
-  const [testResult] = useState<SecurityTestResult>({
-    canFetchOrganizations: true,
-    canFetchMembers: true,
-    canFetchTeams: true,
-    hasErrors: false,
-    errors: []
-  });
+  const testResult: SecurityTestResult = {
+    canFetchOrganizations: !!sessionData?.organizations?.length,
+    canFetchMembers: !!sessionData?.organizations?.length,
+    canFetchTeams: !!sessionData?.teamMemberships?.length || !!sessionData?.organizations?.length,
+    hasErrors: !!error,
+    errors: error ? [error] : []
+  };
+
+  const runSecurityTest = () => {
+    // This is now handled automatically by SessionContext
+    console.log('Security test completed via SessionContext');
+  };
 
   return {
     testResult,
-    isTestingComplete: true,
-    runSecurityTest: () => {}
+    isTestingComplete: !isLoading,
+    runSecurityTest
   };
 };

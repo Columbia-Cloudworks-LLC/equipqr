@@ -1,18 +1,16 @@
 
-import { useState, useEffect } from 'react';
-import { UserOrganization } from '@/types/organizationContext';
+import { useSession } from '@/contexts/SessionContext';
 
-// DEPRECATED: This hook has been replaced by SessionContext for better performance
-// Use useSession() from @/contexts/SessionContext instead
+// This hook provides backward compatibility while redirecting to SessionContext
 export const useSupabaseOrganization = () => {
-  console.warn('useSupabaseOrganization is deprecated. Use SessionContext instead.');
-  
+  const { sessionData, isLoading, error, getCurrentOrganization, switchOrganization, refreshSession } = useSession();
+
   return {
-    currentOrganization: null,
-    userOrganizations: [],
-    switchOrganization: () => {},
-    isLoading: false,
-    error: 'This hook is deprecated. Use SessionContext instead.',
-    refetch: async () => {}
+    currentOrganization: getCurrentOrganization(),
+    userOrganizations: sessionData?.organizations || [],
+    switchOrganization,
+    isLoading,
+    error,
+    refetch: refreshSession
   };
 };

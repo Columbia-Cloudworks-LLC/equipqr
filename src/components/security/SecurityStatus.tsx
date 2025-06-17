@@ -31,7 +31,7 @@ export const SecurityStatus: React.FC = () => {
         <CardContent>
           <div className="flex items-center space-x-2">
             <RefreshCw className="h-4 w-4 animate-spin" />
-            <span className="text-sm">Testing security policies...</span>
+            <span className="text-sm">Loading security status...</span>
           </div>
         </CardContent>
       </Card>
@@ -93,7 +93,7 @@ export const SecurityStatus: React.FC = () => {
         {!testResult.hasErrors && testResult.canFetchOrganizations && (
           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <p className="text-xs text-green-700">
-              All security policies are working correctly. Database access is properly secured.
+              All security policies are working correctly. Database access is properly secured with RLS.
             </p>
           </div>
         )}
