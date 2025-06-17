@@ -8,6 +8,8 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import MembersList from '@/components/organization/MembersList';
 import InviteMemberDialog from '@/components/organization/InviteMemberDialog';
 import PremiumFeatures from '@/components/organization/PremiumFeatures';
+import { SecurityStatus } from '@/components/security/SecurityStatus';
+import { SessionStatus } from '@/components/session/SessionStatus';
 import { mockMembers } from '@/data/mockOrganization';
 import { OrganizationMember, InvitationData } from '@/types/organization';
 import { toast } from '@/hooks/use-toast';
@@ -171,8 +173,10 @@ const Organization = () => {
           />
         </div>
 
-        {/* Premium Features */}
-        <div>
+        {/* Right sidebar */}
+        <div className="space-y-6">
+          <SessionStatus />
+          <SecurityStatus />
           <PremiumFeatures
             organization={currentOrganization}
             onUpgrade={handleUpgradeToPremium}

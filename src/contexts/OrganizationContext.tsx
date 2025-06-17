@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext } from 'react';
 import { OrganizationContextType } from '@/types/organizationContext';
-import { useSupabaseOrganization } from '@/hooks/useSupabaseOrganization';
+import { useSession } from '@/contexts/SessionContext';
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
@@ -14,7 +14,15 @@ export const useOrganization = () => {
 };
 
 export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const organizationData = useSupabaseOrganization();
+  const { sessionData, isLoading, error, getCurrentOrganization, switchOrganization } = useSession();
+
+  const organizationData: OrganizationContextType = {
+    currentOrganization: getCurrentOrganization(),
+    userOrganizations: sessionData?.organizations || [],
+    switchOrganization,
+    isLoading,
+    error
+  };
 
   return (
     <OrganizationContext.Provider value={organizationData}>

@@ -1,8 +1,8 @@
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { useTeamMembership } from '@/hooks/useTeamMembership';
+
+import { useSession } from '@/contexts/SessionContext';
 import { WorkOrder } from '@/services/dataService';
 
-export interface PermissionHooks {
+export interface SessionPermissionHooks {
   // Organization-level permissions
   canManageOrganization: () => boolean;
   canInviteMembers: () => boolean;
@@ -24,9 +24,13 @@ export interface PermissionHooks {
   // Equipment permissions
   canViewEquipment: (equipmentTeamId?: string) => boolean;
   canEditEquipment: (equipmentTeamId?: string) => boolean;
+  
+  // Session data
+  getCurrentOrganization: () => any;
+  getUserTeamIds: () => string[];
 }
 
-export interface WorkOrderPermissions {
+export interface SessionWorkOrderPermissions {
   canEdit: boolean;
   canEditPriority: boolean;
   canEditAssignment: boolean;
@@ -35,11 +39,11 @@ export interface WorkOrderPermissions {
   canChangeStatus: boolean;
 }
 
-export const usePermissions = (): PermissionHooks => {
-  const { currentOrganization } = useOrganization();
-  const { canManageTeam: teamCanManage, hasTeamAccess, getUserTeamIds } = useTeamMembership();
+export const useSessionPermissions = (): SessionPermissionHooks => {
+  const { getCurrentOrganization, hasTeamAccess, canManageTeam, getUserTeamIds } = useSession();
 
   const isOrgAdmin = (): boolean => {
+    const currentOrganization = getCurrentOrganization();
     if (!currentOrganization) return false;
     return ['owner', 'admin'].includes(currentOrganization.userRole);
   };
@@ -64,15 +68,12 @@ export const usePermissions = (): PermissionHooks => {
     return isOrgAdmin();
   };
 
-  const canManageTeam = (teamId: string): boolean => {
-    return teamCanManage(teamId);
-  };
-
   const canAssignWorkOrders = (teamId: string): boolean => {
     return canManageTeam(teamId);
   };
 
   const canUpdateEquipmentStatus = (equipmentTeamId?: string): boolean => {
+    const currentOrganization = getCurrentOrganization();
     if (!currentOrganization) return false;
     
     // Organization admins can update any equipment
@@ -88,12 +89,14 @@ export const usePermissions = (): PermissionHooks => {
   };
 
   const canCreateWorkOrder = (): boolean => {
+    const currentOrganization = getCurrentOrganization();
     if (!currentOrganization) return false;
     // All organization members can create work orders
     return true;
   };
 
   const canUpdateWorkOrderStatus = (workOrder: WorkOrder): boolean => {
+    const currentOrganization = getCurrentOrganization();
     if (!currentOrganization) return false;
     
     // Organization admins can always update
@@ -102,9 +105,6 @@ export const usePermissions = (): PermissionHooks => {
     // Team members can update work orders assigned to their teams
     if (workOrder.teamId && hasTeamAccess(workOrder.teamId)) return true;
     
-    // Assigned users can update their work orders
-    // Note: In a real implementation, you'd get the current user ID from auth
-    // For now, we'll assume this check is handled elsewhere
     return false;
   };
 
@@ -113,6 +113,7 @@ export const usePermissions = (): PermissionHooks => {
   };
 
   const canViewEquipment = (equipmentTeamId?: string): boolean => {
+    const currentOrganization = getCurrentOrganization();
     if (!currentOrganization) return false;
     
     // Organization admins can view all equipment
@@ -126,6 +127,7 @@ export const usePermissions = (): PermissionHooks => {
   };
 
   const canEditEquipment = (equipmentTeamId?: string): boolean => {
+    const currentOrganization = getCurrentOrganization();
     if (!currentOrganization) return false;
     
     // Organization admins can edit all equipment
@@ -152,14 +154,17 @@ export const usePermissions = (): PermissionHooks => {
     canUpdateWorkOrderStatus,
     canCompleteWorkOrder,
     canViewEquipment,
-    canEditEquipment
+    canEditEquipment,
+    getCurrentOrganization,
+    getUserTeamIds
   };
 };
 
-export const useWorkOrderPermissions = (workOrder?: WorkOrder): WorkOrderPermissions => {
-  const { currentOrganization } = useOrganization();
-  const { canManageTeam, hasTeamAccess } = useTeamMembership();
+export const useSessionWorkOrderPermissions = (workOrder?: WorkOrder): SessionWorkOrderPermissions => {
+  const { getCurrentOrganization, canManageTeam, hasTeamAccess } = useSession();
 
+  const currentOrganization = getCurrentOrganization();
+  
   if (!currentOrganization) {
     return {
       canEdit: false,
