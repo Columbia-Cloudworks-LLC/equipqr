@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { QrCode, AlertCircle, CheckCircle, ArrowLeft, Camera } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { getEquipmentById } from '@/services/dataService';
 import { useToast } from '@/hooks/use-toast';
 import QRScannerComponent from '@/components/scanner/QRScannerComponent';
 
 const QRScanner = () => {
   const navigate = useNavigate();
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const { toast } = useToast();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);

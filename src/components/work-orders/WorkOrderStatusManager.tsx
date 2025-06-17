@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Play, Pause, CheckCircle, XCircle, Settings } from 'lucide-react';
 import { WorkOrder, updateWorkOrderStatus } from '@/services/dataService';
@@ -16,7 +15,7 @@ interface WorkOrderStatusManagerProps {
 const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ workOrder }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const { canUpdateWorkOrderStatus } = usePermissions();
 
   const canManageStatus = canUpdateWorkOrderStatus(workOrder);

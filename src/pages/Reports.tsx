@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Download, BarChart3, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { getEquipmentByOrganization, getAllWorkOrdersByOrganization, getDashboardStatsByOrganization } from '@/services/dataService';
 import ReportFilters from '@/components/reports/ReportFilters';
 import ReportCharts from '@/components/reports/ReportCharts';
@@ -30,7 +29,7 @@ export interface ReportFilters {
 }
 
 const Reports = () => {
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const [filters, setFilters] = useState<ReportFilters>({
     type: 'equipment',
     dateRange: { from: undefined, to: undefined }

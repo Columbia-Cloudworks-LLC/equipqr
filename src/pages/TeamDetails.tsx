@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Settings, Users, Trash2, Plus, Edit } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { getTeamsByOrganization } from '@/services/dataService';
 import TeamMembersList from '@/components/teams/TeamMembersList';
 import TeamMetadataEditor from '@/components/teams/TeamMetadataEditor';
@@ -14,7 +14,7 @@ import AddTeamMemberDialog from '@/components/teams/AddTeamMemberDialog';
 const TeamDetails = () => {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
-  const { currentOrganization, isLoading } = useOrganization();
+  const { currentOrganization, isLoading } = useSimpleOrganization();
   const [showMetadataEditor, setShowMetadataEditor] = useState(false);
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
 
