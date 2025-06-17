@@ -1,6 +1,7 @@
 
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam } from '@/contexts/TeamContext';
+import { WorkOrder } from '@/services/dataService';
 
 export interface PermissionHooks {
   // Organization-level permissions
@@ -20,6 +21,15 @@ export interface PermissionHooks {
   canCreateWorkOrder: () => boolean;
   canUpdateWorkOrderStatus: (workOrderId: string) => boolean;
   canCompleteWorkOrder: (workOrderId: string) => boolean;
+}
+
+export interface WorkOrderPermissions {
+  canEdit: boolean;
+  canEditPriority: boolean;
+  canEditAssignment: boolean;
+  canEditDueDate: boolean;
+  canEditDescription: boolean;
+  canChangeStatus: boolean;
 }
 
 export const usePermissions = (): PermissionHooks => {
@@ -93,5 +103,34 @@ export const usePermissions = (): PermissionHooks => {
     canCreateWorkOrder,
     canUpdateWorkOrderStatus,
     canCompleteWorkOrder
+  };
+};
+
+export const useWorkOrderPermissions = (workOrder?: WorkOrder): WorkOrderPermissions => {
+  const { currentOrganization } = useOrganization();
+  const { canManageTeam, hasTeamAccess } = useTeam();
+
+  if (!currentOrganization) {
+    return {
+      canEdit: false,
+      canEditPriority: false,
+      canEditAssignment: false,
+      canEditDueDate: false,
+      canEditDescription: false,
+      canChangeStatus: false
+    };
+  }
+
+  const isOrgAdmin = ['owner', 'admin'].includes(currentOrganization.userRole);
+  const isTeamManager = workOrder?.teamId ? canManageTeam(workOrder.teamId) : false;
+  const hasWorkOrderAccess = workOrder?.teamId ? hasTeamAccess(workOrder.teamId) : false;
+
+  return {
+    canEdit: isOrgAdmin || isTeamManager,
+    canEditPriority: isOrgAdmin || isTeamManager,
+    canEditAssignment: isOrgAdmin || isTeamManager,
+    canEditDueDate: isOrgAdmin || isTeamManager || hasWorkOrderAccess,
+    canEditDescription: isOrgAdmin || isTeamManager || hasWorkOrderAccess,
+    canChangeStatus: isOrgAdmin || isTeamManager || hasWorkOrderAccess
   };
 };

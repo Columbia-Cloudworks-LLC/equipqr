@@ -50,7 +50,13 @@ export const useTeamMembership = (): TeamMembershipContextType => {
         throw fetchError;
       }
 
-      setTeamMemberships(data || []);
+      // Type the data correctly by casting the role field
+      const typedData: TeamMembership[] = (data || []).map(item => ({
+        ...item,
+        role: item.role as 'manager' | 'technician' | 'requestor' | 'viewer'
+      }));
+
+      setTeamMemberships(typedData);
     } catch (err) {
       console.error('Error fetching team memberships:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch team memberships');

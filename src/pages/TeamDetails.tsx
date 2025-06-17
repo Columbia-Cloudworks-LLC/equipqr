@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -179,10 +178,7 @@ const TeamDetails = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <TeamMembersList 
-            team={team} 
-            canManage={canManageMembers}
-          />
+          <TeamMembersList team={team} />
         </CardContent>
       </Card>
 
