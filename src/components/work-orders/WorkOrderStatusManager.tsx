@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,14 +34,14 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
       return await workOrderService.updateStatus(workOrder.id, newStatus);
     },
     {
-      onSuccess: (result) => {
-        if (result?.success && result.data) {
+      onSuccess: (result, args) => {
+        if (result?.success) {
           toast({
             title: "Status Updated",
             description: `Work order status changed successfully`,
           });
-          if (onStatusUpdate) {
-            onStatusUpdate(result.data as WorkOrder['status']);
+          if (onStatusUpdate && args && args.length > 0) {
+            onStatusUpdate(args[0] as WorkOrder['status']);
           }
         }
       },
