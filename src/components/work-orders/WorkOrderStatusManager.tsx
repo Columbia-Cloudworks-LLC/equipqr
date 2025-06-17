@@ -36,7 +36,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     },
     {
       onSuccess: (result) => {
-        if (result?.success) {
+        if (result?.success && result.data) {
           toast({
             title: "Status Updated",
             description: `Work order status changed successfully`,
@@ -145,13 +145,13 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
           </div>
         </div>
 
-        {workOrderPermissions.canChangeStatus && nextStatusOptions.length > 0 && (
+        {workOrderPermissions.canChangeStatus && getNextStatusOptions(workOrder.status).length > 0 && (
           <div className="space-y-2">
             <label className="text-sm font-medium text-muted-foreground">
               Available Actions
             </label>
             <div className="space-y-2">
-              {nextStatusOptions.map((option) => {
+              {getNextStatusOptions(workOrder.status).map((option) => {
                 const Icon = option.icon;
                 return (
                   <Button
@@ -181,7 +181,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
           </Alert>
         )}
 
-        {nextStatusOptions.length === 0 && workOrderPermissions.canChangeStatus && (
+        {getNextStatusOptions(workOrder.status).length === 0 && workOrderPermissions.canChangeStatus && (
           <p className="text-sm text-muted-foreground">
             No status changes available for {formatStatus(workOrder.status)} work orders.
           </p>

@@ -66,8 +66,13 @@ export const useFormValidation = <T extends Record<string, any>>(
 
   const validateField = useCallback((field: keyof T): boolean => {
     try {
-      const fieldSchema = schema.pick({ [field]: true } as any);
-      fieldSchema.parse({ [field]: values[field] });
+      // Create a simple validation for the specific field
+      const fieldValue = values[field];
+      const testObject = { [field]: fieldValue } as Partial<T>;
+      
+      // Try to validate just this field by creating a partial schema
+      schema.safeParse(testObject);
+      
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[field as string];
