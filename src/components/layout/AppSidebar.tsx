@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { 
   LayoutDashboard, 
@@ -100,14 +101,17 @@ const AppSidebar = () => {
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <QrCode className="h-5 w-5 text-primary-foreground" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <QrCode className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">EquipQR</h2>
+              <p className="text-xs text-muted-foreground">Fleet Management</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold">EquipQR</h2>
-            <p className="text-xs text-muted-foreground">Fleet Management</p>
-          </div>
+          <SidebarTrigger />
         </div>
         <OrganizationSwitcher />
       </SidebarHeader>
