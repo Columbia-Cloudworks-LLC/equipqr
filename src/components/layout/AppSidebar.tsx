@@ -1,150 +1,110 @@
+
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
-  LayoutDashboard, 
+  Home, 
   Package, 
-  Wrench, 
+  ClipboardList, 
   Users, 
-  MapPin, 
-  Settings,
+  Map, 
   Building,
   QrCode,
   CreditCard,
+  Settings,
+  FileText,
+  ChevronUp,
   LogOut,
-  BarChart3
-} from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+  User
+} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUser } from "@/contexts/UserContext";
+
+const mainNavigation = [
+  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Equipment", url: "/equipment", icon: Package },
+  { title: "Work Orders", url: "/work-orders", icon: ClipboardList },
+  { title: "Teams", url: "/teams", icon: Users },
+  { title: "Fleet Map", url: "/fleet-map", icon: Map },
+];
+
+const managementNavigation = [
+  { title: "Organization", url: "/organization", icon: Building },
+  { title: "QR Scanner", url: "/scanner", icon: QrCode },
+  { title: "Billing", url: "/billing", icon: CreditCard },
+  { title: "Reports", url: "/reports", icon: FileText },
+  { title: "Settings", url: "/settings", icon: Settings },
+];
 
 const AppSidebar = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const { currentUser } = useUser();
 
-  const mainNavItems = [
-    {
-      title: "Dashboard",
-      url: "/",
-      icon: LayoutDashboard,
-    },
-    {
-      title: "Equipment",
-      url: "/equipment",
-      icon: Package,
-    },
-    {
-      title: "Work Orders",
-      url: "/work-orders",
-      icon: Wrench,
-    },
-    {
-      title: "Teams",
-      url: "/teams",
-      icon: Users,
-    },
-    {
-      title: "Fleet Map",
-      url: "/fleet-map",
-      icon: MapPin,
-    },
-    {
-      title: "Reports",
-      url: "/reports",
-      icon: BarChart3,
-    },
-  ];
-
-  const managementItems = [
-    {
-      title: "Organization",
-      url: "/organization",
-      icon: Building,
-    },
-    {
-      title: "QR Scanner",
-      url: "/scanner",
-      icon: QrCode,
-    },
-    {
-      title: "Billing",
-      url: "/billing",
-      icon: CreditCard,
-    },
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings,
-    },
-  ];
-
-  const isActiveRoute = (url: string) => {
-    if (url === '/') {
-      return location.pathname === '/';
-    }
-    return location.pathname.startsWith(url);
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
-    <Sidebar className="border-r">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <QrCode className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold">EquipQR</h2>
-            <p className="text-xs text-muted-foreground">Fleet Management</p>
-          </div>
-        </div>
+    <Sidebar variant="inset">
+      <SidebarHeader>
         <OrganizationSwitcher />
       </SidebarHeader>
-
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
+              {mainNavigation.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
-                    onClick={() => navigate(item.url)}
-                    isActive={isActiveRoute(item.url)}
-                    className="w-full"
+                    asChild
+                    isActive={location.pathname === item.url}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
+                    <Link to={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
         <SidebarGroup>
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {managementItems.map((item) => (
+              {managementNavigation.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
-                    onClick={() => navigate(item.url)}
-                    isActive={isActiveRoute(item.url)}
-                    className="w-full"
+                    asChild
+                    isActive={location.pathname === item.url}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
+                    <Link to={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -152,22 +112,43 @@ const AppSidebar = () => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="p-4 border-t">
-        <div className="flex items-center gap-3 mb-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="/placeholder-avatar.jpg" />
-            <AvatarFallback>JD</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">John Doe</p>
-            <p className="text-xs text-muted-foreground truncate">john@company.com</p>
-          </div>
-        </div>
-        <Button variant="ghost" size="sm" className="w-full justify-start">
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </Button>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                >
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <User className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">
+                      {currentUser?.name || 'User'}
+                    </span>
+                    <span className="truncate text-xs">
+                      {currentUser?.email || ''}
+                    </span>
+                  </div>
+                  <ChevronUp className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                side="bottom"
+                align="end"
+                sideOffset={4}
+              >
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

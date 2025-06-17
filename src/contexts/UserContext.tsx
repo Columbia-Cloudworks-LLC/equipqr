@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface User {
   id: string;
@@ -24,20 +25,30 @@ export const useUser = () => {
 };
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user: authUser, isLoading: authLoading } = useAuth();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Mock user data - in a real app this would come from authentication
-    const mockUser: User = {
-      id: 'user-1',
-      email: 'john.smith@example.com',
-      name: 'John Smith'
-    };
+    if (authLoading) {
+      setIsLoading(true);
+      return;
+    }
+
+    if (authUser) {
+      // Convert Supabase user to our User interface
+      const user: User = {
+        id: authUser.id,
+        email: authUser.email || '',
+        name: authUser.user_metadata?.name || authUser.email || 'User'
+      };
+      setCurrentUser(user);
+    } else {
+      setCurrentUser(null);
+    }
     
-    setCurrentUser(mockUser);
     setIsLoading(false);
-  }, []);
+  }, [authUser, authLoading]);
 
   return (
     <UserContext.Provider value={{ currentUser, isLoading, setCurrentUser }}>
