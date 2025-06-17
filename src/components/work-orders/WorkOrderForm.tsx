@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Dialog,
@@ -15,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Lock, Package } from "lucide-react";
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { getEquipmentByOrganization, getEquipmentById } from '@/services/dataService';
 
 interface WorkOrderFormProps {
@@ -27,7 +26,7 @@ interface WorkOrderFormProps {
 
 const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder, equipmentId }) => {
   const isEdit = !!workOrder;
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   
   // Get equipment data
   const allEquipment = currentOrganization ? getEquipmentByOrganization(currentOrganization.id) : [];
