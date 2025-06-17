@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -110,46 +109,59 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     console.log('Fetching fresh session data for user:', user.id);
 
-    // Fetch organizations with user role
-    const { data: orgData, error: orgError } = await supabase
+    // First, fetch user's organization memberships using the new simple policy
+    const { data: orgMemberData, error: orgMemberError } = await supabase
       .from('organization_members')
-      .select(`
-        organization_id,
-        role,
-        status,
-        organizations (
-          id,
-          name,
-          plan,
-          member_count,
-          max_members,
-          features,
-          billing_cycle,
-          next_billing_date
-        )
-      `)
+      .select('organization_id, role, status')
       .eq('user_id', user.id)
       .eq('status', 'active');
+
+    if (orgMemberError) {
+      console.error('Error fetching organization memberships:', orgMemberError);
+      throw orgMemberError;
+    }
+
+    if (!orgMemberData || orgMemberData.length === 0) {
+      console.log('No organization memberships found for user');
+      return {
+        organizations: [],
+        currentOrganizationId: null,
+        teamMemberships: [],
+        lastUpdated: new Date().toISOString(),
+        version: SESSION_VERSION
+      };
+    }
+
+    // Get organization IDs that user has access to
+    const orgIds = orgMemberData.map(om => om.organization_id);
+
+    // Fetch organization details for those IDs
+    const { data: orgData, error: orgError } = await supabase
+      .from('organizations')
+      .select('*')
+      .in('id', orgIds);
 
     if (orgError) {
       console.error('Error fetching organizations:', orgError);
       throw orgError;
     }
 
-    const organizations: SessionOrganization[] = (orgData || [])
-      .filter(item => item.organizations)
-      .map(item => ({
-        id: item.organizations.id,
-        name: item.organizations.name,
-        plan: item.organizations.plan as 'free' | 'premium',
-        memberCount: item.organizations.member_count,
-        maxMembers: item.organizations.max_members,
-        features: item.organizations.features,
-        billingCycle: item.organizations.billing_cycle as 'monthly' | 'yearly' | undefined,
-        nextBillingDate: item.organizations.next_billing_date || undefined,
-        userRole: item.role as 'owner' | 'admin' | 'member',
-        userStatus: item.status as 'active' | 'pending' | 'inactive'
-      }));
+    // Combine organization data with user roles
+    const organizations: SessionOrganization[] = (orgData || []).map(org => {
+      const membership = orgMemberData.find(om => om.organization_id === org.id);
+      return {
+        id: org.id,
+        name: org.name,
+        plan: org.plan as 'free' | 'premium',
+        memberCount: org.member_count,
+        maxMembers: org.max_members,
+        features: org.features,
+        billingCycle: org.billing_cycle as 'monthly' | 'yearly' | undefined,
+        nextBillingDate: org.next_billing_date || undefined,
+        userRole: membership?.role as 'owner' | 'admin' | 'member' || 'member',
+        userStatus: membership?.status as 'active' | 'pending' | 'inactive' || 'active'
+      };
+    });
 
     // Get current organization (first one or from storage)
     const storedData = loadSessionFromStorage();
@@ -163,22 +175,27 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     let teamMemberships: SessionTeamMembership[] = [];
     
     if (currentOrganizationId) {
-      const { data: teamData, error: teamError } = await supabase
-        .rpc('get_user_team_memberships', {
-          user_uuid: user.id,
-          org_id: currentOrganizationId
-        });
+      try {
+        const { data: teamData, error: teamError } = await supabase
+          .rpc('get_user_team_memberships', {
+            user_uuid: user.id,
+            org_id: currentOrganizationId
+          });
 
-      if (teamError) {
-        console.error('Error fetching team memberships:', teamError);
-        // Don't throw here, just log the error
-      } else {
-        teamMemberships = (teamData || []).map(item => ({
-          teamId: item.team_id,
-          teamName: item.team_name,
-          role: item.role as 'manager' | 'technician' | 'requestor' | 'viewer',
-          joinedDate: item.joined_date
-        }));
+        if (teamError) {
+          console.error('Error fetching team memberships:', teamError);
+          // Don't throw here, just log the error and continue without team data
+        } else {
+          teamMemberships = (teamData || []).map(item => ({
+            teamId: item.team_id,
+            teamName: item.team_name,
+            role: item.role as 'manager' | 'technician' | 'requestor' | 'viewer',
+            joinedDate: item.joined_date
+          }));
+        }
+      } catch (teamFetchError) {
+        console.error('Failed to fetch team memberships:', teamFetchError);
+        // Continue without team data rather than failing entirely
       }
     }
 
@@ -190,7 +207,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       version: SESSION_VERSION
     };
 
-    console.log('Fetched session data:', sessionData);
+    console.log('Successfully fetched session data:', sessionData);
     return sessionData;
   };
 
