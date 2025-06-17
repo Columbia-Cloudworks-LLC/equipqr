@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
-import { AppSidebar } from "@/components/layout/AppSidebar";
+import AppSidebar from "@/components/layout/AppSidebar";
 import Dashboard from "@/pages/Dashboard";
 import Equipment from "@/pages/Equipment";
 import EquipmentDetails from "@/pages/EquipmentDetails";
