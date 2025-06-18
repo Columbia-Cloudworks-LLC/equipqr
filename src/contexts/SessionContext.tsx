@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,7 +55,7 @@ export const useSession = () => {
 };
 
 const SESSION_STORAGE_KEY = 'equipqr_session_data';
-const SESSION_VERSION = 1;
+const SESSION_VERSION = 2; // Incremented due to RLS policy updates
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -71,25 +70,25 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       
       const parsed = JSON.parse(stored);
       
-      // Check version compatibility
+      // Check version compatibility - force refresh due to RLS changes
       if (parsed.version !== SESSION_VERSION) {
-        console.log('Session version mismatch, clearing stored data');
+        console.log('🔄 Session version updated due to RLS policy changes, clearing stored data');
         localStorage.removeItem(SESSION_STORAGE_KEY);
         return null;
       }
       
-      // Check if data is recent (less than 1 hour old)
+      // Check if data is recent (less than 30 minutes due to security updates)
       const lastUpdated = new Date(parsed.lastUpdated);
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
       
-      if (lastUpdated < oneHourAgo) {
-        console.log('Session data expired, will refresh');
+      if (lastUpdated < thirtyMinutesAgo) {
+        console.log('⏰ Session data expired due to security updates, will refresh');
         return null;
       }
       
       return parsed;
     } catch (error) {
-      console.error('Error loading session from storage:', error);
+      console.error('💥 Error loading session from storage:', error);
       localStorage.removeItem(SESSION_STORAGE_KEY);
       return null;
     }
@@ -99,7 +98,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.error('Error saving session to storage:', error);
+      console.error('💾 Error saving session to storage:', error);
     }
   };
 
@@ -108,10 +107,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       throw new Error('User not authenticated');
     }
 
-    console.log('🔍 Starting session data fetch for user:', user.id);
+    console.log('🔍 Starting fresh session data fetch with updated RLS policies for user:', user.id);
 
-    // First, test the new RLS policy by fetching user's organization memberships
-    console.log('📋 Fetching organization memberships...');
+    // Fetch user's organization memberships using the cleaned RLS policy
+    console.log('📋 Fetching organization memberships with new RLS...');
     const { data: orgMemberData, error: orgMemberError } = await supabase
       .from('organization_members')
       .select('organization_id, role, status')
@@ -120,13 +119,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     if (orgMemberError) {
       console.error('❌ Error fetching organization memberships:', orgMemberError);
-      throw orgMemberError;
+      throw new Error(`Failed to fetch memberships: ${orgMemberError.message}`);
     }
 
-    console.log('✅ Organization memberships fetched successfully:', orgMemberData);
+    console.log('✅ Organization memberships fetched successfully:', orgMemberData?.length || 0);
 
     if (!orgMemberData || orgMemberData.length === 0) {
-      console.log('⚠️  No organization memberships found for user');
+      console.log('⚠️ No organization memberships found for user');
       return {
         organizations: [],
         currentOrganizationId: null,
@@ -136,23 +135,21 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
     }
 
-    // Get organization IDs that user has access to
+    // Get organization IDs and fetch details using updated RLS policy
     const orgIds = orgMemberData.map(om => om.organization_id);
-    console.log('🏢 Organization IDs to fetch:', orgIds);
+    console.log('🏢 Fetching organization details for IDs:', orgIds);
 
-    // Fetch organization details for those IDs using the new RLS policy
-    console.log('🔍 Fetching organization details...');
     const { data: orgData, error: orgError } = await supabase
       .from('organizations')
       .select('*')
       .in('id', orgIds);
 
     if (orgError) {
-      console.error('❌ Error fetching organizations:', orgError);
-      throw orgError;
+      console.error('❌ Error fetching organizations with new RLS:', orgError);
+      throw new Error(`Failed to fetch organizations: ${orgError.message}`);
     }
 
-    console.log('✅ Organizations fetched successfully:', orgData);
+    console.log('✅ Organizations fetched successfully with new RLS:', orgData?.length || 0);
 
     // Combine organization data with user roles
     const organizations: SessionOrganization[] = (orgData || []).map(org => {
@@ -171,7 +168,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
     });
 
-    // Get current organization (first one or from storage)
+    // Get current organization
     const storedData = loadSessionFromStorage();
     let currentOrganizationId = organizations.length > 0 ? organizations[0].id : null;
     
@@ -179,7 +176,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       currentOrganizationId = storedData.currentOrganizationId;
     }
 
-    // Fetch team memberships for current organization
+    // Fetch team memberships using the security function
     let teamMemberships: SessionTeamMembership[] = [];
     
     if (currentOrganizationId) {
@@ -192,10 +189,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           });
 
         if (teamError) {
-          console.error('⚠️  Error fetching team memberships:', teamError);
-          // Don't throw here, just log the error and continue without team data
+          console.error('⚠️ Error fetching team memberships:', teamError);
+          // Don't throw, just continue without team data
         } else {
-          console.log('✅ Team memberships fetched successfully:', teamData);
+          console.log('✅ Team memberships fetched successfully:', teamData?.length || 0);
           teamMemberships = (teamData || []).map(item => ({
             teamId: item.team_id,
             teamName: item.team_name,
@@ -217,7 +214,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       version: SESSION_VERSION
     };
 
-    console.log('🎉 Session data fetched successfully!', sessionData);
+    console.log('🎉 Session data fetched successfully with updated RLS!', sessionData);
     return sessionData;
   };
 
@@ -236,14 +233,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setSessionData(newSessionData);
       saveSessionToStorage(newSessionData);
     } catch (err) {
-      console.error('💥 Error refreshing session:', err);
+      console.error('💥 Error refreshing session with new RLS:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh session';
       setError(errorMessage);
       
-      // Try to use cached data if available
+      // Try to use cached data if available (but only if it's compatible)
       const cachedData = loadSessionFromStorage();
-      if (cachedData) {
-        console.log('📦 Using cached session data due to error');
+      if (cachedData && cachedData.version === SESSION_VERSION) {
+        console.log('📦 Using compatible cached session data due to error');
         setSessionData(cachedData);
       }
     } finally {
@@ -270,7 +267,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return;
     }
 
-    console.log('Switching to organization:', organizationId);
+    console.log('🔄 Switching to organization:', organizationId);
     
     try {
       // Fetch team memberships for the new organization
@@ -291,13 +288,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ...sessionData,
         currentOrganizationId: organizationId,
         teamMemberships,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        version: SESSION_VERSION
       };
 
       setSessionData(updatedSessionData);
       saveSessionToStorage(updatedSessionData);
     } catch (error) {
-      console.error('Error switching organization:', error);
+      console.error('💥 Error switching organization:', error);
     }
   };
 
@@ -327,7 +325,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return sessionData.teamMemberships.map(tm => tm.teamId);
   };
 
-  // Initialize session on mount or user change
+  // Initialize session on mount or user change - force refresh due to RLS updates
   useEffect(() => {
     if (!user) {
       clearSession();
@@ -335,11 +333,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return;
     }
 
-    // Clear any cached data to force a fresh fetch after the RLS fix
+    // Clear any cached data to ensure we test the new RLS policies
     localStorage.removeItem(SESSION_STORAGE_KEY);
-    console.log('🔄 Forcing fresh session data fetch after RLS policy update');
+    console.log('🔄 Forcing fresh session data fetch to validate updated RLS policies');
     
-    // Fetch fresh data
+    // Fetch fresh data with updated RLS
     refreshSession();
   }, [user]);
 
