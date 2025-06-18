@@ -7,7 +7,9 @@ import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
 import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppSidebar from '@/components/layout/AppSidebar';
+import Auth from '@/pages/Auth';
 import Dashboard from '@/pages/Dashboard';
 import Equipment from '@/pages/Equipment';
 import EquipmentDetails from '@/pages/EquipmentDetails';
@@ -36,28 +38,38 @@ function App() {
         <UserProvider>
           <SessionProvider>
             <Router>
-              <SimpleOrganizationProvider>
-                <SidebarProvider>
-                  <div className="flex min-h-screen w-full">
-                    <AppSidebar />
-                    <main className="flex-1 p-6 lg:p-8 overflow-auto">
-                      <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/equipment" element={<Equipment />} />
-                        <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
-                        <Route path="/work-orders" element={<WorkOrders />} />
-                        <Route path="/teams" element={<Teams />} />
-                        <Route path="/fleet-map" element={<FleetMap />} />
-                        <Route path="/organization" element={<Organization />} />
-                        <Route path="/scanner" element={<QRScanner />} />
-                        <Route path="/billing" element={<Billing />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/reports" element={<Reports />} />
-                      </Routes>
-                    </main>
-                  </div>
-                </SidebarProvider>
-              </SimpleOrganizationProvider>
+              <Routes>
+                {/* Public route */}
+                <Route path="/auth" element={<Auth />} />
+                
+                {/* Protected routes */}
+                <Route path="/*" element={
+                  <ProtectedRoute>
+                    <SimpleOrganizationProvider>
+                      <SidebarProvider>
+                        <div className="flex min-h-screen w-full">
+                          <AppSidebar />
+                          <main className="flex-1 p-6 lg:p-8 overflow-auto">
+                            <Routes>
+                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/equipment" element={<Equipment />} />
+                              <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
+                              <Route path="/work-orders" element={<WorkOrders />} />
+                              <Route path="/teams" element={<Teams />} />
+                              <Route path="/fleet-map" element={<FleetMap />} />
+                              <Route path="/organization" element={<Organization />} />
+                              <Route path="/scanner" element={<QRScanner />} />
+                              <Route path="/billing" element={<Billing />} />
+                              <Route path="/settings" element={<Settings />} />
+                              <Route path="/reports" element={<Reports />} />
+                            </Routes>
+                          </main>
+                        </div>
+                      </SidebarProvider>
+                    </SimpleOrganizationProvider>
+                  </ProtectedRoute>
+                } />
+              </Routes>
             </Router>
           </SessionProvider>
         </UserProvider>
