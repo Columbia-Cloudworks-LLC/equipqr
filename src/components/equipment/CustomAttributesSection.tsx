@@ -8,7 +8,7 @@ import { Trash2, Plus } from 'lucide-react';
 import { useCustomAttributes, type CustomAttribute } from '@/hooks/useCustomAttributes';
 
 interface CustomAttributesSectionProps {
-  initialAttributes?: CustomAttribute[];
+  initialAttributes?: CustomAttribute[] | Record<string, string>;
   onChange: (attributes: CustomAttribute[]) => void;
   hasError?: boolean;
 }
@@ -18,13 +18,31 @@ const CustomAttributesSection: React.FC<CustomAttributesSectionProps> = ({
   onChange,
   hasError = false
 }) => {
+  // Convert initialAttributes to the expected format if it's an object
+  const normalizedInitialAttributes = React.useMemo(() => {
+    if (Array.isArray(initialAttributes)) {
+      return initialAttributes;
+    }
+    
+    // Convert object format to array format
+    if (initialAttributes && typeof initialAttributes === 'object') {
+      return Object.entries(initialAttributes).map(([key, value]) => ({
+        id: crypto.randomUUID(),
+        key,
+        value: String(value)
+      }));
+    }
+    
+    return [];
+  }, [initialAttributes]);
+
   const {
     attributes,
     addAttribute,
     removeAttribute,
     updateAttribute,
     getCleanAttributes
-  } = useCustomAttributes(initialAttributes);
+  } = useCustomAttributes(normalizedInitialAttributes);
 
   React.useEffect(() => {
     onChange(getCleanAttributes());

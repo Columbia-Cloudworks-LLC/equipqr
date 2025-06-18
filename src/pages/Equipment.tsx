@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Filter, QrCode, MapPin, Calendar, Package } from 'lucide-react';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useEquipmentByOrganization } from '@/hooks/useSupabaseData';
+import { usePermissions } from '@/hooks/usePermissions';
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 
@@ -16,13 +17,16 @@ const Equipment = () => {
   const navigate = useNavigate();
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
   const { data: equipment = [], isLoading: equipmentLoading } = useEquipmentByOrganization();
+  const { canCreateEquipment } = usePermissions();
   
   const [showForm, setShowForm] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   const isLoading = orgLoading || equipmentLoading;
+  const canCreate = canCreateEquipment();
 
   if (!currentOrganization) {
     return (
@@ -79,6 +83,21 @@ const Equipment = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const handleAddEquipment = () => {
+    setEditingEquipment(null);
+    setShowForm(true);
+  };
+
+  const handleEditEquipment = (equipment: any) => {
+    setEditingEquipment(equipment);
+    setShowForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingEquipment(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -88,10 +107,12 @@ const Equipment = () => {
             Manage equipment for {currentOrganization.name}
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Equipment
-        </Button>
+        {canCreate && (
+          <Button onClick={handleAddEquipment} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Equipment
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -196,8 +217,8 @@ const Equipment = () => {
                 ? 'No equipment matches your current filters.' 
                 : `Get started by adding your first piece of equipment to ${currentOrganization.name}.`}
             </p>
-            {(!searchQuery && statusFilter === 'all') && (
-              <Button onClick={() => setShowForm(true)}>
+            {(!searchQuery && statusFilter === 'all' && canCreate) && (
+              <Button onClick={handleAddEquipment}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Equipment
               </Button>
@@ -209,7 +230,8 @@ const Equipment = () => {
       {/* Equipment Form Modal */}
       <EquipmentForm 
         open={showForm} 
-        onClose={() => setShowForm(false)} 
+        onClose={handleCloseForm}
+        equipment={editingEquipment}
       />
 
       {/* QR Code Modal */}

@@ -23,6 +23,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCreateEquipment } from '@/hooks/useSupabaseData';
+import { usePermissions } from '@/hooks/usePermissions';
+import { toast } from '@/hooks/use-toast';
 import CustomAttributesSection from './CustomAttributesSection';
 import { useCustomAttributes, type CustomAttribute } from '@/hooks/useCustomAttributes';
 
@@ -54,8 +57,23 @@ interface EquipmentFormProps {
 const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment }) => {
   const isEdit = !!equipment;
   const [customAttributesError, setCustomAttributesError] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   const { validateAttributes } = useCustomAttributes();
+  const createEquipmentMutation = useCreateEquipment();
+  const { canCreateEquipment, canManageEquipment } = usePermissions();
+
+  // Check permissions
+  const canCreate = canCreateEquipment();
+  const canEdit = equipment ? canManageEquipment(equipment.teamId) : false;
+  
+  if (!canCreate && !isEdit) {
+    return null; // Don't render if user can't create
+  }
+  
+  if (isEdit && !canEdit) {
+    return null; // Don't render if user can't edit this equipment
+  }
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
@@ -78,7 +96,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
     setCustomAttributesError(false);
   };
 
-  const onSubmit = (data: EquipmentFormData) => {
+  const onSubmit = async (data: EquipmentFormData) => {
     // Validate custom attributes separately
     const currentAttributes = form.getValues('customAttributes') || [];
     if (currentAttributes.length > 0) {
@@ -90,12 +108,53 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
       }
     }
 
-    console.log('Equipment form submitted:', data);
+    setIsSubmitting(true);
+    
+    try {
+      if (isEdit) {
+        // TODO: Implement update equipment mutation
+        toast({
+          title: 'Update Equipment',
+          description: 'Equipment update functionality will be implemented soon.',
+          variant: 'default',
+        });
+        onClose();
+      } else {
+        // Create new equipment
+        const equipmentData = {
+          ...data,
+          installationDate: data.installationDate || new Date().toISOString().split('T')[0],
+          lastMaintenance: new Date().toISOString().split('T')[0],
+          // Convert custom attributes to the format expected by the database
+          customAttributes: currentAttributes.length > 0 ? 
+            Object.fromEntries(currentAttributes.map(attr => [attr.key, attr.value])) : 
+            undefined
+        };
+
+        await createEquipmentMutation.mutateAsync(equipmentData);
+        onClose();
+        form.reset();
+      }
+    } catch (error) {
+      console.error('Error submitting equipment form:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save equipment. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    form.reset();
+    setCustomAttributesError(false);
     onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Equipment' : 'Add New Equipment'}</DialogTitle>
@@ -275,11 +334,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
 
             {/* Actions */}
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {isEdit ? 'Update Equipment' : 'Add Equipment'}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Equipment' : 'Add Equipment')}
               </Button>
             </div>
           </form>
