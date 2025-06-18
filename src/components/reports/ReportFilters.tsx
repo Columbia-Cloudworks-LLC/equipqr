@@ -125,14 +125,14 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
         <div className="space-y-2">
           <Label>Status</Label>
           <Select 
-            value={filters.status || ''} 
-            onValueChange={(value) => updateFilters({ status: value || undefined })}
+            value={filters.status || 'all_statuses'} 
+            onValueChange={(value) => updateFilters({ status: value === 'all_statuses' ? undefined : value })}
           >
             <SelectTrigger>
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All statuses</SelectItem>
+              <SelectItem value="all_statuses">All statuses</SelectItem>
               {uniqueStatuses.map((status) => (
                 <SelectItem key={status} value={status}>
                   {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
@@ -157,14 +157,14 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
           <div className="space-y-2">
             <Label>Priority</Label>
             <Select 
-              value={filters.priority || ''} 
-              onValueChange={(value) => updateFilters({ priority: value || undefined })}
+              value={filters.priority || 'all_priorities'} 
+              onValueChange={(value) => updateFilters({ priority: value === 'all_priorities' ? undefined : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All priorities" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All priorities</SelectItem>
+                <SelectItem value="all_priorities">All priorities</SelectItem>
                 {uniquePriorities.map((priority) => (
                   <SelectItem key={priority} value={priority}>
                     {priority.charAt(0).toUpperCase() + priority.slice(1)}
