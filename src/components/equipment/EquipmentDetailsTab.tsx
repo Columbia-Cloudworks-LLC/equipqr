@@ -1,260 +1,281 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Shield, Wrench, Users } from 'lucide-react';
-import { Equipment } from '@/services/dataService';
-import { UserOrganization } from '@/types/organizationContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useUpdateEquipment } from '@/hooks/useSupabaseData';
-import InlineEditField from './InlineEditField';
-import InlineEditCustomAttributes from './InlineEditCustomAttributes';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { QrCode, Calendar, MapPin, Wrench, FileText } from "lucide-react";
+import { Equipment } from "@/integrations/supabase/types";
+import { format } from "date-fns";
+import QRCodeDisplay from "./QRCodeDisplay";
+import InlineEditField from "./InlineEditField";
+import { useUpdateEquipment } from "@/hooks/useSupabaseData";
+import { usePermissions } from "@/hooks/usePermissions";
+import { toast } from "sonner";
 
 interface EquipmentDetailsTabProps {
   equipment: Equipment;
-  organization: UserOrganization;
 }
 
-const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
-  equipment,
-  organization,
-}) => {
-  const { canManageEquipment } = usePermissions();
+const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) => {
+  const [showQRCode, setShowQRCode] = React.useState(false);
+  const { canEditEquipment } = usePermissions();
   const updateEquipmentMutation = useUpdateEquipment();
-  
-  const hasFleetMapFeature = organization.features.includes('Fleet Map');
-  const hasLocation = equipment.lastKnownLocation;
-  
-  // Check if user can edit this equipment
-  const canEdit = canManageEquipment(equipment.id); // In real implementation, you'd pass the team_id
+
+  const canEdit = canEditEquipment(equipment);
 
   const handleFieldUpdate = async (field: keyof Equipment, value: string) => {
-    await updateEquipmentMutation.mutateAsync({
-      equipmentId: equipment.id,
-      equipmentData: { [field]: value }
-    });
-  };
-
-  const handleCustomAttributesUpdate = async (customAttributes: Record<string, string>) => {
-    await updateEquipmentMutation.mutateAsync({
-      equipmentId: equipment.id,
-      equipmentData: { customAttributes }
-    });
+    try {
+      await updateEquipmentMutation.mutateAsync({
+        id: equipment.id,
+        updates: { [field]: value }
+      });
+      toast.success(`${field} updated successfully`);
+    } catch (error) {
+      console.error(`Error updating ${field}:`, error);
+      toast.error(`Failed to update ${field}`);
+      throw error; // Re-throw to let InlineEditField handle the error state
+    }
   };
 
   const statusOptions = [
     { value: 'active', label: 'Active' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'inactive', label: 'Inactive' }
+    { value: 'maintenance', label: 'Under Maintenance' },
+    { value: 'inactive', label: 'Inactive' },
+    { value: 'retired', label: 'Retired' }
   ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'maintenance':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'inactive':
+        return 'bg-gray-100 text-gray-800';
+      case 'retired':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Wrench className="h-5 w-5" />
-              Equipment Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Manufacturer</div>
-              <InlineEditField
-                value={equipment.manufacturer}
-                onSave={(value) => handleFieldUpdate('manufacturer', value)}
-                canEdit={canEdit}
-                className="text-lg"
-                placeholder="Enter manufacturer"
-              />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Model</div>
-              <InlineEditField
-                value={equipment.model}
-                onSave={(value) => handleFieldUpdate('model', value)}
-                canEdit={canEdit}
-                className="text-lg"
-                placeholder="Enter model"
-              />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Serial Number</div>
-              <InlineEditField
-                value={equipment.serialNumber}
-                onSave={(value) => handleFieldUpdate('serialNumber', value)}
-                canEdit={canEdit}
-                className="text-lg font-mono"
-                placeholder="Enter serial number"
-              />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Status</div>
-              {canEdit ? (
-                <InlineEditField
-                  value={equipment.status}
-                  onSave={(value) => handleFieldUpdate('status', value)}
-                  canEdit={canEdit}
-                  type="select"
-                  selectOptions={statusOptions}
-                />
-              ) : (
-                <Badge variant="outline" className={
-                  equipment.status === 'active' ? 'border-green-200 text-green-800' :
-                  equipment.status === 'maintenance' ? 'border-yellow-200 text-yellow-800' :
-                  'border-red-200 text-red-800'
-                }>
-                  {equipment.status}
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Dates */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Important Dates
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Installation Date</div>
-              <InlineEditField
-                value={equipment.installationDate}
-                onSave={(value) => handleFieldUpdate('installationDate', value)}
-                canEdit={canEdit}
-                type="date"
-                className="text-lg"
-              />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Last Maintenance</div>
-              <InlineEditField
-                value={equipment.lastMaintenance || ''}
-                onSave={(value) => handleFieldUpdate('lastMaintenance', value)}
-                canEdit={canEdit}
-                type="date"
-                className="text-lg"
-              />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Warranty Expiration</div>
-              <InlineEditField
-                value={equipment.warrantyExpiration || ''}
-                onSave={(value) => handleFieldUpdate('warrantyExpiration', value)}
-                canEdit={canEdit}
-                type="date"
-                className="text-lg"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Location & Team Assignment */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Location & Assignment
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Current Location</div>
-              <InlineEditField
-                value={equipment.location}
-                onSave={(value) => handleFieldUpdate('location', value)}
-                canEdit={canEdit}
-                className="text-lg"
-                placeholder="Enter location"
-              />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Assigned Team</div>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  Team assignment info would be displayed here
-                </span>
-              </div>
-            </div>
-            {hasLocation && (
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">GPS Coordinates</div>
-                <div className="text-sm font-mono">
-                  {equipment.lastKnownLocation!.latitude.toFixed(4)}, {equipment.lastKnownLocation!.longitude.toFixed(4)}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Last updated: {new Date(equipment.lastKnownLocation!.timestamp).toLocaleString()}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Notes */}
+      {/* Basic Information Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Notes</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Basic Information
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowQRCode(true)}
+            className="flex items-center gap-2"
+          >
+            <QrCode className="h-4 w-4" />
+            Show QR Code
+          </Button>
         </CardHeader>
-        <CardContent>
-          <InlineEditField
-            value={equipment.notes || ''}
-            onSave={(value) => handleFieldUpdate('notes', value)}
-            canEdit={canEdit}
-            type="textarea"
-            placeholder="Add notes about this equipment..."
-          />
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-500">Name</label>
+              <div className="mt-1">
+                <InlineEditField
+                  value={equipment.name || ''}
+                  onSave={(value) => handleFieldUpdate('name', value)}
+                  canEdit={canEdit}
+                  placeholder="Enter equipment name"
+                  className="text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Status</label>
+              <div className="mt-1">
+                {canEdit ? (
+                  <InlineEditField
+                    value={equipment.status || 'active'}
+                    onSave={(value) => handleFieldUpdate('status', value)}
+                    canEdit={canEdit}
+                    type="select"
+                    selectOptions={statusOptions}
+                    className="text-base"
+                  />
+                ) : (
+                  <Badge className={getStatusColor(equipment.status || 'active')}>
+                    {statusOptions.find(opt => opt.value === equipment.status)?.label || 'Active'}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Manufacturer</label>
+              <div className="mt-1">
+                <InlineEditField
+                  value={equipment.manufacturer || ''}
+                  onSave={(value) => handleFieldUpdate('manufacturer', value)}
+                  canEdit={canEdit}
+                  placeholder="Enter manufacturer"
+                  className="text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Model</label>
+              <div className="mt-1">
+                <InlineEditField
+                  value={equipment.model || ''}
+                  onSave={(value) => handleFieldUpdate('model', value)}
+                  canEdit={canEdit}
+                  placeholder="Enter model"
+                  className="text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Serial Number</label>
+              <div className="mt-1">
+                <InlineEditField
+                  value={equipment.serial_number || ''}
+                  onSave={(value) => handleFieldUpdate('serial_number', value)}
+                  canEdit={canEdit}
+                  placeholder="Enter serial number"
+                  className="text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Location</label>
+              <div className="mt-1 flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-gray-400" />
+                <InlineEditField
+                  value={equipment.location || ''}
+                  onSave={(value) => handleFieldUpdate('location', value)}
+                  canEdit={canEdit}
+                  placeholder="Enter location"
+                  className="text-base"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-500">Description</label>
+            <div className="mt-1">
+              <InlineEditField
+                value={equipment.description || ''}
+                onSave={(value) => handleFieldUpdate('description', value)}
+                canEdit={canEdit}
+                type="textarea"
+                placeholder="Enter equipment description"
+                className="text-base"
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Custom Attributes */}
+      {/* Timeline Information Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Specifications
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Timeline Information
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <InlineEditCustomAttributes
-            value={equipment.customAttributes || {}}
-            onSave={handleCustomAttributesUpdate}
-            canEdit={canEdit}
-          />
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-500">Installation Date</label>
+              <div className="mt-1">
+                <InlineEditField
+                  value={equipment.installation_date || ''}
+                  onSave={(value) => handleFieldUpdate('installation_date', value)}
+                  canEdit={canEdit}
+                  type="date"
+                  placeholder="Select installation date"
+                  className="text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Warranty Expiration</label>
+              <div className="mt-1">
+                <InlineEditField
+                  value={equipment.warranty_expiration || ''}
+                  onSave={(value) => handleFieldUpdate('warranty_expiration', value)}
+                  canEdit={canEdit}
+                  type="date"
+                  placeholder="Select warranty expiration date"
+                  className="text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Last Maintenance</label>
+              <div className="mt-1">
+                <InlineEditField
+                  value={equipment.last_maintenance || ''}
+                  onSave={(value) => handleFieldUpdate('last_maintenance', value)}
+                  canEdit={canEdit}
+                  type="date"
+                  placeholder="Select last maintenance date"
+                  className="text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Created Date</label>
+              <div className="mt-1 text-base text-gray-900">
+                {equipment.created_at ? format(new Date(equipment.created_at), 'PPP') : 'Not set'}
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Map - Only show if organization has Fleet Map feature and equipment has location */}
-      {hasFleetMapFeature && hasLocation && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Equipment Location
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  Interactive map would be displayed here
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Location: {equipment.lastKnownLocation!.latitude.toFixed(4)}, {equipment.lastKnownLocation!.longitude.toFixed(4)}
-                </p>
-              </div>
+      {/* Maintenance Information Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wrench className="h-5 w-5" />
+            Maintenance Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-500">Notes</label>
+            <div className="mt-1">
+              <InlineEditField
+                value={equipment.notes || ''}
+                onSave={(value) => handleFieldUpdate('notes', value)}
+                canEdit={canEdit}
+                type="textarea"
+                placeholder="Enter maintenance notes or additional information"
+                className="text-base"
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* QR Code Modal */}
+      <QRCodeDisplay
+        isOpen={showQRCode}
+        onClose={() => setShowQRCode(false)}
+        equipment={equipment}
+      />
     </div>
   );
 };
