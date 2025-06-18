@@ -89,6 +89,25 @@ export class WorkOrderService extends BaseService {
     }
   }
 
+  async updateStatus(id: string, status: WorkOrder['status']): Promise<ApiResponse<WorkOrder>> {
+    try {
+      // Mock implementation - update just the status
+      const updated: WorkOrder = {
+        id,
+        title: 'Updated Work Order',
+        description: 'Updated description',
+        equipmentId: 'updated-equipment-id',
+        priority: 'medium',
+        status: status,
+        createdDate: new Date().toISOString(),
+        completedDate: status === 'completed' ? new Date().toISOString() : undefined
+      };
+      return this.handleSuccess(updated);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
   async delete(id: string): Promise<ApiResponse<boolean>> {
     try {
       // Mock implementation
