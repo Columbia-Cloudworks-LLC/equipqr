@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Settings, Users, Trash2, Plus, Edit } from 'lucide-react';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { getTeamsByOrganization } from '@/services/dataService';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSyncTeamsByOrganization } from '@/services/syncDataService';
 import TeamMembersList from '@/components/teams/TeamMembersList';
 import TeamMetadataEditor from '@/components/teams/TeamMetadataEditor';
 import AddTeamMemberDialog from '@/components/teams/AddTeamMemberDialog';
@@ -14,11 +15,14 @@ import AddTeamMemberDialog from '@/components/teams/AddTeamMemberDialog';
 const TeamDetails = () => {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
-  const { currentOrganization, isLoading } = useSimpleOrganization();
+  const { currentOrganization, isLoading } = useOrganization();
   const [showMetadataEditor, setShowMetadataEditor] = useState(false);
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
 
-  if (isLoading || !currentOrganization || !teamId) {
+  // Use sync hook for teams data
+  const { data: teams = [], isLoading: teamsLoading } = useSyncTeamsByOrganization(currentOrganization?.id);
+
+  if (isLoading || teamsLoading || !currentOrganization || !teamId) {
     return (
       <div className="space-y-6">
         <div className="h-8 bg-muted animate-pulse rounded" />
@@ -33,7 +37,6 @@ const TeamDetails = () => {
     );
   }
 
-  const teams = getTeamsByOrganization(currentOrganization.id);
   const team = teams.find(t => t.id === teamId);
 
   if (!team) {
@@ -92,7 +95,7 @@ const TeamDetails = () => {
               {team.name}
             </h1>
             <p className="text-muted-foreground">
-              {team.memberCount} members • {team.workOrderCount} active work orders
+              {team.members.length} members • {team.activeWorkOrders} active work orders
             </p>
           </div>
         </div>
@@ -137,11 +140,11 @@ const TeamDetails = () => {
           <div className="grid md:grid-cols-3 gap-4">
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Total Members</h4>
-              <p className="text-2xl font-bold text-blue-600">{team.memberCount}</p>
+              <p className="text-2xl font-bold text-blue-600">{team.members.length}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Active Work Orders</h4>
-              <p className="text-2xl font-bold text-orange-600">{team.workOrderCount}</p>
+              <p className="text-2xl font-bold text-orange-600">{team.activeWorkOrders}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Team Status</h4>

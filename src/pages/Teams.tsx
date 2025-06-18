@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,16 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Users, Settings, Crown, User } from 'lucide-react';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { getTeamsByOrganization } from '@/services/dataService';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSyncTeamsByOrganization } from '@/services/syncDataService';
 import TeamForm from '@/components/teams/TeamForm';
 
 const Teams = () => {
-  const { currentOrganization, isLoading } = useSimpleOrganization();
+  const { currentOrganization, isLoading } = useOrganization();
   const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
 
-  if (isLoading || !currentOrganization) {
+  // Use sync hook for teams data
+  const { data: teams = [], isLoading: teamsLoading } = useSyncTeamsByOrganization(currentOrganization?.id);
+
+  if (isLoading || teamsLoading || !currentOrganization) {
     return (
       <div className="space-y-6">
         <div>
@@ -33,8 +37,6 @@ const Teams = () => {
       </div>
     );
   }
-
-  const teams = getTeamsByOrganization(currentOrganization.id);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -110,10 +112,10 @@ const Teams = () => {
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{team.memberCount} members</span>
+                  <span className="font-medium">{team.members.length} members</span>
                 </div>
                 <div className="text-muted-foreground">
-                  {team.workOrderCount} active work orders
+                  {team.activeWorkOrders} active work orders
                 </div>
               </div>
 
@@ -125,7 +127,7 @@ const Teams = () => {
                     <div key={member.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Avatar className="h-6 w-6">
-                          <AvatarImage src={member.avatar || undefined} />
+                          <AvatarImage src={undefined} />
                           <AvatarFallback className="text-xs">
                             {member.name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
@@ -143,9 +145,9 @@ const Teams = () => {
                       </Badge>
                     </div>
                   ))}
-                  {team.memberCount > 3 && (
+                  {team.members.length > 3 && (
                     <p className="text-xs text-muted-foreground text-center">
-                      +{team.memberCount - 3} more members
+                      +{team.members.length - 3} more members
                     </p>
                   )}
                 </div>

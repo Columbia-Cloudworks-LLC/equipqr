@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { getWorkOrderById, getEquipmentById } from '@/services/dataService';
-import { useWorkOrderPermissions } from '@/hooks/usePermissions';
+import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import WorkOrderStatusManager from '@/components/work-orders/WorkOrderStatusManager';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
@@ -18,17 +19,36 @@ const WorkOrderDetails = () => {
   const { currentOrganization } = useOrganization();
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
 
+  // Use sync hooks for data
+  const { data: workOrder, isLoading: workOrderLoading } = useSyncWorkOrderById(
+    currentOrganization?.id || '', 
+    workOrderId || ''
+  );
+  const { data: equipment } = useSyncEquipmentById(
+    currentOrganization?.id || '', 
+    workOrder?.equipmentId || ''
+  );
+
+  const permissions = useUnifiedPermissions();
+
   if (!workOrderId || !currentOrganization) {
     return <Navigate to="/work-orders" replace />;
   }
 
-  const workOrder = getWorkOrderById(currentOrganization.id, workOrderId);
-  const equipment = workOrder ? getEquipmentById(currentOrganization.id, workOrder.equipmentId) : null;
-  const permissions = useWorkOrderPermissions(workOrder);
+  if (workOrderLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 bg-muted animate-pulse rounded" />
+        <div className="h-64 bg-muted animate-pulse rounded" />
+      </div>
+    );
+  }
 
   if (!workOrder) {
     return <Navigate to="/work-orders" replace />;
   }
+
+  const workOrderPermissions = permissions.workOrders.getPermissions(workOrder);
 
   const handleEditWorkOrder = () => {
     setIsEditFormOpen(true);
@@ -105,7 +125,7 @@ const WorkOrderDetails = () => {
           <Badge className={getStatusColor(workOrder.status)}>
             {formatStatus(workOrder.status)}
           </Badge>
-          {permissions.canEdit && (
+          {workOrderPermissions.canEdit && (
             <Button variant="outline" onClick={handleEditWorkOrder}>
               <Edit className="h-4 w-4 mr-2" />
               Edit

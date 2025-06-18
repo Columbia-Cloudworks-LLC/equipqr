@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,19 +6,25 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { QrCode, AlertCircle, CheckCircle, ArrowLeft, Camera } from 'lucide-react';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { getEquipmentById } from '@/services/dataService';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSyncEquipmentById } from '@/services/syncDataService';
 import { useToast } from '@/hooks/use-toast';
 import QRScannerComponent from '@/components/scanner/QRScannerComponent';
 
 const QRScanner = () => {
   const navigate = useNavigate();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { toast } = useToast();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resolvedEquipment, setResolvedEquipment] = useState<any>(null);
+  const [scannedEquipmentId, setScannedEquipmentId] = useState<string | null>(null);
+
+  // Use sync hook for resolved equipment
+  const { data: resolvedEquipment } = useSyncEquipmentById(
+    currentOrganization?.id || '', 
+    scannedEquipmentId || ''
+  );
 
   const handleScan = useCallback((result: string) => {
     if (!result || !currentOrganization) return;
@@ -32,26 +39,28 @@ const QRScanner = () => {
       equipmentId = result.replace('equipqr://equipment/', '');
     }
 
-    // Try to resolve equipment
-    const equipment = getEquipmentById(currentOrganization.id, equipmentId);
-    
-    if (equipment) {
-      setResolvedEquipment(equipment);
-      toast({
-        title: "Equipment Found",
-        description: `Successfully scanned ${equipment.name}`,
-      });
-    } else {
-      setError('Equipment not found or you do not have access to it');
-      toast({
-        title: "Equipment Not Found",
-        description: "The scanned QR code does not match any equipment in your organization",
-        variant: "destructive",
-      });
-    }
-
+    setScannedEquipmentId(equipmentId);
     setIsScanning(false);
-  }, [currentOrganization, toast]);
+  }, [currentOrganization]);
+
+  // Handle equipment resolution
+  React.useEffect(() => {
+    if (scannedEquipmentId && currentOrganization) {
+      if (resolvedEquipment) {
+        toast({
+          title: "Equipment Found",
+          description: `Successfully scanned ${resolvedEquipment.name}`,
+        });
+      } else if (scanResult) {
+        setError('Equipment not found or you do not have access to it');
+        toast({
+          title: "Equipment Not Found",
+          description: "The scanned QR code does not match any equipment in your organization",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [resolvedEquipment, scannedEquipmentId, currentOrganization, scanResult, toast]);
 
   const handleError = useCallback((error: any) => {
     console.error('QR Scanner error:', error);
@@ -63,7 +72,7 @@ const QRScanner = () => {
     setIsScanning(true);
     setScanResult(null);
     setError(null);
-    setResolvedEquipment(null);
+    setScannedEquipmentId(null);
   };
 
   const viewEquipment = () => {

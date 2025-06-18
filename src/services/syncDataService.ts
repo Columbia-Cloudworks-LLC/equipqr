@@ -1,6 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { getEquipmentByOrganization, getEquipmentById, getAllWorkOrdersByOrganization, getWorkOrderById, getWorkOrdersByEquipmentId, getTeamsByOrganization, getTeamById, getScansByEquipmentId, getNotesByEquipmentId, getDashboardStatsByOrganization } from './dataService';
+import { getEquipmentByOrganization, getEquipmentById, getAllWorkOrdersByOrganization, getWorkOrderById, getWorkOrdersByEquipmentId, getTeamsByOrganization, getScansByEquipmentId, getNotesByEquipmentId, getDashboardStatsByOrganization } from './dataService';
 
 export interface Equipment {
   id: string;
@@ -137,7 +137,10 @@ export const useSyncTeamsByOrganization = (organizationId?: string) => {
 export const useSyncTeamById = (organizationId: string, teamId: string) => {
   return useQuery({
     queryKey: ['team', organizationId, teamId],
-    queryFn: () => getTeamById(organizationId, teamId),
+    queryFn: () => {
+      const teams = getTeamsByOrganization(organizationId);
+      return teams.find(team => team.id === teamId) || null;
+    },
     enabled: !!organizationId && !!teamId,
     staleTime: 10 * 60 * 1000,
   });
