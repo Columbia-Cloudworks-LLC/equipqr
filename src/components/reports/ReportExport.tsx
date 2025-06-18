@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { ReportFilters } from '@/pages/Reports';
-import { Equipment, WorkOrder, DashboardStats } from '@/services/dataService';
+import { Equipment, WorkOrder, DashboardStats } from '@/services/unifiedDataService';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 

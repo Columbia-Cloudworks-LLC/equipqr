@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { ReportType } from '@/pages/Reports';
-import { Equipment, WorkOrder, DashboardStats } from '@/services/dataService';
+import { Equipment, WorkOrder, DashboardStats } from '@/services/unifiedDataService';
 
 interface ReportChartsProps {
   data: any[];
@@ -10,7 +9,7 @@ interface ReportChartsProps {
   dashboardStats: DashboardStats | null;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ['#0088F2', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats }) => {
   const renderEquipmentCharts = (equipment: Equipment[]) => {

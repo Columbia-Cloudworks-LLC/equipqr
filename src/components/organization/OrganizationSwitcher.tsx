@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronsUpDown, Building } from 'lucide-react';
@@ -12,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { cn } from '@/lib/utils';
 
 interface OrganizationSwitcherProps {
@@ -20,7 +19,7 @@ interface OrganizationSwitcherProps {
 }
 
 const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }) => {
-  const { currentOrganization, userOrganizations, switchOrganization, isLoading } = useSimpleOrganization();
+  const { currentOrganization, userOrganizations, switchOrganization, isLoading } = useUnifiedOrganization();
   const navigate = useNavigate();
 
   const handleOrganizationSwitch = (organizationId: string) => {

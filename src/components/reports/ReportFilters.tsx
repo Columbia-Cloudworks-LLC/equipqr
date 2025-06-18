@@ -11,7 +11,7 @@ import { CalendarIcon, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ReportFilters as ReportFiltersType, ReportType } from '@/pages/Reports';
-import { Equipment, WorkOrder } from '@/services/dataService';
+import { Equipment, WorkOrder } from '@/services/unifiedDataService';
 
 interface ReportFiltersProps {
   filters: ReportFiltersType;
@@ -125,15 +125,15 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
         <div className="space-y-2">
           <Label>Status</Label>
           <Select 
-            value={filters.status} 
-            onValueChange={(value) => updateFilters({ status: value === 'all' ? undefined : value })}
+            value={filters.status || ''} 
+            onValueChange={(value) => updateFilters({ status: value || undefined })}
           >
             <SelectTrigger>
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {uniqueStatuses.map(status => (
+              <SelectItem value="">All statuses</SelectItem>
+              {uniqueStatuses.map((status) => (
                 <SelectItem key={status} value={status}>
                   {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
                 </SelectItem>
@@ -145,22 +145,11 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
         {filters.type === 'equipment' && (
           <div className="space-y-2">
             <Label>Location</Label>
-            <Select 
-              value={filters.location} 
-              onValueChange={(value) => updateFilters({ location: value === 'all' ? undefined : value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All locations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All locations</SelectItem>
-                {uniqueLocations.map(location => (
-                  <SelectItem key={location} value={location}>
-                    {location}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              placeholder="Filter by location..."
+              value={filters.location || ''}
+              onChange={(e) => updateFilters({ location: e.target.value || undefined })}
+            />
           </div>
         )}
 
@@ -168,15 +157,15 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
           <div className="space-y-2">
             <Label>Priority</Label>
             <Select 
-              value={filters.priority} 
-              onValueChange={(value) => updateFilters({ priority: value === 'all' ? undefined : value })}
+              value={filters.priority || ''} 
+              onValueChange={(value) => updateFilters({ priority: value || undefined })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All priorities" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All priorities</SelectItem>
-                {uniquePriorities.map(priority => (
+                <SelectItem value="">All priorities</SelectItem>
+                {uniquePriorities.map((priority) => (
                   <SelectItem key={priority} value={priority}>
                     {priority.charAt(0).toUpperCase() + priority.slice(1)}
                   </SelectItem>
@@ -185,19 +174,6 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
             </Select>
           </div>
         )}
-
-        <Button 
-          variant="outline" 
-          className="w-full"
-          onClick={() => updateFilters({ 
-            dateRange: { from: undefined, to: undefined },
-            status: undefined,
-            location: undefined,
-            priority: undefined
-          })}
-        >
-          Clear Filters
-        </Button>
       </CardContent>
     </Card>
   );
