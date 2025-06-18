@@ -1,6 +1,6 @@
 
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { WorkOrder, Equipment, Team } from '@/services/dataService';
+import { useSession } from '@/contexts/SessionContext';
+import { WorkOrder } from '@/services/supabaseDataService';
 
 export interface PermissionContext {
   organizationId: string;
@@ -18,6 +18,15 @@ export interface EntityPermissions {
   canChangeStatus?: boolean;
 }
 
+export interface WorkOrderPermissions {
+  canEdit: boolean;
+  canEditPriority: boolean;
+  canEditAssignment: boolean;
+  canEditDueDate: boolean;
+  canEditDescription: boolean;
+  canChangeStatus: boolean;
+}
+
 export interface UnifiedPermissionsHook {
   // Context
   context: PermissionContext | null;
@@ -32,7 +41,7 @@ export interface UnifiedPermissionsHook {
   
   // Equipment permissions
   equipment: {
-    getPermissions: (equipment?: Equipment) => EntityPermissions;
+    getPermissions: (equipmentTeamId?: string) => EntityPermissions;
     canViewAll: boolean;
     canCreateAny: boolean;
   };
@@ -40,6 +49,7 @@ export interface UnifiedPermissionsHook {
   // Work order permissions
   workOrders: {
     getPermissions: (workOrder?: WorkOrder) => EntityPermissions;
+    getDetailedPermissions: (workOrder?: WorkOrder) => WorkOrderPermissions;
     canViewAll: boolean;
     canCreateAny: boolean;
     canAssignAny: boolean;
@@ -47,7 +57,7 @@ export interface UnifiedPermissionsHook {
   
   // Team permissions
   teams: {
-    getPermissions: (team?: Team) => EntityPermissions;
+    getPermissions: (teamId?: string) => EntityPermissions;
     canViewAll: boolean;
     canCreateAny: boolean;
     canManageAny: boolean;
@@ -60,13 +70,16 @@ export interface UnifiedPermissionsHook {
 }
 
 export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { getCurrentOrganization, hasTeamAccess, canManageTeam, getUserTeamIds } = useSession();
+
+  const currentOrganization = getCurrentOrganization();
+  const userTeamIds = getUserTeamIds();
 
   const context: PermissionContext | null = currentOrganization ? {
     organizationId: currentOrganization.id,
     userRole: currentOrganization.userRole || 'viewer',
     userId: 'current-user-id', // This would come from auth context in real implementation
-    userTeamIds: [] // This would come from team membership data
+    userTeamIds
   } : null;
 
   const hasRole = (roles: string | string[]): boolean => {
@@ -79,14 +92,11 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
   const isOrgMember = (): boolean => hasRole(['owner', 'admin', 'member']);
 
   const isTeamMember = (teamId: string): boolean => {
-    if (!context) return false;
-    return context.userTeamIds.includes(teamId);
+    return hasTeamAccess(teamId);
   };
 
   const isTeamManager = (teamId: string): boolean => {
-    if (!context) return false;
-    // In real implementation, this would check if user has manager role in specific team
-    return isTeamMember(teamId) && hasRole(['owner', 'admin', 'manager']);
+    return canManageTeam(teamId);
   };
 
   // Organization permissions
@@ -99,14 +109,14 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
 
   // Equipment permissions
   const equipment = {
-    getPermissions: (equipment?: Equipment): EntityPermissions => {
+    getPermissions: (equipmentTeamId?: string): EntityPermissions => {
       if (!context) {
         return { canView: false, canCreate: false, canEdit: false, canDelete: false };
       }
 
-      const canView = isOrgMember();
+      const canView = isOrgMember() || (equipmentTeamId ? isTeamMember(equipmentTeamId) : false);
       const canCreate = isOrgAdmin();
-      const canEdit = isOrgAdmin();
+      const canEdit = isOrgAdmin() || (equipmentTeamId ? isTeamManager(equipmentTeamId) : false);
       const canDelete = isOrgAdmin();
 
       return { canView, canCreate, canEdit, canDelete };
@@ -138,6 +148,31 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
 
       return { canView, canCreate, canEdit, canDelete, canAssign, canChangeStatus };
     },
+    getDetailedPermissions: (workOrder?: WorkOrder): WorkOrderPermissions => {
+      if (!currentOrganization) {
+        return {
+          canEdit: false,
+          canEditPriority: false,
+          canEditAssignment: false,
+          canEditDueDate: false,
+          canEditDescription: false,
+          canChangeStatus: false
+        };
+      }
+
+      const isOrgAdminRole = ['owner', 'admin'].includes(currentOrganization.userRole);
+      const isTeamManagerRole = workOrder?.teamId ? canManageTeam(workOrder.teamId) : false;
+      const hasWorkOrderAccess = workOrder?.teamId ? hasTeamAccess(workOrder.teamId) : false;
+
+      return {
+        canEdit: isOrgAdminRole || isTeamManagerRole,
+        canEditPriority: isOrgAdminRole || isTeamManagerRole,
+        canEditAssignment: isOrgAdminRole || isTeamManagerRole,
+        canEditDueDate: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
+        canEditDescription: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
+        canChangeStatus: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess
+      };
+    },
     canViewAll: isOrgAdmin(),
     canCreateAny: isOrgMember(),
     canAssignAny: isOrgAdmin()
@@ -145,14 +180,14 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
 
   // Team permissions
   const teams = {
-    getPermissions: (team?: Team): EntityPermissions => {
+    getPermissions: (teamId?: string): EntityPermissions => {
       if (!context) {
         return { canView: false, canCreate: false, canEdit: false, canDelete: false };
       }
 
-      const canView = isOrgMember() || (team?.id ? isTeamMember(team.id) : false);
+      const canView = isOrgMember() || (teamId ? isTeamMember(teamId) : false);
       const canCreate = isOrgAdmin();
-      const canEdit = isOrgAdmin() || (team?.id ? isTeamManager(team.id) : false);
+      const canEdit = isOrgAdmin() || (teamId ? isTeamManager(teamId) : false);
       const canDelete = isOrgAdmin();
 
       return { canView, canCreate, canEdit, canDelete };

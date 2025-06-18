@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
-import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationContext';
+import { UnifiedOrganizationProvider } from '@/contexts/UnifiedOrganizationContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -45,7 +45,7 @@ function App() {
                 {/* Protected routes */}
                 <Route path="/*" element={
                   <ProtectedRoute>
-                    <SimpleOrganizationProvider>
+                    <UnifiedOrganizationProvider>
                       <SidebarProvider>
                         <div className="flex min-h-screen w-full">
                           <AppSidebar />
@@ -66,7 +66,7 @@ function App() {
                           </main>
                         </div>
                       </SidebarProvider>
-                    </SimpleOrganizationProvider>
+                    </UnifiedOrganizationProvider>
                   </ProtectedRoute>
                 } />
               </Routes>
