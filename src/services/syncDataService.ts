@@ -137,8 +137,8 @@ export const useSyncTeamsByOrganization = (organizationId?: string) => {
 export const useSyncTeamById = (organizationId: string, teamId: string) => {
   return useQuery({
     queryKey: ['team', organizationId, teamId],
-    queryFn: () => {
-      const teams = getTeamsByOrganization(organizationId);
+    queryFn: async () => {
+      const teams = await getTeamsByOrganization(organizationId);
       return teams.find(team => team.id === teamId) || null;
     },
     enabled: !!organizationId && !!teamId,

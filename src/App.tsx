@@ -14,7 +14,9 @@ import Dashboard from '@/pages/Dashboard';
 import Equipment from '@/pages/Equipment';
 import EquipmentDetails from '@/pages/EquipmentDetails';
 import WorkOrders from '@/pages/WorkOrders';
+import WorkOrderDetails from '@/pages/WorkOrderDetails';
 import Teams from '@/pages/Teams';
+import TeamDetails from '@/pages/TeamDetails';
 import FleetMap from '@/pages/FleetMap';
 import Organization from '@/pages/Organization';
 import QRScanner from '@/pages/QRScanner';
@@ -55,7 +57,9 @@ function App() {
                               <Route path="/equipment" element={<Equipment />} />
                               <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
                               <Route path="/work-orders" element={<WorkOrders />} />
+                              <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
                               <Route path="/teams" element={<Teams />} />
+                              <Route path="/teams/:teamId" element={<TeamDetails />} />
                               <Route path="/fleet-map" element={<FleetMap />} />
                               <Route path="/organization" element={<Organization />} />
                               <Route path="/scanner" element={<QRScanner />} />

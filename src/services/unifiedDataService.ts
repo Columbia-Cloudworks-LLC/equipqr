@@ -1,13 +1,16 @@
 
 // Unified data service that uses Supabase as the primary data source
-export {
+export type {
   Equipment,
   Note,
   WorkOrder,
   Scan,
   Team,
   TeamMember,
-  DashboardStats,
+  DashboardStats
+} from './supabaseDataService';
+
+export {
   getEquipmentByOrganization,
   getEquipmentById,
   getTeamsByOrganization,

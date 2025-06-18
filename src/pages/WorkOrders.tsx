@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,18 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Filter, Calendar, User, Wrench, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { getAllWorkOrdersByOrganization } from '@/services/dataService';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSyncWorkOrdersByOrganization } from '@/services/syncDataService';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 
 const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
 
-  // Get work orders from data service
-  const allWorkOrders = currentOrganization ? getAllWorkOrdersByOrganization(currentOrganization.id) : [];
+  // Use sync hook for work orders data
+  const { data: allWorkOrders = [], isLoading } = useSyncWorkOrdersByOrganization(currentOrganization?.id);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -64,6 +65,26 @@ const WorkOrders = () => {
   const formatStatusText = (status: string) => {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Work Orders</h1>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+        <div className="grid gap-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-32 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
