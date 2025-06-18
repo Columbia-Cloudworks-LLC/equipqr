@@ -31,17 +31,19 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   const { execute: updateStatus, isLoading } = useAsyncOperation(
     async (newStatus: WorkOrder['status']) => {
       if (!workOrderService) throw new Error('Service not available');
-      return await workOrderService.updateStatus(workOrder.id, newStatus);
+      const result = await workOrderService.updateStatus(workOrder.id, newStatus);
+      // Return both the result and the new status for the onSuccess callback
+      return { result, newStatus };
     },
     {
-      onSuccess: (result, args) => {
-        if (result?.success) {
+      onSuccess: (data) => {
+        if (data?.result?.success) {
           toast({
             title: "Status Updated",
             description: `Work order status changed successfully`,
           });
-          if (onStatusUpdate && args && args.length > 0) {
-            onStatusUpdate(args[0] as WorkOrder['status']);
+          if (onStatusUpdate) {
+            onStatusUpdate(data.newStatus);
           }
         }
       },
