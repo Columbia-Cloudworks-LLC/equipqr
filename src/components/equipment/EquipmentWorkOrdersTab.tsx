@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Calendar, Clock, User, Users } from 'lucide-react';
-import { getWorkOrdersByEquipmentId, WorkOrder } from '@/services/dataService';
+import { useSyncWorkOrdersByEquipment } from '@/services/syncDataService';
 
 interface EquipmentWorkOrdersTabProps {
   equipmentId: string;
@@ -17,7 +17,21 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
   organizationId,
   onCreateWorkOrder,
 }) => {
-  const workOrders = getWorkOrdersByEquipmentId(organizationId, equipmentId);
+  const { data: workOrders = [], isLoading } = useSyncWorkOrdersByEquipment(organizationId, equipmentId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="pt-6">
+              <div className="h-24 bg-muted animate-pulse rounded" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {

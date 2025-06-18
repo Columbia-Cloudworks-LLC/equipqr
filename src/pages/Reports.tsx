@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import { CalendarIcon, Download, BarChart3, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
-import { getEquipmentByOrganization, getAllWorkOrdersByOrganization, getDashboardStatsByOrganization } from '@/services/unifiedDataService';
+import { useSyncEquipmentByOrganization, useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/services/syncDataService';
 import ReportFilters from '@/components/reports/ReportFilters';
 import ReportCharts from '@/components/reports/ReportCharts';
 import ReportExport from '@/components/reports/ReportExport';
@@ -35,20 +36,11 @@ const Reports = () => {
     dateRange: { from: undefined, to: undefined }
   });
 
-  const equipment = useMemo(() => 
-    currentOrganization ? getEquipmentByOrganization(currentOrganization.id) : [], 
-    [currentOrganization]
-  );
+  const { data: equipment = [], isLoading: equipmentLoading } = useSyncEquipmentByOrganization(currentOrganization?.id);
+  const { data: workOrders = [], isLoading: workOrdersLoading } = useSyncWorkOrdersByOrganization(currentOrganization?.id);
+  const { data: dashboardStats, isLoading: statsLoading } = useSyncDashboardStats(currentOrganization?.id);
 
-  const workOrders = useMemo(() => 
-    currentOrganization ? getAllWorkOrdersByOrganization(currentOrganization.id) : [], 
-    [currentOrganization]
-  );
-
-  const dashboardStats = useMemo(() => 
-    currentOrganization ? getDashboardStatsByOrganization(currentOrganization.id) : null, 
-    [currentOrganization]
-  );
+  const isLoading = equipmentLoading || workOrdersLoading || statsLoading;
 
   const filteredData = useMemo(() => {
     switch (filters.type) {
@@ -90,6 +82,33 @@ const Reports = () => {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+          <p className="text-muted-foreground">Loading reports...</p>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-4">
+          <div className="lg:col-span-1">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="h-64 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          </div>
+          <div className="lg:col-span-3">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="h-96 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -125,14 +144,14 @@ const Reports = () => {
                 data={filteredData}
                 filters={filters}
                 organizationName={currentOrganization.name}
-                dashboardStats={dashboardStats}
+                dashboardStats={dashboardStats || undefined}
               />
             </CardHeader>
             <CardContent>
               <ReportCharts 
                 data={filteredData}
                 type={filters.type}
-                dashboardStats={dashboardStats}
+                dashboardStats={dashboardStats || undefined}
               />
             </CardContent>
           </Card>

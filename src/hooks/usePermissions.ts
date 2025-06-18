@@ -13,6 +13,7 @@ export const usePermissions = () => {
     canManageEquipment: (equipmentTeamId?: string) => permissions.equipment.getPermissions(equipmentTeamId).canEdit,
     canViewEquipment: (equipmentTeamId?: string) => permissions.equipment.getPermissions(equipmentTeamId).canView,
     canCreateEquipment: () => permissions.equipment.canCreateAny,
+    canUpdateEquipmentStatus: (equipmentTeamId?: string) => permissions.equipment.getPermissions(equipmentTeamId).canEdit,
     canManageWorkOrder: (workOrder?: any) => permissions.workOrders.getPermissions(workOrder).canEdit,
     canViewWorkOrder: (workOrder?: any) => permissions.workOrders.getPermissions(workOrder).canView,
     canCreateWorkOrder: () => permissions.workOrders.canCreateAny,
@@ -26,4 +27,10 @@ export const usePermissions = () => {
     isTeamMember: permissions.isTeamMember,
     isTeamManager: permissions.isTeamManager
   };
+};
+
+// Add the specific hook that's being imported
+export const useWorkOrderPermissions = (workOrder?: any) => {
+  const permissions = useUnifiedPermissions();
+  return permissions.workOrders.getPermissions(workOrder);
 };

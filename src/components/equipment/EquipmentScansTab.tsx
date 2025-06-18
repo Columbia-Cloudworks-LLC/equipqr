@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { QrCode, Calendar, MapPin, User, Clock, MessageSquare } from 'lucide-react';
-import { getScansByEquipmentId, Scan } from '@/services/dataService';
+import { useSyncScansByEquipment } from '@/services/syncDataService';
 
 interface EquipmentScansTabProps {
   equipmentId: string;
@@ -16,8 +16,22 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
   equipmentId,
   organizationId,
 }) => {
-  const scans = getScansByEquipmentId(organizationId, equipmentId);
+  const { data: scans = [], isLoading } = useSyncScansByEquipment(organizationId, equipmentId);
   const [timelineView, setTimelineView] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="pt-6">
+              <div className="h-16 bg-muted animate-pulse rounded" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);

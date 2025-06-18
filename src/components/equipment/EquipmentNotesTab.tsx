@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Plus, MessageSquare, Lock, Clock, Shield } from 'lucide-react';
-import { getNotesByEquipmentId, Note } from '@/services/dataService';
+import { useSyncNotesByEquipment, Note } from '@/services/syncDataService';
 import { usePermissions } from '@/hooks/usePermissions';
 
 interface EquipmentNotesTabProps {
@@ -20,7 +20,8 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   organizationId,
   equipmentTeamId,
 }) => {
-  const [notes, setNotes] = useState<Note[]>(getNotesByEquipmentId(organizationId, equipmentId));
+  const { data: notesData = [], isLoading } = useSyncNotesByEquipment(organizationId, equipmentId);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [showAddNote, setShowAddNote] = useState(false);
   const [newNoteContent, setNewNoteContent] = useState('');
   const [newNotePrivate, setNewNotePrivate] = useState(false);
@@ -29,9 +30,26 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   
   const { canViewEquipment, canUpdateEquipmentStatus } = usePermissions();
 
+  // Use the loaded notes data or fallback to local state
+  const allNotes = notes.length > 0 ? notes : notesData;
+
   // Check if user can view this equipment's notes
   const canViewNotes = canViewEquipment(equipmentTeamId);
   const canAddNotes = canUpdateEquipmentStatus(equipmentTeamId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="pt-6">
+              <div className="h-16 bg-muted animate-pulse rounded" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   if (!canViewNotes) {
     return (
@@ -46,7 +64,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   }
 
   // Filter notes based on user role and privacy settings
-  const visibleNotes = notes.filter(note => {
+  const visibleNotes = allNotes.filter(note => {
     // In a real implementation, you'd check if the current user is the author
     // or has permission to view private notes
     return !note.isPrivate || canAddNotes;
@@ -69,7 +87,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       isPrivate: newNotePrivate,
     };
 
-    setNotes([newNote, ...notes]);
+    setNotes([newNote, ...allNotes]);
     setNewNoteContent('');
     setNewNotePrivate(false);
     setShowAddNote(false);
