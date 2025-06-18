@@ -120,15 +120,22 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
         });
         onClose();
       } else {
-        // Create new equipment
+        // Create new equipment - ensure all required fields are provided
         const equipmentData = {
-          ...data,
+          name: data.name,
+          manufacturer: data.manufacturer,
+          model: data.model,
+          serialNumber: data.serialNumber,
+          status: data.status,
+          location: data.location,
           installationDate: data.installationDate || new Date().toISOString().split('T')[0],
+          warrantyExpiration: data.warrantyExpiration || null,
           lastMaintenance: new Date().toISOString().split('T')[0],
+          notes: data.notes || null,
           // Convert custom attributes to the format expected by the database
           customAttributes: currentAttributes.length > 0 ? 
             Object.fromEntries(currentAttributes.map(attr => [attr.key, attr.value])) : 
-            undefined
+            null
         };
 
         await createEquipmentMutation.mutateAsync(equipmentData);
