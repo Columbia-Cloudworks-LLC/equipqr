@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Re-export types from the mock service to maintain compatibility
@@ -652,6 +651,50 @@ export const createNote = async (
     return transformNote(data, profile ? [profile] : []);
   } catch (error) {
     console.error('Error in createNote:', error);
+    return null;
+  }
+};
+
+// Update equipment
+export const updateEquipment = async (
+  organizationId: string,
+  equipmentId: string,
+  equipmentData: Partial<Omit<Equipment, 'id'>>
+): Promise<Equipment | null> => {
+  try {
+    const updateData: any = {};
+
+    // Map the equipment data to database column names
+    if (equipmentData.name !== undefined) updateData.name = equipmentData.name;
+    if (equipmentData.manufacturer !== undefined) updateData.manufacturer = equipmentData.manufacturer;
+    if (equipmentData.model !== undefined) updateData.model = equipmentData.model;
+    if (equipmentData.serialNumber !== undefined) updateData.serial_number = equipmentData.serialNumber;
+    if (equipmentData.status !== undefined) updateData.status = equipmentData.status;
+    if (equipmentData.location !== undefined) updateData.location = equipmentData.location;
+    if (equipmentData.installationDate !== undefined) updateData.installation_date = equipmentData.installationDate;
+    if (equipmentData.warrantyExpiration !== undefined) updateData.warranty_expiration = equipmentData.warrantyExpiration;
+    if (equipmentData.lastMaintenance !== undefined) updateData.last_maintenance = equipmentData.lastMaintenance;
+    if (equipmentData.notes !== undefined) updateData.notes = equipmentData.notes;
+    if (equipmentData.imageUrl !== undefined) updateData.image_url = equipmentData.imageUrl;
+    if (equipmentData.customAttributes !== undefined) updateData.custom_attributes = equipmentData.customAttributes;
+    if (equipmentData.lastKnownLocation !== undefined) updateData.last_known_location = equipmentData.lastKnownLocation;
+
+    const { data, error } = await supabase
+      .from('equipment')
+      .update(updateData)
+      .eq('id', equipmentId)
+      .eq('organization_id', organizationId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating equipment:', error);
+      return null;
+    }
+
+    return transformEquipment(data);
+  } catch (error) {
+    console.error('Error in updateEquipment:', error);
     return null;
   }
 };

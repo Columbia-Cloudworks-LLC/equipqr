@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/contexts/SessionContext';
 import * as supabaseService from '@/services/supabaseDataService';
@@ -292,6 +291,48 @@ export const useCreateNote = () => {
       toast({
         title: 'Save Failed',
         description: 'An error occurred while saving the note',
+        variant: 'destructive',
+      });
+    },
+  });
+};
+
+export const useUpdateEquipment = () => {
+  const queryClient = useQueryClient();
+  const { getCurrentOrganization } = useSession();
+  const currentOrg = getCurrentOrganization();
+
+  return useMutation({
+    mutationFn: async ({ equipmentId, equipmentData }: { 
+      equipmentId: string; 
+      equipmentData: Partial<Omit<supabaseService.Equipment, 'id'>> 
+    }) => {
+      if (!currentOrg) throw new Error('No current organization');
+      return supabaseService.updateEquipment(currentOrg.id, equipmentId, equipmentData);
+    },
+    onSuccess: (result, variables) => {
+      if (result) {
+        // Invalidate relevant queries
+        queryClient.invalidateQueries({ queryKey: ['equipment'] });
+        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrg?.id, variables.equipmentId] });
+        
+        toast({
+          title: 'Equipment Updated',
+          description: `${result.name} has been updated successfully`,
+        });
+      } else {
+        toast({
+          title: 'Update Failed',
+          description: 'Failed to update equipment',
+          variant: 'destructive',
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Error updating equipment:', error);
+      toast({
+        title: 'Update Failed',
+        description: 'An error occurred while updating equipment',
         variant: 'destructive',
       });
     },
