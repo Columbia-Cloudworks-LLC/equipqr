@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Dialog,
@@ -14,8 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Lock, Package } from "lucide-react";
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { getEquipmentByOrganization, getEquipmentById } from '@/services/dataService';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSyncEquipmentByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
 
 interface WorkOrderFormProps {
   open: boolean;
@@ -26,12 +27,14 @@ interface WorkOrderFormProps {
 
 const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder, equipmentId }) => {
   const isEdit = !!workOrder;
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   
-  // Get equipment data
-  const allEquipment = currentOrganization ? getEquipmentByOrganization(currentOrganization.id) : [];
-  const preSelectedEquipment = equipmentId && currentOrganization ? 
-    getEquipmentById(currentOrganization.id, equipmentId) : null;
+  // Get equipment data using sync hooks
+  const { data: allEquipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
+  const { data: preSelectedEquipment } = useSyncEquipmentById(
+    currentOrganization?.id || '', 
+    equipmentId || ''
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

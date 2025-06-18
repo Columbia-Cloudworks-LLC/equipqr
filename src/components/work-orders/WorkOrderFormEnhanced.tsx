@@ -17,11 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Lock, Package, AlertTriangle } from "lucide-react";
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { getEquipmentByOrganization, getEquipmentById, WorkOrder } from '@/services/dataService';
+import { useSyncEquipmentByOrganization, useSyncEquipmentById, WorkOrder } from '@/services/syncDataService';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 const workOrderFormSchema = z.object({
@@ -54,13 +54,15 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
   onSubmit 
 }) => {
   const isEdit = !!workOrder;
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const permissions = useUnifiedPermissions();
   
-  // Get equipment data
-  const allEquipment = currentOrganization ? getEquipmentByOrganization(currentOrganization.id) : [];
-  const preSelectedEquipment = equipmentId && currentOrganization ? 
-    getEquipmentById(currentOrganization.id, equipmentId) : null;
+  // Get equipment data using sync hooks
+  const { data: allEquipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
+  const { data: preSelectedEquipment } = useSyncEquipmentById(
+    currentOrganization?.id || '', 
+    equipmentId || ''
+  );
 
   const initialValues: Partial<WorkOrderFormData> = {
     title: workOrder?.title || '',
