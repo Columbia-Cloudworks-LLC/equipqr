@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { QrCode, Calendar, MapPin, Wrench, FileText } from "lucide-react";
-import { Equipment } from "@/integrations/supabase/types";
+import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import QRCodeDisplay from "./QRCodeDisplay";
 import InlineEditField from "./InlineEditField";
@@ -12,27 +12,29 @@ import { useUpdateEquipment } from "@/hooks/useSupabaseData";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 
+type Equipment = Tables<'equipment'>;
+
 interface EquipmentDetailsTabProps {
   equipment: Equipment;
 }
 
 const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) => {
   const [showQRCode, setShowQRCode] = React.useState(false);
-  const { canEditEquipment } = usePermissions();
+  const { canManageEquipment } = usePermissions();
   const updateEquipmentMutation = useUpdateEquipment();
 
-  const canEdit = canEditEquipment(equipment);
+  const canEdit = canManageEquipment(equipment.team_id || undefined);
 
   const handleFieldUpdate = async (field: keyof Equipment, value: string) => {
     try {
       await updateEquipmentMutation.mutateAsync({
-        id: equipment.id,
-        updates: { [field]: value }
+        equipmentId: equipment.id,
+        equipmentData: { [field]: value }
       });
-      toast.success(`${field} updated successfully`);
+      toast.success(`${String(field)} updated successfully`);
     } catch (error) {
-      console.error(`Error updating ${field}:`, error);
-      toast.error(`Failed to update ${field}`);
+      console.error(`Error updating ${String(field)}:`, error);
+      toast.error(`Failed to update ${String(field)}`);
       throw error; // Re-throw to let InlineEditField handle the error state
     }
   };
@@ -40,8 +42,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   const statusOptions = [
     { value: 'active', label: 'Active' },
     { value: 'maintenance', label: 'Under Maintenance' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'retired', label: 'Retired' }
+    { value: 'inactive', label: 'Inactive' }
   ];
 
   const getStatusColor = (status: string) => {
@@ -52,8 +53,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         return 'bg-yellow-100 text-yellow-800';
       case 'inactive':
         return 'bg-gray-100 text-gray-800';
-      case 'retired':
-        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -171,8 +170,8 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             <label className="text-sm font-medium text-gray-500">Description</label>
             <div className="mt-1">
               <InlineEditField
-                value={equipment.description || ''}
-                onSave={(value) => handleFieldUpdate('description', value)}
+                value={equipment.notes || ''}
+                onSave={(value) => handleFieldUpdate('notes', value)}
                 canEdit={canEdit}
                 type="textarea"
                 placeholder="Enter equipment description"
@@ -272,9 +271,9 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
 
       {/* QR Code Modal */}
       <QRCodeDisplay
-        isOpen={showQRCode}
+        open={showQRCode}
         onClose={() => setShowQRCode(false)}
-        equipment={equipment}
+        equipmentId={equipment.id}
       />
     </div>
   );

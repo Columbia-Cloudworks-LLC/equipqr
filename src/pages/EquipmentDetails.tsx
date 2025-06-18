@@ -120,7 +120,7 @@ const EquipmentDetails = () => {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{equipment.name}</h1>
             <p className="text-muted-foreground">
-              {equipment.manufacturer} {equipment.model} • {equipment.serialNumber}
+              {equipment.manufacturer} {equipment.model} • {equipment.serial_number}
             </p>
           </div>
         </div>
@@ -140,9 +140,9 @@ const EquipmentDetails = () => {
         <div className="lg:col-span-1">
           <Card>
             <CardContent className="p-0">
-              {equipment.imageUrl ? (
+              {equipment.image_url ? (
                 <img
-                  src={equipment.imageUrl}
+                  src={equipment.image_url}
                   alt={equipment.name}
                   className="w-full h-64 object-cover rounded-lg"
                 />
@@ -178,8 +178,8 @@ const EquipmentDetails = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-lg font-semibold">
-                  {equipment.lastMaintenance ? 
-                    new Date(equipment.lastMaintenance).toLocaleDateString() : 
+                  {equipment.last_maintenance ? 
+                    new Date(equipment.last_maintenance).toLocaleDateString() : 
                     'Not recorded'
                   }
                 </p>
@@ -210,7 +210,7 @@ const EquipmentDetails = () => {
         </TabsList>
 
         <TabsContent value="details" className="mt-6">
-          <EquipmentDetailsTab equipment={equipment} organization={currentOrganization} />
+          <EquipmentDetailsTab equipment={equipment} />
         </TabsContent>
 
         <TabsContent value="notes" className="mt-6">
