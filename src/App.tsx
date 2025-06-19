@@ -6,9 +6,10 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
 import { UnifiedOrganizationProvider } from '@/contexts/UnifiedOrganizationContext';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppSidebar from '@/components/layout/AppSidebar';
+import TopBar from '@/components/layout/TopBar';
 import Auth from '@/pages/Auth';
 import Dashboard from '@/pages/Dashboard';
 import Equipment from '@/pages/Equipment';
@@ -51,23 +52,26 @@ function App() {
                       <SidebarProvider>
                         <div className="flex min-h-screen w-full">
                           <AppSidebar />
-                          <main className="flex-1 p-6 lg:p-8 overflow-auto">
-                            <Routes>
-                              <Route path="/" element={<Dashboard />} />
-                              <Route path="/equipment" element={<Equipment />} />
-                              <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
-                              <Route path="/work-orders" element={<WorkOrders />} />
-                              <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
-                              <Route path="/teams" element={<Teams />} />
-                              <Route path="/teams/:teamId" element={<TeamDetails />} />
-                              <Route path="/fleet-map" element={<FleetMap />} />
-                              <Route path="/organization" element={<Organization />} />
-                              <Route path="/scanner" element={<QRScanner />} />
-                              <Route path="/billing" element={<Billing />} />
-                              <Route path="/settings" element={<Settings />} />
-                              <Route path="/reports" element={<Reports />} />
-                            </Routes>
-                          </main>
+                          <SidebarInset>
+                            <TopBar />
+                            <main className="flex-1 p-6 lg:p-8 overflow-auto">
+                              <Routes>
+                                <Route path="/" element={<Dashboard />} />
+                                <Route path="/equipment" element={<Equipment />} />
+                                <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
+                                <Route path="/work-orders" element={<WorkOrders />} />
+                                <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
+                                <Route path="/teams" element={<Teams />} />
+                                <Route path="/teams/:teamId" element={<TeamDetails />} />
+                                <Route path="/fleet-map" element={<FleetMap />} />
+                                <Route path="/organization" element={<Organization />} />
+                                <Route path="/scanner" element={<QRScanner />} />
+                                <Route path="/billing" element={<Billing />} />
+                                <Route path="/settings" element={<Settings />} />
+                                <Route path="/reports" element={<Reports />} />
+                              </Routes>
+                            </main>
+                          </SidebarInset>
                         </div>
                       </SidebarProvider>
                     </UnifiedOrganizationProvider>
