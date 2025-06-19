@@ -235,13 +235,13 @@ const WorkOrderDetails = () => {
         onClose={handleCloseEditForm}
         workOrder={{
           ...workOrder,
-          equipmentId: workOrder.equipment_id,
-          createdDate: workOrder.created_date,
-          dueDate: workOrder.due_date,
-          estimatedHours: workOrder.estimated_hours,
-          completedDate: workOrder.completed_date,
-          assigneeId: workOrder.assignee_id,
-          teamId: workOrder.team_id
+          equipment_id: workOrder.equipment_id,
+          created_date: workOrder.created_date,
+          due_date: workOrder.due_date,
+          estimated_hours: workOrder.estimated_hours,
+          completed_date: workOrder.completed_date,
+          assignee_id: workOrder.assignee_id,
+          team_id: workOrder.team_id
         }}
         onSubmit={handleUpdateWorkOrder}
       />

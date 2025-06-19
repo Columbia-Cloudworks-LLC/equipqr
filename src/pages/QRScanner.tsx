@@ -239,7 +239,7 @@ const QRScanner = () => {
                     <div>
                       <span className="font-medium">Serial Number:</span>
                       <span className="ml-2 text-muted-foreground">
-                        {resolvedEquipment.serialNumber}
+                        {resolvedEquipment.serial_number}
                       </span>
                     </div>
                     <div>
@@ -251,7 +251,10 @@ const QRScanner = () => {
                     <div>
                       <span className="font-medium">Last Maintenance:</span>
                       <span className="ml-2 text-muted-foreground">
-                        {new Date(resolvedEquipment.lastMaintenance).toLocaleDateString()}
+                        {resolvedEquipment.last_maintenance ? 
+                          new Date(resolvedEquipment.last_maintenance).toLocaleDateString() : 
+                          'Not recorded'
+                        }
                       </span>
                     </div>
                   </div>
