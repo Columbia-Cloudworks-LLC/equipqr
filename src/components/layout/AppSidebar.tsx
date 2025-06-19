@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/contexts/UserContext";
+import Logo from "@/components/ui/Logo";
 
 const mainNavigation = [
   { title: "Dashboard", url: "/", icon: Home },
@@ -68,6 +69,10 @@ const AppSidebar = () => {
   return (
     <Sidebar variant="inset">
       <SidebarHeader>
+        <div className="flex items-center gap-2 px-2 py-2">
+          <Logo size="md" />
+          <span className="font-semibold text-lg">EquipQR</span>
+        </div>
         <OrganizationSwitcher />
       </SidebarHeader>
       <SidebarContent>
