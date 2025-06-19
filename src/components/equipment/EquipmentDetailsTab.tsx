@@ -1,13 +1,13 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { QrCode, Calendar, MapPin, Wrench, FileText } from "lucide-react";
+import { QrCode, Calendar, MapPin, Wrench, FileText, Settings } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import QRCodeDisplay from "./QRCodeDisplay";
 import InlineEditField from "./InlineEditField";
+import InlineEditCustomAttributes from "./InlineEditCustomAttributes";
 import { useUpdateEquipment } from "@/hooks/useSupabaseData";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
@@ -52,6 +52,21 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
     }
   };
 
+  const handleCustomAttributesUpdate = async (newAttributes: Record<string, string>) => {
+    try {
+      console.log('Updating custom attributes with value:', newAttributes);
+      await updateEquipmentMutation.mutateAsync({
+        equipmentId: equipment.id,
+        equipmentData: { custom_attributes: newAttributes }
+      });
+      toast.success('Custom attributes updated successfully');
+    } catch (error) {
+      console.error('Error updating custom attributes:', error);
+      toast.error('Failed to update custom attributes');
+      throw error;
+    }
+  };
+
   const statusOptions = [
     { value: 'active', label: 'Active' },
     { value: 'maintenance', label: 'Under Maintenance' },
@@ -76,7 +91,8 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
     serial_number: equipment.serial_number,
     installation_date: equipment.installation_date,
     warranty_expiration: equipment.warranty_expiration,
-    last_maintenance: equipment.last_maintenance
+    last_maintenance: equipment.last_maintenance,
+    custom_attributes: equipment.custom_attributes
   });
 
   return (
@@ -262,6 +278,23 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom Attributes Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Custom Attributes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <InlineEditCustomAttributes
+            value={equipment.custom_attributes as Record<string, string> || {}}
+            onSave={handleCustomAttributesUpdate}
+            canEdit={canEdit}
+          />
         </CardContent>
       </Card>
 
