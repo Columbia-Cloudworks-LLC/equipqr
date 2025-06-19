@@ -70,7 +70,6 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
               {/* Member Info */}
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={member.avatar || undefined} />
                   <AvatarFallback>
                     {member.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>

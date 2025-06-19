@@ -26,7 +26,7 @@ const WorkOrderDetails = () => {
   );
   const { data: equipment } = useSyncEquipmentById(
     currentOrganization?.id || '', 
-    workOrder?.equipmentId || ''
+    workOrder?.equipment_id || ''
   );
 
   const permissions = useUnifiedPermissions();
@@ -160,18 +160,18 @@ const WorkOrderDetails = () => {
                 <div>
                   <div className="font-medium">Created</div>
                   <div className="text-muted-foreground">
-                    {new Date(workOrder.createdDate).toLocaleDateString()}
+                    {new Date(workOrder.created_date).toLocaleDateString()}
                   </div>
                 </div>
               </div>
 
-              {workOrder.dueDate && (
+              {workOrder.due_date && (
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <div className="font-medium">Due Date</div>
                     <div className="text-muted-foreground">
-                      {new Date(workOrder.dueDate).toLocaleDateString()}
+                      {new Date(workOrder.due_date).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
@@ -197,12 +197,12 @@ const WorkOrderDetails = () => {
                 </div>
               )}
 
-              {workOrder.estimatedHours && (
+              {workOrder.estimated_hours && (
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <div className="font-medium">Estimated Hours</div>
-                    <div className="text-muted-foreground">{workOrder.estimatedHours}h</div>
+                    <div className="text-muted-foreground">{workOrder.estimated_hours}h</div>
                   </div>
                 </div>
               )}
@@ -233,7 +233,16 @@ const WorkOrderDetails = () => {
       <WorkOrderFormEnhanced
         open={isEditFormOpen}
         onClose={handleCloseEditForm}
-        workOrder={workOrder}
+        workOrder={{
+          ...workOrder,
+          equipmentId: workOrder.equipment_id,
+          createdDate: workOrder.created_date,
+          dueDate: workOrder.due_date,
+          estimatedHours: workOrder.estimated_hours,
+          completedDate: workOrder.completed_date,
+          assigneeId: workOrder.assignee_id,
+          teamId: workOrder.team_id
+        }}
         onSubmit={handleUpdateWorkOrder}
       />
     </div>

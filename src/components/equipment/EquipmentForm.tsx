@@ -36,10 +36,10 @@ const equipmentFormSchema = z.object({
   serial_number: z.string().min(1, "Serial number is required"),
   status: z.enum(['active', 'maintenance', 'inactive']),
   location: z.string().min(1, "Location is required"),
-  installation_date: z.string().optional(),
+  installation_date: z.string(),
   warranty_expiration: z.string().optional(),
   last_maintenance: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string(),
   custom_attributes: z.any().optional(),
   image_url: z.string().optional(),
   last_known_location: z.any().optional(),
@@ -69,7 +69,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
       serial_number: equipment?.serial_number || '',
       status: equipment?.status || 'active',
       location: equipment?.location || '',
-      installation_date: equipment?.installation_date || '',
+      installation_date: equipment?.installation_date || new Date().toISOString().split('T')[0],
       warranty_expiration: equipment?.warranty_expiration || '',
       last_maintenance: equipment?.last_maintenance || '',
       notes: equipment?.notes || '',
@@ -100,7 +100,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
       } else {
         await createEquipmentMutation.mutateAsync({
           ...values,
-          team_id: values.team_id || null
+          team_id: values.team_id || null,
+          notes: values.notes || '',
+          installation_date: values.installation_date,
+          warranty_expiration: values.warranty_expiration || null,
+          last_maintenance: values.last_maintenance || null
         });
       }
       onClose();

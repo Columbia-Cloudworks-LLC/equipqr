@@ -78,7 +78,6 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
               <TableCell>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={member.avatar || undefined} />
                     <AvatarFallback className="text-sm">
                       {member.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
@@ -101,7 +100,8 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
               </TableCell>
               {canManage && (
                 <TableCell className="text-right">
-                  <DropdownMenu>
+                  <Drop
+ownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
                         <Settings className="h-4 w-4" />
