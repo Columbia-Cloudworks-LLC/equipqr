@@ -70,7 +70,7 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
                     <QrCode className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <div className="font-medium">{scan.scanned_by}</div>
+                    <div className="font-medium">{scan.scannedByName || 'Unknown User'}</div>
                     <div className="text-sm text-muted-foreground">
                       {formatTimeAgo(scan.scanned_at)}
                     </div>
@@ -152,7 +152,7 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{scan.scanned_by}</span>
+                        <span className="font-medium">{scan.scannedByName || 'Unknown User'}</span>
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {new Date(scan.scanned_at).toLocaleString()}
