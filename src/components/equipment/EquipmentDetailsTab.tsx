@@ -26,21 +26,9 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
 
   const handleFieldUpdate = async (field: keyof Equipment, value: string) => {
     try {
-      // Map database column names to interface property names
-      const fieldMap: Record<string, string> = {
-        'serial_number': 'serialNumber',
-        'installation_date': 'installationDate',
-        'warranty_expiration': 'warrantyExpiration',
-        'last_maintenance': 'lastMaintenance',
-        'image_url': 'imageUrl'
-      };
-
-      // Use the mapped field name if it exists, otherwise use the original field name
-      const mappedField = fieldMap[field] || field;
-      
       await updateEquipmentMutation.mutateAsync({
         equipmentId: equipment.id,
-        equipmentData: { [mappedField]: value }
+        equipmentData: { [field]: value }
       });
       toast.success(`${String(field)} updated successfully`);
     } catch (error) {
