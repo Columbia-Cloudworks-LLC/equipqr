@@ -25,17 +25,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
 
   const canEdit = canManageEquipment(equipment.team_id || undefined);
 
-  // Helper function to format date for display
-  const formatDateForDisplay = (dateString: string | null) => {
-    if (!dateString) return '';
-    try {
-      return format(new Date(dateString), 'yyyy-MM-dd');
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return '';
-    }
-  };
-
   // Helper function to format date for HTML input
   const formatDateForInput = (dateString: string | null) => {
     if (!dateString) return '';

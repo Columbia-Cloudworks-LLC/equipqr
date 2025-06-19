@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { useQuery,useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/contexts/SessionContext';
 import * as supabaseService from '@/services/supabaseDataService';
 import { toast } from '@/hooks/use-toast';
@@ -132,7 +133,7 @@ export const useScansByEquipment = (equipmentId?: string) => {
   });
 };
 
-// Create scan mutation - NEW
+// Create scan mutation
 export const useCreateScan = () => {
   const queryClient = useQueryClient();
   const { getCurrentOrganization } = useSession();
@@ -214,7 +215,7 @@ export const useCreateEquipment = () => {
   const currentOrg = getCurrentOrganization();
 
   return useMutation({
-    mutationFn: async (equipmentData: Omit<supabaseService.Equipment, 'id'>) => {
+    mutationFn: async (equipmentData: Omit<supabaseService.Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>) => {
       if (!currentOrg) throw new Error('No current organization');
       return supabaseService.createEquipment(currentOrg.id, equipmentData);
     },
@@ -253,7 +254,7 @@ export const useCreateWorkOrder = () => {
   const currentOrg = getCurrentOrganization();
 
   return useMutation({
-    mutationFn: async (workOrderData: Omit<supabaseService.WorkOrder, 'id' | 'createdDate' | 'assigneeName' | 'teamName' | 'completedDate'>) => {
+    mutationFn: async (workOrderData: Omit<supabaseService.WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date'>) => {
       if (!currentOrg) throw new Error('No current organization');
       return supabaseService.createWorkOrder(currentOrg.id, workOrderData);
     },
@@ -338,7 +339,7 @@ export const useUpdateEquipment = () => {
   return useMutation({
     mutationFn: async ({ equipmentId, equipmentData }: { 
       equipmentId: string; 
-      equipmentData: Partial<Omit<supabaseService.Equipment, 'id'>> 
+      equipmentData: Partial<Omit<supabaseService.Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>> 
     }) => {
       if (!currentOrg) throw new Error('No current organization');
       return supabaseService.updateEquipment(currentOrg.id, equipmentId, equipmentData);

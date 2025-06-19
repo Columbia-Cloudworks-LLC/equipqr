@@ -1,80 +1,30 @@
+
 import { supabase } from '@/integrations/supabase/client';
+import { Tables } from '@/integrations/supabase/types';
 
-// Re-export types from the mock service to maintain compatibility
-export interface Equipment {
-  id: string;
-  name: string;
-  manufacturer: string;
-  model: string;
-  serialNumber: string;
-  status: 'active' | 'maintenance' | 'inactive';
-  location: string;
-  installationDate: string;
-  warrantyExpiration: string;
-  lastMaintenance: string;
-  notes?: string;
-  imageUrl?: string;
-  customAttributes?: Record<string, string>;
-  lastKnownLocation?: {
-    latitude: number;
-    longitude: number;
-    timestamp: string;
-  };
-}
-
-export interface Note {
-  id: string;
-  equipmentId: string;
-  content: string;
-  authorId: string;
-  authorName: string;
-  createdAt: string;
-  updatedAt?: string;
-  isPrivate: boolean;
-}
-
-export interface WorkOrder {
-  id: string;
-  title: string;
-  description: string;
-  equipmentId: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
-  assigneeId?: string;
+// Use native Supabase types directly
+export type Equipment = Tables<'equipment'>;
+export type Note = Tables<'notes'> & {
+  authorName?: string;
+};
+export type WorkOrder = Tables<'work_orders'> & {
   assigneeName?: string;
-  teamId?: string;
   teamName?: string;
-  createdDate: string;
-  dueDate?: string;
-  estimatedHours?: number;
-  completedDate?: string;
-}
-
-export interface Scan {
-  id: string;
-  equipmentId: string;
-  scannedBy: string;
-  scannedAt: string;
-  location?: string;
-  notes?: string;
-}
-
-export interface Team {
-  id: string;
-  name: string;
-  description: string;
+};
+export type Scan = Tables<'scans'> & {
+  scannedByName?: string;
+};
+export type Team = Tables<'teams'> & {
   memberCount: number;
   workOrderCount: number;
   members: TeamMember[];
-}
-
-export interface TeamMember {
+};
+export type TeamMember = {
   id: string;
   name: string;
   email: string;
-  role: 'owner' | 'manager' | 'technician' | 'requestor' | 'viewer';
-  avatar?: string;
-}
+  role: Tables<'team_members'>['role'];
+};
 
 export interface DashboardStats {
   totalEquipment: number;
@@ -82,77 +32,6 @@ export interface DashboardStats {
   maintenanceEquipment: number;
   totalWorkOrders: number;
 }
-
-// Helper function to transform database equipment to our interface
-const transformEquipment = (dbEquipment: any): Equipment => ({
-  id: dbEquipment.id,
-  name: dbEquipment.name,
-  manufacturer: dbEquipment.manufacturer,
-  model: dbEquipment.model,
-  serialNumber: dbEquipment.serial_number,
-  status: dbEquipment.status,
-  location: dbEquipment.location,
-  installationDate: dbEquipment.installation_date,
-  warrantyExpiration: dbEquipment.warranty_expiration || '',
-  lastMaintenance: dbEquipment.last_maintenance || '',
-  notes: dbEquipment.notes,
-  imageUrl: dbEquipment.image_url,
-  customAttributes: dbEquipment.custom_attributes || {},
-  lastKnownLocation: dbEquipment.last_known_location
-});
-
-// Helper function to transform database work order to our interface
-const transformWorkOrder = (dbWorkOrder: any, profiles: any[], teams: any[]): WorkOrder => {
-  const assignee = profiles.find(p => p.id === dbWorkOrder.assignee_id);
-  const team = teams.find(t => t.id === dbWorkOrder.team_id);
-  
-  return {
-    id: dbWorkOrder.id,
-    title: dbWorkOrder.title,
-    description: dbWorkOrder.description,
-    equipmentId: dbWorkOrder.equipment_id,
-    priority: dbWorkOrder.priority,
-    status: dbWorkOrder.status,
-    assigneeId: dbWorkOrder.assignee_id,
-    assigneeName: assignee?.name,
-    teamId: dbWorkOrder.team_id,
-    teamName: team?.name,
-    createdDate: dbWorkOrder.created_date,
-    dueDate: dbWorkOrder.due_date,
-    estimatedHours: dbWorkOrder.estimated_hours,
-    completedDate: dbWorkOrder.completed_date
-  };
-};
-
-// Helper function to transform database note to our interface
-const transformNote = (dbNote: any, profiles: any[]): Note => {
-  const author = profiles.find(p => p.id === dbNote.author_id);
-  
-  return {
-    id: dbNote.id,
-    equipmentId: dbNote.equipment_id,
-    content: dbNote.content,
-    authorId: dbNote.author_id,
-    authorName: author?.name || 'Unknown',
-    createdAt: dbNote.created_at,
-    updatedAt: dbNote.updated_at,
-    isPrivate: dbNote.is_private
-  };
-};
-
-// Helper function to transform database scan to our interface
-const transformScan = (dbScan: any, profiles: any[]): Scan => {
-  const scannedByUser = profiles.find(p => p.id === dbScan.scanned_by);
-  
-  return {
-    id: dbScan.id,
-    equipmentId: dbScan.equipment_id,
-    scannedBy: scannedByUser?.name || 'Unknown',
-    scannedAt: dbScan.scanned_at,
-    location: dbScan.location,
-    notes: dbScan.notes
-  };
-};
 
 // Equipment functions
 export const getEquipmentByOrganization = async (organizationId: string): Promise<Equipment[]> => {
@@ -168,7 +47,7 @@ export const getEquipmentByOrganization = async (organizationId: string): Promis
       return [];
     }
 
-    return (data || []).map(transformEquipment);
+    return data || [];
   } catch (error) {
     console.error('Error in getEquipmentByOrganization:', error);
     return [];
@@ -189,7 +68,7 @@ export const getEquipmentById = async (organizationId: string, equipmentId: stri
       return undefined;
     }
 
-    return transformEquipment(data);
+    return data;
   } catch (error) {
     console.error('Error in getEquipmentById:', error);
     return undefined;
@@ -258,9 +137,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
       const workOrderCount = (workOrderCounts || []).filter(wo => wo.team_id === team.id).length;
 
       return {
-        id: team.id,
-        name: team.name,
-        description: team.description || '',
+        ...team,
         memberCount: teamMembers.length,
         workOrderCount,
         members: teamMembers
@@ -346,7 +223,10 @@ export const getNotesByEquipmentId = async (organizationId: string, equipmentId:
       console.error('Error fetching author profiles:', profilesError);
     }
 
-    return (data || []).map(note => transformNote(note, profiles || []));
+    return (data || []).map(note => ({
+      ...note,
+      authorName: profiles?.find(p => p.id === note.author_id)?.name || 'Unknown'
+    }));
   } catch (error) {
     console.error('Error in getNotesByEquipmentId:', error);
     return [];
@@ -377,7 +257,11 @@ export const getWorkOrdersByEquipmentId = async (organizationId: string, equipme
       teamIds.length > 0 ? supabase.from('teams').select('id, name').in('id', teamIds) : { data: [], error: null }
     ]);
 
-    return (data || []).map(wo => transformWorkOrder(wo, profilesResult.data || [], teamsResult.data || []));
+    return (data || []).map(wo => ({
+      ...wo,
+      assigneeName: profilesResult.data?.find(p => p.id === wo.assignee_id)?.name,
+      teamName: teamsResult.data?.find(t => t.id === wo.team_id)?.name
+    }));
   } catch (error) {
     console.error('Error in getWorkOrdersByEquipmentId:', error);
     return [];
@@ -406,7 +290,11 @@ export const getAllWorkOrdersByOrganization = async (organizationId: string): Pr
       teamIds.length > 0 ? supabase.from('teams').select('id, name').in('id', teamIds) : { data: [], error: null }
     ]);
 
-    return (data || []).map(wo => transformWorkOrder(wo, profilesResult.data || [], teamsResult.data || []));
+    return (data || []).map(wo => ({
+      ...wo,
+      assigneeName: profilesResult.data?.find(p => p.id === wo.assignee_id)?.name,
+      teamName: teamsResult.data?.find(t => t.id === wo.team_id)?.name
+    }));
   } catch (error) {
     console.error('Error in getAllWorkOrdersByOrganization:', error);
     return [];
@@ -436,11 +324,11 @@ export const getWorkOrderById = async (organizationId: string, workOrderId: stri
       await supabase.from('teams').select('id, name').eq('id', data.team_id).single() : 
       { data: null, error: null };
 
-    return transformWorkOrder(
-      data, 
-      profilesResult.data ? [profilesResult.data] : [], 
-      teamsResult.data ? [teamsResult.data] : []
-    );
+    return {
+      ...data,
+      assigneeName: profilesResult.data?.name,
+      teamName: teamsResult.data?.name
+    };
   } catch (error) {
     console.error('Error in getWorkOrderById:', error);
     return undefined;
@@ -478,14 +366,17 @@ export const getScansByEquipmentId = async (organizationId: string, equipmentId:
       console.error('Error fetching user profiles:', profilesError);
     }
 
-    return (data || []).map(scan => transformScan(scan, profiles || []));
+    return (data || []).map(scan => ({
+      ...scan,
+      scannedByName: profiles?.find(p => p.id === scan.scanned_by)?.name || 'Unknown'
+    }));
   } catch (error) {
     console.error('Error in getScansByEquipmentId:', error);
     return [];
   }
 };
 
-// Create scan function - NEW
+// Create scan function
 export const createScan = async (
   organizationId: string,
   equipmentId: string,
@@ -522,7 +413,10 @@ export const createScan = async (
       .eq('id', userData.user.id)
       .single();
 
-    return transformScan(data, profile ? [profile] : []);
+    return {
+      ...data,
+      scannedByName: profile?.name || 'Unknown'
+    };
   } catch (error) {
     console.error('Error in createScan:', error);
     return null;
@@ -564,26 +458,14 @@ export const updateWorkOrderStatus = async (
 // Create equipment
 export const createEquipment = async (
   organizationId: string,
-  equipmentData: Omit<Equipment, 'id'>
+  equipmentData: Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>
 ): Promise<Equipment | null> => {
   try {
     const { data, error } = await supabase
       .from('equipment')
       .insert({
         organization_id: organizationId,
-        name: equipmentData.name,
-        manufacturer: equipmentData.manufacturer,
-        model: equipmentData.model,
-        serial_number: equipmentData.serialNumber,
-        status: equipmentData.status,
-        location: equipmentData.location,
-        installation_date: equipmentData.installationDate,
-        warranty_expiration: equipmentData.warrantyExpiration || null,
-        last_maintenance: equipmentData.lastMaintenance || null,
-        notes: equipmentData.notes,
-        image_url: equipmentData.imageUrl,
-        custom_attributes: equipmentData.customAttributes || {},
-        last_known_location: equipmentData.lastKnownLocation || null
+        ...equipmentData
       })
       .select()
       .single();
@@ -593,7 +475,7 @@ export const createEquipment = async (
       return null;
     }
 
-    return transformEquipment(data);
+    return data;
   } catch (error) {
     console.error('Error in createEquipment:', error);
     return null;
@@ -603,7 +485,7 @@ export const createEquipment = async (
 // Create work order
 export const createWorkOrder = async (
   organizationId: string,
-  workOrderData: Omit<WorkOrder, 'id' | 'createdDate' | 'assigneeName' | 'teamName' | 'completedDate'>
+  workOrderData: Omit<WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date'>
 ): Promise<WorkOrder | null> => {
   try {
     const { data: userData } = await supabase.auth.getUser();
@@ -616,16 +498,8 @@ export const createWorkOrder = async (
       .from('work_orders')
       .insert({
         organization_id: organizationId,
-        title: workOrderData.title,
-        description: workOrderData.description,
-        equipment_id: workOrderData.equipmentId,
-        priority: workOrderData.priority,
-        status: workOrderData.status,
-        assignee_id: workOrderData.assigneeId || null,
-        team_id: workOrderData.teamId || null,
-        due_date: workOrderData.dueDate || null,
-        estimated_hours: workOrderData.estimatedHours || null,
-        created_by: userData.user.id
+        created_by: userData.user.id,
+        ...workOrderData
       })
       .select()
       .single();
@@ -644,11 +518,11 @@ export const createWorkOrder = async (
       await supabase.from('teams').select('id, name').eq('id', data.team_id).single() : 
       { data: null, error: null };
 
-    return transformWorkOrder(
-      data, 
-      profilesResult.data ? [profilesResult.data] : [], 
-      teamsResult.data ? [teamsResult.data] : []
-    );
+    return {
+      ...data,
+      assigneeName: profilesResult.data?.name,
+      teamName: teamsResult.data?.name
+    };
   } catch (error) {
     console.error('Error in createWorkOrder:', error);
     return null;
@@ -692,7 +566,10 @@ export const createNote = async (
       .eq('id', userData.user.id)
       .single();
 
-    return transformNote(data, profile ? [profile] : []);
+    return {
+      ...data,
+      authorName: profile?.name || 'Unknown'
+    };
   } catch (error) {
     console.error('Error in createNote:', error);
     return null;
@@ -703,29 +580,12 @@ export const createNote = async (
 export const updateEquipment = async (
   organizationId: string,
   equipmentId: string,
-  equipmentData: Partial<Omit<Equipment, 'id'>>
+  equipmentData: Partial<Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>>
 ): Promise<Equipment | null> => {
   try {
-    const updateData: any = {};
-
-    // Map the equipment data to database column names
-    if (equipmentData.name !== undefined) updateData.name = equipmentData.name;
-    if (equipmentData.manufacturer !== undefined) updateData.manufacturer = equipmentData.manufacturer;
-    if (equipmentData.model !== undefined) updateData.model = equipmentData.model;
-    if (equipmentData.serialNumber !== undefined) updateData.serial_number = equipmentData.serialNumber;
-    if (equipmentData.status !== undefined) updateData.status = equipmentData.status;
-    if (equipmentData.location !== undefined) updateData.location = equipmentData.location;
-    if (equipmentData.installationDate !== undefined) updateData.installation_date = equipmentData.installationDate;
-    if (equipmentData.warrantyExpiration !== undefined) updateData.warranty_expiration = equipmentData.warrantyExpiration;
-    if (equipmentData.lastMaintenance !== undefined) updateData.last_maintenance = equipmentData.lastMaintenance;
-    if (equipmentData.notes !== undefined) updateData.notes = equipmentData.notes;
-    if (equipmentData.imageUrl !== undefined) updateData.image_url = equipmentData.imageUrl;
-    if (equipmentData.customAttributes !== undefined) updateData.custom_attributes = equipmentData.customAttributes;
-    if (equipmentData.lastKnownLocation !== undefined) updateData.last_known_location = equipmentData.lastKnownLocation;
-
     const { data, error } = await supabase
       .from('equipment')
-      .update(updateData)
+      .update(equipmentData)
       .eq('id', equipmentId)
       .eq('organization_id', organizationId)
       .select()
@@ -736,7 +596,7 @@ export const updateEquipment = async (
       return null;
     }
 
-    return transformEquipment(data);
+    return data;
   } catch (error) {
     console.error('Error in updateEquipment:', error);
     return null;
