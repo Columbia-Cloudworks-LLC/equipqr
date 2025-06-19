@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +37,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
   // Check if user can view this equipment's notes
   const canViewNotes = canViewEquipment(equipmentTeamId);
-  const canAddNotes = can UpdateEquipmentStatus(equipmentTeamId);
+  const canAddNotes = canUpdateEquipmentStatus(equipmentTeamId);
 
   if (isLoading) {
     return (
