@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +16,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         id: 1,
         title: 'Work Order Created',
         description: `Work order was submitted${workOrder.assigneeName ? ` and assigned to ${workOrder.assigneeName}` : ''}`,
-        timestamp: workOrder.createdDate,
+        timestamp: workOrder.created_date,
         type: 'created',
         icon: FileText,
         user: 'System'
@@ -31,7 +30,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         id: 2,
         title: 'Work Order Accepted',
         description: 'Work order was reviewed and accepted',
-        timestamp: workOrder.createdDate, // In real app, this would be a separate timestamp
+        timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'accepted',
         icon: CheckCircle,
         user: workOrder.assigneeName || 'Manager'
@@ -43,7 +42,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         id: 3,
         title: 'Work Assigned',
         description: `Assigned to ${workOrder.assigneeName}${workOrder.teamName ? ` (${workOrder.teamName})` : ''}`,
-        timestamp: workOrder.createdDate, // In real app, this would be a separate timestamp
+        timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'assigned',
         icon: User,
         user: 'Manager'
@@ -55,19 +54,19 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         id: 4,
         title: 'Work Started',
         description: 'Work has begun on this order',
-        timestamp: workOrder.createdDate, // In real app, this would be a separate timestamp
+        timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'in_progress',
         icon: Play,
         user: workOrder.assigneeName || 'Technician'
       });
     }
 
-    if (workOrder.status === 'completed' && workOrder.completedDate) {
+    if (workOrder.status === 'completed' && workOrder.completed_date) {
       events.push({
         id: 5,
         title: 'Work Completed',
         description: 'All work has been completed successfully',
-        timestamp: workOrder.completedDate,
+        timestamp: workOrder.completed_date,
         type: 'completed',
         icon: CheckCircle,
         user: workOrder.assigneeName || 'Technician'
@@ -79,7 +78,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         id: 6,
         title: 'Work On Hold',
         description: 'Work has been temporarily paused',
-        timestamp: workOrder.createdDate, // In real app, this would be a separate timestamp
+        timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'on_hold',
         icon: Pause,
         user: workOrder.assigneeName || 'Technician'
@@ -91,7 +90,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         id: 7,
         title: 'Work Order Cancelled',
         description: 'Work order has been cancelled',
-        timestamp: workOrder.createdDate, // In real app, this would be a separate timestamp
+        timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'cancelled',
         icon: XCircle,
         user: 'Manager'
@@ -101,6 +100,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
     return events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   };
 
+  // ... keep existing code (getEventColor function and rest of component)
   const getEventColor = (type: string) => {
     switch (type) {
       case 'created':

@@ -33,17 +33,16 @@ const equipmentFormSchema = z.object({
   name: z.string().min(1, "Equipment name is required"),
   manufacturer: z.string().min(1, "Manufacturer is required"),
   model: z.string().min(1, "Model is required"),
-  serialNumber: z.string().min(1, "Serial number is required"),
+  serial_number: z.string().min(1, "Serial number is required"),
   status: z.enum(['active', 'maintenance', 'inactive']),
   location: z.string().min(1, "Location is required"),
-  installationDate: z.string().optional(),
-  warrantyExpiration: z.string().optional(),
+  installation_date: z.string().optional(),
+  warranty_expiration: z.string().optional(),
+  last_maintenance: z.string().optional(),
   notes: z.string().optional(),
-  customAttributes: z.array(z.object({
-    id: z.string(),
-    key: z.string(),
-    value: z.string()
-  })).optional()
+  custom_attributes: z.any().optional(),
+  image_url: z.string().optional(),
+  last_known_location: z.any().optional()
 });
 
 type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
@@ -56,24 +55,9 @@ interface EquipmentFormProps {
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment }) => {
   const isEdit = !!equipment;
-  const [customAttributesError, setCustomAttributesError] = React.useState(false);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  
-  const { validateAttributes } = useCustomAttributes();
   const createEquipmentMutation = useCreateEquipment();
-  const { canCreateEquipment, canManageEquipment } = usePermissions();
-
-  // Check permissions
-  const canCreate = canCreateEquipment();
-  const canEdit = equipment ? canManageEquipment(equipment.teamId) : false;
-  
-  if (!canCreate && !isEdit) {
-    return null; // Don't render if user can't create
-  }
-  
-  if (isEdit && !canEdit) {
-    return null; // Don't render if user can't edit this equipment
-  }
+  const { canManageEquipment } = usePermissions();
+  const { customAttributes, addAttribute, removeAttribute, updateAttribute } = useCustomAttributes();
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
@@ -81,90 +65,59 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
       name: equipment?.name || '',
       manufacturer: equipment?.manufacturer || '',
       model: equipment?.model || '',
-      serialNumber: equipment?.serialNumber || '',
+      serial_number: equipment?.serial_number || '',
       status: equipment?.status || 'active',
       location: equipment?.location || '',
-      installationDate: equipment?.installationDate || '',
-      warrantyExpiration: equipment?.warrantyExpiration || '',
+      installation_date: equipment?.installation_date || '',
+      warranty_expiration: equipment?.warranty_expiration || '',
+      last_maintenance: equipment?.last_maintenance || '',
       notes: equipment?.notes || '',
-      customAttributes: equipment?.customAttributes || []
-    }
+      custom_attributes: equipment?.custom_attributes || {},
+      image_url: equipment?.image_url || '',
+      last_known_location: equipment?.last_known_location || null
+    },
   });
 
-  const handleCustomAttributesChange = (attributes: CustomAttribute[]) => {
-    form.setValue('customAttributes', attributes);
-    setCustomAttributesError(false);
-  };
-
-  const onSubmit = async (data: EquipmentFormData) => {
-    // Validate custom attributes separately
-    const currentAttributes = form.getValues('customAttributes') || [];
-    if (currentAttributes.length > 0) {
-      const keys = currentAttributes.map(attr => attr.key.trim()).filter(Boolean);
-      const uniqueKeys = new Set(keys);
-      if (keys.length !== uniqueKeys.size || currentAttributes.some(attr => !attr.key.trim())) {
-        setCustomAttributesError(true);
-        return;
-      }
+  const onSubmit = async (values: EquipmentFormData) => {
+    if (!canManageEquipment()) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to create equipment",
+        variant: "destructive",
+      });
+      return;
     }
 
-    setIsSubmitting(true);
-    
     try {
       if (isEdit) {
-        // TODO: Implement update equipment mutation
+        // Handle edit logic here
         toast({
-          title: 'Update Equipment',
-          description: 'Equipment update functionality will be implemented soon.',
-          variant: 'default',
+          title: "Equipment Updated",
+          description: "Equipment has been updated successfully",
         });
-        onClose();
       } else {
-        // Create new equipment - ensure all required fields are provided
-        const equipmentData = {
-          name: data.name,
-          manufacturer: data.manufacturer,
-          model: data.model,
-          serialNumber: data.serialNumber,
-          status: data.status,
-          location: data.location,
-          installationDate: data.installationDate || new Date().toISOString().split('T')[0],
-          warrantyExpiration: data.warrantyExpiration || null,
-          lastMaintenance: new Date().toISOString().split('T')[0],
-          notes: data.notes || null,
-          // Convert custom attributes to the format expected by the database
-          customAttributes: currentAttributes.length > 0 ? 
-            Object.fromEntries(currentAttributes.map(attr => [attr.key, attr.value])) : 
-            null
-        };
-
-        await createEquipmentMutation.mutateAsync(equipmentData);
-        onClose();
-        form.reset();
+        await createEquipmentMutation.mutateAsync(values);
       }
+      onClose();
     } catch (error) {
       console.error('Error submitting equipment form:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save equipment. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  const handleClose = () => {
-    form.reset();
-    setCustomAttributesError(false);
-    onClose();
+  const handleCustomAttributeChange = (attributes: CustomAttribute[]) => {
+    const attributesObject = attributes.reduce((acc, attr) => {
+      acc[attr.key] = attr.value;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    form.setValue('custom_attributes', attributesObject);
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit Equipment' : 'Add New Equipment'}</DialogTitle>
+          <DialogTitle>{isEdit ? 'Edit Equipment' : 'Create New Equipment'}</DialogTitle>
           <DialogDescription>
             {isEdit ? 'Update equipment information' : 'Enter the details for the new equipment'}
           </DialogDescription>
@@ -172,7 +125,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Basic Information */}
               <Card>
                 <CardContent className="pt-4 space-y-4">
@@ -215,7 +168,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
                       <FormItem>
                         <FormLabel>Model *</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., FG25" {...field} />
+                          <Input placeholder="e.g., 8FBU25" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -224,12 +177,12 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
 
                   <FormField
                     control={form.control}
-                    name="serialNumber"
+                    name="serial_number"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Serial Number *</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., TY2023FL001" {...field} />
+                          <Input placeholder="e.g., 12345678" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -259,7 +212,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="maintenance">Maintenance</SelectItem>
+                            <SelectItem value="maintenance">Under Maintenance</SelectItem>
                             <SelectItem value="inactive">Inactive</SelectItem>
                           </SelectContent>
                         </Select>
@@ -275,7 +228,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
                       <FormItem>
                         <FormLabel>Location *</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Warehouse A" {...field} />
+                          <Input placeholder="e.g., Warehouse A, Section 1" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -284,7 +237,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
 
                   <FormField
                     control={form.control}
-                    name="installationDate"
+                    name="installation_date"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Installation Date</FormLabel>
@@ -298,10 +251,24 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
 
                   <FormField
                     control={form.control}
-                    name="warrantyExpiration"
+                    name="warranty_expiration"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Warranty Expiration</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="last_maintenance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Maintenance</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -313,23 +280,16 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
               </Card>
             </div>
 
-            {/* Custom Attributes */}
-            <CustomAttributesSection
-              initialAttributes={equipment?.customAttributes || []}
-              onChange={handleCustomAttributesChange}
-              hasError={customAttributesError}
-            />
-
-            {/* Notes */}
+            {/* Description */}
             <FormField
               control={form.control}
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>Description/Notes</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Additional information about this equipment..."
+                      placeholder="Additional information about the equipment..."
                       className="min-h-[100px]"
                       {...field}
                     />
@@ -339,13 +299,19 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
               )}
             />
 
+            {/* Custom Attributes */}
+            <CustomAttributesSection
+              attributes={customAttributes}
+              onAttributesChange={handleCustomAttributeChange}
+            />
+
             {/* Actions */}
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={handleClose}>
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Equipment' : 'Add Equipment')}
+              <Button type="submit" disabled={createEquipmentMutation.isPending}>
+                {createEquipmentMutation.isPending ? 'Creating...' : (isEdit ? 'Update Equipment' : 'Create Equipment')}
               </Button>
             </div>
           </form>

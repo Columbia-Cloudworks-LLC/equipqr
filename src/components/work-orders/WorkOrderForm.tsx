@@ -56,7 +56,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder,
             <div className="flex-1">
               <div className="font-medium">{preSelectedEquipment.name}</div>
               <div className="text-sm text-muted-foreground">
-                {preSelectedEquipment.manufacturer} {preSelectedEquipment.model} • {preSelectedEquipment.serialNumber}
+                {preSelectedEquipment.manufacturer} {preSelectedEquipment.model} • {preSelectedEquipment.serial_number}
               </div>
             </div>
             <Badge variant="secondary" className="text-xs">
@@ -152,7 +152,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder,
                     id="estimatedHours"
                     type="number"
                     placeholder="e.g., 4"
-                    defaultValue={workOrder?.estimatedHours}
+                    defaultValue={workOrder?.estimated_hours}
                     min="0"
                     step="0.5"
                   />
@@ -201,7 +201,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ open, onClose, workOrder,
                   <Input
                     id="dueDate"
                     type="date"
-                    defaultValue={workOrder?.dueDate}
+                    defaultValue={workOrder?.due_date}
                   />
                 </div>
 

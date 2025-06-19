@@ -70,7 +70,7 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                 </div>
                 <div>
                   <span className="font-medium">Serial Number:</span>
-                  <span className="ml-2 text-muted-foreground">{equipment.serialNumber}</span>
+                  <span className="ml-2 text-muted-foreground">{equipment.serial_number}</span>
                 </div>
                 <div>
                   <span className="font-medium">Location:</span>
@@ -81,14 +81,14 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
           </div>
         )}
 
-        {workOrder.completedDate && (
+        {workOrder.completed_date && (
           <>
             <Separator />
             <div>
               <h3 className="font-semibold mb-2">Completion Details</h3>
               <p className="text-sm text-muted-foreground">
-                Completed on {new Date(workOrder.completedDate).toLocaleDateString()} at{' '}
-                {new Date(workOrder.completedDate).toLocaleTimeString()}
+                Completed on {new Date(workOrder.completed_date).toLocaleDateString()} at{' '}
+                {new Date(workOrder.completed_date).toLocaleTimeString()}
               </p>
             </div>
           </>

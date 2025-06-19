@@ -70,14 +70,14 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
                     <QrCode className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <div className="font-medium">{scan.scannedBy}</div>
+                    <div className="font-medium">{scan.scanned_by}</div>
                     <div className="text-sm text-muted-foreground">
-                      {formatTimeAgo(scan.scannedAt)}
+                      {formatTimeAgo(scan.scanned_at)}
                     </div>
                   </div>
                 </div>
                 <Badge variant="outline">
-                  {new Date(scan.scannedAt).toLocaleString()}
+                  {new Date(scan.scanned_at).toLocaleString()}
                 </Badge>
               </div>
 
@@ -97,7 +97,7 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
                   <div>
                     <div className="font-medium">Scan Time</div>
                     <div className="text-muted-foreground">
-                      {new Date(scan.scannedAt).toLocaleDateString()} at {new Date(scan.scannedAt).toLocaleTimeString()}
+                      {new Date(scan.scanned_at).toLocaleDateString()} at {new Date(scan.scanned_at).toLocaleTimeString()}
                     </div>
                   </div>
                 </div>
@@ -152,10 +152,10 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{scan.scannedBy}</span>
+                        <span className="font-medium">{scan.scanned_by}</span>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(scan.scannedAt).toLocaleString()}
+                        {new Date(scan.scanned_at).toLocaleString()}
                       </div>
                     </div>
                     

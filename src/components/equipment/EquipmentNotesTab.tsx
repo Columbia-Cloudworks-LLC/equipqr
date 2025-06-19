@@ -6,8 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Plus, MessageSquare, Lock, Clock, Shield } from 'lucide-react';
-import { useSyncNotesByEquipment, Note } from '@/services/syncDataService';
+import { useSyncNotesByEquipment } from '@/services/syncDataService';
 import { usePermissions } from '@/hooks/usePermissions';
+import { Tables } from '@/integrations/supabase/types';
+
+type Note = Tables<'notes'>;
 
 interface EquipmentNotesTabProps {
   equipmentId: string;
@@ -35,7 +38,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
   // Check if user can view this equipment's notes
   const canViewNotes = canViewEquipment(equipmentTeamId);
-  const canAddNotes = canUpdateEquipmentStatus(equipmentTeamId);
+  const canAddNotes = can UpdateEquipmentStatus(equipmentTeamId);
 
   if (isLoading) {
     return (
@@ -67,7 +70,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const visibleNotes = allNotes.filter(note => {
     // In a real implementation, you'd check if the current user is the author
     // or has permission to view private notes
-    return !note.isPrivate || canAddNotes;
+    return !note.is_private || canAddNotes;
   });
 
   const totalPages = Math.ceil(visibleNotes.length / notesPerPage);
@@ -79,12 +82,12 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
     const newNote: Note = {
       id: Date.now().toString(),
-      equipmentId,
+      equipment_id: equipmentId,
       content: newNoteContent,
-      authorId: '1',
-      authorName: 'Current User',
-      createdAt: new Date().toISOString(),
-      isPrivate: newNotePrivate,
+      author_id: '1',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_private: newNotePrivate,
     };
 
     setNotes([newNote, ...allNotes]);
@@ -194,8 +197,8 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{note.authorName}</span>
-                    {note.isPrivate && (
+                    <span className="font-medium">User {note.author_id}</span>
+                    {note.is_private && (
                       <Badge variant="secondary" className="text-xs">
                         <Lock className="h-3 w-3 mr-1" />
                         Private
@@ -204,7 +207,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    {new Date(note.createdAt).toLocaleString()}
+                    {new Date(note.created_at).toLocaleString()}
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed">{note.content}</p>

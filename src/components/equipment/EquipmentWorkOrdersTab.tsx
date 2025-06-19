@@ -130,18 +130,18 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
                     <div>
                       <div className="font-medium">Created</div>
                       <div className="text-muted-foreground">
-                        {new Date(workOrder.createdDate).toLocaleDateString()}
+                        {new Date(workOrder.created_date).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
 
-                  {workOrder.dueDate && (
+                  {workOrder.due_date && (
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <div className="font-medium">Due Date</div>
                         <div className="text-muted-foreground">
-                          {new Date(workOrder.dueDate).toLocaleDateString()}
+                          {new Date(workOrder.due_date).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
@@ -168,13 +168,13 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
                   )}
                 </div>
 
-                {workOrder.estimatedHours && (
+                {workOrder.estimated_hours && (
                   <div className="mt-4 pt-4 border-t">
                     <div className="text-sm">
-                      <span className="font-medium">Estimated time:</span> {workOrder.estimatedHours} hours
-                      {workOrder.completedDate && (
+                      <span className="font-medium">Estimated time:</span> {workOrder.estimated_hours} hours
+                      {workOrder.completed_date && (
                         <span className="ml-4">
-                          <span className="font-medium">Completed:</span> {new Date(workOrder.completedDate).toLocaleDateString()}
+                          <span className="font-medium">Completed:</span> {new Date(workOrder.completed_date).toLocaleDateString()}
                         </span>
                       )}
                     </div>
