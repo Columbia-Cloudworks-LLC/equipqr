@@ -70,6 +70,7 @@ const AppSidebar = () => {
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-2">
           <Icon size="md" />
+          <span className="font-semibold text-lg">EquipQR</span>
         </div>
         <OrganizationSwitcher />
       </SidebarHeader>
