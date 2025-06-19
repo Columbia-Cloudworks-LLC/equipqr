@@ -100,8 +100,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
               </TableCell>
               {canManage && (
                 <TableCell className="text-right">
-                  <Drop
-ownMenu>
+                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
                         <Settings className="h-4 w-4" />
