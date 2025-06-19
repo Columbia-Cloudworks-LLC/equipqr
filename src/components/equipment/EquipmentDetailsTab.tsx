@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +25,32 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
 
   const canEdit = canManageEquipment(equipment.team_id || undefined);
 
+  // Helper function to format date for display
+  const formatDateForDisplay = (dateString: string | null) => {
+    if (!dateString) return '';
+    try {
+      return format(new Date(dateString), 'yyyy-MM-dd');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  };
+
+  // Helper function to format date for HTML input
+  const formatDateForInput = (dateString: string | null) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    } catch (error) {
+      console.error('Error formatting date for input:', error);
+      return '';
+    }
+  };
+
   const handleFieldUpdate = async (field: keyof Equipment, value: string) => {
     try {
+      console.log(`Updating field ${String(field)} with value:`, value);
       await updateEquipmentMutation.mutateAsync({
         equipmentId: equipment.id,
         equipmentData: { [field]: value }
@@ -56,6 +81,14 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // Debug logging
+  console.log('Equipment data:', {
+    serial_number: equipment.serial_number,
+    installation_date: equipment.installation_date,
+    warranty_expiration: equipment.warranty_expiration,
+    last_maintenance: equipment.last_maintenance
+  });
 
   return (
     <div className="space-y-6">
@@ -195,7 +228,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
               <label className="text-sm font-medium text-gray-500">Installation Date</label>
               <div className="mt-1">
                 <InlineEditField
-                  value={equipment.installation_date || ''}
+                  value={formatDateForInput(equipment.installation_date)}
                   onSave={(value) => handleFieldUpdate('installation_date', value)}
                   canEdit={canEdit}
                   type="date"
@@ -209,7 +242,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
               <label className="text-sm font-medium text-gray-500">Warranty Expiration</label>
               <div className="mt-1">
                 <InlineEditField
-                  value={equipment.warranty_expiration || ''}
+                  value={formatDateForInput(equipment.warranty_expiration)}
                   onSave={(value) => handleFieldUpdate('warranty_expiration', value)}
                   canEdit={canEdit}
                   type="date"
@@ -223,7 +256,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
               <label className="text-sm font-medium text-gray-500">Last Maintenance</label>
               <div className="mt-1">
                 <InlineEditField
-                  value={equipment.last_maintenance || ''}
+                  value={formatDateForInput(equipment.last_maintenance)}
                   onSave={(value) => handleFieldUpdate('last_maintenance', value)}
                   canEdit={canEdit}
                   type="date"

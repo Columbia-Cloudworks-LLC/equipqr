@@ -29,6 +29,11 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
   const [editValue, setEditValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Update editValue when value prop changes
+  React.useEffect(() => {
+    setEditValue(value);
+  }, [value]);
+
   const handleSave = async () => {
     if (editValue === value) {
       setIsEditing(false);
@@ -37,6 +42,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
 
     setIsSaving(true);
     try {
+      console.log('InlineEditField saving:', { type, oldValue: value, newValue: editValue });
       await onSave(editValue);
       setIsEditing(false);
     } catch (error) {
@@ -60,14 +66,33 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
     }
   };
 
+  // Format display value based on type
+  const getDisplayValue = () => {
+    if (!value) return 'Not set';
+    
+    if (type === 'date' && value) {
+      try {
+        // Try to format the date for display
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString();
+        }
+      } catch (error) {
+        console.error('Error formatting date for display:', error);
+      }
+    }
+    
+    return value;
+  };
+
   if (!canEdit) {
-    return <span className={className}>{value || 'Not set'}</span>;
+    return <span className={className}>{getDisplayValue()}</span>;
   }
 
   if (!isEditing) {
     return (
       <div className={`group flex items-center gap-2 ${className}`}>
-        <span>{value || 'Not set'}</span>
+        <span>{getDisplayValue()}</span>
         <Button
           variant="ghost"
           size="sm"
