@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,9 +14,11 @@ import EquipmentScansTab from '@/components/equipment/EquipmentScansTab';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 import { useCreateScan } from '@/hooks/useSupabaseData';
+import { toast } from 'sonner';
 
 const EquipmentDetails = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
   const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(equipmentId);
@@ -25,58 +27,105 @@ const EquipmentDetails = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
+  const [scanLogged, setScanLogged] = useState(false);
 
   const isLoading = orgLoading || equipmentLoading;
 
   // Detect if this page was accessed via QR code scan
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isQRScan = urlParams.has('qr') || document.referrer === '';
+    const isQRScan = searchParams.get('qr') === 'true';
     
-    if (isQRScan && equipment && equipmentId) {
-      // Log the scan
+    console.log('Page loaded:', {
+      isQRScan,
+      equipmentId,
+      equipment: !!equipment,
+      scanLogged,
+      currentOrganization: !!currentOrganization
+    });
+    
+    if (isQRScan && equipment && equipmentId && currentOrganization && !scanLogged) {
+      console.log('QR scan detected, logging scan...');
       logScan();
     }
-  }, [equipment, equipmentId]);
+  }, [equipment, equipmentId, currentOrganization, searchParams, scanLogged]);
 
   const logScan = async () => {
-    if (!equipmentId || !currentOrganization) return;
+    if (!equipmentId || !currentOrganization || scanLogged) {
+      console.log('Scan logging skipped:', {
+        equipmentId: !!equipmentId,
+        currentOrganization: !!currentOrganization,
+        scanLogged
+      });
+      return;
+    }
+    
+    // Mark as logged immediately to prevent duplicate logs
+    setScanLogged(true);
     
     try {
-      // Get user's location with consent
+      console.log('Attempting to log scan for equipment:', equipmentId);
+      
+      // Try to get user's location with consent
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
             const location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-            await createScanMutation.mutateAsync({
-              equipmentId,
-              location,
-              notes: 'QR code scan'
-            });
+            console.log('Location obtained, creating scan with location:', location);
+            
+            try {
+              await createScanMutation.mutateAsync({
+                equipmentId,
+                location,
+                notes: 'QR code scan with location'
+              });
+              console.log('Scan logged successfully with location');
+              toast.success('Equipment scanned successfully!');
+            } catch (error) {
+              console.error('Failed to log scan with location:', error);
+              toast.error('Failed to log scan');
+            }
           },
           async (error) => {
-            console.log('Location access denied:', error);
-            // Log scan without location
-            await createScanMutation.mutateAsync({
-              equipmentId,
-              notes: 'QR code scan (location denied)'
-            });
+            console.log('Location access denied or failed:', error.message);
+            
+            try {
+              // Log scan without location
+              await createScanMutation.mutateAsync({
+                equipmentId,
+                notes: 'QR code scan (location denied)'
+              });
+              console.log('Scan logged successfully without location');
+              toast.success('Equipment scanned successfully!');
+            } catch (scanError) {
+              console.error('Failed to log scan without location:', scanError);
+              toast.error('Failed to log scan');
+            }
           },
           {
-            enableHighAccuracy: true,
-            timeout: 10000,
+            enableHighAccuracy: false,
+            timeout: 5000,
             maximumAge: 300000 // 5 minutes
           }
         );
       } else {
-        // Log scan without location support
-        await createScanMutation.mutateAsync({
-          equipmentId,
-          notes: 'QR code scan (no location support)'
-        });
+        console.log('Geolocation not supported, logging scan without location');
+        
+        try {
+          // Log scan without location support
+          await createScanMutation.mutateAsync({
+            equipmentId,
+            notes: 'QR code scan (no location support)'
+          });
+          console.log('Scan logged successfully without location support');
+          toast.success('Equipment scanned successfully!');
+        } catch (error) {
+          console.error('Failed to log scan without location support:', error);
+          toast.error('Failed to log scan');
+        }
       }
     } catch (error) {
-      console.error('Failed to log scan:', error);
+      console.error('Unexpected error during scan logging:', error);
+      toast.error('Failed to log scan');
     }
   };
 

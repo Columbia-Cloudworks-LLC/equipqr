@@ -22,24 +22,33 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [error, setError] = useState<string>('');
   
-  // Generate the QR code URL - this will direct to the equipment details page
-  const qrValue = `${window.location.origin}/equipment/${equipmentId}`;
+  // Generate the QR code URL with ?qr=true parameter to trigger scan detection
+  const qrValue = `${window.location.origin}/equipment/${equipmentId}?qr=true`;
 
   useEffect(() => {
-    if (open && canvasRef.current) {
+    if (open && equipmentId) {
       generateQRCode();
     }
   }, [open, equipmentId]);
 
   const generateQRCode = async () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !equipmentId) {
+      console.error('Canvas ref or equipment ID not available');
+      return;
+    }
     
     setIsGenerating(true);
+    setError('');
+    
     try {
-      // Generate QR code with high quality settings
+      console.log('Generating QR code for URL:', qrValue);
+      
+      // Generate QR code on canvas with explicit sizing
       await QRCode.toCanvas(canvasRef.current, qrValue, {
-        width: 256,
+        width: 200,
+        height: 200,
         margin: 2,
         color: {
           dark: '#000000',
@@ -48,18 +57,23 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
         errorCorrectionLevel: 'M'
       });
 
-      // Also generate data URL for download
+      // Generate data URL for download with higher resolution
       const dataUrl = await QRCode.toDataURL(qrValue, {
-        width: 512,
+        width: 400,
+        height: 400,
         margin: 2,
         color: {
           dark: '#000000',
           light: '#FFFFFF'
-        }
+        },
+        errorCorrectionLevel: 'M'
       });
+      
       setQrDataUrl(dataUrl);
+      console.log('QR code generated successfully');
     } catch (error) {
       console.error('Error generating QR code:', error);
+      setError('Failed to generate QR code');
       toast.error('Failed to generate QR code');
     } finally {
       setIsGenerating(false);
@@ -72,14 +86,19 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
       return;
     }
 
-    const link = document.createElement('a');
-    link.download = `equipment-${equipmentId}-qr.png`;
-    link.href = qrDataUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success('QR code downloaded successfully');
+    try {
+      const link = document.createElement('a');
+      link.download = `equipment-${equipmentId}-qr.png`;
+      link.href = qrDataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('QR code downloaded successfully');
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast.error('Failed to download QR code');
+    }
   };
 
   const handleShare = async () => {
@@ -90,9 +109,12 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
           text: 'Scan this QR code to view equipment details',
           url: qrValue,
         });
+        toast.success('Shared successfully');
       } catch (error) {
-        // User cancelled or share failed, fallback to copy
-        handleCopy();
+        if (error.name !== 'AbortError') {
+          console.log('Share failed, falling back to copy:', error);
+          handleCopy();
+        }
       }
     } else {
       handleCopy();
@@ -122,16 +144,32 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
         <div className="space-y-6">
           {/* QR Code Display */}
           <div className="flex justify-center">
-            <div className="w-64 h-64 bg-white border-2 border-gray-200 rounded-lg flex items-center justify-center">
+            <div className="w-52 h-52 bg-white border-2 border-gray-200 rounded-lg flex items-center justify-center p-4">
               {isGenerating ? (
                 <div className="flex flex-col items-center gap-2">
-                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
                   <p className="text-sm text-muted-foreground">Generating QR code...</p>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <p className="text-sm text-red-600">{error}</p>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={generateQRCode}
+                    className="mt-2"
+                  >
+                    Retry
+                  </Button>
                 </div>
               ) : (
                 <canvas
                   ref={canvasRef}
-                  className="max-w-full max-h-full"
+                  style={{ 
+                    display: 'block',
+                    width: '200px',
+                    height: '200px'
+                  }}
                 />
               )}
             </div>
@@ -145,7 +183,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
                 type="text"
                 value={qrValue}
                 readOnly
-                className="flex-1 px-3 py-2 text-sm border rounded-md bg-muted"
+                className="flex-1 px-3 py-2 text-sm border rounded-md bg-muted text-muted-foreground"
               />
               <Button size="sm" variant="outline" onClick={handleCopy}>
                 <Copy className="h-4 w-4" />
@@ -159,12 +197,17 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
               variant="outline" 
               onClick={handleDownload} 
               className="flex-1"
-              disabled={!qrDataUrl}
+              disabled={!qrDataUrl || isGenerating}
             >
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>
-            <Button variant="outline" onClick={handleShare} className="flex-1">
+            <Button 
+              variant="outline" 
+              onClick={handleShare} 
+              className="flex-1"
+              disabled={isGenerating}
+            >
               <Share className="h-4 w-4 mr-2" />
               Share
             </Button>
