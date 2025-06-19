@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -32,11 +33,11 @@ const ReportExport: React.FC<ReportExportProps> = ({
           item.name,
           item.manufacturer,
           item.model,
-          item.serialNumber,
+          item.serial_number,
           item.status,
           item.location,
-          item.installationDate,
-          item.lastMaintenance
+          item.installation_date,
+          item.last_maintenance
         ]);
         break;
       case 'workorders':
@@ -47,9 +48,9 @@ const ReportExport: React.FC<ReportExportProps> = ({
           item.priority,
           item.assigneeName || '',
           item.teamName || '',
-          item.createdDate,
-          item.dueDate || '',
-          item.estimatedHours?.toString() || ''
+          item.created_date,
+          item.due_date || '',
+          item.estimated_hours?.toString() || ''
         ]);
         break;
       case 'kpis':

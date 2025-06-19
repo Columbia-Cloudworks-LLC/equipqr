@@ -98,14 +98,25 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
           description: "Equipment has been updated successfully",
         });
       } else {
-        await createEquipmentMutation.mutateAsync({
-          ...values,
-          team_id: values.team_id || null,
-          notes: values.notes || '',
+        // Ensure all required fields are present with proper values
+        const equipmentData = {
+          name: values.name,
+          manufacturer: values.manufacturer,
+          model: values.model,
+          serial_number: values.serial_number,
+          status: values.status,
+          location: values.location,
           installation_date: values.installation_date,
           warranty_expiration: values.warranty_expiration || null,
-          last_maintenance: values.last_maintenance || null
-        });
+          last_maintenance: values.last_maintenance || null,
+          notes: values.notes || '',
+          custom_attributes: values.custom_attributes || {},
+          image_url: values.image_url || null,
+          last_known_location: values.last_known_location || null,
+          team_id: values.team_id || null
+        };
+        
+        await createEquipmentMutation.mutateAsync(equipmentData);
       }
       onClose();
     } catch (error) {

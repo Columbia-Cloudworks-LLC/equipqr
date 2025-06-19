@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { ReportType } from '@/pages/Reports';
@@ -95,9 +96,9 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
       count
     }));
 
-    // Work orders over time
+    // Work orders over time - use correct property name
     const timeData = workOrders.reduce((acc, item) => {
-      const month = new Date(item.createdDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      const month = new Date(item.created_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
       acc[month] = (acc[month] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);

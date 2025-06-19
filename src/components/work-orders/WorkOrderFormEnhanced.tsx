@@ -21,7 +21,8 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { useSyncEquipmentByOrganization, useSyncEquipmentById, WorkOrder } from '@/services/syncDataService';
+import { useSyncEquipmentByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
+import { WorkOrder } from '@/services/supabaseDataService';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 const workOrderFormSchema = z.object({
@@ -67,12 +68,12 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
   const initialValues: Partial<WorkOrderFormData> = {
     title: workOrder?.title || '',
     description: workOrder?.description || '',
-    equipmentId: workOrder?.equipmentId || equipmentId || '',
+    equipmentId: workOrder?.equipment_id || equipmentId || '',
     priority: workOrder?.priority || 'medium',
-    assigneeId: workOrder?.assigneeId || '',
-    teamId: workOrder?.teamId || '',
-    dueDate: workOrder?.dueDate || '',
-    estimatedHours: workOrder?.estimatedHours || undefined,
+    assigneeId: workOrder?.assignee_id || '',
+    teamId: workOrder?.team_id || '',
+    dueDate: workOrder?.due_date || '',
+    estimatedHours: workOrder?.estimated_hours || undefined,
     status: workOrder?.status || 'submitted',
   };
 
@@ -120,7 +121,7 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
             <div className="flex-1">
               <div className="font-medium">{preSelectedEquipment.name}</div>
               <div className="text-sm text-muted-foreground">
-                {preSelectedEquipment.manufacturer} {preSelectedEquipment.model} • {preSelectedEquipment.serialNumber}
+                {preSelectedEquipment.manufacturer} {preSelectedEquipment.model} • {preSelectedEquipment.serial_number}
               </div>
             </div>
             <Badge variant="secondary" className="text-xs">
