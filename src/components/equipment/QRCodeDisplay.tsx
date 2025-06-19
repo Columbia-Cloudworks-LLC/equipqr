@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import QRCode from 'qrcode';
 import {
   Dialog,
@@ -23,19 +23,35 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
   const [isGenerating, setIsGenerating] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [canvasReady, setCanvasReady] = useState(false);
   
   // Generate the QR code URL with ?qr=true parameter to trigger scan detection
   const qrValue = `${window.location.origin}/equipment/${equipmentId}?qr=true`;
 
+  // Canvas ref callback to ensure it's mounted
+  const canvasRefCallback = useCallback((node: HTMLCanvasElement | null) => {
+    canvasRef.current = node;
+    if (node) {
+      console.log('Canvas element mounted');
+      setCanvasReady(true);
+    } else {
+      setCanvasReady(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (open && equipmentId) {
+    if (open && equipmentId && canvasReady) {
+      console.log('Dialog opened, canvas ready, generating QR code');
       generateQRCode();
     }
-  }, [open, equipmentId]);
+  }, [open, equipmentId, canvasReady]);
 
   const generateQRCode = async () => {
     if (!canvasRef.current || !equipmentId) {
-      console.error('Canvas ref or equipment ID not available');
+      console.error('Canvas ref or equipment ID not available', {
+        canvas: !!canvasRef.current,
+        equipmentId: !!equipmentId
+      });
       return;
     }
     
@@ -44,6 +60,12 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
     
     try {
       console.log('Generating QR code for URL:', qrValue);
+      console.log('Canvas dimensions:', {
+        width: canvasRef.current.width,
+        height: canvasRef.current.height,
+        offsetWidth: canvasRef.current.offsetWidth,
+        offsetHeight: canvasRef.current.offsetHeight
+      });
       
       // Generate QR code on canvas with explicit sizing
       await QRCode.toCanvas(canvasRef.current, qrValue, {
@@ -131,6 +153,16 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
     }
   };
 
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setQrDataUrl('');
+      setError('');
+      setIsGenerating(false);
+      setCanvasReady(false);
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -164,11 +196,13 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
                 </div>
               ) : (
                 <canvas
-                  ref={canvasRef}
+                  ref={canvasRefCallback}
+                  width={200}
+                  height={200}
                   style={{ 
                     display: 'block',
-                    width: '200px',
-                    height: '200px'
+                    maxWidth: '200px',
+                    maxHeight: '200px'
                   }}
                 />
               )}
