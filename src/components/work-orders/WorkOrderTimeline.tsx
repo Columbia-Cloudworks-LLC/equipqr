@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, Play, Pause, XCircle, FileText, User } from 'lucide-react';
-import { WorkOrder } from '@/services/dataService';
+import { WorkOrder } from '@/services/supabaseDataService';
 
 interface WorkOrderTimelineProps {
   workOrder: WorkOrder;
@@ -100,7 +101,6 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
     return events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   };
 
-  // ... keep existing code (getEventColor function and rest of component)
   const getEventColor = (type: string) => {
     switch (type) {
       case 'created':

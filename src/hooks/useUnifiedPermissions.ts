@@ -139,12 +139,12 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
         };
       }
 
-      const canView = isOrgMember() || (workOrder?.teamId ? isTeamMember(workOrder.teamId) : false);
+      const canView = isOrgMember() || (workOrder?.team_id ? isTeamMember(workOrder.team_id) : false);
       const canCreate = isOrgMember();
-      const canEdit = isOrgAdmin() || (workOrder?.teamId ? isTeamManager(workOrder.teamId) : false);
+      const canEdit = isOrgAdmin() || (workOrder?.team_id ? isTeamManager(workOrder.team_id) : false);
       const canDelete = isOrgAdmin();
-      const canAssign = isOrgAdmin() || (workOrder?.teamId ? isTeamManager(workOrder.teamId) : false);
-      const canChangeStatus = isOrgAdmin() || (workOrder?.teamId ? isTeamMember(workOrder.teamId) : false);
+      const canAssign = isOrgAdmin() || (workOrder?.team_id ? isTeamManager(workOrder.team_id) : false);
+      const canChangeStatus = isOrgAdmin() || (workOrder?.team_id ? isTeamMember(workOrder.team_id) : false);
 
       return { canView, canCreate, canEdit, canDelete, canAssign, canChangeStatus };
     },
@@ -161,8 +161,8 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
       }
 
       const isOrgAdminRole = ['owner', 'admin'].includes(currentOrganization.userRole);
-      const isTeamManagerRole = workOrder?.teamId ? canManageTeam(workOrder.teamId) : false;
-      const hasWorkOrderAccess = workOrder?.teamId ? hasTeamAccess(workOrder.teamId) : false;
+      const isTeamManagerRole = workOrder?.team_id ? canManageTeam(workOrder.team_id) : false;
+      const hasWorkOrderAccess = workOrder?.team_id ? hasTeamAccess(workOrder.team_id) : false;
 
       return {
         canEdit: isOrgAdminRole || isTeamManagerRole,

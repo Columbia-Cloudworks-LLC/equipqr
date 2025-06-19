@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Link } from 'react-router-dom';
 import { Wrench, FileText } from 'lucide-react';
-import { WorkOrder, Equipment } from '@/services/dataService';
+import { WorkOrder, Equipment } from '@/services/supabaseDataService';
 
 interface WorkOrderDetailsInfoProps {
   workOrder: WorkOrder;

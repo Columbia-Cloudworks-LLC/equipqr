@@ -42,7 +42,8 @@ const equipmentFormSchema = z.object({
   notes: z.string().optional(),
   custom_attributes: z.any().optional(),
   image_url: z.string().optional(),
-  last_known_location: z.any().optional()
+  last_known_location: z.any().optional(),
+  team_id: z.string().optional()
 });
 
 type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
@@ -57,7 +58,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
   const isEdit = !!equipment;
   const createEquipmentMutation = useCreateEquipment();
   const { canManageEquipment } = usePermissions();
-  const { customAttributes, addAttribute, removeAttribute, updateAttribute } = useCustomAttributes();
+  const { attributes, addAttribute, removeAttribute, updateAttribute } = useCustomAttributes();
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
@@ -74,7 +75,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
       notes: equipment?.notes || '',
       custom_attributes: equipment?.custom_attributes || {},
       image_url: equipment?.image_url || '',
-      last_known_location: equipment?.last_known_location || null
+      last_known_location: equipment?.last_known_location || null,
+      team_id: equipment?.team_id || undefined
     },
   });
 
@@ -96,7 +98,10 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
           description: "Equipment has been updated successfully",
         });
       } else {
-        await createEquipmentMutation.mutateAsync(values);
+        await createEquipmentMutation.mutateAsync({
+          ...values,
+          team_id: values.team_id || null
+        });
       }
       onClose();
     } catch (error) {
@@ -301,8 +306,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
 
             {/* Custom Attributes */}
             <CustomAttributesSection
-              attributes={customAttributes}
-              onAttributesChange={handleCustomAttributeChange}
+              initialAttributes={attributes}
+              onChange={handleCustomAttributeChange}
             />
 
             {/* Actions */}
