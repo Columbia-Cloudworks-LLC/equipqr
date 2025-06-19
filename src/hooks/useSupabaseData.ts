@@ -132,6 +132,39 @@ export const useScansByEquipment = (equipmentId?: string) => {
   });
 };
 
+// Create scan mutation - NEW
+export const useCreateScan = () => {
+  const queryClient = useQueryClient();
+  const { getCurrentOrganization } = useSession();
+  const currentOrg = getCurrentOrganization();
+
+  return useMutation({
+    mutationFn: async ({ equipmentId, location, notes }: { 
+      equipmentId: string; 
+      location?: string; 
+      notes?: string 
+    }) => {
+      if (!currentOrg) throw new Error('No current organization');
+      return supabaseService.createScan(currentOrg.id, equipmentId, location, notes);
+    },
+    onSuccess: (result, variables) => {
+      if (result) {
+        // Invalidate scans queries for this equipment
+        queryClient.invalidateQueries({ 
+          queryKey: ['scans', 'equipment', currentOrg?.id, variables.equipmentId] 
+        });
+        
+        console.log('Scan logged successfully');
+      } else {
+        console.error('Failed to log scan');
+      }
+    },
+    onError: (error) => {
+      console.error('Error creating scan:', error);
+    },
+  });
+};
+
 // Mutation hooks
 export const useUpdateWorkOrderStatus = () => {
   const queryClient = useQueryClient();

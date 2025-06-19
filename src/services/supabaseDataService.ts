@@ -485,6 +485,50 @@ export const getScansByEquipmentId = async (organizationId: string, equipmentId:
   }
 };
 
+// Create scan function - NEW
+export const createScan = async (
+  organizationId: string,
+  equipmentId: string,
+  location?: string,
+  notes?: string
+): Promise<Scan | null> => {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      console.error('User not authenticated');
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('scans')
+      .insert({
+        equipment_id: equipmentId,
+        scanned_by: userData.user.id,
+        location: location || null,
+        notes: notes || null
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating scan:', error);
+      return null;
+    }
+
+    // Get scanned by user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .eq('id', userData.user.id)
+      .single();
+
+    return transformScan(data, profile ? [profile] : []);
+  } catch (error) {
+    console.error('Error in createScan:', error);
+    return null;
+  }
+};
+
 // Mutation functions
 export const updateWorkOrderStatus = async (
   organizationId: string,

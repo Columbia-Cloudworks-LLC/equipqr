@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Share, Copy } from 'lucide-react';
+import { Download, Share, Copy, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface QRCodeDisplayProps {
@@ -18,36 +19,94 @@ interface QRCodeDisplayProps {
 }
 
 const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClose }) => {
-  // For now, we'll create a simple placeholder QR code
-  // In the real implementation, we would use the qrcode.react library
-  const qrValue = `https://equipqr.app/equipment/${equipmentId}`;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  
+  // Generate the QR code URL - this will direct to the equipment details page
+  const qrValue = `${window.location.origin}/equipment/${equipmentId}`;
 
-  const handleDownload = () => {
-    // In real implementation, this would download the QR code as an image
-    toast.success('QR code download started');
+  useEffect(() => {
+    if (open && canvasRef.current) {
+      generateQRCode();
+    }
+  }, [open, equipmentId]);
+
+  const generateQRCode = async () => {
+    if (!canvasRef.current) return;
+    
+    setIsGenerating(true);
+    try {
+      // Generate QR code with high quality settings
+      await QRCode.toCanvas(canvasRef.current, qrValue, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'M'
+      });
+
+      // Also generate data URL for download
+      const dataUrl = await QRCode.toDataURL(qrValue, {
+        width: 512,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      setQrDataUrl(dataUrl);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      toast.error('Failed to generate QR code');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleShare = () => {
+  const handleDownload = () => {
+    if (!qrDataUrl) {
+      toast.error('QR code not ready for download');
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.download = `equipment-${equipmentId}-qr.png`;
+    link.href = qrDataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('QR code downloaded successfully');
+  };
+
+  const handleShare = async () => {
     if (navigator.share) {
-      navigator.share({
-        title: 'Equipment QR Code',
-        text: 'Scan this QR code to view equipment details',
-        url: qrValue,
-      }).catch(() => {
-        // Fallback to copy to clipboard
+      try {
+        await navigator.share({
+          title: 'Equipment QR Code',
+          text: 'Scan this QR code to view equipment details',
+          url: qrValue,
+        });
+      } catch (error) {
+        // User cancelled or share failed, fallback to copy
         handleCopy();
-      });
+      }
     } else {
       handleCopy();
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(qrValue).then(() => {
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(qrValue);
       toast.success('QR code URL copied to clipboard');
-    }).catch(() => {
+    } catch (error) {
+      console.error('Failed to copy URL:', error);
       toast.error('Failed to copy URL');
-    });
+    }
   };
 
   return (
@@ -61,22 +120,20 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* QR Code Placeholder */}
+          {/* QR Code Display */}
           <div className="flex justify-center">
             <div className="w-64 h-64 bg-white border-2 border-gray-200 rounded-lg flex items-center justify-center">
-              <div className="text-center space-y-2">
-                <div className="w-32 h-32 bg-gradient-to-br from-gray-800 to-gray-600 rounded-lg mx-auto flex items-center justify-center">
-                  <div className="grid grid-cols-8 gap-1 w-24 h-24">
-                    {Array.from({ length: 64 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-1 h-1 ${Math.random() > 0.5 ? 'bg-white' : 'bg-gray-800'}`}
-                      />
-                    ))}
-                  </div>
+              {isGenerating ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <p className="text-sm text-muted-foreground">Generating QR code...</p>
                 </div>
-                <p className="text-xs text-muted-foreground">QR Code Placeholder</p>
-              </div>
+              ) : (
+                <canvas
+                  ref={canvasRef}
+                  className="max-w-full max-h-full"
+                />
+              )}
             </div>
           </div>
 
@@ -98,7 +155,12 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ equipmentId, open, onClos
 
           {/* Actions */}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleDownload} className="flex-1">
+            <Button 
+              variant="outline" 
+              onClick={handleDownload} 
+              className="flex-1"
+              disabled={!qrDataUrl}
+            >
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>

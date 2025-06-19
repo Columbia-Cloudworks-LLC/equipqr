@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,17 +12,73 @@ import EquipmentNotesTab from '@/components/equipment/EquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
 import EquipmentScansTab from '@/components/equipment/EquipmentScansTab';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
+import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
+import { useCreateScan } from '@/hooks/useSupabaseData';
 
 const EquipmentDetails = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const navigate = useNavigate();
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
   const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(equipmentId);
+  const createScanMutation = useCreateScan();
   
   const [activeTab, setActiveTab] = useState('details');
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
+  const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
 
   const isLoading = orgLoading || equipmentLoading;
+
+  // Detect if this page was accessed via QR code scan
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isQRScan = urlParams.has('qr') || document.referrer === '';
+    
+    if (isQRScan && equipment && equipmentId) {
+      // Log the scan
+      logScan();
+    }
+  }, [equipment, equipmentId]);
+
+  const logScan = async () => {
+    if (!equipmentId || !currentOrganization) return;
+    
+    try {
+      // Get user's location with consent
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+            await createScanMutation.mutateAsync({
+              equipmentId,
+              location,
+              notes: 'QR code scan'
+            });
+          },
+          async (error) => {
+            console.log('Location access denied:', error);
+            // Log scan without location
+            await createScanMutation.mutateAsync({
+              equipmentId,
+              notes: 'QR code scan (location denied)'
+            });
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000 // 5 minutes
+          }
+        );
+      } else {
+        // Log scan without location support
+        await createScanMutation.mutateAsync({
+          equipmentId,
+          notes: 'QR code scan (no location support)'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to log scan:', error);
+    }
+  };
 
   const handleCreateWorkOrder = () => {
     setIsWorkOrderFormOpen(true);
@@ -31,6 +86,14 @@ const EquipmentDetails = () => {
 
   const handleCloseWorkOrderForm = () => {
     setIsWorkOrderFormOpen(false);
+  };
+
+  const handleShowQRCode = () => {
+    setIsQRCodeOpen(true);
+  };
+
+  const handleCloseQRCode = () => {
+    setIsQRCodeOpen(false);
   };
 
   if (!currentOrganization) {
@@ -128,7 +191,7 @@ const EquipmentDetails = () => {
           <Badge className={getStatusColor(equipment.status)}>
             {equipment.status}
           </Badge>
-          <Button size="sm">
+          <Button size="sm" onClick={handleShowQRCode}>
             <QrCode className="h-4 w-4 mr-2" />
             QR Code
           </Button>
@@ -241,6 +304,13 @@ const EquipmentDetails = () => {
         open={isWorkOrderFormOpen}
         onClose={handleCloseWorkOrderForm}
         equipmentId={equipmentId}
+      />
+
+      {/* QR Code Display */}
+      <QRCodeDisplay
+        open={isQRCodeOpen}
+        onClose={handleCloseQRCode}
+        equipmentId={equipment.id}
       />
     </div>
   );
