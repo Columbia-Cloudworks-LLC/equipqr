@@ -2,11 +2,12 @@
 import { useMemo } from 'react';
 import { useSession } from '@/contexts/SessionContext';
 import { useSyncEquipmentById, useSyncTeamById, useSyncTeamMembersByTeam } from '@/services/syncDataService';
+import { useOrganizationAdmins } from './useOrganizationAdmins';
 
 export interface AssignmentOption {
   id: string;
   name: string;
-  type: 'team' | 'member';
+  type: 'team' | 'member' | 'admin';
   teamId?: string;
   canSelfAssign?: boolean;
 }
@@ -17,6 +18,8 @@ export interface WorkOrderAssignmentData {
   availableAssignees: AssignmentOption[];
   canAssignToSelf: boolean;
   currentUserMemberships: string[];
+  hasEquipmentTeam: boolean;
+  organizationAdmins: AssignmentOption[];
 }
 
 export const useWorkOrderAssignment = (organizationId: string, equipmentId?: string) => {
@@ -38,17 +41,23 @@ export const useWorkOrderAssignment = (organizationId: string, equipmentId?: str
     equipment?.team_id || ''
   );
 
+  // Get organization admins
+  const { data: orgAdmins = [] } = useOrganizationAdmins(organizationId);
+
   const userTeamIds = getUserTeamIds();
   
   const assignmentData: WorkOrderAssignmentData = useMemo(() => {
     const availableAssignees: AssignmentOption[] = [];
+    const organizationAdmins: AssignmentOption[] = [];
     
-    // If equipment has a team, that's the suggested team
+    // Check if equipment has a team
+    const hasEquipmentTeam = !!equipment?.team_id;
     const suggestedTeamId = equipment?.team_id;
     const suggestedTeamName = equipmentTeam?.name;
     
-    // Add team members as assignment options
-    if (equipmentTeam && teamMembers.length > 0) {
+    if (hasEquipmentTeam && equipmentTeam && teamMembers.length > 0) {
+      // Equipment has a team - use team-based assignment
+      
       // Add the team itself as an option
       availableAssignees.push({
         id: equipmentTeam.id,
@@ -68,19 +77,39 @@ export const useWorkOrderAssignment = (organizationId: string, equipmentId?: str
           canSelfAssign
         });
       });
+    } else {
+      // Equipment has no team - use admin-based assignment
+      
+      // Add organization admins
+      orgAdmins.forEach(admin => {
+        const canSelfAssign = admin.id === 'current-user-id'; // This would be actual user ID
+        const adminOption = {
+          id: admin.id,
+          name: canSelfAssign ? `${admin.name} (You)` : admin.name,
+          type: 'admin' as const,
+          canSelfAssign
+        };
+        
+        availableAssignees.push(adminOption);
+        organizationAdmins.push(adminOption);
+      });
     }
     
     // Check if current user can assign to themselves
-    const canAssignToSelf = suggestedTeamId ? hasTeamAccess(suggestedTeamId) : false;
+    const canAssignToSelf = hasEquipmentTeam 
+      ? (suggestedTeamId ? hasTeamAccess(suggestedTeamId) : false)
+      : (currentOrg ? ['owner', 'admin'].includes(currentOrg.userRole || '') : false);
     
     return {
       suggestedTeamId,
       suggestedTeamName,
       availableAssignees,
       canAssignToSelf,
-      currentUserMemberships: userTeamIds
+      currentUserMemberships: userTeamIds,
+      hasEquipmentTeam,
+      organizationAdmins
     };
-  }, [equipment, equipmentTeam, teamMembers, userTeamIds, hasTeamAccess]);
+  }, [equipment, equipmentTeam, teamMembers, orgAdmins, userTeamIds, hasTeamAccess, currentOrg]);
 
   return {
     ...assignmentData,

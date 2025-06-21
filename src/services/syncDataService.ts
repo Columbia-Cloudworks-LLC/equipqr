@@ -185,3 +185,14 @@ export const useSyncDashboardStats = (organizationId?: string) => {
     staleTime: 2 * 60 * 1000,
   });
 };
+
+// Enhanced work order query with real-time updates
+export const useSyncWorkOrderByIdEnhanced = (organizationId: string, workOrderId: string) => {
+  return useQuery({
+    queryKey: ['workOrder', 'enhanced', organizationId, workOrderId],
+    queryFn: () => getWorkOrderById(organizationId, workOrderId),
+    enabled: !!organizationId && !!workOrderId,
+    staleTime: 1 * 60 * 1000, // 1 minute for enhanced queries
+    refetchInterval: 30 * 1000, // Refetch every 30 seconds for real-time updates
+  });
+};

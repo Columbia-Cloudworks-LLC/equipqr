@@ -12,8 +12,8 @@ export interface EnhancedCreateWorkOrderData {
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
   estimatedHours?: number;
-  assignmentType?: 'team' | 'member';
-  assignmentId?: string; // Can be team ID or member ID
+  assignmentType?: 'team' | 'member' | 'admin';
+  assignmentId?: string; // Can be team ID, member ID, or admin ID
 }
 
 export const useCreateWorkOrderEnhanced = () => {
@@ -37,8 +37,7 @@ export const useCreateWorkOrderEnhanced = () => {
         teamId = workOrderData.assignmentId;
         assigneeId = null; // Team assignment, no specific assignee
       } else if (workOrderData.assignmentType === 'member' && workOrderData.assignmentId) {
-        // When assigning to a member, we need to also set the team
-        // This would require getting the member's team from the equipment
+        // When assigning to a team member, we need to also set the team
         assigneeId = workOrderData.assignmentId;
         
         // Get equipment to find its team
@@ -50,6 +49,10 @@ export const useCreateWorkOrderEnhanced = () => {
           .single();
         
         teamId = equipment?.team_id || null;
+      } else if (workOrderData.assignmentType === 'admin' && workOrderData.assignmentId) {
+        // Admin assignment - no team, direct assignee
+        assigneeId = workOrderData.assignmentId;
+        teamId = null;
       }
 
       const { data, error } = await supabase
