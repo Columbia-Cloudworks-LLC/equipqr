@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText, Shield } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
-import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import EnhancedWorkOrderStatusManager from '@/components/work-orders/EnhancedWorkOrderStatusManager';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
@@ -31,7 +31,7 @@ const WorkOrderDetails = () => {
     workOrder?.equipment_id || ''
   );
 
-  const permissions = useUnifiedPermissions();
+  const permissionLevels = useWorkOrderPermissionLevels();
 
   if (!workOrderId || !currentOrganization) {
     return <Navigate to="/work-orders" replace />;
@@ -50,7 +50,8 @@ const WorkOrderDetails = () => {
     return <Navigate to="/work-orders" replace />;
   }
 
-  const workOrderPermissions = permissions.workOrders.getPermissions(workOrder);
+  const createdByCurrentUser = workOrder.created_by === 'current-user-id'; // Would be actual user ID
+  const formMode = permissionLevels.getFormMode(workOrder, createdByCurrentUser);
 
   const handleEditWorkOrder = () => {
     setIsEditFormOpen(true);
@@ -103,6 +104,8 @@ const WorkOrderDetails = () => {
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  const canEdit = formMode === 'manager' || (formMode === 'requestor' && createdByCurrentUser);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -116,7 +119,15 @@ const WorkOrderDetails = () => {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
-            <p className="text-muted-foreground">Work Order #{workOrder.id}</p>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <p>Work Order #{workOrder.id}</p>
+              {formMode === 'requestor' && !permissionLevels.isManager && (
+                <Badge variant="outline" className="text-xs">
+                  <Shield className="h-3 w-3 mr-1" />
+                  Limited Access
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -126,10 +137,10 @@ const WorkOrderDetails = () => {
           <Badge className={getStatusColor(workOrder.status)}>
             {formatStatus(workOrder.status)}
           </Badge>
-          {workOrderPermissions.canEdit && (
+          {canEdit && (
             <Button variant="outline" onClick={handleEditWorkOrder}>
               <Edit className="h-4 w-4 mr-2" />
-              Edit
+              {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
             </Button>
           )}
         </div>
@@ -141,29 +152,82 @@ const WorkOrderDetails = () => {
           {/* Work Order Details */}
           <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
 
-          {/* Notes Section */}
+          {/* Notes Section - Requestors can add notes to their own work orders or view public notes */}
           <WorkOrderNotesSection 
             workOrderId={workOrder.id}
-            canAddNotes={workOrderPermissions.canAddNotes}
+            canAddNotes={permissionLevels.isManager || createdByCurrentUser}
+            showPrivateNotes={permissionLevels.isManager}
           />
 
-          {/* Images Section */}
+          {/* Images Section - Requestors can upload images to their own work orders */}
           <WorkOrderImagesSection 
             workOrderId={workOrder.id}
-            canUpload={workOrderPermissions.canAddImages}
+            canUpload={permissionLevels.isManager || createdByCurrentUser}
           />
 
-          {/* Timeline */}
-          <WorkOrderTimeline workOrder={workOrder} />
+          {/* Timeline - Show appropriate level of detail based on permissions */}
+          <WorkOrderTimeline 
+            workOrder={workOrder} 
+            showDetailedHistory={permissionLevels.isManager}
+          />
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Enhanced Status Management */}
-          <EnhancedWorkOrderStatusManager 
-            workOrder={workOrder} 
-            organizationId={currentOrganization.id}
-          />
+          {/* Enhanced Status Management - Only managers can change status */}
+          {permissionLevels.isManager && (
+            <EnhancedWorkOrderStatusManager 
+              workOrder={workOrder} 
+              organizationId={currentOrganization.id}
+            />
+          )}
+
+          {/* Status Info for Requestors */}
+          {permissionLevels.isRequestor && !permissionLevels.isManager && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Request Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Current Status:</span>
+                    <Badge className={getStatusColor(workOrder.status)}>
+                      {formatStatus(workOrder.status)}
+                    </Badge>
+                  </div>
+                  {workOrder.status === 'submitted' && (
+                    <p className="text-sm text-muted-foreground">
+                      Your request is awaiting review by a manager.
+                    </p>
+                  )}
+                  {workOrder.status === 'accepted' && (
+                    <p className="text-sm text-muted-foreground">
+                      Your request has been approved and is being scheduled.
+                    </p>
+                  )}
+                  {workOrder.status === 'assigned' && (
+                    <p className="text-sm text-muted-foreground">
+                      Work has been assigned to a team member.
+                    </p>
+                  )}
+                  {workOrder.status === 'in_progress' && (
+                    <p className="text-sm text-muted-foreground">
+                      Work is currently in progress.
+                    </p>
+                  )}
+                  {workOrder.status === 'completed' && (
+                    <p className="text-sm text-green-600">
+                      Work has been completed successfully.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Info */}
           <Card>
@@ -185,7 +249,9 @@ const WorkOrderDetails = () => {
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <div className="font-medium">Due Date</div>
+                    <div className="font-medium">
+                      {formMode === 'requestor' && workOrder.status === 'submitted' ? 'Preferred Due Date' : 'Due Date'}
+                    </div>
                     <div className="text-muted-foreground">
                       {new Date(workOrder.due_date).toLocaleDateString()}
                     </div>
@@ -193,7 +259,8 @@ const WorkOrderDetails = () => {
                 </div>
               )}
 
-              {workOrder.assigneeName && (
+              {/* Only show assignment info to managers or if assigned to user */}
+              {(permissionLevels.isManager || workOrder.assigneeName) && workOrder.assigneeName && (
                 <div className="flex items-center gap-2 text-sm">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <div>
@@ -203,7 +270,7 @@ const WorkOrderDetails = () => {
                 </div>
               )}
 
-              {workOrder.teamName && (
+              {(permissionLevels.isManager || workOrder.teamName) && workOrder.teamName && (
                 <div className="flex items-center gap-2 text-sm">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <div>
@@ -213,7 +280,7 @@ const WorkOrderDetails = () => {
                 </div>
               )}
 
-              {workOrder.estimated_hours && (
+              {permissionLevels.isManager && workOrder.estimated_hours && (
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>

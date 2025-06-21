@@ -3,8 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Check, X, AlertCircle, CheckCircle, Settings } from 'lucide-react';
+import { Bell, Check, X, AlertCircle, CheckCircle, Settings, Users } from 'lucide-react';
 import { useNotifications, useMarkNotificationAsRead } from '@/hooks/useWorkOrderData';
+import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
@@ -19,8 +20,27 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
 }) => {
   const { data: notifications = [], isLoading } = useNotifications(organizationId);
   const markAsReadMutation = useMarkNotificationAsRead();
+  const permissionLevels = useWorkOrderPermissionLevels();
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Filter notifications based on user role
+  const filteredNotifications = notifications.filter(notification => {
+    if (permissionLevels.isManager) {
+      // Managers see all notifications
+      return true;
+    }
+    
+    if (permissionLevels.isRequestor) {
+      // Requestors only see notifications about their own work orders or general updates
+      return notification.type === 'work_order_accepted' || 
+             notification.type === 'work_order_assigned' ||
+             notification.type === 'work_order_completed' ||
+             notification.data?.created_by === 'current-user-id'; // Would be actual user ID
+    }
+    
+    return true;
+  });
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -32,9 +52,18 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
         return <Settings className="h-4 w-4 text-orange-500" />;
       case 'work_order_completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'team_assignment':
+        return <Users className="h-4 w-4 text-purple-500" />;
       default:
         return <Bell className="h-4 w-4 text-gray-500" />;
     }
+  };
+
+  const getNotificationMessage = (notification: any) => {
+    if (permissionLevels.isRequestor && notification.type === 'work_order_request') {
+      return 'Your work order request has been submitted for review';
+    }
+    return notification.message;
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
@@ -71,13 +100,18 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
           className="space-y-2 overflow-y-auto pr-2"
           style={{ maxHeight }}
         >
-          {notifications.length === 0 ? (
+          {filteredNotifications.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No notifications yet</p>
+              {permissionLevels.isRequestor && (
+                <p className="text-sm mt-2">
+                  You'll receive updates about your work order requests here
+                </p>
+              )}
             </div>
           ) : (
-            notifications.map((notification) => (
+            filteredNotifications.map((notification) => (
               <div
                 key={notification.id}
                 className={`p-3 rounded-lg border transition-colors ${
@@ -109,7 +143,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     </div>
                     
                     <p className="text-sm text-muted-foreground mt-1">
-                      {notification.message}
+                      {getNotificationMessage(notification)}
                     </p>
                     
                     <div className="flex items-center justify-between mt-2">

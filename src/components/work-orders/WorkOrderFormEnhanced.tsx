@@ -16,9 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { Lock, Package, AlertTriangle } from "lucide-react";
+import { Lock, Package, AlertTriangle, Shield } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useSyncEquipmentByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
@@ -56,7 +56,12 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
 }) => {
   const isEdit = !!workOrder;
   const { currentOrganization } = useOrganization();
-  const permissions = useUnifiedPermissions();
+  const permissionLevels = useWorkOrderPermissionLevels();
+  
+  // Determine if current user created this work order
+  const createdByCurrentUser = workOrder?.created_by === 'current-user-id'; // This would come from auth context
+  
+  const formMode = permissionLevels.getFormMode(workOrder, createdByCurrentUser);
   
   // Get equipment data using sync hooks
   const { data: allEquipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
@@ -65,19 +70,34 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
     equipmentId || ''
   );
 
-  const initialValues: Partial<WorkOrderFormData> = {
-    title: workOrder?.title || '',
-    description: workOrder?.description || '',
-    equipmentId: workOrder?.equipment_id || equipmentId || '',
-    priority: workOrder?.priority || 'medium',
-    assigneeId: workOrder?.assignee_id || '',
-    teamId: workOrder?.team_id || '',
-    dueDate: workOrder?.due_date || '',
-    estimatedHours: workOrder?.estimated_hours || undefined,
-    status: workOrder?.status || 'submitted',
+  const getInitialValues = (): Partial<WorkOrderFormData> => {
+    if (formMode === 'requestor' && !isEdit) {
+      // Requestors create simplified requests
+      return {
+        title: '',
+        description: '',
+        equipmentId: equipmentId || '',
+        priority: 'medium',
+        status: 'submitted',
+        dueDate: '',
+      };
+    }
+    
+    // Manager or edit mode - full form
+    return {
+      title: workOrder?.title || '',
+      description: workOrder?.description || '',
+      equipmentId: workOrder?.equipment_id || equipmentId || '',
+      priority: workOrder?.priority || 'medium',
+      assigneeId: workOrder?.assignee_id || '',
+      teamId: workOrder?.team_id || '',
+      dueDate: workOrder?.due_date || '',
+      estimatedHours: workOrder?.estimated_hours || undefined,
+      status: workOrder?.status || 'submitted',
+    };
   };
 
-  const form = useFormValidation(workOrderFormSchema, initialValues);
+  const form = useFormValidation(workOrderFormSchema, getInitialValues());
 
   const { execute: submitForm, isLoading: isSubmitting } = useAsyncOperation(
     async (data: WorkOrderFormData) => {
@@ -93,8 +113,6 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
     }
   );
 
-  const workOrderPermissions = permissions.workOrders.getPermissions(workOrder);
-
   const handleSubmit = async () => {
     await form.handleSubmit(submitForm);
   };
@@ -107,6 +125,33 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
     form.reset();
     onClose();
   };
+
+  // Check permissions for access
+  if (formMode === 'readonly' && isEdit) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-amber-500" />
+              Read-Only Access
+            </DialogTitle>
+          </DialogHeader>
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              You can view this work order but cannot make changes. Only managers and the creator can edit work orders.
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const renderEquipmentField = () => {
     if (preSelectedEquipment) {
@@ -138,7 +183,7 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
         <Select 
           value={form.values.equipmentId as string} 
           onValueChange={(value) => form.setValue('equipmentId', value)}
-          disabled={isEdit && !workOrderPermissions.canEdit}
+          disabled={formMode === 'readonly'}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select equipment" />
@@ -163,72 +208,43 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
     );
   };
 
-  if (!permissions.context) {
-    return (
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Service Unavailable
-            </DialogTitle>
-          </DialogHeader>
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Unable to load permissions. Please refresh the page and try again.
-            </AlertDescription>
-          </Alert>
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={onClose}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const getFormTitle = () => {
+    if (isEdit) return 'Edit Work Order';
+    if (formMode === 'requestor') return 'Create Work Request';
+    return 'Create Work Order';
+  };
 
-  if (!workOrderPermissions.canEdit && isEdit) {
-    return (
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Access Restricted
-            </DialogTitle>
-          </DialogHeader>
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              You don't have permission to edit this work order. Only organization admins and team managers can edit work orders.
-            </AlertDescription>
-          </Alert>
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={onClose}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const getFormDescription = () => {
+    if (isEdit) return 'Update work order information';
+    if (formMode === 'requestor') {
+      return preSelectedEquipment ? 
+        `Submit a work request for ${preSelectedEquipment.name}` :
+        'Submit a new work order request for review';
+    }
+    return preSelectedEquipment ? 
+      `Create a new work order for ${preSelectedEquipment.name}` :
+      'Enter the details for the new work order';
+  };
 
   return (
     <ErrorBoundary>
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isEdit ? 'Edit Work Order' : 'Create New Work Order'}</DialogTitle>
+            <DialogTitle>{getFormTitle()}</DialogTitle>
             <DialogDescription>
-              {isEdit ? 'Update work order information' : 
-               preSelectedEquipment ? 
-                 `Create a new work order for ${preSelectedEquipment.name}` :
-                 'Enter the details for the new work order'
-              }
+              {getFormDescription()}
             </DialogDescription>
           </DialogHeader>
+
+          {formMode === 'requestor' && !isEdit && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Your request will be submitted for review. A manager will review and assign it to the appropriate team.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -236,19 +252,19 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
               <Card>
                 <CardContent className="pt-4 space-y-4">
                   <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                    Work Order Details
+                    {formMode === 'requestor' ? 'Request Details' : 'Work Order Details'}
                   </h3>
                   
                   <div className="space-y-2">
                     <Label>Title *</Label>
                     <Input
                       placeholder={preSelectedEquipment ? 
-                        `Maintenance for ${preSelectedEquipment.name}` : 
-                        "e.g., Annual maintenance for Forklift FL-001"
+                        `${formMode === 'requestor' ? 'Issue with' : 'Maintenance for'} ${preSelectedEquipment.name}` : 
+                        `${formMode === 'requestor' ? 'Brief description of the issue' : 'e.g., Annual maintenance for Forklift FL-001'}`
                       }
                       value={form.values.title as string || ''}
                       onChange={(e) => form.setValue('title', e.target.value)}
-                      disabled={isEdit && !workOrderPermissions.canEdit}
+                      disabled={formMode === 'readonly'}
                     />
                     {form.errors.title && (
                       <p className="text-sm text-destructive">{form.errors.title}</p>
@@ -257,124 +273,155 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
 
                   {renderEquipmentField()}
 
-                  <div className="space-y-2">
-                    <Label>Priority *</Label>
-                    <Select 
-                      value={form.values.priority as string}
-                      onValueChange={(value) => form.setValue('priority', value)}
-                      disabled={isEdit && !workOrderPermissions.canEdit}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {form.errors.priority && (
-                      <p className="text-sm text-destructive">{form.errors.priority}</p>
-                    )}
-                  </div>
+                  {formMode === 'manager' && (
+                    <div className="space-y-2">
+                      <Label>Priority *</Label>
+                      <Select 
+                        value={form.values.priority as string}
+                        onValueChange={(value) => form.setValue('priority', value)}
+                        disabled={formMode === 'readonly'}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {form.errors.priority && (
+                        <p className="text-sm text-destructive">{form.errors.priority}</p>
+                      )}
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <Label>Estimated Hours</Label>
-                    <Input
-                      type="number"
-                      placeholder="e.g., 4"
-                      min="0"
-                      step="0.5"
-                      value={form.values.estimatedHours || ''}
-                      onChange={(e) => form.setValue('estimatedHours', e.target.value ? Number(e.target.value) : undefined)}
-                      disabled={isEdit && !workOrderPermissions.canEdit}
-                    />
-                    {form.errors.estimatedHours && (
-                      <p className="text-sm text-destructive">{form.errors.estimatedHours}</p>
-                    )}
-                  </div>
+                  {formMode === 'manager' && (
+                    <div className="space-y-2">
+                      <Label>Estimated Hours</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 4"
+                        min="0"
+                        step="0.5"
+                        value={form.values.estimatedHours || ''}
+                        onChange={(e) => form.setValue('estimatedHours', e.target.value ? Number(e.target.value) : undefined)}
+                        disabled={formMode === 'readonly'}
+                      />
+                      {form.errors.estimatedHours && (
+                        <p className="text-sm text-destructive">{form.errors.estimatedHours}</p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Assignment and Dates */}
-              <Card>
-                <CardContent className="pt-4 space-y-4">
-                  <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                    Assignment & Scheduling
-                  </h3>
-                  
-                  <div className="space-y-2">
-                    <Label>Assignee</Label>
-                    <Select 
-                      value={form.values.assigneeId as string || ''}
-                      onValueChange={(value) => form.setValue('assigneeId', value)}
-                      disabled={isEdit && !workOrderPermissions.canAssign}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select assignee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">No assignee</SelectItem>
-                        <SelectItem value="john-smith">John Smith</SelectItem>
-                        <SelectItem value="sarah-davis">Sarah Davis</SelectItem>
-                        <SelectItem value="mike-johnson">Mike Johnson</SelectItem>
-                        <SelectItem value="lisa-wilson">Lisa Wilson</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* Assignment and Dates - Only for managers */}
+              {formMode === 'manager' && (
+                <Card>
+                  <CardContent className="pt-4 space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                      Assignment & Scheduling
+                    </h3>
+                    
+                    <div className="space-y-2">
+                      <Label>Assignee</Label>
+                      <Select 
+                        value={form.values.assigneeId as string || ''}
+                        onValueChange={(value) => form.setValue('assigneeId', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select assignee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No assignee</SelectItem>
+                          <SelectItem value="john-smith">John Smith</SelectItem>
+                          <SelectItem value="sarah-davis">Sarah Davis</SelectItem>
+                          <SelectItem value="mike-johnson">Mike Johnson</SelectItem>
+                          <SelectItem value="lisa-wilson">Lisa Wilson</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>Team</Label>
-                    <Select 
-                      value={form.values.teamId as string || ''}
-                      onValueChange={(value) => form.setValue('teamId', value)}
-                      disabled={isEdit && !workOrderPermissions.canAssign}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select team" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">No team</SelectItem>
-                        <SelectItem value="maintenance">Maintenance Team</SelectItem>
-                        <SelectItem value="operations">Operations Team</SelectItem>
-                        <SelectItem value="safety">Safety Team</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="space-y-2">
+                      <Label>Team</Label>
+                      <Select 
+                        value={form.values.teamId as string || ''}
+                        onValueChange={(value) => form.setValue('teamId', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select team" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No team</SelectItem>
+                          <SelectItem value="maintenance">Maintenance Team</SelectItem>
+                          <SelectItem value="operations">Operations Team</SelectItem>
+                          <SelectItem value="safety">Safety Team</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>Due Date</Label>
-                    <Input
-                      type="date"
-                      value={form.values.dueDate as string || ''}
-                      onChange={(e) => form.setValue('dueDate', e.target.value)}
-                      disabled={isEdit && !workOrderPermissions.canEdit}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select 
+                        value={form.values.status as string}
+                        onValueChange={(value) => form.setValue('status', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="submitted">Submitted</SelectItem>
+                          <SelectItem value="accepted">Accepted</SelectItem>
+                          <SelectItem value="assigned">Assigned</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="on_hold">On Hold</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select 
-                      value={form.values.status as string}
-                      onValueChange={(value) => form.setValue('status', value)}
-                      disabled={isEdit && !workOrderPermissions.canChangeStatus}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="submitted">Submitted</SelectItem>
-                        <SelectItem value="accepted">Accepted</SelectItem>
-                        <SelectItem value="assigned">Assigned</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="on_hold">On Hold</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Due Date - Available for both requestors and managers */}
+              {formMode !== 'manager' && (
+                <Card>
+                  <CardContent className="pt-4 space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                      Scheduling
+                    </h3>
+                    
+                    <div className="space-y-2">
+                      <Label>{formMode === 'requestor' ? 'Preferred Due Date' : 'Due Date'}</Label>
+                      <Input
+                        type="date"
+                        value={form.values.dueDate as string || ''}
+                        onChange={(e) => form.setValue('dueDate', e.target.value)}
+                        disabled={formMode === 'readonly'}
+                      />
+                      {formMode === 'requestor' && (
+                        <p className="text-xs text-muted-foreground">
+                          Optional - Final scheduling will be determined by the assigned team
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {formMode === 'manager' && (
+                <div className="space-y-2">
+                  <Label>Due Date</Label>
+                  <Input
+                    type="date"
+                    value={form.values.dueDate as string || ''}
+                    onChange={(e) => form.setValue('dueDate', e.target.value)}
+                    disabled={formMode === 'readonly'}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -382,13 +429,13 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
               <Label>Description *</Label>
               <Textarea
                 placeholder={preSelectedEquipment ? 
-                  `Describe the maintenance work needed for ${preSelectedEquipment.name}...` :
-                  "Detailed description of the work to be performed..."
+                  `${formMode === 'requestor' ? 'Describe the issue or work needed for' : 'Describe the maintenance work needed for'} ${preSelectedEquipment.name}...` :
+                  `${formMode === 'requestor' ? 'Provide detailed information about the work needed...' : 'Detailed description of the work to be performed...'}`
                 }
                 className="min-h-[120px]"
                 value={form.values.description as string || ''}
                 onChange={(e) => form.setValue('description', e.target.value)}
-                disabled={isEdit && !workOrderPermissions.canEdit}
+                disabled={formMode === 'readonly'}
               />
               {form.errors.description && (
                 <p className="text-sm text-destructive">{form.errors.description}</p>
@@ -410,12 +457,16 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button 
-                onClick={handleSubmit}
-                disabled={isSubmitting || !form.isValid || (isEdit && !workOrderPermissions.canEdit)}
-              >
-                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Work Order' : 'Create Work Order')}
-              </Button>
+              {formMode !== 'readonly' && (
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !form.isValid}
+                >
+                  {isSubmitting ? 'Saving...' : 
+                   isEdit ? 'Update Work Order' : 
+                   formMode === 'requestor' ? 'Submit Request' : 'Create Work Order'}
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
