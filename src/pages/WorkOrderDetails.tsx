@@ -9,9 +9,11 @@ import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText } from 
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import WorkOrderStatusManager from '@/components/work-orders/WorkOrderStatusManager';
+import EnhancedWorkOrderStatusManager from '@/components/work-orders/EnhancedWorkOrderStatusManager';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
+import WorkOrderNotesSection from '@/components/work-orders/WorkOrderNotesSection';
+import WorkOrderImagesSection from '@/components/work-orders/WorkOrderImagesSection';
 import WorkOrderFormEnhanced from '@/components/work-orders/WorkOrderFormEnhanced';
 
 const WorkOrderDetails = () => {
@@ -60,7 +62,6 @@ const WorkOrderDetails = () => {
 
   const handleUpdateWorkOrder = (data: any) => {
     console.log('Updating work order:', data);
-    // Here you would typically update the work order in your data service
     setIsEditFormOpen(false);
   };
 
@@ -140,14 +141,29 @@ const WorkOrderDetails = () => {
           {/* Work Order Details */}
           <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
 
+          {/* Notes Section */}
+          <WorkOrderNotesSection 
+            workOrderId={workOrder.id}
+            canAddNotes={workOrderPermissions.canAddNotes}
+          />
+
+          {/* Images Section */}
+          <WorkOrderImagesSection 
+            workOrderId={workOrder.id}
+            canUpload={workOrderPermissions.canAddImages}
+          />
+
           {/* Timeline */}
           <WorkOrderTimeline workOrder={workOrder} />
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Status Management */}
-          <WorkOrderStatusManager workOrder={workOrder} />
+          {/* Enhanced Status Management */}
+          <EnhancedWorkOrderStatusManager 
+            workOrder={workOrder} 
+            organizationId={currentOrganization.id}
+          />
 
           {/* Quick Info */}
           <Card>

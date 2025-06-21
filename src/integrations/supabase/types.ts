@@ -132,6 +132,45 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          data: Json | null
+          id: string
+          message: string
+          organization_id: string
+          read: boolean
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message: string
+          organization_id: string
+          read?: boolean
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message?: string
+          organization_id?: string
+          read?: boolean
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           id: string
@@ -353,8 +392,78 @@ export type Database = {
           },
         ]
       }
+      work_order_images: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          uploaded_by: string
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          uploaded_by: string
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          uploaded_by?: string
+          work_order_id?: string
+        }
+        Relationships: []
+      }
+      work_order_notes: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          hours_worked: number | null
+          id: string
+          is_private: boolean
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          hours_worked?: number | null
+          id?: string
+          is_private?: boolean
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          hours_worked?: number | null
+          id?: string
+          is_private?: boolean
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: []
+      }
       work_orders: {
         Row: {
+          acceptance_date: string | null
           assignee_id: string | null
           completed_date: string | null
           created_by: string
@@ -372,6 +481,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acceptance_date?: string | null
           assignee_id?: string | null
           completed_date?: string | null
           created_by: string
@@ -389,6 +499,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acceptance_date?: string | null
           assignee_id?: string | null
           completed_date?: string | null
           created_by?: string
