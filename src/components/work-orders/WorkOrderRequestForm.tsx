@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { z } from 'zod';
 import {
@@ -21,6 +20,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useSyncEquipmentByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
+import { useCreateWorkOrder, CreateWorkOrderData } from '@/hooks/useWorkOrderCreation';
 
 const requestFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -45,6 +45,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
   onSubmit 
 }) => {
   const { currentOrganization } = useOrganization();
+  const createWorkOrderMutation = useCreateWorkOrder();
   
   const { data: allEquipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
   const { data: preSelectedEquipment } = useSyncEquipmentById(
@@ -65,6 +66,17 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
     async (data: RequestFormData) => {
       if (onSubmit) {
         await onSubmit(data);
+      } else {
+        // Use the new createWorkOrder hook
+        const workOrderData: CreateWorkOrderData = {
+          title: data.title,
+          description: data.description,
+          equipmentId: data.equipmentId,
+          priority: 'medium', // Default priority for requests
+          dueDate: data.dueDate || undefined,
+        };
+        
+        await createWorkOrderMutation.mutateAsync(workOrderData);
       }
     },
     {
@@ -88,7 +100,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
     onClose();
   };
 
-  const renderEquipmentField = () => {
+  function renderEquipmentField() {
     if (preSelectedEquipment) {
       return (
         <div className="space-y-2">
@@ -227,9 +239,9 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={isSubmitting || !form.isValid}
+              disabled={isSubmitting || !form.isValid || createWorkOrderMutation.isPending}
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Request'}
+              {(isSubmitting || createWorkOrderMutation.isPending) ? 'Submitting...' : 'Submit Request'}
             </Button>
           </div>
         </div>

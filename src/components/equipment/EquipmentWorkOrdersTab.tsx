@@ -1,10 +1,10 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Calendar, Clock, User, Users } from 'lucide-react';
 import { useSyncWorkOrdersByEquipment } from '@/services/syncDataService';
+import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 
 interface EquipmentWorkOrdersTabProps {
   equipmentId: string;
@@ -17,7 +17,16 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
   organizationId,
   onCreateWorkOrder,
 }) => {
+  const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
   const { data: workOrders = [], isLoading } = useSyncWorkOrdersByEquipment(organizationId, equipmentId);
+
+  const handleCreateWorkOrder = () => {
+    if (onCreateWorkOrder) {
+      onCreateWorkOrder();
+    } else {
+      setShowWorkOrderForm(true);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -80,7 +89,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
             {workOrders.length} {workOrders.length === 1 ? 'work order' : 'work orders'}
           </p>
         </div>
-        <Button onClick={onCreateWorkOrder}>
+        <Button onClick={handleCreateWorkOrder}>
           <Plus className="h-4 w-4 mr-2" />
           Create Work Order
         </Button>
@@ -96,7 +105,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
               <p className="text-muted-foreground mb-4">
                 No work orders have been created for this equipment yet.
               </p>
-              <Button onClick={onCreateWorkOrder}>
+              <Button onClick={handleCreateWorkOrder}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create First Work Order
               </Button>
@@ -191,6 +200,13 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
           ))
         )}
       </div>
+
+      {/* Work Order Form */}
+      <WorkOrderForm
+        open={showWorkOrderForm}
+        onClose={() => setShowWorkOrderForm(false)}
+        equipmentId={equipmentId}
+      />
     </div>
   );
 };
