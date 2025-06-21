@@ -226,6 +226,10 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
       'Enter the details for the new work order';
   };
 
+  const isManagerMode = formMode === 'manager';
+  const isRequestorMode = formMode === 'requestor';
+  const isReadOnlyMode = formMode === 'readonly';
+
   return (
     <ErrorBoundary>
       <Dialog open={open} onOpenChange={handleClose}>
@@ -237,7 +241,7 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          {formMode === 'requestor' && !isEdit && (
+          {isRequestorMode && !isEdit && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
@@ -252,19 +256,19 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
               <Card>
                 <CardContent className="pt-4 space-y-4">
                   <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                    {formMode === 'requestor' ? 'Request Details' : 'Work Order Details'}
+                    {isRequestorMode ? 'Request Details' : 'Work Order Details'}
                   </h3>
                   
                   <div className="space-y-2">
                     <Label>Title *</Label>
                     <Input
                       placeholder={preSelectedEquipment ? 
-                        `${formMode === 'requestor' ? 'Issue with' : 'Maintenance for'} ${preSelectedEquipment.name}` : 
-                        `${formMode === 'requestor' ? 'Brief description of the issue' : 'e.g., Annual maintenance for Forklift FL-001'}`
+                        `${isRequestorMode ? 'Issue with' : 'Maintenance for'} ${preSelectedEquipment.name}` : 
+                        `${isRequestorMode ? 'Brief description of the issue' : 'e.g., Annual maintenance for Forklift FL-001'}`
                       }
                       value={form.values.title as string || ''}
                       onChange={(e) => form.setValue('title', e.target.value)}
-                      disabled={formMode === 'readonly'}
+                      disabled={isReadOnlyMode}
                     />
                     {form.errors.title && (
                       <p className="text-sm text-destructive">{form.errors.title}</p>
@@ -273,13 +277,13 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
 
                   {renderEquipmentField()}
 
-                  {formMode === 'manager' && (
+                  {isManagerMode && (
                     <div className="space-y-2">
                       <Label>Priority *</Label>
                       <Select 
                         value={form.values.priority as string}
                         onValueChange={(value) => form.setValue('priority', value)}
-                        disabled={formMode === 'readonly'}
+                        disabled={isReadOnlyMode}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select priority" />
@@ -296,7 +300,7 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
                     </div>
                   )}
 
-                  {formMode === 'manager' && (
+                  {isManagerMode && (
                     <div className="space-y-2">
                       <Label>Estimated Hours</Label>
                       <Input
@@ -306,7 +310,7 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
                         step="0.5"
                         value={form.values.estimatedHours || ''}
                         onChange={(e) => form.setValue('estimatedHours', e.target.value ? Number(e.target.value) : undefined)}
-                        disabled={formMode === 'readonly'}
+                        disabled={isReadOnlyMode}
                       />
                       {form.errors.estimatedHours && (
                         <p className="text-sm text-destructive">{form.errors.estimatedHours}</p>
@@ -317,7 +321,7 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
               </Card>
 
               {/* Assignment and Dates - Only for managers */}
-              {formMode === 'manager' && (
+              {isManagerMode && (
                 <Card>
                   <CardContent className="pt-4 space-y-4">
                     <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
@@ -381,12 +385,22 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label>Due Date</Label>
+                      <Input
+                        type="date"
+                        value={form.values.dueDate as string || ''}
+                        onChange={(e) => form.setValue('dueDate', e.target.value)}
+                        disabled={isReadOnlyMode}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Due Date - Available for both requestors and managers */}
-              {formMode !== 'manager' && (
+              {/* Due Date - Available for requestors */}
+              {isRequestorMode && (
                 <Card>
                   <CardContent className="pt-4 space-y-4">
                     <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
@@ -394,33 +408,19 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
                     </h3>
                     
                     <div className="space-y-2">
-                      <Label>{formMode === 'requestor' ? 'Preferred Due Date' : 'Due Date'}</Label>
+                      <Label>Preferred Due Date</Label>
                       <Input
                         type="date"
                         value={form.values.dueDate as string || ''}
                         onChange={(e) => form.setValue('dueDate', e.target.value)}
-                        disabled={formMode === 'readonly'}
+                        disabled={isReadOnlyMode}
                       />
-                      {formMode === 'requestor' && (
-                        <p className="text-xs text-muted-foreground">
-                          Optional - Final scheduling will be determined by the assigned team
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Optional - Final scheduling will be determined by the assigned team
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
-              )}
-
-              {formMode === 'manager' && (
-                <div className="space-y-2">
-                  <Label>Due Date</Label>
-                  <Input
-                    type="date"
-                    value={form.values.dueDate as string || ''}
-                    onChange={(e) => form.setValue('dueDate', e.target.value)}
-                    disabled={formMode === 'readonly'}
-                  />
-                </div>
               )}
             </div>
 
@@ -429,13 +429,13 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
               <Label>Description *</Label>
               <Textarea
                 placeholder={preSelectedEquipment ? 
-                  `${formMode === 'requestor' ? 'Describe the issue or work needed for' : 'Describe the maintenance work needed for'} ${preSelectedEquipment.name}...` :
-                  `${formMode === 'requestor' ? 'Provide detailed information about the work needed...' : 'Detailed description of the work to be performed...'}`
+                  `${isRequestorMode ? 'Describe the issue or work needed for' : 'Describe the maintenance work needed for'} ${preSelectedEquipment.name}...` :
+                  `${isRequestorMode ? 'Provide detailed information about the work needed...' : 'Detailed description of the work to be performed...'}`
                 }
                 className="min-h-[120px]"
                 value={form.values.description as string || ''}
                 onChange={(e) => form.setValue('description', e.target.value)}
-                disabled={formMode === 'readonly'}
+                disabled={isReadOnlyMode}
               />
               {form.errors.description && (
                 <p className="text-sm text-destructive">{form.errors.description}</p>
@@ -457,14 +457,14 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              {formMode !== 'readonly' && (
+              {!isReadOnlyMode && (
                 <Button 
                   onClick={handleSubmit}
                   disabled={isSubmitting || !form.isValid}
                 >
                   {isSubmitting ? 'Saving...' : 
                    isEdit ? 'Update Work Order' : 
-                   formMode === 'requestor' ? 'Submit Request' : 'Create Work Order'}
+                   isRequestorMode ? 'Submit Request' : 'Create Work Order'}
                 </Button>
               )}
             </div>

@@ -7,9 +7,13 @@ import { WorkOrder } from '@/services/supabaseDataService';
 
 interface WorkOrderTimelineProps {
   workOrder: WorkOrder;
+  showDetailedHistory?: boolean;
 }
 
-const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
+const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ 
+  workOrder, 
+  showDetailedHistory = true 
+}) => {
   // Generate timeline events based on work order data
   const getTimelineEvents = () => {
     const events = [
@@ -20,7 +24,8 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         timestamp: workOrder.created_date,
         type: 'created',
         icon: FileText,
-        user: 'System'
+        user: 'System',
+        isPublic: true
       }
     ];
 
@@ -34,7 +39,8 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'accepted',
         icon: CheckCircle,
-        user: workOrder.assigneeName || 'Manager'
+        user: workOrder.assigneeName || 'Manager',
+        isPublic: true
       });
     }
 
@@ -46,7 +52,8 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'assigned',
         icon: User,
-        user: 'Manager'
+        user: 'Manager',
+        isPublic: false // Only show to managers and assigned users
       });
     }
 
@@ -58,7 +65,8 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'in_progress',
         icon: Play,
-        user: workOrder.assigneeName || 'Technician'
+        user: workOrder.assigneeName || 'Technician',
+        isPublic: true
       });
     }
 
@@ -70,7 +78,8 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         timestamp: workOrder.completed_date,
         type: 'completed',
         icon: CheckCircle,
-        user: workOrder.assigneeName || 'Technician'
+        user: workOrder.assigneeName || 'Technician',
+        isPublic: true
       });
     }
 
@@ -82,7 +91,8 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'on_hold',
         icon: Pause,
-        user: workOrder.assigneeName || 'Technician'
+        user: workOrder.assigneeName || 'Technician',
+        isPublic: false
       });
     }
 
@@ -94,11 +104,17 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         timestamp: workOrder.created_date, // In real app, this would be a separate timestamp
         type: 'cancelled',
         icon: XCircle,
-        user: 'Manager'
+        user: 'Manager',
+        isPublic: true
       });
     }
 
-    return events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    // Filter events based on permission level
+    const filteredEvents = showDetailedHistory 
+      ? events 
+      : events.filter(event => event.isPublic);
+
+    return filteredEvents.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   };
 
   const getEventColor = (type: string) => {
@@ -130,6 +146,11 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
           Timeline
+          {!showDetailedHistory && (
+            <Badge variant="outline" className="text-xs">
+              Limited View
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -155,7 +176,9 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ workOrder }) => {
                     </time>
                   </div>
                   <p className="text-sm text-muted-foreground">{event.description}</p>
-                  <p className="text-xs text-muted-foreground">by {event.user}</p>
+                  {showDetailedHistory && (
+                    <p className="text-xs text-muted-foreground">by {event.user}</p>
+                  )}
                 </div>
               </div>
             );

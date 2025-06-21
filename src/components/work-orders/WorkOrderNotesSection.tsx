@@ -13,19 +13,24 @@ import { format } from 'date-fns';
 interface WorkOrderNotesSectionProps {
   workOrderId: string;
   canAddNotes?: boolean;
+  showPrivateNotes?: boolean;
 }
 
 const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   workOrderId,
-  canAddNotes = true
+  canAddNotes = true,
+  showPrivateNotes = true
 }) => {
   const [newNote, setNewNote] = useState('');
   const [hoursWorked, setHoursWorked] = useState<number>(0);
   const [isPrivate, setIsPrivate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: notes = [], isLoading } = useWorkOrderNotes(workOrderId);
+  const { data: allNotes = [], isLoading } = useWorkOrderNotes(workOrderId);
   const createNoteMutation = useCreateWorkOrderNote();
+
+  // Filter notes based on showPrivateNotes permission
+  const notes = showPrivateNotes ? allNotes : allNotes.filter(note => !note.is_private);
 
   const handleSubmitNote = async () => {
     if (!newNote.trim()) return;
@@ -94,14 +99,16 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                 <span className="text-sm text-muted-foreground">hours worked</span>
               </div>
               
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={isPrivate}
-                  onCheckedChange={setIsPrivate}
-                />
-                <Lock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Private note</span>
-              </div>
+              {showPrivateNotes && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={isPrivate}
+                    onCheckedChange={setIsPrivate}
+                  />
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Private note</span>
+                </div>
+              )}
             </div>
             
             <Button 
@@ -128,7 +135,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{note.author_name}</span>
-                    {note.is_private && (
+                    {note.is_private && showPrivateNotes && (
                       <Badge variant="secondary" className="text-xs">
                         <Lock className="h-3 w-3 mr-1" />
                         Private
