@@ -16,6 +16,8 @@ export interface EntityPermissions {
   canDelete: boolean;
   canAssign?: boolean;
   canChangeStatus?: boolean;
+  canAddNotes?: boolean;
+  canAddImages?: boolean;
 }
 
 export interface WorkOrderPermissions {
@@ -25,6 +27,8 @@ export interface WorkOrderPermissions {
   canEditDueDate: boolean;
   canEditDescription: boolean;
   canChangeStatus: boolean;
+  canAddNotes: boolean;
+  canAddImages: boolean;
 }
 
 export interface UnifiedPermissionsHook {
@@ -111,7 +115,14 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
   const equipment = {
     getPermissions: (equipmentTeamId?: string): EntityPermissions => {
       if (!context) {
-        return { canView: false, canCreate: false, canEdit: false, canDelete: false };
+        return { 
+          canView: false, 
+          canCreate: false, 
+          canEdit: false, 
+          canDelete: false,
+          canAddNotes: false,
+          canAddImages: false
+        };
       }
 
       const canView = isOrgMember() || (equipmentTeamId ? isTeamMember(equipmentTeamId) : false);
@@ -135,7 +146,9 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
           canEdit: false, 
           canDelete: false,
           canAssign: false,
-          canChangeStatus: false
+          canChangeStatus: false,
+          canAddNotes: false,
+          canAddImages: false
         };
       }
 
@@ -145,8 +158,21 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
       const canDelete = isOrgAdmin();
       const canAssign = isOrgAdmin() || (workOrder?.team_id ? isTeamManager(workOrder.team_id) : false);
       const canChangeStatus = isOrgAdmin() || (workOrder?.team_id ? isTeamMember(workOrder.team_id) : false);
+      
+      // Notes and images permissions - team members can add notes/images to work orders they have access to
+      const canAddNotes = isOrgMember() || (workOrder?.team_id ? isTeamMember(workOrder.team_id) : false);
+      const canAddImages = isOrgMember() || (workOrder?.team_id ? isTeamMember(workOrder.team_id) : false);
 
-      return { canView, canCreate, canEdit, canDelete, canAssign, canChangeStatus };
+      return { 
+        canView, 
+        canCreate, 
+        canEdit, 
+        canDelete, 
+        canAssign, 
+        canChangeStatus,
+        canAddNotes,
+        canAddImages
+      };
     },
     getDetailedPermissions: (workOrder?: WorkOrder): WorkOrderPermissions => {
       if (!currentOrganization) {
@@ -156,7 +182,9 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
           canEditAssignment: false,
           canEditDueDate: false,
           canEditDescription: false,
-          canChangeStatus: false
+          canChangeStatus: false,
+          canAddNotes: false,
+          canAddImages: false
         };
       }
 
@@ -170,7 +198,9 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
         canEditAssignment: isOrgAdminRole || isTeamManagerRole,
         canEditDueDate: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
         canEditDescription: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
-        canChangeStatus: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess
+        canChangeStatus: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
+        canAddNotes: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
+        canAddImages: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess
       };
     },
     canViewAll: isOrgAdmin(),
@@ -182,7 +212,14 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
   const teams = {
     getPermissions: (teamId?: string): EntityPermissions => {
       if (!context) {
-        return { canView: false, canCreate: false, canEdit: false, canDelete: false };
+        return { 
+          canView: false, 
+          canCreate: false, 
+          canEdit: false, 
+          canDelete: false,
+          canAddNotes: false,
+          canAddImages: false
+        };
       }
 
       const canView = isOrgMember() || (teamId ? isTeamMember(teamId) : false);
