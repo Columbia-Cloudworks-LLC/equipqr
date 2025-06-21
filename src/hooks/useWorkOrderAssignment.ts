@@ -59,9 +59,9 @@ export const useWorkOrderAssignment = (organizationId: string, equipmentId?: str
       
       // Add individual team members
       teamMembers.forEach(member => {
-        const canSelfAssign = member.user_id === 'current-user-id'; // This would come from auth context
+        const canSelfAssign = member.id === 'current-user-id'; // This would come from auth context
         availableAssignees.push({
-          id: member.user_id,
+          id: member.id,
           name: member.name || 'Unknown Member',
           type: 'member',
           teamId: equipmentTeam.id,
