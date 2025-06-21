@@ -146,6 +146,19 @@ export const useSyncTeamById = (organizationId: string, teamId: string) => {
   });
 };
 
+export const useSyncTeamMembersByTeam = (organizationId: string, teamId: string) => {
+  return useQuery({
+    queryKey: ['teamMembers', organizationId, teamId],
+    queryFn: async () => {
+      const teams = await getTeamsByOrganization(organizationId);
+      const team = teams.find(team => team.id === teamId);
+      return team?.members || [];
+    },
+    enabled: !!organizationId && !!teamId,
+    staleTime: 10 * 60 * 1000,
+  });
+};
+
 export const useSyncScansByEquipment = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['scans', organizationId, equipmentId],

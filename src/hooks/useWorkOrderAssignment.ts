@@ -85,6 +85,6 @@ export const useWorkOrderAssignment = (organizationId: string, equipmentId?: str
   return {
     ...assignmentData,
     isManager: currentOrg ? ['owner', 'admin'].includes(currentOrg.userRole || '') : false,
-    canManageEquipmentTeam: suggestedTeamId ? canManageTeam(suggestedTeamId) : false
+    canManageEquipmentTeam: assignmentData.suggestedTeamId ? canManageTeam(assignmentData.suggestedTeamId) : false
   };
 };
