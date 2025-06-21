@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { z } from 'zod';
 import {
@@ -20,7 +21,8 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useSyncEquipmentByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
-import { useCreateWorkOrder, CreateWorkOrderData } from '@/hooks/useWorkOrderCreation';
+import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
+import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
 
 const requestFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -45,7 +47,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
   onSubmit 
 }) => {
   const { currentOrganization } = useOrganization();
-  const createWorkOrderMutation = useCreateWorkOrder();
+  const createWorkOrderMutation = useCreateWorkOrderEnhanced();
   
   const { data: allEquipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
   const { data: preSelectedEquipment } = useSyncEquipmentById(
@@ -62,18 +64,27 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
 
   const form = useFormValidation(requestFormSchema, initialValues);
 
+  // Get assignment data for auto-assignment to equipment team
+  const assignmentData = useWorkOrderAssignment(
+    currentOrganization?.id || '', 
+    form.values.equipmentId as string || equipmentId
+  );
+
   const { execute: submitForm, isLoading: isSubmitting } = useAsyncOperation(
     async (data: RequestFormData) => {
       if (onSubmit) {
         await onSubmit(data);
       } else {
-        // Use the new createWorkOrder hook
-        const workOrderData: CreateWorkOrderData = {
+        // Use the enhanced createWorkOrder hook with automatic team assignment
+        const workOrderData: EnhancedCreateWorkOrderData = {
           title: data.title,
           description: data.description,
           equipmentId: data.equipmentId,
           priority: 'medium', // Default priority for requests
           dueDate: data.dueDate || undefined,
+          // Auto-assign to equipment's team if available
+          assignmentType: assignmentData.suggestedTeamId ? 'team' : undefined,
+          assignmentId: assignmentData.suggestedTeamId || undefined,
         };
         
         await createWorkOrderMutation.mutateAsync(workOrderData);
@@ -167,7 +178,11 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Your request will be submitted for review. Once approved by a manager, it will be assigned to the appropriate team.
+            Your request will be submitted for review. 
+            {assignmentData.suggestedTeamName ? 
+              ` It will be automatically assigned to ${assignmentData.suggestedTeamName} for processing.` :
+              ' Once approved by a manager, it will be assigned to the appropriate team.'
+            }
           </AlertDescription>
         </Alert>
 
@@ -202,7 +217,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
                   value={form.values.dueDate as string || ''}
                   onChange={(e) => form.setValue('dueDate', e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-fore ground">
                   Optional - This is a preference, final scheduling will be determined by the assigned team
                 </p>
               </div>

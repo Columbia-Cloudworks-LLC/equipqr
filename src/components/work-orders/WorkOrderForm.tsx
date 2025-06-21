@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,12 +19,20 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateWorkOrder, CreateWorkOrderData } from '@/hooks/useWorkOrderCreation';
-import { useTeamsByOrganization, useEquipmentByOrganization } from '@/hooks/useSupabaseData';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info, Users, User } from "lucide-react";
+import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
+import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
+import { useEquipmentByOrganization } from '@/hooks/useSupabaseData';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 const workOrderFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -33,8 +41,8 @@ const workOrderFormSchema = z.object({
   priority: z.enum(['low', 'medium', 'high']),
   dueDate: z.string().optional(),
   estimatedHours: z.number().min(0).optional(),
-  assigneeId: z.string().optional(),
-  teamId: z.string().optional(),
+  assignmentType: z.enum(['team', 'member', 'unassigned']).optional(),
+  assignmentId: z.string().optional(),
 });
 
 type WorkOrderFormData = z.infer<typeof workOrderFormSchema>;
@@ -50,8 +58,8 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   onClose, 
   equipmentId 
 }) => {
-  const createWorkOrderMutation = useCreateWorkOrder();
-  const { data: teams = [] } = useTeamsByOrganization();
+  const { currentOrganization } = useOrganization();
+  const createWorkOrderMutation = useCreateWorkOrderEnhanced();
   const { data: equipment = [] } = useEquipmentByOrganization();
 
   const form = useForm<WorkOrderFormData>({
@@ -63,21 +71,29 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
       priority: 'medium',
       dueDate: '',
       estimatedHours: undefined,
-      assigneeId: '',
-      teamId: '',
+      assignmentType: 'unassigned',
+      assignmentId: '',
     },
   });
 
+  const watchedEquipmentId = form.watch('equipmentId');
+  
+  // Get assignment data for the selected equipment
+  const assignmentData = useWorkOrderAssignment(
+    currentOrganization?.id || '', 
+    watchedEquipmentId || equipmentId
+  );
+
   const onSubmit = async (values: WorkOrderFormData) => {
-    const workOrderData: CreateWorkOrderData = {
+    const workOrderData: EnhancedCreateWorkOrderData = {
       title: values.title,
       description: values.description,
       equipmentId: values.equipmentId,
       priority: values.priority,
       dueDate: values.dueDate || undefined,
       estimatedHours: values.estimatedHours || undefined,
-      assigneeId: values.assigneeId || undefined,
-      teamId: values.teamId || undefined,
+      assignmentType: values.assignmentType === 'unassigned' ? undefined : values.assignmentType,
+      assignmentId: values.assignmentId || undefined,
     };
 
     try {
@@ -94,7 +110,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     onClose();
   };
 
-  const selectedEquipment = equipment.find(eq => eq.id === form.watch('equipmentId'));
+  const selectedEquipment = equipment.find(eq => eq.id === watchedEquipmentId);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -192,35 +208,97 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                     Assignment & Schedule
                   </h3>
                   
+                  {/* Show equipment team information */}
+                  {assignmentData.suggestedTeamName && (
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        This equipment is managed by <strong>{assignmentData.suggestedTeamName}</strong>. 
+                        Work orders will be assigned to this team by default.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <FormField
                     control={form.control}
-                    name="teamId"
+                    name="assignmentType"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Assign to Team</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select team (optional)" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {teams.map((team) => (
-                              <SelectItem key={team.id} value={team.id}>
-                                <div className="flex flex-col">
-                                  <span>{team.name}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {team.memberCount} members • {team.workOrderCount} active orders
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <FormItem className="space-y-3">
+                        <FormLabel>Assignment</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="flex flex-col space-y-2"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="unassigned" id="unassigned" />
+                              <Label htmlFor="unassigned">Leave unassigned</Label>
+                            </div>
+                            
+                            {assignmentData.availableAssignees.some(a => a.type === 'team') && (
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="team" id="team" />
+                                <Label htmlFor="team" className="flex items-center gap-2">
+                                  <Users className="h-4 w-4" />
+                                  Assign to team
+                                </Label>
+                              </div>
+                            )}
+                            
+                            {assignmentData.availableAssignees.some(a => a.type === 'member') && (
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="member" id="member" />
+                                <Label htmlFor="member" className="flex items-center gap-2">
+                                  <User className="h-4 w-4" />
+                                  Assign to specific member
+                                </Label>
+                              </div>
+                            )}
+                          </RadioGroup>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Assignment Selection */}
+                  {(form.watch('assignmentType') === 'team' || form.watch('assignmentType') === 'member') && (
+                    <FormField
+                      control={form.control}
+                      name="assignmentId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {form.watch('assignmentType') === 'team' ? 'Select Team' : 'Select Member'}
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={`Select ${form.watch('assignmentType')}`} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {assignmentData.availableAssignees
+                                .filter(assignee => assignee.type === form.watch('assignmentType'))
+                                .map((assignee) => (
+                                  <SelectItem key={assignee.id} value={assignee.id}>
+                                    <div className="flex items-center gap-2">
+                                      {assignee.type === 'team' ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                                      <span>{assignee.name}</span>
+                                      {assignee.canSelfAssign && (
+                                        <Badge variant="secondary" className="text-xs">You</Badge>
+                                      )}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
@@ -288,6 +366,9 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                     <p><span className="font-medium">Model:</span> {selectedEquipment.model}</p>
                     <p><span className="font-medium">Location:</span> {selectedEquipment.location}</p>
                     <p><span className="font-medium">Status:</span> {selectedEquipment.status}</p>
+                    {assignmentData.suggestedTeamName && (
+                      <p><span className="font-medium">Managed by:</span> {assignmentData.suggestedTeamName}</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

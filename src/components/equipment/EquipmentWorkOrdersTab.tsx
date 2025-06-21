@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -201,7 +202,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
         )}
       </div>
 
-      {/* Work Order Form */}
+      {/* Enhanced Work Order Form */}
       <WorkOrderForm
         open={showWorkOrderForm}
         onClose={() => setShowWorkOrderForm(false)}
