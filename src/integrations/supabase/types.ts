@@ -9,6 +9,50 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      billing_events: {
+        Row: {
+          amount_change: number | null
+          created_at: string
+          effective_date: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          organization_id: string
+          processed: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_change?: number | null
+          created_at?: string
+          effective_date?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          organization_id: string
+          processed?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_change?: number | null
+          created_at?: string
+          effective_date?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          organization_id?: string
+          processed?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment: {
         Row: {
           created_at: string
@@ -132,6 +176,42 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_billing: boolean | null
+          email_equipment_alerts: boolean | null
+          email_invitations: boolean | null
+          email_work_orders: boolean | null
+          id: string
+          push_notifications: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_billing?: boolean | null
+          email_equipment_alerts?: boolean | null
+          email_invitations?: boolean | null
+          email_work_orders?: boolean | null
+          id?: string
+          push_notifications?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_billing?: boolean | null
+          email_equipment_alerts?: boolean | null
+          email_invitations?: boolean | null
+          email_work_orders?: boolean | null
+          id?: string
+          push_notifications?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -170,6 +250,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      organization_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invitation_token: string
+          invited_by: string
+          message: string | null
+          organization_id: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          invited_by: string
+          message?: string | null
+          organization_id: string
+          role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          invited_by?: string
+          message?: string | null
+          organization_id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_members: {
         Row: {
@@ -215,39 +351,51 @@ export type Database = {
       }
       organizations: {
         Row: {
+          billable_members: number | null
           billing_cycle: string | null
           created_at: string
           features: string[]
+          fleet_map_enabled: boolean | null
           id: string
+          last_billing_calculation: string | null
           max_members: number
           member_count: number
           name: string
           next_billing_date: string | null
           plan: Database["public"]["Enums"]["organization_plan"]
+          storage_used_mb: number | null
           updated_at: string
         }
         Insert: {
+          billable_members?: number | null
           billing_cycle?: string | null
           created_at?: string
           features?: string[]
+          fleet_map_enabled?: boolean | null
           id?: string
+          last_billing_calculation?: string | null
           max_members?: number
           member_count?: number
           name: string
           next_billing_date?: string | null
           plan?: Database["public"]["Enums"]["organization_plan"]
+          storage_used_mb?: number | null
           updated_at?: string
         }
         Update: {
+          billable_members?: number | null
           billing_cycle?: string | null
           created_at?: string
           features?: string[]
+          fleet_map_enabled?: boolean | null
           id?: string
+          last_billing_calculation?: string | null
           max_members?: number
           member_count?: number
           name?: string
           next_billing_date?: string | null
           plan?: Database["public"]["Enums"]["organization_plan"]
+          storage_used_mb?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -559,6 +707,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_billable_members: {
+        Args: { org_id: string }
+        Returns: number
+      }
       check_org_access_direct: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
@@ -603,6 +755,10 @@ export type Database = {
           role: string
           joined_date: string
         }[]
+      }
+      update_organization_billing_metrics: {
+        Args: { org_id: string }
+        Returns: undefined
       }
     }
     Enums: {
