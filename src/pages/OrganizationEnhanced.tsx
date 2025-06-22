@@ -7,26 +7,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserPlus, Settings, Building2, Mail, Users, Crown } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
-import MembersList from '@/components/organization/MembersList';
+import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import MembersListReal from '@/components/organization/MembersListReal';
 import InvitationManagement from '@/components/organization/InvitationManagement';
 import EnhancedInviteMemberDialog from '@/components/organization/EnhancedInviteMemberDialog';
-import PremiumFeatures from '@/components/organization/PremiumFeatures';
+import PremiumFeaturesReal from '@/components/organization/PremiumFeaturesReal';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
-import { mockMembers } from '@/data/mockOrganization';
-import { OrganizationMember, InvitationData } from '@/types/organization';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 const OrganizationEnhanced = () => {
   const { getCurrentOrganization, isLoading } = useSession();
   const currentOrganization = getCurrentOrganization();
-  const [members, setMembers] = useState<OrganizationMember[]>(mockMembers);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
-  // Get organization admins for work order assignment
+  // Get real organization members and admins
+  const { data: members = [], isLoading: membersLoading } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: orgAdmins = [], isLoading: adminsLoading } = useOrganizationAdmins(currentOrganization?.id || '');
 
-  // Simulate current user role (in real app, this would come from auth)
   const currentUserRole: 'owner' | 'admin' | 'member' = currentOrganization?.userRole || 'member';
 
   if (isLoading || !currentOrganization) {
@@ -45,39 +43,9 @@ const OrganizationEnhanced = () => {
     );
   }
 
-  const handleInviteMember = async (data: InvitationData) => {
-    // This is now handled by the EnhancedInviteMemberDialog
-    toast({
-      title: 'Invitation Sent',
-      description: `An invitation has been sent to ${data.email}.`,
-    });
-  };
-
-  const handleRoleChange = (memberId: string, newRole: 'admin' | 'member') => {
-    setMembers(prev =>
-      prev.map(member =>
-        member.id === memberId ? { ...member, role: newRole } : member
-      )
-    );
-  };
-
-  const handleRemoveMember = (memberId: string) => {
-    setMembers(prev => prev.filter(member => member.id !== memberId));
-  };
-
-  const handleResendInvitation = (memberId: string) => {
-    console.log('Resending invitation for member:', memberId);
-    toast({
-      title: 'Invitation Resent',
-      description: 'The invitation has been resent successfully.',
-    });
-  };
-
   const handleUpgradeToPremium = () => {
-    toast({
-      title: 'Upgrade to Premium',
-      description: 'Redirecting to billing page...',
-    });
+    toast.success('Redirecting to billing page...');
+    // In a real app, this would redirect to the billing page
   };
 
   const canInviteMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
@@ -109,7 +77,7 @@ const OrganizationEnhanced = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold">{currentOrganization.memberCount}</div>
+              <div className="text-2xl font-bold">{members.length}</div>
               <div className="text-sm text-muted-foreground">Active Members</div>
             </div>
             <div className="text-center p-4 border rounded-lg">
@@ -175,12 +143,11 @@ const OrganizationEnhanced = () => {
                 </div>
               )}
 
-              <MembersList
+              <MembersListReal
                 members={members}
+                organizationId={currentOrganization.id}
                 currentUserRole={currentUserRole}
-                onRoleChange={handleRoleChange}
-                onRemoveMember={handleRemoveMember}
-                onResendInvitation={handleResendInvitation}
+                isLoading={membersLoading}
               />
             </TabsContent>
 
@@ -242,7 +209,7 @@ const OrganizationEnhanced = () => {
         <div className="space-y-6">
           <SessionStatus />
           <SecurityStatus />
-          <PremiumFeatures
+          <PremiumFeaturesReal
             organization={currentOrganization}
             onUpgrade={handleUpgradeToPremium}
           />

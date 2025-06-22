@@ -19,7 +19,7 @@ import WorkOrderDetails from '@/pages/WorkOrderDetails';
 import Teams from '@/pages/Teams';
 import TeamDetails from '@/pages/TeamDetails';
 import FleetMap from '@/pages/FleetMap';
-import Organization from '@/pages/Organization';
+import OrganizationEnhanced from '@/pages/OrganizationEnhanced';
 import QRScanner from '@/pages/QRScanner';
 import Billing from '@/pages/Billing';
 import Settings from '@/pages/Settings';
@@ -64,7 +64,7 @@ function App() {
                                 <Route path="/teams" element={<Teams />} />
                                 <Route path="/teams/:teamId" element={<TeamDetails />} />
                                 <Route path="/fleet-map" element={<FleetMap />} />
-                                <Route path="/organization" element={<Organization />} />
+                                <Route path="/organization" element={<OrganizationEnhanced />} />
                                 <Route path="/scanner" element={<QRScanner />} />
                                 <Route path="/billing" element={<Billing />} />
                                 <Route path="/settings" element={<Settings />} />
