@@ -37,31 +37,38 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
 }) => {
   return (
     <Tabs defaultValue="members" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="members" className="flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          Members
-        </TabsTrigger>
-        <TabsTrigger value="invitations" className="flex items-center gap-2">
-          <Mail className="h-4 w-4" />
-          Invitations
-        </TabsTrigger>
-        <TabsTrigger value="admins" className="flex items-center gap-2">
-          <Crown className="h-4 w-4" />
-          Admins
-        </TabsTrigger>
-      </TabsList>
+      <div className="overflow-x-auto">
+        <TabsList className="grid w-full grid-cols-3 min-w-fit">
+          <TabsTrigger value="members" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Members</span>
+            <span className="xs:hidden">Members</span>
+          </TabsTrigger>
+          <TabsTrigger value="invitations" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Invitations</span>
+            <span className="xs:hidden">Invites</span>
+          </TabsTrigger>
+          <TabsTrigger value="admins" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <Crown className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Admins</span>
+            <span className="xs:hidden">Admins</span>
+          </TabsTrigger>
+        </TabsList>
+      </div>
 
       <TabsContent value="members" className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Team Members</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-lg sm:text-xl font-semibold">Team Members</h2>
           {permissions.canInviteMembers && (
             <Button
               onClick={onInviteMember}
               disabled={permissions.isAtMemberLimit}
+              size="sm"
+              className="w-full sm:w-auto"
             >
               <UserPlus className="mr-2 h-4 w-4" />
-              Invite Member
+              <span className="sm:inline">Invite Member</span>
             </Button>
           )}
         </div>
@@ -83,9 +90,9 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
       </TabsContent>
 
       <TabsContent value="admins" className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Organization Administrators</h2>
-          <Badge variant="outline" className="text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-lg sm:text-xl font-semibold">Organization Administrators</h2>
+          <Badge variant="outline" className="text-xs sm:text-sm w-fit">
             {admins.length} Admin{admins.length !== 1 ? 's' : ''}
           </Badge>
         </div>

@@ -52,9 +52,9 @@ function App() {
                       <SidebarProvider>
                         <div className="flex min-h-screen w-full">
                           <AppSidebar />
-                          <SidebarInset>
+                          <SidebarInset className="flex-1 min-w-0">
                             <TopBar />
-                            <main className="flex-1 p-6 lg:p-8 overflow-auto">
+                            <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 overflow-auto min-w-0">
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/equipment" element={<Equipment />} />

@@ -15,13 +15,19 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
   onUpgrade
 }) => {
   return (
-    <div className="space-y-6">
-      <SessionStatus />
-      <SecurityStatus />
-      <PremiumFeaturesReal
-        organization={organization}
-        onUpgrade={onUpgrade}
-      />
+    <div className="space-y-4 sm:space-y-6">
+      <div className="lg:sticky lg:top-6">
+        <SessionStatus />
+      </div>
+      <div className="lg:sticky lg:top-6">
+        <SecurityStatus />
+      </div>
+      <div className="lg:sticky lg:top-6">
+        <PremiumFeaturesReal
+          organization={organization}
+          onUpgrade={onUpgrade}
+        />
+      </div>
     </div>
   );
 };

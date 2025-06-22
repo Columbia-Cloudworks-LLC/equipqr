@@ -18,8 +18,8 @@ const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({
   if (stats.isLoading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="h-32 bg-muted animate-pulse rounded" />
+        <CardContent className="p-4 sm:p-6">
+          <div className="h-24 sm:h-32 bg-muted animate-pulse rounded" />
         </CardContent>
       </Card>
     );
@@ -27,31 +27,37 @@ const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
-          {organizationName}
+      <CardHeader className="pb-3 sm:pb-6">
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+          <Building2 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+          <span className="truncate">{organizationName}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 border rounded-lg">
-            <div className="text-2xl font-bold">{stats.memberCount}</div>
-            <div className="text-sm text-muted-foreground">Active Members</div>
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="text-center p-3 sm:p-4 border rounded-lg">
+            <div className="text-xl sm:text-2xl font-bold">{stats.memberCount}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Active Members
+            </div>
           </div>
-          <div className="text-center p-4 border rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{stats.adminCount}</div>
-            <div className="text-sm text-muted-foreground">Organization Admins</div>
+          <div className="text-center p-3 sm:p-4 border rounded-lg">
+            <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.adminCount}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Organization Admins
+            </div>
           </div>
-          <div className="text-center p-4 border rounded-lg">
-            <Badge variant={getPlanBadgeVariant(stats.plan)}>
+          <div className="text-center p-3 sm:p-4 border rounded-lg col-span-2 lg:col-span-1">
+            <Badge variant={getPlanBadgeVariant(stats.plan)} className="mb-2">
               {stats.plan}
             </Badge>
-            <div className="text-sm text-muted-foreground mt-1">Current Plan</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Current Plan</div>
           </div>
-          <div className="text-center p-4 border rounded-lg">
-            <div className="text-2xl font-bold">{stats.featureCount}</div>
-            <div className="text-sm text-muted-foreground">Active Features</div>
+          <div className="text-center p-3 sm:p-4 border rounded-lg col-span-2 lg:col-span-1">
+            <div className="text-xl sm:text-2xl font-bold">{stats.featureCount}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Active Features
+            </div>
           </div>
         </div>
       </CardContent>

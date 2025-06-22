@@ -38,17 +38,17 @@ const OrganizationEnhanced = () => {
   // Loading state
   if (isLoading || !currentOrganization) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Organization</h1>
-          <p className="text-muted-foreground">Loading...</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Organization</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       <OrganizationHeader organizationName={currentOrganization.name} />
 
       <OrganizationOverview 
@@ -56,8 +56,8 @@ const OrganizationEnhanced = () => {
         stats={organizationStats}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+        <div className="xl:col-span-2 space-y-4 sm:space-y-6 min-w-0">
           <OrganizationTabs
             members={members}
             admins={orgAdmins}
@@ -71,10 +71,12 @@ const OrganizationEnhanced = () => {
           />
         </div>
 
-        <OrganizationSidebar
-          organization={currentOrganization}
-          onUpgrade={handleUpgradeToPremium}
-        />
+        <div className="xl:col-span-1 min-w-0">
+          <OrganizationSidebar
+            organization={currentOrganization}
+            onUpgrade={handleUpgradeToPremium}
+          />
+        </div>
       </div>
 
       <EnhancedInviteMemberDialog
