@@ -4,6 +4,7 @@ import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationStats } from '@/hooks/useOrganizationStats';
+import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationOverview from '@/components/organization/OrganizationOverview';
@@ -20,6 +21,7 @@ const OrganizationEnhanced = () => {
   // Custom hooks for data and business logic
   const { data: members = [], isLoading: membersLoading } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: orgAdmins = [], isLoading: adminsLoading } = useOrganizationAdmins(currentOrganization?.id || '');
+  const { data: slotAvailability } = useSlotAvailability(currentOrganization?.id || '');
   const organizationStats = useOrganizationStats(currentOrganization);
   const permissions = usePagePermissions(currentOrganization);
 
@@ -82,6 +84,7 @@ const OrganizationEnhanced = () => {
       <EnhancedInviteMemberDialog
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
+        availableSlots={slotAvailability?.available_slots || 0}
       />
     </div>
   );
