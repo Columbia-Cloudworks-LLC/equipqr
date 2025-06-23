@@ -22,11 +22,13 @@ import { useCreateInvitation, CreateInvitationData } from '@/hooks/useOrganizati
 interface EnhancedInviteMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  availableSlots: number;
 }
 
 const EnhancedInviteMemberDialog: React.FC<EnhancedInviteMemberDialogProps> = ({
   open,
-  onOpenChange
+  onOpenChange,
+  availableSlots
 }) => {
   const { getCurrentOrganization } = useSession();
   const currentOrg = getCurrentOrganization();
@@ -44,7 +46,8 @@ const EnhancedInviteMemberDialog: React.FC<EnhancedInviteMemberDialogProps> = ({
     const invitationData: CreateInvitationData = {
       email: email.trim(),
       role,
-      message: message.trim() || undefined
+      message: message.trim() || undefined,
+      reserveSlot: availableSlots > 0
     };
 
     try {
@@ -65,7 +68,7 @@ const EnhancedInviteMemberDialog: React.FC<EnhancedInviteMemberDialogProps> = ({
     member: 'Can access and manage assigned equipment and work orders'
   };
 
-  const isAtMemberLimit = currentOrg && currentOrg.memberCount >= currentOrg.maxMembers;
+  const noSlotsAvailable = availableSlots <= 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,12 +83,11 @@ const EnhancedInviteMemberDialog: React.FC<EnhancedInviteMemberDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        {isAtMemberLimit && currentOrg?.plan === 'free' && (
+        {noSlotsAvailable && (
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              You've reached the member limit for the free plan. 
-              Consider upgrading to premium to add more members.
+              No available slots. Purchase more slots to invite additional team members.
             </AlertDescription>
           </Alert>
         )}
@@ -154,6 +156,12 @@ const EnhancedInviteMemberDialog: React.FC<EnhancedInviteMemberDialogProps> = ({
               The invitation will expire in 7 days
             </div>
             
+            {availableSlots > 0 && (
+              <div className="text-sm text-muted-foreground">
+                A slot will be reserved for this invitation ({availableSlots} slots available)
+              </div>
+            )}
+            
             <div className="flex gap-2 justify-end">
               <Button 
                 type="button" 
@@ -165,7 +173,7 @@ const EnhancedInviteMemberDialog: React.FC<EnhancedInviteMemberDialogProps> = ({
               </Button>
               <Button 
                 type="submit"
-                disabled={!email.trim() || createInvitation.isPending || (isAtMemberLimit && currentOrg?.plan === 'free')}
+                disabled={!email.trim() || createInvitation.isPending || noSlotsAvailable}
               >
                 {createInvitation.isPending ? 'Sending...' : 'Send Invitation'}
               </Button>

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -119,7 +118,11 @@ export const useSlotPurchases = (organizationId: string) => {
         throw error;
       }
 
-      return data || [];
+      // Cast the status to the proper type
+      return (data || []).map(purchase => ({
+        ...purchase,
+        status: purchase.status as 'pending' | 'completed' | 'failed' | 'cancelled'
+      }));
     },
     enabled: !!organizationId,
     staleTime: 60 * 1000, // 1 minute
