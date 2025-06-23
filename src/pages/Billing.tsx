@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CreditCard, AlertCircle, RefreshCw, UserPlus, Crown } from 'lucide-react';
+import { CreditCard, AlertCircle, RefreshCw } from 'lucide-react';
 import RealMemberBilling from '@/components/billing/RealMemberBilling';
 import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
 import EnhancedInvitationManagement from '@/components/organization/EnhancedInvitationManagement';
@@ -161,32 +160,6 @@ const Billing = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Free Plan Upgrade Prompt */}
-      {isFree && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <UserPlus className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold text-blue-900 mb-1">
-                  Unlock Slot-Based Team Collaboration
-                </div>
-                <div className="text-sm text-blue-800 mb-3">
-                  Purchase user license slots in advance, then invite team members without immediate charges. 
-                  Billing only occurs when invitations are accepted, giving you full control over costs.
-                </div>
-                <Button onClick={handleUpgradeToMultiUser}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Start with Team Invitations
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Slot-Based Billing Overview */}
       <SlotBasedBilling
