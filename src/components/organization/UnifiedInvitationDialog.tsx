@@ -151,7 +151,7 @@ const UnifiedInvitationDialog: React.FC<UnifiedInvitationDialogProps> = ({
               <Label htmlFor="slots-quantity">Number of User License Slots</Label>
               <Select 
                 value={slotsToPurchase.toString()} 
-                onValueChange={(value) => setSlotsTopurchase(parseInt(value))}
+                onValueChange={(value) => setSlotsToPurchase(parseInt(value))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -185,7 +185,7 @@ const UnifiedInvitationDialog: React.FC<UnifiedInvitationDialogProps> = ({
               </Button>
               <Button onClick={handlePurchaseSlots}>
                 <ShoppingCart className="mr-2 h-4 w-4" />
-                Purchase {slotsTopurchase} Slots
+                Purchase {slotsToPurchase} Slots
               </Button>
             </div>
           </div>
