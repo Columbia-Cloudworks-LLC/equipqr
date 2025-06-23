@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Loader2 } from 'lucide-react';
+import { Loader2, QrCode } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/ui/Logo';
 
@@ -18,6 +18,7 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [pendingQRScan, setPendingQRScan] = useState(false);
   
   // Form states
   const [signInEmail, setSignInEmail] = useState('');
@@ -26,10 +27,24 @@ const Auth = () => {
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpName, setSignUpName] = useState('');
 
+  // Check if user came here from a QR scan
+  useEffect(() => {
+    const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+    if (pendingRedirect) {
+      setPendingQRScan(true);
+    }
+  }, []);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !authLoading) {
-      navigate('/');
+      const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+      if (pendingRedirect) {
+        sessionStorage.removeItem('pendingRedirect');
+        window.location.href = pendingRedirect;
+      } else {
+        navigate('/');
+      }
     }
   }, [user, authLoading, navigate]);
 
@@ -92,9 +107,18 @@ const Auth = () => {
           <div className="mx-auto mb-4">
             <Logo size="xl" />
           </div>
-          <CardTitle className="text-2xl">Welcome to EquipQR</CardTitle>
+          <CardTitle className="text-2xl">
+            {pendingQRScan ? 'Sign in to continue' : 'Welcome to EquipQR'}
+          </CardTitle>
           <CardDescription>
-            Sign in to your account or create a new one to get started
+            {pendingQRScan ? (
+              <div className="flex items-center justify-center gap-2 text-blue-600">
+                <QrCode className="h-4 w-4" />
+                <span>Complete sign in to view scanned equipment</span>
+              </div>
+            ) : (
+              'Sign in to your account or create a new one to get started'
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>

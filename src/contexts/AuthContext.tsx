@@ -36,6 +36,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+
+        // Handle post-login redirect for QR code scans
+        if (event === 'SIGNED_IN' && session?.user) {
+          const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+          if (pendingRedirect) {
+            sessionStorage.removeItem('pendingRedirect');
+            // Use setTimeout to ensure the redirect happens after state updates
+            setTimeout(() => {
+              window.location.href = pendingRedirect;
+            }, 100);
+          }
+        }
       }
     );
 

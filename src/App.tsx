@@ -21,6 +21,7 @@ import TeamDetails from '@/pages/TeamDetails';
 import FleetMap from '@/pages/FleetMap';
 import OrganizationEnhanced from '@/pages/OrganizationEnhanced';
 import QRScanner from '@/pages/QRScanner';
+import QRRedirect from '@/pages/QRRedirect';
 import Billing from '@/pages/Billing';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
@@ -42,8 +43,9 @@ function App() {
           <SessionProvider>
             <Router>
               <Routes>
-                {/* Public route */}
+                {/* Public routes */}
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/qr/:equipmentId" element={<QRRedirect />} />
                 
                 {/* Protected routes */}
                 <Route path="/*" element={
