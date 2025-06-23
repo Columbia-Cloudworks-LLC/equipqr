@@ -53,6 +53,44 @@ export type Database = {
           },
         ]
       }
+      billing_usage: {
+        Row: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at: string
+          id: string
+          organization_id: string | null
+          usage_type: string
+          usage_value: number
+        }
+        Insert: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          usage_type: string
+          usage_value: number
+        }
+        Update: {
+          billing_period_end?: string
+          billing_period_start?: string
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          usage_type?: string
+          usage_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_usage_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment: {
         Row: {
           created_at: string
@@ -349,6 +387,62 @@ export type Database = {
           },
         ]
       }
+      organization_subscriptions: {
+        Row: {
+          billing_cycle: string
+          cancel_at_period_end: boolean | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          feature_type: string
+          id: string
+          organization_id: string | null
+          quantity: number | null
+          status: string
+          stripe_subscription_id: string | null
+          unit_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          feature_type: string
+          id?: string
+          organization_id?: string | null
+          quantity?: number | null
+          status?: string
+          stripe_subscription_id?: string | null
+          unit_price_cents: number
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          feature_type?: string
+          id?: string
+          organization_id?: string | null
+          quantity?: number | null
+          status?: string
+          stripe_subscription_id?: string | null
+          unit_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           billable_members: number | null
@@ -465,6 +559,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          stripe_customer_id: string | null
+          subscribed: boolean
+          subscription_end: string | null
+          subscription_tier: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       team_members: {
         Row: {
@@ -711,6 +841,10 @@ export type Database = {
         Args: { org_id: string }
         Returns: number
       }
+      calculate_organization_billing: {
+        Args: { org_id: string }
+        Returns: Json
+      }
       check_org_access_direct: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
@@ -730,6 +864,10 @@ export type Database = {
       check_team_role_secure: {
         Args: { user_uuid: string; team_uuid: string; required_role: string }
         Returns: boolean
+      }
+      get_organization_premium_features: {
+        Args: { org_id: string }
+        Returns: Json
       }
       get_user_org_role_direct: {
         Args: { user_uuid: string; org_id: string }

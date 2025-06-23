@@ -7,14 +7,17 @@ import { CreditCard, Users, Crown, AlertCircle } from 'lucide-react';
 import StripeSetup from '@/components/billing/StripeSetup';
 import MemberBilling from '@/components/billing/MemberBilling';
 import PremiumFeaturesBilling from '@/components/billing/PremiumFeaturesBilling';
+import SubscriptionManagement from '@/components/billing/SubscriptionManagement';
 import { mockOrganization, mockMembers } from '@/data/mockOrganization';
 import { OrganizationMember } from '@/types/organization';
+import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from '@/hooks/use-toast';
 
 const Billing = () => {
   const [organization, setOrganization] = useState(mockOrganization);
   const [members, setMembers] = useState<OrganizationMember[]>(mockMembers);
-  const [stripeConnected, setStripeConnected] = useState(false);
+  const [stripeConnected, setStripeConnected] = useState(true); // Assuming connected since we have keys
+  const { isSubscribed, subscriptionTier } = useSubscription();
 
   const activeMembersCount = members.filter(member => member.status === 'active').length;
   const membersCost = activeMembersCount * 10; // $10 per active member
@@ -56,6 +59,9 @@ const Billing = () => {
         </Badge>
       </div>
 
+      {/* Subscription Management */}
+      <SubscriptionManagement />
+
       {/* Billing Overview */}
       <Card>
         <CardHeader>
@@ -74,14 +80,18 @@ const Billing = () => {
               </div>
             </div>
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold">$0</div>
-              <div className="text-sm text-muted-foreground">Premium Features</div>
+              <div className="text-2xl font-bold">
+                {isSubscribed ? `$${subscriptionTier === 'Basic' ? '9.99' : subscriptionTier === 'Premium' ? '29.99' : '99.99'}` : '$0'}
+              </div>
+              <div className="text-sm text-muted-foreground">Subscription Plan</div>
               <div className="text-xs text-muted-foreground mt-1">
-                No premium features enabled
+                {subscriptionTier || 'Free Plan'}
               </div>
             </div>
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold">${membersCost}</div>
+              <div className="text-2xl font-bold">
+                ${membersCost + (isSubscribed ? (subscriptionTier === 'Basic' ? 9.99 : subscriptionTier === 'Premium' ? 29.99 : 99.99) : 0)}
+              </div>
               <div className="text-sm text-muted-foreground">Total Monthly</div>
               <div className="text-xs text-muted-foreground mt-1">
                 Next billing: {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
@@ -91,11 +101,13 @@ const Billing = () => {
         </CardContent>
       </Card>
 
-      {/* Stripe Setup */}
-      <StripeSetup 
-        isConnected={stripeConnected}
-        onSetup={handleStripeSetup}
-      />
+      {/* Stripe Setup - Hidden since we have keys configured */}
+      {!stripeConnected && (
+        <StripeSetup 
+          isConnected={stripeConnected}
+          onSetup={handleStripeSetup}
+        />
+      )}
 
       {/* Member Billing */}
       <MemberBilling
