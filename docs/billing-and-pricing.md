@@ -17,7 +17,7 @@ EquipQR operates on a flexible pay-as-you-go billing model designed to scale wit
 - **User Types Free**: Organization owners
 
 #### 2. Storage
-- **Free Tier**: 5GB included
+- **Free Tier**: 5GB included (only if organization has more than 1 user)
 - **Overage Rate**: $0.10 per GB per month
 - **Billing Rule**: Charged for usage above free tier
 - **Calculation**: Monthly average storage usage
@@ -32,11 +32,11 @@ EquipQR operates on a flexible pay-as-you-go billing model designed to scale wit
 | Feature | Free (Base) | Pay-as-you-go |
 |---------|-------------|---------------|
 | First User | ✓ Included | ✓ Included |
-| Additional Users | Up to 4 free | $10/user/month |
-| Storage | 5GB included | 5GB + $0.10/GB |
+| Additional Users | ❌ Not available | $10/user/month |
+| Storage | ❌ Not available | 5GB + $0.10/GB |
 | Equipment Management | ✓ Included | ✓ Included |
 | Work Orders | ✓ Included | ✓ Included |
-| Team Management | ✓ Included | ✓ Included |
+| Team Management | ❌ Not available | ✓ Included |
 | Fleet Map | ❌ Not available | $10/month |
 | QR Scanner | ✓ Included | ✓ Included |
 
@@ -57,8 +57,8 @@ const calculateUserLicenseCost = (members: OrganizationMember[]) => {
 
 #### Billing States
 - **Active**: User is billed
-- **Pending**: User is not billed until invitation acceptance
-- **Inactive**: User is not billed
+- **Pending**: User is billed
+- **Inactive**: User is not billed only if inactive for 30 days or more
 
 #### Role-Based Billing
 - **Owner**: Always free (first user benefit)
@@ -77,9 +77,9 @@ const calculateStorageCost = (usageGB: number) => {
 ```
 
 #### Storage Tracking
-- **Measurement**: Monthly average usage
-- **Granularity**: Gigabyte precision
-- **Billing Frequency**: Monthly in arrears
+- **Measurement**: Monthly total usage
+- **Granularity**: Megabyte precision
+- **Billing Frequency**: Monthly
 
 ### Premium Features Billing
 
@@ -92,7 +92,7 @@ const calculateFleetMapCost = (enabled: boolean) => {
 
 #### Feature Toggle Rules
 - **Activation**: Immediate billing upon enablement
-- **Deactivation**: Prorated refund or credit
+- **Deactivation**: feature subscription cancelled, feature deactivated at start of next billing cycle
 - **Billing Cycle**: Aligns with organization billing date
 
 ## Total Monthly Cost Calculation
