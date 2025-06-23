@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { User, Users, UserCheck, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useSyncTeamsByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
@@ -35,7 +36,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
 }) => {
   const [selectedAssignee, setSelectedAssignee] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { sessionData } = useSession();
+  const { user: currentUser } = useAuth();
   
   // Get organization data
   const { data: organizationMembers = [] } = useOrganizationMembers(organizationId);
@@ -44,7 +45,6 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
   const { data: equipment } = useSyncEquipmentById(organizationId, workOrder?.equipment_id);
 
   // Get current user info
-  const currentUser = sessionData?.user;
   const isSingleUserOrg = organizationMembers.length === 1;
 
   // Build assignee options based on equipment team assignment
