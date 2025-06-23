@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,10 +7,12 @@ import { Users, Mail, Crown, UserPlus } from 'lucide-react';
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { OrganizationAdmin } from '@/hooks/useOrganizationAdmins';
 import { PagePermissions } from '@/hooks/usePagePermissions';
+import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import MembersListReal from './MembersListReal';
-import InvitationManagement from './InvitationManagement';
+import EnhancedInvitationManagement from './EnhancedInvitationManagement';
 import AdminsTabContent from './AdminsTabContent';
 import MemberLimitWarning from './MemberLimitWarning';
+import UnifiedInvitationDialog from './UnifiedInvitationDialog';
 
 interface OrganizationTabsProps {
   members: RealOrganizationMember[];
@@ -32,9 +34,18 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   permissions,
   membersLoading,
   adminsLoading,
-  onInviteMember,
   onUpgrade
 }) => {
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const { data: slotAvailability } = useSlotAvailability(organizationId);
+
+  const handlePurchaseSlots = (quantity: number) => {
+    // This would integrate with Stripe to purchase slots
+    console.log(`Purchase ${quantity} slots for organization:`, organizationId);
+    // For now, just show a message - in real implementation this would redirect to Stripe
+    alert(`Redirecting to checkout for ${quantity} user license slots...`);
+  };
+
   return (
     <Tabs defaultValue="members" className="space-y-4">
       <div className="overflow-x-auto">
@@ -59,10 +70,17 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
 
       <TabsContent value="members" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h2 className="text-lg sm:text-xl font-semibold">Team Members</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg sm:text-xl font-semibold">Team Members</h2>
+            {slotAvailability && (
+              <Badge variant="outline">
+                {slotAvailability.available_slots} slots available
+              </Badge>
+            )}
+          </div>
           {permissions.canInviteMembers && (
             <Button
-              onClick={onInviteMember}
+              onClick={() => setInviteDialogOpen(true)}
               disabled={permissions.isAtMemberLimit}
               size="sm"
               className="w-full sm:w-auto"
@@ -86,7 +104,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
       </TabsContent>
 
       <TabsContent value="invitations">
-        <InvitationManagement />
+        <EnhancedInvitationManagement onPurchaseSlots={handlePurchaseSlots} />
       </TabsContent>
 
       <TabsContent value="admins" className="space-y-4">
@@ -99,6 +117,12 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
         
         <AdminsTabContent admins={admins} isLoading={adminsLoading} />
       </TabsContent>
+
+      <UnifiedInvitationDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        onPurchaseSlots={handlePurchaseSlots}
+      />
     </Tabs>
   );
 };

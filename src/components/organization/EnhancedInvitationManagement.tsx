@@ -1,17 +1,16 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { UserPlus, MoreHorizontal, Mail, Clock, CheckCircle, XCircle, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal, Mail, Clock, CheckCircle, XCircle, AlertTriangle, ShoppingCart } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
-import { useSlotAvailability, useReserveSlot, useReleaseSlot } from '@/hooks/useOrganizationSlots';
+import { useSlotAvailability, useReleaseSlot } from '@/hooks/useOrganizationSlots';
 import { shouldBlockInvitation } from '@/utils/enhancedBillingUtils';
-import EnhancedInviteMemberDialog from './EnhancedInviteMemberDialog';
 import { formatDistanceToNow } from 'date-fns';
 
 interface EnhancedInvitationManagementProps {
@@ -21,13 +20,11 @@ interface EnhancedInvitationManagementProps {
 const EnhancedInvitationManagement: React.FC<EnhancedInvitationManagementProps> = ({ onPurchaseSlots }) => {
   const { getCurrentOrganization } = useSession();
   const currentOrg = getCurrentOrganization();
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   
   const { data: invitations = [], isLoading } = useOrganizationInvitations(currentOrg?.id || '');
   const { data: slotAvailability } = useSlotAvailability(currentOrg?.id || '');
   const resendInvitation = useResendInvitation(currentOrg?.id || '');
   const cancelInvitation = useCancelInvitation(currentOrg?.id || '');
-  const reserveSlot = useReserveSlot(currentOrg?.id || '');
   const releaseSlot = useReleaseSlot(currentOrg?.id || '');
 
   const blockedBySlots = slotAvailability ? shouldBlockInvitation(slotAvailability) : false;
@@ -99,24 +96,12 @@ const EnhancedInvitationManagement: React.FC<EnhancedInvitationManagementProps> 
               </Badge>
             )}
           </CardTitle>
-          <div className="flex items-center gap-2">
-            {blockedBySlots && (
-              <Button onClick={() => onPurchaseSlots(5)} size="sm" variant="outline">
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Buy Slots
-              </Button>
-            )}
-            {canManageInvitations && (
-              <Button 
-                onClick={() => setInviteDialogOpen(true)} 
-                size="sm"
-                disabled={blockedBySlots}
-              >
-                <UserPlus className="mr-2 h-4 w-4" />
-                Send Invitation
-              </Button>
-            )}
-          </div>
+          {blockedBySlots && (
+            <Button onClick={() => onPurchaseSlots(5)} size="sm" variant="outline">
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Buy Slots
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -124,7 +109,7 @@ const EnhancedInvitationManagement: React.FC<EnhancedInvitationManagementProps> 
           <Alert className="mb-4">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              No available slots for new invitations. Purchase more user license slots to continue inviting team members.
+              No available slots for new invitations. Use the "Invite Member" button on the Members tab to purchase slots and send invitations.
             </AlertDescription>
           </Alert>
         )}
@@ -139,7 +124,7 @@ const EnhancedInvitationManagement: React.FC<EnhancedInvitationManagementProps> 
             <h3 className="text-lg font-semibold mb-2">No invitations sent</h3>
             <p className="text-muted-foreground">
               {canManageInvitations 
-                ? "Send invitations to add new members to your organization."
+                ? "Use the 'Invite Member' button on the Members tab to send invitations."
                 : "No invitations have been sent yet."
               }
             </p>
@@ -225,12 +210,6 @@ const EnhancedInvitationManagement: React.FC<EnhancedInvitationManagementProps> 
             </TableBody>
           </Table>
         )}
-
-        <EnhancedInviteMemberDialog
-          open={inviteDialogOpen}
-          onOpenChange={setInviteDialogOpen}
-          availableSlots={slotAvailability?.available_slots || 0}
-        />
       </CardContent>
     </Card>
   );

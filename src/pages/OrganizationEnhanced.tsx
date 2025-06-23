@@ -1,27 +1,23 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationStats } from '@/hooks/useOrganizationStats';
-import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationOverview from '@/components/organization/OrganizationOverview';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
 import OrganizationSidebar from '@/components/organization/OrganizationSidebar';
-import EnhancedInviteMemberDialog from '@/components/organization/EnhancedInviteMemberDialog';
 import { toast } from 'sonner';
 
 const OrganizationEnhanced = () => {
   const { getCurrentOrganization, isLoading } = useSession();
   const currentOrganization = getCurrentOrganization();
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   // Custom hooks for data and business logic
   const { data: members = [], isLoading: membersLoading } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: orgAdmins = [], isLoading: adminsLoading } = useOrganizationAdmins(currentOrganization?.id || '');
-  const { data: slotAvailability } = useSlotAvailability(currentOrganization?.id || '');
   const organizationStats = useOrganizationStats(currentOrganization);
   const permissions = usePagePermissions(currentOrganization);
 
@@ -34,7 +30,8 @@ const OrganizationEnhanced = () => {
   };
 
   const handleInviteMember = () => {
-    setInviteDialogOpen(true);
+    // This is now handled by the unified dialog in OrganizationTabs
+    console.log('Invite member action triggered');
   };
 
   // Loading state
@@ -80,12 +77,6 @@ const OrganizationEnhanced = () => {
           />
         </div>
       </div>
-
-      <EnhancedInviteMemberDialog
-        open={inviteDialogOpen}
-        onOpenChange={setInviteDialogOpen}
-        availableSlots={slotAvailability?.available_slots || 0}
-      />
     </div>
   );
 };
