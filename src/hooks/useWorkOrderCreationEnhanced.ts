@@ -36,7 +36,7 @@ export const useCreateWorkOrderEnhanced = () => {
       const isSingleUserOrg = organizationMembers.length === 1;
 
       // Determine the target status and assignment based on org size
-      let status = 'submitted';
+      let status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' = 'submitted';
       let teamId: string | null = null;
       let assigneeId: string | null = null;
 
