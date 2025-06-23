@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText, Shield } from 'lucide-react';
+import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText, Shield, AlertCircle } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
@@ -54,6 +53,16 @@ const WorkOrderDetails = () => {
 
   const createdByCurrentUser = workOrder.created_by === 'current-user-id'; // Would be actual user ID
   const formMode = permissionLevels.getFormMode(workOrder, createdByCurrentUser);
+
+  // Check if work order status allows modifications
+  const isWorkOrderLocked = workOrder.status === 'completed' || workOrder.status === 'cancelled';
+  
+  // Calculate permission to add notes and images
+  const baseCanAddNotes = permissionLevels.isManager || createdByCurrentUser;
+  const baseCanUpload = permissionLevels.isManager || createdByCurrentUser;
+  
+  const canAddNotes = baseCanAddNotes && !isWorkOrderLocked;
+  const canUpload = baseCanUpload && !isWorkOrderLocked;
 
   const handleEditWorkOrder = () => {
     setIsEditFormOpen(true);
@@ -164,23 +173,37 @@ const WorkOrderDetails = () => {
         </div>
       </div>
 
+      {/* Status Lock Warning */}
+      {isWorkOrderLocked && baseCanAddNotes && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-amber-800">
+              <AlertCircle className="h-5 w-5" />
+              <p className="text-sm font-medium">
+                This work order is {workOrder.status}. Notes and images cannot be added or modified.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Work Order Details */}
           <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
 
-          {/* Notes Section - Requestors can add notes to their own work orders or view public notes */}
+          {/* Notes Section - Pass calculated canAddNotes prop */}
           <WorkOrderNotesSection 
             workOrderId={workOrder.id}
-            canAddNotes={permissionLevels.isManager || createdByCurrentUser}
+            canAddNotes={canAddNotes}
             showPrivateNotes={permissionLevels.isManager}
           />
 
-          {/* Images Section - Requestors can upload images to their own work orders */}
+          {/* Images Section - Pass calculated canUpload prop */}
           <WorkOrderImagesSection 
             workOrderId={workOrder.id}
-            canUpload={permissionLevels.isManager || createdByCurrentUser}
+            canUpload={canUpload}
           />
 
           {/* Timeline - Show appropriate level of detail based on permissions */}
