@@ -9,18 +9,25 @@ import { Link } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSyncWorkOrdersByOrganization } from '@/services/syncDataService';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
+import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
+import WorkOrderAcceptanceModal from '@/components/work-orders/WorkOrderAcceptanceModal';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 
 const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [acceptanceModal, setAcceptanceModal] = useState<{ open: boolean; workOrder: any }>({
+    open: false,
+    workOrder: null
+  });
   const { currentOrganization } = useOrganization();
 
   // Use sync hook for work orders data
   const { data: allWorkOrders = [], isLoading } = useSyncWorkOrdersByOrganization(currentOrganization?.id);
   const updateStatusMutation = useUpdateWorkOrderStatus();
+  const acceptanceMutation = useWorkOrderAcceptance();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -80,6 +87,23 @@ const WorkOrders = () => {
     } catch (error) {
       console.error('Error updating status:', error);
     }
+  };
+
+  const handleAcceptClick = (workOrder: any) => {
+    setAcceptanceModal({ open: true, workOrder });
+  };
+
+  const handleAcceptance = async (assigneeId?: string, teamId?: string) => {
+    if (!currentOrganization || !acceptanceModal.workOrder) return;
+    
+    await acceptanceMutation.mutateAsync({
+      workOrderId: acceptanceModal.workOrder.id,
+      organizationId: currentOrganization.id,
+      assigneeId,
+      teamId
+    });
+
+    setAcceptanceModal({ open: false, workOrder: null });
   };
 
   if (isLoading) {
@@ -233,10 +257,10 @@ const WorkOrders = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleStatusUpdate(order.id, 'accepted')}
-                        disabled={updateStatusMutation.isPending}
+                        onClick={() => handleAcceptClick(order)}
+                        disabled={acceptanceMutation.isPending}
                       >
-                        Accept
+                        Accept Work Order
                       </Button>
                     )}
                     {order.status === 'assigned' && (
@@ -299,6 +323,17 @@ const WorkOrders = () => {
         open={showForm} 
         onClose={() => setShowForm(false)} 
       />
+
+      {/* Work Order Acceptance Modal */}
+      {currentOrganization && (
+        <WorkOrderAcceptanceModal
+          open={acceptanceModal.open}
+          onClose={() => setAcceptanceModal({ open: false, workOrder: null })}
+          workOrder={acceptanceModal.workOrder}
+          organizationId={currentOrganization.id}
+          onAccept={handleAcceptance}
+        />
+      )}
     </div>
   );
 };

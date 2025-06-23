@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,9 +8,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { Play, Pause, CheckCircle, XCircle, Settings, AlertTriangle } from 'lucide-react';
+import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
+import { Play, Pause, CheckCircle, XCircle, Settings, AlertTriangle, UserCheck } from 'lucide-react';
 import { WorkOrder } from '@/services/dataService';
 import { WorkOrderService } from '@/services/WorkOrderService';
+import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 
 interface WorkOrderStatusManagerProps {
   workOrder: WorkOrder;
@@ -23,6 +26,8 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   const { toast } = useToast();
   const { currentOrganization } = useSimpleOrganization();
   const permissions = useUnifiedPermissions();
+  const acceptanceMutation = useWorkOrderAcceptance();
+  const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
 
   const workOrderService = currentOrganization 
     ? new WorkOrderService(currentOrganization.id) 
@@ -32,7 +37,6 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     async (newStatus: WorkOrder['status']) => {
       if (!workOrderService) throw new Error('Service not available');
       const result = await workOrderService.updateStatus(workOrder.id, newStatus);
-      // Return both the result and the new status for the onSuccess callback
       return { result, newStatus };
     },
     {
@@ -63,7 +67,13 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     switch (currentStatus) {
       case 'submitted':
         return [
-          { value: 'accepted', label: 'Accept', icon: CheckCircle },
+          { 
+            value: 'accept', 
+            label: 'Accept Work Order', 
+            icon: UserCheck,
+            isCustomAction: true,
+            description: 'Accept and optionally assign this work order'
+          },
           { value: 'cancelled', label: 'Cancel', icon: XCircle }
         ];
       case 'accepted':
@@ -95,6 +105,31 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
 
   const handleStatusUpdate = async (newStatus: WorkOrder['status']) => {
     await updateStatus(newStatus);
+  };
+
+  const handleAcceptance = async (assigneeId?: string, teamId?: string) => {
+    if (!currentOrganization) return;
+    
+    await acceptanceMutation.mutateAsync({
+      workOrderId: workOrder.id,
+      organizationId: currentOrganization.id,
+      assigneeId,
+      teamId
+    });
+
+    if (onStatusUpdate) {
+      // Determine the new status based on assignment
+      const newStatus = assigneeId ? 'assigned' : 'accepted';
+      onStatusUpdate(newStatus);
+    }
+  };
+
+  const handleActionClick = (action: any) => {
+    if (action.isCustomAction && action.value === 'accept') {
+      setShowAcceptanceModal(true);
+    } else {
+      handleStatusUpdate(action.value as WorkOrder['status']);
+    }
   };
 
   const nextStatusOptions = getNextStatusOptions(workOrder.status);
@@ -132,63 +167,76 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Status Management</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">Current Status</label>
-          <div className="mt-1">
-            <Badge className={getStatusColor(workOrder.status)}>
-              {formatStatus(workOrder.status)}
-            </Badge>
-          </div>
-        </div>
-
-        {workOrderPermissions.canChangeStatus && getNextStatusOptions(workOrder.status).length > 0 && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Available Actions
-            </label>
-            <div className="space-y-2">
-              {getNextStatusOptions(workOrder.status).map((option) => {
-                const Icon = option.icon;
-                return (
-                  <Button
-                    key={option.value}
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => handleStatusUpdate(option.value as WorkOrder['status'])}
-                    disabled={isLoading}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {option.label}
-                  </Button>
-                );
-              })}
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Status Management</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">Current Status</label>
+            <div className="mt-1">
+              <Badge className={getStatusColor(workOrder.status)}>
+                {formatStatus(workOrder.status)}
+              </Badge>
             </div>
           </div>
-        )}
 
-        {!workOrderPermissions.canChangeStatus && (
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              You don't have permission to change the status of this work order. 
-              Only organization admins and team members can update work order status.
-            </AlertDescription>
-          </Alert>
-        )}
+          {workOrderPermissions.canChangeStatus && nextStatusOptions.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Available Actions
+              </label>
+              <div className="space-y-2">
+                {nextStatusOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <Button
+                      key={option.value}
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => handleActionClick(option)}
+                      disabled={isLoading || acceptanceMutation.isPending}
+                    >
+                      <Icon className="h-4 w-4 mr-2" />
+                      {option.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-        {getNextStatusOptions(workOrder.status).length === 0 && workOrderPermissions.canChangeStatus && (
-          <p className="text-sm text-muted-foreground">
-            No status changes available for {formatStatus(workOrder.status)} work orders.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+          {!workOrderPermissions.canChangeStatus && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                You don't have permission to change the status of this work order. 
+                Only organization admins and team members can update work order status.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {nextStatusOptions.length === 0 && workOrderPermissions.canChangeStatus && (
+            <p className="text-sm text-muted-foreground">
+              No status changes available for {formatStatus(workOrder.status)} work orders.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Acceptance Modal */}
+      {currentOrganization && (
+        <WorkOrderAcceptanceModal
+          open={showAcceptanceModal}
+          onClose={() => setShowAcceptanceModal(false)}
+          workOrder={workOrder}
+          organizationId={currentOrganization.id}
+          onAccept={handleAcceptance}
+        />
+      )}
+    </>
   );
 };
 
