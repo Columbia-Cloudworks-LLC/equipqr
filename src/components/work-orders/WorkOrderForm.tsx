@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,11 +27,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, Users, User } from "lucide-react";
+import { Info, Users, User, Play } from "lucide-react";
 import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
 import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
 import { useEquipmentByOrganization } from '@/hooks/useSupabaseData';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 
 const workOrderFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -61,6 +61,10 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   const { currentOrganization } = useOrganization();
   const createWorkOrderMutation = useCreateWorkOrderEnhanced();
   const { data: equipment = [] } = useEquipmentByOrganization();
+  
+  // Get organization members to check if it's a single-user org
+  const { data: organizationMembers = [] } = useOrganizationMembers(currentOrganization?.id || '');
+  const isSingleUserOrg = organizationMembers.length === 1;
 
   const form = useForm<WorkOrderFormData>({
     resolver: zodResolver(workOrderFormSchema),
@@ -71,14 +75,14 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
       priority: 'medium',
       dueDate: '',
       estimatedHours: undefined,
-      assignmentType: 'unassigned',
+      assignmentType: isSingleUserOrg ? 'unassigned' : 'unassigned',
       assignmentId: '',
     },
   });
 
   const watchedEquipmentId = form.watch('equipmentId');
   
-  // Get assignment data for the selected equipment
+  // Get assignment data for the selected equipment (only for multi-user orgs)
   const assignmentData = useWorkOrderAssignment(
     currentOrganization?.id || '', 
     watchedEquipmentId || equipmentId
@@ -92,8 +96,8 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
       priority: values.priority,
       dueDate: values.dueDate || undefined,
       estimatedHours: values.estimatedHours || undefined,
-      assignmentType: values.assignmentType === 'unassigned' ? undefined : values.assignmentType,
-      assignmentId: values.assignmentId || undefined,
+      assignmentType: isSingleUserOrg ? undefined : (values.assignmentType === 'unassigned' ? undefined : values.assignmentType),
+      assignmentId: isSingleUserOrg ? undefined : (values.assignmentId || undefined),
     };
 
     try {
@@ -121,6 +125,15 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             Create a new work order for equipment maintenance or repair
           </DialogDescription>
         </DialogHeader>
+
+        {isSingleUserOrg && (
+          <Alert>
+            <Play className="h-4 w-4" />
+            <AlertDescription>
+              This work order will be automatically assigned to you and started immediately upon creation.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -201,139 +214,185 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Assignment and Schedule */}
-              <Card>
-                <CardContent className="pt-4 space-y-4">
-                  <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                    Assignment & Schedule
-                  </h3>
-                  
-                  {/* Show equipment team information */}
-                  {assignmentData.suggestedTeamName && (
-                    <Alert>
-                      <Info className="h-4 w-4" />
-                      <AlertDescription>
-                        This equipment is managed by <strong>{assignmentData.suggestedTeamName}</strong>. 
-                        Work orders will be assigned to this team by default.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  <FormField
-                    control={form.control}
-                    name="assignmentType"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Assignment</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-2"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="unassigned" id="unassigned" />
-                              <Label htmlFor="unassigned">Leave unassigned</Label>
-                            </div>
-                            
-                            {assignmentData.availableAssignees.some(a => a.type === 'team') && (
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="team" id="team" />
-                                <Label htmlFor="team" className="flex items-center gap-2">
-                                  <Users className="h-4 w-4" />
-                                  Assign to team
-                                </Label>
-                              </div>
-                            )}
-                            
-                            {assignmentData.availableAssignees.some(a => a.type === 'member') && (
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="member" id="member" />
-                                <Label htmlFor="member" className="flex items-center gap-2">
-                                  <User className="h-4 w-4" />
-                                  Assign to specific member
-                                </Label>
-                              </div>
-                            )}
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+              {/* Assignment and Schedule - Only show for multi-user orgs */}
+              {!isSingleUserOrg && (
+                <Card>
+                  <CardContent className="pt-4 space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                      Assignment & Schedule
+                    </h3>
+                    
+                    {/* Show equipment team information */}
+                    {assignmentData.suggestedTeamName && (
+                      <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          This equipment is managed by <strong>{assignmentData.suggestedTeamName}</strong>. 
+                          Work orders will be assigned to this team by default.
+                        </AlertDescription>
+                      </Alert>
                     )}
-                  />
-
-                  {/* Assignment Selection */}
-                  {(form.watch('assignmentType') === 'team' || form.watch('assignmentType') === 'member') && (
+                    
                     <FormField
                       control={form.control}
-                      name="assignmentId"
+                      name="assignmentType"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            {form.watch('assignmentType') === 'team' ? 'Select Team' : 'Select Member'}
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={`Select ${form.watch('assignmentType')}`} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {assignmentData.availableAssignees
-                                .filter(assignee => assignee.type === form.watch('assignmentType'))
-                                .map((assignee) => (
-                                  <SelectItem key={assignee.id} value={assignee.id}>
-                                    <div className="flex items-center gap-2">
-                                      {assignee.type === 'team' ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                                      <span>{assignee.name}</span>
-                                      {assignee.canSelfAssign && (
-                                        <Badge variant="secondary" className="text-xs">You</Badge>
-                                      )}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
+                        <FormItem className="space-y-3">
+                          <FormLabel>Assignment</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              className="flex flex-col space-y-2"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="unassigned" id="unassigned" />
+                                <Label htmlFor="unassigned">Leave unassigned</Label>
+                              </div>
+                              
+                              {assignmentData.availableAssignees.some(a => a.type === 'team') && (
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="team" id="team" />
+                                  <Label htmlFor="team" className="flex items-center gap-2">
+                                    <Users className="h-4 w-4" />
+                                    Assign to team
+                                  </Label>
+                                </div>
+                              )}
+                              
+                              {assignmentData.availableAssignees.some(a => a.type === 'member') && (
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="member" id="member" />
+                                  <Label htmlFor="member" className="flex items-center gap-2">
+                                    <User className="h-4 w-4" />
+                                    Assign to specific member
+                                  </Label>
+                                </div>
+                              )}
+                            </RadioGroup>
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  )}
 
-                  <FormField
-                    control={form.control}
-                    name="dueDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Due Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    {/* Assignment Selection */}
+                    {(form.watch('assignmentType') === 'team' || form.watch('assignmentType') === 'member') && (
+                      <FormField
+                        control={form.control}
+                        name="assignmentId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {form.watch('assignmentType') === 'team' ? 'Select Team' : 'Select Member'}
+                            </FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={`Select ${form.watch('assignmentType')}`} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {assignmentData.availableAssignees
+                                  .filter(assignee => assignee.type === form.watch('assignmentType'))
+                                  .map((assignee) => (
+                                    <SelectItem key={assignee.id} value={assignee.id}>
+                                      <div className="flex items-center gap-2">
+                                        {assignee.type === 'team' ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                                        <span>{assignee.name}</span>
+                                        {assignee.canSelfAssign && (
+                                          <Badge variant="secondary" className="text-xs">You</Badge>
+                                        )}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
-                  />
 
-                  <FormField
-                    control={form.control}
-                    name="estimatedHours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estimated Hours</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+                    <FormField
+                      control={form.control}
+                      name="dueDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Due Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="estimatedHours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Estimated Hours</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              {...field}
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Schedule card for single-user orgs */}
+              {isSingleUserOrg && (
+                <Card>
+                  <CardContent className="pt-4 space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                      Schedule
+                    </h3>
+                    
+                    <FormField
+                      control={form.control}
+                      name="dueDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Due Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="estimatedHours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Estimated Hours</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              {...field}
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Description */}
@@ -366,7 +425,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                     <p><span className="font-medium">Model:</span> {selectedEquipment.model}</p>
                     <p><span className="font-medium">Location:</span> {selectedEquipment.location}</p>
                     <p><span className="font-medium">Status:</span> {selectedEquipment.status}</p>
-                    {assignmentData.suggestedTeamName && (
+                    {!isSingleUserOrg && assignmentData.suggestedTeamName && (
                       <p><span className="font-medium">Managed by:</span> {assignmentData.suggestedTeamName}</p>
                     )}
                   </div>
@@ -383,7 +442,8 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                 type="submit" 
                 disabled={createWorkOrderMutation.isPending}
               >
-                {createWorkOrderMutation.isPending ? 'Creating...' : 'Create Work Order'}
+                {createWorkOrderMutation.isPending ? 'Creating...' : 
+                 isSingleUserOrg ? 'Create & Start Work Order' : 'Create Work Order'}
               </Button>
             </div>
           </form>
