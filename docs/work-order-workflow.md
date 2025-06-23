@@ -13,7 +13,7 @@ Work orders progress through a defined lifecycle with the following statuses:
 
 1. **Submitted** - Initial state when a work order is created
 2. **Accepted** - Work order has been reviewed and approved
-3. **Assigned** - Work order has been assigned to a specific technician or team
+3. **Assigned** - Work order has been assigned to a specific technician
 4. **In Progress** - Active work has begun on the order
 5. **On Hold** - Work has been temporarily paused
 6. **Completed** - All work has been finished successfully
