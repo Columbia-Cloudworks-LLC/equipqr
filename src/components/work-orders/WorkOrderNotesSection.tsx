@@ -26,8 +26,17 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   const [isPrivate, setIsPrivate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: allNotes = [], isLoading } = useWorkOrderNotes(workOrderId);
+  const { data: allNotes = [], isLoading, error } = useWorkOrderNotes(workOrderId);
   const createNoteMutation = useCreateWorkOrderNote();
+
+  console.log('WorkOrderNotesSection debug:', {
+    workOrderId,
+    notesCount: allNotes.length,
+    isLoading,
+    error,
+    canAddNotes,
+    showPrivateNotes
+  });
 
   // Filter notes based on showPrivateNotes permission
   const notes = showPrivateNotes ? allNotes : allNotes.filter(note => !note.is_private);
@@ -59,6 +68,19 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       <Card>
         <CardContent className="p-6">
           <div className="h-32 bg-muted animate-pulse rounded" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    console.error('Error loading work order notes:', error);
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-red-600">
+            Error loading notes. Please try refreshing the page.
+          </div>
         </CardContent>
       </Card>
     );
@@ -134,7 +156,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{note.author_name}</span>
+                    <span className="font-medium">{note.author_name || 'Unknown User'}</span>
                     {note.is_private && showPrivateNotes && (
                       <Badge variant="secondary" className="text-xs">
                         <Lock className="h-3 w-3 mr-1" />
