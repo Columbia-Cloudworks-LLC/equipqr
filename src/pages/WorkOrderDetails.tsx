@@ -9,6 +9,7 @@ import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText, Shield
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
+import { useQueryClient } from '@tanstack/react-query';
 import EnhancedWorkOrderStatusManager from '@/components/work-orders/EnhancedWorkOrderStatusManager';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
@@ -20,6 +21,7 @@ const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
   const { currentOrganization } = useOrganization();
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   // Use sync hooks for data
   const { data: workOrder, isLoading: workOrderLoading } = useSyncWorkOrderById(
@@ -64,6 +66,22 @@ const WorkOrderDetails = () => {
   const handleUpdateWorkOrder = (data: any) => {
     console.log('Updating work order:', data);
     setIsEditFormOpen(false);
+  };
+
+  const handleStatusUpdate = (newStatus: string) => {
+    // Invalidate all relevant queries to refresh the data
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrder', 'enhanced', currentOrganization.id, workOrderId] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrder', currentOrganization.id, workOrderId] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrders', currentOrganization.id] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['dashboardStats', currentOrganization.id] 
+    });
   };
 
   const getPriorityColor = (priority: string) => {
@@ -179,6 +197,7 @@ const WorkOrderDetails = () => {
             <EnhancedWorkOrderStatusManager 
               workOrder={workOrder} 
               organizationId={currentOrganization.id}
+              onStatusUpdate={handleStatusUpdate}
             />
           )}
 

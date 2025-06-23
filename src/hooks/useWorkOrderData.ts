@@ -240,7 +240,7 @@ export const useMarkNotificationAsRead = () => {
   });
 };
 
-// Enhanced work order status update
+// Enhanced work order status update with improved query invalidation
 export const useUpdateWorkOrderStatus = () => {
   const queryClient = useQueryClient();
 
@@ -291,9 +291,22 @@ export const useUpdateWorkOrderStatus = () => {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Invalidate all relevant queries for immediate updates
       queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['workOrder'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      
+      // Specifically invalidate the work order details queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['workOrder', variables.organizationId, variables.workOrderId] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['workOrder', 'enhanced', variables.organizationId, variables.workOrderId] 
+      });
+      
       toast.success('Work order status updated successfully');
     },
     onError: (error) => {
