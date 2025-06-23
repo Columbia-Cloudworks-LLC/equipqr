@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -14,12 +13,17 @@ export interface OrganizationInvitation {
   expiresAt: string;
   acceptedAt?: string;
   inviterName?: string;
+  slot_reserved?: boolean;
+  slot_purchase_id?: string;
+  declined_at?: string;
+  expired_at?: string;
 }
 
 export interface CreateInvitationData {
   email: string;
   role: 'admin' | 'member';
   message?: string;
+  reserveSlot?: boolean;
 }
 
 export const useOrganizationInvitations = (organizationId: string) => {
@@ -40,6 +44,10 @@ export const useOrganizationInvitations = (organizationId: string) => {
           created_at,
           expires_at,
           accepted_at,
+          slot_reserved,
+          slot_purchase_id,
+          declined_at,
+          expired_at,
           profiles:invited_by (
             name
           )
@@ -62,11 +70,15 @@ export const useOrganizationInvitations = (organizationId: string) => {
         createdAt: invitation.created_at,
         expiresAt: invitation.expires_at,
         acceptedAt: invitation.accepted_at || undefined,
-        inviterName: (invitation.profiles as any)?.name || 'Unknown'
+        inviterName: (invitation.profiles as any)?.name || 'Unknown',
+        slot_reserved: invitation.slot_reserved || false,
+        slot_purchase_id: invitation.slot_purchase_id || undefined,
+        declined_at: invitation.declined_at || undefined,
+        expired_at: invitation.expired_at || undefined
       }));
     },
     enabled: !!organizationId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // 30 seconds
   });
 };
 
@@ -93,10 +105,25 @@ export const useCreateInvitation = (organizationId: string) => {
         .single();
 
       if (error) throw error;
+
+      // Reserve slot if requested and available
+      if (invitationData.reserveSlot) {
+        const { error: reserveError } = await supabase.rpc('reserve_slot_for_invitation', {
+          org_id: organizationId,
+          invitation_id: data.id
+        });
+
+        if (reserveError) {
+          console.warn('Failed to reserve slot:', reserveError);
+          // Don't throw here - invitation was created successfully
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
       toast.success('Invitation sent successfully');
     },
     onError: (error: any) => {
@@ -158,6 +185,7 @@ export const useCancelInvitation = (organizationId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
       toast.success('Invitation cancelled successfully');
     },
     onError: (error) => {

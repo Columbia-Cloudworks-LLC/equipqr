@@ -294,7 +294,9 @@ export type Database = {
           accepted_at: string | null
           accepted_by: string | null
           created_at: string
+          declined_at: string | null
           email: string
+          expired_at: string | null
           expires_at: string
           id: string
           invitation_token: string
@@ -302,6 +304,8 @@ export type Database = {
           message: string | null
           organization_id: string
           role: string
+          slot_purchase_id: string | null
+          slot_reserved: boolean | null
           status: string
           updated_at: string
         }
@@ -309,7 +313,9 @@ export type Database = {
           accepted_at?: string | null
           accepted_by?: string | null
           created_at?: string
+          declined_at?: string | null
           email: string
+          expired_at?: string | null
           expires_at?: string
           id?: string
           invitation_token?: string
@@ -317,6 +323,8 @@ export type Database = {
           message?: string | null
           organization_id: string
           role: string
+          slot_purchase_id?: string | null
+          slot_reserved?: boolean | null
           status?: string
           updated_at?: string
         }
@@ -324,7 +332,9 @@ export type Database = {
           accepted_at?: string | null
           accepted_by?: string | null
           created_at?: string
+          declined_at?: string | null
           email?: string
+          expired_at?: string | null
           expires_at?: string
           id?: string
           invitation_token?: string
@@ -332,6 +342,8 @@ export type Database = {
           message?: string | null
           organization_id?: string
           role?: string
+          slot_purchase_id?: string | null
+          slot_reserved?: boolean | null
           status?: string
           updated_at?: string
         }
@@ -343,30 +355,43 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "organization_invitations_slot_purchase_id_fkey"
+            columns: ["slot_purchase_id"]
+            isOneToOne: false
+            referencedRelation: "slot_purchases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organization_members: {
         Row: {
+          activated_slot_at: string | null
           id: string
           joined_date: string
           organization_id: string
           role: string
+          slot_purchase_id: string | null
           status: string
           user_id: string
         }
         Insert: {
+          activated_slot_at?: string | null
           id?: string
           joined_date?: string
           organization_id: string
           role?: string
+          slot_purchase_id?: string | null
           status?: string
           user_id: string
         }
         Update: {
+          activated_slot_at?: string | null
           id?: string
           joined_date?: string
           organization_id?: string
           role?: string
+          slot_purchase_id?: string | null
           status?: string
           user_id?: string
         }
@@ -379,10 +404,67 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "organization_members_slot_purchase_id_fkey"
+            columns: ["slot_purchase_id"]
+            isOneToOne: false
+            referencedRelation: "slot_purchases"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "organization_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_slots: {
+        Row: {
+          amount_paid_cents: number
+          billing_period_end: string
+          billing_period_start: string
+          created_at: string
+          id: string
+          organization_id: string
+          purchased_slots: number
+          slot_type: string
+          stripe_payment_intent_id: string | null
+          updated_at: string
+          used_slots: number
+        }
+        Insert: {
+          amount_paid_cents?: number
+          billing_period_end: string
+          billing_period_start: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          purchased_slots?: number
+          slot_type?: string
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+          used_slots?: number
+        }
+        Update: {
+          amount_paid_cents?: number
+          billing_period_end?: string
+          billing_period_start?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          purchased_slots?: number
+          slot_type?: string
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+          used_slots?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_slots_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -554,6 +636,72 @@ export type Database = {
           {
             foreignKeyName: "scans_scanned_by_fkey"
             columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      slot_purchases: {
+        Row: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at: string
+          id: string
+          organization_id: string
+          purchased_by: string
+          quantity: number
+          slot_type: string
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          total_amount_cents: number
+          unit_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          purchased_by: string
+          quantity: number
+          slot_type?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          total_amount_cents: number
+          unit_price_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_period_end?: string
+          billing_period_start?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          purchased_by?: string
+          quantity?: number
+          slot_type?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          total_amount_cents?: number
+          unit_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slot_purchases_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slot_purchases_purchased_by_fkey"
+            columns: ["purchased_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -865,9 +1013,26 @@ export type Database = {
         Args: { user_uuid: string; team_uuid: string; required_role: string }
         Returns: boolean
       }
+      get_current_billing_period: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          period_start: string
+          period_end: string
+        }[]
+      }
       get_organization_premium_features: {
         Args: { org_id: string }
         Returns: Json
+      }
+      get_organization_slot_availability: {
+        Args: { org_id: string }
+        Returns: {
+          total_purchased: number
+          used_slots: number
+          available_slots: number
+          current_period_start: string
+          current_period_end: string
+        }[]
       }
       get_user_org_role_direct: {
         Args: { user_uuid: string; org_id: string }
@@ -893,6 +1058,14 @@ export type Database = {
           role: string
           joined_date: string
         }[]
+      }
+      release_reserved_slot: {
+        Args: { org_id: string; invitation_id: string }
+        Returns: undefined
+      }
+      reserve_slot_for_invitation: {
+        Args: { org_id: string; invitation_id: string }
+        Returns: boolean
       }
       update_organization_billing_metrics: {
         Args: { org_id: string }

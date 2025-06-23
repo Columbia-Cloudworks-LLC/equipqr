@@ -6,26 +6,26 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CreditCard, AlertCircle, RefreshCw, UserPlus, Crown } from 'lucide-react';
 import RealMemberBilling from '@/components/billing/RealMemberBilling';
-import UpdatedOrganizationBilling from '@/components/billing/UpdatedOrganizationBilling';
+import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
+import EnhancedInvitationManagement from '@/components/organization/EnhancedInvitationManagement';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { toast } from '@/hooks/use-toast';
-import { isFreeOrganization, calculateTotalBilling } from '@/utils/billingUtils';
-import { getOrganizationRestrictions } from '@/utils/organizationRestrictions';
+import { isFreeOrganization } from '@/utils/billingUtils';
 
 const Billing = () => {
   const { currentOrganization } = useUnifiedOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { subscriptionData, isLoading, error, checkSubscription } = useSubscription();
+  const { data: slotAvailability } = useSlotAvailability(currentOrganization?.id || '');
   
   // Mock data for storage - in a real app, this would come from your backend
   const [storageUsedGB] = useState(3.2);
   const [fleetMapEnabled, setFleetMapEnabled] = useState(false);
 
   const isFree = isFreeOrganization(members);
-  const billing = calculateTotalBilling(members, storageUsedGB, fleetMapEnabled);
-  const restrictions = getOrganizationRestrictions(members, fleetMapEnabled);
 
   const handleToggleFleetMap = (enabled: boolean) => {
     if (isFree) {
@@ -42,6 +42,15 @@ const Billing = () => {
       title: enabled ? 'Fleet Map Enabled' : 'Fleet Map Disabled',
       description: `Fleet Map has been ${enabled ? 'added to' : 'removed from'} your subscription.`,
     });
+  };
+
+  const handlePurchaseSlots = (quantity: number) => {
+    // This would integrate with Stripe to purchase slots
+    toast({
+      title: 'Purchase Initiated',
+      description: `Redirecting to checkout for ${quantity} user license slots...`,
+    });
+    console.log(`Purchase ${quantity} slots for organization:`, currentOrganization?.id);
   };
 
   const handleUpgradeToMultiUser = () => {
@@ -101,7 +110,7 @@ const Billing = () => {
             Refresh
           </Button>
           <Badge variant={isFree ? 'secondary' : 'default'}>
-            {isFree ? 'Free Plan' : 'Pay-as-you-go'}
+            {isFree ? 'Free Plan' : 'Slot-Based Billing'}
           </Badge>
         </div>
       </div>
@@ -118,17 +127,17 @@ const Billing = () => {
           <div className="flex items-center justify-between">
             <div>
               <div className="font-medium text-lg">
-                {isFree ? 'Free Single-User Plan' : 'Pay-as-you-go Multi-User Plan'}
+                {isFree ? 'Free Single-User Plan' : 'Slot-Based Multi-User Plan'}
               </div>
               <div className="text-sm text-muted-foreground">
                 {isFree 
                   ? 'Perfect for individual users managing their own equipment'
-                  : 'Flexible billing based on actual usage and team size'
+                  : 'Pre-purchase user license slots and pay for monthly add-ons as needed'
                 }
               </div>
-              {!isFree && (
+              {slotAvailability && slotAvailability.total_purchased > 0 && (
                 <div className="text-sm font-medium text-primary mt-1">
-                  Monthly Total: ${billing.total.toFixed(2)}
+                  {slotAvailability.available_slots} of {slotAvailability.total_purchased} slots available
                 </div>
               )}
             </div>
@@ -144,7 +153,7 @@ const Billing = () => {
                 <div>
                   <Badge variant="default" className="mb-2">Active</Badge>
                   <div className="text-xs text-muted-foreground">
-                    Next billing: {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                    Slot-based billing model
                   </div>
                 </div>
               )}
@@ -163,15 +172,15 @@ const Billing = () => {
               </div>
               <div className="flex-1">
                 <div className="font-semibold text-blue-900 mb-1">
-                  Unlock Team Collaboration Features
+                  Unlock Slot-Based Team Collaboration
                 </div>
                 <div className="text-sm text-blue-800 mb-3">
-                  Invite team members to unlock team management, equipment assignment, 
-                  image uploads, storage, and premium add-ons like Fleet Map.
+                  Purchase user license slots in advance, then invite team members without immediate charges. 
+                  Billing only occurs when invitations are accepted, giving you full control over costs.
                 </div>
                 <Button onClick={handleUpgradeToMultiUser}>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Invite Team Members
+                  Start with Team Invitations
                 </Button>
               </div>
             </div>
@@ -179,66 +188,21 @@ const Billing = () => {
         </Card>
       )}
 
-      {/* Organization Billing Overview */}
-      <UpdatedOrganizationBilling
+      {/* Slot-Based Billing Overview */}
+      <SlotBasedBilling
         storageUsedGB={storageUsedGB}
         fleetMapEnabled={fleetMapEnabled}
-        onToggleFleetMap={handleToggleFleetMap}
+        onPurchaseSlots={handlePurchaseSlots}
         onUpgradeToMultiUser={handleUpgradeToMultiUser}
       />
 
+      {/* Enhanced Invitation Management */}
+      {!isFree && (
+        <EnhancedInvitationManagement onPurchaseSlots={handlePurchaseSlots} />
+      )}
+
       {/* Member Billing Details */}
       <RealMemberBilling />
-
-      {/* Pricing Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Pricing Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 border rounded-lg">
-                <div className="font-semibold text-lg">User Licenses</div>
-                <div className="text-2xl font-bold text-primary">$10</div>
-                <div className="text-sm text-muted-foreground">per user/month</div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  First user is always free. Additional active users are $10/month each.
-                </div>
-              </div>
-              
-              <div className="p-4 border rounded-lg">
-                <div className="font-semibold text-lg">Storage</div>
-                <div className="text-2xl font-bold text-primary">$0.10</div>
-                <div className="text-sm text-muted-foreground">per GB/month</div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  5GB included free for multi-user organizations. $0.10/GB for additional storage.
-                </div>
-              </div>
-              
-              <div className="p-4 border rounded-lg relative">
-                <div className="font-semibold text-lg flex items-center gap-1">
-                  Fleet Map 
-                  <Crown className="h-4 w-4 text-yellow-500" />
-                </div>
-                <div className="text-2xl font-bold text-primary">$10</div>
-                <div className="text-sm text-muted-foreground">per month</div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  Interactive equipment location mapping add-on
-                </div>
-              </div>
-            </div>
-
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Free Plan:</strong> Perfect for individual users. Includes basic equipment management, 
-                work orders, and QR scanning. Upgrade to multi-user to unlock team features, storage, and premium add-ons.
-              </AlertDescription>
-            </Alert>
-          </div>
-        </CardContent>
-      </Card>
 
       {error && (
         <Card className="border-red-200 bg-red-50">
