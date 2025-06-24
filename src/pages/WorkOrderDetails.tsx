@@ -77,7 +77,7 @@ const WorkOrderDetails = () => {
     setIsEditFormOpen(false);
   };
 
-  const handleStatusUpdate = (newStatus: string) => {
+  const handleStatusUpdate = () => {
     // Invalidate all relevant queries to refresh the data
     queryClient.invalidateQueries({ 
       queryKey: ['workOrder', 'enhanced', currentOrganization.id, workOrderId] 
@@ -220,7 +220,6 @@ const WorkOrderDetails = () => {
             <EnhancedWorkOrderStatusManager 
               workOrder={workOrder} 
               organizationId={currentOrganization.id}
-              onStatusUpdate={handleStatusUpdate}
             />
           )}
 
@@ -358,16 +357,7 @@ const WorkOrderDetails = () => {
       <WorkOrderFormEnhanced
         open={isEditFormOpen}
         onClose={handleCloseEditForm}
-        workOrder={{
-          ...workOrder,
-          equipment_id: workOrder.equipment_id,
-          created_date: workOrder.created_date,
-          due_date: workOrder.due_date,
-          estimated_hours: workOrder.estimated_hours,
-          completed_date: workOrder.completed_date,
-          assignee_id: workOrder.assignee_id,
-          team_id: workOrder.team_id
-        }}
+        equipmentId={workOrder.equipment_id}
         onSubmit={handleUpdateWorkOrder}
       />
     </div>

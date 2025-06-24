@@ -43,7 +43,7 @@ export const createPM = async (data: CreatePMData): Promise<PreventativeMaintena
         equipment_id: data.equipmentId,
         organization_id: data.organizationId,
         created_by: userData.user.id,
-        checklist_data: data.checklistData,
+        checklist_data: data.checklistData as any, // Cast to any to satisfy Json type
         notes: data.notes,
         status: 'pending'
       })
@@ -93,7 +93,7 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
     }
 
     const updateData: any = {
-      checklist_data: data.checklistData,
+      checklist_data: data.checklistData as any, // Cast to any to satisfy Json type
       notes: data.notes,
     };
 

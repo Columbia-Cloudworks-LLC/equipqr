@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,10 +85,31 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   useEffect(() => {
     // Initialize checklist from PM data or use default
-    const savedChecklist = pm.checklist_data as PMChecklistItem[];
-    if (savedChecklist && Array.isArray(savedChecklist) && savedChecklist.length > 0) {
-      setChecklist(savedChecklist);
-    } else {
+    try {
+      const savedChecklist = pm.checklist_data;
+      if (savedChecklist && Array.isArray(savedChecklist) && savedChecklist.length > 0) {
+        // Type assertion with validation
+        const parsedChecklist = savedChecklist as unknown as PMChecklistItem[];
+        // Validate that the parsed data has the expected structure
+        const isValidChecklist = parsedChecklist.every(item => 
+          typeof item === 'object' && 
+          item !== null && 
+          'id' in item && 
+          'title' in item && 
+          'completed' in item && 
+          'required' in item
+        );
+        
+        if (isValidChecklist) {
+          setChecklist(parsedChecklist);
+        } else {
+          setChecklist(defaultChecklist);
+        }
+      } else {
+        setChecklist(defaultChecklist);
+      }
+    } catch (error) {
+      console.error('Error parsing checklist data:', error);
       setChecklist(defaultChecklist);
     }
   }, [pm]);
@@ -108,7 +128,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       const updatedPM = await updatePM(pm.id, {
         checklistData: checklist,
         notes,
-        status: pm.status === 'pending' ? 'in_progress' : pm.status
+        status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
       });
 
       if (updatedPM) {
@@ -139,7 +159,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       const updatedPM = await updatePM(pm.id, {
         checklistData: checklist,
         notes,
-        status: 'completed'
+        status: 'completed' as const
       });
 
       if (updatedPM) {
