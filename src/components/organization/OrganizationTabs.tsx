@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Mail, Crown, UserPlus } from 'lucide-react';
+import { Users, Mail, Crown, UserPlus, ShoppingCart } from 'lucide-react';
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { OrganizationAdmin } from '@/hooks/useOrganizationAdmins';
 import { PagePermissions } from '@/hooks/usePagePermissions';
@@ -46,6 +46,10 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
     alert(`Redirecting to checkout for ${quantity} user license slots...`);
   };
 
+  // Determine button state based on slot availability
+  const hasAvailableSlots = (slotAvailability?.available_slots || 0) > 0;
+  const shouldShowBuySlots = !hasAvailableSlots && permissions.canInviteMembers;
+
   return (
     <Tabs defaultValue="members" className="space-y-4">
       <div className="overflow-x-auto">
@@ -79,15 +83,29 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
             )}
           </div>
           {permissions.canInviteMembers && (
-            <Button
-              onClick={() => setInviteDialogOpen(true)}
-              disabled={permissions.isAtMemberLimit}
-              size="sm"
-              className="w-full sm:w-auto"
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              <span className="sm:inline">Invite Member</span>
-            </Button>
+            <div className="flex gap-2">
+              {shouldShowBuySlots ? (
+                <Button
+                  onClick={() => setInviteDialogOpen(true)}
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  variant="default"
+                >
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  <span className="sm:inline">Buy Slots</span>
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => setInviteDialogOpen(true)}
+                  disabled={permissions.isAtMemberLimit}
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  <span className="sm:inline">Invite Member</span>
+                </Button>
+              )}
+            </div>
           )}
         </div>
         

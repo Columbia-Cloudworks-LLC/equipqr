@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Mail, Clock, CheckCircle, XCircle, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { MoreHorizontal, Mail, Clock, CheckCircle, XCircle, AlertTriangle, ShoppingCart, CreditCard } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
 import { useSlotAvailability, useReleaseSlot } from '@/hooks/useOrganizationSlots';
@@ -97,10 +97,12 @@ const EnhancedInvitationManagement: React.FC<EnhancedInvitationManagementProps> 
             )}
           </CardTitle>
           {blockedBySlots && (
-            <Button onClick={() => onPurchaseSlots(5)} size="sm" variant="outline">
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Buy Slots
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => onPurchaseSlots(5)} size="sm" variant="outline">
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Buy Slots
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>
@@ -108,8 +110,16 @@ const EnhancedInvitationManagement: React.FC<EnhancedInvitationManagementProps> 
         {blockedBySlots && (
           <Alert className="mb-4">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              No available slots for new invitations. Use the "Invite Member" button on the Members tab to purchase slots and send invitations.
+            <AlertDescription className="flex items-center justify-between">
+              <span>No available slots for new invitations.</span>
+              <Button 
+                onClick={() => onPurchaseSlots(10)} 
+                size="sm" 
+                className="ml-4"
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Purchase Slots
+              </Button>
             </AlertDescription>
           </Alert>
         )}
@@ -122,93 +132,101 @@ const EnhancedInvitationManagement: React.FC<EnhancedInvitationManagementProps> 
           <div className="text-center py-8">
             <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No invitations sent</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               {canManageInvitations 
                 ? "Use the 'Invite Member' button on the Members tab to send invitations."
                 : "No invitations have been sent yet."
               }
             </p>
+            {blockedBySlots && canManageInvitations && (
+              <Button onClick={() => onPurchaseSlots(10)} size="lg">
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Purchase Slots to Start Inviting
+              </Button>
+            )}
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Slot Reserved</TableHead>
-                <TableHead>Invited By</TableHead>
-                <TableHead>Expires</TableHead>
-                {canManageInvitations && <TableHead className="text-right">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invitations.map((invitation) => (
-                <TableRow key={invitation.id}>
-                  <TableCell className="font-medium">{invitation.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {invitation.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(invitation.status)} variant="outline">
-                      <div className="flex items-center gap-1">
-                        {getStatusIcon(invitation.status)}
-                        {invitation.status}
-                      </div>
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={invitation.slot_reserved ? 'default' : 'secondary'}>
-                      {invitation.slot_reserved ? 'Yes' : 'No'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {invitation.inviterName}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {invitation.status === 'pending' 
-                      ? formatDistanceToNow(new Date(invitation.expiresAt), { addSuffix: true })
-                      : invitation.acceptedAt 
-                        ? formatDistanceToNow(new Date(invitation.acceptedAt), { addSuffix: true })
-                        : '-'
-                    }
-                  </TableCell>
-                  {canManageInvitations && (
-                    <TableCell className="text-right">
-                      {invitation.status === 'pending' && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleResendInvitation(invitation.id)}
-                              disabled={resendInvitation.isPending}
-                            >
-                              <Mail className="h-4 w-4 mr-2" />
-                              Resend Invitation
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleCancelInvitation(invitation.id)}
-                              disabled={cancelInvitation.isPending}
-                              className="text-destructive"
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Cancel Invitation
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </TableCell>
-                  )}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Slot Reserved</TableHead>
+                  <TableHead className="hidden md:table-cell">Invited By</TableHead>
+                  <TableHead className="hidden lg:table-cell">Expires</TableHead>
+                  {canManageInvitations && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {invitations.map((invitation) => (
+                  <TableRow key={invitation.id}>
+                    <TableCell className="font-medium">{invitation.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {invitation.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(invitation.status)} variant="outline">
+                        <div className="flex items-center gap-1">
+                          {getStatusIcon(invitation.status)}
+                          {invitation.status}
+                        </div>
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant={invitation.slot_reserved ? 'default' : 'secondary'}>
+                        {invitation.slot_reserved ? 'Yes' : 'No'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden md:table-cell">
+                      {invitation.inviterName}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden lg:table-cell">
+                      {invitation.status === 'pending' 
+                        ? formatDistanceToNow(new Date(invitation.expiresAt), { addSuffix: true })
+                        : invitation.acceptedAt 
+                          ? formatDistanceToNow(new Date(invitation.acceptedAt), { addSuffix: true })
+                          : '-'
+                      }
+                    </TableCell>
+                    {canManageInvitations && (
+                      <TableCell className="text-right">
+                        {invitation.status === 'pending' && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleResendInvitation(invitation.id)}
+                                disabled={resendInvitation.isPending}
+                              >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Resend Invitation
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleCancelInvitation(invitation.id)}
+                                disabled={cancelInvitation.isPending}
+                                className="text-destructive"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Cancel Invitation
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

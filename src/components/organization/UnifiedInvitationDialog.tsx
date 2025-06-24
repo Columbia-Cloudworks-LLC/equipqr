@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UserPlus, Mail, ShoppingCart, CheckCircle, AlertTriangle } from 'lucide-react';
+import { UserPlus, Mail, ShoppingCart, CheckCircle, AlertTriangle, CreditCard } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 import { useCreateInvitation, CreateInvitationData } from '@/hooks/useOrganizationInvitations';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
@@ -28,6 +28,13 @@ interface UnifiedInvitationDialogProps {
 
 type DialogStep = 'check-slots' | 'purchase-slots' | 'send-invitation';
 
+const SLOT_PACKAGES = [
+  { quantity: 5, price: 50, popular: false },
+  { quantity: 10, price: 100, popular: true },
+  { quantity: 20, price: 200, popular: false },
+  { quantity: 50, price: 500, popular: false },
+];
+
 const UnifiedInvitationDialog: React.FC<UnifiedInvitationDialogProps> = ({
   open,
   onOpenChange,
@@ -39,7 +46,7 @@ const UnifiedInvitationDialog: React.FC<UnifiedInvitationDialogProps> = ({
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'admin' | 'member'>('member');
   const [message, setMessage] = useState('');
-  const [slotsToPurchase, setSlotsToPurchase] = useState(5);
+  const [selectedPackage, setSelectedPackage] = useState(SLOT_PACKAGES[1]); // Default to popular package
 
   const { data: slotAvailability } = useSlotAvailability(currentOrg?.id || '');
   const createInvitation = useCreateInvitation(currentOrg?.id || '');
@@ -61,7 +68,7 @@ const UnifiedInvitationDialog: React.FC<UnifiedInvitationDialogProps> = ({
   }, [open, hasAvailableSlots]);
 
   const handlePurchaseSlots = () => {
-    onPurchaseSlots(slotsToPurchase);
+    onPurchaseSlots(selectedPackage.quantity);
     onOpenChange(false);
   };
 
@@ -99,32 +106,37 @@ const UnifiedInvitationDialog: React.FC<UnifiedInvitationDialogProps> = ({
     switch (step) {
       case 'check-slots':
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                No available user license slots. You need to purchase slots before inviting team members.
+                No available user license slots. Purchase slots to invite team members.
               </AlertDescription>
             </Alert>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Current Slot Status</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-muted-foreground" />
+                  Current Slot Status
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Purchased:</span>
-                  <span className="font-medium">{slotAvailability?.total_purchased || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Currently Used:</span>
-                  <span className="font-medium">{slotAvailability?.used_slots || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Available:</span>
-                  <Badge variant={hasAvailableSlots ? 'default' : 'destructive'}>
-                    {slotAvailability?.available_slots || 0}
-                  </Badge>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold">{slotAvailability?.total_purchased || 0}</div>
+                    <div className="text-xs text-muted-foreground">Total Purchased</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold">{slotAvailability?.used_slots || 0}</div>
+                    <div className="text-xs text-muted-foreground">Currently Used</div>
+                  </div>
+                  <div className="space-y-1">
+                    <Badge variant={hasAvailableSlots ? 'default' : 'destructive'} className="text-sm px-3 py-1">
+                      {slotAvailability?.available_slots || 0}
+                    </Badge>
+                    <div className="text-xs text-muted-foreground">Available</div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -146,35 +158,60 @@ const UnifiedInvitationDialog: React.FC<UnifiedInvitationDialogProps> = ({
 
       case 'purchase-slots':
         return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="slots-quantity">Number of User License Slots</Label>
-              <Select 
-                value={slotsToPurchase.toString()} 
-                onValueChange={(value) => setSlotsToPurchase(parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5 slots ($50)</SelectItem>
-                  <SelectItem value="10">10 slots ($100)</SelectItem>
-                  <SelectItem value="20">20 slots ($200)</SelectItem>
-                  <SelectItem value="50">50 slots ($500)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                Each slot costs $10 and allows you to invite one team member
-              </p>
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold">Select Slot Package</h3>
+                <p className="text-sm text-muted-foreground">
+                  Each slot allows you to invite one team member
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {SLOT_PACKAGES.map((pkg) => (
+                  <Card 
+                    key={pkg.quantity}
+                    className={`cursor-pointer transition-all ${
+                      selectedPackage.quantity === pkg.quantity 
+                        ? 'ring-2 ring-primary shadow-md' 
+                        : 'hover:shadow-sm'
+                    } ${pkg.popular ? 'border-primary' : ''}`}
+                    onClick={() => setSelectedPackage(pkg)}
+                  >
+                    <CardContent className="p-4 text-center space-y-2">
+                      {pkg.popular && (
+                        <Badge className="mb-1">Most Popular</Badge>
+                      )}
+                      <div className="text-2xl font-bold">{pkg.quantity}</div>
+                      <div className="text-xs text-muted-foreground">User Slots</div>
+                      <div className="text-lg font-semibold">${pkg.price}</div>
+                      <div className="text-xs text-muted-foreground">
+                        ${(pkg.price / pkg.quantity).toFixed(0)} per slot
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
 
             <Alert>
-              <CheckCircle className="h-4 w-4" />
+              <CreditCard className="h-4 w-4" />
               <AlertDescription>
-                After purchasing slots, you'll be able to send invitations immediately. 
-                Billing only occurs when invitations are accepted.
+                You'll be redirected to Stripe Checkout to complete your purchase. 
+                Slots are available immediately after payment.
               </AlertDescription>
             </Alert>
+
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Selected Package:</span>
+                <span className="font-medium">{selectedPackage.quantity} slots</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Total Amount:</span>
+                <span className="font-medium">${selectedPackage.price}</span>
+              </div>
+            </div>
 
             <div className="flex gap-2 justify-end">
               <Button 
@@ -183,9 +220,9 @@ const UnifiedInvitationDialog: React.FC<UnifiedInvitationDialogProps> = ({
               >
                 Back
               </Button>
-              <Button onClick={handlePurchaseSlots}>
+              <Button onClick={handlePurchaseSlots} size="lg">
                 <ShoppingCart className="mr-2 h-4 w-4" />
-                Purchase {slotsToPurchase} Slots
+                Purchase {selectedPackage.quantity} Slots
               </Button>
             </div>
           </div>
@@ -317,7 +354,7 @@ const UnifiedInvitationDialog: React.FC<UnifiedInvitationDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
