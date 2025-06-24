@@ -1,12 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, AlertTriangle, Printer } from 'lucide-react';
-import { PMChecklistItem, PreventativeMaintenance, updatePM } from '@/services/preventativeMaintenanceService';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight } from 'lucide-react';
+import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 
 interface PMChecklistComponentProps {
@@ -14,65 +17,6 @@ interface PMChecklistComponentProps {
   onUpdate: () => void;
   readOnly?: boolean;
 }
-
-const defaultChecklist: PMChecklistItem[] = [
-  {
-    id: '1',
-    title: 'Visual Inspection',
-    description: 'Check for visible damage, wear, or abnormalities',
-    completed: false,
-    required: true
-  },
-  {
-    id: '2',
-    title: 'Safety Systems Check',
-    description: 'Verify all safety mechanisms are functioning properly',
-    completed: false,
-    required: true
-  },
-  {
-    id: '3',
-    title: 'Lubrication',
-    description: 'Check and replenish lubricants as needed',
-    completed: false,
-    required: true
-  },
-  {
-    id: '4',
-    title: 'Electrical Connections',
-    description: 'Inspect electrical connections and wiring',
-    completed: false,
-    required: true
-  },
-  {
-    id: '5',
-    title: 'Performance Test',
-    description: 'Run equipment through standard performance tests',
-    completed: false,
-    required: true
-  },
-  {
-    id: '6',
-    title: 'Filter Replacement',
-    description: 'Replace filters if due or contaminated',
-    completed: false,
-    required: false
-  },
-  {
-    id: '7',
-    title: 'Calibration Check',
-    description: 'Verify equipment calibration is within acceptable ranges',
-    completed: false,
-    required: false
-  },
-  {
-    id: '8',
-    title: 'Documentation Update',
-    description: 'Update maintenance logs and records',
-    completed: false,
-    required: true
-  }
-];
 
 const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   pm,
@@ -82,9 +26,10 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const [checklist, setChecklist] = useState<PMChecklistItem[]>([]);
   const [notes, setNotes] = useState(pm.notes || '');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    // Initialize checklist from PM data or use default
+    // Initialize checklist from PM data or use default forklift checklist
     try {
       const savedChecklist = pm.checklist_data;
       if (savedChecklist && Array.isArray(savedChecklist) && savedChecklist.length > 0) {
@@ -96,28 +41,37 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           item !== null && 
           'id' in item && 
           'title' in item && 
-          'completed' in item && 
-          'required' in item
+          'condition' in item && 
+          'required' in item &&
+          'section' in item
         );
         
         if (isValidChecklist) {
           setChecklist(parsedChecklist);
         } else {
-          setChecklist(defaultChecklist);
+          setChecklist(defaultForkliftChecklist);
         }
       } else {
-        setChecklist(defaultChecklist);
+        setChecklist(defaultForkliftChecklist);
       }
     } catch (error) {
       console.error('Error parsing checklist data:', error);
-      setChecklist(defaultChecklist);
+      setChecklist(defaultForkliftChecklist);
     }
+
+    // Initialize all sections as open
+    const sections = Array.from(new Set(defaultForkliftChecklist.map(item => item.section)));
+    const initialOpenSections: Record<string, boolean> = {};
+    sections.forEach(section => {
+      initialOpenSections[section] = true;
+    });
+    setOpenSections(initialOpenSections);
   }, [pm]);
 
-  const handleChecklistItemChange = (itemId: string, completed: boolean, itemNotes?: string) => {
+  const handleChecklistItemChange = (itemId: string, condition: 1 | 2 | 3 | 4 | 5, itemNotes?: string) => {
     setChecklist(prev => prev.map(item => 
       item.id === itemId 
-        ? { ...item, completed, notes: itemNotes } 
+        ? { ...item, condition, notes: itemNotes } 
         : item
     ));
   };
@@ -147,10 +101,10 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   const completePM = async () => {
     const requiredItems = checklist.filter(item => item.required);
-    const incompleteRequired = requiredItems.filter(item => !item.completed);
+    const poorConditionItems = requiredItems.filter(item => item.condition <= 2);
 
-    if (incompleteRequired.length > 0) {
-      toast.error(`Please complete all required items: ${incompleteRequired.map(item => item.title).join(', ')}`);
+    if (poorConditionItems.length > 0) {
+      toast.error(`Address poor condition items before completing: ${poorConditionItems.map(item => item.title).join(', ')}`);
       return;
     }
 
@@ -180,43 +134,62 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    const sections = Array.from(new Set(checklist.map(item => item.section)));
+    const getConditionText = (condition: number) => {
+      switch (condition) {
+        case 1: return 'Poor';
+        case 2: return 'Fair';
+        case 3: return 'Good';
+        case 4: return 'Very Good';
+        case 5: return 'Excellent';
+        default: return 'Unknown';
+      }
+    };
+
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Preventative Maintenance Checklist</title>
+          <title>Forklift Preventative Maintenance Checklist</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
-            .checklist-item { margin: 15px 0; padding: 10px; border: 1px solid #ddd; }
+            .section { margin: 20px 0; }
+            .section-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; padding: 10px; background-color: #f0f0f0; }
+            .checklist-item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
             .required { border-left: 4px solid #e74c3c; }
-            .completed { background-color: #d5f4e6; }
-            .checkbox { margin-right: 10px; }
+            .condition { font-weight: bold; }
+            .condition-1, .condition-2 { color: #e74c3c; }
+            .condition-3 { color: #f39c12; }
+            .condition-4, .condition-5 { color: #27ae60; }
             .notes { margin-top: 20px; padding: 15px; background-color: #f8f9fa; }
             @media print { .no-print { display: none; } }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>Preventative Maintenance Checklist</h1>
+            <h1>Forklift Preventative Maintenance Checklist</h1>
             <p><strong>PM ID:</strong> ${pm.id}</p>
             <p><strong>Status:</strong> ${pm.status}</p>
             <p><strong>Created:</strong> ${new Date(pm.created_at).toLocaleDateString()}</p>
             ${pm.completed_at ? `<p><strong>Completed:</strong> ${new Date(pm.completed_at).toLocaleDateString()}</p>` : ''}
           </div>
           
-          <div class="checklist">
-            ${checklist.map(item => `
-              <div class="checklist-item ${item.required ? 'required' : ''} ${item.completed ? 'completed' : ''}">
-                <div>
-                  <input type="checkbox" class="checkbox" ${item.completed ? 'checked' : ''} disabled>
-                  <strong>${item.title}</strong> ${item.required ? '(Required)' : '(Optional)'}
+          ${sections.map(section => `
+            <div class="section">
+              <div class="section-title">${section}</div>
+              ${checklist.filter(item => item.section === section).map(item => `
+                <div class="checklist-item ${item.required ? 'required' : ''}">
+                  <div>
+                    <strong>${item.title}</strong> ${item.required ? '(Required)' : '(Optional)'}
+                    <span class="condition condition-${item.condition}"> - Condition: ${getConditionText(item.condition)}</span>
+                  </div>
+                  ${item.description ? `<p><em>${item.description}</em></p>` : ''}
+                  ${item.notes ? `<p><strong>Notes:</strong> ${item.notes}</p>` : ''}
                 </div>
-                ${item.description ? `<p><em>${item.description}</em></p>` : ''}
-                ${item.notes ? `<p><strong>Notes:</strong> ${item.notes}</p>` : ''}
-              </div>
-            `).join('')}
-          </div>
+              `).join('')}
+            </div>
+          `).join('')}
           
           ${notes ? `
             <div class="notes">
@@ -259,9 +232,42 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
-  const completedCount = checklist.filter(item => item.completed).length;
-  const requiredCount = checklist.filter(item => item.required).length;
-  const completedRequired = checklist.filter(item => item.required && item.completed).length;
+  const getConditionColor = (condition: number) => {
+    switch (condition) {
+      case 1:
+      case 2:
+        return 'text-red-600';
+      case 3:
+        return 'text-yellow-600';
+      case 4:
+      case 5:
+        return 'text-green-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
+  const getConditionText = (condition: number) => {
+    switch (condition) {
+      case 1: return 'Poor';
+      case 2: return 'Fair'; 
+      case 3: return 'Good';
+      case 4: return 'Very Good';
+      case 5: return 'Excellent';
+      default: return 'Unknown';
+    }
+  };
+
+  const sections = Array.from(new Set(checklist.map(item => item.section)));
+  const averageCondition = checklist.length > 0 ? checklist.reduce((sum, item) => sum + item.condition, 0) / checklist.length : 5;
+  const poorConditionCount = checklist.filter(item => item.condition <= 2).length;
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   return (
     <Card>
@@ -270,13 +276,15 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           <div className="flex items-center gap-3">
             {getStatusIcon()}
             <div>
-              <CardTitle>Preventative Maintenance Checklist</CardTitle>
+              <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
               <div className="flex items-center gap-2 mt-1">
                 <Badge className={getStatusColor()}>
                   {pm.status.replace('_', ' ').toUpperCase()}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  {completedCount}/{checklist.length} items completed
+                  Average Condition: <span className={getConditionColor(Math.round(averageCondition))}>
+                    {getConditionText(Math.round(averageCondition))}
+                  </span>
                 </span>
               </div>
             </div>
@@ -288,53 +296,82 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {pm.status !== 'completed' && (
-          <Alert>
+        {pm.status !== 'completed' && poorConditionCount > 0 && (
+          <Alert className="border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Complete all required items ({completedRequired}/{requiredCount}) to finish this PM.
+            <AlertDescription className="text-red-800">
+              {poorConditionCount} item(s) in poor condition require attention before completion.
             </AlertDescription>
           </Alert>
         )}
 
-        <div className="space-y-3">
-          {checklist.map((item) => (
-            <div key={item.id} className={`p-4 border rounded-lg ${item.required ? 'border-l-4 border-l-red-500' : ''}`}>
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  checked={item.completed}
-                  onCheckedChange={(checked) => handleChecklistItemChange(item.id, checked as boolean)}
-                  disabled={readOnly || pm.status === 'completed'}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{item.title}</span>
-                    {item.required && (
-                      <Badge variant="outline" className="text-xs">
-                        Required
-                      </Badge>
-                    )}
-                  </div>
-                  {item.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                  )}
-                  {!readOnly && pm.status !== 'completed' && (
-                    <Textarea
-                      placeholder="Add notes for this item..."
-                      value={item.notes || ''}
-                      onChange={(e) => handleChecklistItemChange(item.id, item.completed, e.target.value)}
-                      className="mt-2"
-                      rows={2}
-                    />
-                  )}
-                  {item.notes && (readOnly || pm.status === 'completed') && (
-                    <div className="mt-2 p-2 bg-muted rounded text-sm">
-                      <strong>Notes:</strong> {item.notes}
+        <div className="space-y-4">
+          {sections.map((section) => (
+            <Collapsible key={section} open={openSections[section]} onOpenChange={() => toggleSection(section)}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between p-3 h-auto">
+                  <span className="font-semibold text-left">{section}</span>
+                  {openSections[section] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-2">
+                {checklist.filter(item => item.section === section).map((item) => (
+                  <div key={item.id} className={`p-4 border rounded-lg ${item.required ? 'border-l-4 border-l-red-500' : ''}`}>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.title}</span>
+                        {item.required && (
+                          <Badge variant="outline" className="text-xs">
+                            Required
+                          </Badge>
+                        )}
+                        <span className={`text-sm font-medium ${getConditionColor(item.condition)}`}>
+                          {getConditionText(item.condition)}
+                        </span>
+                      </div>
+                      {item.description && (
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                      )}
+                      
+                      {!readOnly && pm.status !== 'completed' && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Condition Rating:</Label>
+                          <RadioGroup
+                            value={item.condition.toString()}
+                            onValueChange={(value) => handleChecklistItemChange(item.id, parseInt(value) as 1 | 2 | 3 | 4 | 5)}
+                            className="flex gap-4"
+                          >
+                            {[1, 2, 3, 4, 5].map((rating) => (
+                              <div key={rating} className="flex items-center space-x-2">
+                                <RadioGroupItem value={rating.toString()} id={`${item.id}-${rating}`} />
+                                <Label htmlFor={`${item.id}-${rating}`} className={`text-sm ${getConditionColor(rating)}`}>
+                                  {rating} - {getConditionText(rating)}
+                                </Label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </div>
+                      )}
+
+                      {!readOnly && pm.status !== 'completed' && (
+                        <Textarea
+                          placeholder="Add notes for this item..."
+                          value={item.notes || ''}
+                          onChange={(e) => handleChecklistItemChange(item.id, item.condition, e.target.value)}
+                          className="mt-2"
+                          rows={2}
+                        />
+                      )}
+                      {item.notes && (readOnly || pm.status === 'completed') && (
+                        <div className="mt-2 p-2 bg-muted rounded text-sm">
+                          <strong>Notes:</strong> {item.notes}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
           ))}
         </div>
 
@@ -360,7 +397,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             </Button>
             <Button
               onClick={completePM}
-              disabled={isUpdating || completedRequired < requiredCount}
+              disabled={isUpdating || poorConditionCount > 0}
             >
               {isUpdating ? 'Completing...' : 'Complete PM'}
             </Button>

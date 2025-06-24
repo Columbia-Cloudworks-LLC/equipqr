@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -280,6 +279,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
         open={showAcceptanceModal}
         onClose={() => setShowAcceptanceModal(false)}
         workOrder={workOrder}
+        organizationId={organizationId}
         onAccept={handleAcceptanceComplete}
       />
     </>

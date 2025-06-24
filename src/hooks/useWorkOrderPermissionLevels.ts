@@ -1,81 +1,48 @@
 
-import { useUnifiedPermissions } from './useUnifiedPermissions';
-import { WorkOrder } from '@/services/supabaseDataService';
-
-export interface RequestorPermissions {
-  canCreateRequest: boolean;
-  canViewOwn: boolean;
-  canAddNotes: boolean;
-  canAddImages: boolean;
-  canEditDueDate: boolean;
-  canEditDescription: boolean;
-}
-
-export interface ManagerPermissions {
-  canCreateFull: boolean;
-  canAssign: boolean;
-  canChangeStatus: boolean;
-  canEditAll: boolean;
-  canViewAll: boolean;
-  canDeleteAny: boolean;
-}
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import { useTeamMembership } from '@/hooks/useTeamMembership';
 
 export interface WorkOrderPermissionLevels {
-  isRequestor: boolean;
   isManager: boolean;
-  requestor: RequestorPermissions;
-  manager: ManagerPermissions;
-  getFormMode: (workOrder?: WorkOrder, createdByCurrentUser?: boolean) => 'requestor' | 'manager' | 'readonly';
+  isRequestor: boolean;
+  isTechnician: boolean;
+  getFormMode: (workOrder: any, createdByCurrentUser: boolean) => 'manager' | 'requestor' | 'view_only';
 }
 
 export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
-  const permissions = useUnifiedPermissions();
+  const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
+  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
+  const { data: teamMemberships = [] } = useTeamMembership(user?.id || '', currentOrganization?.id || '');
 
-  const isManager = permissions.hasRole(['owner', 'admin']) || 
-    permissions.context?.userTeamIds.some(teamId => permissions.isTeamManager(teamId)) || false;
+  // Determine user role in organization
+  const currentMember = members.find(m => m.user_id === user?.id);
+  const isManager = currentMember?.role === 'owner' || currentMember?.role === 'admin';
   
-  const isRequestor = permissions.hasRole(['member']) && !isManager;
+  // Check if user is a technician in any team
+  const isTechnician = teamMemberships.some(tm => tm.role === 'technician' || tm.role === 'manager');
+  
+  // All users can be requestors
+  const isRequestor = true;
 
-  const requestorPermissions: RequestorPermissions = {
-    canCreateRequest: permissions.workOrders.canCreateAny,
-    canViewOwn: true,
-    canAddNotes: true,
-    canAddImages: true,
-    canEditDueDate: true,
-    canEditDescription: true,
-  };
-
-  const managerPermissions: ManagerPermissions = {
-    canCreateFull: permissions.workOrders.canCreateAny,
-    canAssign: permissions.workOrders.canAssignAny,
-    canChangeStatus: true,
-    canEditAll: true,
-    canViewAll: permissions.workOrders.canViewAll,
-    canDeleteAny: true,
-  };
-
-  const getFormMode = (workOrder?: WorkOrder, createdByCurrentUser?: boolean): 'requestor' | 'manager' | 'readonly' => {
+  const getFormMode = (workOrder: any, createdByCurrentUser: boolean): 'manager' | 'requestor' | 'view_only' => {
     if (isManager) {
       return 'manager';
     }
     
-    if (isRequestor) {
-      // Requestors can edit their own work orders in limited ways
-      if (!workOrder || createdByCurrentUser) {
-        return 'requestor';
-      }
-      // Can view but not edit others' work orders
-      return 'readonly';
+    if (createdByCurrentUser) {
+      return 'requestor';
     }
-
-    return 'readonly';
+    
+    return 'view_only';
   };
 
   return {
-    isRequestor,
     isManager,
-    requestor: requestorPermissions,
-    manager: managerPermissions,
-    getFormMode,
+    isRequestor,
+    isTechnician,
+    getFormMode
   };
 };
