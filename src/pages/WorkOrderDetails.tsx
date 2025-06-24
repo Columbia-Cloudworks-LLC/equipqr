@@ -4,17 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText, Shield, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText, Shield, AlertCircle, Clipboard } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
+import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useQueryClient } from '@tanstack/react-query';
-import EnhancedWorkOrderStatusManager from '@/components/work-orders/EnhancedWorkOrderStatusManager';
+import EnhancedWorkOrderStatusManagerWithPM from '@/components/work-orders/EnhancedWorkOrderStatusManagerWithPM';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
 import WorkOrderNotesSection from '@/components/work-orders/WorkOrderNotesSection';
 import WorkOrderImagesSection from '@/components/work-orders/WorkOrderImagesSection';
 import WorkOrderFormEnhanced from '@/components/work-orders/WorkOrderFormEnhanced';
+import PMChecklistComponent from '@/components/work-orders/PMChecklistComponent';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -31,6 +33,9 @@ const WorkOrderDetails = () => {
     currentOrganization?.id || '', 
     workOrder?.equipment_id || ''
   );
+
+  // Fetch PM data if work order has PM enabled
+  const { data: pmData, isLoading: pmLoading } = usePMByWorkOrderId(workOrderId || '');
 
   const permissionLevels = useWorkOrderPermissionLevels();
 
@@ -91,6 +96,19 @@ const WorkOrderDetails = () => {
     queryClient.invalidateQueries({ 
       queryKey: ['dashboardStats', currentOrganization.id] 
     });
+    queryClient.invalidateQueries({ 
+      queryKey: ['preventativeMaintenance', workOrderId] 
+    });
+  };
+
+  const handlePMUpdate = () => {
+    // Refresh PM data and work order data
+    queryClient.invalidateQueries({ 
+      queryKey: ['preventativeMaintenance', workOrderId] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrder', currentOrganization.id, workOrderId] 
+    });
   };
 
   const getPriorityColor = (priority: string) => {
@@ -145,7 +163,15 @@ const WorkOrderDetails = () => {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
+              {workOrder.has_pm && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  <Clipboard className="h-3 w-3 mr-1" />
+                  PM Required
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <p>Work Order #{workOrder.id}</p>
               {formMode === 'requestor' && !permissionLevels.isManager && (
@@ -193,6 +219,64 @@ const WorkOrderDetails = () => {
           {/* Work Order Details */}
           <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
 
+          {/* PM Checklist Section - Only show if work order has PM and user has appropriate permissions */}
+          {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+            <PMChecklistComponent 
+              pm={pmData} 
+              onUpdate={handlePMUpdate}
+              readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
+            />
+          )}
+
+          {/* PM Loading State */}
+          {workOrder.has_pm && pmLoading && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clipboard className="h-5 w-5" />
+                  Loading PM Checklist...
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-32 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* PM Info for Requestors */}
+          {workOrder.has_pm && permissionLevels.isRequestor && !permissionLevels.isManager && pmData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clipboard className="h-5 w-5" />
+                  Preventative Maintenance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">PM Status:</span>
+                    <Badge className={
+                      pmData.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      pmData.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }>
+                      {pmData.status.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    This work order includes preventative maintenance tasks that will be completed by the assigned technician.
+                  </p>
+                  {pmData.status === 'completed' && pmData.completed_at && (
+                    <p className="text-sm text-green-600">
+                      PM completed on {new Date(pmData.completed_at).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Notes Section - Pass calculated canAddNotes prop */}
           <WorkOrderNotesSection 
             workOrderId={workOrder.id}
@@ -215,9 +299,9 @@ const WorkOrderDetails = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Enhanced Status Management - Only managers can change status */}
+          {/* Enhanced Status Management with PM awareness - Only managers can change status */}
           {permissionLevels.isManager && (
-            <EnhancedWorkOrderStatusManager 
+            <EnhancedWorkOrderStatusManagerWithPM 
               workOrder={workOrder} 
               organizationId={currentOrganization.id}
             />
@@ -327,6 +411,19 @@ const WorkOrderDetails = () => {
                   <div>
                     <div className="font-medium">Estimated Hours</div>
                     <div className="text-muted-foreground">{workOrder.estimated_hours}h</div>
+                  </div>
+                </div>
+              )}
+
+              {/* PM Status in Quick Info */}
+              {workOrder.has_pm && pmData && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Clipboard className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">PM Status</div>
+                    <div className="text-muted-foreground">
+                      {pmData.status.replace('_', ' ').toUpperCase()}
+                    </div>
                   </div>
                 </div>
               )}
