@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText, Shield, AlertCircle, Clipboard } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
@@ -21,6 +22,7 @@ import PMChecklistComponent from '@/components/work-orders/PMChecklistComponent'
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
   const { currentOrganization } = useOrganization();
+  const { user } = useAuth(); // Get current user
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -56,8 +58,21 @@ const WorkOrderDetails = () => {
     return <Navigate to="/work-orders" replace />;
   }
 
-  const createdByCurrentUser = workOrder.created_by === 'current-user-id'; // Would be actual user ID
+  // Fix: Use actual user ID instead of hardcoded value
+  const createdByCurrentUser = workOrder.created_by === user?.id;
   const formMode = permissionLevels.getFormMode(workOrder, createdByCurrentUser);
+
+  // Debug logging for troubleshooting
+  console.log('🔍 WorkOrder Details Debug:', {
+    workOrderId,
+    currentUserId: user?.id,
+    createdBy: workOrder.created_by,
+    createdByCurrentUser,
+    formMode,
+    hasPM: workOrder.has_pm,
+    pmData: pmData ? 'loaded' : 'null',
+    permissionLevels
+  });
 
   // Check if work order status allows modifications
   const isWorkOrderLocked = workOrder.status === 'completed' || workOrder.status === 'cancelled';

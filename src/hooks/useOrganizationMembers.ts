@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -26,6 +25,7 @@ export const useOrganizationMembers = (organizationId: string) => {
           role,
           status,
           joined_date,
+          user_id,
           profiles:user_id (
             id,
             name,
@@ -41,7 +41,7 @@ export const useOrganizationMembers = (organizationId: string) => {
       }
 
       return (data || []).map(member => ({
-        id: member.id,
+        id: member.user_id, // Use user_id instead of membership id
         name: (member.profiles as any)?.name || 'Unknown',
         email: (member.profiles as any)?.email || '',
         role: member.role as 'owner' | 'admin' | 'member',

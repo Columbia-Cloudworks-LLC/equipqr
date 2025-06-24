@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 
@@ -32,6 +31,8 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     // Initialize checklist from PM data or use default forklift checklist
     try {
       const savedChecklist = pm.checklist_data;
+      console.log('🔧 PM Checklist Data:', savedChecklist);
+      
       if (savedChecklist && Array.isArray(savedChecklist) && savedChecklist.length > 0) {
         // Type assertion with validation
         const parsedChecklist = savedChecklist as unknown as PMChecklistItem[];
@@ -47,16 +48,29 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         );
         
         if (isValidChecklist) {
+          console.log('✅ Using saved checklist data');
           setChecklist(parsedChecklist);
         } else {
+          console.log('⚠️ Invalid checklist data, using default');
           setChecklist(defaultForkliftChecklist);
         }
       } else {
+        console.log('🔧 No checklist data found, using default forklift checklist');
         setChecklist(defaultForkliftChecklist);
+        
+        // Auto-save the default checklist if this is a new PM
+        if (!readOnly) {
+          handleInitializeChecklist();
+        }
       }
     } catch (error) {
-      console.error('Error parsing checklist data:', error);
+      console.error('❌ Error parsing checklist data:', error);
       setChecklist(defaultForkliftChecklist);
+      
+      // Auto-save the default checklist on error
+      if (!readOnly) {
+        handleInitializeChecklist();
+      }
     }
 
     // Initialize all sections as open
@@ -66,7 +80,25 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       initialOpenSections[section] = true;
     });
     setOpenSections(initialOpenSections);
-  }, [pm]);
+  }, [pm, readOnly]);
+
+  const handleInitializeChecklist = async () => {
+    console.log('🔧 Initializing checklist with default data');
+    try {
+      const updatedPM = await updatePM(pm.id, {
+        checklistData: defaultForkliftChecklist,
+        notes: notes || 'PM checklist initialized with default forklift maintenance items.',
+        status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
+      });
+
+      if (updatedPM) {
+        console.log('✅ Checklist initialized successfully');
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('❌ Error initializing checklist:', error);
+    }
+  };
 
   const handleChecklistItemChange = (itemId: string, condition: 1 | 2 | 3 | 4 | 5, itemNotes?: string) => {
     setChecklist(prev => prev.map(item => 
@@ -268,6 +300,47 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       [section]: !prev[section]
     }));
   };
+
+  // Show empty state if checklist is empty
+  if (checklist.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {getStatusIcon()}
+              <div>
+                <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={getStatusColor()}>
+                    {pm.status.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              PM checklist is empty. Initialize it with the default forklift maintenance checklist.
+            </AlertDescription>
+          </Alert>
+          {!readOnly && (
+            <Button 
+              onClick={handleInitializeChecklist}
+              disabled={isUpdating}
+              className="w-full"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              {isUpdating ? 'Initializing...' : 'Initialize Default Checklist'}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
