@@ -16,15 +16,13 @@ import {
   Shield, 
   Edit, 
   Trash2, 
-  Image as ImageIcon,
   Upload,
   Eye,
-  Download,
   Star
 } from 'lucide-react';
 import { useEquipmentNotes, useCreateEquipmentNote, useUpdateEquipmentNote, useDeleteEquipmentNote, useDeleteEquipmentNoteImage, useSetEquipmentDisplayImage } from '@/hooks/useEquipmentNotes';
 import { useEquipmentNotesPermissions } from '@/hooks/useEquipmentNotesPermissions';
-import { EquipmentNote } from '@/services/equipmentNotesService';
+import { EquipmentNote } from '@/types/equipmentNotes';
 import EquipmentNoteImageUpload from './EquipmentNoteImageUpload';
 import { format } from 'date-fns';
 import { toast } from 'sonner';

@@ -1,29 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
-
-export type EquipmentNote = Tables<'equipment_notes'> & {
-  authorName?: string;
-  lastModifiedByName?: string;
-  images?: EquipmentNoteImage[];
-};
-
-export type EquipmentNoteImage = Tables<'equipment_note_images'> & {
-  uploadedByName?: string;
-};
-
-export interface CreateEquipmentNoteData {
-  equipmentId: string;
-  content: string;
-  isPrivate: boolean;
-  hoursWorked?: number;
-}
-
-export interface UpdateEquipmentNoteData {
-  content?: string;
-  isPrivate?: boolean;
-  hoursWorked?: number;
-}
+import { EquipmentNote, EquipmentNoteImage, CreateEquipmentNoteData, UpdateEquipmentNoteData } from '@/types/equipmentNotes';
 
 // Get equipment notes with proper visibility filtering
 export const getEquipmentNotes = async (

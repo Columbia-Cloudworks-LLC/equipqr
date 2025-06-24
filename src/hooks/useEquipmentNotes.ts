@@ -7,10 +7,9 @@ import {
   deleteEquipmentNote,
   uploadEquipmentNoteImage,
   deleteEquipmentNoteImage,
-  setEquipmentDisplayImage,
-  CreateEquipmentNoteData,
-  UpdateEquipmentNoteData
+  setEquipmentDisplayImage
 } from '@/services/equipmentNotesService';
+import { CreateEquipmentNoteData, UpdateEquipmentNoteData } from '@/types/equipmentNotes';
 import { toast } from 'sonner';
 
 export const useEquipmentNotes = (equipmentId: string, organizationId: string) => {

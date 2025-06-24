@@ -169,6 +169,118 @@ export type Database = {
           },
         ]
       }
+      equipment_note_images: {
+        Row: {
+          created_at: string
+          description: string | null
+          equipment_note_id: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          equipment_note_id: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          equipment_note_id?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_note_images_equipment_note_id_fkey"
+            columns: ["equipment_note_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_note_images_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_notes: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          equipment_id: string
+          hours_worked: number | null
+          id: string
+          is_private: boolean
+          last_modified_at: string | null
+          last_modified_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          equipment_id: string
+          hours_worked?: number | null
+          id?: string
+          is_private?: boolean
+          last_modified_at?: string | null
+          last_modified_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          equipment_id?: string
+          hours_worked?: number | null
+          id?: string
+          is_private?: boolean
+          last_modified_at?: string | null
+          last_modified_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_notes_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_notes_last_modified_by_fkey"
+            columns: ["last_modified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           author_id: string

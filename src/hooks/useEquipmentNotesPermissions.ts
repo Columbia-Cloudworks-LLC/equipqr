@@ -1,9 +1,7 @@
 
 import { useUnifiedPermissions } from './useUnifiedPermissions';
 import { useSession } from '@/contexts/SessionContext';
-import { Tables } from '@/integrations/supabase/types';
-
-type EquipmentNote = Tables<'equipment_notes'>;
+import { EquipmentNote } from '@/types/equipmentNotes';
 
 export interface EquipmentNotesPermissions {
   canViewNotes: boolean;
