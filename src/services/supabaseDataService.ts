@@ -485,7 +485,7 @@ export const createEquipment = async (
 // Create work order
 export const createWorkOrder = async (
   organizationId: string,
-  workOrderData: Omit<WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date'>
+  workOrderData: Omit<WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date' | 'created_by'>
 ): Promise<WorkOrder | null> => {
   try {
     const { data: userData } = await supabase.auth.getUser();
