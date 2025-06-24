@@ -27,12 +27,6 @@ export const useCreateWorkOrderEnhanced = () => {
         throw new Error('No organization selected');
       }
 
-      // Get current user - in a real app, this would come from auth context
-      const getCurrentUserId = () => {
-        // This is a placeholder - in a real app, you'd get this from your auth context
-        return 'current-user-id';
-      };
-
       // Create the work order
       const workOrderData = {
         title: data.title,
@@ -46,7 +40,6 @@ export const useCreateWorkOrderEnhanced = () => {
         assignee_id: data.assignmentType === 'user' ? data.assignmentId : undefined,
         team_id: data.assignmentType === 'team' ? data.assignmentId : undefined,
         status: 'submitted' as const,
-        created_by: getCurrentUserId(),
         acceptance_date: null
       };
 
