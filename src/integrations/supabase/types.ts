@@ -688,6 +688,73 @@ export type Database = {
         }
         Relationships: []
       }
+      preventative_maintenance: {
+        Row: {
+          checklist_data: Json
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          equipment_id: string
+          id: string
+          notes: string | null
+          organization_id: string
+          status: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          checklist_data?: Json
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by: string
+          equipment_id: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          status?: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          checklist_data?: Json
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string
+          equipment_id?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          status?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_pm_equipment"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_pm_organization"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_pm_work_order"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1018,8 +1085,10 @@ export type Database = {
           due_date: string | null
           equipment_id: string
           estimated_hours: number | null
+          has_pm: boolean
           id: string
           organization_id: string
+          pm_required: boolean
           priority: Database["public"]["Enums"]["work_order_priority"]
           status: Database["public"]["Enums"]["work_order_status"]
           team_id: string | null
@@ -1036,8 +1105,10 @@ export type Database = {
           due_date?: string | null
           equipment_id: string
           estimated_hours?: number | null
+          has_pm?: boolean
           id?: string
           organization_id: string
+          pm_required?: boolean
           priority?: Database["public"]["Enums"]["work_order_priority"]
           status?: Database["public"]["Enums"]["work_order_status"]
           team_id?: string | null
@@ -1054,8 +1125,10 @@ export type Database = {
           due_date?: string | null
           equipment_id?: string
           estimated_hours?: number | null
+          has_pm?: boolean
           id?: string
           organization_id?: string
+          pm_required?: boolean
           priority?: Database["public"]["Enums"]["work_order_priority"]
           status?: Database["public"]["Enums"]["work_order_status"]
           team_id?: string | null
@@ -1138,6 +1211,16 @@ export type Database = {
         Returns: {
           period_start: string
           period_end: string
+        }[]
+      }
+      get_latest_completed_pm: {
+        Args: { equipment_uuid: string }
+        Returns: {
+          id: string
+          work_order_id: string
+          completed_at: string
+          completed_by: string
+          work_order_title: string
         }[]
       }
       get_organization_premium_features: {
