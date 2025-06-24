@@ -15,10 +15,10 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
-  const { data: teamMemberships = [] } = useTeamMembership(user?.id || '', currentOrganization?.id || '');
+  const { teamMemberships } = useTeamMembership();
 
   // Determine user role in organization
-  const currentMember = members.find(m => m.user_id === user?.id);
+  const currentMember = members.find(m => m.id === user?.id);
   const isManager = currentMember?.role === 'owner' || currentMember?.role === 'admin';
   
   // Check if user is a technician in any team
