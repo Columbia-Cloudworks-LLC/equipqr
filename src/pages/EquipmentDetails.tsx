@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -329,6 +330,7 @@ const EquipmentDetails = () => {
           <EquipmentNotesTab 
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
+            equipmentTeamId={equipment.team_id || undefined}
           />
         </TabsContent>
 
