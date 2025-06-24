@@ -1,6 +1,7 @@
 
 import { useUnifiedPermissions } from './useUnifiedPermissions';
 import { useSession } from '@/contexts/SessionContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { EquipmentNote } from '@/types/equipmentNotes';
 
 export interface EquipmentNotesPermissions {
@@ -21,8 +22,9 @@ export const useEquipmentNotesPermissions = (
 ): EquipmentNotesPermissions => {
   const permissions = useUnifiedPermissions();
   const { sessionData } = useSession();
+  const { user } = useAuth();
   
-  const currentUserId = sessionData?.user?.id;
+  const currentUserId = user?.id;
   const currentOrg = permissions.context?.organizationId;
   const userRole = permissions.context?.userRole;
   
