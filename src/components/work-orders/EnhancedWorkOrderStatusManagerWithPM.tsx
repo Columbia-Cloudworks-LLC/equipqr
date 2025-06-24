@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
+import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
+import { useAuth } from '@/contexts/AuthContext';
 import { WorkOrder } from '@/services/supabaseDataService';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 
@@ -31,6 +34,8 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const { data: pmData } = usePMByWorkOrderId(workOrder.id);
+  const { canEdit, isManager, isTechnician } = useWorkOrderPermissionLevels();
+  const { user } = useAuth();
 
   const handleStatusChange = async (newStatus: string) => {
     // Check if trying to complete work order with incomplete PM
@@ -70,29 +75,42 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
     }
   };
 
+  // Check if user can perform status actions
+  const canPerformStatusActions = () => {
+    if (isManager) return true;
+    if (isTechnician && (workOrder.assignee_id === user?.id || workOrder.team_id)) return true;
+    if (workOrder.created_by === user?.id && workOrder.status === 'submitted') return true;
+    return false;
+  };
+
   const getStatusActions = () => {
+    if (!canPerformStatusActions()) return [];
+
     const canComplete = !workOrder.has_pm || (pmData && pmData.status === 'completed');
     
     switch (workOrder.status) {
       case 'submitted':
-        return [
-          { 
+        const actions = [];
+        if (isManager || isTechnician) {
+          actions.push({ 
             label: 'Accept', 
             action: () => handleStatusChange('accepted'), 
             icon: CheckCircle,
             variant: 'default' as const,
             description: 'Accept this work order and proceed with planning'
-          },
-          { 
-            label: 'Cancel', 
-            action: () => handleStatusChange('cancelled'), 
-            icon: X,
-            variant: 'destructive' as const,
-            description: 'Cancel this work order'
-          }
-        ];
+          });
+        }
+        actions.push({ 
+          label: 'Cancel', 
+          action: () => handleStatusChange('cancelled'), 
+          icon: X,
+          variant: 'destructive' as const,
+          description: 'Cancel this work order'
+        });
+        return actions;
 
       case 'accepted':
+        if (!isManager && !isTechnician) return [];
         return [
           { 
             label: 'Assign & Start', 
@@ -111,6 +129,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
         ];
 
       case 'assigned':
+        if (!isManager && !isTechnician) return [];
         return [
           { 
             label: 'Start Work', 
@@ -129,6 +148,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
         ];
 
       case 'in_progress':
+        if (!isManager && !isTechnician) return [];
         return [
           { 
             label: 'Complete', 
@@ -148,6 +168,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
         ];
 
       case 'on_hold':
+        if (!isManager && !isTechnician) return [];
         return [
           { 
             label: 'Resume', 
@@ -230,6 +251,15 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
               <Users className="h-4 w-4 text-muted-foreground" />
               <span>Team: {workOrder.teamName}</span>
             </div>
+          )}
+
+          {/* Permission Info */}
+          {!canPerformStatusActions() && (
+            <Alert>
+              <AlertDescription>
+                You don't have permission to change the status of this work order.
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Status Actions */}

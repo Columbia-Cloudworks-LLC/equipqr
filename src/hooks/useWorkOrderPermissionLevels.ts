@@ -8,6 +8,7 @@ export interface WorkOrderPermissionLevels {
   isManager: boolean;
   isRequestor: boolean;
   isTechnician: boolean;
+  canEdit: boolean;
   getFormMode: (workOrder: any, createdByCurrentUser: boolean) => 'manager' | 'requestor' | 'view_only';
 }
 
@@ -27,13 +28,20 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
   // All users can be requestors
   const isRequestor = true;
 
+  // Users can edit if they are managers or technicians
+  const canEdit = isManager || isTechnician;
+
   const getFormMode = (workOrder: any, createdByCurrentUser: boolean): 'manager' | 'requestor' | 'view_only' => {
     if (isManager) {
       return 'manager';
     }
     
-    if (createdByCurrentUser) {
+    if (createdByCurrentUser && workOrder?.status === 'submitted') {
       return 'requestor';
+    }
+    
+    if (isTechnician && (workOrder?.assignee_id === user?.id || workOrder?.team_id)) {
+      return 'manager'; // Technicians can act as managers for their assigned work orders
     }
     
     return 'view_only';
@@ -43,6 +51,7 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
     isManager,
     isRequestor,
     isTechnician,
+    canEdit,
     getFormMode
   };
 };
