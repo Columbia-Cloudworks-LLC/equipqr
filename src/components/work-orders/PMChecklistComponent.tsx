@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 
@@ -108,6 +109,10 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     ));
   };
 
+  const isItemComplete = (item: PMChecklistItem): boolean => {
+    return item.condition !== null && item.condition !== undefined;
+  };
+
   const saveChanges = async () => {
     setIsUpdating(true);
     try {
@@ -133,10 +138,16 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   const completePM = async () => {
     const requiredItems = checklist.filter(item => item.required);
-    const poorConditionItems = requiredItems.filter(item => item.condition <= 2);
+    const unratedRequiredItems = requiredItems.filter(item => !isItemComplete(item));
+    const unsafeItems = checklist.filter(item => item.condition === 5);
 
-    if (poorConditionItems.length > 0) {
-      toast.error(`Address poor condition items before completing: ${poorConditionItems.map(item => item.title).join(', ')}`);
+    if (unratedRequiredItems.length > 0) {
+      toast.error(`Please rate all required items before completing: ${unratedRequiredItems.map(item => item.title).join(', ')}`);
+      return;
+    }
+
+    if (unsafeItems.length > 0) {
+      toast.error(`Address unsafe conditions before completing: ${unsafeItems.map(item => item.title).join(', ')}`);
       return;
     }
 
@@ -167,13 +178,14 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     if (!printWindow) return;
 
     const sections = Array.from(new Set(checklist.map(item => item.section)));
-    const getConditionText = (condition: number) => {
+    const getConditionText = (condition: number | null | undefined) => {
+      if (condition === null || condition === undefined) return 'Not Rated';
       switch (condition) {
-        case 1: return 'Poor';
-        case 2: return 'Fair';
-        case 3: return 'Good';
-        case 4: return 'Very Good';
-        case 5: return 'Excellent';
+        case 1: return 'OK';
+        case 2: return 'Adjusted';
+        case 3: return 'Recommend Repairs';
+        case 4: return 'Requires Immediate Repairs';
+        case 5: return 'Unsafe Condition Present';
         default: return 'Unknown';
       }
     };
@@ -191,9 +203,12 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             .checklist-item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
             .required { border-left: 4px solid #e74c3c; }
             .condition { font-weight: bold; }
-            .condition-1, .condition-2 { color: #e74c3c; }
-            .condition-3 { color: #f39c12; }
-            .condition-4, .condition-5 { color: #27ae60; }
+            .condition-unrated { color: #e74c3c; }
+            .condition-1 { color: #27ae60; }
+            .condition-2 { color: #f39c12; }
+            .condition-3 { color: #e67e22; }
+            .condition-4 { color: #e74c3c; }
+            .condition-5 { color: #c0392b; }
             .notes { margin-top: 20px; padding: 15px; background-color: #f8f9fa; }
             @media print { .no-print { display: none; } }
           </style>
@@ -214,7 +229,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 <div class="checklist-item ${item.required ? 'required' : ''}">
                   <div>
                     <strong>${item.title}</strong> ${item.required ? '(Required)' : '(Optional)'}
-                    <span class="condition condition-${item.condition}"> - Condition: ${getConditionText(item.condition)}</span>
+                    <span class="condition condition-${item.condition || 'unrated'}"> - ${getConditionText(item.condition)}</span>
                   </div>
                   ${item.description ? `<p><em>${item.description}</em></p>` : ''}
                   ${item.notes ? `<p><strong>Notes:</strong> ${item.notes}</p>` : ''}
@@ -264,35 +279,41 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
-  const getConditionColor = (condition: number) => {
+  const getConditionColor = (condition: number | null | undefined) => {
+    if (condition === null || condition === undefined) return 'text-red-600';
     switch (condition) {
       case 1:
-      case 2:
-        return 'text-red-600';
-      case 3:
-        return 'text-yellow-600';
-      case 4:
-      case 5:
         return 'text-green-600';
+      case 2:
+        return 'text-yellow-600';
+      case 3:
+        return 'text-orange-600';
+      case 4:
+        return 'text-red-600';
+      case 5:
+        return 'text-red-800';
       default:
         return 'text-gray-600';
     }
   };
 
-  const getConditionText = (condition: number) => {
+  const getConditionText = (condition: number | null | undefined) => {
+    if (condition === null || condition === undefined) return 'Not Rated';
     switch (condition) {
-      case 1: return 'Poor';
-      case 2: return 'Fair'; 
-      case 3: return 'Good';
-      case 4: return 'Very Good';
-      case 5: return 'Excellent';
+      case 1: return 'OK';
+      case 2: return 'Adjusted';
+      case 3: return 'Recommend Repairs';
+      case 4: return 'Requires Immediate Repairs';
+      case 5: return 'Unsafe Condition Present';
       default: return 'Unknown';
     }
   };
 
   const sections = Array.from(new Set(checklist.map(item => item.section)));
-  const averageCondition = checklist.length > 0 ? checklist.reduce((sum, item) => sum + item.condition, 0) / checklist.length : 5;
-  const poorConditionCount = checklist.filter(item => item.condition <= 2).length;
+  const completedItems = checklist.filter(item => isItemComplete(item));
+  const totalItems = checklist.length;
+  const unratedRequiredItems = checklist.filter(item => item.required && !isItemComplete(item));
+  const unsafeItems = checklist.filter(item => item.condition === 5);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({
@@ -355,9 +376,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                   {pm.status.replace('_', ' ').toUpperCase()}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  Average Condition: <span className={getConditionColor(Math.round(averageCondition))}>
-                    {getConditionText(Math.round(averageCondition))}
-                  </span>
+                  Progress: {completedItems.length}/{totalItems} items completed
                 </span>
               </div>
             </div>
@@ -369,11 +388,20 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {pm.status !== 'completed' && poorConditionCount > 0 && (
+        {pm.status !== 'completed' && unratedRequiredItems.length > 0 && (
           <Alert className="border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-red-800">
-              {poorConditionCount} item(s) in poor condition require attention before completion.
+              {unratedRequiredItems.length} required item(s) need to be rated before completion.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {pm.status !== 'completed' && unsafeItems.length > 0 && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-red-800">
+              {unsafeItems.length} item(s) marked as unsafe condition present require immediate attention.
             </AlertDescription>
           </Alert>
         )}
@@ -392,7 +420,14 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                   <div key={item.id} className={`p-4 border rounded-lg ${item.required ? 'border-l-4 border-l-red-500' : ''}`}>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.title}</span>
+                        <div className="flex items-center gap-2">
+                          {isItemComplete(item) ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <Circle className="h-4 w-4 text-red-600" />
+                          )}
+                          <span className="font-medium">{item.title}</span>
+                        </div>
                         {item.required && (
                           <Badge variant="outline" className="text-xs">
                             Required
@@ -408,17 +443,23 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                       
                       {!readOnly && pm.status !== 'completed' && (
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium">Condition Rating:</Label>
+                          <Label className="text-sm font-medium">Maintenance Assessment:</Label>
                           <RadioGroup
-                            value={item.condition.toString()}
+                            value={item.condition?.toString() || ''}
                             onValueChange={(value) => handleChecklistItemChange(item.id, parseInt(value) as 1 | 2 | 3 | 4 | 5)}
-                            className="flex gap-4"
+                            className="flex flex-col gap-2"
                           >
-                            {[1, 2, 3, 4, 5].map((rating) => (
-                              <div key={rating} className="flex items-center space-x-2">
-                                <RadioGroupItem value={rating.toString()} id={`${item.id}-${rating}`} />
-                                <Label htmlFor={`${item.id}-${rating}`} className={`text-sm ${getConditionColor(rating)}`}>
-                                  {rating} - {getConditionText(rating)}
+                            {[
+                              { value: 1, label: 'OK', color: 'text-green-600' },
+                              { value: 2, label: 'Adjusted', color: 'text-yellow-600' },
+                              { value: 3, label: 'Recommend Repairs', color: 'text-orange-600' },
+                              { value: 4, label: 'Requires Immediate Repairs', color: 'text-red-600' },
+                              { value: 5, label: 'Unsafe Condition Present', color: 'text-red-800' }
+                            ].map((rating) => (
+                              <div key={rating.value} className="flex items-center space-x-2">
+                                <RadioGroupItem value={rating.value.toString()} id={`${item.id}-${rating.value}`} />
+                                <Label htmlFor={`${item.id}-${rating.value}`} className={`text-sm ${rating.color}`}>
+                                  {rating.label}
                                 </Label>
                               </div>
                             ))}
@@ -430,7 +471,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                         <Textarea
                           placeholder="Add notes for this item..."
                           value={item.notes || ''}
-                          onChange={(e) => handleChecklistItemChange(item.id, item.condition, e.target.value)}
+                          onChange={(e) => handleChecklistItemChange(item.id, item.condition || 1, e.target.value)}
                           className="mt-2"
                           rows={2}
                         />
@@ -470,7 +511,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             </Button>
             <Button
               onClick={completePM}
-              disabled={isUpdating || poorConditionCount > 0}
+              disabled={isUpdating || unratedRequiredItems.length > 0 || unsafeItems.length > 0}
             >
               {isUpdating ? 'Completing...' : 'Complete PM'}
             </Button>

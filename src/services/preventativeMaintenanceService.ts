@@ -8,7 +8,7 @@ export interface PMChecklistItem {
   id: string;
   title: string;
   description?: string;
-  condition: 1 | 2 | 3 | 4 | 5;
+  condition: 1 | 2 | 3 | 4 | 5 | null | undefined;
   required: boolean;
   notes?: string;
   section: string;
@@ -28,14 +28,14 @@ export interface UpdatePMData {
   status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
 }
 
-// Comprehensive forklift PM checklist
+// Comprehensive forklift PM checklist with undefined conditions (unrated)
 export const defaultForkliftChecklist: PMChecklistItem[] = [
   // 1. Engine/Motor System
   {
     id: 'engine-1',
     title: 'Engine Oil Level and Condition',
     description: 'Check oil level and inspect for contamination or metal particles',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Engine/Motor System'
   },
@@ -43,7 +43,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'engine-2',
     title: 'Engine Oil Filter',
     description: 'Inspect and replace if necessary',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Engine/Motor System'
   },
@@ -51,7 +51,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'engine-3',
     title: 'Air Filter',
     description: 'Check for dirt, debris, or damage',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Engine/Motor System'
   },
@@ -59,7 +59,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'engine-4',
     title: 'Fuel Filter',
     description: 'Inspect and replace if clogged',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Engine/Motor System'
   },
@@ -67,7 +67,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'engine-5',
     title: 'Cooling System',
     description: 'Check coolant level, hoses, and radiator condition',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Engine/Motor System'
   },
@@ -75,7 +75,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'engine-6',
     title: 'Belt Tension and Condition',
     description: 'Inspect all belts for proper tension, cracks, or fraying',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Engine/Motor System'
   },
@@ -85,7 +85,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'hydraulic-1',
     title: 'Hydraulic Fluid Level',
     description: 'Check fluid level in reservoir',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Hydraulic System'
   },
@@ -93,7 +93,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'hydraulic-2',
     title: 'Hydraulic Fluid Condition',
     description: 'Inspect for contamination, color, and consistency',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Hydraulic System'
   },
@@ -101,7 +101,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'hydraulic-3',
     title: 'Hydraulic Filter',
     description: 'Check and replace hydraulic filter',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Hydraulic System'
   },
@@ -109,7 +109,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'hydraulic-4',
     title: 'Hydraulic Hoses and Fittings',
     description: 'Inspect for leaks, cracks, or damage',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Hydraulic System'
   },
@@ -117,7 +117,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'hydraulic-5',
     title: 'Lift Cylinder Operation',
     description: 'Test lift, lower, and tilt functions',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Hydraulic System'
   },
@@ -125,7 +125,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'hydraulic-6',
     title: 'Hydraulic Pump Performance',
     description: 'Check pump operation and pressure',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Hydraulic System'
   },
@@ -135,7 +135,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'mast-1',
     title: 'Mast Wear Pads',
     description: 'Inspect for excessive wear or damage',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Mast and Forks'
   },
@@ -143,7 +143,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'mast-2',
     title: 'Lift Chains',
     description: 'Check for stretch, broken links, or wear',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Mast and Forks'
   },
@@ -151,7 +151,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'mast-3',
     title: 'Fork Inspection',
     description: 'Check for cracks, bends, or wear on heel and blade',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Mast and Forks'
   },
@@ -159,7 +159,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'mast-4',
     title: 'Carriage and Attachments',
     description: 'Inspect carriage rails and attachment mounting',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Mast and Forks'
   },
@@ -167,7 +167,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'mast-5',
     title: 'Mast Alignment',
     description: 'Check mast for straightness and proper alignment',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Mast and Forks'
   },
@@ -177,7 +177,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'transmission-1',
     title: 'Transmission Fluid',
     description: 'Check level and condition of transmission fluid',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Transmission and Drive Train'
   },
@@ -185,7 +185,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'transmission-2',
     title: 'Drive Axle Operation',
     description: 'Test forward and reverse operation',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Transmission and Drive Train'
   },
@@ -193,7 +193,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'transmission-3',
     title: 'Differential',
     description: 'Check differential fluid level and operation',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Transmission and Drive Train'
   },
@@ -201,7 +201,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'transmission-4',
     title: 'Drive Chain/Belt',
     description: 'Inspect drive chain or belt for wear and tension',
-    condition: 5,
+    condition: undefined,
     required: false,
     section: 'Transmission and Drive Train'
   },
@@ -211,7 +211,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'steering-1',
     title: 'Steering Wheel Play',
     description: 'Check for excessive play in steering wheel',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Steering System'
   },
@@ -219,7 +219,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'steering-2',
     title: 'Steering Cylinder',
     description: 'Inspect steering cylinder for leaks and operation',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Steering System'
   },
@@ -227,7 +227,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'steering-3',
     title: 'Steering Linkage',
     description: 'Check all steering linkage components',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Steering System'
   },
@@ -235,7 +235,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'steering-4',
     title: 'Power Steering Fluid',
     description: 'Check fluid level and condition',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Steering System'
   },
@@ -245,7 +245,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'brake-1',
     title: 'Service Brake Operation',
     description: 'Test service brake effectiveness',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Brake System'
   },
@@ -253,7 +253,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'brake-2',
     title: 'Parking Brake',
     description: 'Test parking brake engagement and holding ability',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Brake System'
   },
@@ -261,7 +261,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'brake-3',
     title: 'Brake Fluid Level',
     description: 'Check brake fluid reservoir level',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Brake System'
   },
@@ -269,7 +269,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'brake-4',
     title: 'Brake Lines and Hoses',
     description: 'Inspect for leaks, cracks, or damage',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Brake System'
   },
@@ -279,7 +279,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'tires-1',
     title: 'Tire Condition',
     description: 'Inspect for wear, cuts, or embedded objects',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Tires and Wheels'
   },
@@ -287,7 +287,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'tires-2',
     title: 'Tire Pressure',
     description: 'Check and adjust tire pressure to specifications',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Tires and Wheels'
   },
@@ -295,7 +295,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'tires-3',
     title: 'Wheel Mounting',
     description: 'Check wheel lug nuts and mounting hardware',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Tires and Wheels'
   },
@@ -303,7 +303,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'tires-4',
     title: 'Rim Condition',
     description: 'Inspect rims for cracks, bends, or damage',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Tires and Wheels'
   },
@@ -313,7 +313,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'electrical-1',
     title: 'Battery Condition',
     description: 'Check battery terminals, cables, and charge level',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Electrical System'
   },
@@ -321,7 +321,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'electrical-2',
     title: 'Lights and Indicators',
     description: 'Test all lights, beacons, and warning indicators',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Electrical System'
   },
@@ -329,7 +329,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'electrical-3',
     title: 'Horn Operation',
     description: 'Test horn functionality',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Electrical System'
   },
@@ -337,7 +337,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'electrical-4',
     title: 'Backup Alarm',
     description: 'Test backup alarm operation',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Electrical System'
   },
@@ -345,7 +345,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'electrical-5',
     title: 'Wiring Harness',
     description: 'Inspect wiring for damage, chafing, or loose connections',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Electrical System'
   },
@@ -355,7 +355,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'safety-1',
     title: 'Overhead Guard',
     description: 'Inspect overhead guard for damage or loose mounting',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Safety Systems'
   },
@@ -363,7 +363,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'safety-2',
     title: 'Load Backrest',
     description: 'Check load backrest condition and mounting',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Safety Systems'
   },
@@ -371,7 +371,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'safety-3',
     title: 'Seat Belt',
     description: 'Inspect seat belt for proper operation and condition',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Safety Systems'
   },
@@ -379,7 +379,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'safety-4',
     title: 'Operator Presence System',
     description: 'Test operator presence sensing system',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Safety Systems'
   },
@@ -387,7 +387,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'safety-5',
     title: 'Load Handling Attachments',
     description: 'Inspect all load handling attachments',
-    condition: 5,
+    condition: undefined,
     required: false,
     section: 'Safety Systems'
   },
@@ -397,7 +397,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'operator-1',
     title: 'Seat Condition',
     description: 'Check seat adjustment, cushioning, and mounting',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Operator Compartment'
   },
@@ -405,7 +405,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'operator-2',
     title: 'Control Linkages',
     description: 'Test all control levers and pedals for proper operation',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Operator Compartment'
   },
@@ -413,7 +413,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'operator-3',
     title: 'Instruments and Gauges',
     description: 'Check all gauges and warning lights',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Operator Compartment'
   },
@@ -421,7 +421,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'operator-4',
     title: 'Mirrors',
     description: 'Inspect mirrors for clarity and proper adjustment',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Operator Compartment'
   },
@@ -431,7 +431,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'frame-1',
     title: 'Frame Inspection',
     description: 'Check frame for cracks, bends, or structural damage',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Frame and Body'
   },
@@ -439,7 +439,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'frame-2',
     title: 'Counterweight',
     description: 'Inspect counterweight mounting and condition',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Frame and Body'
   },
@@ -447,7 +447,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'frame-3',
     title: 'Body Panels',
     description: 'Check body panels for damage or loose mounting',
-    condition: 5,
+    condition: undefined,
     required: false,
     section: 'Frame and Body'
   },
@@ -455,7 +455,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'frame-4',
     title: 'Access Panels',
     description: 'Ensure all access panels are secure and functional',
-    condition: 5,
+    condition: undefined,
     required: false,
     section: 'Frame and Body'
   },
@@ -465,7 +465,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'lubrication-1',
     title: 'Mast Lubrication',
     description: 'Lubricate all mast grease fittings',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Lubrication Points'
   },
@@ -473,7 +473,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'lubrication-2',
     title: 'Steering Lubrication',
     description: 'Lubricate steering linkage grease fittings',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Lubrication Points'
   },
@@ -481,7 +481,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'lubrication-3',
     title: 'Drive Axle Lubrication',
     description: 'Lubricate drive axle components',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Lubrication Points'
   },
@@ -489,7 +489,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
     id: 'lubrication-4',
     title: 'General Lubrication',
     description: 'Apply lubrication to all other specified points',
-    condition: 5,
+    condition: undefined,
     required: true,
     section: 'Lubrication Points'
   }
