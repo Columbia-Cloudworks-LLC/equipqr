@@ -1,17 +1,15 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Users, ShoppingCart, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Users, AlertTriangle, TrendingUp } from 'lucide-react';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { calculateEnhancedBilling, getSlotStatus } from '@/utils/enhancedBillingUtils';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import PurchaseLicensesDialog from './PurchaseLicensesDialog';
 
 interface SlotBasedBillingProps {
   storageUsedGB: number;
@@ -28,37 +26,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
 }) => {
   const { currentOrganization } = useUnifiedOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
-  const { data: slotAvailability, isLoading } = useSlotAvailability(currentOrganization?.id || '');
-
-  const handlePurchaseLicenses = async (quantity: number) => {
-    if (!currentOrganization) {
-      toast.error('No organization selected');
-      return;
-    }
-
-    try {
-      toast.loading(`Creating checkout for ${quantity} user license${quantity > 1 ? 's' : ''}...`);
-      
-      const { data, error } = await supabase.functions.invoke('purchase-user-licenses', {
-        body: { 
-          quantity, 
-          organizationId: currentOrganization.id 
-        }
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // Open Stripe checkout in a new tab
-      window.open(data.url, '_blank');
-      toast.success('Redirecting to Stripe checkout...');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create checkout';
-      console.error('Error creating license checkout:', err);
-      toast.error(errorMessage);
-    }
-  };
+  const { data: slotAvailability, isLoading, refetch } = useSlotAvailability(currentOrganization?.id || '');
 
   if (isLoading || !slotAvailability) {
     return (
@@ -173,31 +141,11 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
                   <p className="text-sm text-muted-foreground">
                     Monthly subscription for user licenses at $10 per license. Cancel anytime.
                   </p>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => handlePurchaseLicenses(5)}
-                      className="flex-1"
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Buy 5 Licenses ($50/mo)
-                    </Button>
-                    <Button 
-                      onClick={() => handlePurchaseLicenses(10)}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Buy 10 Licenses ($100/mo)
-                    </Button>
-                  </div>
-                  <Button 
-                    onClick={() => handlePurchaseLicenses(25)}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Buy 25 Licenses ($250/mo)
-                  </Button>
+                  <PurchaseLicensesDialog
+                    currentLicenses={billing.userSlots.totalPurchased}
+                    availableSlots={billing.userSlots.availableSlots}
+                    onPurchaseComplete={() => refetch()}
+                  />
                 </div>
               </>
             )}
@@ -214,18 +162,11 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
                       Purchase user license subscriptions to enable team collaboration. 
                       Pay monthly per license and invite team members instantly.
                     </div>
-                    <div className="flex gap-2">
-                      <Button onClick={onUpgradeToMultiUser} size="sm">
-                        Start Inviting Members
-                      </Button>
-                      <Button 
-                        onClick={() => handlePurchaseLicenses(5)} 
-                        variant="outline" 
-                        size="sm"
-                      >
-                        Buy 5 Licenses ($50/mo)
-                      </Button>
-                    </div>
+                    <PurchaseLicensesDialog
+                      currentLicenses={0}
+                      availableSlots={0}
+                      onPurchaseComplete={() => refetch()}
+                    />
                   </div>
                 </div>
               </div>

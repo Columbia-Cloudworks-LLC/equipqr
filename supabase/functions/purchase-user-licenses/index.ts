@@ -18,9 +18,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Use service role key for proper authorization checks
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
   );
 
   try {
@@ -33,8 +35,11 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    
+    // Get user from token using service role client
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
@@ -44,8 +49,8 @@ serve(async (req) => {
     }
     logStep("Request data", { quantity, organizationId });
 
-    // Verify user has admin access to organization
-    const { data: membership } = await supabaseClient
+    // Verify user has admin access to organization using service role
+    const { data: membership, error: membershipError } = await supabaseClient
       .from('organization_members')
       .select('role')
       .eq('organization_id', organizationId)
@@ -53,7 +58,13 @@ serve(async (req) => {
       .eq('status', 'active')
       .single();
 
+    if (membershipError) {
+      logStep("Membership query error", { error: membershipError });
+      throw new Error("Failed to verify organization membership");
+    }
+
     if (!membership || !['owner', 'admin'].includes(membership.role)) {
+      logStep("Authorization failed", { membership });
       throw new Error("Insufficient permissions to purchase licenses");
     }
     logStep("Authorization verified", { role: membership.role });
