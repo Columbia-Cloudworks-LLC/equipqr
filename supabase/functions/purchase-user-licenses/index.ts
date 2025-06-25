@@ -88,7 +88,6 @@ serve(async (req) => {
       recurring: { interval: 'month' },
       product_data: {
         name: `User License Slots (${quantity} licenses)`,
-        description: `Monthly subscription for ${quantity} user license slots`,
       },
     });
     logStep("Price created", { priceId: price.id, amount: price.unit_amount });
