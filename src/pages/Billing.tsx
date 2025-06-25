@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, AlertCircle, RefreshCw } from 'lucide-react';
+import { CreditCard, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import RealMemberBilling from '@/components/billing/RealMemberBilling';
 import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
 import EnhancedInvitationManagement from '@/components/organization/EnhancedInvitationManagement';
@@ -18,7 +18,7 @@ const Billing = () => {
   const { currentOrganization } = useUnifiedOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { subscriptionData, isLoading, error, checkSubscription } = useSubscription();
-  const { data: slotAvailability } = useSlotAvailability(currentOrganization?.id || '');
+  const { data: slotAvailability, refetch: refetchSlots } = useSlotAvailability(currentOrganization?.id || '');
   
   // Mock data for storage - in a real app, this would come from your backend
   const [storageUsedGB] = useState(3.2);
@@ -26,11 +26,44 @@ const Billing = () => {
 
   const isFree = isFreeOrganization(members);
 
+  // Handle success/cancel URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const cancelled = urlParams.get('cancelled');
+    const sessionId = urlParams.get('session_id');
+
+    if (success === 'true') {
+      toast({
+        title: 'Payment Successful!',
+        description: 'Your user licenses have been activated. You can now invite team members.',
+        variant: 'default',
+      });
+      
+      // Refresh slot data after successful purchase
+      setTimeout(() => {
+        refetchSlots();
+      }, 2000);
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (cancelled === 'true') {
+      toast({
+        title: 'Payment Cancelled',
+        description: 'Your payment was cancelled. No charges were made.',
+        variant: 'destructive',
+      });
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [refetchSlots, toast]);
+
   const handleToggleFleetMap = (enabled: boolean) => {
     if (isFree) {
       toast({
         title: 'Feature Not Available',
-        description: 'Fleet Map requires a multi-user organization. Invite team members first.',
+        description: 'Fleet Map requires a multi-user organization. Purchase user licenses first.',
         variant: 'destructive',
       });
       return;
@@ -44,34 +77,37 @@ const Billing = () => {
   };
 
   const handlePurchaseSlots = (quantity: number) => {
-    // This would integrate with Stripe to purchase slots
+    // This is now handled directly in SlotBasedBilling component
     toast({
-      title: 'Purchase Initiated',
-      description: `Redirecting to checkout for ${quantity} user license slots...`,
+      title: 'Redirecting to Checkout',
+      description: `Opening Stripe checkout for ${quantity} user license${quantity > 1 ? 's' : ''}...`,
     });
-    console.log(`Purchase ${quantity} slots for organization:`, currentOrganization?.id);
   };
 
   const handleUpgradeToMultiUser = () => {
     toast({
-      title: 'Invite Team Members',
-      description: 'Redirecting to organization page to invite team members...',
+      title: 'Ready to Upgrade',
+      description: 'Purchase user licenses below to start inviting team members.',
     });
-    // In a real app, this would navigate to the organization page
-    window.location.href = '/organization';
+    // Scroll to purchase section
+    const element = document.querySelector('[data-testid="slot-based-billing"]');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleRefreshSubscription = async () => {
     try {
       await checkSubscription();
+      await refetchSlots();
       toast({
-        title: 'Subscription Status Refreshed',
-        description: 'Your subscription status has been updated.',
+        title: 'Status Refreshed',
+        description: 'Your billing status has been updated.',
       });
     } catch (err) {
       toast({
         title: 'Error',
-        description: 'Failed to refresh subscription status.',
+        description: 'Failed to refresh billing status.',
         variant: 'destructive',
       });
     }
@@ -109,7 +145,7 @@ const Billing = () => {
             Refresh
           </Button>
           <Badge variant={isFree ? 'secondary' : 'default'}>
-            {isFree ? 'Free Plan' : 'Slot-Based Billing'}
+            {isFree ? 'Free Plan' : 'User License Plan'}
           </Badge>
         </div>
       </div>
@@ -126,17 +162,17 @@ const Billing = () => {
           <div className="flex items-center justify-between">
             <div>
               <div className="font-medium text-lg">
-                {isFree ? 'Free Single-User Plan' : 'Slot-Based Multi-User Plan'}
+                {isFree ? 'Free Single-User Plan' : 'User License Subscription Plan'}
               </div>
               <div className="text-sm text-muted-foreground">
                 {isFree 
                   ? 'Perfect for individual users managing their own equipment'
-                  : 'Pre-purchase user license slots and pay for monthly add-ons as needed'
+                  : 'Monthly subscription for user licenses at $10 per license per month'
                 }
               </div>
               {slotAvailability && slotAvailability.total_purchased > 0 && (
                 <div className="text-sm font-medium text-primary mt-1">
-                  {slotAvailability.available_slots} of {slotAvailability.total_purchased} slots available
+                  {slotAvailability.available_slots} of {slotAvailability.total_purchased} licenses available
                 </div>
               )}
             </div>
@@ -150,9 +186,12 @@ const Billing = () => {
                 </div>
               ) : (
                 <div>
-                  <Badge variant="default" className="mb-2">Active</Badge>
+                  <Badge variant="default" className="mb-2">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Active Licenses
+                  </Badge>
                   <div className="text-xs text-muted-foreground">
-                    Slot-based billing model
+                    Monthly subscription model
                   </div>
                 </div>
               )}
@@ -161,13 +200,15 @@ const Billing = () => {
         </CardContent>
       </Card>
 
-      {/* Slot-Based Billing Overview */}
-      <SlotBasedBilling
-        storageUsedGB={storageUsedGB}
-        fleetMapEnabled={fleetMapEnabled}
-        onPurchaseSlots={handlePurchaseSlots}
-        onUpgradeToMultiUser={handleUpgradeToMultiUser}
-      />
+      {/* User License Management */}
+      <div data-testid="slot-based-billing">
+        <SlotBasedBilling
+          storageUsedGB={storageUsedGB}
+          fleetMapEnabled={fleetMapEnabled}
+          onPurchaseSlots={handlePurchaseSlots}
+          onUpgradeToMultiUser={handleUpgradeToMultiUser}
+        />
+      </div>
 
       {/* Enhanced Invitation Management */}
       {!isFree && (

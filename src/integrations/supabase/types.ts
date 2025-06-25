@@ -534,6 +534,7 @@ export type Database = {
       organization_slots: {
         Row: {
           amount_paid_cents: number
+          auto_renew: boolean | null
           billing_period_end: string
           billing_period_start: string
           created_at: string
@@ -542,11 +543,14 @@ export type Database = {
           purchased_slots: number
           slot_type: string
           stripe_payment_intent_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
           updated_at: string
           used_slots: number
         }
         Insert: {
           amount_paid_cents?: number
+          auto_renew?: boolean | null
           billing_period_end: string
           billing_period_start: string
           created_at?: string
@@ -555,11 +559,14 @@ export type Database = {
           purchased_slots?: number
           slot_type?: string
           stripe_payment_intent_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           used_slots?: number
         }
         Update: {
           amount_paid_cents?: number
+          auto_renew?: boolean | null
           billing_period_end?: string
           billing_period_start?: string
           created_at?: string
@@ -568,6 +575,8 @@ export type Database = {
           purchased_slots?: number
           slot_type?: string
           stripe_payment_intent_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           used_slots?: number
         }
@@ -997,6 +1006,56 @@ export type Database = {
           },
         ]
       }
+      user_license_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          organization_id: string
+          quantity: number
+          status: string
+          stripe_customer_id: string
+          stripe_price_id: string
+          stripe_subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          organization_id: string
+          quantity?: number
+          status?: string
+          stripe_customer_id: string
+          stripe_price_id: string
+          stripe_subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          organization_id?: string
+          quantity?: number
+          status?: string
+          stripe_customer_id?: string
+          stripe_price_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_license_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_order_images: {
         Row: {
           created_at: string
@@ -1269,6 +1328,16 @@ export type Database = {
       reserve_slot_for_invitation: {
         Args: { org_id: string; invitation_id: string }
         Returns: boolean
+      }
+      sync_stripe_subscription_slots: {
+        Args: {
+          org_id: string
+          subscription_id: string
+          quantity: number
+          period_start: string
+          period_end: string
+        }
+        Returns: undefined
       }
       update_organization_billing_metrics: {
         Args: { org_id: string }
