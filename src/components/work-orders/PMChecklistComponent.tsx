@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 interface PMChecklistComponentProps {
@@ -23,6 +23,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   onUpdate,
   readOnly = false
 }) => {
+  const isMobile = useIsMobile();
   const [checklist, setChecklist] = useState<PMChecklistItem[]>([]);
   const [notes, setNotes] = useState(pm.notes || '');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -74,14 +75,14 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       }
     }
 
-    // Initialize all sections as open
+    // Initialize sections based on mobile/desktop - closed on mobile, open on desktop
     const sections = Array.from(new Set(defaultForkliftChecklist.map(item => item.section)));
     const initialOpenSections: Record<string, boolean> = {};
     sections.forEach(section => {
-      initialOpenSections[section] = true;
+      initialOpenSections[section] = !isMobile; // Closed on mobile, open on desktop
     });
     setOpenSections(initialOpenSections);
-  }, [pm, readOnly]);
+  }, [pm, readOnly, isMobile]);
 
   const handleInitializeChecklist = async () => {
     console.log('🔧 Initializing checklist with default data');
