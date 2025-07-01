@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,7 @@ const MobilePMChecklistComponent: React.FC<MobilePMChecklistComponentProps> = ({
   const getSectionStats = (items: PMChecklistItem[]) => {
     const total = items.length;
     const completed = items.filter(item => item.condition !== undefined && item.condition !== null).length;
-    const failed = items.filter(item => item.condition === 1 || item.condition === 2).length;
+    const failed = items.filter(item => item.condition === 4 || item.condition === 5).length;
     
     return { total, completed, failed };
   };
@@ -144,11 +145,11 @@ const MobilePMChecklistComponent: React.FC<MobilePMChecklistComponentProps> = ({
 
   const renderConditionRating = (item: PMChecklistItem) => {
     const conditions = [
-      { value: 1, label: 'Needs Immediate Attention', color: 'text-red-600', bgColor: 'bg-red-100 border-red-300' },
-      { value: 2, label: 'Needs Attention', color: 'text-orange-600', bgColor: 'bg-orange-100 border-orange-300' },
-      { value: 3, label: 'Fair', color: 'text-yellow-600', bgColor: 'bg-yellow-100 border-yellow-300' },
-      { value: 4, label: 'Good', color: 'text-blue-600', bgColor: 'bg-blue-100 border-blue-300' },
-      { value: 5, label: 'Excellent', color: 'text-green-600', bgColor: 'bg-green-100 border-green-300' }
+      { value: 1, label: 'OK', color: 'text-green-600', bgColor: 'bg-green-100 border-green-300' },
+      { value: 2, label: 'Adjusted', color: 'text-blue-600', bgColor: 'bg-blue-100 border-blue-300' },
+      { value: 3, label: 'Recommend Repairs', color: 'text-yellow-600', bgColor: 'bg-yellow-100 border-yellow-300' },
+      { value: 4, label: 'Requires Immediate Repairs', color: 'text-orange-600', bgColor: 'bg-orange-100 border-orange-300' },
+      { value: 5, label: 'Unsafe Condition Present', color: 'text-red-600', bgColor: 'bg-red-100 border-red-300' }
     ];
 
     return (
