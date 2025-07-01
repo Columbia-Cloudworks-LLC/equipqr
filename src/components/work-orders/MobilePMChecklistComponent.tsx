@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -145,10 +144,10 @@ const MobilePMChecklistComponent: React.FC<MobilePMChecklistComponentProps> = ({
 
   const renderConditionRating = (item: PMChecklistItem) => {
     const conditions = [
-      { value: 1, label: 'Poor', color: 'text-red-600', bgColor: 'bg-red-100 border-red-300' },
-      { value: 2, label: 'Fair', color: 'text-orange-600', bgColor: 'bg-orange-100 border-orange-300' },
-      { value: 3, label: 'Good', color: 'text-yellow-600', bgColor: 'bg-yellow-100 border-yellow-300' },
-      { value: 4, label: 'Very Good', color: 'text-blue-600', bgColor: 'bg-blue-100 border-blue-300' },
+      { value: 1, label: 'Needs Immediate Attention', color: 'text-red-600', bgColor: 'bg-red-100 border-red-300' },
+      { value: 2, label: 'Needs Attention', color: 'text-orange-600', bgColor: 'bg-orange-100 border-orange-300' },
+      { value: 3, label: 'Fair', color: 'text-yellow-600', bgColor: 'bg-yellow-100 border-yellow-300' },
+      { value: 4, label: 'Good', color: 'text-blue-600', bgColor: 'bg-blue-100 border-blue-300' },
       { value: 5, label: 'Excellent', color: 'text-green-600', bgColor: 'bg-green-100 border-green-300' }
     ];
 
