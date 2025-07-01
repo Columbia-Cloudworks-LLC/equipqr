@@ -38,11 +38,16 @@ const MobilePMChecklistComponent: React.FC<MobilePMChecklistComponentProps> = ({
 
   useEffect(() => {
     if (pm.checklist_data) {
-      // Fix TypeScript error by properly casting the JSON data
-      const items = Array.isArray(pm.checklist_data) 
-        ? pm.checklist_data as PMChecklistItem[]
-        : [];
-      setChecklistItems(items);
+      // Properly handle the JSON data conversion with type safety
+      try {
+        const items = Array.isArray(pm.checklist_data) 
+          ? (pm.checklist_data as unknown as PMChecklistItem[])
+          : [];
+        setChecklistItems(items);
+      } catch (error) {
+        console.error('Error parsing checklist data:', error);
+        setChecklistItems([]);
+      }
     }
   }, [pm.checklist_data]);
 

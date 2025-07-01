@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import {
@@ -85,7 +84,16 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
   // Reset form when workOrder changes or dialog opens
   useEffect(() => {
     if (open) {
-      form.reset(initialValues);
+      // Set individual form values instead of using reset with parameters
+      form.setValue('title', initialValues.title || '');
+      form.setValue('description', initialValues.description || '');
+      form.setValue('equipmentId', initialValues.equipmentId || '');
+      form.setValue('priority', initialValues.priority || 'medium');
+      form.setValue('dueDate', initialValues.dueDate || '');
+      form.setValue('estimatedHours', initialValues.estimatedHours);
+      form.setValue('hasPM', initialValues.hasPM || false);
+      form.setValue('assignmentType', initialValues.assignmentType || 'unassigned');
+      form.setValue('assignmentId', initialValues.assignmentId || '');
     }
   }, [open, workOrder]);
 
