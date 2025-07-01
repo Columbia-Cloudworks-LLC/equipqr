@@ -19,7 +19,6 @@ import WorkOrderNotesSection from '@/components/work-orders/WorkOrderNotesSectio
 import WorkOrderImagesSection from '@/components/work-orders/WorkOrderImagesSection';
 import WorkOrderFormEnhanced from '@/components/work-orders/WorkOrderFormEnhanced';
 import PMChecklistComponent from '@/components/work-orders/PMChecklistComponent';
-import MobilePMChecklistComponent from '@/components/work-orders/MobilePMChecklistComponent';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -297,23 +296,13 @@ const WorkOrderDetails = () => {
           {/* Work Order Details */}
           <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
 
-          {/* PM Checklist Section - Use mobile version on mobile */}
+          {/* PM Checklist Section - Now using single responsive component */}
           {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-            <>
-              {isMobile ? (
-                <MobilePMChecklistComponent 
-                  pm={pmData} 
-                  onUpdate={handlePMUpdate}
-                  readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
-                />
-              ) : (
-                <PMChecklistComponent 
-                  pm={pmData} 
-                  onUpdate={handlePMUpdate}
-                  readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
-                />
-              )}
-            </>
+            <PMChecklistComponent 
+              pm={pmData} 
+              onUpdate={handlePMUpdate}
+              readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
+            />
           )}
 
           {/* PM Loading State */}
