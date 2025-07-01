@@ -23,7 +23,9 @@ import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useSyncEquipmentByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
 import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
+import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/hooks/useWorkOrderUpdate';
 import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
+import { WorkOrder } from '@/services/supabaseDataService';
 
 const workOrderFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -43,6 +45,7 @@ interface WorkOrderFormEnhancedProps {
   open: boolean;
   onClose: () => void;
   equipmentId?: string;
+  workOrder?: WorkOrder; // Add workOrder prop for edit mode
   onSubmit?: (data: WorkOrderFormData) => void;
 }
 
@@ -50,42 +53,69 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
   open, 
   onClose, 
   equipmentId,
+  workOrder, // Edit mode when this is provided
   onSubmit 
 }) => {
   const { currentOrganization } = useOrganization();
   const createWorkOrderMutation = useCreateWorkOrderEnhanced();
+  const updateWorkOrderMutation = useUpdateWorkOrder();
   
   const { data: allEquipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
   const { data: preSelectedEquipment } = useSyncEquipmentById(
     currentOrganization?.id || '', 
-    equipmentId || ''
+    equipmentId || workOrder?.equipment_id || ''
   );
 
+  const isEditMode = !!workOrder;
+
   const initialValues: Partial<WorkOrderFormData> = {
-    title: '',
-    description: '',
-    equipmentId: equipmentId || '',
-    priority: 'medium',
-    dueDate: '',
-    estimatedHours: undefined,
-    hasPM: false,
+    title: workOrder?.title || '',
+    description: workOrder?.description || '',
+    equipmentId: workOrder?.equipment_id || equipmentId || '',
+    priority: workOrder?.priority || 'medium',
+    dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : '',
+    estimatedHours: workOrder?.estimated_hours || undefined,
+    hasPM: workOrder?.has_pm || false,
     assignmentType: 'unassigned',
     assignmentId: '',
   };
 
   const form = useFormValidation(workOrderFormSchema, initialValues);
 
+  // Reset form when workOrder changes or dialog opens
+  useEffect(() => {
+    if (open) {
+      form.reset(initialValues);
+    }
+  }, [open, workOrder]);
+
   // Get assignment data for auto-assignment suggestions
   const assignmentData = useWorkOrderAssignment(
     currentOrganization?.id || '', 
-    form.values.equipmentId as string || equipmentId
+    form.values.equipmentId as string || equipmentId || workOrder?.equipment_id
   );
 
   const { execute: submitForm, isLoading: isSubmitting } = useAsyncOperation(
     async (data: WorkOrderFormData) => {
       if (onSubmit) {
         await onSubmit(data);
+      } else if (isEditMode && workOrder) {
+        // Update existing work order
+        const updateData: UpdateWorkOrderData = {
+          title: data.title,
+          description: data.description,
+          priority: data.priority,
+          dueDate: data.dueDate || undefined,
+          estimatedHours: data.estimatedHours,
+          hasPM: data.hasPM,
+        };
+        
+        await updateWorkOrderMutation.mutateAsync({
+          workOrderId: workOrder.id,
+          data: updateData
+        });
       } else {
+        // Create new work order
         const workOrderData: EnhancedCreateWorkOrderData = {
           title: data.title,
           description: data.description,
@@ -123,20 +153,23 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
   };
 
   function renderEquipmentField() {
-    if (preSelectedEquipment) {
+    if (preSelectedEquipment || isEditMode) {
+      const equipment = preSelectedEquipment;
+      if (!equipment) return null;
+
       return (
         <div className="space-y-2">
           <Label>Equipment</Label>
           <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border">
             <Package className="h-4 w-4 text-muted-foreground" />
             <div className="flex-1">
-              <div className="font-medium">{preSelectedEquipment.name}</div>
+              <div className="font-medium">{equipment.name}</div>
               <div className="text-sm text-muted-foreground">
-                {preSelectedEquipment.manufacturer} {preSelectedEquipment.model} • {preSelectedEquipment.serial_number}
+                {equipment.manufacturer} {equipment.model} • {equipment.serial_number}
               </div>
             </div>
             <Badge variant="secondary" className="text-xs">
-              Selected
+              {isEditMode ? 'Current' : 'Selected'}
             </Badge>
           </div>
         </div>
@@ -177,11 +210,14 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Work Order</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Work Order' : 'Create Work Order'}</DialogTitle>
           <DialogDescription>
-            {preSelectedEquipment ? 
-              `Create a new work order for ${preSelectedEquipment.name}` :
-              'Create a new work order for your equipment'
+            {isEditMode ? 
+              `Update the work order details` :
+              (preSelectedEquipment ? 
+                `Create a new work order for ${preSelectedEquipment.name}` :
+                'Create a new work order for your equipment'
+              )
             }
           </DialogDescription>
         </DialogHeader>
@@ -310,7 +346,7 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
             )}
           </div>
 
-          {assignmentData.suggestedTeamName && (
+          {!isEditMode && assignmentData.suggestedTeamName && (
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
@@ -333,9 +369,12 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={isSubmitting || !form.isValid || createWorkOrderMutation.isPending}
+              disabled={isSubmitting || !form.isValid || createWorkOrderMutation.isPending || updateWorkOrderMutation.isPending}
             >
-              {(isSubmitting || createWorkOrderMutation.isPending) ? 'Creating...' : 'Create Work Order'}
+              {(isSubmitting || createWorkOrderMutation.isPending || updateWorkOrderMutation.isPending) ? 
+                (isEditMode ? 'Updating...' : 'Creating...') : 
+                (isEditMode ? 'Update Work Order' : 'Create Work Order')
+              }
             </Button>
           </div>
         </div>

@@ -96,8 +96,17 @@ const WorkOrderDetails = () => {
     setIsEditFormOpen(false);
   };
 
-  const handleUpdateWorkOrder = (data: any) => {
-    console.log('Updating work order:', data);
+  const handleUpdateWorkOrder = () => {
+    // Refresh the work order data after update
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrder', 'enhanced', currentOrganization.id, workOrderId] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrder', currentOrganization.id, workOrderId] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrders', currentOrganization.id] 
+    });
     setIsEditFormOpen(false);
   };
 
@@ -550,11 +559,11 @@ const WorkOrderDetails = () => {
         </div>
       </div>
 
-      {/* Edit Work Order Form */}
+      {/* Edit Work Order Form - Pass workOrder for edit mode */}
       <WorkOrderFormEnhanced
         open={isEditFormOpen}
         onClose={handleCloseEditForm}
-        equipmentId={workOrder.equipment_id}
+        workOrder={workOrder}
         onSubmit={handleUpdateWorkOrder}
       />
     </div>

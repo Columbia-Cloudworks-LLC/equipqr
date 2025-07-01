@@ -5,16 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { 
   Clipboard, 
   Save, 
   CheckCircle, 
   AlertTriangle, 
   Star,
-  StarOff,
   MessageSquare
 } from 'lucide-react';
-import { useUpdatePM } from '@/hooks/usePMData';
 import { PreventativeMaintenance, PMChecklistItem, updatePM } from '@/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
@@ -38,7 +38,11 @@ const MobilePMChecklistComponent: React.FC<MobilePMChecklistComponentProps> = ({
 
   useEffect(() => {
     if (pm.checklist_data) {
-      setChecklistItems(pm.checklist_data as PMChecklistItem[]);
+      // Fix TypeScript error by properly casting the JSON data
+      const items = Array.isArray(pm.checklist_data) 
+        ? pm.checklist_data as PMChecklistItem[]
+        : [];
+      setChecklistItems(items);
     }
   }, [pm.checklist_data]);
 
@@ -136,33 +140,37 @@ const MobilePMChecklistComponent: React.FC<MobilePMChecklistComponentProps> = ({
 
   const renderConditionRating = (item: PMChecklistItem) => {
     const conditions = [
-      { value: 1, label: 'Poor', color: 'text-red-600' },
-      { value: 2, label: 'Fair', color: 'text-orange-600' },
-      { value: 3, label: 'Good', color: 'text-yellow-600' },
-      { value: 4, label: 'Very Good', color: 'text-blue-600' },
-      { value: 5, label: 'Excellent', color: 'text-green-600' }
+      { value: 1, label: 'Poor', color: 'text-red-600', bgColor: 'bg-red-100 border-red-300' },
+      { value: 2, label: 'Fair', color: 'text-orange-600', bgColor: 'bg-orange-100 border-orange-300' },
+      { value: 3, label: 'Good', color: 'text-yellow-600', bgColor: 'bg-yellow-100 border-yellow-300' },
+      { value: 4, label: 'Very Good', color: 'text-blue-600', bgColor: 'bg-blue-100 border-blue-300' },
+      { value: 5, label: 'Excellent', color: 'text-green-600', bgColor: 'bg-green-100 border-green-300' }
     ];
 
     return (
       <div className="space-y-2">
         <div className="text-sm font-medium">Condition Rating:</div>
-        <div className="flex flex-wrap gap-1">
-          {conditions.map(({ value, label, color }) => (
+        <div className="grid grid-cols-5 gap-1">
+          {conditions.map(({ value, label, color, bgColor }) => (
             <Button
               key={value}
               variant={item.condition === value ? 'default' : 'outline'}
               size="sm"
-              className={`text-xs ${item.condition === value ? '' : color}`}
+              className={`text-xs p-2 h-auto flex-col ${
+                item.condition === value 
+                  ? `${bgColor} ${color} border-2` 
+                  : 'hover:' + bgColor
+              }`}
               onClick={() => handleConditionChange(item.id, value as 1 | 2 | 3 | 4 | 5)}
               disabled={readOnly}
             >
-              {value === 5 ? <Star className="h-3 w-3 mr-1" /> : <StarOff className="h-3 w-3 mr-1" />}
-              {value}
+              <Star className="h-3 w-3 mb-1" />
+              <span className="text-xs">{value}</span>
             </Button>
           ))}
         </div>
         {item.condition && (
-          <div className={`text-xs ${conditions.find(c => c.value === item.condition)?.color}`}>
+          <div className={`text-xs font-medium ${conditions.find(c => c.value === item.condition)?.color}`}>
             {conditions.find(c => c.value === item.condition)?.label}
           </div>
         )}
@@ -251,17 +259,20 @@ const MobilePMChecklistComponent: React.FC<MobilePMChecklistComponentProps> = ({
 
                         {renderConditionRating(item)}
 
-                        {item.notes && (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-xs font-medium">
-                              <MessageSquare className="h-3 w-3" />
-                              Notes:
-                            </div>
-                            <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
-                              {item.notes}
-                            </div>
-                          </div>
-                        )}
+                        {/* Notes Field */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            Notes
+                          </Label>
+                          <Textarea
+                            placeholder="Add notes about this item..."
+                            value={item.notes || ''}
+                            onChange={(e) => handleNotesChange(item.id, e.target.value)}
+                            disabled={readOnly}
+                            className="text-xs min-h-[60px] resize-none"
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
