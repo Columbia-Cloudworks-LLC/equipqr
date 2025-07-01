@@ -1,16 +1,18 @@
+
 import React, { useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText, Shield, AlertCircle, Clipboard } from 'lucide-react';
+import { ArrowLeft, Edit, Clock, Calendar, User, Users, Wrench, FileText, Shield, AlertCircle, Clipboard, Menu } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useQueryClient } from '@tanstack/react-query';
+import { useIsMobile } from '@/hooks/use-mobile';
 import EnhancedWorkOrderStatusManagerWithPM from '@/components/work-orders/EnhancedWorkOrderStatusManagerWithPM';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
@@ -22,9 +24,11 @@ import PMChecklistComponent from '@/components/work-orders/PMChecklistComponent'
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
   const { currentOrganization } = useOrganization();
-  const { user } = useAuth(); // Get current user
+  const { user } = useAuth();
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   // Use sync hooks for data
   const { data: workOrder, isLoading: workOrderLoading } = useSyncWorkOrderById(
@@ -47,7 +51,7 @@ const WorkOrderDetails = () => {
 
   if (workOrderLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-4">
         <div className="h-8 bg-muted animate-pulse rounded" />
         <div className="h-64 bg-muted animate-pulse rounded" />
       </div>
@@ -92,8 +96,17 @@ const WorkOrderDetails = () => {
     setIsEditFormOpen(false);
   };
 
-  const handleUpdateWorkOrder = (data: any) => {
-    console.log('Updating work order:', data);
+  const handleUpdateWorkOrder = () => {
+    // Refresh the work order data after update
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrder', 'enhanced', currentOrganization.id, workOrderId] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrder', currentOrganization.id, workOrderId] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['workOrders', currentOrganization.id] 
+    });
     setIsEditFormOpen(false);
   };
 
@@ -167,74 +180,133 @@ const WorkOrderDetails = () => {
   const canEdit = formMode === 'manager' || (formMode === 'requestor' && createdByCurrentUser);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/work-orders">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Work Orders
-            </Link>
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
+    <div className="min-h-screen bg-background">
+      {/* Mobile Header */}
+      <div className="sticky top-0 z-10 bg-background border-b lg:hidden">
+        <div className="p-4">
+          {/* Top Row: Back Button and Actions */}
+          <div className="flex items-center justify-between mb-3">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/work-orders">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={handleEditWorkOrder}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Title Section */}
+          <div className="space-y-2">
+            {/* Work Order Title */}
+            <div className="flex items-start gap-2">
+              <h1 className="text-lg font-bold leading-tight line-clamp-2 flex-1">
+                {workOrder.title}
+              </h1>
               {workOrder.has_pm && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs shrink-0 mt-0.5">
                   <Clipboard className="h-3 w-3 mr-1" />
-                  PM Required
+                  PM
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <p>Work Order #{workOrder.id}</p>
-              {formMode === 'requestor' && !permissionLevels.isManager && (
-                <Badge variant="outline" className="text-xs">
-                  <Shield className="h-3 w-3 mr-1" />
-                  Limited Access
-                </Badge>
-              )}
+
+            {/* Status and Priority Badges */}
+            <div className="flex items-center gap-2">
+              <Badge className={`${getPriorityColor(workOrder.priority)} text-xs`}>
+                {workOrder.priority}
+              </Badge>
+              <Badge className={`${getStatusColor(workOrder.status)} text-xs`}>
+                {formatStatus(workOrder.status)}
+              </Badge>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge className={getPriorityColor(workOrder.priority)}>
-            {workOrder.priority} priority
-          </Badge>
-          <Badge className={getStatusColor(workOrder.status)}>
-            {formatStatus(workOrder.status)}
-          </Badge>
-          {canEdit && (
-            <Button variant="outline" onClick={handleEditWorkOrder}>
-              <Edit className="h-4 w-4 mr-2" />
-              {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden lg:block space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/work-orders">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Work Orders
+              </Link>
             </Button>
-          )}
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
+                {workOrder.has_pm && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <Clipboard className="h-3 w-3 mr-1" />
+                    PM Required
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <p>Work Order #{workOrder.id}</p>
+                {formMode === 'requestor' && !permissionLevels.isManager && (
+                  <Badge variant="outline" className="text-xs">
+                    <Shield className="h-3 w-3 mr-1" />
+                    Limited Access
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge className={getPriorityColor(workOrder.priority)}>
+              {workOrder.priority} priority
+            </Badge>
+            <Badge className={getStatusColor(workOrder.status)}>
+              {formatStatus(workOrder.status)}
+            </Badge>
+            {canEdit && (
+              <Button variant="outline" onClick={handleEditWorkOrder}>
+                <Edit className="h-4 w-4 mr-2" />
+                {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Status Lock Warning */}
       {isWorkOrderLocked && baseCanAddNotes && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-amber-800">
-              <AlertCircle className="h-5 w-5" />
-              <p className="text-sm font-medium">
-                This work order is {workOrder.status}. Notes and images cannot be added or modified.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="px-4 lg:px-6">
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-amber-800">
+                <AlertCircle className="h-5 w-5" />
+                <p className="text-sm font-medium">
+                  This work order is {workOrder.status}. Notes and images cannot be added or modified.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`${isMobile ? 'block' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'} p-4 lg:p-6`}>
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className={`${isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6'}`}>
           {/* Work Order Details */}
           <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
 
-          {/* PM Checklist Section - Only show if work order has PM and user has appropriate permissions */}
+          {/* PM Checklist Section - Now using single responsive component */}
           {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
             <PMChecklistComponent 
               pm={pmData} 
@@ -292,14 +364,14 @@ const WorkOrderDetails = () => {
             </Card>
           )}
 
-          {/* Notes Section - Pass calculated canAddNotes prop */}
+          {/* Notes Section */}
           <WorkOrderNotesSection 
             workOrderId={workOrder.id}
             canAddNotes={canAddNotes}
             showPrivateNotes={permissionLevels.isManager}
           />
 
-          {/* Images Section - Pass calculated canUpload prop */}
+          {/* Images Section */}
           <WorkOrderImagesSection 
             workOrderId={workOrder.id}
             canUpload={canUpload}
@@ -312,164 +384,185 @@ const WorkOrderDetails = () => {
           />
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Enhanced Status Management with PM awareness - Only managers can change status */}
-          {permissionLevels.isManager && (
-            <EnhancedWorkOrderStatusManagerWithPM 
-              workOrder={workOrder} 
-              organizationId={currentOrganization.id}
-            />
+        {/* Sidebar - Mobile overlay or desktop sidebar */}
+        <div className={`
+          ${isMobile ? (
+            showMobileSidebar 
+              ? 'fixed inset-0 z-50 bg-background p-4 overflow-y-auto' 
+              : 'hidden'
+          ) : 'space-y-6'}
+        `}>
+          {isMobile && showMobileSidebar && (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Work Order Info</h2>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowMobileSidebar(false)}
+              >
+                ✕
+              </Button>
+            </div>
           )}
 
-          {/* Status Info for Requestors */}
-          {permissionLevels.isRequestor && !permissionLevels.isManager && (
+          <div className="space-y-4 lg:space-y-6">
+            {/* Enhanced Status Management with PM awareness - Only managers can change status */}
+            {permissionLevels.isManager && (
+              <EnhancedWorkOrderStatusManagerWithPM 
+                workOrder={workOrder} 
+                organizationId={currentOrganization.id}
+              />
+            )}
+
+            {/* Status Info for Requestors */}
+            {permissionLevels.isRequestor && !permissionLevels.isManager && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Request Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Current Status:</span>
+                      <Badge className={getStatusColor(workOrder.status)}>
+                        {formatStatus(workOrder.status)}
+                      </Badge>
+                    </div>
+                    {workOrder.status === 'submitted' && (
+                      <p className="text-sm text-muted-foreground">
+                        Your request is awaiting review by a manager.
+                      </p>
+                    )}
+                    {workOrder.status === 'accepted' && (
+                      <p className="text-sm text-muted-foreground">
+                        Your request has been approved and is being scheduled.
+                      </p>
+                    )}
+                    {workOrder.status === 'assigned' && (
+                      <p className="text-sm text-muted-foreground">
+                        Work has been assigned to a team member.
+                      </p>
+                    )}
+                    {workOrder.status === 'in_progress' && (
+                      <p className="text-sm text-muted-foreground">
+                        Work is currently in progress.
+                      </p>
+                    )}
+                    {workOrder.status === 'completed' && (
+                      <p className="text-sm text-green-600">
+                        Work has been completed successfully.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Quick Info */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Request Status
-                </CardTitle>
+                <CardTitle className="text-lg">Quick Info</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Current Status:</span>
-                    <Badge className={getStatusColor(workOrder.status)}>
-                      {formatStatus(workOrder.status)}
-                    </Badge>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Created</div>
+                    <div className="text-muted-foreground">
+                      {new Date(workOrder.created_date).toLocaleDateString()}
+                    </div>
                   </div>
-                  {workOrder.status === 'submitted' && (
-                    <p className="text-sm text-muted-foreground">
-                      Your request is awaiting review by a manager.
-                    </p>
-                  )}
-                  {workOrder.status === 'accepted' && (
-                    <p className="text-sm text-muted-foreground">
-                      Your request has been approved and is being scheduled.
-                    </p>
-                  )}
-                  {workOrder.status === 'assigned' && (
-                    <p className="text-sm text-muted-foreground">
-                      Work has been assigned to a team member.
-                    </p>
-                  )}
-                  {workOrder.status === 'in_progress' && (
-                    <p className="text-sm text-muted-foreground">
-                      Work is currently in progress.
-                    </p>
-                  )}
-                  {workOrder.status === 'completed' && (
-                    <p className="text-sm text-green-600">
-                      Work has been completed successfully.
-                    </p>
-                  )}
                 </div>
+
+                {workOrder.due_date && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">
+                        {formMode === 'requestor' && workOrder.status === 'submitted' ? 'Preferred Due Date' : 'Due Date'}
+                      </div>
+                      <div className="text-muted-foreground">
+                        {new Date(workOrder.due_date).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Only show assignment info to managers or if assigned to user */}
+                {(permissionLevels.isManager || workOrder.assigneeName) && workOrder.assigneeName && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">Assigned to</div>
+                      <div className="text-muted-foreground">{workOrder.assigneeName}</div>
+                    </div>
+                  </div>
+                )}
+
+                {(permissionLevels.isManager || workOrder.teamName) && workOrder.teamName && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">Team</div>
+                      <div className="text-muted-foreground">{workOrder.teamName}</div>
+                    </div>
+                  </div>
+                )}
+
+                {permissionLevels.isManager && workOrder.estimated_hours && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">Estimated Hours</div>
+                      <div className="text-muted-foreground">{workOrder.estimated_hours}h</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* PM Status in Quick Info */}
+                {workOrder.has_pm && pmData && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clipboard className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">PM Status</div>
+                      <div className="text-muted-foreground">
+                        {pmData.status.replace('_', ' ').toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {equipment && (
+                  <>
+                    <Separator />
+                    <div className="flex items-center gap-2 text-sm">
+                      <Wrench className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium">Equipment</div>
+                        <Link 
+                          to={`/equipment/${equipment.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {equipment.name}
+                        </Link>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
-          )}
-
-          {/* Quick Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Info</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="font-medium">Created</div>
-                  <div className="text-muted-foreground">
-                    {new Date(workOrder.created_date).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-
-              {workOrder.due_date && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">
-                      {formMode === 'requestor' && workOrder.status === 'submitted' ? 'Preferred Due Date' : 'Due Date'}
-                    </div>
-                    <div className="text-muted-foreground">
-                      {new Date(workOrder.due_date).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Only show assignment info to managers or if assigned to user */}
-              {(permissionLevels.isManager || workOrder.assigneeName) && workOrder.assigneeName && (
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">Assigned to</div>
-                    <div className="text-muted-foreground">{workOrder.assigneeName}</div>
-                  </div>
-                </div>
-              )}
-
-              {(permissionLevels.isManager || workOrder.teamName) && workOrder.teamName && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">Team</div>
-                    <div className="text-muted-foreground">{workOrder.teamName}</div>
-                  </div>
-                </div>
-              )}
-
-              {permissionLevels.isManager && workOrder.estimated_hours && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">Estimated Hours</div>
-                    <div className="text-muted-foreground">{workOrder.estimated_hours}h</div>
-                  </div>
-                </div>
-              )}
-
-              {/* PM Status in Quick Info */}
-              {workOrder.has_pm && pmData && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Clipboard className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">PM Status</div>
-                    <div className="text-muted-foreground">
-                      {pmData.status.replace('_', ' ').toUpperCase()}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {equipment && (
-                <>
-                  <Separator />
-                  <div className="flex items-center gap-2 text-sm">
-                    <Wrench className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="font-medium">Equipment</div>
-                      <Link 
-                        to={`/equipment/${equipment.id}`}
-                        className="text-primary hover:underline"
-                      >
-                        {equipment.name}
-                      </Link>
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          </div>
         </div>
       </div>
 
-      {/* Edit Work Order Form */}
+      {/* Edit Work Order Form - Pass workOrder for edit mode */}
       <WorkOrderFormEnhanced
         open={isEditFormOpen}
         onClose={handleCloseEditForm}
-        equipmentId={workOrder.equipment_id}
+        workOrder={workOrder}
         onSubmit={handleUpdateWorkOrder}
       />
     </div>

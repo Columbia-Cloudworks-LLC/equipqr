@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 interface PMChecklistComponentProps {
@@ -23,69 +23,97 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   onUpdate,
   readOnly = false
 }) => {
+  const isMobile = useIsMobile();
   const [checklist, setChecklist] = useState<PMChecklistItem[]>([]);
   const [notes, setNotes] = useState(pm.notes || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Initialize checklist from PM data or use default forklift checklist
+    // Only initialize once to prevent unnecessary resets
+    if (isInitialized) return;
+
+    console.log('🔧 Initializing PM Checklist Data:', {
+      pmId: pm.id,
+      hasChecklistData: !!pm.checklist_data,
+      checklistDataType: typeof pm.checklist_data,
+      checklistDataLength: Array.isArray(pm.checklist_data) ? pm.checklist_data.length : 'not array',
+      rawData: pm.checklist_data
+    });
+
     try {
-      const savedChecklist = pm.checklist_data;
-      console.log('🔧 PM Checklist Data:', savedChecklist);
+      let parsedChecklist: PMChecklistItem[] = [];
       
-      if (savedChecklist && Array.isArray(savedChecklist) && savedChecklist.length > 0) {
-        // Type assertion with validation
-        const parsedChecklist = savedChecklist as unknown as PMChecklistItem[];
-        // Validate that the parsed data has the expected structure
-        const isValidChecklist = parsedChecklist.every(item => 
-          typeof item === 'object' && 
-          item !== null && 
-          'id' in item && 
-          'title' in item && 
-          'condition' in item && 
-          'required' in item &&
-          'section' in item
-        );
-        
-        if (isValidChecklist) {
-          console.log('✅ Using saved checklist data');
-          setChecklist(parsedChecklist);
+      // Improved validation and parsing logic
+      if (pm.checklist_data && Array.isArray(pm.checklist_data) && pm.checklist_data.length > 0) {
+        // Validate that the array contains valid checklist items
+        const isValidChecklistData = pm.checklist_data.every((item: any) => {
+          return (
+            item &&
+            typeof item === 'object' &&
+            typeof item.id === 'string' &&
+            typeof item.title === 'string' &&
+            typeof item.section === 'string' &&
+            typeof item.required === 'boolean' &&
+            (item.condition === null || item.condition === undefined || 
+             (typeof item.condition === 'number' && item.condition >= 1 && item.condition <= 5))
+          );
+        });
+
+        if (isValidChecklistData) {
+          // Cast the data with proper type assertion
+          parsedChecklist = pm.checklist_data.map((item: any) => ({
+            id: String(item.id),
+            title: String(item.title),
+            description: item.description ? String(item.description) : undefined,
+            section: String(item.section),
+            required: Boolean(item.required),
+            condition: item.condition !== null && item.condition !== undefined ? Number(item.condition) as 1 | 2 | 3 | 4 | 5 : null,
+            notes: item.notes ? String(item.notes) : undefined
+          }));
+          
+          console.log('✅ Using saved checklist data:', parsedChecklist.length, 'items');
         } else {
-          console.log('⚠️ Invalid checklist data, using default');
-          setChecklist(defaultForkliftChecklist);
+          console.log('⚠️ Saved checklist data is invalid, using default');
+          parsedChecklist = [...defaultForkliftChecklist];
         }
       } else {
-        console.log('🔧 No checklist data found, using default forklift checklist');
-        setChecklist(defaultForkliftChecklist);
-        
-        // Auto-save the default checklist if this is a new PM
-        if (!readOnly) {
-          handleInitializeChecklist();
-        }
+        console.log('🔧 No valid checklist data found, using default forklift checklist');
+        parsedChecklist = [...defaultForkliftChecklist];
       }
+
+      setChecklist(parsedChecklist);
+
+      // Initialize sections based on mobile/desktop - closed on mobile, open on desktop
+      const sections = Array.from(new Set(parsedChecklist.map(item => item.section)));
+      const initialOpenSections: Record<string, boolean> = {};
+      sections.forEach(section => {
+        initialOpenSections[section] = !isMobile; // Closed on mobile, open on desktop
+      });
+      setOpenSections(initialOpenSections);
+      
+      setIsInitialized(true);
     } catch (error) {
       console.error('❌ Error parsing checklist data:', error);
-      setChecklist(defaultForkliftChecklist);
+      setChecklist([...defaultForkliftChecklist]);
       
-      // Auto-save the default checklist on error
-      if (!readOnly) {
-        handleInitializeChecklist();
-      }
+      // Initialize sections for default checklist
+      const sections = Array.from(new Set(defaultForkliftChecklist.map(item => item.section)));
+      const initialOpenSections: Record<string, boolean> = {};
+      sections.forEach(section => {
+        initialOpenSections[section] = !isMobile;
+      });
+      setOpenSections(initialOpenSections);
+      
+      setIsInitialized(true);
     }
-
-    // Initialize all sections as open
-    const sections = Array.from(new Set(defaultForkliftChecklist.map(item => item.section)));
-    const initialOpenSections: Record<string, boolean> = {};
-    sections.forEach(section => {
-      initialOpenSections[section] = true;
-    });
-    setOpenSections(initialOpenSections);
-  }, [pm, readOnly]);
+  }, [pm.checklist_data, pm.id, isMobile, isInitialized]);
 
   const handleInitializeChecklist = async () => {
     console.log('🔧 Initializing checklist with default data');
     try {
+      setIsUpdating(true);
       const updatedPM = await updatePM(pm.id, {
         checklistData: defaultForkliftChecklist,
         notes: notes || 'PM checklist initialized with default forklift maintenance items.',
@@ -94,10 +122,17 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
       if (updatedPM) {
         console.log('✅ Checklist initialized successfully');
+        toast.success('Checklist initialized successfully');
+        setChecklist([...defaultForkliftChecklist]);
         onUpdate();
+      } else {
+        toast.error('Failed to initialize checklist');
       }
     } catch (error) {
       console.error('❌ Error initializing checklist:', error);
+      toast.error('Failed to initialize checklist');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -116,6 +151,12 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const saveChanges = async () => {
     setIsUpdating(true);
     try {
+      console.log('💾 Saving PM checklist changes:', {
+        pmId: pm.id,
+        checklistLength: checklist.length,
+        notes: notes.length
+      });
+
       const updatedPM = await updatePM(pm.id, {
         checklistData: checklist,
         notes,
@@ -123,13 +164,14 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       });
 
       if (updatedPM) {
+        console.log('✅ PM checklist saved successfully');
         toast.success('PM checklist updated successfully');
         onUpdate();
       } else {
         toast.error('Failed to update PM checklist');
       }
     } catch (error) {
-      console.error('Error updating PM:', error);
+      console.error('❌ Error updating PM:', error);
       toast.error('Failed to update PM checklist');
     } finally {
       setIsUpdating(false);
@@ -322,8 +364,34 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }));
   };
 
-  // Show empty state if checklist is empty
-  if (checklist.length === 0) {
+  // Show empty state if checklist is empty and not initialized
+  if (checklist.length === 0 && !isInitialized) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {getStatusIcon()}
+              <div>
+                <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={getStatusColor()}>
+                    {pm.status.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="h-32 bg-muted animate-pulse rounded" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show initialization option if checklist is empty but initialized
+  if (checklist.length === 0 && isInitialized) {
     return (
       <Card>
         <CardHeader>
