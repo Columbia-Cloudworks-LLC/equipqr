@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -182,24 +183,48 @@ const WorkOrderDetails = () => {
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
       <div className="sticky top-0 z-10 bg-background border-b lg:hidden">
-        <div className="flex items-center justify-between p-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/work-orders">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          
-          <div className="flex-1 mx-4 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-lg font-bold truncate">{workOrder.title}</h1>
+        <div className="p-4">
+          {/* Top Row: Back Button and Actions */}
+          <div className="flex items-center justify-between mb-3">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/work-orders">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={handleEditWorkOrder}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Title Section */}
+          <div className="space-y-2">
+            {/* Work Order Title */}
+            <div className="flex items-start gap-2">
+              <h1 className="text-lg font-bold leading-tight line-clamp-2 flex-1">
+                {workOrder.title}
+              </h1>
               {workOrder.has_pm && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs shrink-0">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs shrink-0 mt-0.5">
                   <Clipboard className="h-3 w-3 mr-1" />
                   PM
                 </Badge>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+
+            {/* Status and Priority Badges */}
+            <div className="flex items-center gap-2">
               <Badge className={`${getPriorityColor(workOrder.priority)} text-xs`}>
                 {workOrder.priority}
               </Badge>
@@ -207,21 +232,6 @@ const WorkOrderDetails = () => {
                 {formatStatus(workOrder.status)}
               </Badge>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {canEdit && (
-              <Button variant="outline" size="sm" onClick={handleEditWorkOrder}>
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setShowMobileSidebar(!showMobileSidebar)}
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </div>
