@@ -9,22 +9,19 @@ import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ImageUploadWithNoteProps {
-  onUpload: (files: File[], noteText: string) => Promise<any>;
+  onUpload: (files: File[]) => Promise<any>;
   maxFiles?: number;
   acceptedTypes?: string[];
   disabled?: boolean;
-  placeholder?: string;
 }
 
 const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   onUpload,
   maxFiles = 5,
   acceptedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  disabled = false,
-  placeholder = 'Add a note about these images...'
+  disabled = false
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [noteText, setNoteText] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
@@ -85,16 +82,10 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
       return;
     }
 
-    if (!noteText.trim()) {
-      toast.error('Please add a note');
-      return;
-    }
-
     setIsUploading(true);
     try {
-      await onUpload(selectedFiles, noteText.trim());
+      await onUpload(selectedFiles);
       setSelectedFiles([]);
-      setNoteText('');
       toast.success('Images uploaded successfully!');
     } catch (error) {
       console.error('Upload failed:', error);
@@ -103,8 +94,6 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
       setIsUploading(false);
     }
   };
-
-  const canUpload = selectedFiles.length > 0 && noteText.trim() && !disabled && !isUploading;
 
   return (
     <Card>
@@ -180,28 +169,17 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
           </div>
         )}
 
-        {/* Note Input */}
-        <div className="space-y-2">
-          <Label htmlFor="note-text" className="text-sm font-medium">Note</Label>
-          <Textarea
-            id="note-text"
-            placeholder={placeholder}
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            disabled={disabled}
-            rows={3}
-          />
-        </div>
-
         {/* Upload Button */}
-        <Button
-          onClick={handleUpload}
-          disabled={!canUpload}
-          className="w-full"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          {isUploading ? 'Uploading...' : `Upload ${selectedFiles.length} Image${selectedFiles.length !== 1 ? 's' : ''}`}
-        </Button>
+        {selectedFiles.length > 0 && (
+          <Button
+            onClick={handleUpload}
+            disabled={disabled || isUploading}
+            className="w-full"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {isUploading ? 'Uploading...' : `Upload ${selectedFiles.length} Image${selectedFiles.length !== 1 ? 's' : ''}`}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

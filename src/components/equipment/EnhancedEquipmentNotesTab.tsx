@@ -111,9 +111,14 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     }
   });
 
-  const handleCreateNoteWithImages = async (files: File[], noteText: string) => {
+  const handleCreateNoteWithImages = async (files: File[]) => {
+    if (!formData.content.trim()) {
+      toast.error('Please enter note content');
+      return;
+    }
+    
     await createNoteMutation.mutateAsync({
-      content: noteText,
+      content: formData.content,
       hoursWorked: formData.hoursWorked,
       isPrivate: formData.isPrivate,
       images: files
@@ -225,7 +230,6 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
               <Label>Images (Optional)</Label>
               <ImageUploadWithNote
                 onUpload={handleCreateNoteWithImages}
-                placeholder="Add a note about these images..."
                 disabled={createNoteMutation.isPending}
               />
             </div>

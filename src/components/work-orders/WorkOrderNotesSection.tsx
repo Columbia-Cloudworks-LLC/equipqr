@@ -77,9 +77,14 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     }
   });
 
-  const handleCreateNoteWithImages = async (files: File[], noteText: string) => {
+  const handleCreateNoteWithImages = async (files: File[]) => {
+    if (!formData.content.trim()) {
+      toast.error('Please enter note content');
+      return;
+    }
+    
     await createNoteMutation.mutateAsync({
-      content: noteText,
+      content: formData.content,
       hoursWorked: formData.hoursWorked,
       isPrivate: formData.isPrivate,
       images: files
@@ -215,10 +220,45 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                   </Button>
                 </TabsContent>
                 
-                <TabsContent value="images" className="mt-4">
+                <TabsContent value="images" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="content-images">Note Content</Label>
+                    <Textarea
+                      id="content-images"
+                      placeholder="Enter your note..."
+                      value={formData.content}
+                      onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                      rows={4}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="hours-images">Hours Worked</Label>
+                      <Input
+                        id="hours-images"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={formData.hoursWorked}
+                        onChange={(e) => setFormData(prev => ({ ...prev, hoursWorked: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Switch
+                          checked={formData.isPrivate}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPrivate: checked }))}
+                        />
+                        Private Note
+                      </Label>
+                    </div>
+                  </div>
+                  
                   <ImageUploadWithNote
                     onUpload={handleCreateNoteWithImages}
-                    placeholder="Add a note to describe these images..."
+                    disabled={createNoteMutation.isPending}
                   />
                 </TabsContent>
               </Tabs>
