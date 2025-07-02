@@ -33,10 +33,10 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
         status,
         assignee_id,
         team_id,
-        created_at,
+        created_date,
         due_date,
         estimated_hours,
-        completed_at,
+        completed_date,
         created_by,
         equipment:equipment_id (
           name
@@ -52,7 +52,7 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
         )
       `)
       .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false });
+      .order('created_date', { ascending: false });
 
     if (error) throw error;
 
@@ -67,10 +67,10 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
       assigneeName: wo.assignee?.name,
       teamId: wo.team_id,
       teamName: wo.team?.name,
-      createdDate: wo.created_at,
+      createdDate: wo.created_date,
       dueDate: wo.due_date,
       estimatedHours: wo.estimated_hours,
-      completedDate: wo.completed_at,
+      completedDate: wo.completed_date,
       equipmentName: wo.equipment?.name,
       createdByName: wo.creator?.name
     }));
