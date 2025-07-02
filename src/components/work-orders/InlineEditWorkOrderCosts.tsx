@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Edit2, Check, X, DollarSign } from 'lucide-react';
@@ -9,6 +8,7 @@ import {
   useUpdateWorkOrderCost, 
   useDeleteWorkOrderCost 
 } from '@/hooks/useWorkOrderCosts';
+import { useIsMobile } from '@/hooks/use-mobile';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';
 
 interface InlineEditWorkOrderCostsProps {
@@ -22,6 +22,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   workOrderId,
   canEdit
 }) => {
+  const isMobile = useIsMobile();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -115,6 +116,48 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     setIsEditing(false);
   };
 
+  const MobileCostDisplay = ({ cost }: { cost: WorkOrderCost }) => (
+    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="font-medium text-sm">{cost.description}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Added by {cost.created_by_name} • {new Date(cost.created_at).toLocaleDateString()}
+          </div>
+        </div>
+        <div className="text-right ml-2">
+          <div className="font-semibold text-lg">
+            {formatCurrency(cost.total_price_cents)}
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
+        <div>Qty: {cost.quantity}</div>
+        <div>Unit: {formatCurrency(cost.unit_price_cents)}</div>
+      </div>
+    </div>
+  );
+
+  const DesktopCostDisplay = ({ cost }: { cost: WorkOrderCost }) => (
+    <div className="p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
+      <div className="grid grid-cols-4 gap-4 items-center">
+        <div>
+          <div className="font-medium">{cost.description}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Added by {cost.created_by_name} on{' '}
+            {new Date(cost.created_at).toLocaleDateString()}
+          </div>
+        </div>
+        <div className="text-sm">{cost.quantity}</div>
+        <div className="text-sm">{formatCurrency(cost.unit_price_cents)}</div>
+        <div className="font-semibold text-right">
+          {formatCurrency(cost.total_price_cents)}
+        </div>
+      </div>
+    </div>
+  );
+
   if (!canEdit && costs.length === 0) {
     return (
       <div className="text-center py-6 text-muted-foreground">
@@ -129,32 +172,25 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       <div className="space-y-4">
         {costs.length > 0 && (
           <>
-            {/* Column Headers */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
-              <div>Description</div>
-              <div>Quantity</div>
-              <div>Unit Price</div>
-              <div className="text-right">Total</div>
-            </div>
+            {/* Desktop Headers */}
+            {!isMobile && (
+              <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
+                <div>Description</div>
+                <div>Quantity</div>
+                <div>Unit Price</div>
+                <div className="text-right">Total</div>
+              </div>
+            )}
 
             {/* Cost Items */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               {costs.map((cost) => (
-                <div key={cost.id} className="p-3 bg-muted/50 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                    <div>
-                      <div className="font-medium">{cost.description}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Added by {cost.created_by_name} on{' '}
-                        {new Date(cost.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="text-sm">{cost.quantity}</div>
-                    <div className="text-sm">{formatCurrency(cost.unit_price_cents)}</div>
-                    <div className="font-semibold text-right">
-                      {formatCurrency(cost.total_price_cents)}
-                    </div>
-                  </div>
+                <div key={cost.id}>
+                  {isMobile ? (
+                    <MobileCostDisplay cost={cost} />
+                  ) : (
+                    <DesktopCostDisplay cost={cost} />
+                  )}
                 </div>
               ))}
             </div>
@@ -189,32 +225,25 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         
         {costs.length > 0 ? (
           <div className="space-y-4">
-            {/* Column Headers */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
-              <div>Description</div>
-              <div>Quantity</div>
-              <div>Unit Price</div>
-              <div className="text-right">Total</div>
-            </div>
+            {/* Desktop Headers */}
+            {!isMobile && (
+              <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
+                <div>Description</div>
+                <div>Quantity</div>
+                <div>Unit Price</div>
+                <div className="text-right">Total</div>
+              </div>
+            )}
 
             {/* Cost Items */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               {costs.map((cost) => (
-                <div key={cost.id} className="p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                    <div>
-                      <div className="font-medium">{cost.description}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Added by {cost.created_by_name} on{' '}
-                        {new Date(cost.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="text-sm">{cost.quantity}</div>
-                    <div className="text-sm">{formatCurrency(cost.unit_price_cents)}</div>
-                    <div className="font-semibold text-right">
-                      {formatCurrency(cost.total_price_cents)}
-                    </div>
-                  </div>
+                <div key={cost.id}>
+                  {isMobile ? (
+                    <MobileCostDisplay cost={cost} />
+                  ) : (
+                    <DesktopCostDisplay cost={cost} />
+                  )}
                 </div>
               ))}
             </div>
