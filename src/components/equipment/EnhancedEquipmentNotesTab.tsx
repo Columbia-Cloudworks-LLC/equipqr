@@ -176,87 +176,96 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
         </TabsList>
 
         <TabsContent value="notes" className="space-y-4">
-          {/* Add Note Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Add Note</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowForm(!showForm)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {showForm ? 'Cancel' : 'Add Note'}
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            {showForm && (
+          {/* Add Note Form - Always show if no notes exist */}
+          {(notes.length === 0 || showForm) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>{notes.length === 0 ? 'Add Your First Note' : 'Add Note'}</span>
+                  {notes.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowForm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-4">
-                <Tabs defaultValue="text" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="text">Text Note</TabsTrigger>
-                    <TabsTrigger value="images">Note with Images</TabsTrigger>
-                  </TabsList>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="content">Note Content</Label>
+                    <Textarea
+                      id="content"
+                      placeholder="Enter your note..."
+                      value={formData.content}
+                      onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                      rows={4}
+                    />
+                  </div>
                   
-                  <TabsContent value="text" className="space-y-4">
+                  {/* Image Upload Area */}
+                  <div className="space-y-2">
+                    <Label>Images (Optional)</Label>
+                    <ImageUploadWithNote
+                      onUpload={handleCreateNoteWithImages}
+                      placeholder="Describe these images..."
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="content">Note Content</Label>
-                      <Textarea
-                        id="content"
-                        placeholder="Enter your note..."
-                        value={formData.content}
-                        onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                        rows={4}
+                      <Label htmlFor="hours">Hours Worked</Label>
+                      <Input
+                        id="hours"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={formData.hoursWorked}
+                        onChange={(e) => setFormData(prev => ({ ...prev, hoursWorked: parseFloat(e.target.value) || 0 }))}
                       />
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="hours">Hours Worked</Label>
-                        <Input
-                          id="hours"
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          value={formData.hoursWorked}
-                          onChange={(e) => setFormData(prev => ({ ...prev, hoursWorked: parseFloat(e.target.value) || 0 }))}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Switch
+                          checked={formData.isPrivate}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPrivate: checked }))}
                         />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                          <Switch
-                            checked={formData.isPrivate}
-                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPrivate: checked }))}
-                          />
-                          Private Note
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
-                          Only you can see private notes
-                        </p>
-                      </div>
+                        Private Note
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Only you can see private notes
+                      </p>
                     </div>
-                    
-                    <Button 
-                      onClick={handleCreateNoteOnly}
-                      disabled={createNoteMutation.isPending}
-                      className="w-full"
-                    >
-                      Add Note
-                    </Button>
-                  </TabsContent>
+                  </div>
                   
-                  <TabsContent value="images">
-                    <ImageUploadWithNote
-                      onUpload={handleCreateNoteWithImages}
-                      placeholder="Add a note to describe these images..."
-                    />
-                  </TabsContent>
-                </Tabs>
+                  <Button 
+                    onClick={handleCreateNoteOnly}
+                    disabled={createNoteMutation.isPending || !formData.content.trim()}
+                    className="w-full"
+                  >
+                    Add Note
+                  </Button>
+                </div>
               </CardContent>
-            )}
-          </Card>
+            </Card>
+          )}
+
+          {/* Add Note Button - Only show if notes exist and form is not shown */}
+          {notes.length > 0 && !showForm && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setShowForm(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Note
+              </Button>
+            </div>
+          )}
 
           {/* Notes List */}
           <div className="space-y-4">
@@ -322,22 +331,6 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
                 </CardContent>
               </Card>
             ))}
-
-            {notes.length === 0 && (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No notes yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Start by adding your first note about this equipment.
-                  </p>
-                  <Button onClick={() => setShowForm(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add First Note
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </TabsContent>
 
