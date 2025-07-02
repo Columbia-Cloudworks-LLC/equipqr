@@ -56,7 +56,12 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
   onSubmit 
 }) => {
   const { currentOrganization } = useOrganization();
-  const createWorkOrderMutation = useCreateWorkOrderEnhanced();
+  const createWorkOrderMutation = useCreateWorkOrderEnhanced({
+    onSuccess: () => {
+      // Close the dialog after navigation happens
+      onClose();
+    }
+  });
   const updateWorkOrderMutation = useUpdateWorkOrder();
   
   const { data: allEquipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
@@ -142,7 +147,11 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
     {
       onSuccess: () => {
         form.reset();
-        onClose();
+        // For edit mode or custom onSubmit, close dialog here
+        // For create mode, the hook handles navigation then calls onClose
+        if (isEditMode || onSubmit) {
+          onClose();
+        }
       }
     }
   );

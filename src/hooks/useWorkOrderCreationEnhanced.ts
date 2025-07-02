@@ -1,5 +1,6 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { createWorkOrder } from '@/services/supabaseDataService';
 import { createPM } from '@/services/preventativeMaintenanceService';
@@ -18,9 +19,10 @@ export interface EnhancedCreateWorkOrderData {
   assignmentId?: string;
 }
 
-export const useCreateWorkOrderEnhanced = () => {
+export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: any) => void }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: async (data: EnhancedCreateWorkOrderData) => {
@@ -83,13 +85,20 @@ export const useCreateWorkOrderEnhanced = () => {
 
       return workOrder;
     },
-    onSuccess: () => {
+    onSuccess: (workOrder) => {
       toast.success('Work order created successfully');
       
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
       queryClient.invalidateQueries({ queryKey: ['workOrdersByOrganization'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      
+      // Call custom onSuccess if provided, otherwise navigate to work order details
+      if (options?.onSuccess) {
+        options.onSuccess(workOrder);
+      } else {
+        navigate(`/work-orders/${workOrder.id}`);
+      }
     },
     onError: (error) => {
       console.error('Error creating work order:', error);
