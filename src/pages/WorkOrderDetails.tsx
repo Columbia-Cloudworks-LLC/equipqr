@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +19,7 @@ import WorkOrderNotesSection from '@/components/work-orders/WorkOrderNotesSectio
 import WorkOrderImagesSection from '@/components/work-orders/WorkOrderImagesSection';
 import WorkOrderFormEnhanced from '@/components/work-orders/WorkOrderFormEnhanced';
 import PMChecklistComponent from '@/components/work-orders/PMChecklistComponent';
+import WorkOrderCostsSection from '@/components/work-orders/WorkOrderCostsSection';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -81,6 +81,10 @@ const WorkOrderDetails = () => {
   // Check if work order status allows modifications
   const isWorkOrderLocked = workOrder.status === 'completed' || workOrder.status === 'cancelled';
   
+  // Calculate permission to add and edit costs
+  const canAddCosts = permissionLevels.isManager || permissionLevels.isTechnician;
+  const canEditCosts = permissionLevels.isManager;
+
   // Calculate permission to add notes and images
   const baseCanAddNotes = permissionLevels.isManager || createdByCurrentUser;
   const baseCanUpload = permissionLevels.isManager || createdByCurrentUser;
@@ -292,7 +296,7 @@ const WorkOrderDetails = () => {
               <div className="flex items-center gap-2 text-amber-800">
                 <AlertCircle className="h-5 w-5" />
                 <p className="text-sm font-medium">
-                  This work order is {workOrder.status}. Notes and images cannot be added or modified.
+                  This work order is {workOrder.status}. Notes, images, and costs cannot be added or modified.
                 </p>
               </div>
             </CardContent>
@@ -362,6 +366,15 @@ const WorkOrderDetails = () => {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Costs Section - Only show to managers and technicians */}
+          {(permissionLevels.isManager || permissionLevels.isTechnician) && (
+            <WorkOrderCostsSection 
+              workOrderId={workOrder.id}
+              canAddCosts={canAddCosts && !isWorkOrderLocked}
+              canEditCosts={canEditCosts && !isWorkOrderLocked}
+            />
           )}
 
           {/* Notes Section */}

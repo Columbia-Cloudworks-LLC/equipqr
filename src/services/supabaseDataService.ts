@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 
@@ -24,6 +23,9 @@ export type TeamMember = {
   name: string;
   email: string;
   role: Tables<'team_members'>['role'];
+};
+export type WorkOrderCost = Tables<'work_order_costs'> & {
+  createdByName?: string;
 };
 
 export interface DashboardStats {
