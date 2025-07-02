@@ -2,11 +2,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, DollarSign } from 'lucide-react';
-import { useWorkOrderCosts, useDeleteWorkOrderCost } from '@/hooks/useWorkOrderCosts';
-import { WorkOrderCost } from '@/services/workOrderCostsService';
+import { Plus, DollarSign } from 'lucide-react';
+import { useWorkOrderCosts } from '@/hooks/useWorkOrderCosts';
 import WorkOrderCostForm from './WorkOrderCostForm';
+import InlineEditWorkOrderCost from './InlineEditWorkOrderCost';
 
 interface WorkOrderCostsSectionProps {
   workOrderId: string;
@@ -20,10 +19,8 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
   canEditCosts
 }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingCost, setEditingCost] = useState<WorkOrderCost | null>(null);
   
   const { data: costs = [], isLoading } = useWorkOrderCosts(workOrderId);
-  const deleteCostMutation = useDeleteWorkOrderCost();
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -37,20 +34,8 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
     return costs.reduce((sum, cost) => sum + cost.total_price_cents, 0);
   };
 
-  const handleEditCost = (cost: WorkOrderCost) => {
-    setEditingCost(cost);
-    setIsFormOpen(true);
-  };
-
-  const handleDeleteCost = (costId: string) => {
-    if (window.confirm('Are you sure you want to delete this cost item?')) {
-      deleteCostMutation.mutate(costId);
-    }
-  };
-
   const handleCloseForm = () => {
     setIsFormOpen(false);
-    setEditingCost(null);
   };
 
   if (isLoading) {
@@ -97,50 +82,14 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Cost Items */}
+              {/* Cost Items with Inline Editing */}
               <div className="space-y-2">
                 {costs.map((cost) => (
-                  <div
+                  <InlineEditWorkOrderCost
                     key={cost.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{cost.description}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {cost.quantity} × {formatCurrency(cost.unit_price_cents)}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Added by {cost.created_by_name} on{' '}
-                        {new Date(cost.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">
-                        {formatCurrency(cost.total_price_cents)}
-                      </span>
-                      {canEditCosts && (
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditCost(cost)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteCost(cost.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                    cost={cost}
+                    canEdit={canEditCosts}
+                  />
                 ))}
               </div>
 
@@ -156,12 +105,11 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
         </CardContent>
       </Card>
 
-      {/* Cost Form Dialog */}
+      {/* Cost Form Dialog for Adding New Items */}
       <WorkOrderCostForm
         open={isFormOpen}
         onClose={handleCloseForm}
         workOrderId={workOrderId}
-        editingCost={editingCost}
       />
     </>
   );

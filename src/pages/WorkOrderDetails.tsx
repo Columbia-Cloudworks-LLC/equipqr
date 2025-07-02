@@ -310,7 +310,16 @@ const WorkOrderDetails = () => {
           {/* Work Order Details */}
           <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
 
-          {/* PM Checklist Section - Now using single responsive component */}
+          {/* Costs Section - Now positioned above PM checklist and only show to managers and technicians */}
+          {(permissionLevels.isManager || permissionLevels.isTechnician) && (
+            <WorkOrderCostsSection 
+              workOrderId={workOrder.id}
+              canAddCosts={canAddCosts && !isWorkOrderLocked}
+              canEditCosts={canEditCosts && !isWorkOrderLocked}
+            />
+          )}
+
+          {/* PM Checklist Section - Now positioned after costs */}
           {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
             <PMChecklistComponent 
               pm={pmData} 
@@ -366,15 +375,6 @@ const WorkOrderDetails = () => {
                 </div>
               </CardContent>
             </Card>
-          )}
-
-          {/* Costs Section - Only show to managers and technicians */}
-          {(permissionLevels.isManager || permissionLevels.isTechnician) && (
-            <WorkOrderCostsSection 
-              workOrderId={workOrder.id}
-              canAddCosts={canAddCosts && !isWorkOrderLocked}
-              canEditCosts={canEditCosts && !isWorkOrderLocked}
-            />
           )}
 
           {/* Notes Section */}
