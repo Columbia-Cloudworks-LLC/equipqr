@@ -9,7 +9,7 @@ import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ImageUploadWithNoteProps {
-  onUpload: (files: File[], noteText: string) => Promise<void>;
+  onUpload: (files: File[], noteText: string) => Promise<any>;
   maxFiles?: number;
   acceptedTypes?: string[];
   disabled?: boolean;

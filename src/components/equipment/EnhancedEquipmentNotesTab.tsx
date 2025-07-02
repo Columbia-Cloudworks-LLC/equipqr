@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,7 +113,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
   });
 
   const handleCreateNoteWithImages = async (files: File[], noteText: string) => {
-    return createNoteMutation.mutateAsync({
+    await createNoteMutation.mutateAsync({
       content: noteText,
       hoursWorked: formData.hoursWorked,
       isPrivate: formData.isPrivate,
