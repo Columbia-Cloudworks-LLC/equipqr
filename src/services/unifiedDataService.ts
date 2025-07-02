@@ -7,6 +7,7 @@ export type {
   Scan,
   Team,
   TeamMember,
+  WorkOrderCost,
   DashboardStats
 } from './supabaseDataService';
 
