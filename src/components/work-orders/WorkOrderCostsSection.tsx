@@ -6,6 +6,7 @@ import { Plus, DollarSign } from 'lucide-react';
 import { useWorkOrderCosts } from '@/hooks/useWorkOrderCosts';
 import WorkOrderCostForm from './WorkOrderCostForm';
 import InlineEditWorkOrderCost from './InlineEditWorkOrderCost';
+import PlaceholderInlineCost from './PlaceholderInlineCost';
 
 interface WorkOrderCostsSectionProps {
   workOrderId: string;
@@ -19,6 +20,7 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
   canEditCosts
 }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showPlaceholder, setShowPlaceholder] = useState(false);
   
   const { data: costs = [], isLoading } = useWorkOrderCosts(workOrderId);
 
@@ -38,6 +40,14 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
     setIsFormOpen(false);
   };
 
+  const handleShowPlaceholder = () => {
+    setShowPlaceholder(true);
+  };
+
+  const handleHidePlaceholder = () => {
+    setShowPlaceholder(false);
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -54,6 +64,10 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
     );
   }
 
+  const hasNoCosts = costs.length === 0;
+  const shouldShowPlaceholder = hasNoCosts && canAddCosts && showPlaceholder;
+  const shouldShowEmptyState = hasNoCosts && canAddCosts && !showPlaceholder;
+
   return (
     <>
       <Card>
@@ -63,7 +77,7 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
               <DollarSign className="h-5 w-5" />
               Itemized Costs
             </CardTitle>
-            {canAddCosts && (
+            {!hasNoCosts && canAddCosts && (
               <Button onClick={() => setIsFormOpen(true)} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Cost
@@ -72,15 +86,28 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
           </div>
         </CardHeader>
         <CardContent>
-          {costs.length === 0 ? (
+          {shouldShowEmptyState && (
             <div className="text-center py-6 text-muted-foreground">
               <DollarSign className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>No costs recorded yet</p>
-              {canAddCosts && (
-                <p className="text-sm">Add cost items to track expenses for this work order</p>
-              )}
+              <p className="text-sm mb-4">Add cost items to track expenses for this work order</p>
+              <Button onClick={handleShowPlaceholder} variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Cost Item
+              </Button>
             </div>
-          ) : (
+          )}
+
+          {shouldShowPlaceholder && (
+            <div className="space-y-4">
+              <PlaceholderInlineCost
+                workOrderId={workOrderId}
+                onCancel={handleHidePlaceholder}
+              />
+            </div>
+          )}
+
+          {!hasNoCosts && (
             <div className="space-y-4">
               {/* Cost Items with Inline Editing */}
               <div className="space-y-2">
@@ -105,7 +132,7 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
         </CardContent>
       </Card>
 
-      {/* Cost Form Dialog for Adding New Items */}
+      {/* Cost Form Dialog for Adding New Items (when costs already exist) */}
       <WorkOrderCostForm
         open={isFormOpen}
         onClose={handleCloseForm}
