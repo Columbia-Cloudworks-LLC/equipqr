@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Filter, Calendar, User, Wrench, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { isToday, isThisWeek } from 'date-fns';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEnhancedWorkOrders } from '@/hooks/useEnhancedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/integrations/supabase/client';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import WorkOrderAcceptanceModal from '@/components/work-orders/WorkOrderAcceptanceModal';
 import MobileWorkOrderCard from '@/components/work-orders/MobileWorkOrderCard';
@@ -22,12 +24,26 @@ const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [teamFilter, setTeamFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [dueDateFilter, setDueDateFilter] = useState('all');
   const [acceptanceModal, setAcceptanceModal] = useState<{ open: boolean; workOrder: any }>({
     open: false,
     workOrder: null
   });
   const { currentOrganization } = useOrganization();
   const isMobile = useIsMobile();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Get current user
+  React.useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getCurrentUser();
+  }, []);
 
   // Use enhanced hook for work orders data
   const { data: allWorkOrders = [], isLoading } = useEnhancedWorkOrders(currentOrganization?.id);
@@ -40,7 +56,17 @@ const WorkOrders = () => {
                          order.teamName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          order.equipmentName?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesAssignee = assigneeFilter === 'all' || 
+                           (assigneeFilter === 'mine' && order.assigneeId === currentUser?.id) ||
+                           order.assigneeId === assigneeFilter;
+    const matchesTeam = teamFilter === 'all' || order.teamId === teamFilter;
+    const matchesPriority = priorityFilter === 'all' || order.priority === priorityFilter;
+    const matchesDueDate = dueDateFilter === 'all' || 
+                          (dueDateFilter === 'overdue' && order.dueDate && new Date(order.dueDate) < new Date()) ||
+                          (dueDateFilter === 'today' && order.dueDate && isToday(new Date(order.dueDate))) ||
+                          (dueDateFilter === 'this_week' && order.dueDate && isThisWeek(new Date(order.dueDate)));
+    
+    return matchesSearch && matchesStatus && matchesAssignee && matchesTeam && matchesPriority && matchesDueDate;
   });
 
   const handleStatusUpdate = async (workOrderId: string, newStatus: string) => {
@@ -113,34 +139,89 @@ const WorkOrders = () => {
           {/* Filters */}
           <Card>
             <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search work orders..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                    />
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder="Search work orders..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
                   </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="submitted">Submitted</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
+                      <SelectItem value="assigned">Assigned</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="on_hold">On Hold</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="submitted">Submitted</SelectItem>
-                    <SelectItem value="accepted">Accepted</SelectItem>
-                    <SelectItem value="assigned">Assigned</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="on_hold">On Hold</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                    <SelectTrigger>
+                      <User className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Assignee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Assignees</SelectItem>
+                      <SelectItem value="mine">My Work Orders</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Priorities</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
+                    <SelectTrigger>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Due Date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Dates</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                      <SelectItem value="today">Due Today</SelectItem>
+                      <SelectItem value="this_week">This Week</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                      setAssigneeFilter('all');
+                      setTeamFilter('all');
+                      setPriorityFilter('all');
+                      setDueDateFilter('all');
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
