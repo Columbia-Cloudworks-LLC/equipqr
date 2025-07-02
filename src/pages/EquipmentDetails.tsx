@@ -11,6 +11,7 @@ import { useEquipmentById } from '@/hooks/useSupabaseData';
 import EquipmentDetailsTab from '@/components/equipment/EquipmentDetailsTab';
 import EquipmentNotesTab from '@/components/equipment/EquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
+import EquipmentImagesTab from '@/components/equipment/EquipmentImagesTab';
 import EquipmentScansTab from '@/components/equipment/EquipmentScansTab';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
@@ -315,10 +316,11 @@ const EquipmentDetails = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
+          <TabsTrigger value="images">Images</TabsTrigger>
           <TabsTrigger value="scans">Scans</TabsTrigger>
         </TabsList>
 
@@ -339,6 +341,15 @@ const EquipmentDetails = () => {
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
             onCreateWorkOrder={handleCreateWorkOrder}
+          />
+        </TabsContent>
+
+        <TabsContent value="images" className="mt-6">
+          <EquipmentImagesTab 
+            equipmentId={equipment.id} 
+            organizationId={currentOrganization.id}
+            equipmentTeamId={equipment.team_id || undefined}
+            currentDisplayImage={equipment.image_url || undefined}
           />
         </TabsContent>
 
