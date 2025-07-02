@@ -1109,6 +1109,7 @@ export type Database = {
           file_url: string
           id: string
           mime_type: string | null
+          note_id: string | null
           uploaded_by: string
           work_order_id: string
         }
@@ -1120,6 +1121,7 @@ export type Database = {
           file_url: string
           id?: string
           mime_type?: string | null
+          note_id?: string | null
           uploaded_by: string
           work_order_id: string
         }
@@ -1131,10 +1133,19 @@ export type Database = {
           file_url?: string
           id?: string
           mime_type?: string | null
+          note_id?: string | null
           uploaded_by?: string
           work_order_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "work_order_images_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_notes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_order_notes: {
         Row: {

@@ -76,11 +76,12 @@ export const createWorkOrderNoteWithImages = async (
         .from('work-order-images')
         .getPublicUrl(uploadData.path);
 
-      // Save image record to database - using work_order_id only since note_id column may not exist
+      // Save image record to database with proper note_id association
       const { data: imageRecord, error: imageError } = await supabase
         .from('work_order_images')
         .insert({
           work_order_id: workOrderId,
+          note_id: note.id,
           file_name: file.name,
           file_url: publicUrl,
           file_size: file.size,
@@ -159,19 +160,13 @@ export const getWorkOrderNotesWithImages = async (workOrderId: string) => {
     return notes.map(note => {
       const author = profiles.find(p => p.id === note.author_id);
       
-      // Find images that belong to this note by checking description or uploaded around the same time
+      // Find images that belong to this note using the note_id foreign key
       const noteImages = (allImages || [])
-        .filter(img => {
-          // If description contains the note ID, it belongs to this note
-          return img.description?.includes(note.id) || 
-                 // Fallback: match by timing (within 5 minutes of note creation)
-                 Math.abs(new Date(img.created_at).getTime() - new Date(note.created_at).getTime()) < 5 * 60 * 1000;
-        })
+        .filter(img => img.note_id === note.id)
         .map(img => {
           const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
           return {
             ...img,
-            note_id: note.id,
             uploaded_by_name: uploader?.name || 'Unknown'
           };
         });
