@@ -32,20 +32,34 @@ export const getWorkOrderCosts = async (workOrderId: string): Promise<WorkOrderC
   try {
     const { data, error } = await supabase
       .from('work_order_costs')
-      .select(`
-        *,
-        profiles:created_by (
-          name
-        )
-      `)
+      .select('*')
       .eq('work_order_id', workOrderId)
       .order('created_at', { ascending: true });
 
     if (error) throw error;
 
-    return (data || []).map(cost => ({
+    // Get creator names separately to avoid join issues
+    const costs = data || [];
+    const creatorIds = [...new Set(costs.map(cost => cost.created_by))];
+    
+    let profilesMap: Record<string, string> = {};
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', creatorIds);
+      
+      if (profiles) {
+        profilesMap = profiles.reduce((acc, profile) => {
+          acc[profile.id] = profile.name;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+    }
+
+    return costs.map(cost => ({
       ...cost,
-      created_by_name: (cost.profiles as any)?.name || 'Unknown'
+      created_by_name: profilesMap[cost.created_by] || 'Unknown'
     }));
   } catch (error) {
     console.error('Error fetching work order costs:', error);
@@ -65,19 +79,21 @@ export const createWorkOrderCost = async (costData: CreateWorkOrderCostData): Pr
         ...costData,
         created_by: userData.user.id
       })
-      .select(`
-        *,
-        profiles:created_by (
-          name
-        )
-      `)
+      .select()
       .single();
 
     if (error) throw error;
 
+    // Get creator name
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', userData.user.id)
+      .single();
+
     return {
       ...data,
-      created_by_name: (data.profiles as any)?.name || 'Unknown'
+      created_by_name: profile?.name || 'Unknown'
     };
   } catch (error) {
     console.error('Error creating work order cost:', error);
@@ -95,19 +111,21 @@ export const updateWorkOrderCost = async (
       .from('work_order_costs')
       .update(updateData)
       .eq('id', costId)
-      .select(`
-        *,
-        profiles:created_by (
-          name
-        )
-      `)
+      .select()
       .single();
 
     if (error) throw error;
 
+    // Get creator name
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', data.created_by)
+      .single();
+
     return {
       ...data,
-      created_by_name: (data.profiles as any)?.name || 'Unknown'
+      created_by_name: profile?.name || 'Unknown'
     };
   } catch (error) {
     console.error('Error updating work order cost:', error);

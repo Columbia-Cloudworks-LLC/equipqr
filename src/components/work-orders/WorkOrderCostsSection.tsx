@@ -99,23 +99,22 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
           )}
 
           {shouldShowPlaceholder && (
-            <div className="space-y-4">
-              <PlaceholderInlineCost
-                workOrderId={workOrderId}
-                onCancel={handleHidePlaceholder}
-              />
-            </div>
+            <PlaceholderInlineCost
+              workOrderId={workOrderId}
+              onCancel={handleHidePlaceholder}
+            />
           )}
 
           {!hasNoCosts && (
             <div className="space-y-4">
               {/* Cost Items with Inline Editing */}
-              <div className="space-y-2">
-                {costs.map((cost) => (
+              <div className="space-y-3">
+                {costs.map((cost, index) => (
                   <InlineEditWorkOrderCost
                     key={cost.id}
                     cost={cost}
                     canEdit={canEditCosts}
+                    showHeaders={index === 0}
                   />
                 ))}
               </div>
