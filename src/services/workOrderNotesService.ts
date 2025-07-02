@@ -76,17 +76,17 @@ export const createWorkOrderNoteWithImages = async (
         .from('work-order-images')
         .getPublicUrl(uploadData.path);
 
-      // Save image record to database
+      // Save image record to database - using work_order_id only since note_id column may not exist
       const { data: imageRecord, error: imageError } = await supabase
         .from('work_order_images')
         .insert({
           work_order_id: workOrderId,
-          note_id: note.id,
           file_name: file.name,
           file_url: publicUrl,
           file_size: file.size,
           mime_type: file.type,
-          uploaded_by: userData.user.id
+          uploaded_by: userData.user.id,
+          description: `Attached to note: ${note.id}`
         })
         .select()
         .single();
@@ -96,7 +96,10 @@ export const createWorkOrderNoteWithImages = async (
         continue;
       }
 
-      uploadedImages.push(imageRecord);
+      uploadedImages.push({
+        ...imageRecord,
+        note_id: note.id
+      });
     } catch (error) {
       console.error('Error processing image:', error);
     }
@@ -108,105 +111,122 @@ export const createWorkOrderNoteWithImages = async (
   };
 };
 
-// Get notes with images for work order - simplified to avoid infinite type instantiation
-export const getWorkOrderNotesWithImages = async (workOrderId: string): Promise<WorkOrderNote[]> => {
-  // First get notes
-  const { data: notes, error: notesError } = await supabase
-    .from('work_order_notes')
-    .select('*')
-    .eq('work_order_id', workOrderId)
-    .order('created_at', { ascending: false });
+// Get notes with images for work order
+export const getWorkOrderNotesWithImages = async (workOrderId: string) => {
+  try {
+    // First get notes
+    const { data: notes, error: notesError } = await supabase
+      .from('work_order_notes')
+      .select('*')
+      .eq('work_order_id', workOrderId)
+      .order('created_at', { ascending: false });
 
-  if (notesError) throw notesError;
+    if (notesError) throw notesError;
+    if (!notes) return [];
 
-  // Get author names separately
-  const authorIds = [...new Set(notes.map(note => note.author_id))];
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, name')
-    .in('id', authorIds);
+    // Get author names separately
+    const authorIds = [...new Set(notes.map(note => note.author_id))];
+    let profiles: any[] = [];
+    
+    if (authorIds.length > 0) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', authorIds);
+      profiles = profileData || [];
+    }
 
-  // Get images for each note separately
-  const noteIds = notes.map(note => note.id);
-  const { data: images } = await supabase
-    .from('work_order_images')
-    .select('*')
-    .in('note_id', noteIds)
-    .order('created_at', { ascending: false });
+    // Get all images for this work order
+    const { data: allImages } = await supabase
+      .from('work_order_images')
+      .select('*')
+      .eq('work_order_id', workOrderId)
+      .order('created_at', { ascending: false });
 
-  // Get uploader names for images
-  const uploaderIds = [...new Set((images || []).map(img => img.uploaded_by))];
-  const { data: uploaderProfiles } = await supabase
-    .from('profiles')
-    .select('id, name')
-    .in('id', uploaderIds);
+    // Get uploader names for images
+    const uploaderIds = [...new Set((allImages || []).map(img => img.uploaded_by))];
+    let uploaderProfiles: any[] = [];
+    
+    if (uploaderIds.length > 0) {
+      const { data: uploaderData } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', uploaderIds);
+      uploaderProfiles = uploaderData || [];
+    }
 
-  // Combine the data
-  return notes.map(note => {
-    const author = profiles?.find(p => p.id === note.author_id);
-    const noteImages = (images || [])
-      .filter(img => img.note_id === note.id)
-      .map(img => {
-        const uploader = uploaderProfiles?.find(p => p.id === img.uploaded_by);
-        return {
-          ...img,
-          uploaded_by_name: uploader?.name || 'Unknown'
-        };
-      });
+    // Combine the data
+    return notes.map(note => {
+      const author = profiles.find(p => p.id === note.author_id);
+      
+      // Find images that belong to this note by checking description or uploaded around the same time
+      const noteImages = (allImages || [])
+        .filter(img => {
+          // If description contains the note ID, it belongs to this note
+          return img.description?.includes(note.id) || 
+                 // Fallback: match by timing (within 5 minutes of note creation)
+                 Math.abs(new Date(img.created_at).getTime() - new Date(note.created_at).getTime()) < 5 * 60 * 1000;
+        })
+        .map(img => {
+          const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
+          return {
+            ...img,
+            note_id: note.id,
+            uploaded_by_name: uploader?.name || 'Unknown'
+          };
+        });
 
-    return {
-      ...note,
-      author_name: author?.name || 'Unknown',
-      images: noteImages
-    };
-  });
+      return {
+        ...note,
+        author_name: author?.name || 'Unknown',
+        images: noteImages
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching work order notes:', error);
+    return [];
+  }
 };
 
-// Get all images for work order (for gallery view) - simplified
+// Get all images for work order (for gallery view)
 export const getWorkOrderImages = async (workOrderId: string) => {
-  // Get images
-  const { data: images, error: imagesError } = await supabase
-    .from('work_order_images')
-    .select('*')
-    .eq('work_order_id', workOrderId)
-    .order('created_at', { ascending: false });
+  try {
+    // Get images
+    const { data: images, error: imagesError } = await supabase
+      .from('work_order_images')
+      .select('*')
+      .eq('work_order_id', workOrderId)
+      .order('created_at', { ascending: false });
 
-  if (imagesError) throw imagesError;
+    if (imagesError) throw imagesError;
+    if (!images) return [];
 
-  // Get uploader names
-  const uploaderIds = [...new Set((images || []).map(img => img.uploaded_by))];
-  const { data: uploaderProfiles } = await supabase
-    .from('profiles')
-    .select('id, name')
-    .in('id', uploaderIds);
+    // Get uploader names
+    const uploaderIds = [...new Set(images.map(img => img.uploaded_by))];
+    let uploaderProfiles: any[] = [];
+    
+    if (uploaderIds.length > 0) {
+      const { data: uploaderData } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', uploaderIds);
+      uploaderProfiles = uploaderData || [];
+    }
 
-  // Get note data
-  const noteIds = [...new Set((images || []).filter(img => img.note_id).map(img => img.note_id))];
-  const { data: notes } = await supabase
-    .from('work_order_notes')
-    .select('id, content, author_id, is_private')
-    .in('id', noteIds);
-
-  // Get note author names
-  const noteAuthorIds = [...new Set((notes || []).map(note => note.author_id))];
-  const { data: noteAuthorProfiles } = await supabase
-    .from('profiles')
-    .select('id, name')
-    .in('id', noteAuthorIds);
-
-  return (images || []).map(image => {
-    const uploader = uploaderProfiles?.find(p => p.id === image.uploaded_by);
-    const note = notes?.find(n => n.id === image.note_id);
-    const noteAuthor = noteAuthorProfiles?.find(p => p.id === note?.author_id);
-
-    return {
-      ...image,
-      uploaded_by_name: uploader?.name || 'Unknown',
-      note_content: note?.content,
-      note_author_name: noteAuthor?.name || 'Unknown',
-      is_private_note: note?.is_private || false
-    };
-  });
+    return images.map(image => {
+      const uploader = uploaderProfiles.find(p => p.id === image.uploaded_by);
+      return {
+        ...image,
+        uploaded_by_name: uploader?.name || 'Unknown',
+        note_content: image.description || '',
+        note_author_name: uploader?.name || 'Unknown',
+        is_private_note: false
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching work order images:', error);
+    return [];
+  }
 };
 
 // Delete an image
