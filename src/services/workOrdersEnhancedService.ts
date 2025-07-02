@@ -41,13 +41,13 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
         equipment:equipment_id (
           name
         ),
-        assignee:assignee_id (
+        assignee:profiles!work_orders_assignee_id_fkey (
           name
         ),
         team:team_id (
           name
         ),
-        creator:created_by (
+        creator:profiles!work_orders_created_by_fkey (
           name
         )
       `)
