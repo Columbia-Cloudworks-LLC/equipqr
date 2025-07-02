@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -15,6 +15,8 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
 import { SaveStatus } from '@/components/ui/SaveStatus';
 import { toast } from 'sonner';
+import PrintExportDropdown from './PrintExportDropdown';
+import { PMChecklistPDFGenerator } from '@/utils/pdfGenerator';
 
 interface PMChecklistComponentProps {
   pm: PreventativeMaintenance;
@@ -274,7 +276,36 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
-  const printPM = () => {
+  // Print/Export handlers
+  const handlePrintPDF = useCallback(() => {
+    try {
+      PMChecklistPDFGenerator.generateAndPrint(pm, checklist, {
+        includeProgress: true,
+        includeNotes: true,
+        includeTimestamps: true
+      });
+      toast.success('PDF generated for printing');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  }, [pm, checklist]);
+
+  const handleDownloadPDF = useCallback(() => {
+    try {
+      PMChecklistPDFGenerator.generateAndDownload(pm, checklist, {
+        includeProgress: true,
+        includeNotes: true,
+        includeTimestamps: true
+      });
+      toast.success('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download PDF');
+    }
+  }, [pm, checklist]);
+
+  const handleBrowserPrint = useCallback(() => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -352,7 +383,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.print();
-  };
+  }, [pm, checklist, notes]);
 
   const getStatusIcon = () => {
     switch (pm.status) {
@@ -512,33 +543,75 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {getStatusIcon()}
-            <div>
-              <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
-              <div className="flex items-center gap-2 mt-1">
+        {isMobile ? (
+          // Mobile: Multi-row layout with stacked elements
+          <div className="space-y-4">
+            {/* Title and Print Action Row */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                {getStatusIcon()}
+                <CardTitle className="text-lg leading-tight">
+                  Forklift Preventative Maintenance Checklist
+                </CardTitle>
+              </div>
+              <PrintExportDropdown
+                onPrint={handlePrintPDF}
+                onDownloadPDF={handleDownloadPDF}
+                onPrintBrowser={handleBrowserPrint}
+                disabled={isUpdating}
+              />
+            </div>
+            
+            {/* Status and Progress Row */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
                 <Badge className={getStatusColor()}>
                   {pm.status.replace('_', ' ').toUpperCase()}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Progress: {completedItems.length}/{totalItems} items completed
-                </span>
                 {!readOnly && (
                   <SaveStatus 
                     status={saveStatus} 
                     lastSaved={lastSaved}
-                    className="ml-2"
                   />
                 )}
               </div>
+              <span className="text-sm text-muted-foreground">
+                Progress: {completedItems.length}/{totalItems} items completed
+              </span>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={printPM}>
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
-        </div>
+        ) : (
+          // Desktop: Horizontal layout
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {getStatusIcon()}
+              <div>
+                <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={getStatusColor()}>
+                    {pm.status.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    Progress: {completedItems.length}/{totalItems} items completed
+                  </span>
+                  {!readOnly && (
+                    <SaveStatus 
+                      status={saveStatus} 
+                      lastSaved={lastSaved}
+                      className="ml-2"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+            <PrintExportDropdown
+              onPrint={handlePrintPDF}
+              onDownloadPDF={handleDownloadPDF}
+              onPrintBrowser={handleBrowserPrint}
+              disabled={isUpdating}
+            />
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {pm.status !== 'completed' && unratedRequiredItems.length > 0 && (
