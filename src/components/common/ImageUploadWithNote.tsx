@@ -123,18 +123,30 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
         >
           <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <div className="space-y-2">
-            <p className="text-sm font-medium">Drop images here or click to browse</p>
+            <p className="text-sm font-medium">Drop images here or click button below</p>
             <p className="text-xs text-muted-foreground">
               Supports JPEG, PNG, GIF, WebP up to 10MB each
             </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={disabled}
+              onClick={() => document.getElementById('file-input')?.click()}
+              className="mt-2"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Choose Files
+            </Button>
           </div>
           <Input
+            id="file-input"
             type="file"
             multiple
             accept={acceptedTypes.join(',')}
             onChange={handleFileSelect}
             disabled={disabled}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            className="hidden"
           />
         </div>
 

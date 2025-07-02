@@ -179,7 +179,8 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Note Content */}
             <div className="space-y-2">
               <Label htmlFor="content">Note Content</Label>
               <Textarea
@@ -191,15 +192,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
               />
             </div>
             
-            {/* Image Upload Area */}
-            <div className="space-y-2">
-              <Label>Images (Optional)</Label>
-              <ImageUploadWithNote
-                onUpload={handleCreateNoteWithImages}
-                placeholder="Describe these images..."
-              />
-            </div>
-            
+            {/* Settings */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="hours">Hours Worked</Label>
@@ -227,12 +220,25 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
               </div>
             </div>
             
+            {/* Image Upload Section */}
+            <div className="space-y-4">
+              <Label>Images (Optional)</Label>
+              <ImageUploadWithNote
+                onUpload={handleCreateNoteWithImages}
+                placeholder="Add a note about these images..."
+                disabled={createNoteMutation.isPending}
+              />
+            </div>
+            
+            {/* Single Submit Button for Text-Only Notes */}
             <Button 
               onClick={handleCreateNoteOnly}
               disabled={createNoteMutation.isPending || !formData.content.trim()}
               className="w-full"
+              variant="outline"
             >
-              Add Note
+              <MessageSquare className="h-4 w-4 mr-2" />
+              {createNoteMutation.isPending ? 'Adding Note...' : 'Add Note Only'}
             </Button>
           </CardContent>
         </Card>
