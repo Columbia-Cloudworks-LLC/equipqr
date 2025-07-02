@@ -1,21 +1,20 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getEquipmentNotes,
-  createEquipmentNote,
+  getEquipmentNotesWithImages,
+  createEquipmentNoteWithImages,
   updateEquipmentNote,
   deleteEquipmentNote,
   uploadEquipmentNoteImage,
   deleteEquipmentNoteImage,
-  setEquipmentDisplayImage
+  updateEquipmentDisplayImage
 } from '@/services/equipmentNotesService';
-import { CreateEquipmentNoteData, UpdateEquipmentNoteData } from '@/types/equipmentNotes';
 import { toast } from 'sonner';
 
 export const useEquipmentNotes = (equipmentId: string, organizationId: string) => {
   return useQuery({
     queryKey: ['equipment-notes', equipmentId, organizationId],
-    queryFn: () => getEquipmentNotes(equipmentId, organizationId),
+    queryFn: () => getEquipmentNotesWithImages(equipmentId),
     enabled: !!equipmentId && !!organizationId,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
@@ -25,7 +24,19 @@ export const useCreateEquipmentNote = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createEquipmentNote,
+    mutationFn: (variables: {
+      equipmentId: string;
+      content: string;
+      hoursWorked?: number;
+      isPrivate?: boolean;
+      images?: File[];
+    }) => createEquipmentNoteWithImages(
+      variables.equipmentId,
+      variables.content,
+      variables.hoursWorked || 0,
+      variables.isPrivate || false,
+      variables.images || []
+    ),
     onSuccess: (data, variables) => {
       if (data) {
         queryClient.invalidateQueries({
@@ -45,8 +56,10 @@ export const useUpdateEquipmentNote = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ noteId, updateData }: { noteId: string; updateData: UpdateEquipmentNoteData }) =>
-      updateEquipmentNote(noteId, updateData),
+    mutationFn: ({ noteId, updateData }: { 
+      noteId: string; 
+      updateData: { content?: string; hoursWorked?: number; isPrivate?: boolean; }
+    }) => updateEquipmentNote(noteId, updateData),
     onSuccess: (data) => {
       if (data) {
         queryClient.invalidateQueries({
@@ -122,7 +135,7 @@ export const useSetEquipmentDisplayImage = () => {
 
   return useMutation({
     mutationFn: ({ equipmentId, imageUrl }: { equipmentId: string; imageUrl: string }) =>
-      setEquipmentDisplayImage(equipmentId, imageUrl),
+      updateEquipmentDisplayImage(equipmentId, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['equipment']

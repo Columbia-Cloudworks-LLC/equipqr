@@ -1,311 +1,319 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { EquipmentNote, EquipmentNoteImage, CreateEquipmentNoteData, UpdateEquipmentNoteData } from '@/types/equipmentNotes';
 
-// Get equipment notes with proper visibility filtering
-export const getEquipmentNotes = async (
-  equipmentId: string,
-  organizationId: string
-): Promise<EquipmentNote[]> => {
-  try {
-    // Get current user
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return [];
+export interface EquipmentNote {
+  id: string;
+  equipment_id: string;
+  author_id: string;
+  content: string;
+  hours_worked: number;
+  is_private: boolean;
+  created_at: string;
+  updated_at: string;
+  author_name?: string;
+  images?: EquipmentNoteImage[];
+}
 
-    const { data, error } = await supabase
-      .from('equipment_notes')
-      .select(`
+export interface EquipmentNoteImage {
+  id: string;
+  equipment_note_id: string;
+  file_name: string;
+  file_url: string;
+  file_size?: number;
+  mime_type?: string;
+  description?: string;
+  uploaded_by: string;
+  created_at: string;
+  uploaded_by_name?: string;
+}
+
+// Get notes with images for equipment
+export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<EquipmentNote[]> => {
+  const { data, error } = await supabase
+    .from('equipment_notes')
+    .select(`
+      *,
+      profiles:author_id (
+        name
+      ),
+      equipment_note_images (
         *,
-        equipment!inner (
-          organization_id,
-          team_id
-        ),
-        equipment_note_images (
-          *
+        profiles:uploaded_by (
+          name
         )
-      `)
-      .eq('equipment_id', equipmentId)
-      .eq('equipment.organization_id', organizationId)
-      .order('created_at', { ascending: false });
+      )
+    `)
+    .eq('equipment_id', equipmentId)
+    .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching equipment notes:', error);
-      return [];
-    }
+  if (error) throw error;
 
-    // Get author and last modified profiles
-    const authorIds = [...new Set((data || []).map(note => note.author_id))];
-    const lastModifiedIds = [...new Set((data || []).map(note => note.last_modified_by).filter(Boolean))];
-    const allUserIds = [...new Set([...authorIds, ...lastModifiedIds])];
-
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .in('id', allUserIds);
-
-    // Transform the data
-    return (data || []).map(note => ({
-      ...note,
-      authorName: profiles?.find(p => p.id === note.author_id)?.name || 'Unknown',
-      lastModifiedByName: note.last_modified_by 
-        ? profiles?.find(p => p.id === note.last_modified_by)?.name || 'Unknown'
-        : undefined,
-      images: note.equipment_note_images || []
-    }));
-  } catch (error) {
-    console.error('Error in getEquipmentNotes:', error);
-    return [];
-  }
+  return (data || []).map(note => ({
+    ...note,
+    author_name: (note.profiles as any)?.name || 'Unknown',
+    images: (note.equipment_note_images || []).map((img: any) => ({
+      ...img,
+      uploaded_by_name: img.profiles?.name || 'Unknown'
+    }))
+  }));
 };
 
-// Create a new equipment note
-export const createEquipmentNote = async (
-  noteData: CreateEquipmentNoteData
-): Promise<EquipmentNote | null> => {
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      console.error('User not authenticated');
-      return null;
-    }
-
-    const { data, error } = await supabase
-      .from('equipment_notes')
-      .insert({
-        equipment_id: noteData.equipmentId,
-        content: noteData.content,
-        author_id: userData.user.id,
-        is_private: noteData.isPrivate,
-        hours_worked: noteData.hoursWorked || 0,
-        last_modified_by: userData.user.id
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating equipment note:', error);
-      return null;
-    }
-
-    // Get author profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .eq('id', userData.user.id)
-      .single();
-
-    return {
-      ...data,
-      authorName: profile?.name || 'Unknown',
-      lastModifiedByName: profile?.name || 'Unknown',
-      images: []
-    };
-  } catch (error) {
-    console.error('Error in createEquipmentNote:', error);
-    return null;
-  }
+// Legacy function for backward compatibility
+export const getEquipmentNotes = async (equipmentId: string, organizationId: string) => {
+  return getEquipmentNotesWithImages(equipmentId);
 };
 
-// Update an equipment note
-export const updateEquipmentNote = async (
-  noteId: string,
-  updateData: UpdateEquipmentNoteData
-): Promise<EquipmentNote | null> => {
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      console.error('User not authenticated');
-      return null;
+// Create a note with images
+export const createEquipmentNoteWithImages = async (
+  equipmentId: string,
+  content: string,
+  hoursWorked: number = 0,
+  isPrivate: boolean = false,
+  images: File[] = []
+): Promise<EquipmentNote> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
+
+  // Create the note first
+  const { data: note, error: noteError } = await supabase
+    .from('equipment_notes')
+    .insert({
+      equipment_id: equipmentId,
+      author_id: userData.user.id,
+      content,
+      hours_worked: hoursWorked,
+      is_private: isPrivate
+    })
+    .select()
+    .single();
+
+  if (noteError) throw noteError;
+
+  // Upload images if provided
+  const uploadedImages: EquipmentNoteImage[] = [];
+  for (const file of images) {
+    try {
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userData.user.id}/${equipmentId}/${note.id}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('equipment-note-images')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('Failed to upload image:', uploadError);
+        continue;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('equipment-note-images')
+        .getPublicUrl(uploadData.path);
+
+      // Save image record to database
+      const { data: imageRecord, error: imageError } = await supabase
+        .from('equipment_note_images')
+        .insert({
+          equipment_note_id: note.id,
+          file_name: file.name,
+          file_url: publicUrl,
+          file_size: file.size,
+          mime_type: file.type,
+          uploaded_by: userData.user.id
+        })
+        .select()
+        .single();
+
+      if (imageError) {
+        console.error('Failed to save image record:', imageError);
+        continue;
+      }
+
+      uploadedImages.push(imageRecord);
+    } catch (error) {
+      console.error('Error processing image:', error);
     }
-
-    const { data, error } = await supabase
-      .from('equipment_notes')
-      .update({
-        ...updateData,
-        last_modified_by: userData.user.id,
-        last_modified_at: new Date().toISOString()
-      })
-      .eq('id', noteId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating equipment note:', error);
-      return null;
-    }
-
-    // Get profiles
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .in('id', [data.author_id, userData.user.id]);
-
-    return {
-      ...data,
-      authorName: profiles?.find(p => p.id === data.author_id)?.name || 'Unknown',
-      lastModifiedByName: profiles?.find(p => p.id === userData.user.id)?.name || 'Unknown',
-      images: []
-    };
-  } catch (error) {
-    console.error('Error in updateEquipmentNote:', error);
-    return null;
   }
+
+  return {
+    ...note,
+    images: uploadedImages
+  };
 };
 
-// Delete an equipment note
-export const deleteEquipmentNote = async (noteId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('equipment_notes')
-      .delete()
-      .eq('id', noteId);
-
-    if (error) {
-      console.error('Error deleting equipment note:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error in deleteEquipmentNote:', error);
-    return false;
-  }
+// Legacy function for backward compatibility
+export const createEquipmentNote = async (data: {
+  equipmentId: string;
+  content: string;
+  hoursWorked?: number;
+  isPrivate?: boolean;
+}) => {
+  return createEquipmentNoteWithImages(
+    data.equipmentId,
+    data.content,
+    data.hoursWorked || 0,
+    data.isPrivate || false,
+    []
+  );
 };
 
-// Image management functions
+// Update note
+export const updateEquipmentNote = async (noteId: string, data: {
+  content?: string;
+  hoursWorked?: number;
+  isPrivate?: boolean;
+}) => {
+  const { data: updatedNote, error } = await supabase
+    .from('equipment_notes')
+    .update(data)
+    .eq('id', noteId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return updatedNote;
+};
+
+// Delete note
+export const deleteEquipmentNote = async (noteId: string) => {
+  const { error } = await supabase
+    .from('equipment_notes')
+    .delete()
+    .eq('id', noteId);
+
+  if (error) throw error;
+};
+
+// Upload image to existing note
 export const uploadEquipmentNoteImage = async (
   noteId: string,
   file: File,
   description?: string
-): Promise<EquipmentNoteImage | null> => {
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      console.error('User not authenticated');
-      return null;
-    }
+) => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
 
-    // Generate unique file name
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${noteId}-${Date.now()}.${fileExt}`;
-    const filePath = `equipment-notes/${fileName}`;
+  // Get note details for file path
+  const { data: note } = await supabase
+    .from('equipment_notes')
+    .select('equipment_id')
+    .eq('id', noteId)
+    .single();
 
-    // Upload file to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('equipment-note-images')
-      .upload(filePath, file);
+  if (!note) throw new Error('Note not found');
 
-    if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      return null;
-    }
+  // Upload file to storage
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userData.user.id}/${note.equipment_id}/${noteId}/${Date.now()}.${fileExt}`;
+  
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from('equipment-note-images')
+    .upload(fileName, file);
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('equipment-note-images')
-      .getPublicUrl(filePath);
+  if (uploadError) throw uploadError;
 
-    // Create image record
-    const { data, error } = await supabase
-      .from('equipment_note_images')
-      .insert({
-        equipment_note_id: noteId,
-        file_name: file.name,
-        file_url: publicUrl,
-        file_size: file.size,
-        mime_type: file.type,
-        description: description,
-        uploaded_by: userData.user.id
-      })
-      .select()
-      .single();
+  // Get public URL
+  const { data: { publicUrl } } = supabase.storage
+    .from('equipment-note-images')
+    .getPublicUrl(uploadData.path);
 
-    if (error) {
-      console.error('Error creating image record:', error);
-      return null;
-    }
+  // Save image record to database
+  const { data: imageRecord, error: imageError } = await supabase
+    .from('equipment_note_images')
+    .insert({
+      equipment_note_id: noteId,
+      file_name: file.name,
+      file_url: publicUrl,
+      file_size: file.size,
+      mime_type: file.type,
+      description,
+      uploaded_by: userData.user.id
+    })
+    .select()
+    .single();
 
-    // Get uploader profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .eq('id', userData.user.id)
-      .single();
-
-    return {
-      ...data,
-      uploadedByName: profile?.name || 'Unknown'
-    };
-  } catch (error) {
-    console.error('Error in uploadEquipmentNoteImage:', error);
-    return null;
-  }
+  if (imageError) throw imageError;
+  return imageRecord;
 };
 
-export const deleteEquipmentNoteImage = async (imageId: string): Promise<boolean> => {
-  try {
-    // Get image data first to delete from storage
-    const { data: imageData, error: fetchError } = await supabase
-      .from('equipment_note_images')
-      .select('file_url')
-      .eq('id', imageId)
-      .single();
+// Get all images for equipment (for gallery view)
+export const getEquipmentImages = async (equipmentId: string) => {
+  const { data, error } = await supabase
+    .from('equipment_note_images')
+    .select(`
+      *,
+      equipment_notes!inner (
+        equipment_id,
+        content,
+        author_id,
+        is_private,
+        profiles:author_id (
+          name
+        )
+      ),
+      profiles:uploaded_by (
+        name
+      )
+    `)
+    .eq('equipment_notes.equipment_id', equipmentId)
+    .order('created_at', { ascending: false });
 
-    if (fetchError) {
-      console.error('Error fetching image data:', fetchError);
-      return false;
-    }
+  if (error) throw error;
 
-    // Extract file path from URL
-    const urlParts = imageData.file_url.split('/');
-    const filePath = urlParts.slice(-2).join('/'); // Get last two parts (folder/filename)
-
-    // Delete from storage
-    const { error: storageError } = await supabase.storage
-      .from('equipment-note-images')
-      .remove([filePath]);
-
-    if (storageError) {
-      console.error('Error deleting file from storage:', storageError);
-    }
-
-    // Delete record from database
-    const { error } = await supabase
-      .from('equipment_note_images')
-      .delete()
-      .eq('id', imageId);
-
-    if (error) {
-      console.error('Error deleting image record:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error in deleteEquipmentNoteImage:', error);
-    return false;
-  }
+  return (data || []).map(image => ({
+    ...image,
+    uploaded_by_name: (image.profiles as any)?.name || 'Unknown',
+    note_content: (image.equipment_notes as any)?.content,
+    note_author_name: (image.equipment_notes as any)?.profiles?.name || 'Unknown',
+    is_private_note: (image.equipment_notes as any)?.is_private
+  }));
 };
 
-// Set equipment display image
-export const setEquipmentDisplayImage = async (
-  equipmentId: string,
-  imageUrl: string
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('equipment')
-      .update({ image_url: imageUrl })
-      .eq('id', equipmentId);
+// Delete an image
+export const deleteEquipmentNoteImage = async (imageId: string): Promise<void> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
 
-    if (error) {
-      console.error('Error setting display image:', error);
-      return false;
-    }
+  // Get image details first
+  const { data: image, error: fetchError } = await supabase
+    .from('equipment_note_images')
+    .select('file_url, uploaded_by')
+    .eq('id', imageId)
+    .single();
 
-    return true;
-  } catch (error) {
-    console.error('Error in setEquipmentDisplayImage:', error);
-    return false;
+  if (fetchError) throw fetchError;
+  if (!image) throw new Error('Image not found');
+
+  // Check if user can delete (must be uploader or admin)
+  if (image.uploaded_by !== userData.user.id) {
+    throw new Error('Not authorized to delete this image');
   }
+
+  // Delete from database
+  const { error: deleteError } = await supabase
+    .from('equipment_note_images')
+    .delete()
+    .eq('id', imageId);
+
+  if (deleteError) throw deleteError;
+
+  // Delete from storage
+  const filePath = image.file_url.split('/').slice(-4).join('/'); // Extract path from URL
+  await supabase.storage
+    .from('equipment-note-images')
+    .remove([filePath]);
 };
+
+// Update equipment display image
+export const updateEquipmentDisplayImage = async (equipmentId: string, imageUrl: string): Promise<void> => {
+  const { error } = await supabase
+    .from('equipment')
+    .update({ image_url: imageUrl || null })
+    .eq('id', equipmentId);
+
+  if (error) throw error;
+};
+
+// Legacy function name
+export const setEquipmentDisplayImage = updateEquipmentDisplayImage;
