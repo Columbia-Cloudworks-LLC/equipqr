@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Filter, Calendar, User, Wrench, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { isToday, isThisWeek } from 'date-fns';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEnhancedWorkOrders } from '@/hooks/useEnhancedWorkOrders';
@@ -22,6 +22,7 @@ import DesktopWorkOrderCard from '@/components/work-orders/DesktopWorkOrderCard'
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 
 const WorkOrders = () => {
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -274,11 +275,8 @@ const WorkOrders = () => {
               ) : (
                 <DesktopWorkOrderCard
                   key={order.id}
-                  order={order}
-                  onAcceptClick={handleAcceptClick}
-                  onStatusUpdate={handleStatusUpdate}
-                  isUpdating={updateStatusMutation.isPending}
-                  isAccepting={acceptanceMutation.isPending}
+                  workOrder={order}
+                  onNavigate={(id) => navigate(`/work-orders/${id}`)}
                 />
               )
             ))}
