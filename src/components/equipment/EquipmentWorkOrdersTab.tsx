@@ -1,11 +1,17 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Clock, User, Users } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Plus, Calendar, Clock, User, Users, Wrench, CheckCircle2 } from 'lucide-react';
 import { useSyncWorkOrdersByEquipment } from '@/services/syncDataService';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
+import WorkOrderCostSubtotal from '@/components/work-orders/WorkOrderCostSubtotal';
+import PMProgressIndicator from '@/components/work-orders/PMProgressIndicator';
 
 interface EquipmentWorkOrdersTabProps {
   equipmentId: string;
@@ -18,8 +24,10 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
   organizationId,
   onCreateWorkOrder,
 }) => {
+  const navigate = useNavigate();
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
   const { data: workOrders = [], isLoading } = useSyncWorkOrdersByEquipment(organizationId, equipmentId);
+  const permissions = useUnifiedPermissions();
 
   const handleCreateWorkOrder = () => {
     if (onCreateWorkOrder) {
@@ -178,8 +186,19 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
                   )}
                 </div>
 
-                {workOrder.estimated_hours && (
+                {/* PM Progress Indicator */}
+                {workOrder.has_pm && (
                   <div className="mt-4 pt-4 border-t">
+                    <PMProgressIndicator 
+                      workOrderId={workOrder.id} 
+                      hasPM={workOrder.has_pm} 
+                    />
+                  </div>
+                )}
+
+                {/* Estimated Hours and Completion */}
+                {workOrder.estimated_hours && (
+                  <div className={`mt-4 ${workOrder.has_pm ? '' : 'pt-4 border-t'}`}>
                     <div className="text-sm">
                       <span className="font-medium">Estimated time:</span> {workOrder.estimated_hours} hours
                       {workOrder.completed_date && (
@@ -191,8 +210,23 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
                   </div>
                 )}
 
-                <div className="flex justify-end mt-4">
-                  <Button variant="outline" size="sm">
+                {/* Footer with Cost and Actions */}
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div className="flex items-center gap-4">
+                    {/* Cost Display - Only for team managers and org admins */}
+                    {permissions.workOrders.getDetailedPermissions(workOrder).canEdit && (
+                      <WorkOrderCostSubtotal 
+                        workOrderId={workOrder.id}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate(`/work-orders/${workOrder.id}`)}
+                  >
                     View Details
                   </Button>
                 </div>
