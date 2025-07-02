@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,12 +76,12 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     }
   });
 
-  const handleCreateNote = (content: string, images: File[]) => {
+  const handleCreateNoteWithImages = async (files: File[], noteText: string) => {
     return createNoteMutation.mutateAsync({
-      content,
+      content: noteText,
       hoursWorked: formData.hoursWorked,
       isPrivate: formData.isPrivate,
-      images
+      images: files
     });
   };
 
@@ -217,7 +216,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                 
                 <TabsContent value="images" className="mt-4">
                   <ImageUploadWithNote
-                    onUpload={handleCreateNote}
+                    onUpload={handleCreateNoteWithImages}
                     placeholder="Add a note to describe these images..."
                   />
                 </TabsContent>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,6 +71,18 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       toast.error('Failed to set display image');
     } finally {
       setIsSettingDisplay(null);
+    }
+  };
+
+  const handleRemoveDisplayImage = async () => {
+    if (!onSetDisplayImage) return;
+    
+    try {
+      await onSetDisplayImage('');
+      toast.success('Display image removed');
+    } catch (error) {
+      console.error('Failed to remove display image:', error);
+      toast.error('Failed to remove display image');
     }
   };
 
@@ -162,7 +173,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                         size="sm"
                         variant="secondary"
                         className="h-8 w-8 p-0"
-                        onClick={() => handleSetDisplayImage('')}
+                        onClick={handleRemoveDisplayImage}
                         disabled={isSettingDisplay === image.id}
                       >
                         <StarOff className="h-4 w-4" />

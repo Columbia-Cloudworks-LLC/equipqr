@@ -27,6 +27,42 @@ export interface EquipmentNoteImage {
   uploaded_by_name?: string;
 }
 
+// Get notes with images for equipment
+export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<EquipmentNote[]> => {
+  const { data, error } = await supabase
+    .from('equipment_notes')
+    .select(`
+      *,
+      profiles:author_id (
+        name
+      ),
+      equipment_note_images (
+        *,
+        profiles:uploaded_by (
+          name
+        )
+      )
+    `)
+    .eq('equipment_id', equipmentId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map(note => ({
+    ...note,
+    author_name: (note.profiles as any)?.name || 'Unknown',
+    images: (note.equipment_note_images || []).map((img: any) => ({
+      ...img,
+      uploaded_by_name: img.profiles?.name || 'Unknown'
+    }))
+  }));
+};
+
+// Legacy function for backward compatibility
+export const getEquipmentNotes = async (equipmentId: string, organizationId: string) => {
+  return getEquipmentNotesWithImages(equipmentId);
+};
+
 // Create a note with images
 export const createEquipmentNoteWithImages = async (
   equipmentId: string,
@@ -106,35 +142,99 @@ export const createEquipmentNoteWithImages = async (
   };
 };
 
-// Get notes with images for equipment
-export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<EquipmentNote[]> => {
-  const { data, error } = await supabase
+// Legacy function for backward compatibility
+export const createEquipmentNote = async (data: {
+  equipmentId: string;
+  content: string;
+  hoursWorked?: number;
+  isPrivate?: boolean;
+}) => {
+  return createEquipmentNoteWithImages(
+    data.equipmentId,
+    data.content,
+    data.hoursWorked || 0,
+    data.isPrivate || false,
+    []
+  );
+};
+
+// Update note
+export const updateEquipmentNote = async (noteId: string, data: {
+  content?: string;
+  hoursWorked?: number;
+  isPrivate?: boolean;
+}) => {
+  const { data: updatedNote, error } = await supabase
     .from('equipment_notes')
-    .select(`
-      *,
-      profiles:author_id (
-        name
-      ),
-      equipment_note_images (
-        *,
-        profiles:uploaded_by (
-          name
-        )
-      )
-    `)
-    .eq('equipment_id', equipmentId)
-    .order('created_at', { ascending: false });
+    .update(data)
+    .eq('id', noteId)
+    .select()
+    .single();
 
   if (error) throw error;
+  return updatedNote;
+};
 
-  return (data || []).map(note => ({
-    ...note,
-    author_name: (note.profiles as any)?.name || 'Unknown',
-    images: (note.equipment_note_images || []).map((img: any) => ({
-      ...img,
-      uploaded_by_name: img.profiles?.name || 'Unknown'
-    }))
-  }));
+// Delete note
+export const deleteEquipmentNote = async (noteId: string) => {
+  const { error } = await supabase
+    .from('equipment_notes')
+    .delete()
+    .eq('id', noteId);
+
+  if (error) throw error;
+};
+
+// Upload image to existing note
+export const uploadEquipmentNoteImage = async (
+  noteId: string,
+  file: File,
+  description?: string
+) => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
+
+  // Get note details for file path
+  const { data: note } = await supabase
+    .from('equipment_notes')
+    .select('equipment_id')
+    .eq('id', noteId)
+    .single();
+
+  if (!note) throw new Error('Note not found');
+
+  // Upload file to storage
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userData.user.id}/${note.equipment_id}/${noteId}/${Date.now()}.${fileExt}`;
+  
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from('equipment-note-images')
+    .upload(fileName, file);
+
+  if (uploadError) throw uploadError;
+
+  // Get public URL
+  const { data: { publicUrl } } = supabase.storage
+    .from('equipment-note-images')
+    .getPublicUrl(uploadData.path);
+
+  // Save image record to database
+  const { data: imageRecord, error: imageError } = await supabase
+    .from('equipment_note_images')
+    .insert({
+      equipment_note_id: noteId,
+      file_name: file.name,
+      file_url: publicUrl,
+      file_size: file.size,
+      mime_type: file.type,
+      description,
+      uploaded_by: userData.user.id
+    })
+    .select()
+    .single();
+
+  if (imageError) throw imageError;
+  return imageRecord;
 };
 
 // Get all images for equipment (for gallery view)
@@ -209,8 +309,11 @@ export const deleteEquipmentNoteImage = async (imageId: string): Promise<void> =
 export const updateEquipmentDisplayImage = async (equipmentId: string, imageUrl: string): Promise<void> => {
   const { error } = await supabase
     .from('equipment')
-    .update({ display_image_url: imageUrl || null })
+    .update({ image_url: imageUrl || null })
     .eq('id', equipmentId);
 
   if (error) throw error;
 };
+
+// Legacy function name
+export const setEquipmentDisplayImage = updateEquipmentDisplayImage;

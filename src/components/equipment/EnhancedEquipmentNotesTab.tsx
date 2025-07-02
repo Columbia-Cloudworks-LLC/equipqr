@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,13 +57,13 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     enabled: !!equipmentId
   });
 
-  // Get current display image
+  // Get current display image from equipment
   const { data: equipment } = useQuery({
     queryKey: ['equipment', equipmentId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('equipment')
-        .select('display_image_url')
+        .select('image_url')
         .eq('id', equipmentId)
         .single();
       if (error) throw error;
@@ -112,12 +111,12 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     }
   });
 
-  const handleCreateNote = (content: string, images: File[]) => {
+  const handleCreateNoteWithImages = async (files: File[], noteText: string) => {
     return createNoteMutation.mutateAsync({
-      content,
+      content: noteText,
       hoursWorked: formData.hoursWorked,
       isPrivate: formData.isPrivate,
-      images
+      images: files
     });
   };
 
@@ -249,7 +248,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
                   
                   <TabsContent value="images">
                     <ImageUploadWithNote
-                      onUpload={handleCreateNote}
+                      onUpload={handleCreateNoteWithImages}
                       placeholder="Add a note to describe these images..."
                     />
                   </TabsContent>
@@ -348,7 +347,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
             onSetDisplayImage={setDisplayImageMutation.mutateAsync}
             canDelete={canDeleteImage}
             canSetDisplayImage={true}
-            currentDisplayImage={equipment?.display_image_url}
+            currentDisplayImage={equipment?.image_url}
             title="Equipment Images"
             emptyMessage="No images uploaded yet. Add a note with images to get started."
           />
