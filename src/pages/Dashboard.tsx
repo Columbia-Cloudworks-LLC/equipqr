@@ -5,6 +5,7 @@ import { Package, Wrench, Users, ClipboardList, TrendingUp, AlertTriangle } from
 import { useSession } from '@/contexts/SessionContext';
 import { useDashboardStats, useEquipmentByOrganization, useAllWorkOrders } from '@/hooks/useSupabaseData';
 import { Badge } from '@/components/ui/badge';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { getCurrentOrganization, isLoading: sessionLoading } = useSession();
@@ -66,70 +67,80 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Equipment</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalEquipment || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.activeEquipment || 0} active
-            </p>
-          </CardContent>
-        </Card>
+        <Link to="/equipment">
+          <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Equipment</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.totalEquipment || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats?.activeEquipment || 0} active
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Maintenance Required</CardTitle>
-            <Wrench className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.maintenanceEquipment || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Equipment needing attention
-            </p>
-          </CardContent>
-        </Card>
+        <Link to="/equipment?status=maintenance">
+          <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Maintenance Required</CardTitle>
+              <Wrench className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.maintenanceEquipment || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Equipment needing attention
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Work Orders</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalWorkOrders || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {workOrders?.filter(wo => wo.status !== 'completed').length || 0} active
-            </p>
-          </CardContent>
-        </Card>
+        <Link to="/work-orders">
+          <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Work Orders</CardTitle>
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.totalWorkOrders || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {workOrders?.filter(wo => wo.status !== 'completed').length || 0} active
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Members</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentOrganization.memberCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Active organization members
-            </p>
-          </CardContent>
-        </Card>
+        <Link to="/organization">
+          <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{currentOrganization.memberCount}</div>
+              <p className="text-xs text-muted-foreground">
+                Active organization members
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Recent Equipment */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Recent Equipment
-            </CardTitle>
-            <CardDescription>
-              Latest equipment in your fleet
-            </CardDescription>
+            <Link to="/equipment" className="hover:opacity-80 transition-opacity">
+              <CardTitle className="flex items-center gap-2 cursor-pointer">
+                <Package className="h-5 w-5" />
+                Recent Equipment
+              </CardTitle>
+              <CardDescription>
+                Latest equipment in your fleet
+              </CardDescription>
+            </Link>
           </CardHeader>
           <CardContent>
             {equipmentLoading ? (
@@ -141,7 +152,11 @@ const Dashboard = () => {
             ) : recentEquipment.length > 0 ? (
               <div className="space-y-4">
                 {recentEquipment.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between">
+                  <Link 
+                    key={item.id} 
+                    to={`/equipment/${item.id}`}
+                    className="flex items-center justify-between p-2 -m-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
                     <div>
                       <p className="font-medium">{item.name}</p>
                       <p className="text-sm text-muted-foreground">
@@ -156,7 +171,7 @@ const Dashboard = () => {
                     >
                       {item.status}
                     </Badge>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -168,13 +183,15 @@ const Dashboard = () => {
         {/* Recent Work Orders */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="h-5 w-5" />
-              Recent Work Orders
-            </CardTitle>
-            <CardDescription>
-              Latest work order activity
-            </CardDescription>
+            <Link to="/work-orders" className="hover:opacity-80 transition-opacity">
+              <CardTitle className="flex items-center gap-2 cursor-pointer">
+                <ClipboardList className="h-5 w-5" />
+                Recent Work Orders
+              </CardTitle>
+              <CardDescription>
+                Latest work order activity
+              </CardDescription>
+            </Link>
           </CardHeader>
           <CardContent>
             {workOrdersLoading ? (
@@ -186,7 +203,11 @@ const Dashboard = () => {
             ) : recentWorkOrders.length > 0 ? (
               <div className="space-y-4">
                 {recentWorkOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between">
+                  <Link 
+                    key={order.id} 
+                    to={`/work-orders/${order.id}`}
+                    className="flex items-center justify-between p-2 -m-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
                     <div>
                       <p className="font-medium">{order.title}</p>
                       <p className="text-sm text-muted-foreground">
@@ -201,7 +222,7 @@ const Dashboard = () => {
                     >
                       {order.status.replace('_', ' ')}
                     </Badge>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -226,7 +247,11 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {highPriorityWorkOrders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between p-3 border border-destructive/20 rounded-lg">
+                <Link 
+                  key={order.id} 
+                  to={`/work-orders/${order.id}`}
+                  className="flex items-center justify-between p-3 border border-destructive/20 rounded-lg hover:bg-destructive/5 transition-colors"
+                >
                   <div>
                     <p className="font-medium">{order.title}</p>
                     <p className="text-sm text-muted-foreground">
@@ -237,7 +262,7 @@ const Dashboard = () => {
                     </p>
                   </div>
                   <Badge variant="destructive">High Priority</Badge>
-                </div>
+                </Link>
               ))}
             </div>
           </CardContent>
