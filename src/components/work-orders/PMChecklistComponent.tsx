@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAutoSave } from '@/hooks/useAutoSave';
+import { useBrowserStorage } from '@/hooks/useBrowserStorage';
+import { SaveStatus } from '@/components/ui/SaveStatus';
 import { toast } from 'sonner';
 
 interface PMChecklistComponentProps {
@@ -29,18 +32,53 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [isInitialized, setIsInitialized] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error' | 'offline'>('saved');
+  const [lastSaved, setLastSaved] = useState<Date>();
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Browser storage for backup
+  const storageKey = `pm-checklist-${pm.id}`;
+  const { saveToStorage, loadFromStorage, clearStorage } = useBrowserStorage({
+    key: storageKey,
+    data: { checklist, notes },
+    enabled: !readOnly
+  });
+
+  // Auto-save functionality
+  const handleAutoSave = useCallback(async () => {
+    if (readOnly || !hasUnsavedChanges) return;
+    
+    try {
+      setSaveStatus('saving');
+      await updatePM(pm.id, {
+        checklistData: checklist,
+        notes,
+        status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
+      });
+      setSaveStatus('saved');
+      setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+      clearStorage(); // Clear backup after successful save
+    } catch (error) {
+      setSaveStatus('error');
+      console.error('Auto-save failed:', error);
+    }
+  }, [pm.id, checklist, notes, pm.status, readOnly, hasUnsavedChanges, clearStorage]);
+
+  const { triggerAutoSave, cancelAutoSave } = useAutoSave({
+    onSave: handleAutoSave,
+    delay: 3000,
+    enabled: !readOnly && hasUnsavedChanges
+  });
 
   useEffect(() => {
     // Only initialize once to prevent unnecessary resets
     if (isInitialized) return;
 
-    console.log('🔧 Initializing PM Checklist Data:', {
-      pmId: pm.id,
-      hasChecklistData: !!pm.checklist_data,
-      checklistDataType: typeof pm.checklist_data,
-      checklistDataLength: Array.isArray(pm.checklist_data) ? pm.checklist_data.length : 'not array',
-      rawData: pm.checklist_data
-    });
+    // Reduced logging for performance
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 Initializing PM Checklist:', pm.id);
+    }
 
     try {
       let parsedChecklist: PMChecklistItem[] = [];
@@ -73,14 +111,30 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             notes: item.notes ? String(item.notes) : undefined
           }));
           
-          console.log('✅ Using saved checklist data:', parsedChecklist.length, 'items');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Using saved checklist data:', parsedChecklist.length, 'items');
+          }
         } else {
-          console.log('⚠️ Saved checklist data is invalid, using default');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('⚠️ Saved checklist data is invalid, using default');
+          }
           parsedChecklist = [...defaultForkliftChecklist];
         }
       } else {
-        console.log('🔧 No valid checklist data found, using default forklift checklist');
-        parsedChecklist = [...defaultForkliftChecklist];
+        // Try to load from browser storage first
+        const storedData = loadFromStorage();
+        if (storedData && storedData.checklist && Array.isArray(storedData.checklist)) {
+          parsedChecklist = storedData.checklist;
+          setNotes(storedData.notes || '');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔧 Loaded from browser storage');
+          }
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔧 Using default forklift checklist');
+          }
+          parsedChecklist = [...defaultForkliftChecklist];
+        }
       }
 
       setChecklist(parsedChecklist);
@@ -108,10 +162,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       
       setIsInitialized(true);
     }
-  }, [pm.checklist_data, pm.id, isMobile, isInitialized]);
+  }, [pm.checklist_data, pm.id, isMobile, isInitialized, loadFromStorage]);
 
-  const handleInitializeChecklist = async () => {
-    console.log('🔧 Initializing checklist with default data');
+  const handleInitializeChecklist = useCallback(async () => {
     try {
       setIsUpdating(true);
       const updatedPM = await updatePM(pm.id, {
@@ -121,9 +174,10 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       });
 
       if (updatedPM) {
-        console.log('✅ Checklist initialized successfully');
         toast.success('Checklist initialized successfully');
         setChecklist([...defaultForkliftChecklist]);
+        setHasUnsavedChanges(false);
+        clearStorage();
         onUpdate();
       } else {
         toast.error('Failed to initialize checklist');
@@ -134,29 +188,28 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [pm.id, notes, pm.status, onUpdate, clearStorage]);
 
-  const handleChecklistItemChange = (itemId: string, condition: 1 | 2 | 3 | 4 | 5, itemNotes?: string) => {
+  const handleChecklistItemChange = useCallback((itemId: string, condition: 1 | 2 | 3 | 4 | 5, itemNotes?: string) => {
     setChecklist(prev => prev.map(item => 
       item.id === itemId 
         ? { ...item, condition, notes: itemNotes } 
         : item
     ));
-  };
+    setHasUnsavedChanges(true);
+    triggerAutoSave();
+  }, [triggerAutoSave]);
 
   const isItemComplete = (item: PMChecklistItem): boolean => {
     return item.condition !== null && item.condition !== undefined;
   };
 
-  const saveChanges = async () => {
+  const saveChanges = useCallback(async () => {
     setIsUpdating(true);
+    cancelAutoSave(); // Cancel any pending auto-save
+    
     try {
-      console.log('💾 Saving PM checklist changes:', {
-        pmId: pm.id,
-        checklistLength: checklist.length,
-        notes: notes.length
-      });
-
+      setSaveStatus('saving');
       const updatedPM = await updatePM(pm.id, {
         checklistData: checklist,
         notes,
@@ -164,19 +217,24 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       });
 
       if (updatedPM) {
-        console.log('✅ PM checklist saved successfully');
         toast.success('PM checklist updated successfully');
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
+        clearStorage();
         onUpdate();
       } else {
+        setSaveStatus('error');
         toast.error('Failed to update PM checklist');
       }
     } catch (error) {
       console.error('❌ Error updating PM:', error);
+      setSaveStatus('error');
       toast.error('Failed to update PM checklist');
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [pm.id, checklist, notes, pm.status, onUpdate, cancelAutoSave, clearStorage]);
 
   const completePM = async () => {
     const requiredItems = checklist.filter(item => item.required);
@@ -351,18 +409,26 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
-  const sections = Array.from(new Set(checklist.map(item => item.section)));
-  const completedItems = checklist.filter(item => isItemComplete(item));
+  // Memoize expensive calculations
+  const sections = useMemo(() => Array.from(new Set(checklist.map(item => item.section))), [checklist]);
+  const completedItems = useMemo(() => checklist.filter(item => isItemComplete(item)), [checklist]);
   const totalItems = checklist.length;
-  const unratedRequiredItems = checklist.filter(item => item.required && !isItemComplete(item));
-  const unsafeItems = checklist.filter(item => item.condition === 5);
+  const unratedRequiredItems = useMemo(() => checklist.filter(item => item.required && !isItemComplete(item)), [checklist]);
+  const unsafeItems = useMemo(() => checklist.filter(item => item.condition === 5), [checklist]);
 
-  const toggleSection = (section: string) => {
+  const toggleSection = useCallback((section: string) => {
     setOpenSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
-  };
+  }, []);
+
+  // Handle notes changes with auto-save
+  const handleNotesChange = useCallback((value: string) => {
+    setNotes(value);
+    setHasUnsavedChanges(true);
+    triggerAutoSave();
+  }, [triggerAutoSave]);
 
   // Show empty state if checklist is empty and not initialized
   if (checklist.length === 0 && !isInitialized) {
@@ -446,6 +512,13 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 <span className="text-sm text-muted-foreground">
                   Progress: {completedItems.length}/{totalItems} items completed
                 </span>
+                {!readOnly && (
+                  <SaveStatus 
+                    status={saveStatus} 
+                    lastSaved={lastSaved}
+                    className="ml-2"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -562,7 +635,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           <Textarea
             placeholder="Add general notes about this PM..."
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => handleNotesChange(e.target.value)}
             disabled={readOnly || pm.status === 'completed'}
             rows={3}
           />

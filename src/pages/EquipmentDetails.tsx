@@ -37,27 +37,18 @@ const EquipmentDetails = () => {
   useEffect(() => {
     const isQRScan = searchParams.get('qr') === 'true';
     
-    console.log('Page loaded:', {
-      isQRScan,
-      equipmentId,
-      equipment: !!equipment,
-      scanLogged,
-      currentOrganization: !!currentOrganization
-    });
+    // Reduced logging for performance
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Equipment page:', { isQRScan, hasEquipment: !!equipment });
+    }
     
     if (isQRScan && equipment && equipmentId && currentOrganization && !scanLogged) {
-      console.log('QR scan detected, logging scan...');
       logScan();
     }
   }, [equipment, equipmentId, currentOrganization, searchParams, scanLogged]);
 
   const logScan = async () => {
     if (!equipmentId || !currentOrganization || scanLogged) {
-      console.log('Scan logging skipped:', {
-        equipmentId: !!equipmentId,
-        currentOrganization: !!currentOrganization,
-        scanLogged
-      });
       return;
     }
     
@@ -65,14 +56,11 @@ const EquipmentDetails = () => {
     setScanLogged(true);
     
     try {
-      console.log('Attempting to log scan for equipment:', equipmentId);
-      
       // Try to get user's location with consent
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
             const location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-            console.log('Location obtained, creating scan with location:', location);
             
             try {
               await createScanMutation.mutateAsync({
@@ -80,7 +68,6 @@ const EquipmentDetails = () => {
                 location,
                 notes: 'QR code scan with location'
               });
-              console.log('Scan logged successfully with location');
               toast.success('Equipment scanned successfully!');
             } catch (error) {
               console.error('Failed to log scan with location:', error);
@@ -88,15 +75,12 @@ const EquipmentDetails = () => {
             }
           },
           async (error) => {
-            console.log('Location access denied or failed:', error.message);
-            
             try {
               // Log scan without location
               await createScanMutation.mutateAsync({
                 equipmentId,
                 notes: 'QR code scan (location denied)'
               });
-              console.log('Scan logged successfully without location');
               toast.success('Equipment scanned successfully!');
             } catch (scanError) {
               console.error('Failed to log scan without location:', scanError);
@@ -110,15 +94,12 @@ const EquipmentDetails = () => {
           }
         );
       } else {
-        console.log('Geolocation not supported, logging scan without location');
-        
         try {
           // Log scan without location support
           await createScanMutation.mutateAsync({
             equipmentId,
             notes: 'QR code scan (no location support)'
           });
-          console.log('Scan logged successfully without location support');
           toast.success('Equipment scanned successfully!');
         } catch (error) {
           console.error('Failed to log scan without location support:', error);
