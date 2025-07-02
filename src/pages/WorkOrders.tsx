@@ -12,6 +12,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEnhancedWorkOrders } from '@/hooks/useEnhancedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
+import { useBatchAssignUnassignedWorkOrders } from '@/hooks/useBatchAssignUnassignedWorkOrders';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
@@ -49,6 +50,13 @@ const WorkOrders = () => {
   const { data: allWorkOrders = [], isLoading } = useEnhancedWorkOrders(currentOrganization?.id);
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
+  const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
+
+  // Check for unassigned work orders in single-user organization
+  const unassignedCount = allWorkOrders.filter(order => 
+    order.status === 'submitted' && !order.assigneeName && !order.teamName
+  ).length;
+  const isSingleUserOrg = currentOrganization?.memberCount === 1;
 
   const filteredWorkOrders = allWorkOrders.filter(order => {
     const matchesSearch = order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -132,6 +140,31 @@ const WorkOrders = () => {
           Create Work Order
         </Button>
       </div>
+
+      {/* Auto-assignment banner for single-user organizations */}
+      {isSingleUserOrg && unassignedCount > 0 && (
+        <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-blue-900 dark:text-blue-100">
+                  {unassignedCount} unassigned work order{unassignedCount !== 1 ? 's' : ''} found
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  Since you're the only member, these can be automatically assigned to you.
+                </p>
+              </div>
+              <Button
+                onClick={() => currentOrganization && batchAssignMutation.mutate(currentOrganization.id)}
+                disabled={batchAssignMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {batchAssignMutation.isPending ? 'Assigning...' : 'Assign All to Me'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4'}`}>
         {/* Main Content */}

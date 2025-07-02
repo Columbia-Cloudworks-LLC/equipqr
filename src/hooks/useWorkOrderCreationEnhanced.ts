@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { createWorkOrder } from '@/services/supabaseDataService';
 import { createPM } from '@/services/preventativeMaintenanceService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface EnhancedCreateWorkOrderData {
@@ -27,6 +28,20 @@ export const useCreateWorkOrderEnhanced = () => {
         throw new Error('No organization selected');
       }
 
+      // Auto-assign logic for single-user organizations
+      let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
+      let teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
+      let status: 'submitted' | 'assigned' = 'submitted';
+
+      // If no explicit assignment and it's a single-user org, auto-assign to creator
+      if (!assigneeId && !teamId && currentOrganization.memberCount === 1) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          assigneeId = user.id;
+          status = 'assigned';
+        }
+      }
+
       // Create the work order
       const workOrderData = {
         title: data.title,
@@ -37,10 +52,10 @@ export const useCreateWorkOrderEnhanced = () => {
         estimated_hours: data.estimatedHours,
         has_pm: data.hasPM || false,
         pm_required: data.hasPM || false,
-        assignee_id: data.assignmentType === 'user' ? data.assignmentId : undefined,
-        team_id: data.assignmentType === 'team' ? data.assignmentId : undefined,
-        status: 'submitted' as const,
-        acceptance_date: null
+        assignee_id: assigneeId,
+        team_id: teamId,
+        status,
+        acceptance_date: status === 'assigned' ? new Date().toISOString() : null
       };
 
       const workOrder = await createWorkOrder(currentOrganization.id, workOrderData);
