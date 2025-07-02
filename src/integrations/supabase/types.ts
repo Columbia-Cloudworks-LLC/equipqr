@@ -1327,6 +1327,10 @@ export type Database = {
           period_end: string
         }[]
       }
+      get_current_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_latest_completed_pm: {
         Args: { equipment_uuid: string }
         Returns: {
@@ -1367,6 +1371,12 @@ export type Database = {
           status: string
         }[]
       }
+      get_user_organizations: {
+        Args: { user_uuid: string }
+        Returns: {
+          organization_id: string
+        }[]
+      }
       get_user_team_memberships: {
         Args: { user_uuid: string; org_id: string }
         Returns: {
@@ -1375,6 +1385,14 @@ export type Database = {
           role: string
           joined_date: string
         }[]
+      }
+      is_organization_admin: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      is_organization_member: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
       }
       release_reserved_slot: {
         Args: { org_id: string; invitation_id: string }

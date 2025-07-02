@@ -3,10 +3,12 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, Clock, DollarSign } from 'lucide-react';
+import { Calendar, User, Clock, DollarSign, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MobileWorkOrderCardProps {
   order: EnhancedWorkOrder;
@@ -23,6 +25,24 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
   isUpdating,
   isAccepting
 }) => {
+  const quickAssignMutation = useQuickWorkOrderAssignment();
+  const [currentUser, setCurrentUser] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getCurrentUser();
+  }, []);
+
+  const handleQuickAssignToMe = async () => {
+    if (!currentUser) return;
+    await quickAssignMutation.mutateAsync({
+      workOrderId: order.id,
+      assigneeId: currentUser.id
+    });
+  };
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'submitted':
@@ -166,6 +186,18 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
             </Button>
 
             <div className="flex gap-2">
+              {order.status === 'submitted' && !order.assigneeName && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleQuickAssignToMe}
+                  disabled={quickAssignMutation.isPending || !currentUser}
+                  className="flex-1"
+                >
+                  <UserPlus className="h-3 w-3 mr-1" />
+                  Assign to Me
+                </Button>
+              )}
               {order.status === 'submitted' && (
                 <Button 
                   variant="outline" 

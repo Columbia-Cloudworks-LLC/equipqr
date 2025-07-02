@@ -1,8 +1,10 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { createWorkOrder } from '@/services/supabaseDataService';
 import { createPM } from '@/services/preventativeMaintenanceService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface EnhancedCreateWorkOrderData {
@@ -17,14 +19,29 @@ export interface EnhancedCreateWorkOrderData {
   assignmentId?: string;
 }
 
-export const useCreateWorkOrderEnhanced = () => {
+export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: any) => void }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: async (data: EnhancedCreateWorkOrderData) => {
       if (!currentOrganization) {
         throw new Error('No organization selected');
+      }
+
+      // Auto-assign logic for single-user organizations
+      let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
+      let teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
+      let status: 'submitted' | 'assigned' = 'submitted';
+
+      // If no explicit assignment and it's a single-user org, auto-assign to creator
+      if (!assigneeId && !teamId && currentOrganization.memberCount === 1) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          assigneeId = user.id;
+          status = 'assigned';
+        }
       }
 
       // Create the work order
@@ -37,10 +54,10 @@ export const useCreateWorkOrderEnhanced = () => {
         estimated_hours: data.estimatedHours,
         has_pm: data.hasPM || false,
         pm_required: data.hasPM || false,
-        assignee_id: data.assignmentType === 'user' ? data.assignmentId : undefined,
-        team_id: data.assignmentType === 'team' ? data.assignmentId : undefined,
-        status: 'submitted' as const,
-        acceptance_date: null
+        assignee_id: assigneeId,
+        team_id: teamId,
+        status,
+        acceptance_date: status === 'assigned' ? new Date().toISOString() : null
       };
 
       const workOrder = await createWorkOrder(currentOrganization.id, workOrderData);
@@ -68,13 +85,20 @@ export const useCreateWorkOrderEnhanced = () => {
 
       return workOrder;
     },
-    onSuccess: () => {
+    onSuccess: (workOrder) => {
       toast.success('Work order created successfully');
       
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
       queryClient.invalidateQueries({ queryKey: ['workOrdersByOrganization'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      
+      // Call custom onSuccess if provided, otherwise navigate to work order details
+      if (options?.onSuccess) {
+        options.onSuccess(workOrder);
+      } else {
+        navigate(`/work-orders/${workOrder.id}`);
+      }
     },
     onError: (error) => {
       console.error('Error creating work order:', error);

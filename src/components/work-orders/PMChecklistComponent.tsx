@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,10 +7,16 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAutoSave } from '@/hooks/useAutoSave';
+import { useBrowserStorage } from '@/hooks/useBrowserStorage';
+import { SaveStatus } from '@/components/ui/SaveStatus';
 import { toast } from 'sonner';
+import PrintExportDropdown from './PrintExportDropdown';
+import { PMChecklistPDFGenerator } from '@/utils/pdfGenerator';
 
 interface PMChecklistComponentProps {
   pm: PreventativeMaintenance;
@@ -29,18 +35,53 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [isInitialized, setIsInitialized] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error' | 'offline'>('saved');
+  const [lastSaved, setLastSaved] = useState<Date>();
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Browser storage for backup
+  const storageKey = `pm-checklist-${pm.id}`;
+  const { saveToStorage, loadFromStorage, clearStorage } = useBrowserStorage({
+    key: storageKey,
+    data: { checklist, notes },
+    enabled: !readOnly
+  });
+
+  // Auto-save functionality
+  const handleAutoSave = useCallback(async () => {
+    if (readOnly || !hasUnsavedChanges) return;
+    
+    try {
+      setSaveStatus('saving');
+      await updatePM(pm.id, {
+        checklistData: checklist,
+        notes,
+        status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
+      });
+      setSaveStatus('saved');
+      setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+      clearStorage(); // Clear backup after successful save
+    } catch (error) {
+      setSaveStatus('error');
+      console.error('Auto-save failed:', error);
+    }
+  }, [pm.id, checklist, notes, pm.status, readOnly, hasUnsavedChanges, clearStorage]);
+
+  const { triggerAutoSave, cancelAutoSave } = useAutoSave({
+    onSave: handleAutoSave,
+    selectionDelay: 3000,
+    enabled: !readOnly && hasUnsavedChanges
+  });
 
   useEffect(() => {
     // Only initialize once to prevent unnecessary resets
     if (isInitialized) return;
 
-    console.log('🔧 Initializing PM Checklist Data:', {
-      pmId: pm.id,
-      hasChecklistData: !!pm.checklist_data,
-      checklistDataType: typeof pm.checklist_data,
-      checklistDataLength: Array.isArray(pm.checklist_data) ? pm.checklist_data.length : 'not array',
-      rawData: pm.checklist_data
-    });
+    // Reduced logging for performance
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 Initializing PM Checklist:', pm.id);
+    }
 
     try {
       let parsedChecklist: PMChecklistItem[] = [];
@@ -73,23 +114,39 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             notes: item.notes ? String(item.notes) : undefined
           }));
           
-          console.log('✅ Using saved checklist data:', parsedChecklist.length, 'items');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Using saved checklist data:', parsedChecklist.length, 'items');
+          }
         } else {
-          console.log('⚠️ Saved checklist data is invalid, using default');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('⚠️ Saved checklist data is invalid, using default');
+          }
           parsedChecklist = [...defaultForkliftChecklist];
         }
       } else {
-        console.log('🔧 No valid checklist data found, using default forklift checklist');
-        parsedChecklist = [...defaultForkliftChecklist];
+        // Try to load from browser storage first
+        const storedData = loadFromStorage();
+        if (storedData && storedData.checklist && Array.isArray(storedData.checklist)) {
+          parsedChecklist = storedData.checklist;
+          setNotes(storedData.notes || '');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔧 Loaded from browser storage');
+          }
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔧 Using default forklift checklist');
+          }
+          parsedChecklist = [...defaultForkliftChecklist];
+        }
       }
 
       setChecklist(parsedChecklist);
 
-      // Initialize sections based on mobile/desktop - closed on mobile, open on desktop
+      // Initialize all sections as collapsed by default
       const sections = Array.from(new Set(parsedChecklist.map(item => item.section)));
       const initialOpenSections: Record<string, boolean> = {};
       sections.forEach(section => {
-        initialOpenSections[section] = !isMobile; // Closed on mobile, open on desktop
+        initialOpenSections[section] = false; // All sections collapsed by default
       });
       setOpenSections(initialOpenSections);
       
@@ -98,20 +155,19 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       console.error('❌ Error parsing checklist data:', error);
       setChecklist([...defaultForkliftChecklist]);
       
-      // Initialize sections for default checklist
+      // Initialize sections for default checklist (all collapsed)
       const sections = Array.from(new Set(defaultForkliftChecklist.map(item => item.section)));
       const initialOpenSections: Record<string, boolean> = {};
       sections.forEach(section => {
-        initialOpenSections[section] = !isMobile;
+        initialOpenSections[section] = false; // All sections collapsed by default
       });
       setOpenSections(initialOpenSections);
       
       setIsInitialized(true);
     }
-  }, [pm.checklist_data, pm.id, isMobile, isInitialized]);
+  }, [pm.checklist_data, pm.id, isMobile, isInitialized, loadFromStorage]);
 
-  const handleInitializeChecklist = async () => {
-    console.log('🔧 Initializing checklist with default data');
+  const handleInitializeChecklist = useCallback(async () => {
     try {
       setIsUpdating(true);
       const updatedPM = await updatePM(pm.id, {
@@ -121,9 +177,10 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       });
 
       if (updatedPM) {
-        console.log('✅ Checklist initialized successfully');
         toast.success('Checklist initialized successfully');
         setChecklist([...defaultForkliftChecklist]);
+        setHasUnsavedChanges(false);
+        clearStorage();
         onUpdate();
       } else {
         toast.error('Failed to initialize checklist');
@@ -134,29 +191,28 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [pm.id, notes, pm.status, onUpdate, clearStorage]);
 
-  const handleChecklistItemChange = (itemId: string, condition: 1 | 2 | 3 | 4 | 5, itemNotes?: string) => {
+  const handleChecklistItemChange = useCallback((itemId: string, condition: 1 | 2 | 3 | 4 | 5, itemNotes?: string) => {
     setChecklist(prev => prev.map(item => 
       item.id === itemId 
         ? { ...item, condition, notes: itemNotes } 
         : item
     ));
-  };
+    setHasUnsavedChanges(true);
+    triggerAutoSave('selection'); // Use selection trigger for immediate UI changes
+  }, [triggerAutoSave]);
 
   const isItemComplete = (item: PMChecklistItem): boolean => {
     return item.condition !== null && item.condition !== undefined;
   };
 
-  const saveChanges = async () => {
+  const saveChanges = useCallback(async () => {
     setIsUpdating(true);
+    cancelAutoSave(); // Cancel any pending auto-save
+    
     try {
-      console.log('💾 Saving PM checklist changes:', {
-        pmId: pm.id,
-        checklistLength: checklist.length,
-        notes: notes.length
-      });
-
+      setSaveStatus('saving');
       const updatedPM = await updatePM(pm.id, {
         checklistData: checklist,
         notes,
@@ -164,19 +220,24 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       });
 
       if (updatedPM) {
-        console.log('✅ PM checklist saved successfully');
         toast.success('PM checklist updated successfully');
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
+        clearStorage();
         onUpdate();
       } else {
+        setSaveStatus('error');
         toast.error('Failed to update PM checklist');
       }
     } catch (error) {
       console.error('❌ Error updating PM:', error);
+      setSaveStatus('error');
       toast.error('Failed to update PM checklist');
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [pm.id, checklist, notes, pm.status, onUpdate, cancelAutoSave, clearStorage]);
 
   const completePM = async () => {
     const requiredItems = checklist.filter(item => item.required);
@@ -215,7 +276,36 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
-  const printPM = () => {
+  // Print/Export handlers
+  const handlePrintPDF = useCallback(() => {
+    try {
+      PMChecklistPDFGenerator.generateAndPrint(pm, checklist, {
+        includeProgress: true,
+        includeNotes: true,
+        includeTimestamps: true
+      });
+      toast.success('PDF generated for printing');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  }, [pm, checklist]);
+
+  const handleDownloadPDF = useCallback(() => {
+    try {
+      PMChecklistPDFGenerator.generateAndDownload(pm, checklist, {
+        includeProgress: true,
+        includeNotes: true,
+        includeTimestamps: true
+      });
+      toast.success('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download PDF');
+    }
+  }, [pm, checklist]);
+
+  const handleBrowserPrint = useCallback(() => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -293,7 +383,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.print();
-  };
+  }, [pm, checklist, notes]);
 
   const getStatusIcon = () => {
     switch (pm.status) {
@@ -351,18 +441,37 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
-  const sections = Array.from(new Set(checklist.map(item => item.section)));
-  const completedItems = checklist.filter(item => isItemComplete(item));
+  // Memoize expensive calculations
+  const sections = useMemo(() => Array.from(new Set(checklist.map(item => item.section))), [checklist]);
+  const completedItems = useMemo(() => checklist.filter(item => isItemComplete(item)), [checklist]);
   const totalItems = checklist.length;
-  const unratedRequiredItems = checklist.filter(item => item.required && !isItemComplete(item));
-  const unsafeItems = checklist.filter(item => item.condition === 5);
+  const unratedRequiredItems = useMemo(() => checklist.filter(item => item.required && !isItemComplete(item)), [checklist]);
+  const unsafeItems = useMemo(() => checklist.filter(item => item.condition === 5), [checklist]);
 
-  const toggleSection = (section: string) => {
+  // Calculate section progress
+  const getSectionProgress = useCallback((section: string) => {
+    const sectionItems = checklist.filter(item => item.section === section);
+    const completedSectionItems = sectionItems.filter(item => isItemComplete(item));
+    return {
+      completed: completedSectionItems.length,
+      total: sectionItems.length,
+      percentage: sectionItems.length > 0 ? (completedSectionItems.length / sectionItems.length) * 100 : 0
+    };
+  }, [checklist]);
+
+  const toggleSection = useCallback((section: string) => {
     setOpenSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
-  };
+  }, []);
+
+  // Handle notes changes with auto-save for text input
+  const handleNotesChange = useCallback((value: string) => {
+    setNotes(value);
+    setHasUnsavedChanges(true);
+    triggerAutoSave('text'); // Use text trigger for longer debounce
+  }, [triggerAutoSave]);
 
   // Show empty state if checklist is empty and not initialized
   if (checklist.length === 0 && !isInitialized) {
@@ -434,26 +543,75 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {getStatusIcon()}
-            <div>
-              <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
-              <div className="flex items-center gap-2 mt-1">
+        {isMobile ? (
+          // Mobile: Multi-row layout with stacked elements
+          <div className="space-y-4">
+            {/* Title and Print Action Row */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                {getStatusIcon()}
+                <CardTitle className="text-lg leading-tight">
+                  Forklift Preventative Maintenance Checklist
+                </CardTitle>
+              </div>
+              <PrintExportDropdown
+                onPrint={handlePrintPDF}
+                onDownloadPDF={handleDownloadPDF}
+                onPrintBrowser={handleBrowserPrint}
+                disabled={isUpdating}
+              />
+            </div>
+            
+            {/* Status and Progress Row */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
                 <Badge className={getStatusColor()}>
                   {pm.status.replace('_', ' ').toUpperCase()}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Progress: {completedItems.length}/{totalItems} items completed
-                </span>
+                {!readOnly && (
+                  <SaveStatus 
+                    status={saveStatus} 
+                    lastSaved={lastSaved}
+                  />
+                )}
               </div>
+              <span className="text-sm text-muted-foreground">
+                Progress: {completedItems.length}/{totalItems} items completed
+              </span>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={printPM}>
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
-        </div>
+        ) : (
+          // Desktop: Horizontal layout
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {getStatusIcon()}
+              <div>
+                <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={getStatusColor()}>
+                    {pm.status.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    Progress: {completedItems.length}/{totalItems} items completed
+                  </span>
+                  {!readOnly && (
+                    <SaveStatus 
+                      status={saveStatus} 
+                      lastSaved={lastSaved}
+                      className="ml-2"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+            <PrintExportDropdown
+              onPrint={handlePrintPDF}
+              onDownloadPDF={handleDownloadPDF}
+              onPrintBrowser={handleBrowserPrint}
+              disabled={isUpdating}
+            />
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {pm.status !== 'completed' && unratedRequiredItems.length > 0 && (
@@ -475,14 +633,27 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         )}
 
         <div className="space-y-4">
-          {sections.map((section) => (
-            <Collapsible key={section} open={openSections[section]} onOpenChange={() => toggleSection(section)}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between p-3 h-auto">
-                  <span className="font-semibold text-left">{section}</span>
-                  {openSections[section] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
+          {sections.map((section) => {
+            const sectionProgress = getSectionProgress(section);
+            return (
+              <Collapsible key={section} open={openSections[section]} onOpenChange={() => toggleSection(section)}>
+                <CollapsibleTrigger asChild>
+                  <div className="relative overflow-hidden rounded-lg border">
+                    <Progress 
+                      value={sectionProgress.percentage} 
+                      className="absolute inset-0 h-full opacity-20"
+                    />
+                    <Button variant="ghost" className="relative w-full justify-between p-4 h-auto bg-transparent hover:bg-white/50">
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="font-semibold text-left">{section}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {sectionProgress.completed}/{sectionProgress.total} items completed ({Math.round(sectionProgress.percentage)}%)
+                        </span>
+                      </div>
+                      {openSections[section] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 pt-2">
                 {checklist.filter(item => item.section === section).map((item) => (
                   <div key={item.id} className={`p-4 border rounded-lg ${item.required ? 'border-l-4 border-l-red-500' : ''}`}>
@@ -554,7 +725,8 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 ))}
               </CollapsibleContent>
             </Collapsible>
-          ))}
+            );
+          })}
         </div>
 
         <div className="space-y-2">
@@ -562,7 +734,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           <Textarea
             placeholder="Add general notes about this PM..."
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => handleNotesChange(e.target.value)}
             disabled={readOnly || pm.status === 'completed'}
             rows={3}
           />

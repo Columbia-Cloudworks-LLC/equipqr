@@ -4,15 +4,18 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabsContent } from '@/components/ui/tabs';
 import { ArrowLeft, MapPin, Calendar, Package, QrCode } from 'lucide-react';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useEquipmentById } from '@/hooks/useSupabaseData';
+import { useIsMobile } from '@/hooks/use-mobile';
 import EquipmentDetailsTab from '@/components/equipment/EquipmentDetailsTab';
 import EquipmentNotesTab from '@/components/equipment/EquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
 import EquipmentImagesTab from '@/components/equipment/EquipmentImagesTab';
 import EquipmentScansTab from '@/components/equipment/EquipmentScansTab';
+import MobileEquipmentHeader from '@/components/equipment/MobileEquipmentHeader';
+import ResponsiveEquipmentTabs from '@/components/equipment/ResponsiveEquipmentTabs';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 import { useCreateScan } from '@/hooks/useSupabaseData';
@@ -25,6 +28,7 @@ const EquipmentDetails = () => {
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
   const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(equipmentId);
   const createScanMutation = useCreateScan();
+  const isMobile = useIsMobile();
   
   const [activeTab, setActiveTab] = useState('details');
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
@@ -37,27 +41,18 @@ const EquipmentDetails = () => {
   useEffect(() => {
     const isQRScan = searchParams.get('qr') === 'true';
     
-    console.log('Page loaded:', {
-      isQRScan,
-      equipmentId,
-      equipment: !!equipment,
-      scanLogged,
-      currentOrganization: !!currentOrganization
-    });
+    // Reduced logging for performance
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Equipment page:', { isQRScan, hasEquipment: !!equipment });
+    }
     
     if (isQRScan && equipment && equipmentId && currentOrganization && !scanLogged) {
-      console.log('QR scan detected, logging scan...');
       logScan();
     }
   }, [equipment, equipmentId, currentOrganization, searchParams, scanLogged]);
 
   const logScan = async () => {
     if (!equipmentId || !currentOrganization || scanLogged) {
-      console.log('Scan logging skipped:', {
-        equipmentId: !!equipmentId,
-        currentOrganization: !!currentOrganization,
-        scanLogged
-      });
       return;
     }
     
@@ -65,14 +60,11 @@ const EquipmentDetails = () => {
     setScanLogged(true);
     
     try {
-      console.log('Attempting to log scan for equipment:', equipmentId);
-      
       // Try to get user's location with consent
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
             const location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-            console.log('Location obtained, creating scan with location:', location);
             
             try {
               await createScanMutation.mutateAsync({
@@ -80,7 +72,6 @@ const EquipmentDetails = () => {
                 location,
                 notes: 'QR code scan with location'
               });
-              console.log('Scan logged successfully with location');
               toast.success('Equipment scanned successfully!');
             } catch (error) {
               console.error('Failed to log scan with location:', error);
@@ -88,15 +79,12 @@ const EquipmentDetails = () => {
             }
           },
           async (error) => {
-            console.log('Location access denied or failed:', error.message);
-            
             try {
               // Log scan without location
               await createScanMutation.mutateAsync({
                 equipmentId,
                 notes: 'QR code scan (location denied)'
               });
-              console.log('Scan logged successfully without location');
               toast.success('Equipment scanned successfully!');
             } catch (scanError) {
               console.error('Failed to log scan without location:', scanError);
@@ -110,15 +98,12 @@ const EquipmentDetails = () => {
           }
         );
       } else {
-        console.log('Geolocation not supported, logging scan without location');
-        
         try {
           // Log scan without location support
           await createScanMutation.mutateAsync({
             equipmentId,
             notes: 'QR code scan (no location support)'
           });
-          console.log('Scan logged successfully without location support');
           toast.success('Equipment scanned successfully!');
         } catch (error) {
           console.error('Failed to log scan without location support:', error);
@@ -173,16 +158,16 @@ const EquipmentDetails = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className={`space-y-6 ${isMobile ? 'px-4' : ''}`}>
         <div className="h-8 bg-muted animate-pulse rounded" />
-        <div className="h-64 bg-muted animate-pulse rounded" />
+        <div className={`bg-muted animate-pulse rounded ${isMobile ? 'h-48' : 'h-64'}`} />
       </div>
     );
   }
 
   if (!equipment) {
     return (
-      <div className="space-y-6">
+      <div className={`space-y-6 ${isMobile ? 'px-4' : ''}`}>
         <Button 
           variant="outline" 
           onClick={() => navigate('/equipment')}
@@ -218,117 +203,124 @@ const EquipmentDetails = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/equipment')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{equipment.name}</h1>
-            <p className="text-muted-foreground">
-              {equipment.manufacturer} {equipment.model} • {equipment.serial_number}
-            </p>
-          </div>
+    <div className={`space-y-6 ${isMobile ? 'pb-4' : ''}`}>
+      {/* Mobile Header */}
+      {isMobile ? (
+        <div className="px-4">
+          <MobileEquipmentHeader 
+            equipment={equipment}
+            onShowQRCode={handleShowQRCode}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <Badge className={getStatusColor(equipment.status)}>
-            {equipment.status}
-          </Badge>
-          <Button size="sm" onClick={handleShowQRCode}>
-            <QrCode className="h-4 w-4 mr-2" />
-            QR Code
-          </Button>
-        </div>
-      </div>
-
-      {/* Equipment Image and Basic Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <Card>
-            <CardContent className="p-0">
-              {equipment.image_url ? (
-                <img
-                  src={equipment.image_url}
-                  alt={equipment.name}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-              ) : (
-                <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
-                  <Package className="h-16 w-16 text-muted-foreground" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-2 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Location
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg font-semibold">{equipment.location}</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Last Maintenance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg font-semibold">
-                  {equipment.last_maintenance ? 
-                    new Date(equipment.last_maintenance).toLocaleDateString() : 
-                    'Not recorded'
-                  }
+      ) : (
+        <>
+          {/* Desktop Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/equipment')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">{equipment.name}</h1>
+                <p className="text-muted-foreground">
+                  {equipment.manufacturer} {equipment.model} • {equipment.serial_number}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className={getStatusColor(equipment.status)}>
+                {equipment.status}
+              </Badge>
+              <Button size="sm" onClick={handleShowQRCode}>
+                <QrCode className="h-4 w-4 mr-2" />
+                QR Code
+              </Button>
+            </div>
           </div>
 
-          {equipment.notes && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Description</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{equipment.notes}</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+          {/* Desktop Equipment Image and Basic Info */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <Card>
+                <CardContent className="p-0">
+                  {equipment.image_url ? (
+                    <img
+                      src={equipment.image_url}
+                      alt={equipment.name}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                  ) : (
+                    <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
+                      <Package className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
-          <TabsTrigger value="images">Images</TabsTrigger>
-          <TabsTrigger value="scans">Scans</TabsTrigger>
-        </TabsList>
+            <div className="lg:col-span-2 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Location
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-lg font-semibold">{equipment.location}</p>
+                  </CardContent>
+                </Card>
 
-        <TabsContent value="details" className="mt-6">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Last Maintenance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-lg font-semibold">
+                      {equipment.last_maintenance ? 
+                        new Date(equipment.last_maintenance).toLocaleDateString() : 
+                        'Not recorded'
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {equipment.notes && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Description</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">{equipment.notes}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Responsive Tabs */}
+      <ResponsiveEquipmentTabs 
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      >
+        <TabsContent value="details">
           <EquipmentDetailsTab equipment={equipment} />
         </TabsContent>
 
-        <TabsContent value="notes" className="mt-6">
+        <TabsContent value="notes">
           <EquipmentNotesTab 
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
@@ -336,7 +328,7 @@ const EquipmentDetails = () => {
           />
         </TabsContent>
 
-        <TabsContent value="work-orders" className="mt-6">
+        <TabsContent value="work-orders">
           <EquipmentWorkOrdersTab 
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
@@ -344,7 +336,7 @@ const EquipmentDetails = () => {
           />
         </TabsContent>
 
-        <TabsContent value="images" className="mt-6">
+        <TabsContent value="images">
           <EquipmentImagesTab 
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
@@ -353,13 +345,13 @@ const EquipmentDetails = () => {
           />
         </TabsContent>
 
-        <TabsContent value="scans" className="mt-6">
+        <TabsContent value="scans">
           <EquipmentScansTab 
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
           />
         </TabsContent>
-      </Tabs>
+      </ResponsiveEquipmentTabs>
 
       {/* Work Order Form */}
       <WorkOrderForm

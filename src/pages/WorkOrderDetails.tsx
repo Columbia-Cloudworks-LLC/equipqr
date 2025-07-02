@@ -66,17 +66,10 @@ const WorkOrderDetails = () => {
   const createdByCurrentUser = workOrder.created_by === user?.id;
   const formMode = permissionLevels.getFormMode(workOrder, createdByCurrentUser);
 
-  // Debug logging for troubleshooting
-  console.log('🔍 WorkOrder Details Debug:', {
-    workOrderId,
-    currentUserId: user?.id,
-    createdBy: workOrder.created_by,
-    createdByCurrentUser,
-    formMode,
-    hasPM: workOrder.has_pm,
-    pmData: pmData ? 'loaded' : 'null',
-    permissionLevels
-  });
+  // Minimal debug logging for performance (only critical info)
+  if (process.env.NODE_ENV === 'development' && !workOrder.has_pm) {
+    console.log('🔍 WorkOrder:', workOrderId, 'Mode:', formMode);
+  }
 
   // Check if work order status allows modifications
   const isWorkOrderLocked = workOrder.status === 'completed' || workOrder.status === 'cancelled';
