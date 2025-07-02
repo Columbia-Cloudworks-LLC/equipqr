@@ -134,7 +134,7 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
             accept={acceptedTypes.join(',')}
             onChange={handleFileSelect}
             disabled={disabled}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
           />
         </div>
 

@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, MessageSquare, Images, Clock, User, Eye, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -163,190 +162,184 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="notes" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="notes" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Notes ({notes.length})
-          </TabsTrigger>
-          <TabsTrigger value="images" className="flex items-center gap-2">
-            <Images className="h-4 w-4" />
-            Images ({images.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="notes" className="space-y-4">
-          {/* Add Note Form - Always show if no notes exist */}
-          {(notes.length === 0 || showForm) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>{notes.length === 0 ? 'Add Your First Note' : 'Add Note'}</span>
-                  {notes.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowForm(false)}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="content">Note Content</Label>
-                    <Textarea
-                      id="content"
-                      placeholder="Enter your note..."
-                      value={formData.content}
-                      onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                      rows={4}
-                    />
-                  </div>
-                  
-                  {/* Image Upload Area */}
-                  <div className="space-y-2">
-                    <Label>Images (Optional)</Label>
-                    <ImageUploadWithNote
-                      onUpload={handleCreateNoteWithImages}
-                      placeholder="Describe these images..."
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="hours">Hours Worked</Label>
-                      <Input
-                        id="hours"
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={formData.hoursWorked}
-                        onChange={(e) => setFormData(prev => ({ ...prev, hoursWorked: parseFloat(e.target.value) || 0 }))}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Switch
-                          checked={formData.isPrivate}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPrivate: checked }))}
-                        />
-                        Private Note
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Only you can see private notes
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    onClick={handleCreateNoteOnly}
-                    disabled={createNoteMutation.isPending || !formData.content.trim()}
-                    className="w-full"
-                  >
-                    Add Note
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Add Note Button - Only show if notes exist and form is not shown */}
-          {notes.length > 0 && !showForm && (
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={() => setShowForm(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Note
-              </Button>
+      {/* Add Note Form - Always show if no notes exist */}
+      {(notes.length === 0 || showForm) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>{notes.length === 0 ? 'Add Your First Note' : 'Add Note'}</span>
+              {notes.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowForm(false)}
+                >
+                  Cancel
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="content">Note Content</Label>
+              <Textarea
+                id="content"
+                placeholder="Enter your note..."
+                value={formData.content}
+                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                rows={4}
+              />
             </div>
-          )}
+            
+            {/* Image Upload Area */}
+            <div className="space-y-2">
+              <Label>Images (Optional)</Label>
+              <ImageUploadWithNote
+                onUpload={handleCreateNoteWithImages}
+                placeholder="Describe these images..."
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="hours">Hours Worked</Label>
+                <Input
+                  id="hours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={formData.hoursWorked}
+                  onChange={(e) => setFormData(prev => ({ ...prev, hoursWorked: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Switch
+                    checked={formData.isPrivate}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPrivate: checked }))}
+                  />
+                  Private Note
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Only you can see private notes
+                </p>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={handleCreateNoteOnly}
+              disabled={createNoteMutation.isPending || !formData.content.trim()}
+              className="w-full"
+            >
+              Add Note
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Notes List */}
-          <div className="space-y-4">
-            {notes.map((note) => (
-              <Card key={note.id}>
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    {/* Note Header */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <User className="h-4 w-4" />
-                        <span>{note.author_name}</span>
-                        <span>•</span>
-                        <span>{formatDate(note.created_at)}</span>
-                        {formatHours(note.hours_worked) && (
-                          <>
-                            <span>•</span>
-                            <Clock className="h-4 w-4" />
-                            <span>{formatHours(note.hours_worked)}</span>
-                          </>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {note.is_private && (
-                          <Badge variant="outline" className="text-xs">
-                            <EyeOff className="h-3 w-3 mr-1" />
-                            Private
-                          </Badge>
-                        )}
-                        {note.images && note.images.length > 0 && (
-                          <Badge variant="outline" className="text-xs">
-                            <Images className="h-3 w-3 mr-1" />
-                            {note.images.length} image{note.images.length !== 1 ? 's' : ''}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
+      {/* Add Note Button - Only show if notes exist and form is not shown */}
+      {notes.length > 0 && !showForm && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Note
+          </Button>
+        </div>
+      )}
 
-                    {/* Note Content */}
-                    <div className="prose prose-sm max-w-none">
-                      <p className="whitespace-pre-wrap">{note.content}</p>
-                    </div>
-
-                    {/* Note Images */}
-                    {note.images && note.images.length > 0 && (
+      {/* Notes List */}
+      <div className="space-y-4">
+        {notes.map((note) => (
+          <Card key={note.id}>
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                {/* Note Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <User className="h-4 w-4" />
+                    <span>{note.author_name}</span>
+                    <span>•</span>
+                    <span>{formatDate(note.created_at)}</span>
+                    {formatHours(note.hours_worked) && (
                       <>
-                        <Separator />
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                          {note.images.map((image) => (
-                            <div key={image.id} className="aspect-square bg-muted rounded overflow-hidden">
-                              <img
-                                src={image.file_url}
-                                alt={image.file_name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ))}
-                        </div>
+                        <span>•</span>
+                        <Clock className="h-4 w-4" />
+                        <span>{formatHours(note.hours_worked)}</span>
                       </>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+                  
+                  <div className="flex items-center gap-2">
+                    {note.is_private && (
+                      <Badge variant="outline" className="text-xs">
+                        <EyeOff className="h-3 w-3 mr-1" />
+                        Private
+                      </Badge>
+                    )}
+                    {note.images && note.images.length > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        <Images className="h-3 w-3 mr-1" />
+                        {note.images.length} image{note.images.length !== 1 ? 's' : ''}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
 
-        <TabsContent value="images">
-          <ImageGallery
-            images={images.filter(img => !img.is_private_note || img.uploaded_by === user?.id)}
-            onDelete={deleteImageMutation.mutateAsync}
-            onSetDisplayImage={setDisplayImageMutation.mutateAsync}
-            canDelete={canDeleteImage}
-            canSetDisplayImage={true}
-            currentDisplayImage={equipment?.image_url}
-            title="Equipment Images"
-            emptyMessage="No images uploaded yet. Add a note with images to get started."
-          />
-        </TabsContent>
-      </Tabs>
+                {/* Note Content */}
+                <div className="prose prose-sm max-w-none">
+                  <p className="whitespace-pre-wrap">{note.content}</p>
+                </div>
+
+                {/* Note Images */}
+                {note.images && note.images.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {note.images.map((image) => (
+                        <div key={image.id} className="aspect-square bg-muted rounded overflow-hidden">
+                          <img
+                            src={image.file_url}
+                            alt={image.file_name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Images Section */}
+      {images.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Images className="h-5 w-5" />
+              Equipment Images ({images.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ImageGallery
+              images={images.filter(img => !img.is_private_note || img.uploaded_by === user?.id)}
+              onDelete={deleteImageMutation.mutateAsync}
+              onSetDisplayImage={setDisplayImageMutation.mutateAsync}
+              canDelete={canDeleteImage}
+              canSetDisplayImage={true}
+              currentDisplayImage={equipment?.image_url}
+              title=""
+              emptyMessage="No images uploaded yet."
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
