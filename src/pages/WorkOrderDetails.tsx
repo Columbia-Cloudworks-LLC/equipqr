@@ -66,9 +66,9 @@ const WorkOrderDetails = () => {
   const createdByCurrentUser = workOrder.created_by === user?.id;
   const formMode = permissionLevels.getFormMode(workOrder, createdByCurrentUser);
 
-  // Reduced debug logging for performance
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🔍 WorkOrder Details:', { workOrderId, formMode, hasPM: workOrder.has_pm });
+  // Minimal debug logging for performance (only critical info)
+  if (process.env.NODE_ENV === 'development' && !workOrder.has_pm) {
+    console.log('🔍 WorkOrder:', workOrderId, 'Mode:', formMode);
   }
 
   // Check if work order status allows modifications

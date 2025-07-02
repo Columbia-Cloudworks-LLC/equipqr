@@ -52,11 +52,11 @@ export const useBrowserStorage = <T>({ key, data, enabled = true }: UseBrowserSt
     }
   }, [key, enabled]);
 
-  // Auto-save effect with debouncing
+  // Optimized auto-save with longer delay to reduce thrashing
   useEffect(() => {
     if (!enabled) return;
     
-    const timeoutId = setTimeout(saveToStorage, 1000);
+    const timeoutId = setTimeout(saveToStorage, 5000); // Increased from 1s to 5s
     return () => clearTimeout(timeoutId);
   }, [saveToStorage, enabled]);
 

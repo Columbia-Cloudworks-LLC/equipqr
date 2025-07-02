@@ -1,24 +1,41 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useCallback, useState } from 'react';
+
+type SaveTrigger = 'text' | 'selection' | 'manual';
 
 interface UseAutoSaveOptions {
   onSave: () => Promise<void>;
-  delay?: number;
+  textDelay?: number;
+  selectionDelay?: number;
   enabled?: boolean;
 }
 
-export const useAutoSave = ({ onSave, delay = 3000, enabled = true }: UseAutoSaveOptions) => {
+export const useAutoSave = ({ 
+  onSave, 
+  textDelay = 8000, 
+  selectionDelay = 1000, 
+  enabled = true 
+}: UseAutoSaveOptions) => {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const saveRequestRef = useRef<Promise<void>>();
-  const queryClient = useQueryClient();
+  const lastSaveDataRef = useRef<string>('');
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSaved, setLastSaved] = useState<Date>();
 
-  const triggerAutoSave = useCallback(() => {
+  const triggerAutoSave = useCallback((trigger: SaveTrigger = 'text', currentData?: string) => {
     if (!enabled) return;
+
+    // Smart change detection - don't save if data hasn't changed
+    if (currentData && currentData === lastSaveDataRef.current) {
+      return;
+    }
 
     // Clear existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
+
+    // Use different delays based on trigger type
+    const delay = trigger === 'text' ? textDelay : selectionDelay;
 
     // Set new timeout
     timeoutRef.current = setTimeout(async () => {
@@ -29,15 +46,27 @@ export const useAutoSave = ({ onSave, delay = 3000, enabled = true }: UseAutoSav
           return;
         }
 
+        setStatus('saving');
         saveRequestRef.current = onSave();
         await saveRequestRef.current;
+        
+        // Update tracking data
+        if (currentData) {
+          lastSaveDataRef.current = currentData;
+        }
+        
+        setStatus('saved');
+        setLastSaved(new Date());
       } catch (error) {
-        console.error('Auto-save failed:', error);
+        setStatus('error');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Auto-save failed:', error);
+        }
       } finally {
         saveRequestRef.current = undefined;
       }
     }, delay);
-  }, [onSave, delay, enabled]);
+  }, [onSave, textDelay, selectionDelay, enabled]);
 
   const cancelAutoSave = useCallback(() => {
     if (timeoutRef.current) {
@@ -53,5 +82,5 @@ export const useAutoSave = ({ onSave, delay = 3000, enabled = true }: UseAutoSav
     };
   }, [cancelAutoSave]);
 
-  return { triggerAutoSave, cancelAutoSave };
+  return { triggerAutoSave, cancelAutoSave, status, lastSaved };
 };

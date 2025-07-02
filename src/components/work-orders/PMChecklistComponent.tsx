@@ -67,7 +67,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   const { triggerAutoSave, cancelAutoSave } = useAutoSave({
     onSave: handleAutoSave,
-    delay: 3000,
+    selectionDelay: 3000,
     enabled: !readOnly && hasUnsavedChanges
   });
 
@@ -197,7 +197,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         : item
     ));
     setHasUnsavedChanges(true);
-    triggerAutoSave();
+    triggerAutoSave('selection'); // Use selection trigger for immediate UI changes
   }, [triggerAutoSave]);
 
   const isItemComplete = (item: PMChecklistItem): boolean => {
@@ -423,11 +423,11 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }));
   }, []);
 
-  // Handle notes changes with auto-save
+  // Handle notes changes with auto-save for text input
   const handleNotesChange = useCallback((value: string) => {
     setNotes(value);
     setHasUnsavedChanges(true);
-    triggerAutoSave();
+    triggerAutoSave('text'); // Use text trigger for longer debounce
   }, [triggerAutoSave]);
 
   // Show empty state if checklist is empty and not initialized
