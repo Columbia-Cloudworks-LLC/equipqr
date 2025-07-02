@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CheckCircle, Clock, AlertTriangle, Printer, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -139,11 +140,11 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
       setChecklist(parsedChecklist);
 
-      // Initialize sections based on mobile/desktop - closed on mobile, open on desktop
+      // Initialize all sections as collapsed by default
       const sections = Array.from(new Set(parsedChecklist.map(item => item.section)));
       const initialOpenSections: Record<string, boolean> = {};
       sections.forEach(section => {
-        initialOpenSections[section] = !isMobile; // Closed on mobile, open on desktop
+        initialOpenSections[section] = false; // All sections collapsed by default
       });
       setOpenSections(initialOpenSections);
       
@@ -152,11 +153,11 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       console.error('❌ Error parsing checklist data:', error);
       setChecklist([...defaultForkliftChecklist]);
       
-      // Initialize sections for default checklist
+      // Initialize sections for default checklist (all collapsed)
       const sections = Array.from(new Set(defaultForkliftChecklist.map(item => item.section)));
       const initialOpenSections: Record<string, boolean> = {};
       sections.forEach(section => {
-        initialOpenSections[section] = !isMobile;
+        initialOpenSections[section] = false; // All sections collapsed by default
       });
       setOpenSections(initialOpenSections);
       
@@ -416,6 +417,17 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const unratedRequiredItems = useMemo(() => checklist.filter(item => item.required && !isItemComplete(item)), [checklist]);
   const unsafeItems = useMemo(() => checklist.filter(item => item.condition === 5), [checklist]);
 
+  // Calculate section progress
+  const getSectionProgress = useCallback((section: string) => {
+    const sectionItems = checklist.filter(item => item.section === section);
+    const completedSectionItems = sectionItems.filter(item => isItemComplete(item));
+    return {
+      completed: completedSectionItems.length,
+      total: sectionItems.length,
+      percentage: sectionItems.length > 0 ? (completedSectionItems.length / sectionItems.length) * 100 : 0
+    };
+  }, [checklist]);
+
   const toggleSection = useCallback((section: string) => {
     setOpenSections(prev => ({
       ...prev,
@@ -548,14 +560,27 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         )}
 
         <div className="space-y-4">
-          {sections.map((section) => (
-            <Collapsible key={section} open={openSections[section]} onOpenChange={() => toggleSection(section)}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between p-3 h-auto">
-                  <span className="font-semibold text-left">{section}</span>
-                  {openSections[section] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
+          {sections.map((section) => {
+            const sectionProgress = getSectionProgress(section);
+            return (
+              <Collapsible key={section} open={openSections[section]} onOpenChange={() => toggleSection(section)}>
+                <CollapsibleTrigger asChild>
+                  <div className="relative overflow-hidden rounded-lg border">
+                    <Progress 
+                      value={sectionProgress.percentage} 
+                      className="absolute inset-0 h-full opacity-20"
+                    />
+                    <Button variant="ghost" className="relative w-full justify-between p-4 h-auto bg-transparent hover:bg-white/50">
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="font-semibold text-left">{section}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {sectionProgress.completed}/{sectionProgress.total} items completed ({Math.round(sectionProgress.percentage)}%)
+                        </span>
+                      </div>
+                      {openSections[section] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 pt-2">
                 {checklist.filter(item => item.section === section).map((item) => (
                   <div key={item.id} className={`p-4 border rounded-lg ${item.required ? 'border-l-4 border-l-red-500' : ''}`}>
@@ -627,7 +652,8 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 ))}
               </CollapsibleContent>
             </Collapsible>
-          ))}
+            );
+          })}
         </div>
 
         <div className="space-y-2">
