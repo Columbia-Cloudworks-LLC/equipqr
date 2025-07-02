@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Filter, Calendar, User, Wrench, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useSyncWorkOrdersByOrganization } from '@/services/syncDataService';
+import { useEnhancedWorkOrders } from '@/hooks/useEnhancedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import WorkOrderAcceptanceModal from '@/components/work-orders/WorkOrderAcceptanceModal';
+import WorkOrderCostSubtotal from '@/components/work-orders/WorkOrderCostSubtotal';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 
 const WorkOrders = () => {
@@ -24,8 +26,8 @@ const WorkOrders = () => {
   });
   const { currentOrganization } = useOrganization();
 
-  // Use sync hook for work orders data
-  const { data: allWorkOrders = [], isLoading } = useSyncWorkOrdersByOrganization(currentOrganization?.id);
+  // Use enhanced hook for work orders data
+  const { data: allWorkOrders = [], isLoading } = useEnhancedWorkOrders(currentOrganization?.id);
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
 
@@ -66,13 +68,22 @@ const WorkOrders = () => {
   const filteredWorkOrders = allWorkOrders.filter(order => {
     const matchesSearch = order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          order.assigneeName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.teamName?.toLowerCase().includes(searchQuery.toLowerCase());
+                         order.teamName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         order.equipmentName?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const formatStatusText = (status: string) => {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const handleStatusUpdate = async (workOrderId: string, newStatus: string) => {
@@ -183,11 +194,18 @@ const WorkOrders = () => {
               <Card key={order.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg">{order.title}</CardTitle>
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <CardTitle className="text-lg">{order.title}</CardTitle>
+                        {order.equipmentName && (
+                          <span className="text-sm text-muted-foreground">
+                            • {order.equipmentName}
+                          </span>
+                        )}
+                      </div>
                       <CardDescription className="line-clamp-2">{order.description}</CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Badge className={getPriorityColor(order.priority)}>
                         {order.priority}
                       </Badge>
@@ -198,12 +216,14 @@ const WorkOrders = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">Assignee:</span>
-                        <span className="text-muted-foreground">{order.assigneeName || 'Unassigned'}</span>
+                        <span className="text-muted-foreground">
+                          {order.assigneeName || 'Unassigned'}
+                        </span>
                       </div>
                       {order.teamName && (
                         <div className="flex items-center gap-2">
@@ -218,13 +238,13 @@ const WorkOrders = () => {
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">Created:</span>
-                        <span className="text-muted-foreground">{new Date(order.createdDate).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{formatDate(order.createdDate)}</span>
                       </div>
                       {order.dueDate && (
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">Due:</span>
-                          <span className="text-muted-foreground">{new Date(order.dueDate).toLocaleDateString()}</span>
+                          <span className="text-muted-foreground">{formatDate(order.dueDate)}</span>
                         </div>
                       )}
                     </div>
@@ -241,13 +261,27 @@ const WorkOrders = () => {
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">Completed:</span>
-                          <span className="text-muted-foreground">{new Date(order.completedDate).toLocaleDateString()}</span>
+                          <span className="text-muted-foreground">{formatDate(order.completedDate)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <WorkOrderCostSubtotal 
+                        workOrderId={order.id}
+                        className="justify-start"
+                      />
+                      {order.createdByName && (
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">Creator:</span>
+                          <span className="text-muted-foreground">{order.createdByName}</span>
                         </div>
                       )}
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 flex-wrap">
                     <Button variant="outline" size="sm" asChild>
                       <Link to={`/work-orders/${order.id}`}>
                         View Details
