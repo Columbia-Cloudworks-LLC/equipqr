@@ -1,99 +1,48 @@
-
+import { useMemo } from 'react';
 import { useSession } from '@/contexts/SessionContext';
-import { WorkOrder } from '@/services/supabaseDataService';
+import { useAuth } from '@/contexts/AuthContext';
+import { permissionEngine } from '@/services/permissions/PermissionEngine';
+import { 
+  UserContext, 
+  EntityPermissions, 
+  WorkOrderDetailedPermissions,
+  OrganizationPermissions,
+  EquipmentNotesPermissions
+} from '@/types/permissions';
 
-export interface PermissionContext {
-  organizationId: string;
-  userRole: string;
-  userId?: string;
-  userTeamIds: string[];
-}
-
-export interface EntityPermissions {
-  canView: boolean;
-  canCreate: boolean;
-  canEdit: boolean;
-  canDelete: boolean;
-  canAssign?: boolean;
-  canChangeStatus?: boolean;
-  canAddNotes?: boolean;
-  canAddImages?: boolean;
-}
-
-export interface WorkOrderPermissions {
-  canEdit: boolean;
-  canEditPriority: boolean;
-  canEditAssignment: boolean;
-  canEditDueDate: boolean;
-  canEditDescription: boolean;
-  canChangeStatus: boolean;
-  canAddNotes: boolean;
-  canAddImages: boolean;
-}
-
-export interface UnifiedPermissionsHook {
-  // Context
-  context: PermissionContext | null;
-  
-  // Organization-level permissions
-  organization: {
-    canManage: boolean;
-    canInviteMembers: boolean;
-    canCreateTeams: boolean;
-    canViewBilling: boolean;
-  };
-  
-  // Equipment permissions
-  equipment: {
-    getPermissions: (equipmentTeamId?: string) => EntityPermissions;
-    canViewAll: boolean;
-    canCreateAny: boolean;
-  };
-  
-  // Work order permissions
-  workOrders: {
-    getPermissions: (workOrder?: WorkOrder) => EntityPermissions;
-    getDetailedPermissions: (workOrder?: WorkOrder) => WorkOrderPermissions;
-    canViewAll: boolean;
-    canCreateAny: boolean;
-    canAssignAny: boolean;
-  };
-  
-  // Team permissions
-  teams: {
-    getPermissions: (teamId?: string) => EntityPermissions;
-    canViewAll: boolean;
-    canCreateAny: boolean;
-    canManageAny: boolean;
-  };
-  
-  // Utility functions
-  hasRole: (roles: string | string[]) => boolean;
-  isTeamMember: (teamId: string) => boolean;
-  isTeamManager: (teamId: string) => boolean;
-}
-
-export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
-  const { getCurrentOrganization, hasTeamAccess, canManageTeam, getUserTeamIds } = useSession();
+export const useUnifiedPermissions = () => {
+  const { getCurrentOrganization, getUserTeamIds, hasTeamAccess, canManageTeam } = useSession();
+  const { user } = useAuth();
 
   const currentOrganization = getCurrentOrganization();
   const userTeamIds = getUserTeamIds();
 
-  const context: PermissionContext | null = currentOrganization ? {
-    organizationId: currentOrganization.id,
-    userRole: currentOrganization.userRole || 'viewer',
-    userId: 'current-user-id', // This would come from auth context in real implementation
-    userTeamIds
-  } : null;
+  // Create user context
+  const userContext: UserContext | null = useMemo(() => {
+    if (!currentOrganization || !user) return null;
 
-  const hasRole = (roles: string | string[]): boolean => {
-    if (!context) return false;
-    const roleArray = Array.isArray(roles) ? roles : [roles];
-    return roleArray.includes(context.userRole);
+    return {
+      userId: user.id,
+      organizationId: currentOrganization.id,
+      userRole: currentOrganization.userRole as any,
+      teamMemberships: userTeamIds.map(teamId => ({
+        teamId,
+        role: canManageTeam(teamId) ? 'manager' : 'technician'
+      }))
+    };
+  }, [currentOrganization, user, userTeamIds, canManageTeam]);
+
+  // Helper functions
+  const hasPermission = (permission: string, entityContext?: any): boolean => {
+    if (!userContext) return false;
+    return permissionEngine.hasPermission(permission, userContext, entityContext);
   };
 
-  const isOrgAdmin = (): boolean => hasRole(['owner', 'admin']);
-  const isOrgMember = (): boolean => hasRole(['owner', 'admin', 'member']);
+  const hasRole = (roles: string | string[]): boolean => {
+    if (!userContext) return false;
+    const roleArray = Array.isArray(roles) ? roles : [roles];
+    return roleArray.includes(userContext.userRole);
+  };
 
   const isTeamMember = (teamId: string): boolean => {
     return hasTeamAccess(teamId);
@@ -104,144 +53,147 @@ export const useUnifiedPermissions = (): UnifiedPermissionsHook => {
   };
 
   // Organization permissions
-  const organization = {
-    canManage: isOrgAdmin(),
-    canInviteMembers: isOrgAdmin(),
-    canCreateTeams: isOrgAdmin(),
-    canViewBilling: hasRole(['owner', 'admin'])
-  };
+  const organization: OrganizationPermissions = useMemo(() => ({
+    canManage: hasPermission('organization.manage'),
+    canInviteMembers: hasPermission('organization.invite'),
+    canCreateTeams: hasPermission('organization.manage'),
+    canViewBilling: hasRole(['owner', 'admin']),
+    canManageMembers: hasRole(['owner', 'admin'])
+  }), [userContext]);
 
   // Equipment permissions
   const equipment = {
     getPermissions: (equipmentTeamId?: string): EntityPermissions => {
-      if (!context) {
-        return { 
-          canView: false, 
-          canCreate: false, 
-          canEdit: false, 
-          canDelete: false,
-          canAddNotes: false,
-          canAddImages: false
-        };
-      }
-
-      const canView = isOrgMember() || (equipmentTeamId ? isTeamMember(equipmentTeamId) : false);
-      const canCreate = isOrgAdmin();
-      const canEdit = isOrgAdmin() || (equipmentTeamId ? isTeamManager(equipmentTeamId) : false);
-      const canDelete = isOrgAdmin();
-
-      return { canView, canCreate, canEdit, canDelete };
+      const entityContext = equipmentTeamId ? { teamId: equipmentTeamId } : undefined;
+      
+      return {
+        canView: hasPermission('equipment.view', entityContext),
+        canCreate: hasRole(['owner', 'admin']),
+        canEdit: hasPermission('equipment.edit', entityContext),
+        canDelete: hasRole(['owner', 'admin']),
+        canAddNotes: hasPermission('equipment.view', entityContext),
+        canAddImages: hasPermission('equipment.view', entityContext)
+      };
     },
-    canViewAll: isOrgMember(),
-    canCreateAny: isOrgAdmin()
+    canViewAll: hasRole(['owner', 'admin', 'member']),
+    canCreateAny: hasRole(['owner', 'admin'])
   };
 
   // Work order permissions
   const workOrders = {
-    getPermissions: (workOrder?: WorkOrder): EntityPermissions => {
-      if (!context) {
-        return { 
-          canView: false, 
-          canCreate: false, 
-          canEdit: false, 
-          canDelete: false,
-          canAssign: false,
-          canChangeStatus: false,
-          canAddNotes: false,
-          canAddImages: false
-        };
-      }
-
-      const canView = isOrgMember() || (workOrder?.team_id ? isTeamMember(workOrder.team_id) : false);
-      const canCreate = isOrgMember();
-      const canEdit = isOrgAdmin() || (workOrder?.team_id ? isTeamManager(workOrder.team_id) : false);
-      const canDelete = isOrgAdmin();
-      const canAssign = isOrgAdmin() || (workOrder?.team_id ? isTeamManager(workOrder.team_id) : false);
-      const canChangeStatus = isOrgAdmin() || (workOrder?.team_id ? isTeamMember(workOrder.team_id) : false);
-      
-      // Notes and images permissions - team members can add notes/images to work orders they have access to
-      const canAddNotes = isOrgMember() || (workOrder?.team_id ? isTeamMember(workOrder.team_id) : false);
-      const canAddImages = isOrgMember() || (workOrder?.team_id ? isTeamMember(workOrder.team_id) : false);
-
-      return { 
-        canView, 
-        canCreate, 
-        canEdit, 
-        canDelete, 
-        canAssign, 
-        canChangeStatus,
-        canAddNotes,
-        canAddImages
-      };
-    },
-    getDetailedPermissions: (workOrder?: WorkOrder): WorkOrderPermissions => {
-      if (!currentOrganization) {
-        return {
-          canEdit: false,
-          canEditPriority: false,
-          canEditAssignment: false,
-          canEditDueDate: false,
-          canEditDescription: false,
-          canChangeStatus: false,
-          canAddNotes: false,
-          canAddImages: false
-        };
-      }
-
-      const isOrgAdminRole = ['owner', 'admin'].includes(currentOrganization.userRole);
-      const isTeamManagerRole = workOrder?.team_id ? canManageTeam(workOrder.team_id) : false;
-      const hasWorkOrderAccess = workOrder?.team_id ? hasTeamAccess(workOrder.team_id) : false;
+    getPermissions: (workOrder?: any): EntityPermissions => {
+      const entityContext = workOrder ? {
+        teamId: workOrder.team_id,
+        assigneeId: workOrder.assignee_id,
+        status: workOrder.status,
+        createdBy: workOrder.created_by
+      } : undefined;
 
       return {
-        canEdit: isOrgAdminRole || isTeamManagerRole,
-        canEditPriority: isOrgAdminRole || isTeamManagerRole,
-        canEditAssignment: isOrgAdminRole || isTeamManagerRole,
-        canEditDueDate: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
-        canEditDescription: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
-        canChangeStatus: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
-        canAddNotes: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess,
-        canAddImages: isOrgAdminRole || isTeamManagerRole || hasWorkOrderAccess
+        canView: hasPermission('workorder.view', entityContext),
+        canCreate: hasRole(['owner', 'admin', 'member']),
+        canEdit: hasPermission('workorder.edit', entityContext),
+        canDelete: hasRole(['owner', 'admin']),
+        canAssign: hasPermission('workorder.assign', entityContext),
+        canChangeStatus: hasPermission('workorder.changestatus', entityContext),
+        canAddNotes: hasPermission('workorder.view', entityContext),
+        canAddImages: hasPermission('workorder.view', entityContext)
       };
     },
-    canViewAll: isOrgAdmin(),
-    canCreateAny: isOrgMember(),
-    canAssignAny: isOrgAdmin()
+    getDetailedPermissions: (workOrder?: any): WorkOrderDetailedPermissions => {
+      const entityContext = workOrder ? {
+        teamId: workOrder.team_id,
+        assigneeId: workOrder.assignee_id,
+        status: workOrder.status,
+        createdBy: workOrder.created_by
+      } : undefined;
+
+      const canEdit = hasPermission('workorder.edit', entityContext);
+      const canView = hasPermission('workorder.view', entityContext);
+      const isLocked = workOrder?.status === 'completed' || workOrder?.status === 'cancelled';
+
+      return {
+        canEdit: canEdit && !isLocked,
+        canEditPriority: canEdit && !isLocked,
+        canEditAssignment: hasPermission('workorder.assign', entityContext) && !isLocked,
+        canEditDueDate: canView && !isLocked,
+        canEditDescription: canView && !isLocked,
+        canChangeStatus: hasPermission('workorder.changestatus', entityContext),
+        canAddNotes: canView && !isLocked,
+        canAddImages: canView && !isLocked,
+        canAddCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.team_id)) && !isLocked,
+        canEditCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.team_id)) && !isLocked,
+        canViewPM: hasRole(['owner', 'admin']) || isTeamMember(workOrder?.team_id),
+        canEditPM: (hasRole(['owner', 'admin']) || isTeamMember(workOrder?.team_id)) && !isLocked
+      };
+    },
+    canViewAll: hasRole(['owner', 'admin']),
+    canCreateAny: hasRole(['owner', 'admin', 'member']),
+    canAssignAny: hasRole(['owner', 'admin'])
   };
 
   // Team permissions
   const teams = {
     getPermissions: (teamId?: string): EntityPermissions => {
-      if (!context) {
-        return { 
-          canView: false, 
-          canCreate: false, 
-          canEdit: false, 
-          canDelete: false,
-          canAddNotes: false,
-          canAddImages: false
-        };
-      }
-
-      const canView = isOrgMember() || (teamId ? isTeamMember(teamId) : false);
-      const canCreate = isOrgAdmin();
-      const canEdit = isOrgAdmin() || (teamId ? isTeamManager(teamId) : false);
-      const canDelete = isOrgAdmin();
-
-      return { canView, canCreate, canEdit, canDelete };
+      const entityContext = teamId ? { teamId } : undefined;
+      
+      return {
+        canView: hasPermission('team.view', entityContext),
+        canCreate: hasRole(['owner', 'admin']),
+        canEdit: hasPermission('team.manage', entityContext),
+        canDelete: hasRole(['owner', 'admin']),
+        canAddNotes: false,
+        canAddImages: false
+      };
     },
-    canViewAll: isOrgAdmin(),
-    canCreateAny: isOrgAdmin(),
-    canManageAny: isOrgAdmin()
+    canViewAll: hasRole(['owner', 'admin']),
+    canCreateAny: hasRole(['owner', 'admin']),
+    canManageAny: hasRole(['owner', 'admin'])
+  };
+
+  // Equipment notes permissions
+  const getEquipmentNotesPermissions = (equipmentTeamId?: string): EquipmentNotesPermissions => {
+    const hasTeamAccess = equipmentTeamId ? isTeamMember(equipmentTeamId) : true;
+    const isTeamManager = equipmentTeamId ? canManageTeam(equipmentTeamId) : false;
+    const isOrgAdmin = hasRole(['owner', 'admin']);
+    
+    // Check if organization is single-user (simplified check)
+    const isSingleUserOrg = currentOrganization?.memberCount === 1;
+
+    return {
+      canViewNotes: hasTeamAccess || isOrgAdmin,
+      canAddPublicNote: hasTeamAccess || isOrgAdmin,
+      canAddPrivateNote: (hasTeamAccess && hasRole(['member', 'admin', 'owner'])) || isOrgAdmin,
+      canEditOwnNote: (note) => note.author_id === userContext?.userId,
+      canEditAnyNote: isOrgAdmin || isTeamManager,
+      canDeleteOwnNote: (note) => note.author_id === userContext?.userId,
+      canDeleteAnyNote: isOrgAdmin || isTeamManager,
+      canUploadImages: !isSingleUserOrg && (hasTeamAccess || isOrgAdmin),
+      canDeleteImages: isOrgAdmin || isTeamManager,
+      canSetDisplayImage: isOrgAdmin || isTeamManager
+    };
   };
 
   return {
-    context,
+    // Context
+    context: userContext,
+    
+    // Permissions by entity
     organization,
     equipment,
     workOrders,
     teams,
+    
+    // Utility functions
     hasRole,
     isTeamMember,
-    isTeamManager
+    isTeamManager,
+    hasPermission,
+    getEquipmentNotesPermissions,
+    
+    // Cache management
+    clearPermissionCache: () => permissionEngine.clearCache()
   };
 };
+
+export type UnifiedPermissions = ReturnType<typeof useUnifiedPermissions>;
