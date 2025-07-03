@@ -118,6 +118,7 @@ export const getFilteredWorkOrdersByOrganization = async (
       teamId: wo.team_id,
       teamName: wo.team?.name,
       createdDate: wo.created_date,
+      created_date: wo.created_date,
       dueDate: wo.due_date,
       estimatedHours: wo.estimated_hours,
       completedDate: wo.completed_date,
