@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Menu, Clipboard } from 'lucide-react';
 import { getPriorityColor, getStatusColor, formatStatus } from '@/utils/workOrderHelpers';
+import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 
 interface WorkOrderDetailsMobileHeaderProps {
   workOrder: any;
   canEdit: boolean;
   showMobileSidebar: boolean;
+  organizationId: string;
   onEditClick: () => void;
   onToggleSidebar: () => void;
 }
@@ -17,6 +19,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
   workOrder,
   canEdit,
   showMobileSidebar,
+  organizationId,
   onEditClick,
   onToggleSidebar
 }) => {
@@ -63,13 +66,21 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
           </div>
 
           {/* Status and Priority Badges */}
-          <div className="flex items-center gap-2">
-            <Badge className={`${getPriorityColor(workOrder.priority)} text-xs`}>
-              {workOrder.priority}
-            </Badge>
-            <Badge className={`${getStatusColor(workOrder.status)} text-xs`}>
-              {formatStatus(workOrder.status)}
-            </Badge>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Badge className={`${getPriorityColor(workOrder.priority)} text-xs`}>
+                {workOrder.priority}
+              </Badge>
+              <Badge className={`${getStatusColor(workOrder.status)} text-xs`}>
+                {formatStatus(workOrder.status)}
+              </Badge>
+            </div>
+            
+            {/* Primary Action Button */}
+            <WorkOrderPrimaryActionButton 
+              workOrder={workOrder}
+              organizationId={organizationId}
+            />
           </div>
         </div>
       </div>
