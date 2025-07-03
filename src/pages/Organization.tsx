@@ -4,12 +4,14 @@ import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationStats } from '@/hooks/useOrganizationStats';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
+import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationOverview from '@/components/organization/OrganizationOverview';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
 import OrganizationSidebar from '@/components/organization/OrganizationSidebar';
 import { OrganizationSettingsDialog } from '@/components/organization/OrganizationSettingsDialog';
 import { updateOrganization } from '@/services/optimizedOrganizationService';
+import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import { toast } from 'sonner';
 
 const Organization = () => {
@@ -22,6 +24,7 @@ const Organization = () => {
   const { data: orgAdmins = [], isLoading: adminsLoading } = useOrganizationAdmins(currentOrganization?.id || '');
   const organizationStats = useOrganizationStats(currentOrganization);
   const permissions = usePagePermissions(currentOrganization);
+  const { restrictions } = useSimplifiedOrganizationRestrictions();
 
   const currentUserRole: 'owner' | 'admin' | 'member' = currentOrganization?.userRole || 'member';
 
@@ -59,8 +62,12 @@ const Organization = () => {
   };
 
   const handleUpgradeToPremium = () => {
-    toast.success('Redirecting to billing page...');
-    // In a real app, this would redirect to the billing page
+    const billing = calculateSimplifiedBilling(members);
+    if (billing.userLicenses.totalUsers === 1) {
+      toast.info('Invite team members to unlock collaboration features at $10/month per additional user.');
+    } else {
+      toast.success('Redirecting to billing page...');
+    }
   };
 
   const handleInviteMember = () => {

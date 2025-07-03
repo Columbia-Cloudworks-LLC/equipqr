@@ -4,26 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
-import RealMemberBilling from '@/components/billing/RealMemberBilling';
-import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
-import EnhancedInvitationManagement from '@/components/organization/EnhancedInvitationManagement';
+import SimplifiedMemberBilling from '@/components/billing/SimplifiedMemberBilling';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
-import { useSubscription } from '@/hooks/useSubscription';
-import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { toast } from '@/hooks/use-toast';
-import { isFreeOrganization } from '@/utils/billingUtils';
+import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
 
 const Billing = () => {
   const { currentOrganization } = useUnifiedOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
-  const { subscriptionData, isLoading, error, checkSubscription } = useSubscription();
-  const { data: slotAvailability, refetch: refetchSlots } = useSlotAvailability(currentOrganization?.id || '');
   
   // Mock data for storage - in a real app, this would come from your backend
   const [storageUsedGB] = useState(3.2);
   const [fleetMapEnabled, setFleetMapEnabled] = useState(false);
 
+  const billing = calculateSimplifiedBilling(members, storageUsedGB, fleetMapEnabled);
   const isFree = isFreeOrganization(members);
 
   // Handle success/cancel URL parameters
@@ -31,39 +26,33 @@ const Billing = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
     const cancelled = urlParams.get('cancelled');
-    const sessionId = urlParams.get('session_id');
 
     if (success === 'true') {
       toast({
         title: 'Payment Successful!',
-        description: 'Your user licenses have been activated. You can now invite team members.',
+        description: 'Your payment method has been updated. Team members you invite will be billed automatically.',
         variant: 'default',
       });
-      
-      // Refresh slot data after successful purchase
-      setTimeout(() => {
-        refetchSlots();
-      }, 2000);
       
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (cancelled === 'true') {
       toast({
         title: 'Payment Cancelled',
-        description: 'Your payment was cancelled. No charges were made.',
+        description: 'Your payment setup was cancelled. No charges were made.',
         variant: 'destructive',
       });
       
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [refetchSlots, toast]);
+  }, [toast]);
 
   const handleToggleFleetMap = (enabled: boolean) => {
     if (isFree) {
       toast({
         title: 'Feature Not Available',
-        description: 'Fleet Map requires a multi-user organization. Purchase user licenses first.',
+        description: 'Fleet Map requires multiple users. Invite team members to unlock premium features.',
         variant: 'destructive',
       });
       return;
@@ -72,45 +61,15 @@ const Billing = () => {
     setFleetMapEnabled(enabled);
     toast({
       title: enabled ? 'Fleet Map Enabled' : 'Fleet Map Disabled',
-      description: `Fleet Map has been ${enabled ? 'added to' : 'removed from'} your subscription.`,
+      description: `Fleet Map has been ${enabled ? 'added to' : 'removed from'} your billing at $10/month.`,
     });
   };
 
-  const handlePurchaseSlots = (quantity: number) => {
-    // This is now handled directly in SlotBasedBilling component
+  const handleInviteMembers = () => {
     toast({
-      title: 'Redirecting to Checkout',
-      description: `Opening Stripe checkout for ${quantity} user license${quantity > 1 ? 's' : ''}...`,
+      title: 'Invite Team Members',
+      description: 'Simple pay-as-you-go: $10/month per additional user. No upfront costs.',
     });
-  };
-
-  const handleUpgradeToMultiUser = () => {
-    toast({
-      title: 'Ready to Upgrade',
-      description: 'Purchase user licenses below to start inviting team members.',
-    });
-    // Scroll to purchase section
-    const element = document.querySelector('[data-testid="slot-based-billing"]');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const handleRefreshSubscription = async () => {
-    try {
-      await checkSubscription();
-      await refetchSlots();
-      toast({
-        title: 'Status Refreshed',
-        description: 'Your billing status has been updated.',
-      });
-    } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to refresh billing status.',
-        variant: 'destructive',
-      });
-    }
   };
 
   if (!currentOrganization) {
@@ -140,12 +99,8 @@ const Billing = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefreshSubscription} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
           <Badge variant={isFree ? 'secondary' : 'default'}>
-            {isFree ? 'Free Plan' : 'User License Plan'}
+            {isFree ? 'Free Plan' : 'Pay-as-you-go'}
           </Badge>
         </div>
       </div>
@@ -162,17 +117,17 @@ const Billing = () => {
           <div className="flex items-center justify-between">
             <div>
               <div className="font-medium text-lg">
-                {isFree ? 'Free Single-User Plan' : 'User License Subscription Plan'}
+                {isFree ? 'Free Single-User Plan' : 'Pay-as-you-go Plan'}
               </div>
               <div className="text-sm text-muted-foreground">
                 {isFree 
                   ? 'Perfect for individual users managing their own equipment'
-                  : 'Monthly subscription for user licenses at $10 per license per month'
+                  : `Simple transparent pricing: $10/month per additional user. Current monthly cost: $${billing.monthlyTotal.toFixed(2)}`
                 }
               </div>
-              {slotAvailability && slotAvailability.total_purchased > 0 && (
+              {!isFree && (
                 <div className="text-sm font-medium text-primary mt-1">
-                  {slotAvailability.available_slots} of {slotAvailability.total_purchased} licenses available
+                  {billing.userLicenses.billableUsers} billable users × $10/month + ${billing.storage.cost.toFixed(2)} storage + ${billing.fleetMap.cost.toFixed(2)} fleet map
                 </div>
               )}
             </div>
@@ -200,33 +155,57 @@ const Billing = () => {
         </CardContent>
       </Card>
 
-      {/* User License Management */}
-      <div data-testid="slot-based-billing">
-        <SlotBasedBilling
-          storageUsedGB={storageUsedGB}
-          fleetMapEnabled={fleetMapEnabled}
-          onPurchaseSlots={handlePurchaseSlots}
-          onUpgradeToMultiUser={handleUpgradeToMultiUser}
-        />
-      </div>
-
-      {/* Enhanced Invitation Management */}
-      {!isFree && (
-        <EnhancedInvitationManagement onPurchaseSlots={handlePurchaseSlots} />
-      )}
-
-      {/* Member Billing Details */}
-      <RealMemberBilling />
-
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <div className="text-red-800 text-sm">
-              Error: {error}
+      {/* Storage Usage */}
+      {billing.storage.overageGB > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-800">
+              <AlertCircle className="h-5 w-5" />
+              Storage Overage
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-orange-800">
+              You're using {billing.storage.usedGB}GB of storage. The first {billing.storage.freeGB}GB is free, 
+              so you're being charged ${billing.storage.cost.toFixed(2)}/month for {billing.storage.overageGB}GB of overage.
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Fleet Map Add-on */}
+      {!isFree && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Premium Add-ons</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Fleet Map</div>
+                <div className="text-sm text-muted-foreground">
+                  Visual equipment tracking and location management
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={fleetMapEnabled ? 'default' : 'secondary'}>
+                  {fleetMapEnabled ? 'Enabled' : 'Disabled'}
+                </Badge>
+                <Button 
+                  variant={fleetMapEnabled ? 'destructive' : 'default'}
+                  size="sm"
+                  onClick={() => handleToggleFleetMap(!fleetMapEnabled)}
+                >
+                  {fleetMapEnabled ? 'Disable' : 'Enable'} ($10/month)
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Member Billing Details */}
+      <SimplifiedMemberBilling onInviteMembers={handleInviteMembers} />
     </div>
   );
 };
