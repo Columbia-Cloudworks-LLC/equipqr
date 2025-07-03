@@ -39,6 +39,8 @@ import { cn } from "@/lib/utils";
 import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/contexts/UserContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "@/components/ui/sidebar";
 import Icon from "@/components/ui/Icon";
 
 const mainNavigation = [
@@ -61,9 +63,17 @@ const AppSidebar = () => {
   const location = useLocation();
   const { signOut } = useAuth();
   const { currentUser } = useUser();
+  const isMobile = useIsMobile();
+  const { setOpenMobile } = useSidebar();
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   return (
@@ -87,7 +97,7 @@ const AppSidebar = () => {
                     isActive={location.pathname === item.url}
                     className="text-sm"
                   >
-                    <Link to={item.url}>
+                    <Link to={item.url} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -108,7 +118,7 @@ const AppSidebar = () => {
                     isActive={location.pathname === item.url}
                     className="text-sm"
                   >
-                    <Link to={item.url}>
+                    <Link to={item.url} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
