@@ -53,7 +53,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen }: UseWorkOrde
       form.setValue('assignmentType', initialValues.assignmentType || 'unassigned');
       form.setValue('assignmentId', initialValues.assignmentId || '');
     }
-  }, [isOpen, workOrder, form]);
+  }, [isOpen, workOrder]);
 
   const checkForUnsavedChanges = (): boolean => {
     return Object.keys(form.values).some(
