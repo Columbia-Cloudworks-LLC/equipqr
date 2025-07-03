@@ -6,6 +6,9 @@ import { useSession } from '@/contexts/SessionContext';
 import { useDashboardStats, useEquipmentByOrganization, useAllWorkOrders } from '@/hooks/useSupabaseData';
 import { Badge } from '@/components/ui/badge';
 import { Link, useNavigate } from 'react-router-dom';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { LoadingState } from '@/components/common/PageSkeleton';
+import { StatusBadge } from '@/components/common/StatusBadge';
 
 const Dashboard = () => {
   const { getCurrentOrganization, isLoading: sessionLoading } = useSession();
@@ -32,23 +35,12 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back to {currentOrganization.name}
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="h-20 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <LoadingState 
+        title="Dashboard" 
+        description={currentOrganization ? `Welcome back to ${currentOrganization.name}` : "Loading..."}
+        type="cards"
+        count={4}
+      />
     );
   }
 
@@ -57,9 +49,9 @@ const Dashboard = () => {
   const highPriorityWorkOrders = workOrders?.filter(wo => wo.priority === 'high' && wo.status !== 'completed') || [];
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
           Welcome back to {currentOrganization.name}
         </p>
@@ -163,14 +155,7 @@ const Dashboard = () => {
                         {item.manufacturer} {item.model}
                       </p>
                     </div>
-                    <Badge 
-                      variant={
-                        item.status === 'active' ? 'default' : 
-                        item.status === 'maintenance' ? 'destructive' : 'secondary'
-                      }
-                    >
-                      {item.status}
-                    </Badge>
+                    <StatusBadge status={item.status} type="equipment" />
                   </Link>
                 ))}
               </div>
@@ -214,14 +199,7 @@ const Dashboard = () => {
                         {order.priority} priority • {order.assigneeName || 'Unassigned'}
                       </p>
                     </div>
-                    <Badge 
-                      variant={
-                        order.status === 'completed' ? 'default' : 
-                        order.status === 'in_progress' ? 'secondary' : 'outline'
-                      }
-                    >
-                      {order.status.replace('_', ' ')}
-                    </Badge>
+                    <StatusBadge status={order.status} type="workOrder" />
                   </Link>
                 ))}
               </div>
@@ -268,7 +246,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

@@ -12,6 +12,12 @@ import { useEquipmentByOrganization } from '@/hooks/useSupabaseData';
 import { usePermissions } from '@/hooks/usePermissions';
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { LoadingState } from '@/components/common/PageSkeleton';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { EmptyState } from '@/components/common/EmptyState';
+import { ResponsiveGrid } from '@/components/common/ResponsiveGrid';
 
 const Equipment = () => {
   const navigate = useNavigate();
@@ -30,49 +36,29 @@ const Equipment = () => {
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
+      <PageContainer>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Equipment</h1>
           <p className="text-muted-foreground">
             Please select an organization to view equipment.
           </p>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="h-32 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <LoadingState 
+        title="Equipment" 
+        description={currentOrganization ? `Loading equipment for ${currentOrganization.name}` : "Loading..."}
+        type="cards"
+        count={6}
+      />
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+
 
   const filteredEquipment = equipment.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -99,21 +85,16 @@ const Equipment = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
-          <p className="text-muted-foreground">
-            Manage equipment for {currentOrganization.name}
-          </p>
-        </div>
-        {canCreate && (
-          <Button onClick={handleAddEquipment} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Equipment
-          </Button>
-        )}
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Equipment"
+        description={`Manage equipment for ${currentOrganization.name}`}
+        primaryAction={canCreate ? {
+          icon: Plus,
+          label: "Add Equipment",
+          props: { onClick: handleAddEquipment, className: "flex items-center gap-2" }
+        } : undefined}
+      />
 
       {/* Filters */}
       <Card>
@@ -158,9 +139,7 @@ const Equipment = () => {
                     {item.manufacturer} {item.model}
                   </CardDescription>
                 </div>
-                <Badge className={getStatusColor(item.status)}>
-                  {item.status}
-                </Badge>
+                <StatusBadge status={item.status} type="equipment" />
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -208,23 +187,20 @@ const Equipment = () => {
       </div>
 
       {filteredEquipment.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No equipment found</h3>
-            <p className="text-muted-foreground mb-4">
-              {searchQuery || statusFilter !== 'all' 
-                ? 'No equipment matches your current filters.' 
-                : `Get started by adding your first piece of equipment to ${currentOrganization.name}.`}
-            </p>
-            {(!searchQuery && statusFilter === 'all' && canCreate) && (
-              <Button onClick={handleAddEquipment}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Equipment
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Package}
+          title="No equipment found"
+          description={
+            searchQuery || statusFilter !== 'all' 
+              ? 'No equipment matches your current filters.' 
+              : `Get started by adding your first piece of equipment to ${currentOrganization.name}.`
+          }
+          primaryAction={(!searchQuery && statusFilter === 'all' && canCreate) ? {
+            icon: Plus,
+            label: "Add Equipment",
+            props: { onClick: handleAddEquipment }
+          } : undefined}
+        />
       )}
 
       {/* Equipment Form Modal */}
@@ -242,7 +218,7 @@ const Equipment = () => {
           onClose={() => setShowQRCode(null)}
         />
       )}
-    </div>
+    </PageContainer>
   );
 };
 
