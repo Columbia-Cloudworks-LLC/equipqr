@@ -15,9 +15,9 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
   const { currentOrganization } = useOrganization();
   const isEditMode = !!workOrder;
 
-  const createWorkOrderMutation = useCreateWorkOrderEnhanced({
-    onSuccess: onSuccess
-  });
+  const createWorkOrderMutation = useCreateWorkOrderEnhanced(
+    (isEditMode || onSubmit) ? { onSuccess: onSuccess } : undefined
+  );
   
   const updateWorkOrderMutation = useUpdateWorkOrder();
 
@@ -59,8 +59,8 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
     },
     {
       onSuccess: () => {
-        // For edit mode or custom onSubmit, call onSuccess
-        // For create mode, the hook handles navigation then calls onSuccess
+        // Only call onSuccess for edit mode or custom onSubmit
+        // For create mode without custom onSubmit, the hook handles navigation automatically
         if (isEditMode || onSubmit) {
           onSuccess();
         }
