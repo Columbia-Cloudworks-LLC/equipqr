@@ -6,7 +6,7 @@ export const useQuickWorkOrderAssignment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ workOrderId, assigneeId }: { workOrderId: string; assigneeId: string }) => {
+    mutationFn: async ({ workOrderId, assigneeId, organizationId }: { workOrderId: string; assigneeId: string; organizationId: string }) => {
       const { error } = await supabase
         .from('work_orders')
         .update({
@@ -18,13 +18,14 @@ export const useQuickWorkOrderAssignment = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, { organizationId }) => {
       toast.success('Work order assigned successfully');
       
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['workOrdersByOrganization'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      // Invalidate relevant queries with standardized keys
+      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', organizationId] });
     },
     onError: (error) => {
       console.error('Error assigning work order:', error);

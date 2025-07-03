@@ -40,7 +40,8 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
     if (!currentUser) return;
     await quickAssignMutation.mutateAsync({
       workOrderId: order.id,
-      assigneeId: currentUser.id
+      assigneeId: currentUser.id,
+      organizationId: order.organizationId
     });
   };
   const getStatusColor = (status: string) => {

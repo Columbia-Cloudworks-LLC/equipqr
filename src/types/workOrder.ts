@@ -12,6 +12,7 @@ export interface WorkOrderData {
   title: string;
   description: string;
   equipmentId: string;
+  organizationId: string;
   priority: 'low' | 'medium' | 'high';
   status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
   assigneeId?: string;

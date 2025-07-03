@@ -55,17 +55,18 @@ export const useBatchAssignUnassignedWorkOrders = () => {
 
       return 0;
     },
-    onSuccess: (count) => {
+    onSuccess: (count, organizationId) => {
       if (count > 0) {
         toast.success(`Assigned ${count} work order${count !== 1 ? 's' : ''} to you`);
       } else {
         toast.info('No unassigned work orders found');
       }
       
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['workOrdersByOrganization'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      // Invalidate relevant queries with standardized keys
+      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', organizationId] });
     },
     onError: (error) => {
       console.error('Error batch assigning work orders:', error);

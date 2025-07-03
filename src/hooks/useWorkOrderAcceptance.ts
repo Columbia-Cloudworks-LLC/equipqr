@@ -63,10 +63,13 @@ export const useWorkOrderAcceptance = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      // Invalidate relevant queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['work-order'] });
+    onSuccess: (_, { organizationId }) => {
+      // Invalidate relevant queries to refresh the UI with standardized keys
+      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', organizationId] });
+      toast.success('Work order accepted successfully');
     },
     onError: (error) => {
       console.error('Error accepting work order:', error);

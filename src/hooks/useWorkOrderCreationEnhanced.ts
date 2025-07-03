@@ -88,10 +88,11 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
     onSuccess: (workOrder) => {
       toast.success('Work order created successfully');
       
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['workOrdersByOrganization'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      // Invalidate relevant queries with standardized keys
+      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization.id] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization.id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization.id] });
       
       // Call custom onSuccess if provided, otherwise navigate to work order details
       if (options?.onSuccess) {

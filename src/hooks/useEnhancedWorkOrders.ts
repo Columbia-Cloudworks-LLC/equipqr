@@ -7,6 +7,8 @@ export const useEnhancedWorkOrders = (organizationId?: string) => {
     queryKey: ['enhanced-work-orders', organizationId],
     queryFn: () => organizationId ? getEnhancedWorkOrdersByOrganization(organizationId) : [],
     enabled: !!organizationId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // 30 seconds - reduced for more frequent updates
+    refetchOnWindowFocus: true, // Refetch when user returns to the tab
+    refetchOnMount: true, // Always refetch when component mounts
   });
 };

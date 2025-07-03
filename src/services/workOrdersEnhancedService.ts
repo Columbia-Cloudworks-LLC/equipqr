@@ -6,6 +6,7 @@ export interface EnhancedWorkOrder {
   title: string;
   description: string;
   equipmentId: string;
+  organizationId: string;
   priority: 'low' | 'medium' | 'high';
   status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
   assigneeId?: string;
@@ -30,6 +31,7 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
         title,
         description,
         equipment_id,
+        organization_id,
         priority,
         status,
         assignee_id,
@@ -62,6 +64,7 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
       title: wo.title,
       description: wo.description,
       equipmentId: wo.equipment_id,
+      organizationId: wo.organization_id,
       priority: wo.priority,
       status: wo.status,
       assigneeId: wo.assignee_id,
