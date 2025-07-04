@@ -1,4 +1,5 @@
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
+import { SlotAvailability } from '@/hooks/useOrganizationSlots';
 import { isFreeOrganization } from './simplifiedBillingUtils';
 
 export interface SimplifiedOrganizationRestrictions {
@@ -7,14 +8,17 @@ export interface SimplifiedOrganizationRestrictions {
   canUploadImages: boolean;
   canAccessFleetMap: boolean;
   canInviteMembers: boolean;
+  hasAvailableSlots: boolean;
   upgradeMessage: string;
 }
 
 export const getSimplifiedOrganizationRestrictions = (
   members: RealOrganizationMember[],
+  slotAvailability?: SlotAvailability,
   fleetMapEnabled: boolean = false
 ): SimplifiedOrganizationRestrictions => {
   const isFree = isFreeOrganization(members);
+  const hasSlots = slotAvailability ? slotAvailability.available_slots > 0 : true;
   
   if (isFree) {
     return {
@@ -23,6 +27,7 @@ export const getSimplifiedOrganizationRestrictions = (
       canUploadImages: false,
       canAccessFleetMap: false,
       canInviteMembers: true, // Can always invite, just need to pay
+      hasAvailableSlots: true, // Free orgs can always purchase slots
       upgradeMessage: 'Invite team members to unlock collaboration features. You only pay $10/month per additional user.'
     };
   }
@@ -33,8 +38,9 @@ export const getSimplifiedOrganizationRestrictions = (
     canAssignEquipmentToTeams: true,
     canUploadImages: true,
     canAccessFleetMap: fleetMapEnabled,
-    canInviteMembers: true,
-    upgradeMessage: ''
+    canInviteMembers: hasSlots,
+    hasAvailableSlots: hasSlots,
+    upgradeMessage: hasSlots ? '' : 'Purchase more user licenses to invite additional team members.'
   };
 };
 

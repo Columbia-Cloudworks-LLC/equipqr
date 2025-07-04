@@ -1,12 +1,14 @@
 import { useOrganizationMembers } from './useOrganizationMembers';
+import { useSlotAvailability } from './useOrganizationSlots';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { getSimplifiedOrganizationRestrictions, getRestrictionMessage } from '@/utils/simplifiedOrganizationRestrictions';
 
 export const useSimplifiedOrganizationRestrictions = (fleetMapEnabled: boolean = false) => {
   const { currentOrganization } = useUnifiedOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
+  const { data: slotAvailability } = useSlotAvailability(currentOrganization?.id || '');
 
-  const restrictions = getSimplifiedOrganizationRestrictions(members, fleetMapEnabled);
+  const restrictions = getSimplifiedOrganizationRestrictions(members, slotAvailability, fleetMapEnabled);
 
   const checkRestriction = (restriction: keyof typeof restrictions) => {
     return {

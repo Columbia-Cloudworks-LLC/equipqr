@@ -73,7 +73,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
               {billing.userLicenses.totalUsers} total • ${billing.userLicenses.totalCost}/month
             </Badge>
           </div>
-          {restrictions.canInviteMembers && (
+          {restrictions.canInviteMembers && restrictions.hasAvailableSlots && (
             <div className="flex gap-2">
               <Button
                 onClick={handleInviteMember}
@@ -85,6 +85,19 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
               </Button>
             </div>
           )}
+          {!restrictions.hasAvailableSlots && billing.userLicenses.totalUsers !== 1 && (
+            <div className="flex gap-2">
+              <Button
+                onClick={onUpgrade}
+                size="sm"
+                variant="outline"
+                className="w-full sm:w-auto"
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                <span className="sm:inline">Purchase Licenses</span>
+              </Button>
+            </div>
+          )}
         </div>
         
         {billing.userLicenses.totalUsers === 1 && (
@@ -92,6 +105,15 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
             <div className="text-sm text-blue-800">
               <strong>Pay-as-you-go pricing:</strong> Invite team members to unlock collaboration features. 
               You only pay $10/month per additional user. No upfront costs or complicated billing.
+            </div>
+          </div>
+        )}
+
+        {!restrictions.hasAvailableSlots && billing.userLicenses.totalUsers > 1 && (
+          <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="text-sm text-orange-800">
+              <strong>No available licenses:</strong> You've used all your purchased user licenses. 
+              Purchase additional licenses to invite more team members.
             </div>
           </div>
         )}
