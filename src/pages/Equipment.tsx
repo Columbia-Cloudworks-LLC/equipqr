@@ -164,6 +164,24 @@ const Equipment = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Equipment Image */}
+              <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
+                {item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={`${item.name} equipment`}
+                    className="h-full w-full object-cover transition-transform hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = `https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=400&h=300&fit=crop&crop=center`;
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Package className="h-12 w-12 text-muted-foreground/50" />
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Serial:</span>
