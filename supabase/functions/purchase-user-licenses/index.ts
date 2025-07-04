@@ -81,16 +81,18 @@ serve(async (req) => {
       logStep("Creating new customer");
     }
 
-    // Create price for user licenses ($10 per license per month)
-    const price = await stripe.prices.create({
-      unit_amount: 1000, // $10.00 in cents
-      currency: 'usd',
-      recurring: { interval: 'month' },
-      product_data: {
-        name: `User License Slots (${quantity} licenses)`,
-      },
-    });
-    logStep("Price created", { priceId: price.id, amount: price.unit_amount });
+    // Use existing product and price IDs for user licenses
+    const PRODUCT_ID = 'prod_SOuD4IZFWxQrjB';
+    const PRICE_ID = 'price_1RU6PMF7dmK1pWnR58UJKOPh'; // $10/month per license
+    
+    // Verify the price exists in Stripe
+    try {
+      await stripe.prices.retrieve(PRICE_ID);
+      logStep("Using existing price", { priceId: PRICE_ID, productId: PRODUCT_ID });
+    } catch (error) {
+      logStep("ERROR: Price not found", { priceId: PRICE_ID, error: error.message });
+      throw new Error(`Stripe price ${PRICE_ID} not found. Please verify the price ID.`);
+    }
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
     const session = await stripe.checkout.sessions.create({
@@ -98,8 +100,8 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: price.id,
-          quantity: 1,
+          price: PRICE_ID,
+          quantity: quantity,
         },
       ],
       mode: "subscription",

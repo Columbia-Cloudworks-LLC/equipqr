@@ -7,6 +7,8 @@ import { Users, Crown, Plus } from 'lucide-react';
 import { useOrganizationMembers, RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
+import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
+import ManageSubscriptionButton from '@/components/billing/ManageSubscriptionButton';
 import {
   Table,
   TableBody,
@@ -159,11 +161,20 @@ const SimplifiedMemberBilling: React.FC<SimplifiedMemberBillingProps> = ({ onInv
             </div>
           </div>
 
-          <div className="flex justify-center pt-4">
-            <Button onClick={onInviteMembers} className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <Button onClick={onInviteMembers} className="flex items-center gap-2 flex-1">
               <Plus className="h-4 w-4" />
               Invite Team Members
             </Button>
+            {!isFree && (
+              <div className="flex gap-2 flex-1">
+                <PurchaseLicensesButton variant="outline" className="flex-1" />
+                <ManageSubscriptionButton className="flex-1" />
+              </div>
+            )}
+            {isFree && (
+              <PurchaseLicensesButton variant="outline" className="flex-1" />
+            )}
           </div>
 
           {isFree && (

@@ -16,11 +16,15 @@ EquipQR operates on a flexible pay-as-you-go billing model designed to scale wit
 - **User Types Billed**: Admin and Member roles
 - **User Types Free**: Organization owners
 
+Users can choose the quantity of user licenses they want to buy from 1 to 99 using a Stripe subscription page.
+Users must buy licenses before they can send an invitation via e-mail to someone that will occupy the slots.
+Users buy licenses by purchasing a quantity of a Stripe subscription at $10 a month.
+
 #### 2. Storage
-- **Free Tier**: 5GB included (only if organization has more than 1 user)
+- **Free Tier**: 5GB included
 - **Overage Rate**: $0.10 per GB per month
 - **Billing Rule**: Charged for usage above free tier
-- **Calculation**: Monthly average storage usage
+- **Calculation**: Monthly total storage at time of billing
 
 #### 3. Premium Add-ons
 - **Fleet Map**: $10.00 per month
@@ -33,11 +37,11 @@ EquipQR operates on a flexible pay-as-you-go billing model designed to scale wit
 |---------|-------------|---------------|
 | First User | ✓ Included | ✓ Included |
 | Additional Users | ❌ Not available | $10/user/month |
-| Storage | ❌ Not available | 5GB + $0.10/GB |
+| Storage | 5GB + $0.10/GB | 5GB + $0.10/GB |
 | Equipment Management | ✓ Included | ✓ Included |
 | Work Orders | ✓ Included | ✓ Included |
 | Team Management | ❌ Not available | ✓ Included |
-| Fleet Map | ❌ Not available | $10/month |
+| Fleet Map | $10/month | $10/month |
 | QR Scanner | ✓ Included | ✓ Included |
 
 ## Billing Rules and Logic
