@@ -24,7 +24,7 @@ export class PerformanceMonitor {
         for (const entry of list.getEntries()) {
           if (entry.entryType === 'navigation') {
             const navEntry = entry as PerformanceNavigationTiming;
-            this.recordMetric('page-load', navEntry.loadEventEnd - navEntry.navigationStart);
+            this.recordMetric('page-load', navEntry.loadEventEnd - navEntry.fetchStart);
           }
         }
       });

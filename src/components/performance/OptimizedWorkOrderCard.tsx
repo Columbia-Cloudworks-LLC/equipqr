@@ -20,7 +20,7 @@ const OptimizedWorkOrderCard = memo(({
   
   // OPTIMIZED: Memoize expensive computations
   const computedData = useMemo(() => {
-    const getStatusVariant = (status: WorkOrder['status']) => {
+    const getStatusVariant = (status: WorkOrder['status']): "default" | "secondary" | "outline" | "destructive" => {
       switch (status) {
         case 'completed':
           return 'default';
@@ -36,7 +36,7 @@ const OptimizedWorkOrderCard = memo(({
       }
     };
 
-    const getPriorityVariant = (priority: WorkOrder['priority']) => {
+    const getPriorityVariant = (priority: WorkOrder['priority']): "default" | "secondary" | "outline" | "destructive" => {
       switch (priority) {
         case 'high':
           return 'destructive';
