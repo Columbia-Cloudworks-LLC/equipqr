@@ -16,14 +16,14 @@ export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
 }) => {
   return (
     <>
-      <div className="flex items-center space-x-2 p-3 border rounded-lg bg-blue-50">
+      <div className="flex items-center space-x-2 p-3 border rounded-lg bg-muted/50">
         <Checkbox
           id="hasPM"
           checked={values.hasPM}
           onCheckedChange={(checked) => setValue('hasPM', checked as boolean)}
         />
         <div className="flex items-center gap-2">
-          <Wrench className="h-4 w-4 text-blue-600" />
+          <Wrench className="h-4 w-4 text-primary" />
           <Label htmlFor="hasPM" className="text-sm font-medium cursor-pointer">
             Include Preventative Maintenance
           </Label>
