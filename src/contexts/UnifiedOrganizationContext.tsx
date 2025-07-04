@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { useSession } from '@/contexts/SessionContext';
 
 export interface UnifiedOrganizationContextType {
@@ -23,13 +23,14 @@ export const useUnifiedOrganization = () => {
 export const UnifiedOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { sessionData, isLoading, error, getCurrentOrganization, switchOrganization } = useSession();
 
-  const contextValue: UnifiedOrganizationContextType = {
+  // OPTIMIZED: Memoize the context value to prevent unnecessary re-renders
+  const contextValue: UnifiedOrganizationContextType = useMemo(() => ({
     currentOrganization: getCurrentOrganization(),
     userOrganizations: sessionData?.organizations || [],
     switchOrganization,
     isLoading,
     error
-  };
+  }), [sessionData, isLoading, error, getCurrentOrganization, switchOrganization]);
 
   return (
     <UnifiedOrganizationContext.Provider value={contextValue}>
