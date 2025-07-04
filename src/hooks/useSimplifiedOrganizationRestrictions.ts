@@ -6,9 +6,22 @@ import { getSimplifiedOrganizationRestrictions, getRestrictionMessage } from '@/
 export const useSimplifiedOrganizationRestrictions = (fleetMapEnabled: boolean = false) => {
   const { currentOrganization } = useUnifiedOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
-  const { data: slotAvailability } = useSlotAvailability(currentOrganization?.id || '');
+  const { data: slotAvailability, isLoading } = useSlotAvailability(currentOrganization?.id || '');
 
-  const restrictions = getSimplifiedOrganizationRestrictions(members, slotAvailability, fleetMapEnabled);
+  // Provide safe defaults while loading
+  const safeSlotAvailability = slotAvailability || {
+    total_purchased: 0,
+    used_slots: 0,
+    available_slots: 0,
+    current_period_start: new Date().toISOString(),
+    current_period_end: new Date().toISOString()
+  };
+
+  const restrictions = getSimplifiedOrganizationRestrictions(
+    members, 
+    safeSlotAvailability, 
+    fleetMapEnabled
+  );
 
   const checkRestriction = (restriction: keyof typeof restrictions) => {
     return {
@@ -18,11 +31,15 @@ export const useSimplifiedOrganizationRestrictions = (fleetMapEnabled: boolean =
     };
   };
 
+  const activeMemberCount = members.filter(m => m.status === 'active').length;
+  const isSingleUser = activeMemberCount === 1;
+
   return {
     restrictions,
     checkRestriction,
     getRestrictionMessage,
-    isSingleUser: members.filter(m => m.status === 'active').length === 1,
-    canUpgrade: true // Always can upgrade in pay-as-you-go model
+    isSingleUser,
+    canUpgrade: true, // Always can upgrade in pay-as-you-go model
+    isLoading
   };
 };

@@ -8,6 +8,7 @@ import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { OrganizationAdmin } from '@/hooks/useOrganizationAdmins';
 import { PagePermissions } from '@/hooks/usePagePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import MembersListReal from './MembersListReal';
 import AdminsTabContent from './AdminsTabContent';
@@ -36,7 +37,8 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   onUpgrade
 }) => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const { restrictions } = useSimplifiedOrganizationRestrictions();
+  const { data: fleetMapSubscription } = useFleetMapSubscription(organizationId);
+  const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
   const billing = calculateSimplifiedBilling(members);
 
   const handleInviteMember = () => {
@@ -100,14 +102,14 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           )}
         </div>
         
-        {billing.userLicenses.totalUsers === 1 && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="text-sm text-blue-800">
-              <strong>Pay-as-you-go pricing:</strong> Invite team members to unlock collaboration features. 
-              You only pay $10/month per additional user. No upfront costs or complicated billing.
+          {billing.userLicenses.totalUsers === 1 && !restrictions.hasAvailableSlots && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-sm text-blue-800">
+                <strong>Pay-as-you-go pricing:</strong> Purchase user licenses to invite team members and unlock collaboration features. 
+                Only $10/month per additional user. No upfront costs or complicated billing.
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {!restrictions.hasAvailableSlots && billing.userLicenses.totalUsers > 1 && (
           <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">

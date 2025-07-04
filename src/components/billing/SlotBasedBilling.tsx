@@ -28,7 +28,16 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading, refetch } = useSlotAvailability(currentOrganization?.id || '');
 
-  if (isLoading || !slotAvailability) {
+  // Provide safe defaults for slot availability
+  const safeSlotAvailability = slotAvailability || {
+    total_purchased: 0,
+    used_slots: 0,
+    available_slots: 0,
+    current_period_start: new Date().toISOString(),
+    current_period_end: new Date().toISOString()
+  };
+
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -38,9 +47,9 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
     );
   }
 
-  const billing = calculateEnhancedBilling(members, slotAvailability, storageUsedGB, fleetMapEnabled);
-  const slotStatus = getSlotStatus(slotAvailability, billing.currentUsage.totalSlotsNeeded);
-  const isFreeOrg = members.filter(m => m.status === 'active').length === 1;
+  const billing = calculateEnhancedBilling(members, safeSlotAvailability, storageUsedGB, fleetMapEnabled);
+  const slotStatus = getSlotStatus(safeSlotAvailability, billing.currentUsage.totalSlotsNeeded);
+  const isFreeOrg = members.filter(m => m.status === 'active').length === 1 && safeSlotAvailability.total_purchased === 0;
 
   const slotUsagePercentage = billing.userSlots.totalPurchased > 0 
     ? (billing.userSlots.slotsUsed / billing.userSlots.totalPurchased) * 100 
