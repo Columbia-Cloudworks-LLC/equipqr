@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { ShoppingCart, Users } from 'lucide-react';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,6 +29,8 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
 }) => {
   const { currentOrganization } = useUnifiedOrganization();
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   const handlePurchase = async () => {
     if (!currentOrganization) {
@@ -25,14 +38,18 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
       return;
     }
 
+    if (quantity < 1 || quantity > 100) {
+      toast.error('Please select between 1 and 100 licenses');
+      return;
+    }
+
     try {
       setIsPurchasing(true);
       toast.loading('Opening Stripe checkout...');
       
-      // Use default quantity of 5 licenses for simplicity
       const { data, error } = await supabase.functions.invoke('purchase-user-licenses', {
         body: { 
-          quantity: 5, 
+          quantity: quantity, 
           organizationId: currentOrganization.id 
         }
       });
@@ -44,6 +61,7 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
       // Open Stripe checkout in a new tab
       window.open(data.url, '_blank');
       toast.success('Redirecting to Stripe checkout...');
+      setDialogOpen(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create checkout';
       console.error('Error creating license checkout:', err);
@@ -53,17 +71,78 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
     }
   };
 
+  const monthlyTotal = quantity * 10;
+
   return (
-    <Button
-      variant={variant}
-      size={size}
-      className={className}
-      onClick={handlePurchase}
-      disabled={isPurchasing}
-    >
-      <ShoppingCart className="h-4 w-4 mr-2" />
-      {isPurchasing ? 'Processing...' : 'Purchase Licenses'}
-    </Button>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant={variant}
+          size={size}
+          className={className}
+          disabled={isPurchasing}
+        >
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          Purchase Licenses
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Purchase User Licenses
+          </DialogTitle>
+          <DialogDescription>
+            Add more user licenses to your organization. Each license allows one additional team member.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="quantity">Number of licenses</Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              max="100"
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              placeholder="Enter number of licenses"
+            />
+            <p className="text-sm text-muted-foreground">
+              Select between 1 and 100 licenses. Each license costs $10/month.
+            </p>
+          </div>
+          
+          <div className="rounded-lg bg-muted p-3">
+            <div className="flex justify-between text-sm">
+              <span>{quantity} × $10/month per license</span>
+              <span className="font-medium">${monthlyTotal}/month</span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Billing starts immediately and recurs monthly
+            </div>
+          </div>
+        </div>
+        
+        <DialogFooter className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setDialogOpen(false)}
+            disabled={isPurchasing}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handlePurchase}
+            disabled={isPurchasing || quantity < 1}
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            {isPurchasing ? 'Processing...' : `Purchase ${quantity} License${quantity !== 1 ? 's' : ''}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
