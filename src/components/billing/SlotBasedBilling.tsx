@@ -9,7 +9,7 @@ import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { calculateEnhancedBilling, getSlotStatus } from '@/utils/enhancedBillingUtils';
-import PurchaseLicensesDialog from './PurchaseLicensesDialog';
+import PurchaseLicensesButton from './PurchaseLicensesButton';
 
 interface SlotBasedBillingProps {
   storageUsedGB: number;
@@ -141,11 +141,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
                   <p className="text-sm text-muted-foreground">
                     Monthly subscription for user licenses at $10 per license. Cancel anytime.
                   </p>
-                  <PurchaseLicensesDialog
-                    currentLicenses={billing.userSlots.totalPurchased}
-                    availableSlots={billing.userSlots.availableSlots}
-                    onPurchaseComplete={() => refetch()}
-                  />
+                  <PurchaseLicensesButton className="w-full" />
                 </div>
               </>
             )}
@@ -162,11 +158,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
                       Purchase user license subscriptions to enable team collaboration. 
                       Pay monthly per license and invite team members instantly.
                     </div>
-                    <PurchaseLicensesDialog
-                      currentLicenses={0}
-                      availableSlots={0}
-                      onPurchaseComplete={() => refetch()}
-                    />
+                    <PurchaseLicensesButton />
                   </div>
                 </div>
               </div>

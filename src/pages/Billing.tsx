@@ -5,14 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import SimplifiedMemberBilling from '@/components/billing/SimplifiedMemberBilling';
+import ManageSubscriptionButton from '@/components/billing/ManageSubscriptionButton';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from '@/hooks/use-toast';
 import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
 
 const Billing = () => {
   const { currentOrganization } = useUnifiedOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
+  const { subscriptionData, isSubscribed, subscriptionTier, subscriptionEnd } = useSubscription();
   
   // Mock data for storage - in a real app, this would come from your backend
   const [storageUsedGB] = useState(3.2);
@@ -48,22 +51,6 @@ const Billing = () => {
     }
   }, [toast]);
 
-  const handleToggleFleetMap = (enabled: boolean) => {
-    if (isFree) {
-      toast({
-        title: 'Feature Not Available',
-        description: 'Fleet Map requires multiple users. Invite team members to unlock premium features.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setFleetMapEnabled(enabled);
-    toast({
-      title: enabled ? 'Fleet Map Enabled' : 'Fleet Map Disabled',
-      description: `Fleet Map has been ${enabled ? 'added to' : 'removed from'} your billing at $10/month.`,
-    });
-  };
 
   const handleInviteMembers = () => {
     toast({
@@ -102,6 +89,7 @@ const Billing = () => {
           <Badge variant={isFree ? 'secondary' : 'default'}>
             {isFree ? 'Free Plan' : 'Pay-as-you-go'}
           </Badge>
+          {!isFree && <ManageSubscriptionButton size="sm" />}
         </div>
       </div>
 
@@ -146,7 +134,10 @@ const Billing = () => {
                     Active Licenses
                   </Badge>
                   <div className="text-xs text-muted-foreground">
-                    Monthly subscription model
+                    {subscriptionEnd && new Date(subscriptionEnd) > new Date() 
+                      ? `Next billing: ${new Date(subscriptionEnd).toLocaleDateString()}`
+                      : 'Monthly subscription model'
+                    }
                   </div>
                 </div>
               )}
@@ -191,13 +182,9 @@ const Billing = () => {
                 <Badge variant={fleetMapEnabled ? 'default' : 'secondary'}>
                   {fleetMapEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>
-                <Button 
-                  variant={fleetMapEnabled ? 'destructive' : 'default'}
-                  size="sm"
-                  onClick={() => handleToggleFleetMap(!fleetMapEnabled)}
-                >
-                  {fleetMapEnabled ? 'Disable' : 'Enable'} ($10/month)
-                </Button>
+                <ManageSubscriptionButton size="sm">
+                  {fleetMapEnabled ? 'Manage Add-ons' : 'Add Fleet Map'}
+                </ManageSubscriptionButton>
               </div>
             </div>
           </CardContent>
