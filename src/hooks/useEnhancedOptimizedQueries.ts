@@ -1,0 +1,95 @@
+import { useEffect } from 'react';
+import { useOptimizedTeams, useOptimizedWorkOrders, useOptimizedEquipment, useOptimizedDashboard } from './useOptimizedQueries';
+import { useBackgroundSync, useCacheInvalidation } from './useCacheInvalidation';
+import { performanceMonitor } from '@/utils/performanceMonitoring';
+
+// PHASE 3: Enhanced queries with background sync and smart invalidation
+export const useEnhancedOptimizedTeams = (organizationId?: string) => {
+  const query = useOptimizedTeams(organizationId);
+  const { subscribeToOrganization } = useBackgroundSync();
+  
+  useEffect(() => {
+    if (organizationId) {
+      subscribeToOrganization(organizationId);
+      performanceMonitor.recordMetric('enhanced-query-teams-init', 1);
+    }
+  }, [organizationId, subscribeToOrganization]);
+
+  return query;
+};
+
+export const useEnhancedOptimizedWorkOrders = (organizationId?: string) => {
+  const query = useOptimizedWorkOrders(organizationId);
+  const { subscribeToOrganization } = useBackgroundSync();
+  
+  useEffect(() => {
+    if (organizationId) {
+      subscribeToOrganization(organizationId);
+      performanceMonitor.recordMetric('enhanced-query-workorders-init', 1);
+    }
+  }, [organizationId, subscribeToOrganization]);
+
+  return query;
+};
+
+export const useEnhancedOptimizedEquipment = (organizationId?: string) => {
+  const query = useOptimizedEquipment(organizationId);
+  const { subscribeToOrganization } = useBackgroundSync();
+  
+  useEffect(() => {
+    if (organizationId) {
+      subscribeToOrganization(organizationId);
+      performanceMonitor.recordMetric('enhanced-query-equipment-init', 1);
+    }
+  }, [organizationId, subscribeToOrganization]);
+
+  return query;
+};
+
+export const useEnhancedOptimizedDashboard = (organizationId?: string) => {
+  const query = useOptimizedDashboard(organizationId);
+  const { subscribeToOrganization, startPeriodicSync } = useBackgroundSync();
+  
+  useEffect(() => {
+    if (organizationId) {
+      subscribeToOrganization(organizationId);
+      startPeriodicSync(organizationId, 2 * 60 * 1000); // Sync every 2 minutes for dashboard
+      performanceMonitor.recordMetric('enhanced-query-dashboard-init', 1);
+    }
+  }, [organizationId, subscribeToOrganization, startPeriodicSync]);
+
+  return query;
+};
+
+// Combined hook for full organization data with background sync
+export const useEnhancedOrganizationData = (organizationId?: string) => {
+  const teams = useEnhancedOptimizedTeams(organizationId);
+  const workOrders = useEnhancedOptimizedWorkOrders(organizationId);
+  const equipment = useEnhancedOptimizedEquipment(organizationId);
+  const dashboard = useEnhancedOptimizedDashboard(organizationId);
+  
+  const { invalidateOrganizationData } = useCacheInvalidation();
+
+  // Cleanup subscriptions on unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup handled by background sync service
+    };
+  }, []);
+
+  const refetchAll = () => {
+    if (organizationId) {
+      invalidateOrganizationData(organizationId);
+    }
+  };
+
+  return {
+    teams,
+    workOrders,
+    equipment,
+    dashboard,
+    refetchAll,
+    isLoading: teams.isLoading || workOrders.isLoading || equipment.isLoading || dashboard.isLoading,
+    isError: teams.isError || workOrders.isError || equipment.isError || dashboard.isError
+  };
+};

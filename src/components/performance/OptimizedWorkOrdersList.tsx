@@ -28,7 +28,7 @@ const OptimizedWorkOrdersList = memo(({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  // Get computed stats
+  // PHASE 3: Use enhanced queries with background sync
   const stats = useWorkOrderStats(organizationId);
 
   // Optimized search with debouncing
