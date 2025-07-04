@@ -16,6 +16,10 @@ EquipQR operates on a flexible pay-as-you-go billing model designed to scale wit
 - **User Types Billed**: Admin and Member roles
 - **User Types Free**: Organization owners
 
+Users can choose the quantity of user licenses they want to buy from 1 to 99 using a Stripe subscription page.
+Users must buy licenses before they can send an invitation via e-mail to someone that will occupy the slots.
+Users buy licenses by purchasing a quantity of a Stripe subscription at $10 a month.
+
 #### 2. Storage
 - **Free Tier**: 5GB included
 - **Overage Rate**: $0.10 per GB per month
