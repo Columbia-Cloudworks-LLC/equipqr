@@ -115,11 +115,10 @@ const SettingsContent = () => {
       </div>
 
       <Tabs defaultValue="personalization" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="personalization">Personalization</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="units">Units</TabsTrigger>
-          <TabsTrigger value="datetime">Date & Time</TabsTrigger>
+          <TabsTrigger value="units">Units & Time</TabsTrigger>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
         </TabsList>
 
@@ -132,11 +131,10 @@ const SettingsContent = () => {
         </TabsContent>
 
         <TabsContent value="units">
-          <UnitsSettings />
-        </TabsContent>
-
-        <TabsContent value="datetime">
-          <DateTimeSettings />
+          <div className="space-y-6">
+            <UnitsSettings />
+            <DateTimeSettings />
+          </div>
         </TabsContent>
 
         <TabsContent value="privacy">
