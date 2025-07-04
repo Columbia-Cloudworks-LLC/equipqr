@@ -150,3 +150,39 @@ export const checkUserOrgAccess = async (userId: string, organizationId: string)
     return { hasAccess: false };
   }
 };
+
+// Update organization information
+export const updateOrganization = async (organizationId: string, updates: { name?: string }): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('organizations')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', organizationId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error updating organization:', error);
+    return false;
+  }
+};
+
+// Get organization by ID
+export const getOrganizationById = async (organizationId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', organizationId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching organization:', error);
+    return null;
+  }
+};

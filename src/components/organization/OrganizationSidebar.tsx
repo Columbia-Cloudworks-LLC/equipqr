@@ -3,7 +3,7 @@ import React from 'react';
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
-import PremiumFeaturesReal from './PremiumFeaturesReal';
+import SimplifiedPremiumFeatures from './SimplifiedPremiumFeatures';
 
 interface OrganizationSidebarProps {
   organization: SessionOrganization;
@@ -23,7 +23,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
         <SecurityStatus />
       </div>
       <div className="lg:sticky lg:top-6">
-        <PremiumFeaturesReal
+        <SimplifiedPremiumFeatures
           organization={organization}
           onUpgrade={onUpgrade}
         />

@@ -1,10 +1,8 @@
 
 export interface UserSettings {
   // Personalization
-  theme: 'light' | 'dark' | 'system';
-  language: string;
   timezone: string;
-  dateFormat: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
+  dateFormat: 'MM/dd/yyyy' | 'dd/MM/yyyy' | 'yyyy-MM-dd' | 'MMM dd, yyyy';
   
   // Notifications
   emailNotifications: {
@@ -34,10 +32,8 @@ export interface UserSettings {
 }
 
 export const defaultUserSettings: UserSettings = {
-  theme: 'system',
-  language: 'en',
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  dateFormat: 'MM/DD/YYYY',
+  dateFormat: 'MM/dd/yyyy',
   emailNotifications: {
     workOrderUpdates: true,
     equipmentAlerts: true,
@@ -59,19 +55,20 @@ export const defaultUserSettings: UserSettings = {
 };
 
 // Available options for dropdowns
-export const languageOptions = [
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Español' },
-  { value: 'fr', label: 'Français' },
-  { value: 'de', label: 'Deutsch' },
-];
-
 export const timezoneOptions = [
-  { value: 'America/New_York', label: 'Eastern Time' },
-  { value: 'America/Chicago', label: 'Central Time' },
-  { value: 'America/Denver', label: 'Mountain Time' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time' },
-  { value: 'Europe/London', label: 'GMT' },
-  { value: 'Europe/Paris', label: 'Central European Time' },
-  { value: 'Asia/Tokyo', label: 'Japan Standard Time' },
+  { value: 'America/New_York', label: 'Eastern Time (ET)' },
+  { value: 'America/Chicago', label: 'Central Time (CT)' },
+  { value: 'America/Denver', label: 'Mountain Time (MT)' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+  { value: 'America/Phoenix', label: 'Arizona Time' },
+  { value: 'America/Anchorage', label: 'Alaska Time' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii Time' },
+  { value: 'Europe/London', label: 'Greenwich Mean Time (GMT)' },
+  { value: 'Europe/Paris', label: 'Central European Time (CET)' },
+  { value: 'Europe/Berlin', label: 'Germany Time' },
+  { value: 'Asia/Tokyo', label: 'Japan Standard Time (JST)' },
+  { value: 'Asia/Shanghai', label: 'China Standard Time (CST)' },
+  { value: 'Asia/Kolkata', label: 'India Standard Time (IST)' },
+  { value: 'Australia/Sydney', label: 'Australian Eastern Time (AET)' },
+  { value: 'UTC', label: 'Coordinated Universal Time (UTC)' },
 ];

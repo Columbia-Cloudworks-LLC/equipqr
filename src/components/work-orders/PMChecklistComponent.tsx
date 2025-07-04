@@ -193,14 +193,24 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   }, [pm.id, notes, pm.status, onUpdate, clearStorage]);
 
-  const handleChecklistItemChange = useCallback((itemId: string, condition: 1 | 2 | 3 | 4 | 5, itemNotes?: string) => {
+  const handleChecklistItemChange = useCallback((itemId: string, condition: 1 | 2 | 3 | 4 | 5) => {
     setChecklist(prev => prev.map(item => 
       item.id === itemId 
-        ? { ...item, condition, notes: itemNotes } 
+        ? { ...item, condition } 
         : item
     ));
     setHasUnsavedChanges(true);
     triggerAutoSave('selection'); // Use selection trigger for immediate UI changes
+  }, [triggerAutoSave]);
+
+  const handleNotesItemChange = useCallback((itemId: string, notes: string) => {
+    setChecklist(prev => prev.map(item => 
+      item.id === itemId 
+        ? { ...item, notes } 
+        : item
+    ));
+    setHasUnsavedChanges(true);
+    triggerAutoSave('text'); // Use text trigger for longer debounce
   }, [triggerAutoSave]);
 
   const isItemComplete = (item: PMChecklistItem): boolean => {
@@ -466,6 +476,17 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }));
   }, []);
 
+  // Helper function to get border styling based on item state
+  const getItemBorderClass = useCallback((item: PMChecklistItem) => {
+    const isComplete = isItemComplete(item);
+    if (isComplete) {
+      return 'border-l-4 border-l-green-500'; // Green border for completed items
+    } else if (item.required) {
+      return 'border-l-4 border-l-red-500'; // Red border for required unrated items
+    }
+    return ''; // No colored border for optional unrated items
+  }, []);
+
   // Handle notes changes with auto-save for text input
   const handleNotesChange = useCallback((value: string) => {
     setNotes(value);
@@ -656,7 +677,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 pt-2">
                 {checklist.filter(item => item.section === section).map((item) => (
-                  <div key={item.id} className={`p-4 border rounded-lg ${item.required ? 'border-l-4 border-l-red-500' : ''}`}>
+                  <div key={item.id} className={`p-4 border rounded-lg ${getItemBorderClass(item)}`}>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2">
@@ -667,11 +688,6 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                           )}
                           <span className="font-medium">{item.title}</span>
                         </div>
-                        {item.required && (
-                          <Badge variant="outline" className="text-xs">
-                            Required
-                          </Badge>
-                        )}
                         <span className={`text-sm font-medium ${getConditionColor(item.condition)}`}>
                           {getConditionText(item.condition)}
                         </span>
@@ -710,7 +726,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                         <Textarea
                           placeholder="Add notes for this item..."
                           value={item.notes || ''}
-                          onChange={(e) => handleChecklistItemChange(item.id, item.condition || 1, e.target.value)}
+                          onChange={(e) => handleNotesItemChange(item.id, e.target.value)}
                           className="mt-2"
                           rows={2}
                         />

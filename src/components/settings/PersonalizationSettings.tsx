@@ -1,13 +1,15 @@
 
 import React from 'react';
+import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettings } from '@/contexts/SettingsContext';
-import { languageOptions, timezoneOptions } from '@/types/settings';
+import { timezoneOptions } from '@/types/settings';
 
 const PersonalizationSettings = () => {
   const { settings, updateSetting } = useSettings();
+  const { theme, setTheme } = useTheme();
 
   return (
     <Card>
@@ -22,10 +24,8 @@ const PersonalizationSettings = () => {
           <div className="space-y-2">
             <Label htmlFor="theme">Theme</Label>
             <Select
-              value={settings.theme}
-              onValueChange={(value: 'light' | 'dark' | 'system') => 
-                updateSetting('theme', value)
-              }
+              value={theme}
+              onValueChange={setTheme}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select theme" />
@@ -34,25 +34,6 @@ const PersonalizationSettings = () => {
                 <SelectItem value="light">Light</SelectItem>
                 <SelectItem value="dark">Dark</SelectItem>
                 <SelectItem value="system">System</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="language">Language</Label>
-            <Select
-              value={settings.language}
-              onValueChange={(value: string) => updateSetting('language', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                {languageOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
               </SelectContent>
             </Select>
           </div>
@@ -80,7 +61,7 @@ const PersonalizationSettings = () => {
             <Label htmlFor="dateFormat">Date Format</Label>
             <Select
               value={settings.dateFormat}
-              onValueChange={(value: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD') => 
+              onValueChange={(value: 'MM/dd/yyyy' | 'dd/MM/yyyy' | 'yyyy-MM-dd' | 'MMM dd, yyyy') => 
                 updateSetting('dateFormat', value)
               }
             >
@@ -88,9 +69,10 @@ const PersonalizationSettings = () => {
                 <SelectValue placeholder="Select date format" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                <SelectItem value="MM/dd/yyyy">01/15/2024</SelectItem>
+                <SelectItem value="dd/MM/yyyy">15/01/2024</SelectItem>
+                <SelectItem value="yyyy-MM-dd">2024-01-15</SelectItem>
+                <SelectItem value="MMM dd, yyyy">Jan 15, 2024</SelectItem>
               </SelectContent>
             </Select>
           </div>

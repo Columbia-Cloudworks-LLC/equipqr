@@ -45,12 +45,15 @@ export const useUpdateWorkOrder = () => {
       return result;
     },
     onSuccess: () => {
-      // Invalidate and refetch work order queries
+      // Invalidate and refetch work order queries with standardized keys
       queryClient.invalidateQueries({ 
-        queryKey: ['workOrder', currentOrganization?.id] 
+        queryKey: ['enhanced-work-orders', currentOrganization?.id] 
       });
       queryClient.invalidateQueries({ 
         queryKey: ['workOrders', currentOrganization?.id] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] 
       });
       queryClient.invalidateQueries({ 
         queryKey: ['dashboardStats', currentOrganization?.id] 

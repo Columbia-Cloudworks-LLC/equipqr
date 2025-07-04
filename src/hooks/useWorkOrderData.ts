@@ -292,12 +292,13 @@ export const useUpdateWorkOrderStatus = () => {
       return data;
     },
     onSuccess: (data, variables) => {
-      // Invalidate all relevant queries for immediate updates
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['workOrder'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      // Invalidate all relevant queries for immediate updates with standardized keys
+      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['workOrder', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', variables.organizationId] });
       
       // Specifically invalidate the work order details queries
       queryClient.invalidateQueries({ 

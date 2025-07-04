@@ -1,6 +1,7 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
@@ -19,7 +20,7 @@ import WorkOrderDetails from '@/pages/WorkOrderDetails';
 import Teams from '@/pages/Teams';
 import TeamDetails from '@/pages/TeamDetails';
 import FleetMap from '@/pages/FleetMap';
-import OrganizationEnhanced from '@/pages/OrganizationEnhanced';
+import Organization from '@/pages/Organization';
 import QRScanner from '@/pages/QRScanner';
 import QRRedirect from '@/pages/QRRedirect';
 import Billing from '@/pages/Billing';
@@ -38,7 +39,8 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <AuthProvider>
         <UserProvider>
           <SessionProvider>
             <Router>
@@ -66,7 +68,7 @@ function App() {
                                 <Route path="/teams" element={<Teams />} />
                                 <Route path="/teams/:teamId" element={<TeamDetails />} />
                                 <Route path="/fleet-map" element={<FleetMap />} />
-                                <Route path="/organization" element={<OrganizationEnhanced />} />
+                                <Route path="/organization" element={<Organization />} />
                                 <Route path="/scanner" element={<QRScanner />} />
                                 <Route path="/billing" element={<Billing />} />
                                 <Route path="/settings" element={<Settings />} />
@@ -85,6 +87,7 @@ function App() {
         </UserProvider>
       </AuthProvider>
       <Toaster />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
