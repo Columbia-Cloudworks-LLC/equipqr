@@ -10,6 +10,7 @@ import { Plus, Search, Filter, QrCode, MapPin, Calendar, Package } from 'lucide-
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useEquipmentByOrganization } from '@/hooks/useSupabaseData';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useIsMobile } from '@/hooks/use-mobile';
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 
@@ -18,6 +19,7 @@ const Equipment = () => {
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
   const { data: equipment = [], isLoading: equipmentLoading } = useEquipmentByOrganization();
   const { canCreateEquipment } = usePermissions();
+  const isMobile = useIsMobile();
   
   const [showForm, setShowForm] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState(null);
@@ -100,7 +102,7 @@ const Equipment = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className={isMobile ? "space-y-4" : "flex items-center justify-between"}>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
           <p className="text-muted-foreground">
@@ -108,7 +110,10 @@ const Equipment = () => {
           </p>
         </div>
         {canCreate && (
-          <Button onClick={handleAddEquipment} className="flex items-center gap-2">
+          <Button 
+            onClick={handleAddEquipment} 
+            className={`flex items-center gap-2 ${isMobile ? 'w-full' : ''}`}
+          >
             <Plus className="h-4 w-4" />
             Add Equipment
           </Button>
@@ -118,20 +123,18 @@ const Equipment = () => {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search equipment..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search equipment..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className={isMobile ? "w-full" : "w-[180px]"}>
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -201,11 +204,11 @@ const Equipment = () => {
                 )}
               </div>
               
-              <div className="flex gap-2">
+              <div className={isMobile ? "space-y-2" : "flex gap-2"}>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex-1"
+                  className={isMobile ? "w-full" : "flex-1"}
                   onClick={() => setShowQRCode(item.id)}
                 >
                   <QrCode className="h-4 w-4 mr-2" />
@@ -214,7 +217,7 @@ const Equipment = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex-1"
+                  className={isMobile ? "w-full" : "flex-1"}
                   onClick={() => navigate(`/equipment/${item.id}`)}
                 >
                   View Details
