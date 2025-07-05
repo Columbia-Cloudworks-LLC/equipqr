@@ -48,7 +48,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
           slot_purchase_id,
           declined_at,
           expired_at,
-          profiles:invited_by (
+          inviter:invited_by (
             name
           )
         `)
@@ -70,7 +70,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
         createdAt: invitation.created_at,
         expiresAt: invitation.expires_at,
         acceptedAt: invitation.accepted_at || undefined,
-        inviterName: (invitation.profiles as any)?.name || 'Unknown',
+        inviterName: (invitation.inviter as any)?.name || 'Unknown',
         slot_reserved: invitation.slot_reserved || false,
         slot_purchase_id: invitation.slot_purchase_id || undefined,
         declined_at: invitation.declined_at || undefined,

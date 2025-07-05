@@ -38,6 +38,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   onUpgrade
 }) => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("members");
   const { data: fleetMapSubscription } = useFleetMapSubscription(organizationId);
   const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
   const billing = calculateSimplifiedBilling(members);
@@ -46,8 +47,13 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
     setInviteDialogOpen(true);
   };
 
+  const handleInviteSuccess = () => {
+    setInviteDialogOpen(false);
+    setActiveTab("invitations"); // Switch to invitations tab after successful invite
+  };
+
   return (
-    <Tabs defaultValue="members" className="space-y-4">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <div className="overflow-x-auto">
         <TabsList className="grid w-full grid-cols-3 min-w-fit">
           <TabsTrigger value="members" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
@@ -147,6 +153,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
       <SimplifiedInvitationDialog
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
+        onSuccess={handleInviteSuccess}
       />
     </Tabs>
   );

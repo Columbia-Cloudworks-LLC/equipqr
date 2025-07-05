@@ -23,11 +23,13 @@ import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 interface SimplifiedInvitationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
   open,
   onOpenChange,
+  onSuccess,
 }) => {
   const { getCurrentOrganization } = useSession();
   const currentOrg = getCurrentOrganization();
@@ -68,6 +70,11 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
       setRole('member');
       setMessage('');
       onOpenChange(false);
+      
+      // Call success callback to switch to invitations tab
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error('Failed to create invitation:', error);
     }
