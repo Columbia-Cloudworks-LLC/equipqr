@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { UserPlus, MoreHorizontal, Mail, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
-import InviteMemberDialog from './InviteMemberDialog';
+import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
 import { formatDistanceToNow } from 'date-fns';
 
 const InvitationManagement: React.FC = () => {
@@ -83,7 +83,7 @@ const InvitationManagement: React.FC = () => {
           {canManageInvitations && (
             <Button onClick={() => setInviteDialogOpen(true)} size="sm">
               <UserPlus className="mr-2 h-4 w-4" />
-              Send Invitation
+              Invite Member
             </Button>
           )}
         </div>
@@ -180,11 +180,9 @@ const InvitationManagement: React.FC = () => {
           </Table>
         )}
 
-        <InviteMemberDialog
+        <SimplifiedInvitationDialog
           open={inviteDialogOpen}
           onOpenChange={setInviteDialogOpen}
-          onInvite={() => setInviteDialogOpen(false)}
-          isLoading={false}
         />
       </CardContent>
     </Card>
