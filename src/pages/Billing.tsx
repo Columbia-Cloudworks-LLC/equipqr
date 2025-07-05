@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import SimplifiedMemberBilling from '@/components/billing/SimplifiedMemberBilling';
+import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import ManageSubscriptionButton from '@/components/billing/ManageSubscriptionButton';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
@@ -52,12 +53,6 @@ const Billing = () => {
   }, [toast]);
 
 
-  const handleInviteMembers = () => {
-    toast({
-      title: 'Invite Team Members',
-      description: 'Simple pay-as-you-go: $10/month per additional user. No upfront costs.',
-    });
-  };
 
   if (!currentOrganization) {
     return (
@@ -93,76 +88,11 @@ const Billing = () => {
         </div>
       </div>
 
-      {/* Plan Status Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Current Plan
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium text-lg">
-                {isFree ? 'Free Single-User Plan' : 'Pay-as-you-go Plan'}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {isFree 
-                  ? 'Perfect for individual users managing their own equipment'
-                  : `Simple transparent pricing: $10/month per additional user. Current monthly cost: $${billing.monthlyTotal.toFixed(2)}`
-                }
-              </div>
-              {!isFree && (
-                <div className="text-sm font-medium text-primary mt-1">
-                  {billing.userLicenses.billableUsers} billable users × $10/month + ${billing.storage.cost.toFixed(2)} storage + ${billing.fleetMap.cost.toFixed(2)} fleet map
-                </div>
-              )}
-            </div>
-            <div className="text-right">
-              {isFree ? (
-                <div>
-                  <Badge variant="secondary" className="mb-2">Free Forever</Badge>
-                  <div className="text-xs text-muted-foreground">
-                    No billing required
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <Badge variant="default" className="mb-2">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Active Licenses
-                  </Badge>
-                  <div className="text-xs text-muted-foreground">
-                    {subscriptionEnd && new Date(subscriptionEnd) > new Date() 
-                      ? `Next billing: ${new Date(subscriptionEnd).toLocaleDateString()}`
-                      : 'Monthly subscription model'
-                    }
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Member Billing Details */}
+      <SimplifiedMemberBilling />
 
-      {/* Storage Usage */}
-      {billing.storage.overageGB > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
-              <AlertCircle className="h-5 w-5" />
-              Storage Overage
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-orange-800">
-              You're using {billing.storage.usedGB}GB of storage. The first {billing.storage.freeGB}GB is free, 
-              so you're being charged ${billing.storage.cost.toFixed(2)}/month for {billing.storage.overageGB}GB of overage.
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Image Storage Quota */}
+      <ImageStorageQuota />
 
       {/* Fleet Map Add-on */}
       {!isFree && (
@@ -190,9 +120,6 @@ const Billing = () => {
           </CardContent>
         </Card>
       )}
-
-      {/* Member Billing Details */}
-      <SimplifiedMemberBilling onInviteMembers={handleInviteMembers} />
     </div>
   );
 };

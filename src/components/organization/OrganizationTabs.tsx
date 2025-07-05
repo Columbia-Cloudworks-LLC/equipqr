@@ -8,6 +8,7 @@ import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { OrganizationAdmin } from '@/hooks/useOrganizationAdmins';
 import { PagePermissions } from '@/hooks/usePagePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import MembersListReal from './MembersListReal';
 import AdminsTabContent from './AdminsTabContent';
@@ -36,7 +37,8 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   onUpgrade
 }) => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const { restrictions } = useSimplifiedOrganizationRestrictions();
+  const { data: fleetMapSubscription } = useFleetMapSubscription(organizationId);
+  const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
   const billing = calculateSimplifiedBilling(members);
 
   const handleInviteMember = () => {
@@ -73,7 +75,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
               {billing.userLicenses.totalUsers} total • ${billing.userLicenses.totalCost}/month
             </Badge>
           </div>
-          {restrictions.canInviteMembers && (
+          {restrictions.canInviteMembers && restrictions.hasAvailableSlots && (
             <div className="flex gap-2">
               <Button
                 onClick={handleInviteMember}
@@ -85,13 +87,35 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
               </Button>
             </div>
           )}
+          {!restrictions.hasAvailableSlots && billing.userLicenses.totalUsers !== 1 && (
+            <div className="flex gap-2">
+              <Button
+                onClick={onUpgrade}
+                size="sm"
+                variant="outline"
+                className="w-full sm:w-auto"
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                <span className="sm:inline">Purchase Licenses</span>
+              </Button>
+            </div>
+          )}
         </div>
         
-        {billing.userLicenses.totalUsers === 1 && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="text-sm text-blue-800">
-              <strong>Pay-as-you-go pricing:</strong> Invite team members to unlock collaboration features. 
-              You only pay $10/month per additional user. No upfront costs or complicated billing.
+          {billing.userLicenses.totalUsers === 1 && !restrictions.hasAvailableSlots && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-sm text-blue-800">
+                <strong>License-based collaboration:</strong> Purchase user license subscriptions to invite team members and unlock collaboration features. 
+                You pay monthly for a set number of licenses, then invite users up to that limit.
+              </div>
+            </div>
+          )}
+
+        {!restrictions.hasAvailableSlots && billing.userLicenses.totalUsers > 1 && (
+          <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="text-sm text-orange-800">
+              <strong>No available licenses:</strong> You've used all your purchased user licenses. 
+              Purchase additional licenses to invite more team members.
             </div>
           </div>
         )}
@@ -109,8 +133,8 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           <h2 className="text-lg sm:text-xl font-semibold">Invitations</h2>
           <div className="p-4 border rounded-lg">
             <div className="text-sm text-muted-foreground">
-              Invitation management will be simplified in the new pay-as-you-go model. 
-              Users you invite will be automatically billed when they accept.
+              Send invitations to join your organization. Each invitation uses one of your purchased user licenses. 
+              You can manage your license subscriptions from the billing page.
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationStats } from '@/hooks/useOrganizationStats';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationOverview from '@/components/organization/OrganizationOverview';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
@@ -22,9 +23,10 @@ const Organization = () => {
   // Custom hooks for data and business logic
   const { data: members = [], isLoading: membersLoading } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: orgAdmins = [], isLoading: adminsLoading } = useOrganizationAdmins(currentOrganization?.id || '');
+  const { data: fleetMapSubscription } = useFleetMapSubscription(currentOrganization?.id || '');
   const organizationStats = useOrganizationStats(currentOrganization);
   const permissions = usePagePermissions(currentOrganization);
-  const { restrictions } = useSimplifiedOrganizationRestrictions();
+  const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
 
   const currentUserRole: 'owner' | 'admin' | 'member' = currentOrganization?.userRole || 'member';
 
