@@ -87,6 +87,7 @@ const Organization = () => {
 
       <OrganizationOverview 
         organizationName={currentOrganization.name}
+        organizationId={currentOrganization.id}
         stats={organizationStats}
       />
 

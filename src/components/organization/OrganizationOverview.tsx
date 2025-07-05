@@ -2,19 +2,23 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2 } from 'lucide-react';
+import { Building2, Users } from 'lucide-react';
 import { OrganizationStats } from '@/hooks/useOrganizationStats';
+import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { getPlanBadgeVariant } from '@/utils/badgeVariants';
 
 interface OrganizationOverviewProps {
   organizationName: string;
+  organizationId: string;
   stats: OrganizationStats;
 }
 
 const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({ 
-  organizationName, 
+  organizationName,
+  organizationId, 
   stats 
 }) => {
+  const { data: slotAvailability, isLoading: slotsLoading } = useSlotAvailability(organizationId);
   if (stats.isLoading) {
     return (
       <Card>
@@ -48,10 +52,19 @@ const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({
             </div>
           </div>
           <div className="text-center p-3 sm:p-4 border rounded-lg col-span-2 lg:col-span-1">
-            <Badge variant={getPlanBadgeVariant(stats.plan)} className="mb-2">
-              {stats.plan}
-            </Badge>
-            <div className="text-xs sm:text-sm text-muted-foreground">Current Plan</div>
+            {slotsLoading ? (
+              <div className="h-8 bg-muted animate-pulse rounded mb-2" />
+            ) : (
+              <>
+                <div className="text-xl sm:text-2xl font-bold text-green-600">
+                  {slotAvailability?.available_slots || 0}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  of {slotAvailability?.total_purchased || 0} purchased
+                </div>
+              </>
+            )}
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">Available Slots</div>
           </div>
           <div className="text-center p-3 sm:p-4 border rounded-lg col-span-2 lg:col-span-1">
             <div className="text-xl sm:text-2xl font-bold">{stats.featureCount}</div>
