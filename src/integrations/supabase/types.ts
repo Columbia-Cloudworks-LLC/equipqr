@@ -1334,6 +1334,16 @@ export type Database = {
         Args: { user_uuid: string; team_uuid: string; required_role: string }
         Returns: boolean
       }
+      create_invitation_safe: {
+        Args: {
+          p_organization_id: string
+          p_email: string
+          p_role: string
+          p_message?: string
+          p_invited_by?: string
+        }
+        Returns: string
+      }
       get_current_billing_period: {
         Args: Record<PropertyKey, never>
         Returns: {

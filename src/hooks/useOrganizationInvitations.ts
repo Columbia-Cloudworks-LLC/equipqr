@@ -152,7 +152,7 @@ export const useCreateInvitation = (organizationId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (invitationData: CreateInvitationData) => {
+    mutationFn: async (requestData: CreateInvitationData) => {
       if (!organizationId) throw new Error('No organization ID provided');
 
       // Client-side permission validation
@@ -165,7 +165,7 @@ export const useCreateInvitation = (organizationId: string) => {
       if (!userData.user) throw new Error('User not authenticated');
 
       // Log the invitation attempt
-      console.log(`[INVITATION] Creating invitation for ${invitationData.email} in org ${organizationId}`);
+      console.log(`[INVITATION] Creating invitation for ${requestData.email} in org ${organizationId}`);
 
       return await retryWithBackoff(async () => {
         // Get current user profile for inviter name
@@ -182,34 +182,42 @@ export const useCreateInvitation = (organizationId: string) => {
           .eq('id', organizationId)
           .single();
 
-        // Create invitation with performance monitoring
+        // Create invitation using the safe function to avoid circular dependencies
         const startTime = performance.now();
-        const { data, error } = await supabase
-          .from('organization_invitations')
-          .insert({
-            organization_id: organizationId,
-            email: invitationData.email.toLowerCase().trim(),
-            role: invitationData.role,
-            message: invitationData.message || null,
-            invited_by: userData.user.id
-          })
-          .select()
-          .single();
+        const { data: invitationId, error } = await supabase.rpc('create_invitation_safe', {
+          p_organization_id: organizationId,
+          p_email: requestData.email.toLowerCase().trim(),
+          p_role: requestData.role,
+          p_message: requestData.message || null,
+          p_invited_by: userData.user.id
+        });
 
         const dbTime = performance.now() - startTime;
-        console.log(`[INVITATION] Database insert took ${dbTime.toFixed(2)}ms`);
+        console.log(`[INVITATION] Safe creation took ${dbTime.toFixed(2)}ms`);
 
         if (error) {
-          console.error(`[INVITATION] Database error:`, error);
+          console.error(`[INVITATION] Safe creation error:`, error);
           throw error;
         }
 
+        // Get the created invitation data for return
+        const { data: createdInvitation, error: fetchError } = await supabase
+          .from('organization_invitations')
+          .select('*')
+          .eq('id', invitationId)
+          .single();
+
+        if (fetchError) {
+          console.error(`[INVITATION] Fetch created invitation error:`, fetchError);
+          throw fetchError;
+        }
+
         // Reserve slot if requested and available
-        if (invitationData.reserveSlot) {
+        if (requestData.reserveSlot) {
           try {
             const { error: reserveError } = await supabase.rpc('reserve_slot_for_invitation', {
               org_id: organizationId,
-              invitation_id: data.id
+              invitation_id: createdInvitation.id
             });
 
             if (reserveError) {
@@ -226,27 +234,27 @@ export const useCreateInvitation = (organizationId: string) => {
           try {
             const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
               body: {
-                invitationId: data.id,
-                email: invitationData.email.toLowerCase().trim(),
-                role: invitationData.role,
+                invitationId: createdInvitation.id,
+                email: requestData.email.toLowerCase().trim(),
+                role: requestData.role,
                 organizationName: organization?.name || 'Your Organization',
                 inviterName: profile?.name || 'Team Member',
-                message: invitationData.message
+                message: requestData.message
               }
             });
 
             if (emailError) {
               console.error('[INVITATION] Failed to send invitation email:', emailError);
             } else {
-              console.log(`[INVITATION] Email sent successfully for ${invitationData.email}`);
+              console.log(`[INVITATION] Email sent successfully for ${requestData.email}`);
             }
           } catch (emailError) {
             console.error('[INVITATION] Error calling email function:', emailError);
           }
         }, 0);
 
-        console.log(`[INVITATION] Successfully created invitation ${data.id} for ${invitationData.email}`);
-        return data;
+        console.log(`[INVITATION] Successfully created invitation ${createdInvitation.id} for ${requestData.email}`);
+        return createdInvitation;
       });
     },
     onSuccess: () => {
@@ -321,4 +329,25 @@ export const useCancelInvitation = (organizationId: string) => {
       toast.error('Failed to cancel invitation');
     }
   });
+};
+
+// Direct safe invitation creation utility
+export const createInvitationSafely = async (
+  organizationId: string,
+  email: string,
+  role: 'admin' | 'member',
+  message?: string
+): Promise<string> => {
+  const { data: invitationId, error } = await supabase.rpc('create_invitation_safe', {
+    p_organization_id: organizationId,
+    p_email: email.toLowerCase().trim(),
+    p_role: role,
+    p_message: message || null
+  });
+
+  if (error) {
+    throw new Error(`Failed to create invitation: ${error.message}`);
+  }
+
+  return invitationId;
 };
