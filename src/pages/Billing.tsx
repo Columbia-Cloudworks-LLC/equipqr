@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import SimplifiedMemberBilling from '@/components/billing/SimplifiedMemberBilling';
+import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import ManageSubscriptionButton from '@/components/billing/ManageSubscriptionButton';
 import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
@@ -52,12 +53,6 @@ const Billing = () => {
   }, [toast]);
 
 
-  const handleInviteMembers = () => {
-    toast({
-      title: 'Invite Team Members',
-      description: 'Simple pay-as-you-go: $10/month per additional user. No upfront costs.',
-    });
-  };
 
   if (!currentOrganization) {
     return (
@@ -146,23 +141,8 @@ const Billing = () => {
         </CardContent>
       </Card>
 
-      {/* Storage Usage */}
-      {billing.storage.overageGB > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
-              <AlertCircle className="h-5 w-5" />
-              Storage Overage
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-orange-800">
-              You're using {billing.storage.usedGB}GB of storage. The first {billing.storage.freeGB}GB is free, 
-              so you're being charged ${billing.storage.cost.toFixed(2)}/month for {billing.storage.overageGB}GB of overage.
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Image Storage Quota */}
+      <ImageStorageQuota />
 
       {/* Fleet Map Add-on */}
       {!isFree && (
@@ -192,7 +172,7 @@ const Billing = () => {
       )}
 
       {/* Member Billing Details */}
-      <SimplifiedMemberBilling onInviteMembers={handleInviteMembers} />
+      <SimplifiedMemberBilling />
     </div>
   );
 };
