@@ -32,7 +32,8 @@ export const useOrganizationInvitations = (organizationId: string) => {
     queryFn: async (): Promise<OrganizationInvitation[]> => {
       if (!organizationId) return [];
 
-      const { data, error } = await supabase
+      // First get the invitations
+      const { data: invitationsData, error } = await supabase
         .from('organization_invitations')
         .select(`
           id,
@@ -47,10 +48,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
           slot_reserved,
           slot_purchase_id,
           declined_at,
-          expired_at,
-          inviter:invited_by (
-            name
-          )
+          expired_at
         `)
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
@@ -60,7 +58,16 @@ export const useOrganizationInvitations = (organizationId: string) => {
         throw error;
       }
 
-      return (data || []).map(invitation => ({
+      // Get inviter names separately
+      const inviterIds = [...new Set(invitationsData?.map(inv => inv.invited_by).filter(Boolean))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', inviterIds);
+
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p.name]) || []);
+
+      return (invitationsData || []).map(invitation => ({
         id: invitation.id,
         email: invitation.email,
         role: invitation.role as 'admin' | 'member',
@@ -70,7 +77,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
         createdAt: invitation.created_at,
         expiresAt: invitation.expires_at,
         acceptedAt: invitation.accepted_at || undefined,
-        inviterName: (invitation.inviter as any)?.name || 'Unknown',
+        inviterName: profilesMap.get(invitation.invited_by) || 'Unknown',
         slot_reserved: invitation.slot_reserved || false,
         slot_purchase_id: invitation.slot_purchase_id || undefined,
         declined_at: invitation.declined_at || undefined,
