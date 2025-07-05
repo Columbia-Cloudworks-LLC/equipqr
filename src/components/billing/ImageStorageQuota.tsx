@@ -90,8 +90,8 @@ const ImageStorageQuota: React.FC = () => {
                 <div className="text-sm text-muted-foreground">Images</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-lg font-bold">${storageUsage.costPerMB.toFixed(2)}</div>
-                <div className="text-sm text-muted-foreground">Per MB</div>
+                <div className="text-lg font-bold">${storageUsage.costPerGB.toFixed(2)}</div>
+                <div className="text-sm text-muted-foreground">Per GB</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
                 <div className="text-lg font-bold">{formatSize(storageUsage.freeQuotaGB)}</div>
@@ -153,7 +153,7 @@ const ImageStorageQuota: React.FC = () => {
             </div>
             <div className="text-sm text-green-700 mt-1">
               You're using {formatSize(storageUsage.totalSizeGB)} of your {formatSize(storageUsage.freeQuotaGB)} free quota. 
-              Overage is charged at $0.10/MB.
+              Overage is charged at $0.10/GB.
             </div>
           </CardContent>
         </Card>
