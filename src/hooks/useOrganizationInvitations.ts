@@ -92,6 +92,20 @@ export const useCreateInvitation = (organizationId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
 
+      // Get current user profile for inviter name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', userData.user.id)
+        .single();
+
+      // Get organization name
+      const { data: organization } = await supabase
+        .from('organizations')
+        .select('name')
+        .eq('id', organizationId)
+        .single();
+
       const { data, error } = await supabase
         .from('organization_invitations')
         .insert({
@@ -117,6 +131,28 @@ export const useCreateInvitation = (organizationId: string) => {
           console.warn('Failed to reserve slot:', reserveError);
           // Don't throw here - invitation was created successfully
         }
+      }
+
+      // Send invitation email via edge function
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
+          body: {
+            invitationId: data.id,
+            email: invitationData.email.toLowerCase().trim(),
+            role: invitationData.role,
+            organizationName: organization?.name || 'Your Organization',
+            inviterName: profile?.name || 'Team Member',
+            message: invitationData.message
+          }
+        });
+
+        if (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          // Don't throw here - invitation was created successfully
+        }
+      } catch (emailError) {
+        console.error('Error calling email function:', emailError);
+        // Don't throw here - invitation was created successfully
       }
 
       return data;

@@ -1,0 +1,340 @@
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useSession } from '@/contexts/SessionContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Building2, CheckCircle, XCircle, Clock, Mail } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface InvitationData {
+  id: string;
+  email: string;
+  role: 'admin' | 'member';
+  status: string;
+  organization_name: string;
+  inviter_name: string;
+  message?: string;
+  expires_at: string;
+}
+
+const InvitationAccept = () => {
+  const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
+  const { sessionData, isLoading: sessionLoading, refreshSession } = useSession();
+  const { user } = useAuth();
+  const [invitation, setInvitation] = useState<InvitationData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchInvitation = async () => {
+      if (!token) {
+        setError('Invalid invitation link');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('organization_invitations')
+          .select(`
+            id,
+            email,
+            role,
+            status,
+            message,
+            expires_at,
+            organizations!inner(name),
+            profiles!invited_by(name)
+          `)
+          .eq('invitation_token', token)
+          .single();
+
+        if (error) throw error;
+
+        if (!data) {
+          setError('Invitation not found');
+          setLoading(false);
+          return;
+        }
+
+        setInvitation({
+          id: data.id,
+          email: data.email,
+          role: data.role as 'admin' | 'member',
+          status: data.status,
+          organization_name: (data.organizations as any).name,
+          inviter_name: (data.profiles as any).name,
+          message: data.message,
+          expires_at: data.expires_at
+        });
+
+      } catch (err: any) {
+        console.error('Error fetching invitation:', err);
+        setError('Failed to load invitation');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvitation();
+  }, [token]);
+
+  const handleAcceptInvitation = async () => {
+    if (!invitation || !user) return;
+
+    setAccepting(true);
+    
+    try {
+      // Check if user email matches invitation email
+      if (user.email !== invitation.email) {
+        toast.error('This invitation is for a different email address');
+        return;
+      }
+
+      // Accept the invitation directly by updating the invitation and creating membership
+      const { error: updateError } = await supabase
+        .from('organization_invitations')
+        .update({
+          status: 'accepted',
+          accepted_at: new Date().toISOString(),
+          accepted_by: user.id
+        })
+        .eq('invitation_token', token);
+
+      if (updateError) throw updateError;
+
+      // Get organization ID from invitation
+      const { data: invitationData, error: fetchError } = await supabase
+        .from('organization_invitations')
+        .select('organization_id, role')
+        .eq('invitation_token', token)
+        .single();
+
+      if (fetchError || !invitationData) throw new Error('Could not retrieve invitation data');
+
+      // Create organization membership
+      const { error: membershipError } = await supabase
+        .from('organization_members')
+        .insert({
+          organization_id: invitationData.organization_id,
+          user_id: user.id,
+          role: invitationData.role,
+          status: 'active'
+        });
+
+      if (membershipError) throw membershipError;
+
+      toast.success('Invitation accepted successfully!');
+      
+      // Refresh session to update organization data
+      await refreshSession();
+      
+      // Navigate to the organization page
+      navigate('/organization');
+
+    } catch (err: any) {
+      console.error('Error accepting invitation:', err);
+      toast.error(err.message || 'Failed to accept invitation');
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const handleDeclineInvitation = async () => {
+    if (!invitation) return;
+
+    try {
+      const { error } = await supabase
+        .from('organization_invitations')
+        .update({ 
+          status: 'declined',
+          declined_at: new Date().toISOString()
+        })
+        .eq('invitation_token', token);
+
+      if (error) throw error;
+
+      toast.success('Invitation declined');
+      navigate('/');
+
+    } catch (err: any) {
+      console.error('Error declining invitation:', err);
+      toast.error('Failed to decline invitation');
+    }
+  };
+
+  if (loading || sessionLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center">
+              <Clock className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+            <p className="text-center text-muted-foreground mt-4">Loading invitation...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error || !invitation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <CardTitle>Invalid Invitation</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-muted-foreground mb-4">
+              {error || 'This invitation link is invalid or has expired.'}
+            </p>
+            <Button onClick={() => navigate('/')}>
+              Go to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check if invitation is expired
+  const isExpired = new Date(invitation.expires_at) < new Date();
+  const isAlreadyProcessed = invitation.status !== 'pending';
+
+  if (isExpired || isAlreadyProcessed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <CardTitle>
+              {isExpired ? 'Invitation Expired' : 'Invitation Already Processed'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-muted-foreground mb-4">
+              {isExpired 
+                ? 'This invitation has expired. Please request a new invitation from your organization administrator.'
+                : `This invitation has already been ${invitation.status}.`
+              }
+            </p>
+            <Button onClick={() => navigate('/')}>
+              Go to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Mail className="h-12 w-12 text-primary mx-auto mb-4" />
+            <CardTitle>Sign In Required</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-muted-foreground mb-4">
+              Please sign in to accept this invitation to join <strong>{invitation.organization_name}</strong>.
+            </p>
+            <Button onClick={() => navigate('/auth')}>
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-lg">
+        <CardHeader className="text-center">
+          <Building2 className="h-12 w-12 text-primary mx-auto mb-4" />
+          <CardTitle className="text-2xl">Organization Invitation</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">
+              You're invited to join
+            </h3>
+            <p className="text-2xl font-bold text-primary mb-2">
+              {invitation.organization_name}
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-muted-foreground">as a</span>
+              <Badge variant="outline" className="capitalize">
+                {invitation.role}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="bg-muted/50 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground mb-1">Invited by</p>
+            <p className="font-medium">{invitation.inviter_name}</p>
+            {invitation.message && (
+              <>
+                <p className="text-sm text-muted-foreground mt-3 mb-1">Personal message</p>
+                <p className="text-sm italic bg-background p-3 rounded border-l-4 border-primary">
+                  "{invitation.message}"
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-900 mb-2">What you'll get access to:</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Equipment tracking and management</li>
+              <li>• Work order creation and tracking</li>
+              <li>• Team collaboration tools</li>
+              <li>• QR code scanning for equipment</li>
+            </ul>
+          </div>
+
+          <div className="flex gap-3">
+            <Button 
+              onClick={handleAcceptInvitation}
+              disabled={accepting}
+              className="flex-1"
+            >
+              {accepting ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Accepting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Accept Invitation
+                </>
+              )}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleDeclineInvitation}
+              disabled={accepting}
+            >
+              Decline
+            </Button>
+          </div>
+
+          <div className="text-center text-xs text-muted-foreground">
+            This invitation will expire on {new Date(invitation.expires_at).toLocaleDateString()}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default InvitationAccept;

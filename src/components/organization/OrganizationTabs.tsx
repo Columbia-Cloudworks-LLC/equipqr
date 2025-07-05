@@ -13,6 +13,7 @@ import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import MembersListReal from './MembersListReal';
 import AdminsTabContent from './AdminsTabContent';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
+import InvitationManagement from './InvitationManagement';
 
 interface OrganizationTabsProps {
   members: RealOrganizationMember[];
@@ -129,15 +130,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
       </TabsContent>
 
       <TabsContent value="invitations">
-        <div className="space-y-4">
-          <h2 className="text-lg sm:text-xl font-semibold">Invitations</h2>
-          <div className="p-4 border rounded-lg">
-            <div className="text-sm text-muted-foreground">
-              Send invitations to join your organization. Each invitation uses one of your purchased user licenses. 
-              You can manage your license subscriptions from the billing page.
-            </div>
-          </div>
-        </div>
+        <InvitationManagement />
       </TabsContent>
 
       <TabsContent value="admins" className="space-y-4">

@@ -26,6 +26,7 @@ import QRRedirect from '@/pages/QRRedirect';
 import Billing from '@/pages/Billing';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
+import InvitationAccept from '@/pages/InvitationAccept';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +48,7 @@ function App() {
               <Routes>
                 {/* Public routes */}
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/invitation/:token" element={<InvitationAccept />} />
                 <Route path="/qr/:equipmentId" element={<QRRedirect />} />
                 
                 {/* Protected routes */}
