@@ -105,8 +105,8 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           {billing.userLicenses.totalUsers === 1 && !restrictions.hasAvailableSlots && (
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="text-sm text-blue-800">
-                <strong>Pay-as-you-go pricing:</strong> Purchase user licenses to invite team members and unlock collaboration features. 
-                Only $10/month per additional user. No upfront costs or complicated billing.
+                <strong>License-based collaboration:</strong> Purchase user license subscriptions to invite team members and unlock collaboration features. 
+                You pay monthly for a set number of licenses, then invite users up to that limit.
               </div>
             </div>
           )}
@@ -133,8 +133,8 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           <h2 className="text-lg sm:text-xl font-semibold">Invitations</h2>
           <div className="p-4 border rounded-lg">
             <div className="text-sm text-muted-foreground">
-              Invitation management will be simplified in the new pay-as-you-go model. 
-              Users you invite will be automatically billed when they accept.
+              Send invitations to join your organization. Each invitation uses one of your purchased user licenses. 
+              You can manage your license subscriptions from the billing page.
             </div>
           </div>
         </div>
