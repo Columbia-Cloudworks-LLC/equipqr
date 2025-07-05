@@ -1,7 +1,11 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -12,8 +16,16 @@ serve(async (req) => {
   try {
     logStep("Webhook received");
 
+    // Handle CORS preflight requests
+    if (req.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    if (!webhookSecret) throw new Error("STRIPE_WEBHOOK_SECRET is not set");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const supabaseClient = createClient(
@@ -29,10 +41,12 @@ serve(async (req) => {
       throw new Error("No Stripe signature found");
     }
 
-    const event = stripe.webhooks.constructEvent(
+    logStep("Constructing webhook event", { hasSignature: !!signature, bodyLength: body.length });
+
+    const event = await stripe.webhooks.constructEventAsync(
       body,
       signature,
-      Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? ""
+      webhookSecret
     );
 
     logStep("Event type", { type: event.type });
@@ -48,7 +62,10 @@ serve(async (req) => {
 
         if (!organizationId || !licenseQuantity) {
           logStep("Missing metadata", { organizationId, licenseQuantity });
-          return new Response("Missing required metadata", { status: 400 });
+          return new Response("Missing required metadata", { 
+            status: 400,
+            headers: corsHeaders 
+          });
         }
 
         logStep("Creating license subscription record", { 
@@ -118,10 +135,16 @@ serve(async (req) => {
       logStep("Subscription cancelled");
     }
 
-    return new Response("Webhook processed", { status: 200 });
+    return new Response("Webhook processed", { 
+      status: 200,
+      headers: corsHeaders 
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in webhook", { message: errorMessage });
-    return new Response(`Webhook error: ${errorMessage}`, { status: 400 });
+    return new Response(`Webhook error: ${errorMessage}`, { 
+      status: 400,
+      headers: corsHeaders 
+    });
   }
 });
