@@ -89,6 +89,65 @@ export const useOrganizationInvitations = (organizationId: string) => {
   });
 };
 
+// Retry utility with exponential backoff
+const retryWithBackoff = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> => {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Don't retry certain types of errors
+      if (
+        error.code === '23505' || // Unique constraint violation
+        error.code === '42501' || // Insufficient privilege
+        error.message?.includes('not authenticated')
+      ) {
+        throw error;
+      }
+      
+      if (attempt === maxRetries) {
+        console.error(`Operation failed after ${maxRetries + 1} attempts:`, error);
+        throw error;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error.message);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+};
+
+// Client-side permission validation
+const validateInvitationPermissions = async (organizationId: string): Promise<boolean> => {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return false;
+
+    // Check if user is admin of the organization
+    const { data: membership } = await supabase
+      .from('organization_members')
+      .select('role')
+      .eq('organization_id', organizationId)
+      .eq('user_id', userData.user.id)
+      .eq('status', 'active')
+      .single();
+
+    return membership?.role === 'owner' || membership?.role === 'admin';
+  } catch (error) {
+    console.error('Permission validation failed:', error);
+    return false;
+  }
+};
+
 export const useCreateInvitation = (organizationId: string) => {
   const queryClient = useQueryClient();
 
@@ -96,73 +155,99 @@ export const useCreateInvitation = (organizationId: string) => {
     mutationFn: async (invitationData: CreateInvitationData) => {
       if (!organizationId) throw new Error('No organization ID provided');
 
+      // Client-side permission validation
+      const hasPermission = await validateInvitationPermissions(organizationId);
+      if (!hasPermission) {
+        throw new Error('You do not have permission to invite members to this organization');
+      }
+
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
 
-      // Get current user profile for inviter name
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', userData.user.id)
-        .single();
+      // Log the invitation attempt
+      console.log(`[INVITATION] Creating invitation for ${invitationData.email} in org ${organizationId}`);
 
-      // Get organization name
-      const { data: organization } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', organizationId)
-        .single();
+      return await retryWithBackoff(async () => {
+        // Get current user profile for inviter name
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', userData.user.id)
+          .single();
 
-      const { data, error } = await supabase
-        .from('organization_invitations')
-        .insert({
-          organization_id: organizationId,
-          email: invitationData.email.toLowerCase().trim(),
-          role: invitationData.role,
-          message: invitationData.message || null,
-          invited_by: userData.user.id
-        })
-        .select()
-        .single();
+        // Get organization name
+        const { data: organization } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', organizationId)
+          .single();
 
-      if (error) throw error;
-
-      // Reserve slot if requested and available
-      if (invitationData.reserveSlot) {
-        const { error: reserveError } = await supabase.rpc('reserve_slot_for_invitation', {
-          org_id: organizationId,
-          invitation_id: data.id
-        });
-
-        if (reserveError) {
-          console.warn('Failed to reserve slot:', reserveError);
-          // Don't throw here - invitation was created successfully
-        }
-      }
-
-      // Send invitation email via edge function
-      try {
-        const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
-          body: {
-            invitationId: data.id,
+        // Create invitation with performance monitoring
+        const startTime = performance.now();
+        const { data, error } = await supabase
+          .from('organization_invitations')
+          .insert({
+            organization_id: organizationId,
             email: invitationData.email.toLowerCase().trim(),
             role: invitationData.role,
-            organizationName: organization?.name || 'Your Organization',
-            inviterName: profile?.name || 'Team Member',
-            message: invitationData.message
-          }
-        });
+            message: invitationData.message || null,
+            invited_by: userData.user.id
+          })
+          .select()
+          .single();
 
-        if (emailError) {
-          console.error('Failed to send invitation email:', emailError);
-          // Don't throw here - invitation was created successfully
+        const dbTime = performance.now() - startTime;
+        console.log(`[INVITATION] Database insert took ${dbTime.toFixed(2)}ms`);
+
+        if (error) {
+          console.error(`[INVITATION] Database error:`, error);
+          throw error;
         }
-      } catch (emailError) {
-        console.error('Error calling email function:', emailError);
-        // Don't throw here - invitation was created successfully
-      }
 
-      return data;
+        // Reserve slot if requested and available
+        if (invitationData.reserveSlot) {
+          try {
+            const { error: reserveError } = await supabase.rpc('reserve_slot_for_invitation', {
+              org_id: organizationId,
+              invitation_id: data.id
+            });
+
+            if (reserveError) {
+              console.warn('[INVITATION] Failed to reserve slot:', reserveError);
+              // Don't throw here - invitation was created successfully
+            }
+          } catch (reserveError) {
+            console.warn('[INVITATION] Slot reservation error:', reserveError);
+          }
+        }
+
+        // Send invitation email via edge function (non-blocking)
+        setTimeout(async () => {
+          try {
+            const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
+              body: {
+                invitationId: data.id,
+                email: invitationData.email.toLowerCase().trim(),
+                role: invitationData.role,
+                organizationName: organization?.name || 'Your Organization',
+                inviterName: profile?.name || 'Team Member',
+                message: invitationData.message
+              }
+            });
+
+            if (emailError) {
+              console.error('[INVITATION] Failed to send invitation email:', emailError);
+            } else {
+              console.log(`[INVITATION] Email sent successfully for ${invitationData.email}`);
+            }
+          } catch (emailError) {
+            console.error('[INVITATION] Error calling email function:', emailError);
+          }
+        }, 0);
+
+        console.log(`[INVITATION] Successfully created invitation ${data.id} for ${invitationData.email}`);
+        return data;
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });

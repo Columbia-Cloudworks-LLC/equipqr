@@ -1404,7 +1404,15 @@ export type Database = {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
+      is_organization_admin_optimized: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
       is_organization_member: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      is_organization_member_optimized: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
@@ -1415,6 +1423,10 @@ export type Database = {
       reserve_slot_for_invitation: {
         Args: { org_id: string; invitation_id: string }
         Returns: boolean
+      }
+      set_bypass_triggers: {
+        Args: { bypass?: boolean }
+        Returns: undefined
       }
       sync_stripe_subscription_slots: {
         Args: {
