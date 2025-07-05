@@ -88,58 +88,8 @@ const Billing = () => {
         </div>
       </div>
 
-      {/* Plan Status Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Current Plan
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium text-lg">
-                {isFree ? 'Free Single-User Plan' : 'Pay-as-you-go Plan'}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {isFree 
-                  ? 'Perfect for individual users managing their own equipment'
-                  : `Simple transparent pricing: $10/month per additional user. Current monthly cost: $${billing.monthlyTotal.toFixed(2)}`
-                }
-              </div>
-              {!isFree && (
-                <div className="text-sm font-medium text-primary mt-1">
-                  {billing.userLicenses.billableUsers} billable users × $10/month + ${billing.storage.cost.toFixed(2)} storage + ${billing.fleetMap.cost.toFixed(2)} fleet map
-                </div>
-              )}
-            </div>
-            <div className="text-right">
-              {isFree ? (
-                <div>
-                  <Badge variant="secondary" className="mb-2">Free Forever</Badge>
-                  <div className="text-xs text-muted-foreground">
-                    No billing required
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <Badge variant="default" className="mb-2">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Active Licenses
-                  </Badge>
-                  <div className="text-xs text-muted-foreground">
-                    {subscriptionEnd && new Date(subscriptionEnd) > new Date() 
-                      ? `Next billing: ${new Date(subscriptionEnd).toLocaleDateString()}`
-                      : 'Monthly subscription model'
-                    }
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Member Billing Details */}
+      <SimplifiedMemberBilling />
 
       {/* Image Storage Quota */}
       <ImageStorageQuota />
@@ -170,9 +120,6 @@ const Billing = () => {
           </CardContent>
         </Card>
       )}
-
-      {/* Member Billing Details */}
-      <SimplifiedMemberBilling />
     </div>
   );
 };

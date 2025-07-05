@@ -168,15 +168,6 @@ const SimplifiedMemberBilling: React.FC = () => {
               <PurchaseLicensesButton variant="outline" className="flex-1" />
             )}
           </div>
-
-          {isFree && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mt-4">
-              <div className="text-sm text-blue-800">
-                <strong>Pay-as-you-go pricing:</strong> No upfront costs or complicated billing. 
-                Just invite team members and pay $10/month per additional user. Simple and transparent.
-              </div>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
