@@ -80,7 +80,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
   });
 };
 
-// Retry utility with exponential backoff
+// Enhanced retry utility with exponential backoff and stack depth error handling
 const retryWithBackoff = async <T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -98,9 +98,23 @@ const retryWithBackoff = async <T>(
       if (
         error.code === '23505' || // Unique constraint violation
         error.code === '42501' || // Insufficient privilege
-        error.message?.includes('not authenticated')
+        error.message?.includes('not authenticated') ||
+        error.message?.includes('permission')
       ) {
         throw error;
+      }
+      
+      // Special handling for stack depth errors
+      if (error.message?.includes('stack depth limit exceeded')) {
+        console.error(`Stack depth limit exceeded on attempt ${attempt + 1}`);
+        if (attempt === maxRetries) {
+          throw new Error('Database is temporarily overloaded. Please try again in a few moments.');
+        }
+        // Longer delay for stack depth errors
+        const delay = baseDelay * Math.pow(3, attempt) + Math.random() * 2000;
+        console.warn(`Stack depth error, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
       }
       
       if (attempt === maxRetries) {

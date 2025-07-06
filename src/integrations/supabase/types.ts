@@ -1318,7 +1318,15 @@ export type Database = {
         Args: { user_uuid: string; invitation_id: string }
         Returns: boolean
       }
+      check_admin_bypass_fixed: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
       check_admin_permission_safe: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      check_member_bypass_fixed: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
@@ -1440,14 +1448,6 @@ export type Database = {
         Returns: boolean
       }
       is_organization_member: {
-        Args: { user_uuid: string; org_id: string }
-        Returns: boolean
-      }
-      raw_check_admin_bypass: {
-        Args: { user_uuid: string; org_id: string }
-        Returns: boolean
-      }
-      raw_check_member_bypass: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }

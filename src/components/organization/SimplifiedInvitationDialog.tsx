@@ -98,21 +98,29 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
       
       // Enhanced error handling with specific messages
       let errorMessage = 'Failed to send invitation';
+      let errorDescription = 'Please try again or contact support if the issue persists';
       
       if (error.code === '23505') {
         errorMessage = 'An invitation to this email already exists';
+        errorDescription = 'Check your pending invitations or try a different email address';
       } else if (error.message?.includes('not authenticated')) {
         errorMessage = 'Please sign in to send invitations';
+        errorDescription = 'Your session may have expired';
       } else if (error.message?.includes('permission')) {
         errorMessage = 'You do not have permission to invite members';
-      } else if (error.message?.includes('stack depth')) {
-        errorMessage = 'System busy, please try again in a moment';
+        errorDescription = 'Contact your organization administrator for access';
+      } else if (error.message?.includes('stack depth') || error.message?.includes('overloaded')) {
+        errorMessage = 'System is temporarily busy';
+        errorDescription = 'Please wait a moment and try again';
+      } else if (error.message?.includes('database')) {
+        errorMessage = 'Database connection issue';
+        errorDescription = 'Please check your internet connection and try again';
       } else if (error.message) {
         errorMessage = error.message;
       }
       
       toast.error(errorMessage, {
-        description: 'Please try again or contact support if the issue persists'
+        description: errorDescription
       });
     }
   };
