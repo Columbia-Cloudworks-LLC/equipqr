@@ -38,8 +38,8 @@ export const useOrganizationInvitations = (organizationId: string) => {
       const startTime = performance.now();
       
       try {
-        // Use the context-aware bypass function
-        const { data: invitationsData, error } = await supabase.rpc('get_invitations_bypass_optimized', {
+        // Use the atomic function that eliminates circular dependencies
+        const { data: invitationsData, error } = await supabase.rpc('get_invitations_atomic', {
           user_uuid: userData.user.id,
           org_id: organizationId
         });
@@ -120,10 +120,10 @@ export const useCreateInvitation = (organizationId: string) => {
       const startTime = performance.now();
       
       try {
-        // Use the context-aware invitation function that prevents circular dependencies
+        // Use the atomic function that eliminates circular dependencies
         console.log(`[INVITATION] Creating invitation for ${requestData.email} in org ${organizationId}`);
         
-        const { data: invitationId, error } = await supabase.rpc('create_invitation_with_context', {
+        const { data: invitationId, error } = await supabase.rpc('create_invitation_atomic', {
           p_organization_id: organizationId,
           p_email: requestData.email.toLowerCase().trim(),
           p_role: requestData.role,
@@ -257,8 +257,8 @@ export const useResendInvitation = (organizationId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
 
-      // Check if user can manage this invitation
-      const { data: canManage } = await supabase.rpc('can_manage_invitation_optimized', {
+      // Check if user can manage this invitation using atomic function
+      const { data: canManage } = await supabase.rpc('can_manage_invitation_atomic', {
         user_uuid: userData.user.id,
         invitation_id: invitationId
       });
@@ -299,8 +299,8 @@ export const useCancelInvitation = (organizationId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
 
-      // Check if user can manage this invitation
-      const { data: canManage } = await supabase.rpc('can_manage_invitation_optimized', {
+      // Check if user can manage this invitation using atomic function
+      const { data: canManage } = await supabase.rpc('can_manage_invitation_atomic', {
         user_uuid: userData.user.id,
         invitation_id: invitationId
       });
@@ -331,14 +331,14 @@ export const useCancelInvitation = (organizationId: string) => {
   });
 };
 
-// Direct invitation creation utility using context-aware function
+// Direct invitation creation utility using atomic function
 export const createInvitationDirectly = async (
   organizationId: string,
   email: string,
   role: 'admin' | 'member',
   message?: string
 ): Promise<string> => {
-  const { data: invitationId, error } = await supabase.rpc('create_invitation_with_context', {
+  const { data: invitationId, error } = await supabase.rpc('create_invitation_atomic', {
     p_organization_id: organizationId,
     p_email: email.toLowerCase().trim(),
     p_role: role,

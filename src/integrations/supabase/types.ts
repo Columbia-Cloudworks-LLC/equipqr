@@ -1341,6 +1341,10 @@ export type Database = {
         Args: { org_id: string }
         Returns: Json
       }
+      can_manage_invitation_atomic: {
+        Args: { user_uuid: string; invitation_id: string }
+        Returns: boolean
+      }
       can_manage_invitation_optimized: {
         Args: { user_uuid: string; invitation_id: string }
         Returns: boolean
@@ -1389,6 +1393,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_invitation_atomic: {
+        Args: {
+          p_organization_id: string
+          p_email: string
+          p_role: string
+          p_message?: string
+          p_invited_by?: string
+        }
+        Returns: string
+      }
       create_invitation_bypass: {
         Args: {
           p_organization_id: string
@@ -1429,6 +1443,23 @@ export type Database = {
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_invitations_atomic: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: {
+          id: string
+          email: string
+          role: string
+          status: string
+          message: string
+          created_at: string
+          expires_at: string
+          accepted_at: string
+          declined_at: string
+          expired_at: string
+          slot_reserved: boolean
+          slot_purchase_id: string
+        }[]
       }
       get_invitations_bypass_optimized: {
         Args: { user_uuid: string; org_id: string }
