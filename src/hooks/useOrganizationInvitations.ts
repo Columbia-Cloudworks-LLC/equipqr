@@ -38,7 +38,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
       const startTime = performance.now();
       
       try {
-        // Use the optimized bypass function
+        // Use the context-aware bypass function
         const { data: invitationsData, error } = await supabase.rpc('get_invitations_bypass_optimized', {
           user_uuid: userData.user.id,
           org_id: organizationId
@@ -120,10 +120,10 @@ export const useCreateInvitation = (organizationId: string) => {
       const startTime = performance.now();
       
       try {
-        // Use the optimized bypass function that handles permissions internally
+        // Use the context-aware invitation function that prevents circular dependencies
         console.log(`[INVITATION] Creating invitation for ${requestData.email} in org ${organizationId}`);
         
-        const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass_optimized', {
+        const { data: invitationId, error } = await supabase.rpc('create_invitation_with_context', {
           p_organization_id: organizationId,
           p_email: requestData.email.toLowerCase().trim(),
           p_role: requestData.role,
@@ -331,14 +331,14 @@ export const useCancelInvitation = (organizationId: string) => {
   });
 };
 
-// Direct invitation creation utility using optimized function
+// Direct invitation creation utility using context-aware function
 export const createInvitationDirectly = async (
   organizationId: string,
   email: string,
   role: 'admin' | 'member',
   message?: string
 ): Promise<string> => {
-  const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass_optimized', {
+  const { data: invitationId, error } = await supabase.rpc('create_invitation_with_context', {
     p_organization_id: organizationId,
     p_email: email.toLowerCase().trim(),
     p_role: role,

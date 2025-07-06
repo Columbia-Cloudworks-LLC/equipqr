@@ -281,6 +281,33 @@ export type Database = {
           },
         ]
       }
+      invitation_performance_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          execution_time_ms: number
+          function_name: string
+          id: string
+          success: boolean
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms: number
+          function_name: string
+          id?: string
+          success: boolean
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number
+          function_name?: string
+          id?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           author_id: string
@@ -1330,6 +1357,10 @@ export type Database = {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
+      check_admin_with_context: {
+        Args: { user_uuid: string; org_id: string; bypass_context?: string }
+        Returns: boolean
+      }
       check_member_bypass_fixed: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
@@ -1354,6 +1385,10 @@ export type Database = {
         Args: { user_uuid: string; team_uuid: string; required_role: string }
         Returns: boolean
       }
+      clear_rls_context: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_invitation_bypass: {
         Args: {
           p_organization_id: string
@@ -1365,6 +1400,16 @@ export type Database = {
         Returns: string
       }
       create_invitation_bypass_optimized: {
+        Args: {
+          p_organization_id: string
+          p_email: string
+          p_role: string
+          p_message?: string
+          p_invited_by?: string
+        }
+        Returns: string
+      }
+      create_invitation_with_context: {
         Args: {
           p_organization_id: string
           p_email: string
@@ -1501,6 +1546,10 @@ export type Database = {
       }
       set_bypass_triggers: {
         Args: { bypass?: boolean }
+        Returns: undefined
+      }
+      set_rls_context: {
+        Args: { context_name: string }
         Returns: undefined
       }
       sync_stripe_subscription_slots: {
