@@ -182,9 +182,9 @@ export const useCreateInvitation = (organizationId: string) => {
           .eq('id', organizationId)
           .single();
 
-        // Create invitation using the safe function to avoid circular dependencies
+        // Create invitation using the direct function to avoid circular dependencies
         const startTime = performance.now();
-        const { data: invitationId, error } = await supabase.rpc('create_invitation_safe', {
+        const { data: invitationId, error } = await supabase.rpc('create_invitation_direct', {
           p_organization_id: organizationId,
           p_email: requestData.email.toLowerCase().trim(),
           p_role: requestData.role,
@@ -193,7 +193,7 @@ export const useCreateInvitation = (organizationId: string) => {
         });
 
         const dbTime = performance.now() - startTime;
-        console.log(`[INVITATION] Safe creation took ${dbTime.toFixed(2)}ms`);
+        console.log(`[INVITATION] Direct creation took ${dbTime.toFixed(2)}ms`);
 
         if (error) {
           console.error(`[INVITATION] Safe creation error:`, error);
@@ -331,14 +331,14 @@ export const useCancelInvitation = (organizationId: string) => {
   });
 };
 
-// Direct safe invitation creation utility
-export const createInvitationSafely = async (
+// Direct invitation creation utility
+export const createInvitationDirectly = async (
   organizationId: string,
   email: string,
   role: 'admin' | 'member',
   message?: string
 ): Promise<string> => {
-  const { data: invitationId, error } = await supabase.rpc('create_invitation_safe', {
+  const { data: invitationId, error } = await supabase.rpc('create_invitation_direct', {
     p_organization_id: organizationId,
     p_email: email.toLowerCase().trim(),
     p_role: role,

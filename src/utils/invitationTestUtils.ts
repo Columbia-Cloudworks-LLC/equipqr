@@ -70,12 +70,12 @@ export class InvitationTester {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      const { data: isAdmin } = await supabase.rpc('is_organization_admin_optimized', {
+      const { data: isAdmin } = await supabase.rpc('check_admin_direct', {
         user_uuid: userData.user.id,
         org_id: organizationId
       });
 
-      const { data: isMember } = await supabase.rpc('is_organization_member_optimized', {
+      const { data: isMember } = await supabase.rpc('check_member_direct', {
         user_uuid: userData.user.id,
         org_id: organizationId
       });

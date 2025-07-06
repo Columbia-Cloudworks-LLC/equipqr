@@ -1314,6 +1314,14 @@ export type Database = {
         Args: { org_id: string }
         Returns: Json
       }
+      check_admin_direct: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      check_member_direct: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
       check_org_access_direct: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
@@ -1334,7 +1342,7 @@ export type Database = {
         Args: { user_uuid: string; team_uuid: string; required_role: string }
         Returns: boolean
       }
-      create_invitation_safe: {
+      create_invitation_direct: {
         Args: {
           p_organization_id: string
           p_email: string
@@ -1414,15 +1422,7 @@ export type Database = {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
-      is_organization_admin_bypass_rls: {
-        Args: { user_uuid: string; org_id: string }
-        Returns: boolean
-      }
       is_organization_member: {
-        Args: { user_uuid: string; org_id: string }
-        Returns: boolean
-      }
-      is_organization_member_bypass_rls: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
