@@ -89,19 +89,19 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
                 />
               </div>
             ) : (
-              <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-gray-500">Generating QR code...</div>
+              <div className="w-64 h-64 bg-muted rounded-lg flex items-center justify-center">
+                <div className="text-muted-foreground">Generating QR code...</div>
               </div>
             )}
           </div>
 
           {/* QR Code URL */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-foreground">
               QR Code URL:
             </label>
             <div className="flex items-center gap-2">
-              <div className="flex-1 p-2 bg-gray-50 rounded border text-sm font-mono break-all">
+              <div className="flex-1 p-2 bg-muted rounded border text-sm font-mono break-all text-muted-foreground">
                 {qrCodeUrl}
               </div>
               <Button
@@ -120,8 +120,8 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
           </div>
 
           {/* Instructions */}
-          <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-            <p className="font-medium mb-1">How to use:</p>
+          <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+            <p className="font-medium mb-1 text-foreground">How to use:</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>Print this QR code and attach it to the equipment</li>
               <li>Users can scan it with any QR code scanner</li>
