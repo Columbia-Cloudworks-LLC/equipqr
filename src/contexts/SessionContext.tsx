@@ -107,10 +107,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       throw new Error('User not authenticated');
     }
 
-    console.log('🔍 Starting fresh session data fetch with updated RLS policies for user:', user.id);
+    console.log('🔍 Starting fresh session data fetch with minimal RLS policies for user:', user.id);
 
-    // Fetch user's organization memberships using the cleaned RLS policy
-    console.log('📋 Fetching organization memberships with new RLS...');
+    // Fetch user's organization memberships - now works with minimal RLS that only shows own memberships
+    console.log('📋 Fetching organization memberships with minimal RLS...');
     const { data: orgMemberData, error: orgMemberError } = await supabase
       .from('organization_members')
       .select('organization_id, role, status')

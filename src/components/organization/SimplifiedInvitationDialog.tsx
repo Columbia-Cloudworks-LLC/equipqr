@@ -14,11 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UserPlus, Mail, Info, DollarSign } from 'lucide-react';
+import { UserPlus, Mail, Info, DollarSign, AlertCircle, Clock } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 import { useCreateInvitation, CreateInvitationData } from '@/hooks/useOrganizationInvitations';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
+import { useInvitationPerformance } from '@/hooks/useInvitationPerformance';
+import { useInvitationPerformanceMonitoring } from '@/hooks/useInvitationPerformanceMonitoring';
+import { toast } from 'sonner';
 
 interface SimplifiedInvitationDialogProps {
   open: boolean;
@@ -40,21 +43,24 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
   const { data: members = [] } = useOrganizationMembers(currentOrg?.id || '');
   const createInvitation = useCreateInvitation(currentOrg?.id || '');
   const billing = calculateSimplifiedBilling(members);
+  const { startTimer, endTimer, getAverageTime, enableMonitoring } = useInvitationPerformanceMonitoring();
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens and enable monitoring
   React.useEffect(() => {
     if (open) {
       setEmail('');
       setRole('member');
       setMessage('');
+      enableMonitoring(); // Enable performance monitoring when dialog opens
     }
-  }, [open]);
+  }, [open, enableMonitoring]);
 
   const handleSubmitInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email.trim()) return;
 
+    const startTime = startTimer();
     const invitationData: CreateInvitationData = {
       email: email.trim(),
       role,
@@ -64,6 +70,9 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
 
     try {
       await createInvitation.mutateAsync(invitationData);
+      
+      // Track successful invitation
+      endTimer(startTime, 'invitation_creation', true);
       
       // Reset form
       setEmail('');
@@ -75,8 +84,50 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error) {
+
+      // Show success with performance info
+      const avgTime = getAverageTime('invitation_creation');
+      if (avgTime > 0) {
+        toast.success(`Invitation sent successfully (avg: ${Math.round(avgTime)}ms)`, {
+          description: `${email} will receive an invitation to join ${currentOrg?.name}`
+        });
+      } else {
+        toast.success('Invitation sent successfully', {
+          description: `${email} will receive an invitation to join ${currentOrg?.name}`
+        });
+      }
+    } catch (error: any) {
+      // Track failed invitation
+      endTimer(startTime, 'invitation_creation', false, error.message);
+      
       console.error('Failed to create invitation:', error);
+      
+      // Enhanced error handling with specific messages
+      let errorMessage = 'Failed to send invitation';
+      let errorDescription = 'Please try again or contact support if the issue persists';
+      
+      if (error.code === '23505') {
+        errorMessage = 'An invitation to this email already exists';
+        errorDescription = 'Check your pending invitations or try a different email address';
+      } else if (error.message?.includes('not authenticated')) {
+        errorMessage = 'Please sign in to send invitations';
+        errorDescription = 'Your session may have expired';
+      } else if (error.message?.includes('permission')) {
+        errorMessage = 'You do not have permission to invite members';
+        errorDescription = 'Contact your organization administrator for access';
+      } else if (error.message?.includes('stack depth') || error.message?.includes('overloaded')) {
+        errorMessage = 'System is temporarily busy';
+        errorDescription = 'Please wait a moment and try again';
+      } else if (error.message?.includes('database')) {
+        errorMessage = 'Database connection issue';
+        errorDescription = 'Please check your internet connection and try again';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription
+      });
     }
   };
 

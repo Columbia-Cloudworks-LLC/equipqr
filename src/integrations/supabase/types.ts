@@ -281,6 +281,33 @@ export type Database = {
           },
         ]
       }
+      invitation_performance_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          execution_time_ms: number
+          function_name: string
+          id: string
+          success: boolean
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms: number
+          function_name: string
+          id?: string
+          success: boolean
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number
+          function_name?: string
+          id?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           author_id: string
@@ -1314,6 +1341,34 @@ export type Database = {
         Args: { org_id: string }
         Returns: Json
       }
+      can_manage_invitation_atomic: {
+        Args: { user_uuid: string; invitation_id: string }
+        Returns: boolean
+      }
+      can_manage_invitation_optimized: {
+        Args: { user_uuid: string; invitation_id: string }
+        Returns: boolean
+      }
+      can_manage_invitation_safe: {
+        Args: { user_uuid: string; invitation_id: string }
+        Returns: boolean
+      }
+      check_admin_bypass_fixed: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      check_admin_permission_safe: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      check_admin_with_context: {
+        Args: { user_uuid: string; org_id: string; bypass_context?: string }
+        Returns: boolean
+      }
+      check_member_bypass_fixed: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
       check_org_access_direct: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
@@ -1334,6 +1389,50 @@ export type Database = {
         Args: { user_uuid: string; team_uuid: string; required_role: string }
         Returns: boolean
       }
+      clear_rls_context: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      create_invitation_atomic: {
+        Args: {
+          p_organization_id: string
+          p_email: string
+          p_role: string
+          p_message?: string
+          p_invited_by?: string
+        }
+        Returns: string
+      }
+      create_invitation_bypass: {
+        Args: {
+          p_organization_id: string
+          p_email: string
+          p_role: string
+          p_message?: string
+          p_invited_by?: string
+        }
+        Returns: string
+      }
+      create_invitation_bypass_optimized: {
+        Args: {
+          p_organization_id: string
+          p_email: string
+          p_role: string
+          p_message?: string
+          p_invited_by?: string
+        }
+        Returns: string
+      }
+      create_invitation_with_context: {
+        Args: {
+          p_organization_id: string
+          p_email: string
+          p_role: string
+          p_message?: string
+          p_invited_by?: string
+        }
+        Returns: string
+      }
       get_current_billing_period: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1344,6 +1443,40 @@ export type Database = {
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_invitations_atomic: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: {
+          id: string
+          email: string
+          role: string
+          status: string
+          message: string
+          created_at: string
+          expires_at: string
+          accepted_at: string
+          declined_at: string
+          expired_at: string
+          slot_reserved: boolean
+          slot_purchase_id: string
+        }[]
+      }
+      get_invitations_bypass_optimized: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: {
+          id: string
+          email: string
+          role: string
+          status: string
+          message: string
+          created_at: string
+          expires_at: string
+          accepted_at: string
+          declined_at: string
+          expired_at: string
+          slot_reserved: boolean
+          slot_purchase_id: string
+        }[]
       }
       get_latest_completed_pm: {
         Args: { equipment_uuid: string }
@@ -1367,6 +1500,23 @@ export type Database = {
           available_slots: number
           current_period_start: string
           current_period_end: string
+        }[]
+      }
+      get_user_invitations_safe: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: {
+          id: string
+          email: string
+          role: string
+          status: string
+          message: string
+          created_at: string
+          expires_at: string
+          accepted_at: string
+          declined_at: string
+          expired_at: string
+          slot_reserved: boolean
+          slot_purchase_id: string
         }[]
       }
       get_user_org_role_direct: {
@@ -1400,6 +1550,14 @@ export type Database = {
           joined_date: string
         }[]
       }
+      is_org_admin: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
       is_organization_admin: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
@@ -1408,6 +1566,15 @@ export type Database = {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
+      log_invitation_performance: {
+        Args: {
+          function_name: string
+          execution_time_ms: number
+          success: boolean
+          error_message?: string
+        }
+        Returns: undefined
+      }
       release_reserved_slot: {
         Args: { org_id: string; invitation_id: string }
         Returns: undefined
@@ -1415,6 +1582,14 @@ export type Database = {
       reserve_slot_for_invitation: {
         Args: { org_id: string; invitation_id: string }
         Returns: boolean
+      }
+      set_bypass_triggers: {
+        Args: { bypass?: boolean }
+        Returns: undefined
+      }
+      set_rls_context: {
+        Args: { context_name: string }
+        Returns: undefined
       }
       sync_stripe_subscription_slots: {
         Args: {
