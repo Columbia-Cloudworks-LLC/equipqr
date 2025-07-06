@@ -1414,7 +1414,7 @@ export type Database = {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
-      is_organization_admin_optimized: {
+      is_organization_admin_bypass_rls: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
@@ -1422,7 +1422,7 @@ export type Database = {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
-      is_organization_member_optimized: {
+      is_organization_member_bypass_rls: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
       }
