@@ -22,7 +22,7 @@ export class InvitationTester {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass_optimized', {
+      const { data: invitationId, error } = await supabase.rpc('create_invitation_atomic', {
         p_organization_id: organizationId,
         p_email: testEmail,
         p_role: 'member',
@@ -136,7 +136,7 @@ export class InvitationTester {
 
       // Test multiple rapid calls that previously caused stack depth issues
       const promises = Array.from({ length: 10 }, (_, i) => 
-        supabase.rpc('create_invitation_bypass_optimized', {
+        supabase.rpc('create_invitation_atomic', {
           p_organization_id: organizationId,
           p_email: `stack-test-${i}-${Date.now()}@example.com`,
           p_role: 'member',

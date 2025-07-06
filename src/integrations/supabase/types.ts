@@ -1550,6 +1550,14 @@ export type Database = {
           joined_date: string
         }[]
       }
+      is_org_admin: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
       is_organization_admin: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
