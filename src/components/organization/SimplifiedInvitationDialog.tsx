@@ -20,6 +20,7 @@ import { useCreateInvitation, CreateInvitationData } from '@/hooks/useOrganizati
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import { useInvitationPerformance } from '@/hooks/useInvitationPerformance';
+import { useInvitationPerformanceMonitoring } from '@/hooks/useInvitationPerformanceMonitoring';
 import { toast } from 'sonner';
 
 interface SimplifiedInvitationDialogProps {
@@ -42,16 +43,17 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
   const { data: members = [] } = useOrganizationMembers(currentOrg?.id || '');
   const createInvitation = useCreateInvitation(currentOrg?.id || '');
   const billing = calculateSimplifiedBilling(members);
-  const { startTimer, endTimer, getAverageTime } = useInvitationPerformance();
+  const { startTimer, endTimer, getAverageTime, enableMonitoring } = useInvitationPerformanceMonitoring();
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens and enable monitoring
   React.useEffect(() => {
     if (open) {
       setEmail('');
       setRole('member');
       setMessage('');
+      enableMonitoring(); // Enable performance monitoring when dialog opens
     }
-  }, [open]);
+  }, [open, enableMonitoring]);
 
   const handleSubmitInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +88,11 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
       // Show success with performance info
       const avgTime = getAverageTime('invitation_creation');
       if (avgTime > 0) {
-        toast.success(`Invitation sent successfully (${Math.round(avgTime)}ms avg)`, {
+        toast.success(`Invitation sent successfully (avg: ${Math.round(avgTime)}ms)`, {
+          description: `${email} will receive an invitation to join ${currentOrg?.name}`
+        });
+      } else {
+        toast.success('Invitation sent successfully', {
           description: `${email} will receive an invitation to join ${currentOrg?.name}`
         });
       }

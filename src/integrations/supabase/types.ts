@@ -1314,6 +1314,10 @@ export type Database = {
         Args: { org_id: string }
         Returns: Json
       }
+      can_manage_invitation_optimized: {
+        Args: { user_uuid: string; invitation_id: string }
+        Returns: boolean
+      }
       can_manage_invitation_safe: {
         Args: { user_uuid: string; invitation_id: string }
         Returns: boolean
@@ -1360,6 +1364,16 @@ export type Database = {
         }
         Returns: string
       }
+      create_invitation_bypass_optimized: {
+        Args: {
+          p_organization_id: string
+          p_email: string
+          p_role: string
+          p_message?: string
+          p_invited_by?: string
+        }
+        Returns: string
+      }
       get_current_billing_period: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1370,6 +1384,23 @@ export type Database = {
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_invitations_bypass_optimized: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: {
+          id: string
+          email: string
+          role: string
+          status: string
+          message: string
+          created_at: string
+          expires_at: string
+          accepted_at: string
+          declined_at: string
+          expired_at: string
+          slot_reserved: boolean
+          slot_purchase_id: string
+        }[]
       }
       get_latest_completed_pm: {
         Args: { equipment_uuid: string }
@@ -1450,6 +1481,15 @@ export type Database = {
       is_organization_member: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
+      }
+      log_invitation_performance: {
+        Args: {
+          function_name: string
+          execution_time_ms: number
+          success: boolean
+          error_message?: string
+        }
+        Returns: undefined
       }
       release_reserved_slot: {
         Args: { org_id: string; invitation_id: string }

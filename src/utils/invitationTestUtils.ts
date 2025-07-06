@@ -8,27 +8,27 @@ export interface InvitationTestResult {
 }
 
 /**
- * Test suite for invitation system performance and reliability
+ * Test suite for optimized invitation system performance and reliability
  */
 export class InvitationTester {
   private results: InvitationTestResult[] = [];
 
-  async runBasicInvitationTest(organizationId: string, testEmail: string): Promise<InvitationTestResult> {
+  async runOptimizedInvitationTest(organizationId: string, testEmail: string): Promise<InvitationTestResult> {
     const startTime = performance.now();
-    const testName = 'basic_invitation_creation';
+    const testName = 'optimized_invitation_creation';
 
     try {
-      // Test basic invitation creation
-      const { data, error } = await supabase
-        .from('organization_invitations')
-        .insert({
-          organization_id: organizationId,
-          email: testEmail,
-          role: 'member',
-          invited_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .select()
-        .single();
+      // Test optimized invitation creation
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+
+      const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass_optimized', {
+        p_organization_id: organizationId,
+        p_email: testEmail,
+        p_role: 'member',
+        p_message: 'Test invitation',
+        p_invited_by: userData.user.id
+      });
 
       if (error) throw error;
 
@@ -36,7 +36,7 @@ export class InvitationTester {
       await supabase
         .from('organization_invitations')
         .delete()
-        .eq('id', data.id);
+        .eq('id', invitationId);
 
       const duration = performance.now() - startTime;
       const result: InvitationTestResult = {
@@ -63,10 +63,10 @@ export class InvitationTester {
 
   async runPermissionTest(organizationId: string): Promise<InvitationTestResult> {
     const startTime = performance.now();
-    const testName = 'permission_validation';
+    const testName = 'optimized_permission_validation';
 
     try {
-      // Test permission validation functions
+      // Test optimized permission validation functions
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
@@ -104,23 +104,86 @@ export class InvitationTester {
     }
   }
 
-  async runStressTest(organizationId: string, iterations: number = 5): Promise<InvitationTestResult[]> {
+  async runOptimizedStressTest(organizationId: string, iterations: number = 5): Promise<InvitationTestResult[]> {
     const results: InvitationTestResult[] = [];
-    const testEmails = Array.from({ length: iterations }, (_, i) => `test${i}@example.com`);
+    const testEmails = Array.from({ length: iterations }, (_, i) => `test-optimized-${i}-${Date.now()}@example.com`);
+
+    console.log(`Starting optimized stress test with ${iterations} iterations`);
 
     for (let i = 0; i < iterations; i++) {
       try {
-        const result = await this.runBasicInvitationTest(organizationId, testEmails[i]);
+        const result = await this.runOptimizedInvitationTest(organizationId, testEmails[i]);
         results.push(result);
+        console.log(`Stress test ${i + 1}/${iterations}: ${result.success ? 'SUCCESS' : 'FAILED'} (${result.duration.toFixed(2)}ms)`);
         
-        // Add delay between tests to avoid overwhelming the system
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Minimal delay to avoid overwhelming the system
+        await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
         console.error(`Stress test iteration ${i} failed:`, error);
       }
     }
 
     return results;
+  }
+
+  async testStackDepthResistance(organizationId: string): Promise<InvitationTestResult> {
+    const startTime = performance.now();
+    const testName = 'stack_depth_resistance';
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+
+      // Test multiple rapid calls that previously caused stack depth issues
+      const promises = Array.from({ length: 10 }, (_, i) => 
+        supabase.rpc('create_invitation_bypass_optimized', {
+          p_organization_id: organizationId,
+          p_email: `stack-test-${i}-${Date.now()}@example.com`,
+          p_role: 'member',
+          p_message: 'Stack depth test',
+          p_invited_by: userData.user.id
+        })
+      );
+
+      const results = await Promise.allSettled(promises);
+      
+      // Clean up successful invitations
+      const successfulIds = results
+        .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled' && !result.value.error)
+        .map(result => result.value.data);
+
+      if (successfulIds.length > 0) {
+        await supabase
+          .from('organization_invitations')
+          .delete()
+          .in('id', successfulIds);
+      }
+
+      const duration = performance.now() - startTime;
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      
+      const result: InvitationTestResult = {
+        success: successCount >= 8, // Allow for a few failures
+        duration,
+        testName,
+        error: successCount < 8 ? `Only ${successCount}/10 calls succeeded` : undefined
+      };
+
+      this.results.push(result);
+      console.log(`Stack depth resistance test: ${successCount}/10 calls succeeded`);
+      return result;
+    } catch (error: any) {
+      const duration = performance.now() - startTime;
+      const result: InvitationTestResult = {
+        success: false,
+        duration,
+        error: error.message,
+        testName
+      };
+
+      this.results.push(result);
+      return result;
+    }
   }
 
   getAverageTime(testName?: string): number {

@@ -35,123 +35,77 @@ export const useOrganizationInvitations = (organizationId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
 
-      // Use the enhanced security function to get invitations
-      const { data: invitationsData, error } = await supabase.rpc('get_user_invitations_safe', {
-        user_uuid: userData.user.id,
-        org_id: organizationId
-      });
+      const startTime = performance.now();
+      
+      try {
+        // Use the optimized bypass function
+        const { data: invitationsData, error } = await supabase.rpc('get_invitations_bypass_optimized', {
+          user_uuid: userData.user.id,
+          org_id: organizationId
+        });
 
-      if (error) {
-        console.error('Error fetching invitations with enhanced security:', error);
-        throw error;
-      }
+        if (error) {
+          console.error('Error fetching invitations:', error);
+          throw error;
+        }
 
-      // Get inviter names separately - for the current user
-      let inviterName = 'You';
-      if (invitationsData && invitationsData.length > 0) {
+        // Get inviter name
         const { data: profileData } = await supabase
           .from('profiles')
           .select('name')
           .eq('id', userData.user.id)
           .single();
         
-        inviterName = profileData?.name || 'You';
-      }
+        const inviterName = profileData?.name || 'You';
+        const executionTime = performance.now() - startTime;
 
-      return (invitationsData || []).map(invitation => ({
-        id: invitation.id,
-        email: invitation.email,
-        role: invitation.role as 'admin' | 'member',
-        status: invitation.status as 'pending' | 'accepted' | 'declined' | 'expired',
-        message: invitation.message || undefined,
-        invitedBy: userData.user.id, // Set to current user since they can only see their own invitations
-        createdAt: invitation.created_at,
-        expiresAt: invitation.expires_at,
-        acceptedAt: invitation.accepted_at || undefined,
-        inviterName: inviterName,
-        slot_reserved: invitation.slot_reserved || false,
-        slot_purchase_id: invitation.slot_purchase_id || undefined,
-        declined_at: invitation.declined_at || undefined,
-        expired_at: invitation.expired_at || undefined
-      }));
+        // Log performance
+        try {
+          await supabase.rpc('log_invitation_performance', {
+            function_name: 'get_invitations',
+            execution_time_ms: executionTime,
+            success: true
+          });
+        } catch {} // Silently fail
+
+        return (invitationsData || []).map(invitation => ({
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role as 'admin' | 'member',
+          status: invitation.status as 'pending' | 'accepted' | 'declined' | 'expired',
+          message: invitation.message || undefined,
+          invitedBy: userData.user.id,
+          createdAt: invitation.created_at,
+          expiresAt: invitation.expires_at,
+          acceptedAt: invitation.accepted_at || undefined,
+          inviterName: inviterName,
+          slot_reserved: invitation.slot_reserved || false,
+          slot_purchase_id: invitation.slot_purchase_id || undefined,
+          declined_at: invitation.declined_at || undefined,
+          expired_at: invitation.expired_at || undefined
+        }));
+      } catch (error: any) {
+        const executionTime = performance.now() - startTime;
+        
+        // Log performance error
+        try {
+          await supabase.rpc('log_invitation_performance', {
+            function_name: 'get_invitations',
+            execution_time_ms: executionTime,
+            success: false,
+            error_message: error.message
+          });
+        } catch {} // Silently fail
+        
+        throw error;
+      }
     },
     enabled: !!organizationId,
     staleTime: 30 * 1000, // 30 seconds
   });
 };
 
-// Enhanced retry utility with exponential backoff and stack depth error handling
-const retryWithBackoff = async <T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
-): Promise<T> => {
-  let lastError: any;
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error: any) {
-      lastError = error;
-      
-      // Don't retry certain types of errors
-      if (
-        error.code === '23505' || // Unique constraint violation
-        error.code === '42501' || // Insufficient privilege
-        error.message?.includes('not authenticated') ||
-        error.message?.includes('permission')
-      ) {
-        throw error;
-      }
-      
-      // Special handling for stack depth errors
-      if (error.message?.includes('stack depth limit exceeded')) {
-        console.error(`Stack depth limit exceeded on attempt ${attempt + 1}`);
-        if (attempt === maxRetries) {
-          throw new Error('Database is temporarily overloaded. Please try again in a few moments.');
-        }
-        // Longer delay for stack depth errors
-        const delay = baseDelay * Math.pow(3, attempt) + Math.random() * 2000;
-        console.warn(`Stack depth error, retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      
-      if (attempt === maxRetries) {
-        console.error(`Operation failed after ${maxRetries + 1} attempts:`, error);
-        throw error;
-      }
-      
-      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
-      console.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error.message);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  throw lastError;
-};
-
-// Client-side permission validation
-const validateInvitationPermissions = async (organizationId: string): Promise<boolean> => {
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return false;
-
-    // Check if user is admin of the organization
-    const { data: membership } = await supabase
-      .from('organization_members')
-      .select('role')
-      .eq('organization_id', organizationId)
-      .eq('user_id', userData.user.id)
-      .eq('status', 'active')
-      .single();
-
-    return membership?.role === 'owner' || membership?.role === 'admin';
-  } catch (error) {
-    console.error('Permission validation failed:', error);
-    return false;
-  }
-};
+// Optimized invitation creation without retry logic or client-side validation
 
 export const useCreateInvitation = (organizationId: string) => {
   const queryClient = useQueryClient();
@@ -160,36 +114,16 @@ export const useCreateInvitation = (organizationId: string) => {
     mutationFn: async (requestData: CreateInvitationData) => {
       if (!organizationId) throw new Error('No organization ID provided');
 
-      // Client-side permission validation
-      const hasPermission = await validateInvitationPermissions(organizationId);
-      if (!hasPermission) {
-        throw new Error('You do not have permission to invite members to this organization');
-      }
-
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
 
-      // Log the invitation attempt
-      console.log(`[INVITATION] Creating invitation for ${requestData.email} in org ${organizationId}`);
-
-      return await retryWithBackoff(async () => {
-        // Get current user profile for inviter name
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', userData.user.id)
-          .single();
-
-        // Get organization name
-        const { data: organization } = await supabase
-          .from('organizations')
-          .select('name')
-          .eq('id', organizationId)
-          .single();
-
-        // Create invitation using the bypass function to completely avoid RLS
-        const startTime = performance.now();
-        const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass', {
+      const startTime = performance.now();
+      
+      try {
+        // Use the optimized bypass function that handles permissions internally
+        console.log(`[INVITATION] Creating invitation for ${requestData.email} in org ${organizationId}`);
+        
+        const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass_optimized', {
           p_organization_id: organizationId,
           p_email: requestData.email.toLowerCase().trim(),
           p_role: requestData.role,
@@ -197,13 +131,22 @@ export const useCreateInvitation = (organizationId: string) => {
           p_invited_by: userData.user.id
         });
 
-        const dbTime = performance.now() - startTime;
-        console.log(`[INVITATION] Bypass creation took ${dbTime.toFixed(2)}ms`);
-
         if (error) {
-          console.error(`[INVITATION] Safe creation error:`, error);
+          console.error(`[INVITATION] Creation error:`, error);
           throw error;
         }
+
+        const executionTime = performance.now() - startTime;
+        console.log(`[INVITATION] Creation took ${executionTime.toFixed(2)}ms`);
+
+        // Log performance success
+        try {
+          await supabase.rpc('log_invitation_performance', {
+            function_name: 'create_invitation',
+            execution_time_ms: executionTime,
+            success: true
+          });
+        } catch {} // Silently fail
 
         // Get the created invitation data for return
         const { data: createdInvitation, error: fetchError } = await supabase
@@ -217,33 +160,40 @@ export const useCreateInvitation = (organizationId: string) => {
           throw fetchError;
         }
 
-        // Reserve slot if requested and available
+        // Reserve slot if requested (non-blocking)
         if (requestData.reserveSlot) {
-          try {
-            const { error: reserveError } = await supabase.rpc('reserve_slot_for_invitation', {
-              org_id: organizationId,
-              invitation_id: createdInvitation.id
-            });
-
-            if (reserveError) {
-              console.warn('[INVITATION] Failed to reserve slot:', reserveError);
-              // Don't throw here - invitation was created successfully
+          (async () => {
+            try {
+              const { error: reserveError } = await supabase.rpc('reserve_slot_for_invitation', {
+                org_id: organizationId,
+                invitation_id: createdInvitation.id
+              });
+              
+              if (reserveError) {
+                console.warn('[INVITATION] Failed to reserve slot:', reserveError);
+              }
+            } catch (reserveError) {
+              console.warn('[INVITATION] Slot reservation error:', reserveError);
             }
-          } catch (reserveError) {
-            console.warn('[INVITATION] Slot reservation error:', reserveError);
-          }
+          })();
         }
 
         // Send invitation email via edge function (non-blocking)
         setTimeout(async () => {
           try {
+            // Get profile and organization data for email
+            const [profileResult, organizationResult] = await Promise.all([
+              supabase.from('profiles').select('name').eq('id', userData.user.id).single(),
+              supabase.from('organizations').select('name').eq('id', organizationId).single()
+            ]);
+
             const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
               body: {
                 invitationId: createdInvitation.id,
                 email: requestData.email.toLowerCase().trim(),
                 role: requestData.role,
-                organizationName: organization?.name || 'Your Organization',
-                inviterName: profile?.name || 'Team Member',
+                organizationName: organizationResult.data?.name || 'Your Organization',
+                inviterName: profileResult.data?.name || 'Team Member',
                 message: requestData.message
               }
             });
@@ -260,7 +210,22 @@ export const useCreateInvitation = (organizationId: string) => {
 
         console.log(`[INVITATION] Successfully created invitation ${createdInvitation.id} for ${requestData.email}`);
         return createdInvitation;
-      });
+        
+      } catch (error: any) {
+        const executionTime = performance.now() - startTime;
+        
+        // Log performance error
+        try {
+          await supabase.rpc('log_invitation_performance', {
+            function_name: 'create_invitation',
+            execution_time_ms: executionTime,
+            success: false,
+            error_message: error.message
+          });
+        } catch {} // Silently fail
+        
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
@@ -269,8 +234,14 @@ export const useCreateInvitation = (organizationId: string) => {
     },
     onError: (error: any) => {
       console.error('Error creating invitation:', error);
-      if (error.code === '23505') {
+      
+      // Handle specific error types from the optimized function
+      if (error.message?.includes('PERMISSION_DENIED')) {
+        toast.error('You do not have permission to invite members');
+      } else if (error.message?.includes('DUPLICATE_INVITATION')) {
         toast.error('An invitation to this email already exists');
+      } else if (error.message?.includes('INVITATION_ERROR')) {
+        toast.error('Failed to send invitation - please try again');
       } else {
         toast.error('Failed to send invitation');
       }
@@ -287,7 +258,7 @@ export const useResendInvitation = (organizationId: string) => {
       if (!userData.user) throw new Error('User not authenticated');
 
       // Check if user can manage this invitation
-      const { data: canManage } = await supabase.rpc('can_manage_invitation_safe', {
+      const { data: canManage } = await supabase.rpc('can_manage_invitation_optimized', {
         user_uuid: userData.user.id,
         invitation_id: invitationId
       });
@@ -329,7 +300,7 @@ export const useCancelInvitation = (organizationId: string) => {
       if (!userData.user) throw new Error('User not authenticated');
 
       // Check if user can manage this invitation
-      const { data: canManage } = await supabase.rpc('can_manage_invitation_safe', {
+      const { data: canManage } = await supabase.rpc('can_manage_invitation_optimized', {
         user_uuid: userData.user.id,
         invitation_id: invitationId
       });
@@ -360,14 +331,14 @@ export const useCancelInvitation = (organizationId: string) => {
   });
 };
 
-// Direct invitation creation utility
+// Direct invitation creation utility using optimized function
 export const createInvitationDirectly = async (
   organizationId: string,
   email: string,
   role: 'admin' | 'member',
   message?: string
 ): Promise<string> => {
-  const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass', {
+  const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass_optimized', {
     p_organization_id: organizationId,
     p_email: email.toLowerCase().trim(),
     p_role: role,
