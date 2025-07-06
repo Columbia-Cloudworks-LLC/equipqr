@@ -1314,6 +1314,10 @@ export type Database = {
         Args: { org_id: string }
         Returns: Json
       }
+      check_admin_permission_safe: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: boolean
+      }
       check_org_access_direct: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
