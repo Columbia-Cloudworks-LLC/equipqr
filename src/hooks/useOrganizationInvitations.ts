@@ -182,9 +182,9 @@ export const useCreateInvitation = (organizationId: string) => {
           .eq('id', organizationId)
           .single();
 
-        // Create invitation using the direct function to avoid circular dependencies
+        // Create invitation using the bypass function to completely avoid RLS
         const startTime = performance.now();
-        const { data: invitationId, error } = await supabase.rpc('create_invitation_direct', {
+        const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass', {
           p_organization_id: organizationId,
           p_email: requestData.email.toLowerCase().trim(),
           p_role: requestData.role,
@@ -193,7 +193,7 @@ export const useCreateInvitation = (organizationId: string) => {
         });
 
         const dbTime = performance.now() - startTime;
-        console.log(`[INVITATION] Direct creation took ${dbTime.toFixed(2)}ms`);
+        console.log(`[INVITATION] Bypass creation took ${dbTime.toFixed(2)}ms`);
 
         if (error) {
           console.error(`[INVITATION] Safe creation error:`, error);
@@ -338,7 +338,7 @@ export const createInvitationDirectly = async (
   role: 'admin' | 'member',
   message?: string
 ): Promise<string> => {
-  const { data: invitationId, error } = await supabase.rpc('create_invitation_direct', {
+  const { data: invitationId, error } = await supabase.rpc('create_invitation_bypass', {
     p_organization_id: organizationId,
     p_email: email.toLowerCase().trim(),
     p_role: role,
