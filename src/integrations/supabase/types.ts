@@ -1314,6 +1314,10 @@ export type Database = {
         Args: { org_id: string }
         Returns: Json
       }
+      can_manage_invitation_safe: {
+        Args: { user_uuid: string; invitation_id: string }
+        Returns: boolean
+      }
       check_admin_permission_safe: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
@@ -1381,6 +1385,23 @@ export type Database = {
           available_slots: number
           current_period_start: string
           current_period_end: string
+        }[]
+      }
+      get_user_invitations_safe: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: {
+          id: string
+          email: string
+          role: string
+          status: string
+          message: string
+          created_at: string
+          expires_at: string
+          accepted_at: string
+          declined_at: string
+          expired_at: string
+          slot_reserved: boolean
+          slot_purchase_id: string
         }[]
       }
       get_user_org_role_direct: {

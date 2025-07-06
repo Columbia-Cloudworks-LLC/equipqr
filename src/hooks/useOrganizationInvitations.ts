@@ -32,40 +32,31 @@ export const useOrganizationInvitations = (organizationId: string) => {
     queryFn: async (): Promise<OrganizationInvitation[]> => {
       if (!organizationId) return [];
 
-      // First get the invitations
-      const { data: invitationsData, error } = await supabase
-        .from('organization_invitations')
-        .select(`
-          id,
-          email,
-          role,
-          status,
-          message,
-          invited_by,
-          created_at,
-          expires_at,
-          accepted_at,
-          slot_reserved,
-          slot_purchase_id,
-          declined_at,
-          expired_at
-        `)
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('User not authenticated');
+
+      // Use the enhanced security function to get invitations
+      const { data: invitationsData, error } = await supabase.rpc('get_user_invitations_safe', {
+        user_uuid: userData.user.id,
+        org_id: organizationId
+      });
 
       if (error) {
-        console.error('Error fetching invitations:', error);
+        console.error('Error fetching invitations with enhanced security:', error);
         throw error;
       }
 
-      // Get inviter names separately
-      const inviterIds = [...new Set(invitationsData?.map(inv => inv.invited_by).filter(Boolean))];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', inviterIds);
-
-      const profilesMap = new Map(profilesData?.map(p => [p.id, p.name]) || []);
+      // Get inviter names separately - for the current user
+      let inviterName = 'You';
+      if (invitationsData && invitationsData.length > 0) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', userData.user.id)
+          .single();
+        
+        inviterName = profileData?.name || 'You';
+      }
 
       return (invitationsData || []).map(invitation => ({
         id: invitation.id,
@@ -73,11 +64,11 @@ export const useOrganizationInvitations = (organizationId: string) => {
         role: invitation.role as 'admin' | 'member',
         status: invitation.status as 'pending' | 'accepted' | 'declined' | 'expired',
         message: invitation.message || undefined,
-        invitedBy: invitation.invited_by,
+        invitedBy: userData.user.id, // Set to current user since they can only see their own invitations
         createdAt: invitation.created_at,
         expiresAt: invitation.expires_at,
         acceptedAt: invitation.accepted_at || undefined,
-        inviterName: profilesMap.get(invitation.invited_by) || 'Unknown',
+        inviterName: inviterName,
         slot_reserved: invitation.slot_reserved || false,
         slot_purchase_id: invitation.slot_purchase_id || undefined,
         declined_at: invitation.declined_at || undefined,
@@ -278,6 +269,19 @@ export const useResendInvitation = (organizationId: string) => {
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('User not authenticated');
+
+      // Check if user can manage this invitation
+      const { data: canManage } = await supabase.rpc('can_manage_invitation_safe', {
+        user_uuid: userData.user.id,
+        invitation_id: invitationId
+      });
+
+      if (!canManage) {
+        throw new Error('You do not have permission to resend this invitation');
+      }
+
       const { data, error } = await supabase
         .from('organization_invitations')
         .update({
@@ -285,7 +289,6 @@ export const useResendInvitation = (organizationId: string) => {
           status: 'pending'
         })
         .eq('id', invitationId)
-        .eq('organization_id', organizationId)
         .select()
         .single();
 
@@ -308,11 +311,23 @@ export const useCancelInvitation = (organizationId: string) => {
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('User not authenticated');
+
+      // Check if user can manage this invitation
+      const { data: canManage } = await supabase.rpc('can_manage_invitation_safe', {
+        user_uuid: userData.user.id,
+        invitation_id: invitationId
+      });
+
+      if (!canManage) {
+        throw new Error('You do not have permission to cancel this invitation');
+      }
+
       const { data, error } = await supabase
         .from('organization_invitations')
-        .update({ status: 'expired' })
+        .update({ status: 'expired', expired_at: new Date().toISOString() })
         .eq('id', invitationId)
-        .eq('organization_id', organizationId)
         .select()
         .single();
 
