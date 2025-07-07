@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useOrganizationPermissions } from './useOrganizationPermissions';
 
 export interface OrganizationInvitation {
   id: string;
@@ -28,8 +27,6 @@ export interface CreateInvitationData {
 }
 
 export const useOrganizationInvitations = (organizationId: string) => {
-  const { data: permissions } = useOrganizationPermissions(organizationId);
-  
   return useQuery({
     queryKey: ['organization-invitations', organizationId],
     queryFn: async (): Promise<OrganizationInvitation[]> => {
@@ -38,6 +35,17 @@ export const useOrganizationInvitations = (organizationId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
 
+      // Check if user is admin of the organization
+      const { data: memberData } = await supabase
+        .from('organization_members')
+        .select('role')
+        .eq('organization_id', organizationId)
+        .eq('user_id', userData.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      const isAdmin = memberData?.role === 'owner' || memberData?.role === 'admin';
+
       // Direct database query - admins see all invitations, regular users see only their own
       let query = supabase
         .from('organization_invitations')
@@ -45,7 +53,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
         .eq('organization_id', organizationId);
 
       // If not admin, only show invitations created by this user  
-      if (!permissions?.isAdmin) {
+      if (!isAdmin) {
         query = query.eq('invited_by', userData.user.id);
       }
 
@@ -82,7 +90,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
         expired_at: invitation.expired_at || undefined
       }));
     },
-    enabled: !!organizationId && permissions !== undefined,
+    enabled: !!organizationId,
     staleTime: 30 * 1000, // 30 seconds
   });
 };
@@ -91,15 +99,27 @@ export const useOrganizationInvitations = (organizationId: string) => {
 
 export const useCreateInvitation = (organizationId: string) => {
   const queryClient = useQueryClient();
-  const { data: permissions } = useOrganizationPermissions(organizationId);
 
   return useMutation({
     mutationFn: async (requestData: CreateInvitationData) => {
       if (!organizationId) throw new Error('No organization ID provided');
-      if (!permissions?.isAdmin) throw new Error('You do not have permission to invite members');
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
+
+      // Check if user is admin of the organization
+      const { data: memberData } = await supabase
+        .from('organization_members')
+        .select('role')
+        .eq('organization_id', organizationId)
+        .eq('user_id', userData.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      const isAdmin = memberData?.role === 'owner' || memberData?.role === 'admin';
+      if (!isAdmin) {
+        throw new Error('You do not have permission to invite members');
+      }
 
       // Check for existing invitation
       const { data: existingInvitation } = await supabase
@@ -206,7 +226,6 @@ export const useCreateInvitation = (organizationId: string) => {
 
 export const useResendInvitation = (organizationId: string) => {
   const queryClient = useQueryClient();
-  const { data: permissions } = useOrganizationPermissions(organizationId);
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
@@ -222,8 +241,19 @@ export const useResendInvitation = (organizationId: string) => {
 
       if (invitationError) throw invitationError;
 
+      // Check if user is admin of the organization
+      const { data: memberData } = await supabase
+        .from('organization_members')
+        .select('role')
+        .eq('organization_id', invitation.organization_id)
+        .eq('user_id', userData.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      const isAdmin = memberData?.role === 'owner' || memberData?.role === 'admin';
+      
       // Check if user can manage this invitation (admin or original inviter)
-      const canManage = permissions?.isAdmin || invitation.invited_by === userData.user.id;
+      const canManage = isAdmin || invitation.invited_by === userData.user.id;
       if (!canManage) {
         throw new Error('You do not have permission to resend this invitation');
       }
@@ -254,7 +284,6 @@ export const useResendInvitation = (organizationId: string) => {
 
 export const useCancelInvitation = (organizationId: string) => {
   const queryClient = useQueryClient();
-  const { data: permissions } = useOrganizationPermissions(organizationId);
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
@@ -270,8 +299,19 @@ export const useCancelInvitation = (organizationId: string) => {
 
       if (invitationError) throw invitationError;
 
+      // Check if user is admin of the organization
+      const { data: memberData } = await supabase
+        .from('organization_members')
+        .select('role')
+        .eq('organization_id', invitation.organization_id)
+        .eq('user_id', userData.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      const isAdmin = memberData?.role === 'owner' || memberData?.role === 'admin';
+      
       // Check if user can manage this invitation (admin or original inviter)
-      const canManage = permissions?.isAdmin || invitation.invited_by === userData.user.id;
+      const canManage = isAdmin || invitation.invited_by === userData.user.id;
       if (!canManage) {
         throw new Error('You do not have permission to cancel this invitation');
       }
