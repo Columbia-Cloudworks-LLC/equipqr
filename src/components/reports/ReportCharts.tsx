@@ -2,7 +2,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { ReportType } from '@/pages/Reports';
-import { Equipment, WorkOrder, DashboardStats } from '@/services/unifiedDataService';
+import { Equipment, WorkOrder, DashboardStats } from '@/services/supabaseDataService';
 
 interface ReportChartsProps {
   data: any[];

@@ -1,9 +1,9 @@
 
-import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 
 // Backward compatibility layer for existing organization hooks
 export const useSupabaseOrganization = () => {
-  const { currentOrganization, userOrganizations, switchOrganization, isLoading, error } = useUnifiedOrganization();
+  const { currentOrganization, userOrganizations, switchOrganization, isLoading, error } = useSimpleOrganization();
 
   return {
     currentOrganization,
@@ -16,7 +16,7 @@ export const useSupabaseOrganization = () => {
 };
 
 export const useOrganization = () => {
-  const { currentOrganization, userOrganizations, switchOrganization, isLoading, error } = useUnifiedOrganization();
+  const { currentOrganization, userOrganizations, switchOrganization, isLoading, error } = useSimpleOrganization();
 
   return {
     currentOrganization,

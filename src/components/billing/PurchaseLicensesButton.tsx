@@ -12,7 +12,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { ShoppingCart, Users } from 'lucide-react';
-import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -27,7 +27,7 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
   size = "default",
   className = ""
 }) => {
-  const { currentOrganization } = useUnifiedOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);

@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Team, TeamMember } from '@/services/dataService';
+import { Team, TeamMember } from '@/services/supabaseDataService';
 
 interface RoleChangeDialogProps {
   open: boolean;

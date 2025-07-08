@@ -10,7 +10,7 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import { Play, Pause, CheckCircle, XCircle, Settings, AlertTriangle, UserCheck } from 'lucide-react';
-import { WorkOrder } from '@/services/dataService';
+import { WorkOrder } from '@/services/supabaseDataService';
 import { WorkOrderService } from '@/services/WorkOrderService';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 

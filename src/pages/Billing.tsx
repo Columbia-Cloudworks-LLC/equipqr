@@ -6,15 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { CreditCard, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import SimplifiedMemberBilling from '@/components/billing/SimplifiedMemberBilling';
 import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
-import ManageSubscriptionButton from '@/components/billing/ManageSubscriptionButton';
-import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from '@/hooks/use-toast';
 import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
 
 const Billing = () => {
-  const { currentOrganization } = useUnifiedOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { subscriptionData, isSubscribed, subscriptionTier, subscriptionEnd } = useSubscription();
   
@@ -84,7 +83,7 @@ const Billing = () => {
           <Badge variant={isFree ? 'secondary' : 'default'}>
             {isFree ? 'Free Plan' : 'Pay-as-you-go'}
           </Badge>
-          {!isFree && <ManageSubscriptionButton size="sm" />}
+          {/* Manage subscription functionality removed */}
         </div>
       </div>
 
@@ -112,9 +111,7 @@ const Billing = () => {
                 <Badge variant={fleetMapEnabled ? 'default' : 'secondary'}>
                   {fleetMapEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>
-                <ManageSubscriptionButton size="sm">
-                  {fleetMapEnabled ? 'Manage Add-ons' : 'Add Fleet Map'}
-                </ManageSubscriptionButton>
+                {/* Manage subscription functionality removed */}
               </div>
             </div>
           </CardContent>

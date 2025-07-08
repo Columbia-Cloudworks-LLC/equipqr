@@ -5,10 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Crown, Plus } from 'lucide-react';
 import { useOrganizationMembers, RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
-import ManageSubscriptionButton from '@/components/billing/ManageSubscriptionButton';
 import {
   Table,
   TableBody,
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/table';
 
 const SimplifiedMemberBilling: React.FC = () => {
-  const { currentOrganization } = useUnifiedOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
 
   if (isLoading) {
@@ -161,7 +160,7 @@ const SimplifiedMemberBilling: React.FC = () => {
             {!isFree && (
               <div className="flex gap-2 flex-1">
                 <PurchaseLicensesButton variant="outline" className="flex-1" />
-                <ManageSubscriptionButton className="flex-1" />
+                {/* <ManageSubscriptionButton className="flex-1" /> */}
               </div>
             )}
             {isFree && (

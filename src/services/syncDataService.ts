@@ -1,6 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { getEquipmentByOrganization, getEquipmentById, getAllWorkOrdersByOrganization, getWorkOrderById, getWorkOrdersByEquipmentId, getTeamsByOrganization, getScansByEquipmentId, getNotesByEquipmentId, getDashboardStatsByOrganization } from './dataService';
+import { getEquipmentByOrganization, getEquipmentById, getAllWorkOrdersByOrganization, getWorkOrderById, getWorkOrdersByEquipmentId, getTeamsByOrganization, getScansByEquipmentId, getNotesByEquipmentId, getDashboardStatsByOrganization } from './supabaseDataService';
 
 export interface Equipment {
   id: string;
