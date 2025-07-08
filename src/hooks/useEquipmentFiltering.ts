@@ -248,6 +248,7 @@ export const useEquipmentFiltering = () => {
     filterOptions,
     isLoading,
     hasActiveFilters,
+    equipment, // Return raw equipment data
     updateFilter,
     updateSort,
     clearFilters,

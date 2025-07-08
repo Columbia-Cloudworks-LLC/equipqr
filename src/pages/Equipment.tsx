@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
-import { useEquipmentByOrganization } from '@/hooks/useSupabaseData';
+
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 import EquipmentHeader from '@/components/equipment/EquipmentHeader';
@@ -26,6 +26,7 @@ const Equipment = () => {
     filterOptions,
     isLoading,
     hasActiveFilters,
+    equipment,
     updateFilter,
     updateSort,
     clearFilters,
@@ -71,8 +72,7 @@ const Equipment = () => {
     setEditingEquipment(null);
   };
 
-  // Get all equipment for insights (unfiltered)
-  const allEquipment = useEquipmentByOrganization().data || [];
+  // Equipment data comes from the filtering hook
 
   return (
     <div className="space-y-6">
@@ -94,7 +94,7 @@ const Equipment = () => {
       />
 
       <EquipmentInsights 
-        equipment={allEquipment}
+        equipment={equipment}
         filteredEquipment={filteredAndSortedEquipment}
       />
 
@@ -102,7 +102,7 @@ const Equipment = () => {
         sortConfig={sortConfig}
         onSortChange={updateSort}
         resultCount={filteredAndSortedEquipment.length}
-        totalCount={allEquipment.length}
+        totalCount={equipment.length}
       />
 
       <EquipmentGrid
