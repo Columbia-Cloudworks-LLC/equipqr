@@ -11,7 +11,7 @@ export const formatDateInUserSettings = (
   let formatPattern: string = settings.dateFormat;
   
   if (includeTime) {
-    const timePattern = settings.timeFormat === '12h' ? 'h:mm a' : 'HH:mm';
+    const timePattern = 'h:mm a'; // Default to 12-hour format
     formatPattern = `${formatPattern} ${timePattern}`;
   }
   
@@ -29,7 +29,7 @@ export const formatTimeInUserSettings = (
   settings: UserSettings
 ): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  const timePattern = settings.timeFormat === '12h' ? 'h:mm a' : 'HH:mm';
+  const timePattern = 'h:mm a'; // Default to 12-hour format
   
   try {
     return formatInTimeZone(dateObj, settings.timezone, timePattern);
@@ -52,7 +52,7 @@ export const formatRelativeDate = (
     return formatTimeInUserSettings(dateObj, settings);
   } else if (diffInHours < 24 * 7) {
     // Within a week, show day and time
-    const dayPattern = settings.timeFormat === '12h' ? 'EEE h:mm a' : 'EEE HH:mm';
+    const dayPattern = 'EEE h:mm a'; // Default to 12-hour format
     try {
       return formatInTimeZone(dateObj, settings.timezone, dayPattern);
     } catch (error) {
