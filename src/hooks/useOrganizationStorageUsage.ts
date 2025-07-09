@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 
 export interface StorageUsage {
   totalSizeMB: number;
@@ -15,7 +15,7 @@ export interface StorageUsage {
 }
 
 export const useOrganizationStorageUsage = () => {
-  const { currentOrganization } = useUnifiedOrganization();
+  const { currentOrganization } = useSimpleOrganization();
 
   return useQuery({
     queryKey: ['organization-storage-usage', currentOrganization?.id],

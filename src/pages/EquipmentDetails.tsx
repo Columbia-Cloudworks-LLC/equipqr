@@ -10,7 +10,7 @@ import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useEquipmentById } from '@/hooks/useSupabaseData';
 import { useIsMobile } from '@/hooks/use-mobile';
 import EquipmentDetailsTab from '@/components/equipment/EquipmentDetailsTab';
-import EquipmentNotesTab from '@/components/equipment/EquipmentNotesTab';
+import EnhancedEquipmentNotesTab from '@/components/equipment/EnhancedEquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
 import EquipmentImagesTab from '@/components/equipment/EquipmentImagesTab';
 import EquipmentScansTab from '@/components/equipment/EquipmentScansTab';
@@ -321,7 +321,7 @@ const EquipmentDetails = () => {
         </TabsContent>
 
         <TabsContent value="notes">
-          <EquipmentNotesTab 
+          <EnhancedEquipmentNotesTab 
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
             equipmentTeamId={equipment.team_id || undefined}

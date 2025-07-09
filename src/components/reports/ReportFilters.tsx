@@ -11,7 +11,7 @@ import { CalendarIcon, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ReportFilters as ReportFiltersType, ReportType } from '@/pages/Reports';
-import { Equipment, WorkOrder } from '@/services/unifiedDataService';
+import { Equipment, WorkOrder } from '@/services/supabaseDataService';
 
 interface ReportFiltersProps {
   filters: ReportFiltersType;

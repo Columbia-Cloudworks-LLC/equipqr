@@ -1,10 +1,10 @@
 import { useOrganizationMembers } from './useOrganizationMembers';
 import { useSlotAvailability } from './useOrganizationSlots';
-import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { getSimplifiedOrganizationRestrictions, getRestrictionMessage } from '@/utils/simplifiedOrganizationRestrictions';
 
 export const useSimplifiedOrganizationRestrictions = (fleetMapEnabled: boolean = false) => {
-  const { currentOrganization } = useUnifiedOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading } = useSlotAvailability(currentOrganization?.id || '');
 

@@ -1,7 +1,7 @@
 
-// Compatibility layer - re-export everything from UnifiedOrganizationContext
+// Compatibility layer - re-export everything from SimpleOrganizationContext
 export {
-  useUnifiedOrganization as useOrganization,
-  UnifiedOrganizationProvider as OrganizationProvider,
-  type UnifiedOrganizationContextType as OrganizationContextType
-} from './UnifiedOrganizationContext';
+  useSimpleOrganization as useOrganization,
+  SimpleOrganizationProvider as OrganizationProvider,
+  type SimpleOrganizationContextType as OrganizationContextType
+} from './SimpleOrganizationContext';

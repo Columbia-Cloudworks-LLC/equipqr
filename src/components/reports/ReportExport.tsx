@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { ReportFilters } from '@/pages/Reports';
-import { Equipment, WorkOrder, DashboardStats } from '@/services/unifiedDataService';
+import { Equipment, WorkOrder, DashboardStats } from '@/services/supabaseDataService';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 

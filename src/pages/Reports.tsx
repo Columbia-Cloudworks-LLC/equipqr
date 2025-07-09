@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Download, BarChart3, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useSyncEquipmentByOrganization, useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/services/syncDataService';
 import ReportFilters from '@/components/reports/ReportFilters';
 import ReportCharts from '@/components/reports/ReportCharts';
@@ -30,7 +30,7 @@ export interface ReportFilters {
 }
 
 const Reports = () => {
-  const { currentOrganization } = useUnifiedOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const [filters, setFilters] = useState<ReportFilters>({
     type: 'equipment',
     dateRange: { from: undefined, to: undefined }

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, AlertTriangle, TrendingUp } from 'lucide-react';
-import { useUnifiedOrganization } from '@/contexts/UnifiedOrganizationContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { calculateEnhancedBilling, getSlotStatus } from '@/utils/enhancedBillingUtils';
@@ -24,7 +24,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
   onPurchaseSlots,
   onUpgradeToMultiUser
 }) => {
-  const { currentOrganization } = useUnifiedOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading, refetch } = useSlotAvailability(currentOrganization?.id || '');
 

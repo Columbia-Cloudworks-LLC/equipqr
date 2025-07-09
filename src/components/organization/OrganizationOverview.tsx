@@ -2,9 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Users } from 'lucide-react';
+import { Building2, Users, Shield, MapPin } from 'lucide-react';
 import { OrganizationStats } from '@/hooks/useOrganizationStats';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
+import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { getPlanBadgeVariant } from '@/utils/badgeVariants';
 
 interface OrganizationOverviewProps {
@@ -19,6 +20,7 @@ const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({
   stats 
 }) => {
   const { data: slotAvailability, isLoading: slotsLoading } = useSlotAvailability(organizationId);
+  const { data: fleetMapSubscription, isLoading: fleetMapLoading } = useFleetMapSubscription(organizationId);
   if (stats.isLoading) {
     return (
       <Card>
@@ -39,19 +41,22 @@ const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({
       </CardHeader>
       <CardContent className="pt-0">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* User Licenses Card */}
           <div className="text-center p-3 sm:p-4 border rounded-lg">
+            <div className="flex items-center justify-center mb-2">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
             <div className="text-xl sm:text-2xl font-bold">{stats.memberCount}</div>
             <div className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Active Members
+              User Licenses
             </div>
           </div>
+
+          {/* Available Licenses Card */}
           <div className="text-center p-3 sm:p-4 border rounded-lg">
-            <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.adminCount}</div>
-            <div className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Organization Admins
+            <div className="flex items-center justify-center mb-2">
+              <Users className="h-5 w-5 text-green-600" />
             </div>
-          </div>
-          <div className="text-center p-3 sm:p-4 border rounded-lg col-span-2 lg:col-span-1">
             {slotsLoading ? (
               <div className="h-8 bg-muted animate-pulse rounded mb-2" />
             ) : (
@@ -64,13 +69,41 @@ const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({
                 </div>
               </>
             )}
-            <div className="text-xs sm:text-sm text-muted-foreground mt-1">Available Slots</div>
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">Available Licenses</div>
           </div>
-          <div className="text-center p-3 sm:p-4 border rounded-lg col-span-2 lg:col-span-1">
-            <div className="text-xl sm:text-2xl font-bold">{stats.featureCount}</div>
-            <div className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Active Features
+
+          {/* Organization Admins Card */}
+          <div className="text-center p-3 sm:p-4 border rounded-lg">
+            <div className="flex items-center justify-center mb-2">
+              <Shield className="h-5 w-5 text-blue-600" />
             </div>
+            <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.adminCount}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Organization Admins
+            </div>
+          </div>
+
+          {/* Fleet Map Subscription Card */}
+          <div className="text-center p-3 sm:p-4 border rounded-lg">
+            <div className="flex items-center justify-center mb-2">
+              <MapPin className="h-5 w-5 text-orange-600" />
+            </div>
+            {fleetMapLoading ? (
+              <div className="h-8 bg-muted animate-pulse rounded mb-2" />
+            ) : (
+              <>
+                <Badge 
+                  variant={fleetMapSubscription?.enabled ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {fleetMapSubscription?.enabled ? "Active" : "Inactive"}
+                </Badge>
+                <div className="text-xs text-muted-foreground mt-2">
+                  {fleetMapSubscription?.enabled ? "Fleet mapping enabled" : "Fleet mapping disabled"}
+                </div>
+              </>
+            )}
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">Fleet Map</div>
           </div>
         </div>
       </CardContent>

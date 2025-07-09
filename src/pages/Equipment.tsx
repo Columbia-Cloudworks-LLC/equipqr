@@ -1,28 +1,43 @@
 
 import React, { useState } from 'react';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { useEquipmentByOrganization } from '@/hooks/useSupabaseData';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
+
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 import EquipmentHeader from '@/components/equipment/EquipmentHeader';
-import EquipmentFilters from '@/components/equipment/EquipmentFilters';
+import EnhancedEquipmentFilters from '@/components/equipment/EnhancedEquipmentFilters';
+import EquipmentSortHeader from '@/components/equipment/EquipmentSortHeader';
+import EquipmentInsights from '@/components/equipment/EquipmentInsights';
 import EquipmentGrid from '@/components/equipment/EquipmentGrid';
 import EquipmentLoadingState from '@/components/equipment/EquipmentLoadingState';
-import { filterEquipment } from '@/utils/equipmentHelpers';
 
 const Equipment = () => {
-  const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
-  const { data: equipment = [], isLoading: equipmentLoading } = useEquipmentByOrganization();
+  const { currentOrganization } = useSimpleOrganization();
   const { canCreateEquipment } = usePermissions();
+  
+  // Use the new enhanced filtering hook
+  const {
+    filters,
+    sortConfig,
+    showAdvancedFilters,
+    filteredAndSortedEquipment,
+    filterOptions,
+    isLoading,
+    hasActiveFilters,
+    equipment,
+    updateFilter,
+    updateSort,
+    clearFilters,
+    applyQuickFilter,
+    setShowAdvancedFilters
+  } = useEquipmentFiltering();
   
   const [showForm, setShowForm] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
 
-  const isLoading = orgLoading || equipmentLoading;
   const canCreate = canCreateEquipment();
 
   if (!currentOrganization) {
@@ -42,8 +57,6 @@ const Equipment = () => {
     return <EquipmentLoadingState />;
   }
 
-  const filteredEquipment = filterEquipment(equipment, searchQuery, statusFilter);
-
   const handleAddEquipment = () => {
     setEditingEquipment(null);
     setShowForm(true);
@@ -59,6 +72,8 @@ const Equipment = () => {
     setEditingEquipment(null);
   };
 
+  // Equipment data comes from the filtering hook
+
   return (
     <div className="space-y-6">
       <EquipmentHeader
@@ -67,17 +82,33 @@ const Equipment = () => {
         onAddEquipment={handleAddEquipment}
       />
 
-      <EquipmentFilters
-        searchQuery={searchQuery}
-        statusFilter={statusFilter}
-        onSearchChange={setSearchQuery}
-        onStatusFilterChange={setStatusFilter}
+      <EnhancedEquipmentFilters
+        filters={filters}
+        showAdvancedFilters={showAdvancedFilters}
+        hasActiveFilters={hasActiveFilters}
+        filterOptions={filterOptions}
+        onFilterChange={updateFilter}
+        onToggleAdvanced={() => setShowAdvancedFilters(!showAdvancedFilters)}
+        onClearFilters={clearFilters}
+        onQuickFilter={applyQuickFilter}
+      />
+
+      <EquipmentInsights 
+        equipment={equipment}
+        filteredEquipment={filteredAndSortedEquipment}
+      />
+
+      <EquipmentSortHeader
+        sortConfig={sortConfig}
+        onSortChange={updateSort}
+        resultCount={filteredAndSortedEquipment.length}
+        totalCount={equipment.length}
       />
 
       <EquipmentGrid
-        equipment={filteredEquipment}
-        searchQuery={searchQuery}
-        statusFilter={statusFilter}
+        equipment={filteredAndSortedEquipment}
+        searchQuery={filters.search}
+        statusFilter={filters.status}
         organizationName={currentOrganization.name}
         canCreate={canCreate}
         onShowQRCode={setShowQRCode}

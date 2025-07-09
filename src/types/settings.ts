@@ -3,55 +3,11 @@ export interface UserSettings {
   // Personalization
   timezone: string;
   dateFormat: 'MM/dd/yyyy' | 'dd/MM/yyyy' | 'yyyy-MM-dd' | 'MMM dd, yyyy';
-  
-  // Notifications
-  emailNotifications: {
-    workOrderUpdates: boolean;
-    equipmentAlerts: boolean;
-    teamAssignments: boolean;
-    systemUpdates: boolean;
-  };
-  pushNotifications: {
-    workOrderUpdates: boolean;
-    equipmentAlerts: boolean;
-    teamAssignments: boolean;
-  };
-  
-  // Units & Measurements
-  temperatureUnit: 'celsius' | 'fahrenheit';
-  distanceUnit: 'metric' | 'imperial';
-  
-  // Date & Time
-  timeFormat: '12h' | '24h';
-  weekStartsOn: 'sunday' | 'monday';
-  
-  // Privacy & Security
-  profileVisibility: 'public' | 'team' | 'private';
-  dataSharing: boolean;
-  analyticsOptOut: boolean;
 }
 
 export const defaultUserSettings: UserSettings = {
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   dateFormat: 'MM/dd/yyyy',
-  emailNotifications: {
-    workOrderUpdates: true,
-    equipmentAlerts: true,
-    teamAssignments: true,
-    systemUpdates: false,
-  },
-  pushNotifications: {
-    workOrderUpdates: true,
-    equipmentAlerts: true,
-    teamAssignments: true,
-  },
-  temperatureUnit: 'fahrenheit',
-  distanceUnit: 'imperial',
-  timeFormat: '12h',
-  weekStartsOn: 'sunday',
-  profileVisibility: 'team',
-  dataSharing: true,
-  analyticsOptOut: false,
 };
 
 // Available options for dropdowns
