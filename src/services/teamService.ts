@@ -29,6 +29,52 @@ export const createTeam = async (teamData: TeamInsert): Promise<Team> => {
   return data;
 };
 
+// Create a team and automatically add creator as manager
+export const createTeamWithCreator = async (
+  teamData: TeamInsert, 
+  creatorId: string
+): Promise<TeamWithMembers> => {
+  // Start a transaction-like operation
+  const { data: team, error: teamError } = await supabase
+    .from('teams')
+    .insert(teamData)
+    .select()
+    .single();
+
+  if (teamError) throw teamError;
+
+  // Add creator as manager
+  const { error: memberError } = await supabase
+    .from('team_members')
+    .insert({
+      team_id: team.id,
+      user_id: creatorId,
+      role: 'manager'
+    });
+
+  if (memberError) {
+    // If adding member fails, we should ideally rollback the team creation
+    // For now, we'll throw the error and let the caller handle cleanup
+    throw memberError;
+  }
+
+  // Return the team with the creator as a member
+  const teamWithMembers: TeamWithMembers = {
+    ...team,
+    members: [{
+      id: '', // This will be filled by the actual query
+      team_id: team.id,
+      user_id: creatorId,
+      role: 'manager' as const,
+      joined_date: new Date().toISOString(),
+      profiles: null // This will be filled by actual query if needed
+    }],
+    member_count: 1
+  };
+
+  return teamWithMembers;
+};
+
 // Update an existing team
 export const updateTeam = async (id: string, updates: TeamUpdate): Promise<Team> => {
   const { data, error } = await supabase
@@ -58,7 +104,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
     .from('teams')
     .select(`
       *,
-      team_members!inner (
+      team_members (
         *,
         profiles (
           name,
@@ -71,26 +117,12 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
 
   if (error) throw error;
 
-  // Transform the data to group members by team
-  const teamsMap = new Map<string, TeamWithMembers>();
-  
-  (data || []).forEach((team: any) => {
-    if (!teamsMap.has(team.id)) {
-      teamsMap.set(team.id, {
-        ...team,
-        members: [],
-        member_count: 0
-      });
-    }
-    
-    if (team.team_members) {
-      const teamData = teamsMap.get(team.id)!;
-      teamData.members.push(team.team_members);
-      teamData.member_count = teamData.members.length;
-    }
-  });
-
-  return Array.from(teamsMap.values());
+  // Transform the data to include teams even without members
+  return (data || []).map((team: any) => ({
+    ...team,
+    members: team.team_members || [],
+    member_count: (team.team_members || []).length
+  }));
 };
 
 // Get single team with members

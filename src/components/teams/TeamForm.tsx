@@ -14,8 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { createTeam, updateTeam } from '@/services/teamService';
+import { updateTeam } from '@/services/teamService';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTeamMutations } from '@/hooks/useTeamManagement';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TeamFormProps {
   open: boolean;
@@ -27,7 +29,9 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
   const isEdit = !!team;
   const { toast } = useToast();
   const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { createTeamWithCreator } = useTeamMutations();
   
   const [formData, setFormData] = useState({
     name: team?.name || '',
@@ -35,26 +39,6 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const createTeamMutation = useMutation({
-    mutationFn: createTeam,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', currentOrganization?.id] });
-      toast({
-        title: "Success",
-        description: "Team created successfully",
-      });
-      onClose();
-      setFormData({ name: '', description: '' });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create team",
-        variant: "destructive"
-      });
-    }
-  });
 
   const updateTeamMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: any }) => updateTeam(id, updates),
@@ -88,6 +72,15 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!formData.name.trim()) {
       toast({
         title: "Error",
@@ -109,10 +102,22 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
           }
         });
       } else {
-        createTeamMutation.mutate({
-          name: formData.name.trim(),
-          description: formData.description.trim() || null,
-          organization_id: currentOrganization.id
+        createTeamWithCreator.mutate({
+          teamData: {
+            name: formData.name.trim(),
+            description: formData.description.trim() || null,
+            organization_id: currentOrganization.id
+          },
+          creatorId: user.id
+        }, {
+          onSuccess: () => {
+            toast({
+              title: "Success",
+              description: "Team created successfully",
+            });
+            onClose();
+            setFormData({ name: '', description: '' });
+          }
         });
       }
     } finally {
@@ -168,9 +173,9 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting || createTeamMutation.isPending || updateTeamMutation.isPending}
+              disabled={isSubmitting || createTeamWithCreator.isPending || updateTeamMutation.isPending}
             >
-              {(isSubmitting || createTeamMutation.isPending || updateTeamMutation.isPending) 
+              {(isSubmitting || createTeamWithCreator.isPending || updateTeamMutation.isPending) 
                 ? (isEdit ? 'Updating...' : 'Creating...') 
                 : (isEdit ? 'Update Team' : 'Create Team')
               }

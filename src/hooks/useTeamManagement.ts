@@ -4,6 +4,7 @@ import {
   getTeamsByOrganization, 
   getTeamById, 
   createTeam, 
+  createTeamWithCreator,
   updateTeam, 
   deleteTeam,
   addTeamMember,
@@ -39,6 +40,21 @@ export const useTeamMutations = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const createTeamWithCreatorMutation = useMutation({
+    mutationFn: ({ teamData, creatorId }: { teamData: any; creatorId: string }) =>
+      createTeamWithCreator(teamData, creatorId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['teams', variables.teamData.organization_id] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create team",
+        variant: "destructive"
+      });
+    }
+  });
+
   const deleteTeamMutation = useMutation({
     mutationFn: deleteTeam,
     onSuccess: (_, teamId) => {
@@ -59,6 +75,7 @@ export const useTeamMutations = () => {
   });
 
   return {
+    createTeamWithCreator: createTeamWithCreatorMutation,
     deleteTeam: deleteTeamMutation,
   };
 };
