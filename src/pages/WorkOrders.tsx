@@ -6,6 +6,7 @@ import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import { useBatchAssignUnassignedWorkOrders } from '@/hooks/useBatchAssignUnassignedWorkOrders';
 import { useWorkOrderFilters } from '@/hooks/useWorkOrderFilters';
+import { useWorkOrderReopening } from '@/hooks/useWorkOrderReopening';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrderAcceptanceModalState } from '@/types/workOrder';
@@ -43,6 +44,7 @@ const WorkOrders = () => {
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
   const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
+  const reopenMutation = useWorkOrderReopening();
 
   // Use custom filters hook
   const {
@@ -96,6 +98,15 @@ const WorkOrders = () => {
     setShowMobileFilters(false);
   };
 
+  const handleReopen = async (workOrderId: string) => {
+    if (!currentOrganization) return;
+    
+    await reopenMutation.mutateAsync({
+      workOrderId,
+      organizationId: currentOrganization.id
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -139,15 +150,16 @@ const WorkOrders = () => {
             onQuickFilter={handleQuickFilter}
           />
 
-          <WorkOrdersList
-            workOrders={filteredWorkOrders}
-            onAcceptClick={handleAcceptClick}
-            onStatusUpdate={handleStatusUpdate}
-            isUpdating={updateStatusMutation.isPending}
-            isAccepting={acceptanceMutation.isPending}
-            hasActiveFilters={hasActiveFilters}
-            onCreateClick={() => setShowForm(true)}
-          />
+            <WorkOrdersList
+              workOrders={filteredWorkOrders}
+              onAcceptClick={handleAcceptClick}
+              onStatusUpdate={handleStatusUpdate}
+              isUpdating={updateStatusMutation.isPending}
+              isAccepting={acceptanceMutation.isPending}
+              hasActiveFilters={hasActiveFilters}
+              onCreateClick={() => setShowForm(true)}
+              onReopenClick={() => undefined}
+            />
         </div>
 
         {/* Notifications Sidebar - Only show on desktop */}

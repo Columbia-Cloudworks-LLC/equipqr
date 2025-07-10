@@ -7,6 +7,8 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { WorkOrder } from '@/services/syncDataService';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
+import { WorkOrderQuickActions } from './WorkOrderQuickActions';
+import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 
 interface ExtendedWorkOrder extends WorkOrder {
   created_date: string;
@@ -19,11 +21,15 @@ interface ExtendedWorkOrder extends WorkOrder {
 interface DesktopWorkOrderCardProps {
   workOrder: ExtendedWorkOrder;
   onNavigate: (id: string) => void;
+  onAssignClick?: () => void;
+  onReopenClick?: () => void;
 }
 
 const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({ 
   workOrder, 
-  onNavigate 
+  onNavigate,
+  onAssignClick,
+  onReopenClick
 }) => {
   const permissions = useUnifiedPermissions();
 
@@ -109,23 +115,33 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
           )}
 
           {workOrder.assigneeName && (
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Assigned to</div>
-                <div className="text-muted-foreground">{workOrder.assigneeName}</div>
+            <WorkOrderAssignmentHover 
+              workOrder={workOrder}
+              disabled={!permissions.workOrders.getDetailedPermissions(workOrder as any).canEdit}
+            >
+              <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="font-medium">Assigned to</div>
+                  <div className="text-muted-foreground">{workOrder.assigneeName}</div>
+                </div>
               </div>
-            </div>
+            </WorkOrderAssignmentHover>
           )}
 
           {workOrder.teamName && (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Team</div>
-                <div className="text-muted-foreground">{workOrder.teamName}</div>
+            <WorkOrderAssignmentHover 
+              workOrder={workOrder}
+              disabled={!permissions.workOrders.getDetailedPermissions(workOrder as any).canEdit}
+            >
+              <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="font-medium">Team</div>
+                  <div className="text-muted-foreground">{workOrder.teamName}</div>
+                </div>
               </div>
-            </div>
+            </WorkOrderAssignmentHover>
           )}
         </div>
 
@@ -165,13 +181,21 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
             )}
           </div>
           
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => onNavigate(workOrder.id)}
-          >
-            View Details
-          </Button>
+          <div className="flex items-center gap-2">
+            <WorkOrderQuickActions
+              workOrder={workOrder}
+              onAssignClick={onAssignClick}
+              onReopenClick={onReopenClick}
+              showInline
+            />
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => onNavigate(workOrder.id)}
+            >
+              View Details
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
