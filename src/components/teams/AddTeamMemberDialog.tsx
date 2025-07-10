@@ -8,16 +8,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Team } from '@/services/supabaseDataService';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTeamMembers } from '@/hooks/useTeamManagement';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useToast } from '@/hooks/use-toast';
+import { TeamWithMembers } from '@/services/teamService';
 
 interface AddTeamMemberDialogProps {
   open: boolean;
   onClose: () => void;
-  team: Team;
+  team: TeamWithMembers;
 }
 
 const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({ 
@@ -25,29 +29,47 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
   onClose, 
   team 
 }) => {
-  const [selectedRole, setSelectedRole] = useState<string>('technician');
+  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<'manager' | 'technician'>('technician');
+  const { currentOrganization } = useOrganization();
+  const { toast } = useToast();
+  
+  const { availableUsers, addMember } = useTeamMembers(team?.id, currentOrganization?.id);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
     
-    const memberData = {
-      email: formData.get('email') as string,
-      role: selectedRole,
-      teamId: team.id,
-    };
+    if (!selectedUser) {
+      toast({
+        title: "Error",
+        description: "Please select a user to add",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // In real implementation, this would call an add team member mutation
-    console.log('Adding team member:', memberData);
-    onClose();
+    try {
+      await addMember.mutateAsync({
+        team_id: team.id,
+        user_id: selectedUser,
+        role: selectedRole,
+      });
+      
+      setSelectedUser('');
+      setSelectedRole('technician');
+      onClose();
+    } catch (error) {
+      // Error is handled by the mutation
+    }
   };
 
   const roleOptions = [
     { value: 'manager', label: 'Manager', description: 'Can manage team members and assign work orders' },
     { value: 'technician', label: 'Technician', description: 'Can update work orders and record maintenance' },
-    { value: 'requestor', label: 'Requestor', description: 'Can create work orders and view assigned equipment' },
-    { value: 'viewer', label: 'Viewer', description: 'Read-only access to team resources' },
   ];
+
+  const isLoading = availableUsers.isLoading;
+  const users = availableUsers.data || [];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -55,7 +77,7 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Add Team Member</DialogTitle>
           <DialogDescription>
-            Invite a new member to join {team.name}
+            Add an existing organization member to {team.name}
           </DialogDescription>
         </DialogHeader>
 
@@ -63,19 +85,46 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
           <Card>
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="member@company.com"
-                  required
-                />
+                <Label htmlFor="user">Select User *</Label>
+                {isLoading ? (
+                  <div className="text-sm text-muted-foreground">Loading available users...</div>
+                ) : users.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No available users to add</div>
+                ) : (
+                  <Select value={selectedUser} onValueChange={setSelectedUser} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a user to add" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <ScrollArea className="h-48">
+                        {users.map((user) => (
+                          <SelectItem key={user.user_id} value={user.user_id}>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-xs">
+                                  {(user.profiles?.name || 'U').split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{user.profiles?.name || 'Unknown'}</div>
+                                <div className="text-sm text-muted-foreground">{user.profiles?.email}</div>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </ScrollArea>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="role">Team Role *</Label>
-                <Select value={selectedRole} onValueChange={setSelectedRole} required>
+                <Select 
+                  value={selectedRole} 
+                  onValueChange={(value: string) => setSelectedRole(value as 'manager' | 'technician')} 
+                  required
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
@@ -98,8 +147,11 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">
-              Send Invitation
+            <Button 
+              type="submit" 
+              disabled={!selectedUser || addMember.isPending}
+            >
+              {addMember.isPending ? 'Adding...' : 'Add Member'}
             </Button>
           </div>
         </form>

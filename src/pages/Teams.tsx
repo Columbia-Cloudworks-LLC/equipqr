@@ -7,16 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Users, Settings, Crown, User } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useSyncTeamsByOrganization } from '@/services/syncDataService';
+import { useTeams } from '@/hooks/useTeamManagement';
 import TeamForm from '@/components/teams/TeamForm';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const Teams = () => {
   const { currentOrganization, isLoading } = useOrganization();
   const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
 
-  // Use sync hook for teams data
-  const { data: teams = [], isLoading: teamsLoading } = useSyncTeamsByOrganization(currentOrganization?.id);
+  // Use teams hook for data
+  const { data: teams = [], isLoading: teamsLoading } = useTeams(currentOrganization?.id);
+  
+  // Check permissions
+  const permissions = usePermissions();
 
   if (isLoading || teamsLoading || !currentOrganization) {
     return (
@@ -115,7 +119,7 @@ const Teams = () => {
                   <span className="font-medium">{team.members.length} members</span>
                 </div>
                 <div className="text-muted-foreground">
-                  {team.activeWorkOrders} active work orders
+                  {team.member_count} total members
                 </div>
               </div>
 
@@ -126,16 +130,16 @@ const Teams = () => {
                   {team.members.slice(0, 3).map((member) => (
                     <div key={member.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={undefined} />
-                          <AvatarFallback className="text-xs">
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{member.name}</p>
-                          <p className="text-xs text-muted-foreground">{member.email}</p>
-                        </div>
+                         <Avatar className="h-6 w-6">
+                           <AvatarImage src={undefined} />
+                           <AvatarFallback className="text-xs">
+                             {(member.profiles?.name || 'U').split(' ').map(n => n[0]).join('')}
+                           </AvatarFallback>
+                         </Avatar>
+                         <div>
+                           <p className="text-sm font-medium">{member.profiles?.name || 'Unknown'}</p>
+                           <p className="text-xs text-muted-foreground">{member.profiles?.email || 'No email'}</p>
+                         </div>
                       </div>
                       <Badge className={getRoleColor(member.role)} variant="outline">
                         <div className="flex items-center gap-1">

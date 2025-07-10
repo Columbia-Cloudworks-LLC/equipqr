@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Settings, Users, Trash2, Plus, Edit } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useSyncTeamsByOrganization } from '@/services/syncDataService';
+import { useTeam, useTeamMutations } from '@/hooks/useTeamManagement';
+import { usePermissions } from '@/hooks/usePermissions';
 import TeamMembersList from '@/components/teams/TeamMembersList';
 import TeamMetadataEditor from '@/components/teams/TeamMetadataEditor';
 import AddTeamMemberDialog from '@/components/teams/AddTeamMemberDialog';
@@ -19,10 +20,12 @@ const TeamDetails = () => {
   const [showMetadataEditor, setShowMetadataEditor] = useState(false);
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
 
-  // Use sync hook for teams data
-  const { data: teams = [], isLoading: teamsLoading } = useSyncTeamsByOrganization(currentOrganization?.id);
+  // Use team hook for data
+  const { data: team, isLoading: teamLoading } = useTeam(teamId);
+  const { deleteTeam } = useTeamMutations();
+  const permissions = usePermissions();
 
-  if (isLoading || teamsLoading || !currentOrganization || !teamId) {
+  if (isLoading || teamLoading || !currentOrganization || !teamId) {
     return (
       <div className="space-y-6">
         <div className="h-8 bg-muted animate-pulse rounded" />
@@ -36,8 +39,6 @@ const TeamDetails = () => {
       </div>
     );
   }
-
-  const team = teams.find(t => t.id === teamId);
 
   if (!team) {
     return (
@@ -70,10 +71,18 @@ const TeamDetails = () => {
   const canDelete = true; // currentOrganization.userRole in ['owner', 'admin'] or user is team manager
   const canManageMembers = true; // currentOrganization.userRole in ['owner', 'admin'] or user is team manager
 
-  const handleDeleteTeam = () => {
-    // In real implementation, this would call a delete team mutation
-    console.log('Deleting team:', team.id);
-    navigate('/teams');
+  const handleDeleteTeam = async () => {
+    if (!team) return;
+    
+    const confirmed = window.confirm(`Are you sure you want to delete "${team.name}"? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      await deleteTeam.mutateAsync(team.id);
+      navigate('/teams');
+    } catch (error) {
+      // Error is handled by the mutation
+    }
   };
 
   return (
@@ -95,7 +104,7 @@ const TeamDetails = () => {
               {team.name}
             </h1>
             <p className="text-muted-foreground">
-              {team.members.length} members • {team.activeWorkOrders} active work orders
+              {team.member_count} members
             </p>
           </div>
         </div>
@@ -143,8 +152,10 @@ const TeamDetails = () => {
               <p className="text-2xl font-bold text-blue-600">{team.members.length}</p>
             </div>
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Active Work Orders</h4>
-              <p className="text-2xl font-bold text-orange-600">{team.activeWorkOrders}</p>
+              <h4 className="text-sm font-medium text-muted-foreground">Team Created</h4>
+              <p className="text-sm text-muted-foreground">
+                {new Date(team.created_at).toLocaleDateString()}
+              </p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Team Status</h4>
