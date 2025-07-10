@@ -106,7 +106,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
                       const showDivider = (isFirstTeamAssignee || isFirstAdmin) && index > 0;
                       
                       return (
-                        <React.Fragment key={assignee.id}>
+                        <div key={assignee.id}>
                           {showDivider && <div className="border-t my-1" />}
                           {isFirstTeamAssignee && (
                             <div className="px-2 py-1 text-xs font-medium text-muted-foreground">Team Assignment</div>
@@ -124,7 +124,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
                               {assignee.name}
                             </div>
                           </SelectItem>
-                        </React.Fragment>
+                        </div>
                       );
                     })}
                   </SelectContent>
