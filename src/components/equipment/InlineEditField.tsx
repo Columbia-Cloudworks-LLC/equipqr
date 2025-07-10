@@ -70,6 +70,12 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
   const getDisplayValue = () => {
     if (!value) return 'Not set';
     
+    if (type === 'select' && selectOptions) {
+      // For select fields, find the label that matches the value
+      const option = selectOptions.find(opt => opt.value === value);
+      return option ? option.label : value;
+    }
+    
     if (type === 'date' && value) {
       try {
         // Try to format the date for display
