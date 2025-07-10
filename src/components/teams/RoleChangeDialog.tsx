@@ -12,13 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Team, TeamMember } from '@/services/supabaseDataService';
+import { TeamWithMembers } from '@/services/teamService';
 
 interface RoleChangeDialogProps {
   open: boolean;
   onClose: () => void;
-  member: TeamMember | null;
-  team: Team;
+  member: any;
+  team: TeamWithMembers;
 }
 
 const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({ 

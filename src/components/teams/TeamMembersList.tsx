@@ -6,17 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Users, User, Settings, Trash2 } from 'lucide-react';
-import { Team, TeamMember } from '@/services/supabaseDataService';
+import { TeamWithMembers } from '@/services/teamService';
 import { usePermissions } from '@/hooks/usePermissions';
 import RoleChangeDialog from './RoleChangeDialog';
 
 interface TeamMembersListProps {
-  team: Team;
+  team: TeamWithMembers;
 }
 
 const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
   const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
   const { canManageTeam } = usePermissions();
   
   const canManage = canManageTeam(team.id);
@@ -51,12 +51,12 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
     }
   };
 
-  const handleChangeRole = (member: TeamMember) => {
+  const handleChangeRole = (member: any) => {
     setSelectedMember(member);
     setShowRoleDialog(true);
   };
 
-  const handleRemoveMember = (member: TeamMember) => {
+  const handleRemoveMember = (member: any) => {
     // In real implementation, this would call a remove member mutation
     console.log('Removing member:', member.id, 'from team:', team.id);
   };
@@ -77,14 +77,14 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
             <TableRow key={member.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-sm">
-                      {member.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{member.name}</p>
-                  </div>
+                   <Avatar className="h-8 w-8">
+                     <AvatarFallback className="text-sm">
+                       {(member.profiles?.name || 'U').split(' ').map(n => n[0]).join('')}
+                     </AvatarFallback>
+                   </Avatar>
+                   <div>
+                     <p className="font-medium">{member.profiles?.name || 'Unknown'}</p>
+                   </div>
                 </div>
               </TableCell>
               <TableCell>
@@ -96,7 +96,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
                 </Badge>
               </TableCell>
               <TableCell>
-                <span className="text-muted-foreground">{member.email}</span>
+                <span className="text-muted-foreground">{member.profiles?.email || 'No email'}</span>
               </TableCell>
               {canManage && (
                 <TableCell className="text-right">
