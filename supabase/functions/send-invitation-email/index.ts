@@ -66,8 +66,9 @@ serve(async (req) => {
 
     logStep("Invitation token retrieved", { token: invitation.invitation_token });
 
-    // Construct the invitation URL
-    const invitationUrl = `${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '')}.lovableproject.com/invitation/${invitation.invitation_token}`;
+    // Construct the invitation URL using production URL if available
+    const baseUrl = Deno.env.get("PRODUCTION_URL") || `${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '')}.lovableproject.com`;
+    const invitationUrl = `${baseUrl}/invitation/${invitation.invitation_token}`;
 
     // Create email HTML content
     const emailHtml = `
