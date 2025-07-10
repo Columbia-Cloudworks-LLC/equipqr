@@ -75,7 +75,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
         <div className="space-y-3">
           <div className="text-sm font-medium">Quick Assignment</div>
           
-          {!assignmentData.availableAssignees ? (
+          {!assignmentData.availableAssignees || assignmentData.availableAssignees.length === 0 ? (
             <div className="text-xs text-muted-foreground">Loading options...</div>
           ) : (
             <>
