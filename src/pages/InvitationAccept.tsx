@@ -20,6 +20,14 @@ interface InvitationData {
   expires_at: string;
 }
 
+interface AcceptInvitationResponse {
+  success: boolean;
+  error?: string;
+  organization_id?: string;
+  organization_name?: string;
+  role?: string;
+}
+
 const InvitationAccept = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
@@ -100,51 +108,26 @@ const InvitationAccept = () => {
   }, [token]);
 
   const handleAcceptInvitation = async () => {
-    if (!invitation || !user) return;
+    if (!invitation || !user || !token) return;
 
     setAccepting(true);
     
     try {
-      // Check if user email matches invitation email
-      if (user.email !== invitation.email) {
-        toast.error('This invitation is for a different email address');
+      // Use the atomic function to accept the invitation
+      const { data, error } = await supabase.rpc('accept_invitation_atomic', {
+        p_invitation_token: token
+      });
+
+      if (error) throw error;
+
+      const result = data as unknown as AcceptInvitationResponse;
+      
+      if (!result?.success) {
+        toast.error(result?.error || 'Failed to accept invitation');
         return;
       }
 
-      // Accept the invitation directly by updating the invitation and creating membership
-      const { error: updateError } = await supabase
-        .from('organization_invitations')
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString(),
-          accepted_by: user.id
-        })
-        .eq('invitation_token', token);
-
-      if (updateError) throw updateError;
-
-      // Get organization ID from invitation
-      const { data: invitationData, error: fetchError } = await supabase
-        .from('organization_invitations')
-        .select('organization_id, role')
-        .eq('invitation_token', token)
-        .single();
-
-      if (fetchError || !invitationData) throw new Error('Could not retrieve invitation data');
-
-      // Create organization membership
-      const { error: membershipError } = await supabase
-        .from('organization_members')
-        .insert({
-          organization_id: invitationData.organization_id,
-          user_id: user.id,
-          role: invitationData.role,
-          status: 'active'
-        });
-
-      if (membershipError) throw membershipError;
-
-      toast.success('Invitation accepted successfully!');
+      toast.success(`Welcome to ${result.organization_name}!`);
       
       // Refresh session to update organization data
       await refreshSession();
