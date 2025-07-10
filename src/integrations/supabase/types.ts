@@ -1338,6 +1338,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invitation_atomic: {
+        Args: { p_invitation_token: string; p_user_id?: string }
+        Returns: Json
+      }
       calculate_billable_members: {
         Args: { org_id: string }
         Returns: number
