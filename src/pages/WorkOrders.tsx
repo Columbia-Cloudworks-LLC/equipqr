@@ -8,6 +8,7 @@ import { useBatchAssignUnassignedWorkOrders } from '@/hooks/useBatchAssignUnassi
 import { useWorkOrderFilters } from '@/hooks/useWorkOrderFilters';
 import { useWorkOrderReopening } from '@/hooks/useWorkOrderReopening';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTeams } from '@/hooks/useTeamManagement';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrderAcceptanceModalState } from '@/types/workOrder';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
@@ -41,6 +42,7 @@ const WorkOrders = () => {
 
   // Use enhanced hook for work orders data
   const { data: allWorkOrders = [], isLoading } = useEnhancedWorkOrders(currentOrganization?.id);
+  const { data: teams = [] } = useTeams(currentOrganization?.id);
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
   const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
@@ -148,6 +150,7 @@ const WorkOrders = () => {
             onFilterChange={updateFilter}
             onClearFilters={clearAllFilters}
             onQuickFilter={handleQuickFilter}
+            teams={teams}
           />
 
             <WorkOrdersList

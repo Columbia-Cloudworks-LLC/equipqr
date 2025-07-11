@@ -5,9 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Search, Filter, Calendar, User, Clock, X } from 'lucide-react';
+import { Search, Filter, Calendar, User, Clock, X, Users } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { WorkOrderFilters as FiltersType } from '@/types/workOrder';
+
+interface Team {
+  id: string;
+  name: string;
+}
 
 interface WorkOrderFiltersProps {
   filters: FiltersType;
@@ -17,6 +22,7 @@ interface WorkOrderFiltersProps {
   onFilterChange: (key: keyof FiltersType, value: string) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
+  teams?: Team[];
 }
 
 export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
@@ -26,7 +32,8 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
   onShowMobileFiltersChange,
   onFilterChange,
   onClearFilters,
-  onQuickFilter
+  onQuickFilter,
+  teams = []
 }) => {
   const isMobile = useIsMobile();
 
@@ -172,6 +179,23 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Team</label>
+                      <Select value={filters.teamFilter} onValueChange={(value) => onFilterChange('teamFilter', value)}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue placeholder="All Teams" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Teams</SelectItem>
+                          {teams.map((team) => (
+                            <SelectItem key={team.id} value={team.id}>
+                              {team.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   {/* Clear All Button */}
@@ -227,6 +251,15 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 />
               </Badge>
             )}
+            {filters.teamFilter !== 'all' && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Team: {teams.find(t => t.id === filters.teamFilter)?.name || filters.teamFilter}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() => onFilterChange('teamFilter', 'all')}
+                />
+              </Badge>
+            )}
           </div>
         )}
       </div>
@@ -268,7 +301,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
             </Select>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <Select value={filters.assigneeFilter} onValueChange={(value) => onFilterChange('assigneeFilter', value)}>
               <SelectTrigger>
                 <User className="h-4 w-4 mr-2" />
@@ -303,6 +336,21 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 <SelectItem value="overdue">Overdue</SelectItem>
                 <SelectItem value="today">Due Today</SelectItem>
                 <SelectItem value="this_week">This Week</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filters.teamFilter} onValueChange={(value) => onFilterChange('teamFilter', value)}>
+              <SelectTrigger>
+                <Users className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Team" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Teams</SelectItem>
+                {teams.map((team) => (
+                  <SelectItem key={team.id} value={team.id}>
+                    {team.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
