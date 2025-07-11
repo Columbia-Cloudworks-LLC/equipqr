@@ -202,7 +202,18 @@ export const updateTeamMemberRole = async (
 
 // Get available users for team (organization members not in team)
 export const getAvailableUsersForTeam = async (organizationId: string, teamId: string) => {
-  const { data, error } = await supabase
+  // First get all users already in the team
+  const { data: existingMembers, error: membersError } = await supabase
+    .from('team_members')
+    .select('user_id')
+    .eq('team_id', teamId);
+
+  if (membersError) throw membersError;
+
+  const existingUserIds = existingMembers?.map(member => member.user_id) || [];
+
+  // Then get organization members excluding those already in the team
+  let query = supabase
     .from('organization_members')
     .select(`
       user_id,
@@ -213,10 +224,14 @@ export const getAvailableUsersForTeam = async (organizationId: string, teamId: s
       )
     `)
     .eq('organization_id', organizationId)
-    .eq('status', 'active')
-    .not('user_id', 'in', `(
-      SELECT user_id FROM team_members WHERE team_id = '${teamId}'
-    )`);
+    .eq('status', 'active');
+
+  // Only add the not-in filter if there are existing members
+  if (existingUserIds.length > 0) {
+    query = query.not('user_id', 'in', `(${existingUserIds.map(id => `'${id}'`).join(',')})`);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return data || [];

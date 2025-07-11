@@ -30,7 +30,7 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
   team 
 }) => {
   const [selectedUser, setSelectedUser] = useState<string>('');
-  const [selectedRole, setSelectedRole] = useState<'manager' | 'technician'>('technician');
+  const [selectedRole, setSelectedRole] = useState<'manager' | 'technician' | 'requestor' | 'viewer'>('technician');
   const { currentOrganization } = useOrganization();
   const { toast } = useToast();
   
@@ -66,6 +66,8 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
   const roleOptions = [
     { value: 'manager', label: 'Manager', description: 'Can manage team members and assign work orders' },
     { value: 'technician', label: 'Technician', description: 'Can update work orders and record maintenance' },
+    { value: 'requestor', label: 'Requestor', description: 'Can create and submit work orders' },
+    { value: 'viewer', label: 'Viewer', description: 'Can view work orders and equipment but not modify' },
   ];
 
   const isLoading = availableUsers.isLoading;
@@ -122,7 +124,7 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
                 <Label htmlFor="role">Team Role *</Label>
                 <Select 
                   value={selectedRole} 
-                  onValueChange={(value: string) => setSelectedRole(value as 'manager' | 'technician')} 
+                  onValueChange={(value: string) => setSelectedRole(value as 'manager' | 'technician' | 'requestor' | 'viewer')} 
                   required
                 >
                   <SelectTrigger>
