@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Users, UserX, Shield } from 'lucide-react';
@@ -67,11 +67,11 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
   if (disabled) return <>{children}</>;
 
   return (
-    <HoverCard openDelay={500} closeDelay={100}>
-      <HoverCardTrigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         {children}
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80 p-4" side="top">
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-4" side="top">
         <div className="space-y-3">
           <div className="text-sm font-medium">Quick Assignment</div>
           
@@ -144,7 +144,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
             </>
           )}
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </PopoverContent>
+    </Popover>
   );
 };

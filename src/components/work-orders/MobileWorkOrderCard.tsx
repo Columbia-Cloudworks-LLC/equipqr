@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, Clock, DollarSign, UserPlus } from 'lucide-react';
+import { Calendar, User, Clock, DollarSign, UserPlus, Users, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
@@ -137,11 +137,22 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
               disabled={false}
             >
               <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
-                <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-muted-foreground">
-                  {order.assigneeName || 'Unassigned'}
-                  {order.teamName && ` (${order.teamName})`}
-                </span>
+                {order.teamName ? (
+                  <>
+                    <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground">Team: {order.teamName}</span>
+                  </>
+                ) : order.assigneeName ? (
+                  <>
+                    <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground">Assigned: {order.assigneeName}</span>
+                  </>
+                ) : (
+                  <>
+                    <UserX className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground">Unassigned</span>
+                  </>
+                )}
               </div>
             </WorkOrderAssignmentHover>
 

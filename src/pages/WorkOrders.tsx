@@ -109,6 +109,11 @@ const WorkOrders = () => {
     });
   };
 
+  const handleAssignClick = () => {
+    // For now, we'll focus on the assignment hover functionality
+    // In the future, this could open a dedicated assignment modal
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -161,6 +166,7 @@ const WorkOrders = () => {
               isAccepting={acceptanceMutation.isPending}
               hasActiveFilters={hasActiveFilters}
               onCreateClick={() => setShowForm(true)}
+              onAssignClick={handleAssignClick}
               onReopenClick={() => undefined}
             />
         </div>
