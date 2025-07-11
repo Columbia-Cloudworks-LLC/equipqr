@@ -100,6 +100,8 @@ const WorkOrderDetails = () => {
         workOrder={workOrder}
         isWorkOrderLocked={isWorkOrderLocked}
         baseCanAddNotes={baseCanAddNotes}
+        isAdmin={permissionLevels.isManager}
+        onStatusUpdate={handleStatusUpdate}
       />
 
       <div className={`${isMobile ? 'block' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'} p-4 lg:p-6`}>
@@ -123,6 +125,7 @@ const WorkOrderDetails = () => {
               pm={pmData} 
               onUpdate={handlePMUpdate}
               readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
+              isAdmin={permissionLevels.isManager}
             />
           )}
 

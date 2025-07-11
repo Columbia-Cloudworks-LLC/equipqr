@@ -743,6 +743,57 @@ export type Database = {
         }
         Relationships: []
       }
+      pm_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          new_status: string
+          old_status: string | null
+          pm_id: string
+          reason: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_status: string
+          old_status?: string | null
+          pm_id: string
+          reason?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string
+          old_status?: string | null
+          pm_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pm_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_status_history_pm_id_fkey"
+            columns: ["pm_id"]
+            isOneToOne: false
+            referencedRelation: "preventative_maintenance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       preventative_maintenance: {
         Row: {
           checklist_data: Json
@@ -1234,6 +1285,57 @@ export type Database = {
           },
         ]
       }
+      work_order_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          new_status: Database["public"]["Enums"]["work_order_status"]
+          old_status: Database["public"]["Enums"]["work_order_status"] | null
+          reason: string | null
+          work_order_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_status: Database["public"]["Enums"]["work_order_status"]
+          old_status?: Database["public"]["Enums"]["work_order_status"] | null
+          reason?: string | null
+          work_order_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: Database["public"]["Enums"]["work_order_status"]
+          old_status?: Database["public"]["Enums"]["work_order_status"] | null
+          reason?: string | null
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_status_history_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_orders: {
         Row: {
           acceptance_date: string | null
@@ -1591,6 +1693,14 @@ export type Database = {
       reserve_slot_for_invitation: {
         Args: { org_id: string; invitation_id: string }
         Returns: boolean
+      }
+      revert_pm_completion: {
+        Args: { p_pm_id: string; p_reason?: string }
+        Returns: Json
+      }
+      revert_work_order_status: {
+        Args: { p_work_order_id: string; p_reason?: string }
+        Returns: Json
       }
       set_bypass_triggers: {
         Args: { bypass?: boolean }
