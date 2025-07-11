@@ -228,7 +228,7 @@ export const getAvailableUsersForTeam = async (organizationId: string, teamId: s
 
   // Only add the not-in filter if there are existing members
   if (existingUserIds.length > 0) {
-    query = query.not('user_id', 'in', `(${existingUserIds.map(id => `'${id}'`).join(',')})`);
+    query = query.not('user_id', 'in', `(${existingUserIds.join(',')})`);
   }
 
   const { data, error } = await query;
