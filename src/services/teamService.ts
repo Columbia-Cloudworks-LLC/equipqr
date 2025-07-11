@@ -90,12 +90,17 @@ export const updateTeam = async (id: string, updates: TeamUpdate): Promise<Team>
 
 // Delete a team
 export const deleteTeam = async (id: string): Promise<void> => {
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from('teams')
-    .delete()
+    .delete({ count: 'exact' })
     .eq('id', id);
 
   if (error) throw error;
+  
+  // Check if the team was actually deleted
+  if (count === 0) {
+    throw new Error('Team could not be deleted. You may not have permission to delete this team.');
+  }
 };
 
 // Get teams by organization with member details
