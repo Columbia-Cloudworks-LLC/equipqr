@@ -12,12 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Team } from '@/services/supabaseDataService';
+import { TeamWithMembers } from '@/services/teamService';
 
 interface TeamMetadataEditorProps {
   open: boolean;
   onClose: () => void;
-  team: Team;
+  team: TeamWithMembers;
 }
 
 const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({ 

@@ -6,7 +6,9 @@ import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import { useBatchAssignUnassignedWorkOrders } from '@/hooks/useBatchAssignUnassignedWorkOrders';
 import { useWorkOrderFilters } from '@/hooks/useWorkOrderFilters';
+import { useWorkOrderReopening } from '@/hooks/useWorkOrderReopening';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTeams } from '@/hooks/useTeamManagement';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrderAcceptanceModalState } from '@/types/workOrder';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
@@ -40,9 +42,11 @@ const WorkOrders = () => {
 
   // Use enhanced hook for work orders data
   const { data: allWorkOrders = [], isLoading } = useEnhancedWorkOrders(currentOrganization?.id);
+  const { data: teams = [] } = useTeams(currentOrganization?.id);
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
   const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
+  const reopenMutation = useWorkOrderReopening();
 
   // Use custom filters hook
   const {
@@ -96,6 +100,20 @@ const WorkOrders = () => {
     setShowMobileFilters(false);
   };
 
+  const handleReopen = async (workOrderId: string) => {
+    if (!currentOrganization) return;
+    
+    await reopenMutation.mutateAsync({
+      workOrderId,
+      organizationId: currentOrganization.id
+    });
+  };
+
+  const handleAssignClick = () => {
+    // For now, we'll focus on the assignment hover functionality
+    // In the future, this could open a dedicated assignment modal
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -137,17 +155,20 @@ const WorkOrders = () => {
             onFilterChange={updateFilter}
             onClearFilters={clearAllFilters}
             onQuickFilter={handleQuickFilter}
+            teams={teams}
           />
 
-          <WorkOrdersList
-            workOrders={filteredWorkOrders}
-            onAcceptClick={handleAcceptClick}
-            onStatusUpdate={handleStatusUpdate}
-            isUpdating={updateStatusMutation.isPending}
-            isAccepting={acceptanceMutation.isPending}
-            hasActiveFilters={hasActiveFilters}
-            onCreateClick={() => setShowForm(true)}
-          />
+            <WorkOrdersList
+              workOrders={filteredWorkOrders}
+              onAcceptClick={handleAcceptClick}
+              onStatusUpdate={handleStatusUpdate}
+              isUpdating={updateStatusMutation.isPending}
+              isAccepting={acceptanceMutation.isPending}
+              hasActiveFilters={hasActiveFilters}
+              onCreateClick={() => setShowForm(true)}
+              onAssignClick={handleAssignClick}
+              onReopenClick={() => undefined}
+            />
         </div>
 
         {/* Notifications Sidebar - Only show on desktop */}

@@ -5,18 +5,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Users, Settings, Crown, User } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Plus, Users, Settings, Crown, User, Trash2 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useSyncTeamsByOrganization } from '@/services/syncDataService';
+import { useTeams, useTeamMutations } from '@/hooks/useTeamManagement';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import TeamForm from '@/components/teams/TeamForm';
 
 const Teams = () => {
   const { currentOrganization, isLoading } = useOrganization();
   const [showForm, setShowForm] = useState(false);
+  const [deleteTeamId, setDeleteTeamId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Use sync hook for teams data
-  const { data: teams = [], isLoading: teamsLoading } = useSyncTeamsByOrganization(currentOrganization?.id);
+  // Use teams hook for data
+  const { data: teams = [], isLoading: teamsLoading } = useTeams(currentOrganization?.id);
+  
+  // Team mutations
+  const { deleteTeam } = useTeamMutations();
+  
+  // Check permissions
+  const permissions = useUnifiedPermissions();
 
   if (isLoading || teamsLoading || !currentOrganization) {
     return (
@@ -72,6 +81,19 @@ const Teams = () => {
     }
   };
 
+  const handleDeleteTeam = (teamId: string) => {
+    setDeleteTeamId(teamId);
+  };
+
+  const confirmDeleteTeam = () => {
+    if (deleteTeamId) {
+      deleteTeam.mutate(deleteTeamId);
+      setDeleteTeamId(null);
+    }
+  };
+
+  const selectedTeam = teams.find(team => team.id === deleteTeamId);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -115,7 +137,7 @@ const Teams = () => {
                   <span className="font-medium">{team.members.length} members</span>
                 </div>
                 <div className="text-muted-foreground">
-                  {team.activeWorkOrders} active work orders
+                  {team.member_count} total members
                 </div>
               </div>
 
@@ -126,16 +148,16 @@ const Teams = () => {
                   {team.members.slice(0, 3).map((member) => (
                     <div key={member.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={undefined} />
-                          <AvatarFallback className="text-xs">
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{member.name}</p>
-                          <p className="text-xs text-muted-foreground">{member.email}</p>
-                        </div>
+                         <Avatar className="h-6 w-6">
+                           <AvatarImage src={undefined} />
+                           <AvatarFallback className="text-xs">
+                             {(member.profiles?.name || 'U').split(' ').map(n => n[0]).join('')}
+                           </AvatarFallback>
+                         </Avatar>
+                         <div>
+                           <p className="text-sm font-medium">{member.profiles?.name || 'Unknown'}</p>
+                           <p className="text-xs text-muted-foreground">{member.profiles?.email || 'No email'}</p>
+                         </div>
                       </div>
                       <Badge className={getRoleColor(member.role)} variant="outline">
                         <div className="flex items-center gap-1">
@@ -163,6 +185,16 @@ const Teams = () => {
                 >
                   View Details
                 </Button>
+                {permissions.teams.getPermissions(team.id).canDelete && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleDeleteTeam(team.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -191,6 +223,27 @@ const Teams = () => {
         open={showForm} 
         onClose={() => setShowForm(false)} 
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTeamId} onOpenChange={() => setDeleteTeamId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Team</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the team "{selectedTeam?.name}"? This action cannot be undone and will remove all team assignments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteTeam}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Team
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

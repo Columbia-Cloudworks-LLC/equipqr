@@ -6,20 +6,46 @@ export const useQuickWorkOrderAssignment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ workOrderId, assigneeId, organizationId }: { workOrderId: string; assigneeId: string; organizationId: string }) => {
+    mutationFn: async ({ 
+      workOrderId, 
+      assigneeId, 
+      teamId, 
+      organizationId 
+    }: { 
+      workOrderId: string; 
+      assigneeId?: string | null; 
+      teamId?: string | null; 
+      organizationId: string 
+    }) => {
+      // Determine the new status based on assignment
+      let newStatus = 'submitted';
+      if (assigneeId || teamId) {
+        newStatus = 'assigned';
+      }
+
+      const updateData: any = {
+        assignee_id: assigneeId || null,
+        team_id: teamId || null,
+        status: newStatus
+      };
+
+      // Only set acceptance_date if actually assigning
+      if (assigneeId || teamId) {
+        updateData.acceptance_date = new Date().toISOString();
+      } else {
+        updateData.acceptance_date = null;
+      }
+
       const { error } = await supabase
         .from('work_orders')
-        .update({
-          assignee_id: assigneeId,
-          status: 'assigned',
-          acceptance_date: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', workOrderId);
 
       if (error) throw error;
     },
-    onSuccess: (_, { organizationId }) => {
-      toast.success('Work order assigned successfully');
+    onSuccess: (_, { assigneeId, teamId, organizationId }) => {
+      const message = assigneeId || teamId ? 'Work order assigned successfully' : 'Work order unassigned successfully';
+      toast.success(message);
       
       // Invalidate relevant queries with standardized keys
       queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', organizationId] });

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle, RotateCcw } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,22 +17,26 @@ import { SaveStatus } from '@/components/ui/SaveStatus';
 import { toast } from 'sonner';
 import PrintExportDropdown from './PrintExportDropdown';
 import { PMChecklistPDFGenerator } from '@/utils/pdfGenerator';
+import { workOrderRevertService } from '@/services/workOrderRevertService';
 
 interface PMChecklistComponentProps {
   pm: PreventativeMaintenance;
   onUpdate: () => void;
   readOnly?: boolean;
+  isAdmin?: boolean;
 }
 
 const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   pm,
   onUpdate,
-  readOnly = false
+  readOnly = false,
+  isAdmin = false
 }) => {
   const isMobile = useIsMobile();
   const [checklist, setChecklist] = useState<PMChecklistItem[]>([]);
   const [notes, setNotes] = useState(pm.notes || '');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isReverting, setIsReverting] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [isInitialized, setIsInitialized] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error' | 'offline'>('saved');
@@ -283,6 +287,28 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       toast.error('Failed to complete PM');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const revertPMCompletion = async () => {
+    setIsReverting(true);
+    try {
+      const result = await workOrderRevertService.revertPMCompletion(
+        pm.id,
+        'PM completion reverted by admin'
+      );
+      
+      if (result.success) {
+        toast.success(`PM status reverted from ${result.old_status} to ${result.new_status}`);
+        onUpdate();
+      } else {
+        toast.error(result.error || 'Failed to revert PM completion');
+      }
+    } catch (error) {
+      console.error('Error reverting PM completion:', error);
+      toast.error('Failed to revert PM completion');
+    } finally {
+      setIsReverting(false);
     }
   };
 
@@ -770,6 +796,21 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
               disabled={isUpdating || unratedRequiredItems.length > 0 || unsafeItems.length > 0}
             >
               {isUpdating ? 'Completing...' : 'Complete PM'}
+            </Button>
+          </div>
+        )}
+
+        {/* Admin Revert Option for Completed PM */}
+        {isAdmin && pm.status === 'completed' && (
+          <div className="flex gap-2 pt-4 border-t">
+            <Button
+              onClick={revertPMCompletion}
+              disabled={isReverting}
+              variant="outline"
+              className="border-amber-300 text-amber-800 hover:bg-amber-100"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              {isReverting ? 'Reverting...' : 'Revert Completion'}
             </Button>
           </div>
         )}

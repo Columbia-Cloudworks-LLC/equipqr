@@ -2,14 +2,16 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { QrCode, Calendar, MapPin, Wrench, FileText, Settings } from "lucide-react";
+import { QrCode, Calendar, MapPin, Wrench, FileText, Settings, Users } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import QRCodeDisplay from "./QRCodeDisplay";
 import InlineEditField from "./InlineEditField";
 import InlineEditCustomAttributes from "./InlineEditCustomAttributes";
 import { useUpdateEquipment } from "@/hooks/useSupabaseData";
-import { usePermissions } from "@/hooks/usePermissions";
+import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
+import { useTeams } from "@/hooks/useTeamManagement";
+import { useSimpleOrganization } from "@/contexts/SimpleOrganizationContext";
 import { toast } from "sonner";
 
 type Equipment = Tables<'equipment'>;
@@ -20,10 +22,14 @@ interface EquipmentDetailsTabProps {
 
 const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) => {
   const [showQRCode, setShowQRCode] = React.useState(false);
-  const { canManageEquipment } = usePermissions();
+  const permissions = useUnifiedPermissions();
+  const { currentOrganization } = useSimpleOrganization();
+  const { data: teams = [] } = useTeams(currentOrganization?.id);
   const updateEquipmentMutation = useUpdateEquipment();
 
-  const canEdit = canManageEquipment(equipment.team_id || undefined);
+  // Check if user can edit equipment
+  const equipmentPermissions = permissions.equipment.getPermissions(equipment.team_id || undefined);
+  const canEdit = equipmentPermissions.canEdit;
 
   // Helper function to format date for HTML input
   const formatDateForInput = (dateString: string | null) => {
@@ -67,11 +73,44 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
     }
   };
 
+  // Handle team assignment
+  const handleTeamAssignment = async (teamId: string) => {
+    try {
+      const teamValue = teamId === 'unassigned' ? null : teamId;
+      console.log('Updating team assignment with value:', teamValue);
+      await updateEquipmentMutation.mutateAsync({
+        equipmentId: equipment.id,
+        equipmentData: { team_id: teamValue }
+      });
+      toast.success('Team assignment updated successfully');
+    } catch (error) {
+      console.error('Error updating team assignment:', error);
+      toast.error('Failed to update team assignment');
+      throw error;
+    }
+  };
+
   const statusOptions = [
     { value: 'active', label: 'Active' },
     { value: 'maintenance', label: 'Under Maintenance' },
     { value: 'inactive', label: 'Inactive' }
   ];
+
+  // Prepare team options for the select
+  const teamOptions = [
+    { value: 'unassigned', label: 'Unassigned' },
+    ...teams.map(team => ({ value: team.id, label: team.name }))
+  ];
+
+  // Get current team name for display
+  const getCurrentTeamDisplay = () => {
+    if (!equipment.team_id) return 'Unassigned';
+    const team = teams.find(t => t.id === equipment.team_id);
+    return team?.name || 'Unknown Team';
+  };
+
+  // Can assign teams (only admins/owners)
+  const canAssignTeams = permissions.organization.canManageMembers;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -199,6 +238,28 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                   placeholder="Enter location"
                   className="text-base"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Assigned Team</label>
+              <div className="mt-1 flex items-center gap-2">
+                <Users className="h-4 w-4 text-gray-400" />
+                {canAssignTeams ? (
+                  <InlineEditField
+                    value={equipment.team_id || 'unassigned'}
+                    onSave={handleTeamAssignment}
+                    canEdit={canAssignTeams}
+                    type="select"
+                    selectOptions={teamOptions}
+                    placeholder="Select team"
+                    className="text-base"
+                  />
+                ) : (
+                  <span className="text-base text-gray-900">
+                    {getCurrentTeamDisplay()}
+                  </span>
+                )}
               </div>
             </div>
           </div>

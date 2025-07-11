@@ -15,6 +15,8 @@ interface WorkOrdersListProps {
   isAccepting: boolean;
   hasActiveFilters: boolean;
   onCreateClick: () => void;
+  onAssignClick?: () => void;
+  onReopenClick?: () => void;
 }
 
 export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
@@ -24,7 +26,9 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   isUpdating,
   isAccepting,
   hasActiveFilters,
-  onCreateClick
+  onCreateClick,
+  onAssignClick,
+  onReopenClick
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -49,12 +53,16 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
             onStatusUpdate={onStatusUpdate}
             isUpdating={isUpdating}
             isAccepting={isAccepting}
+            onAssignClick={onAssignClick}
+            onReopenClick={onReopenClick}
           />
         ) : (
           <DesktopWorkOrderCard
             key={order.id}
             workOrder={order}
             onNavigate={(id) => navigate(`/work-orders/${id}`)}
+            onAssignClick={onAssignClick}
+            onReopenClick={onReopenClick}
           />
         )
       ))}

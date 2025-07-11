@@ -3,12 +3,14 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, Clock, DollarSign, UserPlus } from 'lucide-react';
+import { Calendar, User, Clock, DollarSign, UserPlus, Users, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 import { supabase } from '@/integrations/supabase/client';
+import { WorkOrderQuickActions } from './WorkOrderQuickActions';
+import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 
 interface MobileWorkOrderCardProps {
   order: EnhancedWorkOrder;
@@ -16,6 +18,8 @@ interface MobileWorkOrderCardProps {
   onStatusUpdate: (workOrderId: string, newStatus: string) => void;
   isUpdating: boolean;
   isAccepting: boolean;
+  onAssignClick?: () => void;
+  onReopenClick?: () => void;
 }
 
 const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
@@ -23,7 +27,9 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
   onAcceptClick,
   onStatusUpdate,
   isUpdating,
-  isAccepting
+  isAccepting,
+  onAssignClick,
+  onReopenClick
 }) => {
   const quickAssignMutation = useQuickWorkOrderAssignment();
   const [currentUser, setCurrentUser] = React.useState<any>(null);
@@ -126,13 +132,29 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
           {/* Key Information - Stacked vertically */}
           <div className="space-y-2 text-sm">
             {/* Assignment Info */}
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">
-                {order.assigneeName || 'Unassigned'}
-                {order.teamName && ` (${order.teamName})`}
-              </span>
-            </div>
+            <WorkOrderAssignmentHover 
+              workOrder={order}
+              disabled={false}
+            >
+              <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
+                {order.teamName ? (
+                  <>
+                    <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground">Team: {order.teamName}</span>
+                  </>
+                ) : order.assigneeName ? (
+                  <>
+                    <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground">Assigned: {order.assigneeName}</span>
+                  </>
+                ) : (
+                  <>
+                    <UserX className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground">Unassigned</span>
+                  </>
+                )}
+              </div>
+            </WorkOrderAssignmentHover>
 
             {/* Date Info */}
             <div className="flex items-center gap-2">
@@ -180,11 +202,18 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
 
           {/* Action Buttons - Full width and stacked */}
           <div className="space-y-2 pt-2 border-t">
-            <Button variant="outline" size="sm" asChild className="w-full justify-center">
-              <Link to={`/work-orders/${order.id}`}>
-                View Details
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" asChild className="flex-1 justify-center">
+                <Link to={`/work-orders/${order.id}`}>
+                  View Details
+                </Link>
+              </Button>
+              <WorkOrderQuickActions
+                workOrder={order}
+                onAssignClick={onAssignClick}
+                onReopenClick={onReopenClick}
+              />
+            </div>
 
             <div className="flex gap-2">
               {order.status === 'submitted' && !order.assigneeName && (
