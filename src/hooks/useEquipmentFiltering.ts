@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useEquipmentByOrganization, useTeamsByOrganization } from '@/hooks/useSupabaseData';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export interface EquipmentFilters {
   search: string;
@@ -42,8 +43,10 @@ export const useEquipmentFiltering = () => {
   const [sortConfig, setSortConfig] = useState<SortConfig>(initialSort);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
+  // Get equipment data - now filtered by RLS policies based on team membership
   const { data: equipment = [], isLoading } = useEquipmentByOrganization();
   const { data: teams = [] } = useTeamsByOrganization();
+  const { canManageOrganization } = usePermissions();
 
   // Extract unique values for filter options
   const filterOptions = useMemo(() => {
