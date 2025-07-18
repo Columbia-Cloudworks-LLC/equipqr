@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, Users, UserMinus } from 'lucide-react';
+import { Clock, User, UserMinus } from 'lucide-react';
 
 interface WorkOrderDetailsRequestorStatusProps {
   workOrder: any;
@@ -37,15 +37,6 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
         name: workOrder.assigneeName,
         icon: User,
         label: 'Assigned to'
-      };
-    }
-    
-    if (workOrder.team_id && workOrder.teamName) {
-      return {
-        type: 'team',
-        name: workOrder.teamName,
-        icon: Users,
-        label: 'Assigned to team'
       };
     }
     

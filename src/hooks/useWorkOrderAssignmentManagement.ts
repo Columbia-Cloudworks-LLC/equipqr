@@ -6,9 +6,7 @@ import { useOptimizedWorkOrderAssignment } from './useOptimizedWorkOrderAssignme
 
 export interface AssignmentUpdateData {
   assigneeId?: string | null;
-  teamId?: string | null;
   assigneeName?: string | null;
-  teamName?: string | null;
 }
 
 export const useWorkOrderAssignmentManagement = (organizationId: string, workOrderId: string) => {
@@ -20,7 +18,7 @@ export const useWorkOrderAssignmentManagement = (organizationId: string, workOrd
     mutationFn: async (data: AssignmentUpdateData) => {
       const updateData: any = {
         assignee_id: data.assigneeId,
-        team_id: data.teamId,
+        team_id: null, // Always clear team_id since we're only doing user assignments
         updated_at: new Date().toISOString()
       };
 
@@ -56,27 +54,14 @@ export const useWorkOrderAssignmentManagement = (organizationId: string, workOrd
   const assignToUser = (userId: string, userName: string) => {
     updateAssignmentMutation.mutate({
       assigneeId: userId,
-      teamId: null,
-      assigneeName: userName,
-      teamName: null
-    });
-  };
-
-  const assignToTeam = (teamId: string, teamName: string) => {
-    updateAssignmentMutation.mutate({
-      assigneeId: null,
-      teamId: teamId,
-      assigneeName: null,
-      teamName: teamName
+      assigneeName: userName
     });
   };
 
   const unassign = () => {
     updateAssignmentMutation.mutate({
       assigneeId: null,
-      teamId: null,
-      assigneeName: null,
-      teamName: null
+      assigneeName: null
     });
   };
 
@@ -85,7 +70,6 @@ export const useWorkOrderAssignmentManagement = (organizationId: string, workOrd
     optionsLoading,
     isUpdating: updateAssignmentMutation.isPending,
     assignToUser,
-    assignToTeam,
     unassign,
     updateAssignment: updateAssignmentMutation.mutate
   };

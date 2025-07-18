@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, Users, UserMinus, Check, X } from 'lucide-react';
+import { User, UserMinus, Check, X } from 'lucide-react';
 import { useWorkOrderAssignmentManagement } from '@/hooks/useWorkOrderAssignmentManagement';
 
 interface WorkOrderAssignmentSelectorProps {
@@ -25,7 +25,6 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
     optionsLoading,
     isUpdating,
     assignToUser,
-    assignToTeam,
     unassign
   } = useWorkOrderAssignmentManagement(organizationId, workOrder.id);
 
@@ -41,18 +40,12 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
     const option = assignmentOptions.find(opt => opt.id === selectedValue);
     if (!option) return;
 
-    if (option.type === 'user') {
-      assignToUser(option.id, option.name);
-    } else if (option.type === 'team') {
-      assignToTeam(option.id, option.name);
-    }
-
+    assignToUser(option.id, option.name);
     onCancel();
   };
 
   const getCurrentAssignmentValue = () => {
     if (workOrder.assignee_id) return workOrder.assignee_id;
-    if (workOrder.team_id) return workOrder.team_id;
     return '';
   };
 
@@ -81,59 +74,35 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
               </div>
             </SelectItem>
 
-            {/* Team options */}
-            {assignmentOptions.filter(opt => opt.type === 'team').length > 0 && (
-              <>
-                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t">
-                  Teams
-                </div>
-                {assignmentOptions
-                  .filter(opt => opt.type === 'team')
-                  .map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        <span>{option.name}</span>
-                        {workOrder.team_id === option.id && (
-                          <Badge variant="outline" className="text-xs">Current</Badge>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-              </>
-            )}
-
             {/* User options */}
-            {assignmentOptions.filter(opt => opt.type === 'user').length > 0 && (
+            {assignmentOptions.length > 0 && (
               <>
                 <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t">
                   Team Members
                 </div>
-                {assignmentOptions
-                  .filter(opt => opt.type === 'user')
-                  .map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      <div className="flex items-center gap-2 w-full">
-                        <User className="h-4 w-4" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-1">
-                            <span>{option.name}</span>
-                            {workOrder.assignee_id === option.id && (
-                              <Badge variant="outline" className="text-xs">Current</Badge>
-                            )}
-                          </div>
-                          {option.email && (
-                            <div className="text-xs text-muted-foreground">{option.email}</div>
+                {assignmentOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    <div className="flex items-center gap-2 w-full">
+                      <User className="h-4 w-4" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1">
+                          <span>{option.name}</span>
+                          {workOrder.assignee_id === option.id && (
+                            <Badge variant="outline" className="text-xs">Current</Badge>
                           )}
                         </div>
-                        {option.role && (
-                          <Badge variant="secondary" className="text-xs">
-                            {option.role}
-                          </Badge>
+                        {option.email && (
+                          <div className="text-xs text-muted-foreground">{option.email}</div>
                         )}
                       </div>
-                    </SelectItem>
-                  ))}
+                      {option.role && (
+                        <Badge variant="secondary" className="text-xs">
+                          {option.role}
+                        </Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
               </>
             )}
           </SelectContent>

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Users, UserMinus, Edit3, Clock } from 'lucide-react';
+import { User, UserMinus, Edit3, Clock } from 'lucide-react';
 import WorkOrderAssignmentSelector from './WorkOrderAssignmentSelector';
 
 interface WorkOrderAssigneeDisplayProps {
@@ -28,15 +28,6 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
         name: workOrder.assigneeName,
         icon: User,
         color: 'bg-blue-100 text-blue-800 border-blue-200'
-      };
-    }
-    
-    if (workOrder.team_id && workOrder.teamName) {
-      return {
-        type: 'team',
-        name: workOrder.teamName,
-        icon: Users,
-        color: 'bg-green-100 text-green-800 border-green-200'
       };
     }
     
@@ -94,13 +85,11 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
             <div className="font-medium">{assignment.name}</div>
             <div className="text-sm text-muted-foreground">
               {assignment.type === 'user' && 'Individual Assignment'}
-              {assignment.type === 'team' && 'Team Assignment'}
               {assignment.type === 'unassigned' && 'No one assigned'}
             </div>
           </div>
           <Badge className={assignment.color}>
             {assignment.type === 'user' && 'Assigned'}
-            {assignment.type === 'team' && 'Team'}
             {assignment.type === 'unassigned' && 'Open'}
           </Badge>
         </div>
