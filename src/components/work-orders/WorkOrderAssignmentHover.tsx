@@ -26,7 +26,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
   const assignmentData = useWorkOrderAssignmentEnhanced(currentOrganization?.id, workOrder.equipment_id);
   const assignmentMutation = useQuickWorkOrderAssignment();
 
-  const handleAssignment = useCallback(async (assignmentData: { type: 'member' | 'team' | 'admin' | 'unassign', id?: string }) => {
+  const handleAssignment = useCallback(async (assignmentData: { type: 'admin' | 'unassign', id?: string }) => {
     if (!currentOrganization || isAssigning) return;
     
     setIsAssigning(true);
@@ -34,10 +34,8 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
       let assigneeId = null;
       let teamId = null;
       
-      if (assignmentData.type === 'member' || assignmentData.type === 'admin') {
+      if (assignmentData.type === 'admin') {
         assigneeId = assignmentData.id;
-      } else if (assignmentData.type === 'team') {
-        teamId = assignmentData.id;
       }
       
       await assignmentMutation.mutateAsync({
@@ -81,10 +79,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
             <>
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">
-                  {assignmentData.hasEquipmentTeam 
-                    ? `Assign to ${assignmentData.suggestedTeamName} members or admins`
-                    : "Assign to organization admins"
-                  }
+                  Assign to organization admins
                 </div>
                 <Select 
                   onValueChange={(value) => {
@@ -100,26 +95,17 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
                   </SelectTrigger>
                   <SelectContent>
                     {assignmentData.availableAssignees.map((assignee, index) => {
-                      const isFirstTeamAssignee = assignee.type === 'team';
-                      const isFirstAdmin = assignee.type === 'admin' && 
-                        !assignmentData.availableAssignees.slice(0, index).some(a => a.type === 'admin');
-                      const showDivider = (isFirstTeamAssignee || isFirstAdmin) && index > 0;
+                      const isFirstAdmin = assignee.type === 'admin' && index === 0;
                       
                       return (
                         <div key={assignee.id}>
-                          {showDivider && <div className="border-t my-1" />}
-                          {isFirstTeamAssignee && (
-                            <div className="px-2 py-1 text-xs font-medium text-muted-foreground">Team Assignment</div>
-                          )}
                           {isFirstAdmin && (
                             <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                              {assignmentData.hasEquipmentTeam ? 'Backup Admins' : 'Organization Admins'}
+                              Organization Admins
                             </div>
                           )}
                           <SelectItem value={assignee.id}>
                             <div className="flex items-center gap-2">
-                              {assignee.type === 'team' && <Users className="h-3 w-3" />}
-                              {assignee.type === 'member' && <User className="h-3 w-3" />}
                               {assignee.type === 'admin' && <Shield className="h-3 w-3" />}
                               {assignee.name}
                             </div>

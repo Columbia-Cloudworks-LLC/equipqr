@@ -118,11 +118,11 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
             preSelectedEquipment={preSelectedEquipment}
           />
 
-          {!isEditMode && assignmentData.suggestedTeamName && (
+          {!isEditMode && assignmentData.hasEquipmentTeam && (
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                This work order will be automatically assigned to <strong>{assignmentData.suggestedTeamName}</strong> based on the selected equipment.
+                This work order will be automatically assigned to an appropriate admin based on the selected equipment.
               </AlertDescription>
             </Alert>
           )}
