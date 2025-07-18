@@ -139,10 +139,11 @@ export const getFilteredWorkOrdersByOrganization = async (
 export const getTeamBasedFilteredWorkOrders = async (
   organizationId: string,
   userTeamIds: string[],
+  isOrgAdmin: boolean = false,
   filters: TeamBasedWorkOrderFilters = {}
 ): Promise<EnhancedWorkOrder[]> => {
   console.log('🔄 Using team-based work order filtering');
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, filters);
+  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, filters);
 };
 
 // Get work orders by assignee (uses idx_work_orders_assignee_id)
@@ -184,9 +185,10 @@ export const getOverdueWorkOrders = async (organizationId: string): Promise<Enha
 // Team-based overdue work orders
 export const getTeamBasedOverdueWorkOrders = async (
   organizationId: string, 
-  userTeamIds: string[]
+  userTeamIds: string[],
+  isOrgAdmin: boolean = false
 ): Promise<EnhancedWorkOrder[]> => {
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, { dueDateFilter: 'overdue' });
+  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, { dueDateFilter: 'overdue' });
 };
 
 // Dashboard query for work orders due today (uses idx_work_orders_org_due_date)
@@ -197,7 +199,8 @@ export const getWorkOrdersDueToday = async (organizationId: string): Promise<Enh
 // Team-based work orders due today
 export const getTeamBasedWorkOrdersDueToday = async (
   organizationId: string, 
-  userTeamIds: string[]
+  userTeamIds: string[],
+  isOrgAdmin: boolean = false
 ): Promise<EnhancedWorkOrder[]> => {
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, { dueDateFilter: 'today' });
+  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, { dueDateFilter: 'today' });
 };
