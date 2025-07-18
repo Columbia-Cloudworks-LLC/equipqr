@@ -79,22 +79,35 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   const handleCreateNoteWithImages = async (files: File[]) => {
     console.log('🔍 handleCreateNoteWithImages called with files:', files.length);
     
-    if (!formData.content.trim()) {
-      console.error('❌ No content provided for note');
-      toast.error('Please enter note content');
+    // Generate content if none provided
+    let noteContent = formData.content.trim();
+    if (!noteContent && files.length > 0) {
+      const userName = user?.name || 'User';
+      if (files.length === 1) {
+        noteContent = `${userName} uploaded: ${files[0].name}`;
+      } else {
+        const fileNames = files.map(f => f.name).join(', ');
+        noteContent = `${userName} uploaded ${files.length} images: ${fileNames}`;
+      }
+      console.log('🔍 Auto-generated note content:', noteContent);
+    }
+    
+    if (!noteContent) {
+      console.error('❌ No content or images provided');
+      toast.error('Please enter note content or upload images');
       return;
     }
     
     try {
       console.log('🔍 Calling createNoteMutation with:', {
-        content: formData.content,
+        content: noteContent,
         hoursWorked: formData.hoursWorked,
         isPrivate: formData.isPrivate,
         images: files.length
       });
       
       const result = await createNoteMutation.mutateAsync({
-        content: formData.content,
+        content: noteContent,
         hoursWorked: formData.hoursWorked,
         isPrivate: formData.isPrivate,
         images: files
@@ -178,10 +191,10 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
           <CardContent className="space-y-6">
             {/* Note Content */}
             <div className="space-y-2">
-              <Label htmlFor="content">Note Content</Label>
+              <Label htmlFor="content">Note Content (Optional when uploading images)</Label>
               <Textarea
                 id="content"
-                placeholder="Enter your note..."
+                placeholder="Enter your note... (will be auto-generated if you upload images without text)"
                 value={formData.content}
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                 rows={4}
