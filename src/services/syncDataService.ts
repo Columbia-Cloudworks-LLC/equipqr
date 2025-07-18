@@ -1,6 +1,6 @@
-
 import { useQuery } from '@tanstack/react-query';
-import { getEquipmentByOrganization, getEquipmentById, getAllWorkOrdersByOrganization, getWorkOrderById, getWorkOrdersByEquipmentId, getTeamsByOrganization, getScansByEquipmentId, getNotesByEquipmentId, getDashboardStatsByOrganization } from './supabaseDataService';
+import { getEquipmentByOrganization, getEquipmentById, getAllWorkOrdersByOrganization, getWorkOrdersByEquipmentId, getTeamsByOrganization, getScansByEquipmentId, getNotesByEquipmentId, getDashboardStatsByOrganization } from './supabaseDataService';
+import { getWorkOrderByIdWithAssignee } from './workOrderDataService';
 
 export interface Equipment {
   id: string;
@@ -110,7 +110,7 @@ export const useSyncWorkOrdersByOrganization = (organizationId?: string) => {
 export const useSyncWorkOrderById = (organizationId: string, workOrderId: string) => {
   return useQuery({
     queryKey: ['workOrder', organizationId, workOrderId],
-    queryFn: () => getWorkOrderById(organizationId, workOrderId),
+    queryFn: () => getWorkOrderByIdWithAssignee(organizationId, workOrderId),
     enabled: !!organizationId && !!workOrderId,
     staleTime: 2 * 60 * 1000,
   });

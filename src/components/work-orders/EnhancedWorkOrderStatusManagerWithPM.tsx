@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,7 @@ import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLeve
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkOrder } from '@/services/supabaseDataService';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
+import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
 
 interface EnhancedWorkOrderStatusManagerWithPMProps {
   workOrder: WorkOrder;
@@ -212,7 +212,16 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
   const canComplete = !workOrder.has_pm || (pmData && pmData.status === 'completed');
 
   return (
-    <>
+    <div className="space-y-4">
+      {/* Assignment Display */}
+      <WorkOrderAssigneeDisplay
+        workOrder={workOrder}
+        organizationId={organizationId}
+        canManageAssignment={isManager}
+        showEditControls={workOrder.status !== 'completed' && workOrder.status !== 'cancelled'}
+      />
+
+      {/* Status Management */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Status Management</CardTitle>
@@ -312,7 +321,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
         organizationId={organizationId}
         onAccept={handleAcceptanceComplete}
       />
-    </>
+    </div>
   );
 };
 
