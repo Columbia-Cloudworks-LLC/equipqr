@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -67,68 +66,8 @@ export const useOrganizationSlots = (organizationId: string) => {
 };
 
 export const useSlotAvailability = (organizationId: string) => {
-  const queryClient = useQueryClient();
-  const channelRef = useRef<any>(null);
-
-  // Set up real-time subscription for slot availability
-  useEffect(() => {
-    if (!organizationId) return;
-
-    // Clean up existing channel if it exists
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    const channelName = `slot-availability-${organizationId}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'organization_slots',
-          filter: `organization_id=eq.${organizationId}`
-        },
-        () => {
-          // Invalidate slot availability queries when slots change
-          queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
-          queryClient.invalidateQueries({ queryKey: ['organization-slots', organizationId] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'organization_members',
-          filter: `organization_id=eq.${organizationId}`
-        },
-        () => {
-          // Also invalidate when organization members change as this affects used slots
-          queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
-        }
-      );
-
-    // Subscribe and store reference
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log(`Successfully subscribed to ${channelName}`);
-        channelRef.current = channel;
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error(`Failed to subscribe to ${channelName}`);
-        channelRef.current = null;
-      }
-    });
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [organizationId, queryClient]);
+  // Real-time subscriptions temporarily disabled to prevent subscription conflicts
+  // TODO: Implement centralized subscription manager
 
   return useQuery({
     queryKey: ['slot-availability', organizationId],
