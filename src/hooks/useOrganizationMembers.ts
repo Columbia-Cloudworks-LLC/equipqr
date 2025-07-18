@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,7 +42,7 @@ export const useOrganizationMembers = (organizationId: string) => {
       }
 
       return (data || []).map(member => ({
-        id: member.user_id, // Use user_id instead of membership id
+        id: member.user_id, // Use user_id as the ID for consistency
         name: (member.profiles as any)?.name || 'Unknown',
         email: (member.profiles as any)?.email || '',
         role: member.role as 'owner' | 'admin' | 'member',
@@ -63,7 +64,7 @@ export const useUpdateMemberRole = (organizationId: string) => {
       const { data, error } = await supabase
         .from('organization_members')
         .update({ role: newRole })
-        .eq('id', memberId)
+        .eq('user_id', memberId) // Use user_id for the update
         .eq('organization_id', organizationId)
         .select()
         .single();
@@ -87,10 +88,25 @@ export const useRemoveMember = (organizationId: string) => {
 
   return useMutation({
     mutationFn: async (memberId: string) => {
+      // First, check if this is the only owner
+      const { data: owners, error: ownersError } = await supabase
+        .from('organization_members')
+        .select('user_id')
+        .eq('organization_id', organizationId)
+        .eq('role', 'owner')
+        .eq('status', 'active');
+
+      if (ownersError) throw ownersError;
+
+      // Prevent removing the last owner
+      if (owners.length === 1 && owners[0].user_id === memberId) {
+        throw new Error('Cannot remove the last owner of the organization');
+      }
+
       const { data, error } = await supabase
         .from('organization_members')
         .delete()
-        .eq('id', memberId)
+        .eq('user_id', memberId)
         .eq('organization_id', organizationId)
         .select()
         .single();
@@ -104,7 +120,7 @@ export const useRemoveMember = (organizationId: string) => {
     },
     onError: (error) => {
       console.error('Error removing member:', error);
-      toast.error('Failed to remove member');
+      toast.error(error.message || 'Failed to remove member');
     }
   });
 };
