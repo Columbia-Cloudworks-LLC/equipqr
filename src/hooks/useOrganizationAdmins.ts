@@ -1,5 +1,6 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface OrganizationAdmin {
@@ -10,6 +11,46 @@ export interface OrganizationAdmin {
 }
 
 export const useOrganizationAdmins = (organizationId: string) => {
+  const queryClient = useQueryClient();
+
+  // Set up real-time subscription for organization admins
+  useEffect(() => {
+    if (!organizationId) return;
+
+    const channel = supabase
+      .channel('organization-admins-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organization_members',
+          filter: `organization_id=eq.${organizationId}`
+        },
+        () => {
+          // Invalidate and refetch the organization admins query
+          queryClient.invalidateQueries({ queryKey: ['organization-admins', organizationId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          // Also invalidate when profiles change as admins display profile data
+          queryClient.invalidateQueries({ queryKey: ['organization-admins', organizationId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organizationId, queryClient]);
+
   return useQuery({
     queryKey: ['organization-admins', organizationId],
     queryFn: async (): Promise<OrganizationAdmin[]> => {

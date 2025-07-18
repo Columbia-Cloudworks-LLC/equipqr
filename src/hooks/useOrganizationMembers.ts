@@ -1,5 +1,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -14,6 +15,46 @@ export interface RealOrganizationMember {
 }
 
 export const useOrganizationMembers = (organizationId: string) => {
+  const queryClient = useQueryClient();
+
+  // Set up real-time subscription for organization members
+  useEffect(() => {
+    if (!organizationId) return;
+
+    const channel = supabase
+      .channel('organization-members-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organization_members',
+          filter: `organization_id=eq.${organizationId}`
+        },
+        () => {
+          // Invalidate and refetch the organization members query
+          queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          // Also invalidate when profiles change as members display profile data
+          queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organizationId, queryClient]);
+
   return useQuery({
     queryKey: ['organization-members', organizationId],
     queryFn: async (): Promise<RealOrganizationMember[]> => {
