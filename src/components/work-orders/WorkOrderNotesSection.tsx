@@ -77,17 +77,36 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   });
 
   const handleCreateNoteWithImages = async (files: File[]) => {
+    console.log('🔍 handleCreateNoteWithImages called with files:', files.length);
+    
     if (!formData.content.trim()) {
+      console.error('❌ No content provided for note');
       toast.error('Please enter note content');
       return;
     }
     
-    await createNoteMutation.mutateAsync({
-      content: formData.content,
-      hoursWorked: formData.hoursWorked,
-      isPrivate: formData.isPrivate,
-      images: files
-    });
+    try {
+      console.log('🔍 Calling createNoteMutation with:', {
+        content: formData.content,
+        hoursWorked: formData.hoursWorked,
+        isPrivate: formData.isPrivate,
+        images: files.length
+      });
+      
+      const result = await createNoteMutation.mutateAsync({
+        content: formData.content,
+        hoursWorked: formData.hoursWorked,
+        isPrivate: formData.isPrivate,
+        images: files
+      });
+      
+      console.log('✅ createNoteMutation completed successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Error in handleCreateNoteWithImages:', error);
+      // Re-throw the error so ImageUploadWithNote can handle it properly
+      throw error;
+    }
   };
 
   const handleCreateNoteOnly = () => {
