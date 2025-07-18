@@ -14,6 +14,7 @@ import MembersListReal from './MembersListReal';
 import AdminsTabContent from './AdminsTabContent';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
 import InvitationManagement from './InvitationManagement';
+import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 
 interface OrganizationTabsProps {
   members: RealOrganizationMember[];
@@ -96,15 +97,11 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           )}
           {!restrictions.hasAvailableSlots && billing.userLicenses.totalUsers !== 1 && (
             <div className="flex gap-2">
-              <Button
-                onClick={onUpgrade}
+              <PurchaseLicensesButton
                 size="sm"
                 variant="outline"
                 className="w-full sm:w-auto"
-              >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                <span className="sm:inline">Purchase Licenses</span>
-              </Button>
+              />
             </div>
           )}
         </div>
