@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -66,6 +67,48 @@ export const useOrganizationSlots = (organizationId: string) => {
 };
 
 export const useSlotAvailability = (organizationId: string) => {
+  const queryClient = useQueryClient();
+
+  // Set up real-time subscription for slot availability
+  useEffect(() => {
+    if (!organizationId) return;
+
+    const channel = supabase
+      .channel('slot-availability-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organization_slots',
+          filter: `organization_id=eq.${organizationId}`
+        },
+        () => {
+          // Invalidate slot availability queries when slots change
+          queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
+          queryClient.invalidateQueries({ queryKey: ['organization-slots', organizationId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organization_members',
+          filter: `organization_id=eq.${organizationId}`
+        },
+        () => {
+          // Also invalidate when organization members change as this affects used slots
+          queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organizationId, queryClient]);
+
   return useQuery({
     queryKey: ['slot-availability', organizationId],
     queryFn: async (): Promise<SlotAvailability> => {
