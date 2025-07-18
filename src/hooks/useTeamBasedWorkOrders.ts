@@ -3,20 +3,22 @@ import { useQuery } from '@tanstack/react-query';
 import { getTeamBasedWorkOrders, type TeamBasedWorkOrderFilters } from '@/services/teamBasedWorkOrderService';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 
 export const useTeamBasedWorkOrders = (filters: TeamBasedWorkOrderFilters = {}) => {
   const { currentOrganization } = useOrganization();
   const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
+  const { isManager } = useWorkOrderPermissionLevels();
 
   const userTeamIds = getUserTeamIds();
 
   return useQuery({
-    queryKey: ['team-based-work-orders', currentOrganization?.id, userTeamIds, filters],
+    queryKey: ['team-based-work-orders', currentOrganization?.id, userTeamIds, isManager, filters],
     queryFn: () => {
       if (!currentOrganization?.id) {
         return [];
       }
-      return getTeamBasedWorkOrders(currentOrganization.id, userTeamIds, filters);
+      return getTeamBasedWorkOrders(currentOrganization.id, userTeamIds, isManager, filters);
     },
     enabled: !!currentOrganization?.id && !teamsLoading,
     staleTime: 30 * 1000, // 30 seconds
@@ -28,11 +30,13 @@ export const useTeamBasedWorkOrders = (filters: TeamBasedWorkOrderFilters = {}) 
 // Hook for checking if user has team-based access
 export const useTeamBasedAccess = () => {
   const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
+  const { isManager } = useWorkOrderPermissionLevels();
   const userTeamIds = getUserTeamIds();
 
   return {
     userTeamIds,
-    hasTeamAccess: userTeamIds.length > 0,
+    hasTeamAccess: userTeamIds.length > 0 || isManager, // Managers have access even without teams
+    isManager,
     isLoading: teamsLoading
   };
 };

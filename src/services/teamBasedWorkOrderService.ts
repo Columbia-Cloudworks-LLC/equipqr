@@ -16,14 +16,15 @@ export interface TeamBasedWorkOrderFilters {
 export const getTeamBasedWorkOrders = async (
   organizationId: string,
   userTeamIds: string[],
+  isOrgAdmin: boolean = false,
   filters: TeamBasedWorkOrderFilters = {}
 ): Promise<EnhancedWorkOrder[]> => {
   try {
     console.log('🔍 Fetching team-based work orders for organization:', organizationId);
-    console.log('👥 User team IDs:', userTeamIds);
+    console.log('👥 User team IDs:', userTeamIds, 'isAdmin:', isOrgAdmin);
 
     // First, get the equipment IDs that this user can access
-    const accessibleEquipmentIds = await getAccessibleEquipmentIds(organizationId, userTeamIds);
+    const accessibleEquipmentIds = await getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
     
     console.log('🔧 Accessible equipment IDs:', accessibleEquipmentIds.length);
 
@@ -150,15 +151,17 @@ export const getTeamBasedWorkOrders = async (
 export const getMyTeamWorkOrders = async (
   organizationId: string,
   userTeamIds: string[],
-  userId: string
+  userId: string,
+  isOrgAdmin: boolean = false
 ): Promise<EnhancedWorkOrder[]> => {
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, { assigneeId: userId });
+  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, { assigneeId: userId });
 };
 
 // Get overdue work orders for user's accessible equipment
 export const getTeamOverdueWorkOrders = async (
   organizationId: string,
-  userTeamIds: string[]
+  userTeamIds: string[],
+  isOrgAdmin: boolean = false
 ): Promise<EnhancedWorkOrder[]> => {
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, { dueDateFilter: 'overdue' });
+  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, { dueDateFilter: 'overdue' });
 };

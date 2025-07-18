@@ -32,9 +32,9 @@ const WorkOrders = () => {
   const isMobile = useIsMobile();
 
   // Use team-based access control
-  const { userTeamIds, hasTeamAccess, isLoading: teamAccessLoading } = useTeamBasedAccess();
+  const { userTeamIds, hasTeamAccess, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
   
-  // Use team-based work orders hook instead of the enhanced one
+  // Use team-based work orders hook with proper admin flag
   const { data: allWorkOrders = [], isLoading: workOrdersLoading } = useTeamBasedWorkOrders();
   const { data: teams = [] } = useTeams(currentOrganization?.id);
   
@@ -127,24 +127,33 @@ const WorkOrders = () => {
     );
   }
 
-  // Show team access information for debugging
+  // Show access control information
   console.log('🔍 Team-based access debug:', {
     userTeamIds,
     hasTeamAccess,
+    isManager,
     workOrdersCount: allWorkOrders.length,
     organizationId: currentOrganization?.id
   });
 
   const hasActiveFilters = getActiveFilterCount() > 0 || filters.searchQuery.length > 0;
 
+  // Generate appropriate subtitle based on user's access level
+  const getSubtitle = () => {
+    if (isManager) {
+      return 'Showing all work orders (organization admin access)';
+    } else if (userTeamIds.length > 0) {
+      return `Showing work orders for your ${userTeamIds.length} team${userTeamIds.length === 1 ? '' : 's'}`;
+    } else {
+      return 'No team assignments - contact your administrator for access';
+    }
+  };
+
   return (
     <div className="space-y-4">
       <WorkOrdersHeader 
         onCreateClick={() => setShowForm(true)} 
-        subtitle={hasTeamAccess 
-          ? `Showing work orders for your ${userTeamIds.length} team${userTeamIds.length === 1 ? '' : 's'}`
-          : 'Showing work orders for unassigned equipment'
-        }
+        subtitle={getSubtitle()}
       />
 
       {isSingleUserOrg && (
