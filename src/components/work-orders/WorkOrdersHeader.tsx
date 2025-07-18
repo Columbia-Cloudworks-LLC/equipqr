@@ -1,38 +1,27 @@
+
 import React from 'react';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface WorkOrdersHeaderProps {
   onCreateClick: () => void;
+  subtitle?: string;
 }
 
-export const WorkOrdersHeader: React.FC<WorkOrdersHeaderProps> = ({ onCreateClick }) => {
-  const isMobile = useIsMobile();
-
-  if (isMobile) {
-    return (
-      <div className="space-y-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">Work Orders</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage maintenance and repair work orders</p>
-        </div>
-        <Button onClick={onCreateClick} className="w-full h-12 text-base font-medium">
-          <Plus className="h-5 w-5 mr-2" />
-          Create Work Order
-        </Button>
-      </div>
-    );
-  }
-
+export const WorkOrdersHeader: React.FC<WorkOrdersHeaderProps> = ({
+  onCreateClick,
+  subtitle
+}) => {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Work Orders</h1>
-        <p className="text-muted-foreground">Manage maintenance and repair work orders</p>
+        {subtitle && (
+          <p className="text-muted-foreground mt-1">{subtitle}</p>
+        )}
       </div>
-      <Button onClick={onCreateClick} className="flex items-center gap-2">
-        <Plus className="h-4 w-4" />
+      <Button onClick={onCreateClick} className="w-full sm:w-auto">
+        <Plus className="mr-2 h-4 w-4" />
         Create Work Order
       </Button>
     </div>

@@ -1,24 +1,37 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { EnhancedWorkOrder } from './workOrdersEnhancedService';
-import { getTeamBasedWorkOrders, type TeamBasedWorkOrderFilters } from './teamBasedWorkOrderService';
+import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+import { getAccessibleEquipmentIds } from './teamBasedEquipmentService';
 
-export interface WorkOrderFilters {
+export interface TeamBasedWorkOrderFilters {
   status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all';
   assigneeId?: string;
   teamId?: string;
   priority?: 'low' | 'medium' | 'high' | 'all';
-  equipmentId?: string;
   dueDateFilter?: 'overdue' | 'today' | 'this_week';
   search?: string;
 }
 
-// Optimized work orders query using the new indexes
-export const getFilteredWorkOrdersByOrganization = async (
+// Get work orders filtered by team-accessible equipment
+export const getTeamBasedWorkOrders = async (
   organizationId: string,
-  filters: WorkOrderFilters = {}
+  userTeamIds: string[],
+  filters: TeamBasedWorkOrderFilters = {}
 ): Promise<EnhancedWorkOrder[]> => {
   try {
+    console.log('🔍 Fetching team-based work orders for organization:', organizationId);
+    console.log('👥 User team IDs:', userTeamIds);
+
+    // First, get the equipment IDs that this user can access
+    const accessibleEquipmentIds = await getAccessibleEquipmentIds(organizationId, userTeamIds);
+    
+    console.log('🔧 Accessible equipment IDs:', accessibleEquipmentIds.length);
+
+    if (accessibleEquipmentIds.length === 0) {
+      console.log('⚠️ No accessible equipment found, returning empty array');
+      return [];
+    }
+
     let query = supabase
       .from('work_orders')
       .select(`
@@ -49,16 +62,15 @@ export const getFilteredWorkOrdersByOrganization = async (
           name
         )
       `)
-      .eq('organization_id', organizationId);
+      .eq('organization_id', organizationId)
+      .in('equipment_id', accessibleEquipmentIds);
 
-    // Apply filters to use our indexes efficiently
+    // Apply additional filters
     if (filters.status && filters.status !== 'all') {
-      // Uses idx_work_orders_org_status composite index
       query = query.eq('status', filters.status);
     }
 
     if (filters.assigneeId && filters.assigneeId !== 'all') {
-      // Uses idx_work_orders_assignee_id index
       if (filters.assigneeId === 'unassigned') {
         query = query.is('assignee_id', null);
       } else {
@@ -67,7 +79,6 @@ export const getFilteredWorkOrdersByOrganization = async (
     }
 
     if (filters.teamId && filters.teamId !== 'all') {
-      // Uses idx_work_orders_team_id index
       query = query.eq('team_id', filters.teamId);
     }
 
@@ -75,12 +86,7 @@ export const getFilteredWorkOrdersByOrganization = async (
       query = query.eq('priority', filters.priority);
     }
 
-    if (filters.equipmentId) {
-      // Uses idx_work_orders_equipment_id index
-      query = query.eq('equipment_id', filters.equipmentId);
-    }
-
-    // Due date filtering using idx_work_orders_org_due_date
+    // Due date filtering
     if (filters.dueDateFilter) {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -107,7 +113,12 @@ export const getFilteredWorkOrdersByOrganization = async (
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error fetching team-based work orders:', error);
+      throw error;
+    }
+
+    console.log('✅ Found team-based work orders:', data?.length || 0);
 
     return (data || []).map(wo => ({
       id: wo.id,
@@ -130,74 +141,24 @@ export const getFilteredWorkOrdersByOrganization = async (
       createdByName: wo.creator?.name
     }));
   } catch (error) {
-    console.error('Error fetching filtered work orders:', error);
+    console.error('💥 Error in getTeamBasedWorkOrders:', error);
     throw error;
   }
 };
 
-// Team-based alternative that respects equipment team assignments
-export const getTeamBasedFilteredWorkOrders = async (
+// Get work orders assigned to user's teams
+export const getMyTeamWorkOrders = async (
   organizationId: string,
   userTeamIds: string[],
-  filters: TeamBasedWorkOrderFilters = {}
+  userId: string
 ): Promise<EnhancedWorkOrder[]> => {
-  console.log('🔄 Using team-based work order filtering');
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, filters);
+  return getTeamBasedWorkOrders(organizationId, userTeamIds, { assigneeId: userId });
 };
 
-// Get work orders by assignee (uses idx_work_orders_assignee_id)
-export const getMyWorkOrders = async (organizationId: string, userId: string): Promise<EnhancedWorkOrder[]> => {
-  return getFilteredWorkOrdersByOrganization(organizationId, { assigneeId: userId });
-};
-
-// Get work orders by team (uses idx_work_orders_team_id and idx_work_orders_team_status)
-export const getTeamWorkOrders = async (
-  organizationId: string, 
-  teamId: string, 
-  status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all'
-): Promise<EnhancedWorkOrder[]> => {
-  const filters: WorkOrderFilters = { teamId };
-  if (status && status !== 'all') {
-    filters.status = status;
-  }
-  return getFilteredWorkOrdersByOrganization(organizationId, filters);
-};
-
-// Get work orders by equipment (uses idx_work_orders_equipment_id and idx_work_orders_equipment_status)
-export const getEquipmentWorkOrders = async (
-  organizationId: string, 
-  equipmentId: string, 
-  status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all'
-): Promise<EnhancedWorkOrder[]> => {
-  const filters: WorkOrderFilters = { equipmentId };
-  if (status && status !== 'all') {
-    filters.status = status;
-  }
-  return getFilteredWorkOrdersByOrganization(organizationId, filters);
-};
-
-// Dashboard query for overdue work orders (uses idx_work_orders_org_due_date)
-export const getOverdueWorkOrders = async (organizationId: string): Promise<EnhancedWorkOrder[]> => {
-  return getFilteredWorkOrdersByOrganization(organizationId, { dueDateFilter: 'overdue' });
-};
-
-// Team-based overdue work orders
-export const getTeamBasedOverdueWorkOrders = async (
-  organizationId: string, 
+// Get overdue work orders for user's accessible equipment
+export const getTeamOverdueWorkOrders = async (
+  organizationId: string,
   userTeamIds: string[]
 ): Promise<EnhancedWorkOrder[]> => {
   return getTeamBasedWorkOrders(organizationId, userTeamIds, { dueDateFilter: 'overdue' });
-};
-
-// Dashboard query for work orders due today (uses idx_work_orders_org_due_date)
-export const getWorkOrdersDueToday = async (organizationId: string): Promise<EnhancedWorkOrder[]> => {
-  return getFilteredWorkOrdersByOrganization(organizationId, { dueDateFilter: 'today' });
-};
-
-// Team-based work orders due today
-export const getTeamBasedWorkOrdersDueToday = async (
-  organizationId: string, 
-  userTeamIds: string[]
-): Promise<EnhancedWorkOrder[]> => {
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, { dueDateFilter: 'today' });
 };
