@@ -82,9 +82,9 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
           equipmentId: data.equipmentId,
           priority: 'medium', // Default priority for requests
           dueDate: data.dueDate || undefined,
-          // Auto-assign to equipment's team if available
-          assignmentType: assignmentData.suggestedTeamId ? 'team' : undefined,
-          assignmentId: assignmentData.suggestedTeamId || undefined,
+          // Auto-assign will be handled by the backend based on equipment
+          assignmentType: undefined,
+          assignmentId: undefined,
         };
         
         await createWorkOrderMutation.mutateAsync(workOrderData);
@@ -178,11 +178,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Your request will be submitted for review. 
-            {assignmentData.suggestedTeamName ? 
-              ` It will be automatically assigned to ${assignmentData.suggestedTeamName} for processing.` :
-              ' Once approved by a manager, it will be assigned to the appropriate team.'
-            }
+            Your request will be submitted for review and will be automatically assigned to an appropriate admin for processing.
           </AlertDescription>
         </Alert>
 

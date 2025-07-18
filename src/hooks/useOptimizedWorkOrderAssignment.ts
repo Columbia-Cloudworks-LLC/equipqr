@@ -1,17 +1,17 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { getOrganizationTeamsOptimized } from '@/services/optimizedTeamService';
 
 export interface AssignmentOption {
   id: string;
   name: string;
-  type: 'user' | 'team';
+  type: 'user';
   email?: string;
   role?: string;
 }
 
 export const useOptimizedWorkOrderAssignment = (organizationId?: string) => {
-  // Direct query for organization members
+  // Direct query for organization members - only technicians and managers
   const membersQuery = useQuery({
     queryKey: ['optimized-assignment-members', organizationId],
     queryFn: async () => {
@@ -30,6 +30,7 @@ export const useOptimizedWorkOrderAssignment = (organizationId?: string) => {
         `)
         .eq('organization_id', organizationId)
         .eq('status', 'active')
+        .in('role', ['owner', 'admin', 'member']) // All active members can be assigned work orders
         .order('profiles.name');
 
       if (error) throw error;
@@ -46,32 +47,13 @@ export const useOptimizedWorkOrderAssignment = (organizationId?: string) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Direct query for teams
-  const teamsQuery = useQuery({
-    queryKey: ['optimized-assignment-teams', organizationId],
-    queryFn: async () => {
-      if (!organizationId) return [];
-      return await getOrganizationTeamsOptimized(organizationId);
-    },
-    enabled: !!organizationId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  // Combine data into assignment options
-  const assignmentOptions: AssignmentOption[] = [
-    ...(membersQuery.data || []),
-    ...(teamsQuery.data || []).map(team => ({
-      id: team.id,
-      name: `${team.name} (Team)`,
-      type: 'team' as const
-    }))
-  ];
+  // Combine data into assignment options (only users now)
+  const assignmentOptions: AssignmentOption[] = membersQuery.data || [];
 
   return {
     assignmentOptions,
     members: membersQuery.data || [],
-    teams: teamsQuery.data || [],
-    isLoading: membersQuery.isLoading || teamsQuery.isLoading,
-    error: membersQuery.error || teamsQuery.error
+    isLoading: membersQuery.isLoading,
+    error: membersQuery.error
   };
 };

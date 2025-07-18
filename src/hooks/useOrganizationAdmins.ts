@@ -10,6 +10,9 @@ export interface OrganizationAdmin {
 }
 
 export const useOrganizationAdmins = (organizationId: string) => {
+  // Real-time subscriptions temporarily disabled to prevent subscription conflicts
+  // TODO: Implement centralized subscription manager
+
   return useQuery({
     queryKey: ['organization-admins', organizationId],
     queryFn: async (): Promise<OrganizationAdmin[]> => {

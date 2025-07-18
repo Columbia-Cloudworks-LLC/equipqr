@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
-import { WorkOrder } from '@/services/supabaseDataService';
+import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 import { useWorkOrderForm, WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 import { useEquipmentSelection } from '@/hooks/useEquipmentSelection';
 import { useWorkOrderSubmission } from '@/hooks/useWorkOrderSubmission';
@@ -23,7 +23,7 @@ interface WorkOrderFormEnhancedProps {
   open: boolean;
   onClose: () => void;
   equipmentId?: string;
-  workOrder?: WorkOrder; // Add workOrder prop for edit mode
+  workOrder?: EnhancedWorkOrder; // Add workOrder prop for edit mode
   onSubmit?: (data: WorkOrderFormData) => void;
 }
 
@@ -118,11 +118,11 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
             preSelectedEquipment={preSelectedEquipment}
           />
 
-          {!isEditMode && assignmentData.suggestedTeamName && (
+          {!isEditMode && assignmentData.hasEquipmentTeam && (
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                This work order will be automatically assigned to <strong>{assignmentData.suggestedTeamName}</strong> based on the selected equipment.
+                This work order will be automatically assigned to an appropriate admin based on the selected equipment.
               </AlertDescription>
             </Alert>
           )}

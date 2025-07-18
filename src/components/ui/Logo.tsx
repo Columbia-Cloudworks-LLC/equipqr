@@ -36,7 +36,7 @@ const Logo: React.FC<LogoProps> = ({
   
   return (
     <img
-      src={`/eqr-logo/${logoVariant}.png`}
+      src="/eqr-icons/inverse.png"
       alt="EquipQR"
       className={`${sizeClasses[size]} w-auto ${className}`}
     />

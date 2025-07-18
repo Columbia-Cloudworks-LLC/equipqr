@@ -1,10 +1,10 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSyncEquipmentByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
-import { WorkOrder } from '@/services/supabaseDataService';
+import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 
 interface UseEquipmentSelectionProps {
   equipmentId?: string;
-  workOrder?: WorkOrder;
+  workOrder?: EnhancedWorkOrder;
 }
 
 export const useEquipmentSelection = ({ equipmentId, workOrder }: UseEquipmentSelectionProps) => {
