@@ -1,6 +1,6 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface OrganizationAdmin {
@@ -12,13 +12,21 @@ export interface OrganizationAdmin {
 
 export const useOrganizationAdmins = (organizationId: string) => {
   const queryClient = useQueryClient();
+  const channelRef = useRef<any>(null);
 
   // Set up real-time subscription for organization admins
   useEffect(() => {
     if (!organizationId) return;
 
+    // Clean up existing channel if it exists
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    const channelName = `organization-admins-${organizationId}-${Date.now()}`;
     const channel = supabase
-      .channel(`organization-admins-${organizationId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -43,17 +51,24 @@ export const useOrganizationAdmins = (organizationId: string) => {
           // Also invalidate when profiles change as admins display profile data
           queryClient.invalidateQueries({ queryKey: ['organization-admins', organizationId] });
         }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`Successfully subscribed to organization-admins-${organizationId}`);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(`Failed to subscribe to organization-admins-${organizationId}`);
-        }
-      });
+      );
+
+    // Subscribe and store reference
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log(`Successfully subscribed to ${channelName}`);
+        channelRef.current = channel;
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error(`Failed to subscribe to ${channelName}`);
+        channelRef.current = null;
+      }
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [organizationId, queryClient]);
 
