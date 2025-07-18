@@ -22,7 +22,7 @@ export const useOrganizationMembers = (organizationId: string) => {
     if (!organizationId) return;
 
     const channel = supabase
-      .channel('organization-members-changes')
+      .channel(`organization-members-${organizationId}`)
       .on(
         'postgres_changes',
         {
@@ -48,7 +48,13 @@ export const useOrganizationMembers = (organizationId: string) => {
           queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Successfully subscribed to organization-members-${organizationId}`);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`Failed to subscribe to organization-members-${organizationId}`);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

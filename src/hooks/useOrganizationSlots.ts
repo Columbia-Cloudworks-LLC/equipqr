@@ -74,7 +74,7 @@ export const useSlotAvailability = (organizationId: string) => {
     if (!organizationId) return;
 
     const channel = supabase
-      .channel('slot-availability-changes')
+      .channel(`slot-availability-${organizationId}`)
       .on(
         'postgres_changes',
         {
@@ -102,7 +102,13 @@ export const useSlotAvailability = (organizationId: string) => {
           queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Successfully subscribed to slot-availability-${organizationId}`);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`Failed to subscribe to slot-availability-${organizationId}`);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
