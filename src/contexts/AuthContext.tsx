@@ -102,7 +102,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      // First, validate that we have a session to sign out
+      if (!session) {
+        console.log('No active session found, performing client-side cleanup only');
+        // Clear any potential stale local storage
+        localStorage.removeItem('sb-ymxkzronkhwxzcdcbnwq-auth-token');
+        return;
+      }
+
+      console.log('Attempting to sign out with session:', session.access_token?.substring(0, 20) + '...');
+      
+      // Attempt server-side logout
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.warn('Server-side logout failed:', error);
+        
+        // Handle specific error cases
+        if (error.message?.includes('Session not found') || error.message?.includes('session_not_found')) {
+          console.log('Session already expired on server, performing client-side cleanup');
+          // Session is already invalid on server, just clean up locally
+        } else {
+          // For other errors, we still want to clean up locally but log the error
+          console.error('Unexpected logout error:', error);
+        }
+      } else {
+        console.log('Server-side logout successful');
+      }
+    } catch (error) {
+      console.error('Exception during logout:', error);
+    } finally {
+      // Always perform client-side cleanup regardless of server response
+      console.log('Performing client-side cleanup');
+      
+      // Clear local storage manually as fallback
+      try {
+        localStorage.removeItem('sb-ymxkzronkhwxzcdcbnwq-auth-token');
+        // Also clear any other potential auth-related items
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sb-ymxkzronkhwxzcdcbnwq-auth')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      } catch (storageError) {
+        console.warn('Error clearing localStorage:', storageError);
+      }
+      
+      // Clear session storage items
+      try {
+        sessionStorage.removeItem('pendingRedirect');
+      } catch (sessionError) {
+        console.warn('Error clearing sessionStorage:', sessionError);
+      }
+      
+      // Reset local state
+      setUser(null);
+      setSession(null);
+    }
   };
 
   return (
