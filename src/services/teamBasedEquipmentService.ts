@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { useTeamMembership } from '@/hooks/useTeamMembership';
 
 export interface TeamAccessibleEquipment {
   id: string;
@@ -15,13 +14,14 @@ export interface TeamAccessibleEquipment {
   teamName?: string;
 }
 
-// Get equipment that a user can access based on their team memberships
+// Get equipment that a user can access based on their team memberships and role
 export const getTeamAccessibleEquipment = async (
   organizationId: string, 
-  userTeamIds: string[]
+  userTeamIds: string[],
+  isOrgAdmin: boolean = false
 ): Promise<TeamAccessibleEquipment[]> => {
   try {
-    console.log('🔍 Fetching team-accessible equipment for teams:', userTeamIds);
+    console.log('🔍 Fetching team-accessible equipment for teams:', userTeamIds, 'isAdmin:', isOrgAdmin);
     
     let query = supabase
       .from('equipment')
@@ -41,13 +41,19 @@ export const getTeamAccessibleEquipment = async (
       `)
       .eq('organization_id', organizationId);
 
-    // If user has team memberships, filter to equipment assigned to those teams
-    // Also include unassigned equipment (team_id is null) so managers can see and assign it
-    if (userTeamIds.length > 0) {
-      query = query.or(`team_id.in.(${userTeamIds.join(',')}),team_id.is.null`);
+    // Organization admins can see all equipment
+    if (isOrgAdmin) {
+      console.log('👑 Admin access - showing all equipment');
     } else {
-      // If user has no team memberships, only show unassigned equipment
-      query = query.is('team_id', null);
+      // Regular users can only see equipment assigned to their teams
+      if (userTeamIds.length > 0) {
+        query = query.in('team_id', userTeamIds);
+        console.log('👥 Team member access - showing equipment for teams:', userTeamIds);
+      } else {
+        // Users with no team memberships see no equipment
+        console.log('⚠️ User has no team memberships - showing no equipment');
+        return [];
+      }
     }
 
     const { data, error } = await query.order('name', { ascending: true });
@@ -80,10 +86,11 @@ export const getTeamAccessibleEquipment = async (
 // Get equipment IDs that a user can access (for work order filtering)
 export const getAccessibleEquipmentIds = async (
   organizationId: string,
-  userTeamIds: string[]
+  userTeamIds: string[],
+  isOrgAdmin: boolean = false
 ): Promise<string[]> => {
   try {
-    const equipment = await getTeamAccessibleEquipment(organizationId, userTeamIds);
+    const equipment = await getTeamAccessibleEquipment(organizationId, userTeamIds, isOrgAdmin);
     return equipment.map(e => e.id);
   } catch (error) {
     console.error('💥 Error getting accessible equipment IDs:', error);
