@@ -190,7 +190,7 @@ export const useSyncDashboardStats = (organizationId?: string) => {
 export const useSyncWorkOrderByIdEnhanced = (organizationId: string, workOrderId: string) => {
   return useQuery({
     queryKey: ['workOrder', 'enhanced', organizationId, workOrderId],
-    queryFn: () => getWorkOrderById(organizationId, workOrderId),
+    queryFn: () => getWorkOrderByIdWithAssignee(organizationId, workOrderId),
     enabled: !!organizationId && !!workOrderId,
     staleTime: 1 * 60 * 1000, // 1 minute for enhanced queries
     refetchInterval: 30 * 1000, // Refetch every 30 seconds for real-time updates

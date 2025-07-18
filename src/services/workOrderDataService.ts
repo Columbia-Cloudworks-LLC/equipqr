@@ -23,6 +23,7 @@ export interface EnhancedWorkOrder {
   createdByName?: string;
   has_pm: boolean;
   pm_required: boolean;
+  updated_at: string;
 }
 
 export const getWorkOrderByIdWithAssignee = async (
@@ -81,7 +82,8 @@ export const getWorkOrderByIdWithAssignee = async (
       equipmentName: (data.equipment as any)?.name,
       createdByName: (data.creator as any)?.name,
       has_pm: data.has_pm,
-      pm_required: data.pm_required
+      pm_required: data.pm_required,
+      updated_at: data.updated_at
     };
   } catch (error) {
     console.error('Error in getWorkOrderByIdWithAssignee:', error);

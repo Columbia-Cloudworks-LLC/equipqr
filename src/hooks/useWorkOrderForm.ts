@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { z } from 'zod';
 import { useFormValidation } from '@/hooks/useFormValidation';
-import { WorkOrder } from '@/services/supabaseDataService';
+import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 
 const workOrderFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -18,7 +18,7 @@ const workOrderFormSchema = z.object({
 export type WorkOrderFormData = z.infer<typeof workOrderFormSchema>;
 
 interface UseWorkOrderFormProps {
-  workOrder?: WorkOrder;
+  workOrder?: EnhancedWorkOrder;
   equipmentId?: string;
   isOpen: boolean;
 }

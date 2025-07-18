@@ -2,11 +2,11 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/hooks/useWorkOrderUpdate';
-import { WorkOrder } from '@/services/supabaseDataService';
+import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 import { WorkOrderFormData } from './useWorkOrderForm';
 
 interface UseWorkOrderSubmissionProps {
-  workOrder?: WorkOrder;
+  workOrder?: EnhancedWorkOrder;
   onSubmit?: (data: WorkOrderFormData) => void;
   onSuccess: () => void;
 }

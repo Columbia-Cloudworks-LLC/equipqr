@@ -6,11 +6,12 @@ import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
 import { Wrench, FileText, ChevronDown } from 'lucide-react';
-import { WorkOrder, Equipment } from '@/services/supabaseDataService';
+import { Equipment } from '@/services/supabaseDataService';
+import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface WorkOrderDetailsInfoProps {
-  workOrder: WorkOrder;
+  workOrder: EnhancedWorkOrder;
   equipment: Equipment | null;
 }
 
