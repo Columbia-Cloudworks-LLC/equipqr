@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEnhancedWorkOrders } from '@/hooks/useEnhancedWorkOrders';
+import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/hooks/useTeamBasedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import { useBatchAssignUnassignedWorkOrders } from '@/hooks/useBatchAssignUnassignedWorkOrders';
@@ -9,7 +9,7 @@ import { useWorkOrderFilters } from '@/hooks/useWorkOrderFilters';
 import { useWorkOrderReopening } from '@/hooks/useWorkOrderReopening';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTeams } from '@/hooks/useTeamManagement';
-import { supabase } from '@/integrations/supabase/client';
+import { useUser } from '@/contexts/UserContext';
 import { WorkOrderAcceptanceModalState } from '@/types/workOrder';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import WorkOrderAcceptanceModal from '@/components/work-orders/WorkOrderAcceptanceModal';
@@ -26,23 +26,18 @@ const WorkOrders = () => {
     open: false,
     workOrder: null
   });
-  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const { currentOrganization } = useOrganization();
+  const { currentUser } = useUser();
   const isMobile = useIsMobile();
 
-  // Get current user
-  React.useEffect(() => {
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-    };
-    getCurrentUser();
-  }, []);
-
-  // Use enhanced hook for work orders data
-  const { data: allWorkOrders = [], isLoading } = useEnhancedWorkOrders(currentOrganization?.id);
+  // Use team-based access control
+  const { userTeamIds, hasTeamAccess, isLoading: teamAccessLoading } = useTeamBasedAccess();
+  
+  // Use team-based work orders hook instead of the enhanced one
+  const { data: allWorkOrders = [], isLoading: workOrdersLoading } = useTeamBasedWorkOrders();
   const { data: teams = [] } = useTeams(currentOrganization?.id);
+  
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
   const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
@@ -114,12 +109,14 @@ const WorkOrders = () => {
     // In the future, this could open a dedicated assignment modal
   };
 
+  const isLoading = teamAccessLoading || workOrdersLoading;
+
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Work Orders</h1>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Loading team-based work orders...</p>
         </div>
         <div className="grid gap-6">
           {[...Array(3)].map((_, i) => (
@@ -130,11 +127,25 @@ const WorkOrders = () => {
     );
   }
 
+  // Show team access information for debugging
+  console.log('🔍 Team-based access debug:', {
+    userTeamIds,
+    hasTeamAccess,
+    workOrdersCount: allWorkOrders.length,
+    organizationId: currentOrganization?.id
+  });
+
   const hasActiveFilters = getActiveFilterCount() > 0 || filters.searchQuery.length > 0;
 
   return (
     <div className="space-y-4">
-      <WorkOrdersHeader onCreateClick={() => setShowForm(true)} />
+      <WorkOrdersHeader 
+        onCreateClick={() => setShowForm(true)} 
+        subtitle={hasTeamAccess 
+          ? `Showing work orders for your ${userTeamIds.length} team${userTeamIds.length === 1 ? '' : 's'}`
+          : 'Showing work orders for unassigned equipment'
+        }
+      />
 
       {isSingleUserOrg && (
         <AutoAssignmentBanner
@@ -158,17 +169,17 @@ const WorkOrders = () => {
             teams={teams}
           />
 
-            <WorkOrdersList
-              workOrders={filteredWorkOrders}
-              onAcceptClick={handleAcceptClick}
-              onStatusUpdate={handleStatusUpdate}
-              isUpdating={updateStatusMutation.isPending}
-              isAccepting={acceptanceMutation.isPending}
-              hasActiveFilters={hasActiveFilters}
-              onCreateClick={() => setShowForm(true)}
-              onAssignClick={handleAssignClick}
-              onReopenClick={() => undefined}
-            />
+          <WorkOrdersList
+            workOrders={filteredWorkOrders}
+            onAcceptClick={handleAcceptClick}
+            onStatusUpdate={handleStatusUpdate}
+            isUpdating={updateStatusMutation.isPending}
+            isAccepting={acceptanceMutation.isPending}
+            hasActiveFilters={hasActiveFilters}
+            onCreateClick={() => setShowForm(true)}
+            onAssignClick={handleAssignClick}
+            onReopenClick={() => undefined}
+          />
         </div>
 
         {/* Notifications Sidebar - Only show on desktop */}
