@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MoreHorizontal, Mail, UserMinus } from 'lucide-react';
+import { MoreHorizontal, UserMinus, Shield, AlertTriangle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +18,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { RealOrganizationMember, useUpdateMemberRole, useRemoveMember } from '@/hooks/useOrganizationMembers';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MembersListRealProps {
   members: RealOrganizationMember[];
@@ -33,10 +45,12 @@ const MembersListReal: React.FC<MembersListRealProps> = ({
   currentUserRole,
   isLoading = false,
 }) => {
+  const { user } = useAuth();
   const updateMemberRole = useUpdateMemberRole(organizationId);
   const removeMember = useRemoveMember(organizationId);
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
+  const currentUserId = user?.id;
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -78,6 +92,30 @@ const MembersListReal: React.FC<MembersListRealProps> = ({
     }
   };
 
+  const isLastOwner = (member: RealOrganizationMember) => {
+    const owners = members.filter(m => m.role === 'owner' && m.status === 'active');
+    return member.role === 'owner' && owners.length === 1;
+  };
+
+  const canRemoveMember = (member: RealOrganizationMember) => {
+    // Can't remove yourself if you're the last owner
+    if (member.id === currentUserId && isLastOwner(member)) {
+      return false;
+    }
+    
+    // Owners can remove anyone except themselves if they're the last owner
+    if (currentUserRole === 'owner') {
+      return true;
+    }
+    
+    // Admins can remove members, but not other admins or owners
+    if (currentUserRole === 'admin') {
+      return member.role === 'member';
+    }
+    
+    return false;
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -112,7 +150,18 @@ const MembersListReal: React.FC<MembersListRealProps> = ({
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <div className="font-medium">{member.name}</div>
+                  <div className="font-medium flex items-center gap-2">
+                    {member.name}
+                    {member.id === currentUserId && (
+                      <Badge variant="outline" className="text-xs">You</Badge>
+                    )}
+                    {isLastOwner(member) && (
+                      <div className="flex items-center gap-1 text-amber-600">
+                        <Shield className="h-3 w-3" />
+                        <span className="text-xs">Protected</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="text-sm text-muted-foreground">{member.email}</div>
                   <div className="text-xs text-muted-foreground">
                     Joined {new Date(member.joinedDate).toLocaleDateString()}
@@ -125,7 +174,7 @@ const MembersListReal: React.FC<MembersListRealProps> = ({
                   {member.status}
                 </Badge>
                 
-                {canManageMembers && member.role !== 'owner' ? (
+                {canManageMembers && member.role !== 'owner' && member.id !== currentUserId ? (
                   <Select
                     value={member.role}
                     onValueChange={(value) => handleRoleChange(member.id, value)}
@@ -145,24 +194,40 @@ const MembersListReal: React.FC<MembersListRealProps> = ({
                   </Badge>
                 )}
 
-                {canManageMembers && member.role !== 'owner' && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" disabled={removeMember.isPending}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => handleRemoveMember(member.id)}
+                {canRemoveMember(member) && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
                         disabled={removeMember.isPending}
+                        className="text-destructive hover:text-destructive"
                       >
-                        <UserMinus className="mr-2 h-4 w-4" />
-                        Remove Member
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <UserMinus className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                          Remove Member
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to remove <strong>{member.name}</strong> from the organization? 
+                          This action cannot be undone and they will lose access to all organization resources.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleRemoveMember(member.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Remove Member
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </div>

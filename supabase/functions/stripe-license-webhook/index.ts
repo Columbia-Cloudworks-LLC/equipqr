@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -119,6 +120,83 @@ serve(async (req) => {
 
         logStep("Subscription renewal processed");
       }
+    } else if (event.type === "customer.subscription.updated") {
+      const subscription = event.data.object as Stripe.Subscription;
+      logStep("Processing subscription update", { subscriptionId: subscription.id });
+
+      // Get the previous subscription data to detect quantity changes
+      const { data: existingRecord } = await supabaseClient
+        .from("user_license_subscriptions")
+        .select("*")
+        .eq("stripe_subscription_id", subscription.id)
+        .single();
+
+      if (existingRecord) {
+        const newQuantity = subscription.items.data[0].quantity || 1;
+        const oldQuantity = existingRecord.quantity;
+
+        // Update subscription record
+        await supabaseClient
+          .from("user_license_subscriptions")
+          .update({
+            quantity: newQuantity,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            status: subscription.status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_subscription_id", subscription.id);
+
+        // If quantity was reduced, we need to handle member cleanup
+        if (newQuantity < oldQuantity) {
+          logStep("Handling license quantity reduction", { oldQuantity, newQuantity });
+          
+          // Get organization ID from existing record
+          const organizationId = existingRecord.organization_id;
+          
+          // Get current active members (excluding owners)
+          const { data: members } = await supabaseClient
+            .from("organization_members")
+            .select("user_id, role, joined_date")
+            .eq("organization_id", organizationId)
+            .eq("status", "active")
+            .order("joined_date", { ascending: false }); // Most recent first
+
+          if (members) {
+            const billableMembers = members.filter(m => m.role !== "owner");
+            const excessMembers = billableMembers.length - newQuantity;
+
+            if (excessMembers > 0) {
+              // Remove the most recently added members first
+              const membersToRemove = billableMembers.slice(0, excessMembers);
+              
+              for (const member of membersToRemove) {
+                await supabaseClient
+                  .from("organization_members")
+                  .update({ status: "inactive" })
+                  .eq("user_id", member.user_id)
+                  .eq("organization_id", organizationId);
+                
+                logStep("Deactivated member due to license reduction", { 
+                  userId: member.user_id, 
+                  organizationId 
+                });
+              }
+            }
+          }
+        }
+
+        // Update organization slots
+        await supabaseClient.rpc("sync_stripe_subscription_slots", {
+          org_id: existingRecord.organization_id,
+          subscription_id: subscription.id,
+          quantity: newQuantity,
+          period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        });
+
+        logStep("Subscription update processed");
+      }
     } else if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object as Stripe.Subscription;
       logStep("Processing subscription cancellation", { subscriptionId: subscription.id });
@@ -131,6 +209,26 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq("stripe_subscription_id", subscription.id);
+
+      // Get organization ID to handle member cleanup
+      const { data: subscriptionRecord } = await supabaseClient
+        .from("user_license_subscriptions")
+        .select("organization_id")
+        .eq("stripe_subscription_id", subscription.id)
+        .single();
+
+      if (subscriptionRecord) {
+        // Deactivate all non-owner members when subscription is cancelled
+        await supabaseClient
+          .from("organization_members")
+          .update({ status: "inactive" })
+          .eq("organization_id", subscriptionRecord.organization_id)
+          .neq("role", "owner");
+
+        logStep("Deactivated all non-owner members due to subscription cancellation", {
+          organizationId: subscriptionRecord.organization_id
+        });
+      }
 
       logStep("Subscription cancelled");
     }

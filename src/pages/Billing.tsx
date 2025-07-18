@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
+import { CreditCard, AlertCircle, RefreshCw, CheckCircle, Settings, ExternalLink } from 'lucide-react';
 import SimplifiedMemberBilling from '@/components/billing/SimplifiedMemberBilling';
 import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
@@ -15,7 +15,15 @@ import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifi
 const Billing = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
-  const { subscriptionData, isSubscribed, subscriptionTier, subscriptionEnd } = useSubscription();
+  const { 
+    subscriptionData, 
+    isSubscribed, 
+    subscriptionTier, 
+    subscriptionEnd, 
+    openCustomerPortal,
+    purchaseUserLicenses,
+    checkSubscription 
+  } = useSubscription();
   
   // Mock data for storage - in a real app, this would come from your backend
   const [storageUsedGB] = useState(3.2);
@@ -37,6 +45,9 @@ const Billing = () => {
         variant: 'default',
       });
       
+      // Refresh subscription data
+      checkSubscription();
+      
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (cancelled === 'true') {
@@ -49,9 +60,41 @@ const Billing = () => {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [toast]);
+  }, [toast, checkSubscription]);
 
+  const handleManageSubscription = async () => {
+    try {
+      await openCustomerPortal();
+      toast({
+        title: 'Opening Subscription Management...',
+        description: 'Redirecting to Stripe Customer Portal',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to open subscription management. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
+  const handlePurchaseLicenses = async (quantity: number) => {
+    if (!currentOrganization) return;
+    
+    try {
+      await purchaseUserLicenses(quantity, currentOrganization.id);
+      toast({
+        title: 'Redirecting to Checkout...',
+        description: `Purchasing ${quantity} user licenses`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to initiate license purchase. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   if (!currentOrganization) {
     return (
@@ -83,15 +126,87 @@ const Billing = () => {
           <Badge variant={isFree ? 'secondary' : 'default'}>
             {isFree ? 'Free Plan' : 'Pay-as-you-go'}
           </Badge>
-          {/* Manage subscription functionality removed */}
+          {isSubscribed && (
+            <Button variant="outline" onClick={handleManageSubscription}>
+              <Settings className="mr-2 h-4 w-4" />
+              Manage Subscription
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Subscription Status Card */}
+      {isSubscribed && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Active Subscription
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <div className="text-sm text-muted-foreground">Plan</div>
+                <div className="font-medium">{subscriptionTier || 'Active'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Next Billing</div>
+                <div className="font-medium">
+                  {subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString() : 'N/A'}
+                </div>
+              </div>
+              <div>
+                <Button variant="outline" onClick={handleManageSubscription} className="w-full">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Manage in Stripe
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Member Billing Details */}
       <SimplifiedMemberBilling />
 
       {/* Image Storage Quota */}
       <ImageStorageQuota />
+
+      {/* User License Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>User License Management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Additional User Licenses</div>
+                <div className="text-sm text-muted-foreground">
+                  Purchase additional licenses for team members ($10/month per license)
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => handlePurchaseLicenses(1)}
+                  disabled={!currentOrganization}
+                >
+                  Buy 1 License
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handlePurchaseLicenses(5)}
+                  disabled={!currentOrganization}
+                >
+                  Buy 5 Licenses
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Fleet Map Add-on */}
       {!isFree && (
@@ -111,7 +226,12 @@ const Billing = () => {
                 <Badge variant={fleetMapEnabled ? 'default' : 'secondary'}>
                   {fleetMapEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>
-                {/* Manage subscription functionality removed */}
+                {isSubscribed && (
+                  <Button variant="outline" onClick={handleManageSubscription}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Manage
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>

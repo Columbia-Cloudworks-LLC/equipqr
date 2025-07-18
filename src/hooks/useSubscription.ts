@@ -88,6 +88,25 @@ export const useSubscription = () => {
     window.open(data.url, '_blank');
   };
 
+  const purchaseUserLicenses = async (quantity: number, organizationId: string) => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data, error } = await supabase.functions.invoke('purchase-user-licenses', {
+      body: { quantity, organizationId }
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Open Stripe checkout in a new tab
+    window.open(data.url, '_blank');
+    
+    return data;
+  };
+
   useEffect(() => {
     checkSubscription();
   }, [user]);
@@ -99,6 +118,7 @@ export const useSubscription = () => {
     checkSubscription,
     createCheckout,
     openCustomerPortal,
+    purchaseUserLicenses,
     isSubscribed: subscriptionData?.subscribed || false,
     subscriptionTier: subscriptionData?.subscription_tier,
     subscriptionEnd: subscriptionData?.subscription_end,
