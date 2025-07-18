@@ -82,7 +82,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     // Generate content if none provided
     let noteContent = formData.content.trim();
     if (!noteContent && files.length > 0) {
-      const userName = user?.name || 'User';
+      const userName = user?.email?.split('@')[0] || 'User';
       if (files.length === 1) {
         noteContent = `${userName} uploaded: ${files[0].name}`;
       } else {
