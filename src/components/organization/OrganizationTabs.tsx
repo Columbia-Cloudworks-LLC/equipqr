@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Mail, Crown, UserPlus, ShoppingCart } from 'lucide-react';
+import { Users, Mail, Crown, UserPlus } from 'lucide-react';
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { OrganizationAdmin } from '@/hooks/useOrganizationAdmins';
 import { PagePermissions } from '@/hooks/usePagePermissions';
@@ -15,6 +15,7 @@ import AdminsTabContent from './AdminsTabContent';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
 import InvitationManagement from './InvitationManagement';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
+import ManageSubscriptionButton from '@/components/billing/ManageSubscriptionButton';
 
 interface OrganizationTabsProps {
   members: RealOrganizationMember[];
@@ -93,15 +94,17 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
                 <UserPlus className="mr-2 h-4 w-4" />
                 <span className="sm:inline">Invite Member</span>
               </Button>
+              <ManageSubscriptionButton size="sm" variant="outline" />
             </div>
           )}
-          {!restrictions.hasAvailableSlots && billing.userLicenses.totalUsers !== 1 && (
+          {restrictions.canInviteMembers && !restrictions.hasAvailableSlots && billing.userLicenses.totalUsers !== 1 && (
             <div className="flex gap-2">
               <PurchaseLicensesButton
                 size="sm"
                 variant="outline"
                 className="w-full sm:w-auto"
               />
+              <ManageSubscriptionButton size="sm" variant="outline" />
             </div>
           )}
         </div>
