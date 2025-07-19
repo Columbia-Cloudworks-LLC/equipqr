@@ -13,7 +13,7 @@ interface UseEquipmentFormProps {
 export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) => {
   const isEdit = !!equipment;
   const createEquipmentMutation = useCreateEquipment();
-  const { canManageEquipment } = usePermissions();
+  const { canManageEquipment, hasRole } = usePermissions();
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
@@ -40,6 +40,17 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
       toast({
         title: "Permission Denied",
         description: "You don't have permission to create equipment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check team assignment requirements for non-admin users
+    const isAdminUser = hasRole(['owner', 'admin']);
+    if (!isAdminUser && !values.team_id) {
+      toast({
+        title: "Team Assignment Required",
+        description: "Non-admin users must assign equipment to a team",
         variant: "destructive",
       });
       return;

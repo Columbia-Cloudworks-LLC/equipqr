@@ -15,6 +15,12 @@ export const equipmentFormSchema = z.object({
   image_url: z.string().optional(),
   last_known_location: z.any().optional(),
   team_id: z.string().optional()
+}).refine((data) => {
+  // Non-admin users must assign equipment to a team
+  // This will be validated in the component based on user permissions
+  return true; // Basic validation passes, detailed validation in component
+}, {
+  message: "Team assignment is required for non-admin users"
 });
 
 export type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
