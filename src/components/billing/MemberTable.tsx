@@ -2,7 +2,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Crown } from 'lucide-react';
+import { Crown, Check, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -33,10 +33,14 @@ const MemberTable: React.FC<MemberTableProps> = ({ members }) => {
     }
   };
 
-  const getMemberCost = (member: RealOrganizationMember, index: number) => {
-    if (member.status !== 'active') return 0;
-    if (index === 0 && member.role === 'owner') return 0;
-    return 10;
+  const getLicenseUsage = (member: RealOrganizationMember) => {
+    if (member.status === 'active') {
+      return { uses: true, icon: <Check className="h-3 w-3 text-green-600" /> };
+    }
+    if (member.status === 'pending') {
+      return { uses: true, icon: <X className="h-3 w-3 text-amber-600" />, note: 'when accepted' };
+    }
+    return { uses: false, icon: <X className="h-3 w-3 text-muted-foreground" /> };
   };
 
   // Sort members to put owner first, then by active status
@@ -51,9 +55,8 @@ const MemberTable: React.FC<MemberTableProps> = ({ members }) => {
   if (isMobile) {
     return (
       <div className="space-y-3">
-        {sortedMembers.map((member, index) => {
-          const cost = getMemberCost(member, index);
-          const isOwnerAndFree = index === 0 && member.role === 'owner' && member.status === 'active';
+        {sortedMembers.map((member) => {
+          const licenseUsage = getLicenseUsage(member);
           
           return (
             <Card key={member.id} className="p-4">
@@ -83,16 +86,12 @@ const MemberTable: React.FC<MemberTableProps> = ({ members }) => {
                     </Badge>
                   </div>
                   
-                  <div className="text-right">
-                    <div className="font-mono font-medium">
-                      ${cost.toFixed(2)}
-                    </div>
-                    {isOwnerAndFree && (
-                      <div className="text-xs text-muted-foreground">(free)</div>
-                    )}
-                    {member.status === 'pending' && (
-                      <div className="text-xs text-muted-foreground">when active</div>
-                    )}
+                  <div className="flex items-center gap-1">
+                    {licenseUsage.icon}
+                    <span className="text-sm text-muted-foreground">
+                      {licenseUsage.uses ? 'Uses license' : 'No license'}
+                      {licenseUsage.note && ` ${licenseUsage.note}`}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -110,20 +109,19 @@ const MemberTable: React.FC<MemberTableProps> = ({ members }) => {
           <TableHead>Member</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Monthly Cost</TableHead>
+          <TableHead>License Usage</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {sortedMembers.map((member, index) => {
-          const cost = getMemberCost(member, index);
-          const isOwnerAndFree = index === 0 && member.role === 'owner' && member.status === 'active';
+        {sortedMembers.map((member) => {
+          const licenseUsage = getLicenseUsage(member);
           
           return (
             <TableRow key={member.id}>
               <TableCell>
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs">
+                    <AvatarFallball className="text-xs">
                       {member.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
@@ -147,14 +145,14 @@ const MemberTable: React.FC<MemberTableProps> = ({ members }) => {
                 </Badge>
               </TableCell>
               <TableCell>
-                <div className="font-mono">
-                  ${cost.toFixed(2)}
-                  {isOwnerAndFree && (
-                    <span className="text-sm text-muted-foreground ml-1">(free)</span>
-                  )}
-                  {member.status === 'pending' && (
-                    <span className="text-sm text-muted-foreground ml-1">(will be billed when active)</span>
-                  )}
+                <div className="flex items-center gap-2">
+                  {licenseUsage.icon}
+                  <span className="text-sm">
+                    {licenseUsage.uses ? 'Uses license' : 'No license'}
+                    {licenseUsage.note && (
+                      <span className="text-muted-foreground ml-1">({licenseUsage.note})</span>
+                    )}
+                  </span>
                 </div>
               </TableCell>
             </TableRow>

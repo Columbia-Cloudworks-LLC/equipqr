@@ -31,16 +31,16 @@ const BillingHeader: React.FC<BillingHeaderProps> = ({
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             {isMobile ? (
-              <>Manage billing for {organizationName}</>
+              <>Manage licenses for {organizationName}</>
             ) : (
-              <>Manage your organization's billing and usage for {organizationName}</>
+              <>Manage your organization's licenses and billing for {organizationName}</>
             )}
           </p>
         </div>
         
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Badge variant={isFree ? 'secondary' : 'default'} className="w-fit">
-            {isFree ? 'Free Plan' : 'Pay-as-you-go'}
+            {isFree ? 'No Active Licenses' : 'License Subscription'}
           </Badge>
           {isSubscribed && canManageBilling && (
             <Button 
