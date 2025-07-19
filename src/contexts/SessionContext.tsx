@@ -11,6 +11,8 @@ export interface SessionOrganization {
   features: string[];
   billingCycle?: 'monthly' | 'yearly';
   nextBillingDate?: string;
+  logo?: string;
+  backgroundColor?: string;
   userRole: 'owner' | 'admin' | 'member';
   userStatus: 'active' | 'pending' | 'inactive';
 }
@@ -163,6 +165,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         features: org.features,
         billingCycle: org.billing_cycle as 'monthly' | 'yearly' | undefined,
         nextBillingDate: org.next_billing_date || undefined,
+        logo: org.logo || undefined,
+        backgroundColor: org.background_color || undefined,
         userRole: membership?.role as 'owner' | 'admin' | 'member' || 'member',
         userStatus: membership?.status as 'active' | 'pending' | 'inactive' || 'active'
       };

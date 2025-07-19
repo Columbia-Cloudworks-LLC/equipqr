@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
@@ -11,12 +12,11 @@ import OrganizationOverview from '@/components/organization/OrganizationOverview
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
 import OrganizationSidebar from '@/components/organization/OrganizationSidebar';
 import { OrganizationSettingsDialog } from '@/components/organization/OrganizationSettingsDialog';
-import { updateOrganization } from '@/services/optimizedOrganizationService';
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import { toast } from 'sonner';
 
 const Organization = () => {
-  const { getCurrentOrganization, isLoading, refreshSession } = useSession();
+  const { getCurrentOrganization, isLoading } = useSession();
   const currentOrganization = getCurrentOrganization();
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
@@ -45,22 +45,6 @@ const Organization = () => {
   // Event handlers
   const handleSettingsClick = () => {
     setSettingsDialogOpen(true);
-  };
-
-  const handleUpdateOrganization = async (data: { name?: string }) => {
-    try {
-      const success = await updateOrganization(currentOrganization.id, data);
-      if (success) {
-        // Refresh session to get updated organization data
-        await refreshSession();
-        toast.success('Organization updated successfully');
-      } else {
-        toast.error('Failed to update organization');
-      }
-    } catch (error) {
-      console.error('Error updating organization:', error);
-      toast.error('Failed to update organization');
-    }
   };
 
   const handleUpgradeToPremium = () => {
@@ -118,7 +102,6 @@ const Organization = () => {
         open={settingsDialogOpen}
         onOpenChange={setSettingsDialogOpen}
         organization={currentOrganization}
-        onUpdateOrganization={handleUpdateOrganization}
         currentUserRole={currentUserRole}
       />
     </div>

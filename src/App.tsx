@@ -12,6 +12,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppSidebar from '@/components/layout/AppSidebar';
 import TopBar from '@/components/layout/TopBar';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import Auth from '@/pages/Auth';
 import Dashboard from '@/pages/Dashboard';
 import Equipment from '@/pages/Equipment';
@@ -38,6 +39,10 @@ const queryClient = new QueryClient({
   },
 });
 
+const BrandedTopBar = () => {
+  return <TopBar />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -61,7 +66,7 @@ function App() {
                         <div className="flex min-h-screen w-full">
                           <AppSidebar />
                           <SidebarInset className="flex-1 min-w-0">
-                            <TopBar />
+                            <BrandedTopBar />
                             <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 overflow-auto min-w-0">
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />

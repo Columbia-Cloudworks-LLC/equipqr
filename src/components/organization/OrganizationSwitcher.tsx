@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronsUpDown, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ interface OrganizationSwitcherProps {
 const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }) => {
   const { currentOrganization, userOrganizations, switchOrganization, isLoading } = useSimpleOrganization();
   const navigate = useNavigate();
+  const [logoError, setLogoError] = useState(false);
 
   const handleOrganizationSwitch = (organizationId: string) => {
     switchOrganization(organizationId);
@@ -52,8 +53,17 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }
           )}
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary rounded flex items-center justify-center flex-shrink-0">
-              <Building className="h-3 w-3 sm:h-4 sm:w-4 text-primary-foreground" />
+            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {currentOrganization.logo && !logoError ? (
+                <img 
+                  src={currentOrganization.logo} 
+                  alt={`${currentOrganization.name} logo`}
+                  className="w-full h-full object-cover"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <Building className="h-3 w-3 sm:h-4 sm:w-4 text-primary-foreground" />
+              )}
             </div>
             <div className="flex flex-col items-start min-w-0 flex-1">
               <span className="text-xs sm:text-sm font-medium truncate w-full text-left">

@@ -18,6 +18,8 @@ export interface Organization {
   features: string[];
   billingCycle?: 'monthly' | 'yearly';
   nextBillingDate?: string;
+  logo?: string;
+  backgroundColor?: string;
 }
 
 export interface InvitationData {
