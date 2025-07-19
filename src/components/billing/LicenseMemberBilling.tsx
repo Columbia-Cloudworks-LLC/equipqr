@@ -52,85 +52,106 @@ const LicenseMemberBilling: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="text-lg sm:text-xl">
-              User Licenses ({billing.userLicenses.totalPurchased} purchased)
-            </span>
-            <Badge variant={licenseStatus.variant}>
-              {licenseStatus.message}
-            </Badge>
+        <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Users className="h-5 w-5 text-primary flex-shrink-0" />
+            <div>
+              <h3 className="text-xl font-semibold">User Licenses</h3>
+              <p className="text-sm text-muted-foreground font-normal">
+                {billing.userLicenses.totalPurchased} purchased
+              </p>
+            </div>
           </div>
           <div className="text-left sm:text-right">
             <div className="text-sm text-muted-foreground">Monthly Cost</div>
-            <div className="text-lg font-bold">${billing.userLicenses.monthlyLicenseCost.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${billing.userLicenses.monthlyLicenseCost.toFixed(2)}</div>
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="space-y-6">
+        {/* License Status Badge */}
+        <div className="flex items-center gap-2">
+          <Badge variant={licenseStatus.variant} className="font-medium">
+            {licenseStatus.message}
+          </Badge>
+        </div>
+
+        {/* Description */}
+        <div className="text-sm text-muted-foreground leading-relaxed">
+          {hasActiveLicenses 
+            ? `License-based subscription: You pay $${billing.userLicenses.costPerLicense}/month per purchased license, regardless of usage. This ensures predictable billing and allows you to manage team capacity effectively.`
+            : 'Purchase user licenses to enable team collaboration. Each license costs $10/month and allows one team member to access the platform.'
+          }
+        </div>
+
+        {/* License Counts - Mobile Optimized */}
+        {hasActiveLicenses && (
+          <div className="bg-muted/30 rounded-lg p-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-foreground">{billing.userLicenses.totalPurchased}</div>
+                <div className="text-sm text-muted-foreground mt-1">Total Licenses</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">{billing.userLicenses.slotsUsed}</div>
+                <div className="text-sm text-muted-foreground mt-1">In Use</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{billing.userLicenses.availableSlots}</div>
+                <div className="text-sm text-muted-foreground mt-1">Available</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Next Billing Date - Dark Mode Optimized */}
+        {billing.userLicenses.nextBillingDate && (
+          <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg">
+            <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <div className="text-sm">
+              <span className="font-medium text-blue-900 dark:text-blue-100">Next Billing:</span>{' '}
+              <span className="text-blue-800 dark:text-blue-200">
+                {new Date(billing.userLicenses.nextBillingDate).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+        )}
+        
+        {/* Member Table */}
+        <MemberTable members={members} />
+        
+        {/* Billing Summary */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
           <div className="text-sm text-muted-foreground">
             {hasActiveLicenses 
-              ? `License-based subscription: You pay $${billing.userLicenses.costPerLicense}/month per purchased license, regardless of usage. This ensures predictable billing and allows you to manage team capacity effectively.`
-              : 'Purchase user licenses to enable team collaboration. Each license costs $10/month and allows one team member to access the platform.'
+              ? `${billing.userLicenses.totalPurchased} licenses × $${billing.userLicenses.costPerLicense}/month`
+              : 'No licenses purchased'
             }
           </div>
-
-          {hasActiveLicenses && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">{billing.userLicenses.totalPurchased}</div>
-                <div className="text-sm text-muted-foreground">Total Licenses</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{billing.userLicenses.slotsUsed}</div>
-                <div className="text-sm text-muted-foreground">In Use</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{billing.userLicenses.availableSlots}</div>
-                <div className="text-sm text-muted-foreground">Available</div>
-              </div>
-            </div>
-          )}
-
-          {billing.userLicenses.nextBillingDate && (
-            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <div className="text-sm">
-                <strong>Next Billing:</strong> {new Date(billing.userLicenses.nextBillingDate).toLocaleDateString()}
-              </div>
-            </div>
-          )}
-          
-          <MemberTable members={members} />
-          
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
-            <div className="text-sm text-muted-foreground">
-              {hasActiveLicenses 
-                ? `${billing.userLicenses.totalPurchased} licenses × $${billing.userLicenses.costPerLicense}/month`
-                : 'No licenses purchased'
-              }
-            </div>
-            <div className="text-lg font-bold">
-              Monthly Total: ${billing.userLicenses.monthlyLicenseCost.toFixed(2)}
-            </div>
+          <div className="text-lg font-bold">
+            Monthly Total: ${billing.userLicenses.monthlyLicenseCost.toFixed(2)}
           </div>
+        </div>
 
-          <div className="flex flex-col gap-3 pt-4">
-            {canManageBilling ? (
-              <PurchaseLicensesButton variant="outline" className="w-full sm:w-auto" />
-            ) : (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm text-amber-800">
-                    <strong>Admin access required:</strong> Only organization owners and admins can purchase licenses and manage billing.
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-3 pt-2">
+          {canManageBilling ? (
+            <PurchaseLicensesButton variant="outline" className="w-full sm:w-auto sm:self-start" />
+          ) : (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <div className="font-medium text-amber-900 dark:text-amber-100 mb-1">
+                    Admin access required
+                  </div>
+                  <div className="text-amber-800 dark:text-amber-200">
+                    Only organization owners and admins can purchase licenses and manage billing.
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
