@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSession } from '@/contexts/SessionContext';
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, 'Organization name is required').max(100, 'Name must be less than 100 characters'),
@@ -46,6 +47,7 @@ export const OrganizationSettingsDialog: React.FC<OrganizationSettingsDialogProp
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const queryClient = useQueryClient();
+  const { refreshSession } = useSession();
 
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationFormSchema),
@@ -80,9 +82,12 @@ export const OrganizationSettingsDialog: React.FC<OrganizationSettingsDialogProp
         throw error;
       }
 
-      // Invalidate queries to refresh data
+      // Invalidate React Query cache
       await queryClient.invalidateQueries({ queryKey: ['organizations'] });
       await queryClient.invalidateQueries({ queryKey: ['organization', organization.id] });
+      
+      // Refresh session context to update sidebar immediately
+      await refreshSession();
       
       toast.success('Organization settings updated successfully');
       onOpenChange(false);
