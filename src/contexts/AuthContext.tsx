@@ -29,31 +29,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let authStateChangedCount = 0;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
+        authStateChangedCount++;
+        console.log(`🔐 Auth state changed (#${authStateChangedCount}):`, event, session?.user?.id);
+        
+        // Distinguish between different types of auth events
+        const isTokenRefresh = event === 'TOKEN_REFRESHED';
+        const isSignIn = event === 'SIGNED_IN';
+        const isSignOut = event === 'SIGNED_OUT';
+        
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
 
-        // Handle post-login redirect for QR code scans
-        if (event === 'SIGNED_IN' && session?.user) {
+        // Handle post-login redirect for QR code scans (only for actual sign-ins)
+        if (isSignIn && session?.user) {
           const pendingRedirect = sessionStorage.getItem('pendingRedirect');
           if (pendingRedirect) {
             sessionStorage.removeItem('pendingRedirect');
+            console.log('🎯 Redirecting to pending URL after sign-in:', pendingRedirect);
             // Use setTimeout to ensure the redirect happens after state updates
             setTimeout(() => {
               window.location.href = pendingRedirect;
             }, 100);
           }
         }
+
+        // Don't trigger session refresh for token refreshes - this is normal
+        if (isTokenRefresh) {
+          console.log('🔄 Token refreshed - maintaining current session state');
+        }
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.id);
+      console.log('🔍 Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
@@ -111,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      console.log('Attempting to sign out with session:', session.access_token?.substring(0, 20) + '...');
+      console.log('🚪 Attempting to sign out with session:', session.access_token?.substring(0, 20) + '...');
       
       // Attempt server-side logout
       const { error } = await supabase.auth.signOut();
@@ -128,13 +143,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Unexpected logout error:', error);
         }
       } else {
-        console.log('Server-side logout successful');
+        console.log('✅ Server-side logout successful');
       }
     } catch (error) {
       console.error('Exception during logout:', error);
     } finally {
       // Always perform client-side cleanup regardless of server response
-      console.log('Performing client-side cleanup');
+      console.log('🧹 Performing client-side cleanup');
       
       // Clear local storage manually as fallback
       try {

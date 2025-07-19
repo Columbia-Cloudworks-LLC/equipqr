@@ -1,6 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { usePageVisibility } from '@/hooks/usePageVisibility';
+import { 
+  saveOrganizationPreference, 
+  getOrganizationPreference, 
+  clearOrganizationPreference,
+  shouldRefreshSession,
+  getSessionStorageKey,
+  getSessionVersion
+} from '@/utils/sessionPersistence';
 
 export interface SessionOrganization {
   id: string;
@@ -56,16 +65,17 @@ export const useSession = () => {
   return context;
 };
 
-const SESSION_STORAGE_KEY = 'equipqr_session_data';
-const SESSION_VERSION = 2; // Incremented due to RLS policy updates
+const SESSION_STORAGE_KEY = getSessionStorageKey();
+const SESSION_VERSION = getSessionVersion();
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshTime, setLastRefreshTime] = useState<string | null>(null);
 
-  const loadSessionFromStorage = (): SessionData | null => {
+  const loadSessionFromStorage = useCallback((): SessionData | null => {
     try {
       const stored = localStorage.getItem(SESSION_STORAGE_KEY);
       if (!stored) return null;
@@ -74,18 +84,19 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       
       // Check version compatibility - force refresh due to RLS changes
       if (parsed.version !== SESSION_VERSION) {
-        console.log('🔄 Session version updated due to RLS policy changes, clearing stored data');
+        console.log('🔄 Session version updated, clearing stored data');
         localStorage.removeItem(SESSION_STORAGE_KEY);
         return null;
       }
       
-      // Check if data is recent (less than 30 minutes due to security updates)
+      // Use more lenient cache time for better user experience
       const lastUpdated = new Date(parsed.lastUpdated);
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
       
-      if (lastUpdated < thirtyMinutesAgo) {
-        console.log('⏰ Session data expired due to security updates, will refresh');
-        return null;
+      if (lastUpdated < oneHourAgo) {
+        console.log('⏰ Session data is older than 1 hour, will refresh on next fetch');
+        // Don't clear immediately, but mark for refresh
+        return parsed;
       }
       
       return parsed;
@@ -94,25 +105,24 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem(SESSION_STORAGE_KEY);
       return null;
     }
-  };
+  }, []);
 
-  const saveSessionToStorage = (data: SessionData) => {
+  const saveSessionToStorage = useCallback((data: SessionData) => {
     try {
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
       console.error('💾 Error saving session to storage:', error);
     }
-  };
+  }, []);
 
   const fetchSessionData = async (): Promise<SessionData> => {
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    console.log('🔍 Starting fresh session data fetch with minimal RLS policies for user:', user.id);
+    console.log('🔍 Fetching session data for user:', user.id);
 
-    // Fetch user's organization memberships - now works with minimal RLS that only shows own memberships
-    console.log('📋 Fetching organization memberships with minimal RLS...');
+    // Fetch user's organization memberships
     const { data: orgMemberData, error: orgMemberError } = await supabase
       .from('organization_members')
       .select('organization_id, role, status')
@@ -123,8 +133,6 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.error('❌ Error fetching organization memberships:', orgMemberError);
       throw new Error(`Failed to fetch memberships: ${orgMemberError.message}`);
     }
-
-    console.log('✅ Organization memberships fetched successfully:', orgMemberData?.length || 0);
 
     if (!orgMemberData || orgMemberData.length === 0) {
       console.log('⚠️ No organization memberships found for user');
@@ -137,7 +145,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
     }
 
-    // Get organization IDs and fetch details using updated RLS policy
+    // Get organization IDs and fetch details
     const orgIds = orgMemberData.map(om => om.organization_id);
     console.log('🏢 Fetching organization details for IDs:', orgIds);
 
@@ -147,11 +155,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .in('id', orgIds);
 
     if (orgError) {
-      console.error('❌ Error fetching organizations with new RLS:', orgError);
+      console.error('❌ Error fetching organizations:', orgError);
       throw new Error(`Failed to fetch organizations: ${orgError.message}`);
     }
-
-    console.log('✅ Organizations fetched successfully with new RLS:', orgData?.length || 0);
 
     // Combine organization data with user roles
     const organizations: SessionOrganization[] = (orgData || []).map(org => {
@@ -172,15 +178,24 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
     });
 
-    // Get current organization
-    const storedData = loadSessionFromStorage();
+    // Determine current organization with improved logic
     let currentOrganizationId = organizations.length > 0 ? organizations[0].id : null;
     
-    if (storedData?.currentOrganizationId && organizations.find(org => org.id === storedData.currentOrganizationId)) {
-      currentOrganizationId = storedData.currentOrganizationId;
+    // Check user preference first
+    const userPreference = getOrganizationPreference();
+    if (userPreference?.selectedOrgId && organizations.find(org => org.id === userPreference.selectedOrgId)) {
+      console.log('🎯 Using user preference for organization:', userPreference.selectedOrgId);
+      currentOrganizationId = userPreference.selectedOrgId;
+    } else {
+      // Fallback to stored session data
+      const storedData = loadSessionFromStorage();
+      if (storedData?.currentOrganizationId && organizations.find(org => org.id === storedData.currentOrganizationId)) {
+        console.log('📦 Using stored session organization:', storedData.currentOrganizationId);
+        currentOrganizationId = storedData.currentOrganizationId;
+      }
     }
 
-    // Fetch team memberships using the security function
+    // Fetch team memberships
     let teamMemberships: SessionTeamMembership[] = [];
     
     if (currentOrganizationId) {
@@ -194,9 +209,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         if (teamError) {
           console.error('⚠️ Error fetching team memberships:', teamError);
-          // Don't throw, just continue without team data
         } else {
-          console.log('✅ Team memberships fetched successfully:', teamData?.length || 0);
           teamMemberships = (teamData || []).map(item => ({
             teamId: item.team_id,
             teamName: item.team_name,
@@ -206,7 +219,6 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       } catch (teamFetchError) {
         console.error('❌ Failed to fetch team memberships:', teamFetchError);
-        // Continue without team data rather than failing entirely
       }
     }
 
@@ -218,52 +230,62 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       version: SESSION_VERSION
     };
 
-    console.log('🎉 Session data fetched successfully with updated RLS!', sessionData);
+    console.log('🎉 Session data fetched successfully!', sessionData);
     return sessionData;
   };
 
-  const refreshSession = async () => {
+  const refreshSession = useCallback(async (force: boolean = false) => {
     if (!user) {
       setSessionData(null);
       setIsLoading(false);
       return;
     }
 
+    // Check if we should refresh based on timing
+    if (!force && lastRefreshTime && !shouldRefreshSession(lastRefreshTime)) {
+      console.log('⏭️ Skipping session refresh - too recent');
+      return;
+    }
+
     try {
       setError(null);
-      setIsLoading(true);
+      if (force) setIsLoading(true);
       
       const newSessionData = await fetchSessionData();
       setSessionData(newSessionData);
       saveSessionToStorage(newSessionData);
+      setLastRefreshTime(new Date().toISOString());
     } catch (err) {
-      console.error('💥 Error refreshing session with new RLS:', err);
+      console.error('💥 Error refreshing session:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh session';
       setError(errorMessage);
       
-      // Try to use cached data if available (but only if it's compatible)
-      const cachedData = loadSessionFromStorage();
-      if (cachedData && cachedData.version === SESSION_VERSION) {
-        console.log('📦 Using compatible cached session data due to error');
-        setSessionData(cachedData);
+      // Try to use cached data if available and compatible
+      if (!force) {
+        const cachedData = loadSessionFromStorage();
+        if (cachedData && cachedData.version === SESSION_VERSION) {
+          console.log('📦 Using cached session data due to error');
+          setSessionData(cachedData);
+        }
       }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, lastRefreshTime, loadSessionFromStorage, saveSessionToStorage]);
 
-  const clearSession = () => {
+  const clearSession = useCallback(() => {
     setSessionData(null);
     localStorage.removeItem(SESSION_STORAGE_KEY);
-  };
+    clearOrganizationPreference();
+  }, []);
 
-  const getCurrentOrganization = (): SessionOrganization | null => {
+  const getCurrentOrganization = useCallback((): SessionOrganization | null => {
     if (!sessionData?.currentOrganizationId) return null;
     return sessionData.organizations.find(org => org.id === sessionData.currentOrganizationId) || null;
-  };
+  }, [sessionData]);
 
-  const switchOrganization = async (organizationId: string) => {
-    if (!sessionData) return;
+  const switchOrganization = useCallback(async (organizationId: string) => {
+    if (!sessionData || !user) return;
     
     const organization = sessionData.organizations.find(org => org.id === organizationId);
     if (!organization) {
@@ -273,11 +295,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     console.log('🔄 Switching to organization:', organizationId);
     
+    // Save user preference immediately
+    saveOrganizationPreference(organizationId);
+    
     try {
       // Fetch team memberships for the new organization
       const { data: teamData, error: teamError } = await supabase
         .rpc('get_user_team_memberships', {
-          user_uuid: user!.id,
+          user_uuid: user.id,
           org_id: organizationId
         });
 
@@ -301,7 +326,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (error) {
       console.error('💥 Error switching organization:', error);
     }
-  };
+  }, [sessionData, user, saveSessionToStorage]);
 
   const hasTeamRole = (teamId: string, role: string): boolean => {
     if (!sessionData) return false;
@@ -319,7 +344,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!currentOrg) return false;
     
     const isOrgAdmin = ['owner', 'admin'].includes(currentOrg.userRole);
-    const isTeamManager = hasTeamRole(teamId, 'manager');
+    const isTeamManager = sessionData?.teamMemberships.find(tm => tm.teamId === teamId)?.role === 'manager';
     
     return isOrgAdmin || isTeamManager;
   };
@@ -329,7 +354,22 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return sessionData.teamMemberships.map(tm => tm.teamId);
   };
 
-  // Initialize session on mount or user change - force refresh due to RLS updates
+  // Page visibility handling
+  usePageVisibility({
+    onVisibilityChange: (isVisible) => {
+      if (isVisible && user) {
+        console.log('👁️ Page became visible, checking session freshness');
+        // Only refresh if it's been a while since last refresh
+        if (lastRefreshTime && shouldRefreshSession(lastRefreshTime)) {
+          console.log('🔄 Refreshing session due to page visibility change');
+          refreshSession(false);
+        }
+      }
+    },
+    debounceMs: 1000 // Debounce visibility changes
+  });
+
+  // Initialize session on mount or user change
   useEffect(() => {
     if (!user) {
       clearSession();
@@ -337,13 +377,23 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return;
     }
 
-    // Clear any cached data to ensure we test the new RLS policies
-    localStorage.removeItem(SESSION_STORAGE_KEY);
-    console.log('🔄 Forcing fresh session data fetch to validate updated RLS policies');
-    
-    // Fetch fresh data with updated RLS
-    refreshSession();
-  }, [user]);
+    // Try to load from cache first
+    const cachedData = loadSessionFromStorage();
+    if (cachedData && cachedData.version === SESSION_VERSION) {
+      console.log('📦 Loading session from cache');
+      setSessionData(cachedData);
+      setIsLoading(false);
+      
+      // Refresh in background if needed
+      if (shouldRefreshSession(cachedData.lastUpdated)) {
+        console.log('🔄 Background refresh needed');
+        refreshSession(false);
+      }
+    } else {
+      console.log('🔄 No valid cache, fetching fresh session data');
+      refreshSession(true);
+    }
+  }, [user, loadSessionFromStorage, refreshSession]);
 
   return (
     <SessionContext.Provider value={{

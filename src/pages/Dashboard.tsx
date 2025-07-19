@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Wrench, Users, ClipboardList, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
@@ -16,6 +16,11 @@ const Dashboard = () => {
   const { data: workOrders, isLoading: workOrdersLoading } = useAllWorkOrders();
 
   const isLoading = sessionLoading || statsLoading;
+
+  // Debug logging for organization context
+  useEffect(() => {
+    console.log('🏠 Dashboard rendered with organization:', currentOrganization?.id, currentOrganization?.name);
+  }, [currentOrganization]);
 
   if (!currentOrganization) {
     return (
