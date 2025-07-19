@@ -45,6 +45,11 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
   const billing = calculateSimplifiedBilling(members);
 
+  // Combine role-based permissions with organizational restrictions
+  const canInviteMembers = permissions.canInviteMembers && restrictions.canInviteMembers && restrictions.hasAvailableSlots;
+  const canShowPurchaseLicenses = permissions.canInviteMembers && restrictions.canInviteMembers && !restrictions.hasAvailableSlots;
+  const canShowManageSubscription = permissions.canInviteMembers; // Only admins can manage subscriptions
+
   const handleInviteMember = () => {
     setInviteDialogOpen(true);
   };
@@ -84,7 +89,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
               {billing.userLicenses.totalUsers} total • ${billing.userLicenses.totalCost}/month
             </Badge>
           </div>
-          {restrictions.canInviteMembers && restrictions.hasAvailableSlots && (
+          {canInviteMembers && (
             <div className="flex gap-2">
               <Button
                 onClick={handleInviteMember}
@@ -94,35 +99,48 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
                 <UserPlus className="mr-2 h-4 w-4" />
                 <span className="sm:inline">Invite Member</span>
               </Button>
-              <ManageSubscriptionButton size="sm" variant="outline" />
+              {canShowManageSubscription && (
+                <ManageSubscriptionButton size="sm" variant="outline" />
+              )}
             </div>
           )}
-          {restrictions.canInviteMembers && !restrictions.hasAvailableSlots && billing.userLicenses.totalUsers !== 1 && (
+          {canShowPurchaseLicenses && billing.userLicenses.totalUsers !== 1 && (
             <div className="flex gap-2">
               <PurchaseLicensesButton
                 size="sm"
                 variant="outline"
                 className="w-full sm:w-auto"
               />
-              <ManageSubscriptionButton size="sm" variant="outline" />
+              {canShowManageSubscription && (
+                <ManageSubscriptionButton size="sm" variant="outline" />
+              )}
             </div>
           )}
         </div>
         
-          {billing.userLicenses.totalUsers === 1 && !restrictions.hasAvailableSlots && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="text-sm text-blue-800">
-                <strong>License-based collaboration:</strong> Purchase user license subscriptions to invite team members and unlock collaboration features. 
-                You pay monthly for a set number of licenses, then invite users up to that limit.
-              </div>
+        {billing.userLicenses.totalUsers === 1 && !restrictions.hasAvailableSlots && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-sm text-blue-800">
+              <strong>License-based collaboration:</strong> Purchase user license subscriptions to invite team members and unlock collaboration features. 
+              You pay monthly for a set number of licenses, then invite users up to that limit.
             </div>
-          )}
+          </div>
+        )}
 
         {!restrictions.hasAvailableSlots && billing.userLicenses.totalUsers > 1 && (
           <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
             <div className="text-sm text-orange-800">
               <strong>No available licenses:</strong> You've used all your purchased user licenses. 
               Purchase additional licenses to invite more team members.
+            </div>
+          </div>
+        )}
+
+        {/* Show role-based restriction message for members */}
+        {!permissions.canInviteMembers && currentUserRole === 'member' && (
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="text-sm text-gray-700">
+              <strong>Permission required:</strong> Only organization owners and admins can invite members and manage billing.
             </div>
           </div>
         )}
