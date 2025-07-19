@@ -59,7 +59,7 @@ const TeamSelectionSection: React.FC<TeamSelectionSectionProps> = ({ form }) => 
                 </FormControl>
                 <SelectContent>
                   {isAdmin && (
-                    <SelectItem value="">No team assigned</SelectItem>
+                    <SelectItem value="unassigned">No team assigned</SelectItem>
                   )}
                   {availableTeams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>

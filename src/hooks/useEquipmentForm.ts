@@ -47,7 +47,7 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
 
     // Check team assignment requirements for non-admin users
     const isAdminUser = hasRole(['owner', 'admin']);
-    if (!isAdminUser && !values.team_id) {
+    if (!isAdminUser && (!values.team_id || values.team_id === 'unassigned')) {
       toast({
         title: "Team Assignment Required",
         description: "Non-admin users must assign equipment to a team",
@@ -79,7 +79,7 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
           custom_attributes: values.custom_attributes || {},
           image_url: values.image_url || null,
           last_known_location: values.last_known_location || null,
-          team_id: values.team_id || null
+          team_id: values.team_id === 'unassigned' ? null : (values.team_id || null)
         };
         
         await createEquipmentMutation.mutateAsync(equipmentData);
