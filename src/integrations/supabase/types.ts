@@ -742,6 +742,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          background_color: string | null
           billable_members: number | null
           billing_cycle: string | null
           created_at: string
@@ -749,6 +750,7 @@ export type Database = {
           fleet_map_enabled: boolean | null
           id: string
           last_billing_calculation: string | null
+          logo: string | null
           max_members: number
           member_count: number
           name: string
@@ -758,6 +760,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          background_color?: string | null
           billable_members?: number | null
           billing_cycle?: string | null
           created_at?: string
@@ -765,6 +768,7 @@ export type Database = {
           fleet_map_enabled?: boolean | null
           id?: string
           last_billing_calculation?: string | null
+          logo?: string | null
           max_members?: number
           member_count?: number
           name: string
@@ -774,6 +778,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          background_color?: string | null
           billable_members?: number | null
           billing_cycle?: string | null
           created_at?: string
@@ -781,6 +786,7 @@ export type Database = {
           fleet_map_enabled?: boolean | null
           id?: string
           last_billing_calculation?: string | null
+          logo?: string | null
           max_members?: number
           member_count?: number
           name?: string
