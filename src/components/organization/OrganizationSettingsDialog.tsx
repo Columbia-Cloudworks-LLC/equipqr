@@ -47,6 +47,8 @@ export const OrganizationSettingsDialog: React.FC<OrganizationSettingsDialogProp
     resolver: zodResolver(organizationFormSchema),
     defaultValues: {
       name: organization.name,
+      logo: '',
+      backgroundColor: '',
     },
   });
 
