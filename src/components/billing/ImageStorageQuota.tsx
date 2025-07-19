@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,11 +39,18 @@ const ImageStorageQuota: React.FC = () => {
   const isOverQuota = storageUsage.overageMB > 0;
   const isNearQuota = usagePercentage > 80 && !isOverQuota;
 
-  const formatSize = (sizeGB: number) => {
-    if (sizeGB < 0.1) {
-      return `${Math.round(sizeGB * 1024)}MB`;
+  const formatSize = (sizeMB: number, sizeGB: number) => {
+    // If less than 1GB, show MB with 2 decimal places
+    if (sizeGB < 1) {
+      return `${sizeMB.toFixed(2)}MB`;
     }
+    // If 1GB or more, show GB with 1 decimal place
     return `${sizeGB.toFixed(1)}GB`;
+  };
+
+  const formatSizeFromMB = (sizeMB: number) => {
+    const sizeGB = sizeMB / 1024;
+    return formatSize(sizeMB, sizeGB);
   };
 
   return (
@@ -67,7 +75,7 @@ const ImageStorageQuota: React.FC = () => {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Storage Used</span>
-                <span>{formatSize(storageUsage.totalSizeGB)} / {formatSize(storageUsage.freeQuotaGB)} free</span>
+                <span>{formatSizeFromMB(storageUsage.totalSizeMB)} / {formatSize(storageUsage.freeQuotaMB, storageUsage.freeQuotaGB)} free</span>
               </div>
               <Progress 
                 value={usagePercentage} 
@@ -75,14 +83,14 @@ const ImageStorageQuota: React.FC = () => {
               />
               {isOverQuota && (
                 <div className="text-xs text-muted-foreground">
-                  + {formatSize(storageUsage.overageGB)} overage
+                  + {formatSizeFromMB(storageUsage.overageMB)} overage
                 </div>
               )}
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-lg font-bold">{formatSize(storageUsage.totalSizeGB)}</div>
+                <div className="text-lg font-bold">{formatSizeFromMB(storageUsage.totalSizeMB)}</div>
                 <div className="text-sm text-muted-foreground">Total Used</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
@@ -94,7 +102,7 @@ const ImageStorageQuota: React.FC = () => {
                 <div className="text-sm text-muted-foreground">Per GB</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-lg font-bold">{formatSize(storageUsage.freeQuotaGB)}</div>
+                <div className="text-lg font-bold">{formatSize(storageUsage.freeQuotaMB, storageUsage.freeQuotaGB)}</div>
                 <div className="text-sm text-muted-foreground">Free Quota</div>
               </div>
             </div>
@@ -127,7 +135,7 @@ const ImageStorageQuota: React.FC = () => {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            You're using {formatSize(storageUsage.overageGB)} over your free quota. 
+            You're using {formatSizeFromMB(storageUsage.overageMB)} over your free quota. 
             You'll be charged ${storageUsage.overageCost.toFixed(2)}/month for the overage.
           </AlertDescription>
         </Alert>
@@ -152,7 +160,7 @@ const ImageStorageQuota: React.FC = () => {
               </span>
             </div>
             <div className="text-sm text-green-700 mt-1">
-              You're using {formatSize(storageUsage.totalSizeGB)} of your {formatSize(storageUsage.freeQuotaGB)} free quota. 
+              You're using {formatSizeFromMB(storageUsage.totalSizeMB)} of your {formatSize(storageUsage.freeQuotaMB, storageUsage.freeQuotaGB)} free quota. 
               Overage is charged at $0.10/GB.
             </div>
           </CardContent>

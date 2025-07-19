@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TeamWithMembers } from '@/services/teamService';
+import { useTeamMembers } from '@/hooks/useTeamManagement';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface RoleChangeDialogProps {
   open: boolean;
@@ -27,22 +29,25 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
   member,
   team 
 }) => {
+  const { currentOrganization } = useOrganization();
+  const { updateRole } = useTeamMembers(team.id, currentOrganization?.id);
   const [selectedRole, setSelectedRole] = useState<string>(member?.role || '');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!member) return;
+    if (!member || !selectedRole) return;
 
-    // In real implementation, this would call an update team member role mutation
-    console.log('Updating member role:', {
-      memberId: member.id,
-      teamId: team.id,
-      newRole: selectedRole,
-      oldRole: member.role
-    });
-    
-    onClose();
+    try {
+      await updateRole.mutateAsync({
+        teamId: team.id,
+        userId: member.user_id,
+        role: selectedRole as 'manager' | 'technician'
+      });
+      onClose();
+    } catch (error) {
+      console.error('Failed to update member role:', error);
+    }
   };
 
   const roleOptions = [
@@ -54,13 +59,17 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
 
   if (!member) return null;
 
+  // Handle both nested and direct member data structures
+  const memberName = member.profiles?.name || member.name || 'Unknown';
+  const memberEmail = member.profiles?.email || member.email || 'No email';
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Change Team Role</DialogTitle>
           <DialogDescription>
-            Update the team role for {member.name}
+            Update the team role for {memberName}
           </DialogDescription>
         </DialogHeader>
 
@@ -71,12 +80,12 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback>
-                    {member.name.split(' ').map(n => n[0]).join('')}
+                    {memberName.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{member.name}</p>
-                  <p className="text-sm text-muted-foreground">{member.email}</p>
+                  <p className="font-medium">{memberName}</p>
+                  <p className="text-sm text-muted-foreground">{memberEmail}</p>
                 </div>
               </div>
 
@@ -115,9 +124,9 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
             </Button>
             <Button 
               type="submit"
-              disabled={selectedRole === member.role}
+              disabled={selectedRole === member.role || updateRole.isPending}
             >
-              Update Role
+              {updateRole.isPending ? 'Updating...' : 'Update Role'}
             </Button>
           </div>
         </form>

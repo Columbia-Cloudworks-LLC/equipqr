@@ -54,8 +54,9 @@ export const useOrganizationStorageUsage = () => {
         .reduce((sum, size) => sum + size, 0);
 
       const totalSizeBytes = equipmentImageSizes + workOrderImageSizes;
-      const totalSizeMB = Math.round((totalSizeBytes / (1024 * 1024)) * 100) / 100;
-      const totalSizeGB = Math.round((totalSizeMB / 1024) * 100) / 100;
+      // Keep full precision for MB calculation
+      const totalSizeMB = totalSizeBytes / (1024 * 1024);
+      const totalSizeGB = totalSizeMB / 1024;
       
       const itemCount = (equipmentImages?.length || 0) + (workOrderImages?.length || 0);
       
