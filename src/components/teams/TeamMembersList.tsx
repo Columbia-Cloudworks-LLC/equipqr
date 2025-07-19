@@ -8,6 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Users, User, Settings, Trash2 } from 'lucide-react';
 import { TeamWithMembers } from '@/services/teamService';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTeamMembers } from '@/hooks/useTeamManagement';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import RoleChangeDialog from './RoleChangeDialog';
 
 interface TeamMembersListProps {
@@ -15,6 +17,8 @@ interface TeamMembersListProps {
 }
 
 const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
+  const { currentOrganization } = useOrganization();
+  const { removeMember } = useTeamMembers(team.id, currentOrganization?.id);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const { canManageTeam } = usePermissions();
@@ -56,9 +60,20 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
     setShowRoleDialog(true);
   };
 
-  const handleRemoveMember = (member: any) => {
-    // In real implementation, this would call a remove member mutation
-    console.log('Removing member:', member.id, 'from team:', team.id);
+  const handleRemoveMember = async (member: any) => {
+    const memberName = member.profiles?.name || 'this member';
+    const confirmed = window.confirm(`Are you sure you want to remove ${memberName} from the team?`);
+    
+    if (!confirmed) return;
+
+    try {
+      await removeMember.mutateAsync({
+        teamId: team.id,
+        userId: member.user_id
+      });
+    } catch (error) {
+      console.error('Failed to remove member:', error);
+    }
   };
 
   return (
@@ -117,9 +132,10 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
                       <DropdownMenuItem
                         onClick={() => handleRemoveMember(member)}
                         className="flex items-center gap-2 text-destructive"
+                        disabled={removeMember.isPending}
                       >
                         <Trash2 className="h-4 w-4" />
-                        Remove from Team
+                        {removeMember.isPending ? 'Removing...' : 'Remove from Team'}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
