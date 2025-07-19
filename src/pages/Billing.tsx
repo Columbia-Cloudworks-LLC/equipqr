@@ -6,12 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { CreditCard, AlertCircle, RefreshCw, CheckCircle, Settings, ExternalLink } from 'lucide-react';
 import SimplifiedMemberBilling from '@/components/billing/SimplifiedMemberBilling';
 import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
+import BillingHeader from '@/components/billing/BillingHeader';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from '@/hooks/use-toast';
 import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Billing = () => {
   const { currentOrganization } = useSimpleOrganization();
@@ -25,6 +27,8 @@ const Billing = () => {
     openCustomerPortal,
     checkSubscription 
   } = useSubscription();
+  
+  const isMobile = useIsMobile();
   
   // Mock data for storage - in a real app, this would come from your backend
   const [storageUsedGB] = useState(3.2);
@@ -51,10 +55,7 @@ const Billing = () => {
         variant: 'default',
       });
       
-      // Refresh subscription data
       checkSubscription();
-      
-      // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (cancelled === 'true') {
       toast({
@@ -63,7 +64,6 @@ const Billing = () => {
         variant: 'destructive',
       });
       
-      // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [toast, checkSubscription]);
@@ -95,7 +95,7 @@ const Billing = () => {
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         <Card className="border-orange-200 bg-orange-50">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-orange-800">
@@ -111,32 +111,20 @@ const Billing = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Billing & Usage</h1>
-          <p className="text-muted-foreground">
-            Manage your organization's billing and usage for {currentOrganization.name}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={isFree ? 'secondary' : 'default'}>
-            {isFree ? 'Free Plan' : 'Pay-as-you-go'}
-          </Badge>
-          {isSubscribed && canManageBilling && (
-            <Button variant="outline" onClick={handleManageSubscription}>
-              <Settings className="mr-2 h-4 w-4" />
-              Manage Subscription
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="p-4 sm:p-6 space-y-6">
+      <BillingHeader
+        organizationName={currentOrganization.name}
+        isFree={isFree}
+        isSubscribed={isSubscribed}
+        canManageBilling={canManageBilling}
+        onManageSubscription={handleManageSubscription}
+      />
 
       {!canManageBilling && (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-amber-800">
-              <AlertCircle className="h-4 w-4" />
+            <div className="flex items-start gap-2 text-amber-800">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span className="text-sm">
                 <strong>Limited Access:</strong> Only organization owners and admins can manage billing settings and purchase licenses.
               </span>
@@ -149,13 +137,13 @@ const Billing = () => {
       {isSubscribed && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               Active Subscription
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <div className="text-sm text-muted-foreground">Plan</div>
                 <div className="font-medium">{subscriptionTier || 'Active'}</div>
@@ -166,14 +154,19 @@ const Billing = () => {
                   {subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString() : 'N/A'}
                 </div>
               </div>
-              <div>
+              <div className="sm:col-span-2 lg:col-span-1">
                 {canManageBilling ? (
-                  <Button variant="outline" onClick={handleManageSubscription} className="w-full">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleManageSubscription} 
+                    className="w-full"
+                    size={isMobile ? "sm" : "default"}
+                  >
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Manage in Stripe
                   </Button>
                 ) : (
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
                     Contact admin to manage
                   </div>
                 )}
@@ -193,22 +186,27 @@ const Billing = () => {
       {!isFree && (
         <Card>
           <CardHeader>
-            <CardTitle>Premium Add-ons</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Premium Add-ons</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="font-medium">Fleet Map</div>
                 <div className="text-sm text-muted-foreground">
                   Visual equipment tracking and location management
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <Badge variant={fleetMapEnabled ? 'default' : 'secondary'}>
                   {fleetMapEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>
                 {isSubscribed && canManageBilling && (
-                  <Button variant="outline" onClick={handleManageSubscription}>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleManageSubscription}
+                    size={isMobile ? "sm" : "default"}
+                    className="w-full sm:w-auto"
+                  >
                     <Settings className="mr-2 h-4 w-4" />
                     Manage
                   </Button>

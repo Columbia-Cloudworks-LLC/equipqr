@@ -6,9 +6,11 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { HardDrive, Image, AlertTriangle, Info } from 'lucide-react';
 import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const ImageStorageQuota: React.FC = () => {
   const { data: storageUsage, isLoading, error } = useOrganizationStorageUsage();
+  const isMobile = useIsMobile();
 
   if (isLoading) {
     return (
@@ -40,11 +42,9 @@ const ImageStorageQuota: React.FC = () => {
   const isNearQuota = usagePercentage > 80 && !isOverQuota;
 
   const formatSize = (sizeMB: number, sizeGB: number) => {
-    // If less than 1GB, show MB with 2 decimal places
     if (sizeGB < 1) {
       return `${sizeMB.toFixed(2)}MB`;
     }
-    // If 1GB or more, show GB with 1 decimal place
     return `${sizeGB.toFixed(1)}GB`;
   };
 
@@ -57,14 +57,14 @@ const ImageStorageQuota: React.FC = () => {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <HardDrive className="h-5 w-5" />
-              Image Storage Usage
+              <HardDrive className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-lg sm:text-xl">Image Storage Usage</span>
               {isOverQuota && <Badge variant="destructive">Over Quota</Badge>}
               {isNearQuota && <Badge variant="secondary">Near Quota</Badge>}
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="text-sm text-muted-foreground">Monthly Cost</div>
               <div className="text-lg font-bold">${storageUsage.overageCost.toFixed(2)}</div>
             </div>
@@ -75,7 +75,9 @@ const ImageStorageQuota: React.FC = () => {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Storage Used</span>
-                <span>{formatSizeFromMB(storageUsage.totalSizeMB)} / {formatSize(storageUsage.freeQuotaMB, storageUsage.freeQuotaGB)} free</span>
+                <span className="text-right">
+                  {formatSizeFromMB(storageUsage.totalSizeMB)} / {formatSize(storageUsage.freeQuotaMB, storageUsage.freeQuotaGB)} free
+                </span>
               </div>
               <Progress 
                 value={usagePercentage} 
@@ -88,28 +90,28 @@ const ImageStorageQuota: React.FC = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="text-lg font-bold">{formatSizeFromMB(storageUsage.totalSizeMB)}</div>
-                <div className="text-sm text-muted-foreground">Total Used</div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-3 bg-muted rounded-lg text-center">
+                <div className="text-base sm:text-lg font-bold">{formatSizeFromMB(storageUsage.totalSizeMB)}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">Total Used</div>
               </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="text-lg font-bold">{storageUsage.itemCount}</div>
-                <div className="text-sm text-muted-foreground">Images</div>
+              <div className="p-3 bg-muted rounded-lg text-center">
+                <div className="text-base sm:text-lg font-bold">{storageUsage.itemCount}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">Images</div>
               </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="text-lg font-bold">${storageUsage.costPerGB.toFixed(2)}</div>
-                <div className="text-sm text-muted-foreground">Per GB</div>
+              <div className="p-3 bg-muted rounded-lg text-center">
+                <div className="text-base sm:text-lg font-bold">${storageUsage.costPerGB.toFixed(2)}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">Per GB</div>
               </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="text-lg font-bold">{formatSize(storageUsage.freeQuotaMB, storageUsage.freeQuotaGB)}</div>
-                <div className="text-sm text-muted-foreground">Free Quota</div>
+              <div className="p-3 bg-muted rounded-lg text-center">
+                <div className="text-base sm:text-lg font-bold">{formatSize(storageUsage.freeQuotaMB, storageUsage.freeQuotaGB)}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">Free Quota</div>
               </div>
             </div>
 
             <div className="bg-muted p-4 rounded-lg">
               <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Storage Breakdown</span>
+                <span className="font-medium text-sm sm:text-base">Storage Breakdown</span>
               </div>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
@@ -134,7 +136,7 @@ const ImageStorageQuota: React.FC = () => {
       {isOverQuota && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
+          <AlertDescription className="text-sm">
             You're using {formatSizeFromMB(storageUsage.overageMB)} over your free quota. 
             You'll be charged ${storageUsage.overageCost.toFixed(2)}/month for the overage.
           </AlertDescription>
@@ -144,7 +146,7 @@ const ImageStorageQuota: React.FC = () => {
       {isNearQuota && (
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertDescription>
+          <AlertDescription className="text-sm">
             You're approaching your free storage quota. Consider managing your images to avoid overage charges.
           </AlertDescription>
         </Alert>
