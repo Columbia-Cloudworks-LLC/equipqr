@@ -40,8 +40,7 @@ const queryClient = new QueryClient({
 });
 
 const BrandedTopBar = () => {
-  const { currentOrganization } = useSimpleOrganization();
-  return <TopBar backgroundColor={currentOrganization?.backgroundColor} />;
+  return <TopBar />;
 };
 
 function App() {
