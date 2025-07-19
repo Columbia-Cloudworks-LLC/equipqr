@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, 'Organization name is required').max(100, 'Name must be less than 100 characters'),
@@ -29,8 +32,9 @@ interface OrganizationSettingsDialogProps {
     memberCount: number;
     maxMembers: number;
     features: string[];
+    logo?: string;
+    backgroundColor?: string;
   };
-  onUpdateOrganization: (data: { name?: string; logo?: string; backgroundColor?: string }) => Promise<void>;
   currentUserRole: 'owner' | 'admin' | 'member';
 }
 
@@ -38,17 +42,17 @@ export const OrganizationSettingsDialog: React.FC<OrganizationSettingsDialogProp
   open,
   onOpenChange,
   organization,
-  onUpdateOrganization,
   currentUserRole
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const queryClient = useQueryClient();
 
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationFormSchema),
     defaultValues: {
       name: organization.name,
-      logo: '',
-      backgroundColor: '',
+      logo: organization.logo || '',
+      backgroundColor: organization.backgroundColor || '',
     },
   });
 
@@ -60,7 +64,26 @@ export const OrganizationSettingsDialog: React.FC<OrganizationSettingsDialogProp
 
     try {
       setIsUpdating(true);
-      await onUpdateOrganization(data);
+      
+      // Update organization in database
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          name: data.name,
+          logo: data.logo || null,
+          background_color: data.backgroundColor || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', organization.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      await queryClient.invalidateQueries({ queryKey: ['organization', organization.id] });
+      
       toast.success('Organization settings updated successfully');
       onOpenChange(false);
     } catch (error) {
