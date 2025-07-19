@@ -17,6 +17,7 @@ import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useSession } from '@/contexts/SessionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PurchaseLicensesButtonProps {
   variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
@@ -34,6 +35,7 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const isMobile = useIsMobile();
 
   const sessionOrganization = getCurrentOrganization();
   const userRole = sessionOrganization?.userRole;
@@ -95,7 +97,7 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
       <DialogTrigger asChild>
         <Button
           variant={variant}
-          size={size}
+          size={isMobile ? "sm" : size}
           className={className}
           disabled={isPurchasing}
         >
@@ -103,13 +105,13 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
           Purchase Licenses
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md mx-4 sm:mx-0">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-lg">
             <Users className="h-5 w-5" />
             Purchase User Licenses
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Add more user licenses to your organization. Each license allows one additional team member.
           </DialogDescription>
         </DialogHeader>
@@ -142,17 +144,19 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
           </div>
         </div>
         
-        <DialogFooter className="flex gap-2">
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <Button 
             variant="outline" 
             onClick={() => setDialogOpen(false)}
             disabled={isPurchasing}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
           <Button 
             onClick={handlePurchase}
             disabled={isPurchasing || quantity < 1}
+            className="w-full sm:w-auto"
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
             {isPurchasing ? 'Processing...' : `Purchase ${quantity} License${quantity !== 1 ? 's' : ''}`}
