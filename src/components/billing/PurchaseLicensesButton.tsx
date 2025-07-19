@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { ShoppingCart, Users } from 'lucide-react';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSession } from '@/contexts/SessionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -28,13 +30,23 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
   className = ""
 }) => {
   const { currentOrganization } = useSimpleOrganization();
+  const { getCurrentOrganization } = useSession();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
+  const sessionOrganization = getCurrentOrganization();
+  const userRole = sessionOrganization?.userRole;
+  const canManageBilling = ['owner', 'admin'].includes(userRole || '');
+
   const handlePurchase = async () => {
     if (!currentOrganization) {
       toast.error('No organization selected');
+      return;
+    }
+
+    if (!canManageBilling) {
+      toast.error('Only organization owners and admins can purchase licenses');
       return;
     }
 
@@ -70,6 +82,11 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
       setIsPurchasing(false);
     }
   };
+
+  // Don't render the button if user doesn't have permission
+  if (!canManageBilling) {
+    return null;
+  }
 
   const monthlyTotal = quantity * 10;
 

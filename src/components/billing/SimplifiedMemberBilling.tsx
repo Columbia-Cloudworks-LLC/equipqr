@@ -1,11 +1,13 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Users, Crown, Plus } from 'lucide-react';
+import { Users, Crown, Plus, AlertCircle } from 'lucide-react';
 import { useOrganizationMembers, RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSession } from '@/contexts/SessionContext';
 import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import {
@@ -19,7 +21,12 @@ import {
 
 const SimplifiedMemberBilling: React.FC = () => {
   const { currentOrganization } = useSimpleOrganization();
+  const { getCurrentOrganization } = useSession();
   const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
+
+  const sessionOrganization = getCurrentOrganization();
+  const userRole = sessionOrganization?.userRole;
+  const canManageBilling = ['owner', 'admin'].includes(userRole || '');
 
   if (isLoading) {
     return (
@@ -157,14 +164,19 @@ const SimplifiedMemberBilling: React.FC = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            {!isFree && (
+            {canManageBilling ? (
               <div className="flex gap-2 flex-1">
                 <PurchaseLicensesButton variant="outline" className="flex-1" />
-                {/* <ManageSubscriptionButton className="flex-1" /> */}
               </div>
-            )}
-            {isFree && (
-              <PurchaseLicensesButton variant="outline" className="flex-1" />
+            ) : (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-amber-800">
+                    <strong>Admin access required:</strong> Only organization owners and admins can purchase licenses and manage billing.
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

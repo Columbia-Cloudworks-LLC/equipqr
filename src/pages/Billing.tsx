@@ -7,6 +7,7 @@ import { CreditCard, AlertCircle, RefreshCw, CheckCircle, Settings, ExternalLink
 import SimplifiedMemberBilling from '@/components/billing/SimplifiedMemberBilling';
 import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from '@/hooks/use-toast';
@@ -14,6 +15,7 @@ import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifi
 
 const Billing = () => {
   const { currentOrganization } = useSimpleOrganization();
+  const { getCurrentOrganization } = useSession();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { 
     subscriptionData, 
@@ -31,6 +33,11 @@ const Billing = () => {
 
   const billing = calculateSimplifiedBilling(members, storageUsedGB, fleetMapEnabled);
   const isFree = isFreeOrganization(members);
+
+  // Get user role for permission checks
+  const sessionOrganization = getCurrentOrganization();
+  const userRole = sessionOrganization?.userRole;
+  const canManageBilling = ['owner', 'admin'].includes(userRole || '');
 
   // Handle success/cancel URL parameters
   useEffect(() => {
@@ -63,6 +70,15 @@ const Billing = () => {
   }, [toast, checkSubscription]);
 
   const handleManageSubscription = async () => {
+    if (!canManageBilling) {
+      toast({
+        title: 'Permission Denied',
+        description: 'Only organization owners and admins can manage subscriptions.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       await openCustomerPortal();
       toast({
@@ -80,6 +96,15 @@ const Billing = () => {
 
   const handlePurchaseLicenses = async (quantity: number) => {
     if (!currentOrganization) return;
+
+    if (!canManageBilling) {
+      toast({
+        title: 'Permission Denied',
+        description: 'Only organization owners and admins can purchase licenses.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     try {
       await purchaseUserLicenses(quantity, currentOrganization.id);
@@ -126,7 +151,7 @@ const Billing = () => {
           <Badge variant={isFree ? 'secondary' : 'default'}>
             {isFree ? 'Free Plan' : 'Pay-as-you-go'}
           </Badge>
-          {isSubscribed && (
+          {isSubscribed && canManageBilling && (
             <Button variant="outline" onClick={handleManageSubscription}>
               <Settings className="mr-2 h-4 w-4" />
               Manage Subscription
@@ -134,6 +159,19 @@ const Billing = () => {
           )}
         </div>
       </div>
+
+      {!canManageBilling && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-amber-800">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">
+                <strong>Limited Access:</strong> Only organization owners and admins can manage billing settings and purchase licenses.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Subscription Status Card */}
       {isSubscribed && (
@@ -157,10 +195,16 @@ const Billing = () => {
                 </div>
               </div>
               <div>
-                <Button variant="outline" onClick={handleManageSubscription} className="w-full">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Manage in Stripe
-                </Button>
+                {canManageBilling ? (
+                  <Button variant="outline" onClick={handleManageSubscription} className="w-full">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Manage in Stripe
+                  </Button>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    Contact admin to manage
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -174,39 +218,41 @@ const Billing = () => {
       <ImageStorageQuota />
 
       {/* User License Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle>User License Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium">Additional User Licenses</div>
-                <div className="text-sm text-muted-foreground">
-                  Purchase additional licenses for team members ($10/month per license)
+      {canManageBilling && (
+        <Card>
+          <CardHeader>
+            <CardTitle>User License Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">Additional User Licenses</div>
+                  <div className="text-sm text-muted-foreground">
+                    Purchase additional licenses for team members ($10/month per license)
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handlePurchaseLicenses(1)}
+                    disabled={!currentOrganization}
+                  >
+                    Buy 1 License
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handlePurchaseLicenses(5)}
+                    disabled={!currentOrganization}
+                  >
+                    Buy 5 Licenses
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => handlePurchaseLicenses(1)}
-                  disabled={!currentOrganization}
-                >
-                  Buy 1 License
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => handlePurchaseLicenses(5)}
-                  disabled={!currentOrganization}
-                >
-                  Buy 5 Licenses
-                </Button>
-              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Fleet Map Add-on */}
       {!isFree && (
@@ -226,11 +272,16 @@ const Billing = () => {
                 <Badge variant={fleetMapEnabled ? 'default' : 'secondary'}>
                   {fleetMapEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>
-                {isSubscribed && (
+                {isSubscribed && canManageBilling && (
                   <Button variant="outline" onClick={handleManageSubscription}>
                     <Settings className="mr-2 h-4 w-4" />
                     Manage
                   </Button>
+                )}
+                {!canManageBilling && (
+                  <div className="text-sm text-muted-foreground">
+                    Contact admin
+                  </div>
                 )}
               </div>
             </div>
