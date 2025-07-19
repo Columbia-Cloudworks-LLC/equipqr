@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, AlertTriangle, TrendingUp } from 'lucide-react';
+import { useSession } from '@/contexts/SessionContext';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
@@ -24,9 +25,14 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
   onPurchaseSlots,
   onUpgradeToMultiUser
 }) => {
+  const { getCurrentOrganization } = useSession();
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading, refetch } = useSlotAvailability(currentOrganization?.id || '');
+
+  const sessionOrganization = getCurrentOrganization();
+  const userRole = sessionOrganization?.userRole;
+  const canManageBilling = ['owner', 'admin'].includes(userRole || '');
 
   // Provide safe defaults for slot availability
   const safeSlotAvailability = slotAvailability || {
@@ -140,18 +146,28 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      All your licenses are used. Purchase more licenses to invite additional team members.
+                      All your licenses are used. Purchase additional licenses to invite more team members.
                     </AlertDescription>
                   </Alert>
                 )}
 
-                <div className="space-y-2">
-                  <h4 className="font-medium">Purchase User Licenses</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Monthly subscription for user licenses at $10 per license. Cancel anytime.
-                  </p>
-                  <PurchaseLicensesButton className="w-full" />
-                </div>
+                {canManageBilling && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Purchase User Licenses</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Monthly subscription for user licenses at $10 per license. Cancel anytime.
+                    </p>
+                    <PurchaseLicensesButton className="w-full" />
+                  </div>
+                )}
+
+                {!canManageBilling && (
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="text-sm text-gray-700">
+                      <strong>Admin access required:</strong> Only organization owners and admins can purchase licenses and manage billing.
+                    </div>
+                  </div>
+                )}
               </>
             )}
 
@@ -167,7 +183,13 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
                       Purchase user license subscriptions to enable team collaboration. 
                       Pay monthly per license and invite team members instantly.
                     </div>
-                    <PurchaseLicensesButton />
+                    {canManageBilling ? (
+                      <PurchaseLicensesButton />
+                    ) : (
+                      <div className="text-sm text-blue-700">
+                        Contact your organization owner or admin to upgrade.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -177,7 +199,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
       </Card>
 
       {/* Estimated Next Billing */}
-      {!isFreeOrg && (
+      {!isFreeOrg && canManageBilling && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

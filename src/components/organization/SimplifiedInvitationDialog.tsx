@@ -1,27 +1,52 @@
+
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useSession } from '@/contexts/SessionContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useCreateInvitation } from '@/hooks/useCreateInvitation';
+import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UserPlus, Mail, Info, DollarSign, AlertCircle, Clock } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
-import { useCreateInvitation, CreateInvitationData } from '@/hooks/useOrganizationInvitations';
-import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
-import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
-import { useInvitationPerformance } from '@/hooks/useInvitationPerformance';
-import { useInvitationPerformanceMonitoring } from '@/hooks/useInvitationPerformanceMonitoring';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+
+const invitationSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  role: z.enum(['admin', 'member'], {
+    required_error: 'Please select a role',
+  }),
+  message: z.string().optional(),
+});
+
+type InvitationFormData = z.infer<typeof invitationSchema>;
 
 interface SimplifiedInvitationDialogProps {
   open: boolean;
@@ -32,241 +57,186 @@ interface SimplifiedInvitationDialogProps {
 const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
   open,
   onOpenChange,
-  onSuccess,
+  onSuccess
 }) => {
   const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'admin' | 'member'>('member');
-  const [message, setMessage] = useState('');
+  const { currentOrganization } = useSimpleOrganization();
+  const { data: fleetMapSubscription } = useFleetMapSubscription(currentOrganization?.id || '');
+  const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
+  const { mutate: createInvitation, isPending } = useCreateInvitation();
+  
+  const sessionOrganization = getCurrentOrganization();
+  const userRole = sessionOrganization?.userRole;
+  const canInviteMembers = ['owner', 'admin'].includes(userRole || '');
 
-  const { data: members = [] } = useOrganizationMembers(currentOrg?.id || '');
-  const createInvitation = useCreateInvitation(currentOrg?.id || '');
-  const billing = calculateSimplifiedBilling(members);
-  const { startTimer, endTimer, getAverageTime, enableMonitoring } = useInvitationPerformanceMonitoring();
+  const form = useForm<InvitationFormData>({
+    resolver: zodResolver(invitationSchema),
+    defaultValues: {
+      email: '',
+      role: 'member',
+      message: '',
+    },
+  });
 
-  // Reset form when dialog opens and enable monitoring
-  React.useEffect(() => {
-    if (open) {
-      setEmail('');
-      setRole('member');
-      setMessage('');
-      enableMonitoring(); // Enable performance monitoring when dialog opens
+  const handleSubmit = (data: InvitationFormData) => {
+    if (!canInviteMembers) {
+      toast.error('Only organization owners and admins can invite members');
+      return;
     }
-  }, [open, enableMonitoring]);
 
-  const handleSubmitInvitation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email.trim()) return;
-
-    const startTime = startTimer();
-    const invitationData: CreateInvitationData = {
-      email: email.trim(),
-      role,
-      message: message.trim() || undefined,
-      reserveSlot: false // No slot reservation in simplified model
-    };
-
-    try {
-      await createInvitation.mutateAsync(invitationData);
-      
-      // Track successful invitation
-      endTimer(startTime, 'invitation_creation', true);
-      
-      // Reset form
-      setEmail('');
-      setRole('member');
-      setMessage('');
-      onOpenChange(false);
-      
-      // Call success callback to switch to invitations tab
-      if (onSuccess) {
-        onSuccess();
-      }
-
-      // Show success with performance info
-      const avgTime = getAverageTime('invitation_creation');
-      if (avgTime > 0) {
-        toast.success(`Invitation sent successfully (avg: ${Math.round(avgTime)}ms)`, {
-          description: `${email} will receive an invitation to join ${currentOrg?.name}`
-        });
-      } else {
-        toast.success('Invitation sent successfully', {
-          description: `${email} will receive an invitation to join ${currentOrg?.name}`
-        });
-      }
-    } catch (error: any) {
-      // Track failed invitation
-      endTimer(startTime, 'invitation_creation', false, error.message);
-      
-      console.error('Failed to create invitation:', error);
-      
-      // Enhanced error handling with specific messages
-      let errorMessage = 'Failed to send invitation';
-      let errorDescription = 'Please try again or contact support if the issue persists';
-      
-      if (error.code === '23505') {
-        errorMessage = 'An invitation to this email already exists';
-        errorDescription = 'Check your pending invitations or try a different email address';
-      } else if (error.message?.includes('not authenticated')) {
-        errorMessage = 'Please sign in to send invitations';
-        errorDescription = 'Your session may have expired';
-      } else if (error.message?.includes('permission')) {
-        errorMessage = 'You do not have permission to invite members';
-        errorDescription = 'Contact your organization administrator for access';
-      } else if (error.message?.includes('stack depth') || error.message?.includes('overloaded')) {
-        errorMessage = 'System is temporarily busy';
-        errorDescription = 'Please wait a moment and try again';
-      } else if (error.message?.includes('database')) {
-        errorMessage = 'Database connection issue';
-        errorDescription = 'Please check your internet connection and try again';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage, {
-        description: errorDescription
-      });
+    if (!restrictions.canInviteMembers) {
+      toast.error('Your organization cannot invite members at this time');
+      return;
     }
+
+    if (!restrictions.hasAvailableSlots) {
+      toast.error('No available user licenses. Purchase more licenses to invite members.');
+      return;
+    }
+
+    if (!currentOrganization?.id) {
+      toast.error('Organization not found');
+      return;
+    }
+
+    createInvitation(
+      {
+        organizationId: currentOrganization.id,
+        email: data.email,
+        role: data.role,
+        message: data.message || undefined,
+      },
+      {
+        onSuccess: () => {
+          form.reset();
+          onOpenChange(false);
+          onSuccess?.();
+          toast.success('Invitation sent successfully');
+        },
+        onError: (error) => {
+          console.error('Failed to create invitation:', error);
+          toast.error('Failed to send invitation');
+        },
+      }
+    );
   };
 
-  const roleDescriptions = {
-    admin: 'Can manage members, teams, and organization settings',
-    member: 'Can access and manage assigned equipment and work orders'
-  };
-
-  const costAfterInvite = calculateSimplifiedBilling([...members, {
-    id: 'temp',
-    name: 'New Member',
-    email,
-    role,
-    status: 'active' as const,
-    joinedDate: new Date().toISOString()
-  }]);
+  // Don't render dialog if user doesn't have permission
+  if (!canInviteMembers) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Invite New Member
-          </DialogTitle>
+          <DialogTitle>Invite Team Member</DialogTitle>
           <DialogDescription>
-            Send an invitation to join {currentOrg?.name}. They'll be automatically billed when they accept.
+            Send an invitation to join your organization. They'll receive an email
+            with instructions to get started.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmitInvitation} className="space-y-6">
-          <Alert>
-            <DollarSign className="h-4 w-4" />
+        {!restrictions.hasAvailableSlots && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <div className="space-y-1">
-                <div>Current monthly cost: <strong>${billing.userLicenses.totalCost}</strong></div>
-                <div>After this invite: <strong>${costAfterInvite.userLicenses.totalCost}</strong></div>
-                <div className="text-xs text-muted-foreground">
-                  +$10/month when they accept (pay-as-you-go pricing)
-                </div>
-              </div>
+              No available user licenses. Purchase more licenses before inviting members.
             </AlertDescription>
           </Alert>
+        )}
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="colleague@company.com"
+                      type="email"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <Card>
-            <CardContent className="pt-4 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="colleague@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="member">
+                        <div>
+                          <div className="font-medium">Member</div>
+                          <div className="text-xs text-muted-foreground">
+                            Can view and edit equipment, work orders
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="admin">
+                        <div>
+                          <div className="font-medium">Admin</div>
+                          <div className="text-xs text-muted-foreground">
+                            Can manage members and organization settings
+                          </div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <div className="space-y-2">
-                <Label htmlFor="role">Role *</Label>
-                <Select value={role} onValueChange={(value: 'admin' | 'member') => setRole(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">
-                      <div className="flex items-center gap-2">
-                        <span>Member</span>
-                        <Badge variant="outline" className="text-xs">Standard</Badge>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="admin">
-                      <div className="flex items-center gap-2">
-                        <span>Admin</span>
-                        <Badge variant="secondary" className="text-xs">Management</Badge>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  {roleDescriptions[role]}
-                </p>
-              </div>
+            <FormField
+              control={form.control}
+              name="message"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Personal Message (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Welcome to our team! Looking forward to working with you."
+                      className="min-h-[80px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <div className="space-y-2">
-                <Label htmlFor="message">Personal Message (Optional)</Label>
-                <Textarea
-                  id="message"
-                  placeholder="Add a personal message to the invitation..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={3}
-                  maxLength={500}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {message.length}/500 characters
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-1">
-                <div className="font-medium">Simple Pay-as-you-go Billing:</div>
-                <div className="text-sm">
-                  • No upfront costs or slot purchases required<br/>
-                  • Billing starts automatically when they accept<br/>
-                  • Cancel anytime with no penalties
-                </div>
-              </div>
-            </AlertDescription>
-          </Alert>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="h-4 w-4" />
-              The invitation will expire in 7 days
-            </div>
-            
-            <div className="flex gap-2 justify-end">
-              <Button 
-                type="button" 
-                variant="outline" 
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={createInvitation.isPending}
               >
                 Cancel
               </Button>
               <Button 
-                type="submit"
-                disabled={!email.trim() || createInvitation.isPending}
+                type="submit" 
+                disabled={isPending || !restrictions.hasAvailableSlots}
               >
-                {createInvitation.isPending ? 'Sending...' : 'Send Invitation'}
+                {isPending ? 'Sending...' : 'Send Invitation'}
               </Button>
-            </div>
-          </div>
-        </form>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

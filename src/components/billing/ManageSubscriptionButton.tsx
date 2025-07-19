@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useSession } from '@/contexts/SessionContext';
 import { toast } from 'sonner';
 
 interface ManageSubscriptionButtonProps {
@@ -17,8 +18,20 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
   className = ''
 }) => {
   const { openCustomerPortal } = useSubscription();
+  const { getCurrentOrganization } = useSession();
+  
+  const currentOrganization = getCurrentOrganization();
+  const userRole = currentOrganization?.userRole;
+  
+  // Only allow owners and admins to manage subscriptions
+  const canManageSubscription = ['owner', 'admin'].includes(userRole || '');
 
   const handleManageSubscription = async () => {
+    if (!canManageSubscription) {
+      toast.error('Only organization owners and admins can manage subscriptions');
+      return;
+    }
+
     try {
       await openCustomerPortal();
       toast.success('Opening subscription management...');
@@ -26,6 +39,11 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
       toast.error(error instanceof Error ? error.message : 'Failed to open subscription management');
     }
   };
+
+  // Don't render the button if user doesn't have permission
+  if (!canManageSubscription) {
+    return null;
+  }
 
   return (
     <Button
