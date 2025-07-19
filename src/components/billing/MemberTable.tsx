@@ -121,7 +121,7 @@ const MemberTable: React.FC<MemberTableProps> = ({ members }) => {
               <TableCell>
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallball className="text-xs">
+                    <AvatarFallback className="text-xs">
                       {member.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
