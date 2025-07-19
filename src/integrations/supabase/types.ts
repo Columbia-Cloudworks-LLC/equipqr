@@ -185,6 +185,7 @@ export type Database = {
           id: string
           mime_type: string | null
           uploaded_by: string
+          uploaded_by_name: string | null
         }
         Insert: {
           created_at?: string
@@ -196,6 +197,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           uploaded_by: string
+          uploaded_by_name?: string | null
         }
         Update: {
           created_at?: string
@@ -207,6 +209,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           uploaded_by?: string
+          uploaded_by_name?: string | null
         }
         Relationships: [
           {
@@ -228,6 +231,7 @@ export type Database = {
       equipment_notes: {
         Row: {
           author_id: string
+          author_name: string | null
           content: string
           created_at: string
           equipment_id: string
@@ -240,6 +244,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          author_name?: string | null
           content: string
           created_at?: string
           equipment_id: string
@@ -252,6 +257,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          author_name?: string | null
           content?: string
           created_at?: string
           equipment_id?: string
@@ -310,6 +316,48 @@ export type Database = {
           function_name?: string
           id?: string
           success?: boolean
+        }
+        Relationships: []
+      }
+      member_removal_audit: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          new_manager_id: string | null
+          organization_id: string
+          removal_reason: string | null
+          removed_by: string
+          removed_user_id: string
+          removed_user_name: string
+          removed_user_role: string
+          teams_transferred: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_manager_id?: string | null
+          organization_id: string
+          removal_reason?: string | null
+          removed_by: string
+          removed_user_id: string
+          removed_user_name: string
+          removed_user_role: string
+          teams_transferred?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_manager_id?: string | null
+          organization_id?: string
+          removal_reason?: string | null
+          removed_by?: string
+          removed_user_id?: string
+          removed_user_name?: string
+          removed_user_role?: string
+          teams_transferred?: number | null
         }
         Relationships: []
       }
@@ -1208,6 +1256,7 @@ export type Database = {
           mime_type: string | null
           note_id: string | null
           uploaded_by: string
+          uploaded_by_name: string | null
           work_order_id: string
         }
         Insert: {
@@ -1220,6 +1269,7 @@ export type Database = {
           mime_type?: string | null
           note_id?: string | null
           uploaded_by: string
+          uploaded_by_name?: string | null
           work_order_id: string
         }
         Update: {
@@ -1232,6 +1282,7 @@ export type Database = {
           mime_type?: string | null
           note_id?: string | null
           uploaded_by?: string
+          uploaded_by_name?: string | null
           work_order_id?: string
         }
         Relationships: [
@@ -1247,6 +1298,7 @@ export type Database = {
       work_order_notes: {
         Row: {
           author_id: string
+          author_name: string | null
           content: string
           created_at: string
           hours_worked: number | null
@@ -1257,6 +1309,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          author_name?: string | null
           content: string
           created_at?: string
           hours_worked?: number | null
@@ -1267,6 +1320,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          author_name?: string | null
           content?: string
           created_at?: string
           hours_worked?: number | null
@@ -1340,8 +1394,10 @@ export type Database = {
         Row: {
           acceptance_date: string | null
           assignee_id: string | null
+          assignee_name: string | null
           completed_date: string | null
           created_by: string
+          created_by_name: string | null
           created_date: string
           description: string
           due_date: string | null
@@ -1360,8 +1416,10 @@ export type Database = {
         Insert: {
           acceptance_date?: string | null
           assignee_id?: string | null
+          assignee_name?: string | null
           completed_date?: string | null
           created_by: string
+          created_by_name?: string | null
           created_date?: string
           description: string
           due_date?: string | null
@@ -1380,8 +1438,10 @@ export type Database = {
         Update: {
           acceptance_date?: string | null
           assignee_id?: string | null
+          assignee_name?: string | null
           completed_date?: string | null
           created_by?: string
+          created_by_name?: string | null
           created_date?: string
           description?: string
           due_date?: string | null
@@ -1630,6 +1690,15 @@ export type Database = {
           slot_purchase_id: string
         }[]
       }
+      get_user_managed_teams: {
+        Args: { user_uuid: string }
+        Returns: {
+          team_id: string
+          team_name: string
+          organization_id: string
+          is_only_manager: boolean
+        }[]
+      }
       get_user_org_role_direct: {
         Args: { user_uuid: string; org_id: string }
         Returns: string
@@ -1661,6 +1730,10 @@ export type Database = {
           joined_date: string
         }[]
       }
+      handle_team_manager_removal: {
+        Args: { user_uuid: string; org_id: string }
+        Returns: Json
+      }
       is_org_admin: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
@@ -1686,9 +1759,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      preserve_user_attribution: {
+        Args: { user_uuid: string }
+        Returns: undefined
+      }
       release_reserved_slot: {
         Args: { org_id: string; invitation_id: string }
         Returns: undefined
+      }
+      remove_organization_member_safely: {
+        Args: { user_uuid: string; org_id: string; removed_by: string }
+        Returns: Json
       }
       reserve_slot_for_invitation: {
         Args: { org_id: string; invitation_id: string }
