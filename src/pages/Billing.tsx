@@ -23,7 +23,6 @@ const Billing = () => {
     subscriptionTier, 
     subscriptionEnd, 
     openCustomerPortal,
-    purchaseUserLicenses,
     checkSubscription 
   } = useSubscription();
   
@@ -89,33 +88,6 @@ const Billing = () => {
       toast({
         title: 'Error',
         description: 'Failed to open subscription management. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handlePurchaseLicenses = async (quantity: number) => {
-    if (!currentOrganization) return;
-
-    if (!canManageBilling) {
-      toast({
-        title: 'Permission Denied',
-        description: 'Only organization owners and admins can purchase licenses.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    try {
-      await purchaseUserLicenses(quantity, currentOrganization.id);
-      toast({
-        title: 'Redirecting to Checkout...',
-        description: `Purchasing ${quantity} user licenses`,
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to initiate license purchase. Please try again.',
         variant: 'destructive',
       });
     }
@@ -216,43 +188,6 @@ const Billing = () => {
 
       {/* Image Storage Quota */}
       <ImageStorageQuota />
-
-      {/* User License Management */}
-      {canManageBilling && (
-        <Card>
-          <CardHeader>
-            <CardTitle>User License Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">Additional User Licenses</div>
-                  <div className="text-sm text-muted-foreground">
-                    Purchase additional licenses for team members ($10/month per license)
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handlePurchaseLicenses(1)}
-                    disabled={!currentOrganization}
-                  >
-                    Buy 1 License
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handlePurchaseLicenses(5)}
-                    disabled={!currentOrganization}
-                  >
-                    Buy 5 Licenses
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Fleet Map Add-on */}
       {!isFree && (
