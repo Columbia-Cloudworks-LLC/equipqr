@@ -86,40 +86,50 @@ export const useUpdateMemberRole = (organizationId: string) => {
   });
 };
 
+interface RemovalResult {
+  success: boolean;
+  error?: string;
+  removed_user_name?: string;
+  removed_user_role?: string;
+  teams_transferred?: number;
+  new_manager_id?: string;
+}
+
 export const useRemoveMember = (organizationId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (memberId: string) => {
-      // First, check if this is the only owner
-      const { data: owners, error: ownersError } = await supabase
-        .from('organization_members')
-        .select('user_id')
-        .eq('organization_id', organizationId)
-        .eq('role', 'owner')
-        .eq('status', 'active');
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) throw new Error('User not authenticated');
 
-      if (ownersError) throw ownersError;
-
-      // Prevent removing the last owner
-      if (owners.length === 1 && owners[0].user_id === memberId) {
-        throw new Error('Cannot remove the last owner of the organization');
-      }
-
-      const { data, error } = await supabase
-        .from('organization_members')
-        .delete()
-        .eq('user_id', memberId)
-        .eq('organization_id', organizationId)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('remove_organization_member_safely', {
+        user_uuid: memberId,
+        org_id: organizationId,
+        removed_by: currentUser.user.id
+      });
 
       if (error) throw error;
-      return data;
+
+      const result = data as unknown as RemovalResult;
+
+      // The function returns a JSON object with success status and details
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to remove member');
+      }
+
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
-      toast.success('Member removed successfully');
+      
+      // Show detailed success message based on what happened
+      let message = `${data.removed_user_name} was removed successfully`;
+      if (data.teams_transferred && data.teams_transferred > 0) {
+        message += `. Team management for ${data.teams_transferred} team(s) was transferred to the organization owner.`;
+      }
+      
+      toast.success(message);
     },
     onError: (error) => {
       console.error('Error removing member:', error);

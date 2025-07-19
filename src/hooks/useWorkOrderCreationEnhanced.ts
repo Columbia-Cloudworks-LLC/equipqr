@@ -57,7 +57,9 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
         assignee_id: assigneeId,
         team_id: teamId,
         status,
-        acceptance_date: status === 'assigned' ? new Date().toISOString() : null
+        acceptance_date: status === 'assigned' ? new Date().toISOString() : null,
+        assignee_name: null, // Will be populated by triggers if needed
+        created_by_name: null // Will be populated by triggers if needed
       };
 
       const workOrder = await createWorkOrder(currentOrganization.id, workOrderData);
