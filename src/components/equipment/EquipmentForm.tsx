@@ -16,6 +16,7 @@ import EquipmentBasicInfoSection from './form/EquipmentBasicInfoSection';
 import EquipmentStatusLocationSection from './form/EquipmentStatusLocationSection';
 import EquipmentNotesSection from './form/EquipmentNotesSection';
 import EquipmentFormActions from './form/EquipmentFormActions';
+import TeamSelectionSection from './form/TeamSelectionSection';
 
 interface EquipmentFormProps {
   open: boolean;
@@ -52,6 +53,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
               <EquipmentBasicInfoSection form={form} />
               <EquipmentStatusLocationSection form={form} />
             </div>
+
+            <TeamSelectionSection form={form} />
 
             <EquipmentNotesSection form={form} />
 

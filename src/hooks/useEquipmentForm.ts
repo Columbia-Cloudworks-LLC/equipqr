@@ -13,7 +13,7 @@ interface UseEquipmentFormProps {
 export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) => {
   const isEdit = !!equipment;
   const createEquipmentMutation = useCreateEquipment();
-  const { canManageEquipment } = usePermissions();
+  const { canManageEquipment, hasRole } = usePermissions();
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
@@ -45,6 +45,17 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
       return;
     }
 
+    // Check team assignment requirements for non-admin users
+    const isAdminUser = hasRole(['owner', 'admin']);
+    if (!isAdminUser && (!values.team_id || values.team_id === 'unassigned')) {
+      toast({
+        title: "Team Assignment Required",
+        description: "Non-admin users must assign equipment to a team",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (isEdit) {
         // Handle edit logic here
@@ -68,7 +79,7 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
           custom_attributes: values.custom_attributes || {},
           image_url: values.image_url || null,
           last_known_location: values.last_known_location || null,
-          team_id: values.team_id || null
+          team_id: values.team_id === 'unassigned' ? null : (values.team_id || null)
         };
         
         await createEquipmentMutation.mutateAsync(equipmentData);
