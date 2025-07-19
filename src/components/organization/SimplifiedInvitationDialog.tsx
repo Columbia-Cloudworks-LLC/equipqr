@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSession } from '@/contexts/SessionContext';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { useCreateInvitation } from '@/hooks/useCreateInvitation';
+import { useCreateInvitation } from '@/hooks/useOrganizationInvitations';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import {
@@ -63,7 +63,7 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
   const { currentOrganization } = useSimpleOrganization();
   const { data: fleetMapSubscription } = useFleetMapSubscription(currentOrganization?.id || '');
   const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
-  const { mutate: createInvitation, isPending } = useCreateInvitation();
+  const { mutate: createInvitation, isPending } = useCreateInvitation(currentOrganization?.id || '');
   
   const sessionOrganization = getCurrentOrganization();
   const userRole = sessionOrganization?.userRole;
@@ -101,7 +101,6 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
 
     createInvitation(
       {
-        organizationId: currentOrganization.id,
         email: data.email,
         role: data.role,
         message: data.message || undefined,
