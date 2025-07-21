@@ -37,6 +37,7 @@ export interface SlotAvailability {
   total_purchased: number;
   used_slots: number;
   available_slots: number;
+  exempted_slots: number;
   current_period_start: string;
   current_period_end: string;
 }
@@ -77,12 +78,13 @@ export const useSlotAvailability = (organizationId: string) => {
           total_purchased: 0,
           used_slots: 0,
           available_slots: 0,
+          exempted_slots: 0,
           current_period_start: new Date().toISOString(),
           current_period_end: new Date().toISOString()
         };
       }
 
-      const { data, error } = await supabase.rpc('get_organization_slot_availability', {
+      const { data, error } = await supabase.rpc('get_organization_slot_availability_with_exemptions', {
         org_id: organizationId
       });
 
@@ -95,6 +97,7 @@ export const useSlotAvailability = (organizationId: string) => {
         total_purchased: 0,
         used_slots: 0,
         available_slots: 0,
+        exempted_slots: 0,
         current_period_start: new Date().toISOString(),
         current_period_end: new Date().toISOString()
       };

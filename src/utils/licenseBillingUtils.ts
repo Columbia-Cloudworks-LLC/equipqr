@@ -7,6 +7,7 @@ export interface LicenseBillingCalculation {
     totalPurchased: number;
     slotsUsed: number;
     availableSlots: number;
+    exemptedSlots: number;
     costPerLicense: number;
     monthlyLicenseCost: number;
     nextBillingDate?: string;
@@ -36,6 +37,7 @@ export const calculateLicenseBilling = (
   const totalPurchased = slotAvailability.total_purchased;
   const slotsUsed = slotAvailability.used_slots;
   const availableSlots = slotAvailability.available_slots;
+  const exemptedSlots = slotAvailability.exempted_slots;
   const costPerLicense = 10; // $10 per license per month
   const monthlyLicenseCost = totalPurchased * costPerLicense;
   
@@ -57,6 +59,7 @@ export const calculateLicenseBilling = (
       totalPurchased,
       slotsUsed,
       availableSlots,
+      exemptedSlots,
       costPerLicense,
       monthlyLicenseCost,
       nextBillingDate
@@ -80,9 +83,9 @@ export const hasLicenses = (slotAvailability: SlotAvailability): boolean => {
 };
 
 export const getLicenseStatus = (slotAvailability: SlotAvailability, activeMembers: number) => {
-  const { total_purchased, used_slots, available_slots } = slotAvailability;
+  const { total_purchased, used_slots, available_slots, exempted_slots } = slotAvailability;
   
-  if (total_purchased === 0) {
+  if (total_purchased === 0 && exempted_slots === 0) {
     return {
       status: 'no-licenses' as const,
       message: 'No licenses purchased',
@@ -91,9 +94,12 @@ export const getLicenseStatus = (slotAvailability: SlotAvailability, activeMembe
   }
   
   if (available_slots > 0) {
+    const message = exempted_slots > 0 
+      ? `${available_slots} licenses available (${exempted_slots} exempted)`
+      : `${available_slots} licenses available`;
     return {
       status: 'available' as const,
-      message: `${available_slots} licenses available`,
+      message,
       variant: 'default' as const
     };
   }

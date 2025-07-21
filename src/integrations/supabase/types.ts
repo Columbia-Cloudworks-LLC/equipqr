@@ -58,6 +58,56 @@ export type Database = {
           },
         ]
       }
+      billing_exemptions: {
+        Row: {
+          created_at: string
+          exemption_type: string
+          exemption_value: number
+          expires_at: string | null
+          granted_at: string
+          granted_by: string | null
+          id: string
+          is_active: boolean
+          organization_id: string
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          exemption_type?: string
+          exemption_value?: number
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          exemption_type?: string
+          exemption_value?: number
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_exemptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_usage: {
         Row: {
           billing_period_end: string
@@ -494,6 +544,7 @@ export type Database = {
           invitation_token: string
           invited_by: string
           message: string | null
+          offers_account_creation: boolean | null
           organization_id: string
           role: string
           slot_purchase_id: string | null
@@ -513,6 +564,7 @@ export type Database = {
           invitation_token?: string
           invited_by: string
           message?: string | null
+          offers_account_creation?: boolean | null
           organization_id: string
           role: string
           slot_purchase_id?: string | null
@@ -532,6 +584,7 @@ export type Database = {
           invitation_token?: string
           invited_by?: string
           message?: string | null
+          offers_account_creation?: boolean | null
           organization_id?: string
           role?: string
           slot_purchase_id?: string | null
@@ -1542,6 +1595,10 @@ export type Database = {
         Args: { user_uuid: string; org_id: string; bypass_context?: string }
         Returns: boolean
       }
+      check_email_exists_in_auth: {
+        Args: { p_email: string }
+        Returns: boolean
+      }
       check_member_bypass_fixed: {
         Args: { user_uuid: string; org_id: string }
         Returns: boolean
@@ -1665,6 +1722,15 @@ export type Database = {
           work_order_title: string
         }[]
       }
+      get_organization_exemptions: {
+        Args: { org_id: string }
+        Returns: {
+          exemption_type: string
+          exemption_value: number
+          reason: string
+          expires_at: string
+        }[]
+      }
       get_organization_premium_features: {
         Args: { org_id: string }
         Returns: Json
@@ -1675,6 +1741,17 @@ export type Database = {
           total_purchased: number
           used_slots: number
           available_slots: number
+          current_period_start: string
+          current_period_end: string
+        }[]
+      }
+      get_organization_slot_availability_with_exemptions: {
+        Args: { org_id: string }
+        Returns: {
+          total_purchased: number
+          used_slots: number
+          available_slots: number
+          exempted_slots: number
           current_period_start: string
           current_period_end: string
         }[]
@@ -1735,6 +1812,10 @@ export type Database = {
           role: string
           joined_date: string
         }[]
+      }
+      handle_invitation_account_creation: {
+        Args: { p_invitation_id: string; p_user_id: string }
+        Returns: Json
       }
       handle_team_manager_removal: {
         Args: { user_uuid: string; org_id: string }
@@ -1810,6 +1891,10 @@ export type Database = {
       update_organization_billing_metrics: {
         Args: { org_id: string }
         Returns: undefined
+      }
+      validate_invitation_for_account_creation: {
+        Args: { p_invitation_id: string }
+        Returns: Json
       }
     }
     Enums: {
