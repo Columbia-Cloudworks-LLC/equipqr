@@ -59,8 +59,9 @@ export const calculateEnhancedBilling = (
   // Monthly recurring costs (storage + fleet map)
   const monthlyRecurring = storageCost + fleetMapCost;
   
-  // Estimate next billing - additional slots needed beyond current purchase
-  const additionalSlotsNeeded = Math.max(0, totalSlotsNeeded - slotAvailability.total_purchased);
+  // Estimate next billing - additional slots needed beyond current purchase and exemptions
+  const totalAvailable = slotAvailability.total_purchased + slotAvailability.exempted_slots;
+  const additionalSlotsNeeded = Math.max(0, totalSlotsNeeded - totalAvailable);
   const estimatedNextBilling = monthlyRecurring + (additionalSlotsNeeded * costPerSlot);
   
   return {
@@ -93,9 +94,9 @@ export const calculateEnhancedBilling = (
 };
 
 export const getSlotStatus = (slotAvailability: SlotAvailability, totalNeeded: number) => {
-  const { available_slots, total_purchased } = slotAvailability;
+  const { available_slots, total_purchased, exempted_slots } = slotAvailability;
   
-  if (total_purchased === 0) {
+  if (total_purchased === 0 && exempted_slots === 0) {
     return {
       status: 'no-slots' as const,
       message: 'No slots purchased yet',
@@ -104,9 +105,12 @@ export const getSlotStatus = (slotAvailability: SlotAvailability, totalNeeded: n
   }
   
   if (available_slots >= totalNeeded) {
+    const message = exempted_slots > 0 
+      ? `${available_slots} slots available (${exempted_slots} exempted)`
+      : `${available_slots} slots available`;
     return {
       status: 'sufficient' as const,
-      message: `${available_slots} slots available`,
+      message,
       variant: 'default' as const
     };
   }

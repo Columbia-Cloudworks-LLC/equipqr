@@ -39,6 +39,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
     total_purchased: 0,
     used_slots: 0,
     available_slots: 0,
+    exempted_slots: 0,
     current_period_start: new Date().toISOString(),
     current_period_end: new Date().toISOString()
   };

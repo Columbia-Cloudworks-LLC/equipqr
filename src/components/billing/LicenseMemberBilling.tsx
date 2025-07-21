@@ -87,11 +87,17 @@ const LicenseMemberBilling: React.FC = () => {
         {/* License Counts - Mobile Optimized */}
         {hasActiveLicenses && (
           <div className="bg-muted/30 rounded-lg p-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 sm:gap-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-foreground">{billing.userLicenses.totalPurchased}</div>
-                <div className="text-sm text-muted-foreground mt-1">Total Licenses</div>
+                <div className="text-sm text-muted-foreground mt-1">Purchased</div>
               </div>
+              {billing.userLicenses.exemptedSlots > 0 && (
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{billing.userLicenses.exemptedSlots}</div>
+                  <div className="text-sm text-muted-foreground mt-1">Exempted</div>
+                </div>
+              )}
               <div className="text-center">
                 <div className="text-3xl font-bold text-green-600 dark:text-green-400">{billing.userLicenses.slotsUsed}</div>
                 <div className="text-sm text-muted-foreground mt-1">In Use</div>
