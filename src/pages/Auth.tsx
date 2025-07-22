@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,14 +10,17 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, QrCode } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/ui/Logo';
+import TurnstileComponent from '@/components/ui/Turnstile';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, signIn, signUp, signInWithGoogle, isLoading: authLoading } = useAuth();
+  const { user, signIn, signInWithGoogle, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingQRScan, setPendingQRScan] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   
   // Form states
   const [signInEmail, setSignInEmail] = useState('');
@@ -62,16 +64,53 @@ const Auth = () => {
     setIsLoading(false);
   };
 
+  const signUpWithCaptcha = async (email: string, password: string, name?: string, turnstileToken?: string) => {
+    // Verify CAPTCHA first
+    if (!turnstileToken) {
+      throw new Error('Please complete the CAPTCHA verification');
+    }
+
+    try {
+      const { data: verificationResult, error: verificationError } = await supabase.functions.invoke('verify-turnstile', {
+        body: { token: turnstileToken }
+      });
+
+      if (verificationError || !verificationResult?.success) {
+        throw new Error('CAPTCHA verification failed. Please try again.');
+      }
+
+      // Proceed with sign up
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: name || email
+          }
+        }
+      });
+      
+      return { error };
+    } catch (error: any) {
+      return { error };
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     setSuccess(null);
 
-    const { error } = await signUp(signUpEmail, signUpPassword, signUpName);
+    const { error } = await signUpWithCaptcha(signUpEmail, signUpPassword, signUpName, turnstileToken);
     
     if (error) {
       setError(error.message);
+      // Reset Turnstile on error
+      setTurnstileToken(null);
     } else {
       setSuccess('Account created successfully! Please check your email to verify your account.');
     }
@@ -90,6 +129,21 @@ const Auth = () => {
     }
     
     setIsLoading(false);
+  };
+
+  const handleTurnstileVerify = (token: string) => {
+    setTurnstileToken(token);
+    setError(null);
+  };
+
+  const handleTurnstileError = () => {
+    setTurnstileToken(null);
+    setError('CAPTCHA verification failed. Please try again.');
+  };
+
+  const handleTurnstileExpire = () => {
+    setTurnstileToken(null);
+    setError('CAPTCHA expired. Please complete it again.');
   };
 
   if (authLoading) {
@@ -220,7 +274,19 @@ const Auth = () => {
                     minLength={6}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                
+                <TurnstileComponent
+                  onVerify={handleTurnstileVerify}
+                  onError={handleTurnstileError}
+                  onExpire={handleTurnstileExpire}
+                  theme="auto"
+                />
+                
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading || !turnstileToken}
+                >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create Account
                 </Button>
