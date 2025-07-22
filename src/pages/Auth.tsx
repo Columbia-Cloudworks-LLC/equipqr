@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -64,55 +65,44 @@ const Auth = () => {
     setIsLoading(false);
   };
 
-  const signUpWithCaptcha = async (email: string, password: string, name?: string, turnstileToken?: string) => {
-    // Verify CAPTCHA first
-    if (!turnstileToken) {
-      throw new Error('Please complete the CAPTCHA verification');
-    }
-
-    try {
-      const { data: verificationResult, error: verificationError } = await supabase.functions.invoke('verify-turnstile', {
-        body: { token: turnstileToken }
-      });
-
-      if (verificationError || !verificationResult?.success) {
-        throw new Error('CAPTCHA verification failed. Please try again.');
-      }
-
-      // Proceed with sign up
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            name: name || email
-          }
-        }
-      });
-      
-      return { error };
-    } catch (error: any) {
-      return { error };
-    }
-  };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     setSuccess(null);
 
-    const { error } = await signUpWithCaptcha(signUpEmail, signUpPassword, signUpName, turnstileToken);
-    
-    if (error) {
-      setError(error.message);
+    if (!turnstileToken) {
+      setError('Please complete the CAPTCHA verification');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email: signUpEmail,
+        password: signUpPassword,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: signUpName || signUpEmail
+          },
+          captchaToken: turnstileToken
+        }
+      });
+      
+      if (error) {
+        setError(error.message);
+        // Reset Turnstile on error
+        setTurnstileToken(null);
+      } else {
+        setSuccess('Account created successfully! Please check your email to verify your account.');
+      }
+    } catch (error: any) {
+      setError(error.message || 'An error occurred during sign up');
       // Reset Turnstile on error
       setTurnstileToken(null);
-    } else {
-      setSuccess('Account created successfully! Please check your email to verify your account.');
     }
     
     setIsLoading(false);
