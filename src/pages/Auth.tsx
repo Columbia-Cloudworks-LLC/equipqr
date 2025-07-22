@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,24 +9,16 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, QrCode } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/ui/Logo';
-import TurnstileComponent from '@/components/ui/Turnstile';
-import { supabase } from '@/integrations/supabase/client';
+import SignUpForm from '@/components/auth/SignUpForm';
+import SignInForm from '@/components/auth/SignInForm';
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, signIn, signInWithGoogle, isLoading: authLoading } = useAuth();
+  const { user, signInWithGoogle, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingQRScan, setPendingQRScan] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  
-  // Form states
-  const [signInEmail, setSignInEmail] = useState('');
-  const [signInPassword, setSignInPassword] = useState('');
-  const [signUpEmail, setSignUpEmail] = useState('');
-  const [signUpPassword, setSignUpPassword] = useState('');
-  const [signUpName, setSignUpName] = useState('');
 
   // Check if user came here from a QR scan
   useEffect(() => {
@@ -51,63 +41,6 @@ const Auth = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
-    const { error } = await signIn(signInEmail, signInPassword);
-    
-    if (error) {
-      setError(error.message);
-    }
-    
-    setIsLoading(false);
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    if (!turnstileToken) {
-      setError('Please complete the CAPTCHA verification');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email: signUpEmail,
-        password: signUpPassword,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            name: signUpName || signUpEmail
-          },
-          captchaToken: turnstileToken
-        }
-      });
-      
-      if (error) {
-        setError(error.message);
-        // Reset Turnstile on error
-        setTurnstileToken(null);
-      } else {
-        setSuccess('Account created successfully! Please check your email to verify your account.');
-      }
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during sign up');
-      // Reset Turnstile on error
-      setTurnstileToken(null);
-    }
-    
-    setIsLoading(false);
-  };
-
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError(null);
@@ -121,19 +54,14 @@ const Auth = () => {
     setIsLoading(false);
   };
 
-  const handleTurnstileVerify = (token: string) => {
-    setTurnstileToken(token);
+  const handleSuccess = (message: string) => {
+    setSuccess(message);
     setError(null);
   };
 
-  const handleTurnstileError = () => {
-    setTurnstileToken(null);
-    setError('CAPTCHA verification failed. Please try again.');
-  };
-
-  const handleTurnstileExpire = () => {
-    setTurnstileToken(null);
-    setError('CAPTCHA expired. Please complete it again.');
+  const handleError = (errorMessage: string) => {
+    setError(errorMessage);
+    setSuccess(null);
   };
 
   if (authLoading) {
@@ -173,32 +101,11 @@ const Auth = () => {
             </TabsList>
             
             <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    value={signInEmail}
-                    onChange={(e) => setSignInEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    value={signInPassword}
-                    onChange={(e) => setSignInPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign In
-                </Button>
-              </form>
+              <SignInForm 
+                onError={handleError}
+                isLoading={isLoading}
+                setIsLoading={setIsLoading}
+              />
               
               <div className="mt-4">
                 <Separator className="my-4" />
@@ -232,54 +139,12 @@ const Auth = () => {
             </TabsContent>
             
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Full Name</Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    value={signUpName}
-                    onChange={(e) => setSignUpName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    value={signUpEmail}
-                    onChange={(e) => setSignUpEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={signUpPassword}
-                    onChange={(e) => setSignUpPassword(e.target.value)}
-                    required
-                    minLength={6}
-                  />
-                </div>
-                
-                <TurnstileComponent
-                  onSuccess={handleTurnstileVerify}
-                  onError={handleTurnstileError}
-                  onExpire={handleTurnstileExpire}
-                />
-                
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading || !turnstileToken}
-                >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Account
-                </Button>
-              </form>
+              <SignUpForm 
+                onSuccess={handleSuccess}
+                onError={handleError}
+                isLoading={isLoading}
+                setIsLoading={setIsLoading}
+              />
               
               <div className="mt-4">
                 <Separator className="my-4" />
