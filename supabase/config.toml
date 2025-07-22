@@ -19,6 +19,3 @@ verify_jwt = false
 
 [functions.send-invitation-email]
 verify_jwt = true
-
-[functions.verify-turnstile]
-verify_jwt = false
