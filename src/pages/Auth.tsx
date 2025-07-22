@@ -276,10 +276,9 @@ const Auth = () => {
                 </div>
                 
                 <TurnstileComponent
-                  onVerify={handleTurnstileVerify}
+                  onSuccess={handleTurnstileVerify}
                   onError={handleTurnstileError}
                   onExpire={handleTurnstileExpire}
-                  theme="auto"
                 />
                 
                 <Button 
