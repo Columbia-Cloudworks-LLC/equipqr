@@ -39,19 +39,56 @@ export const updateEquipmentWorkingHours = async (data: UpdateWorkingHoursData) 
   return result;
 };
 
-export const getEquipmentWorkingHoursHistory = async (equipmentId: string): Promise<WorkingHoursHistoryEntry[]> => {
+export interface PaginatedHistoryResult {
+  data: WorkingHoursHistoryEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export const getEquipmentWorkingHoursHistory = async (
+  equipmentId: string,
+  page: number = 1,
+  pageSize: number = 10
+): Promise<PaginatedHistoryResult> => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // Get total count
+  const { count, error: countError } = await supabase
+    .from('equipment_working_hours_history')
+    .select('*', { count: 'exact', head: true })
+    .eq('equipment_id', equipmentId);
+
+  if (countError) {
+    console.error('Error fetching working hours history count:', countError);
+    throw countError;
+  }
+
+  // Get paginated data
   const { data, error } = await supabase
     .from('equipment_working_hours_history')
     .select('*')
     .eq('equipment_id', equipmentId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (error) {
     console.error('Error fetching working hours history:', error);
     throw error;
   }
 
-  return (data || []) as WorkingHoursHistoryEntry[];
+  const total = count || 0;
+  const totalPages = Math.ceil(total / pageSize);
+
+  return {
+    data: (data || []) as WorkingHoursHistoryEntry[],
+    total,
+    page,
+    pageSize,
+    totalPages
+  };
 };
 
 export const getEquipmentCurrentWorkingHours = async (equipmentId: string): Promise<number> => {

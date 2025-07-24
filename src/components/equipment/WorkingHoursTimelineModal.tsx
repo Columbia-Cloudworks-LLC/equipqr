@@ -4,21 +4,19 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, Plus, User, FileText, Calendar } from 'lucide-react';
-import { 
-  useEquipmentWorkingHoursHistory, 
-  useEquipmentCurrentWorkingHours,
-  useUpdateEquipmentWorkingHours 
-} from '@/hooks/useEquipmentWorkingHours';
+import { Label } from '@/components/ui/label';
+import { Plus, Settings, User, FileEdit, ArrowUpDown } from 'lucide-react';
+import { useEquipmentWorkingHoursHistory, useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from '@/hooks/useEquipmentWorkingHours';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { DataTable } from '@/components/ui/data-table';
+import type { Column } from '@/components/ui/data-table';
+import type { WorkingHoursHistoryEntry } from '@/services/equipmentWorkingHoursService';
 
 interface WorkingHoursTimelineModalProps {
   open: boolean;
@@ -31,17 +29,25 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
   open,
   onClose,
   equipmentId,
-  equipmentName
+  equipmentName,
 }) => {
   const [isAddingHours, setIsAddingHours] = useState(false);
   const [newHours, setNewHours] = useState('');
   const [notes, setNotes] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  const { data: history = [], isLoading: historyLoading } = useEquipmentWorkingHoursHistory(equipmentId);
-  const { data: currentHours = 0 } = useEquipmentCurrentWorkingHours(equipmentId);
-  const updateWorkingHours = useUpdateEquipmentWorkingHours();
+  const { data: historyResult, isLoading: isLoadingHistory } = useEquipmentWorkingHoursHistory(
+    equipmentId,
+    currentPage,
+    pageSize
+  );
+  const { data: currentHours, isLoading: isLoadingCurrent } = useEquipmentCurrentWorkingHours(equipmentId);
+  const updateHoursMutation = useUpdateEquipmentWorkingHours();
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     const hours = parseFloat(newHours);
     if (isNaN(hours) || hours < 0) {
       toast.error('Please enter a valid number of hours');
@@ -49,18 +55,18 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
     }
 
     try {
-      await updateWorkingHours.mutateAsync({
+      await updateHoursMutation.mutateAsync({
         equipmentId,
         newHours: hours,
         updateSource: 'manual',
-        notes: notes.trim() || undefined
+        notes: notes.trim() || undefined,
       });
-      
+
       setNewHours('');
       setNotes('');
       setIsAddingHours(false);
     } catch (error) {
-      // Error is handled by the mutation
+      console.error('Failed to update working hours:', error);
     }
   };
 
@@ -69,150 +75,184 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
   };
 
   const getSourceIcon = (source: string) => {
-    return source === 'work_order' ? <FileText className="h-3 w-3" /> : <User className="h-3 w-3" />;
+    switch (source) {
+      case 'work_order':
+        return <FileEdit className="h-3 w-3" />;
+      case 'manual':
+      default:
+        return <Settings className="h-3 w-3" />;
+    }
   };
 
   const getSourceLabel = (source: string) => {
-    return source === 'work_order' ? 'Work Order' : 'Manual Update';
+    switch (source) {
+      case 'work_order':
+        return 'Work Order';
+      case 'manual':
+      default:
+        return 'Manual';
+    }
   };
+
+  const columns: Column<WorkingHoursHistoryEntry>[] = [
+    {
+      key: 'created_at',
+      title: 'Date',
+      width: '180px',
+      render: (entry) => (
+        <div className="text-sm">
+          {formatDate(entry.created_at)}
+        </div>
+      ),
+    },
+    {
+      key: 'update_source',
+      title: 'Source',
+      width: '120px',
+      render: (entry) => (
+        <div className="flex items-center gap-2">
+          {getSourceIcon(entry.update_source)}
+          <span className="text-sm">{getSourceLabel(entry.update_source)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'updated_by_name',
+      title: 'Updated By',
+      width: '140px',
+      render: (entry) => (
+        <div className="flex items-center gap-2">
+          <User className="h-3 w-3" />
+          <span className="text-sm">{entry.updated_by_name || 'Unknown'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'hours_change',
+      title: 'Hours Change',
+      width: '140px',
+      render: (entry) => (
+        <div className="flex items-center gap-2">
+          <ArrowUpDown className="h-3 w-3" />
+          <span className="text-sm font-medium">
+            {entry.old_hours !== null ? `${entry.old_hours}` : '0'} → {entry.new_hours}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            ({entry.hours_added > 0 ? '+' : ''}{entry.hours_added})
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'notes',
+      title: 'Notes',
+      render: (entry) => (
+        <div className="text-sm text-muted-foreground max-w-xs truncate">
+          {entry.notes || '—'}
+        </div>
+      ),
+    },
+  ];
+
+  const pagination = historyResult ? {
+    page: currentPage,
+    limit: pageSize,
+    total: historyResult.total,
+    onPageChange: setCurrentPage,
+  } : undefined;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Working Hours Timeline - {equipmentName}
-          </DialogTitle>
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle>Working Hours Timeline</DialogTitle>
+          <DialogDescription>
+            Track and manage working hours for {equipmentName}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-shrink-0 space-y-4">
           {/* Current Hours Summary */}
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Current Working Hours</h3>
-                  <p className="text-2xl font-bold text-primary">{currentHours.toLocaleString()} hours</p>
-                </div>
-                <Button 
-                  onClick={() => setIsAddingHours(true)}
-                  disabled={isAddingHours}
-                  className="gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Update Hours
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Current Working Hours</p>
+              <p className="text-2xl font-semibold">
+                {isLoadingCurrent ? '...' : `${currentHours || 0} hours`}
+              </p>
+            </div>
+            <Button
+              onClick={() => setIsAddingHours(true)}
+              size="sm"
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Update Hours
+            </Button>
+          </div>
 
           {/* Add Hours Form */}
           {isAddingHours && (
-            <Card>
-              <CardContent className="pt-4 space-y-4">
-                <h3 className="font-medium">Update Working Hours</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>New Total Hours *</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      placeholder="Enter total working hours"
-                      value={newHours}
-                      onChange={(e) => setNewHours(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Notes (Optional)</Label>
-                    <Textarea
-                      placeholder="Reason for update..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      rows={1}
-                    />
-                  </div>
+            <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-lg">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="new-hours">New Total Hours</Label>
+                  <Input
+                    id="new-hours"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={newHours}
+                    onChange={(e) => setNewHours(e.target.value)}
+                    placeholder="Enter total hours"
+                    required
+                  />
                 </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleSubmit}
-                    disabled={updateWorkingHours.isPending}
-                  >
-                    Update Hours
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setIsAddingHours(false);
-                      setNewHours('');
-                      setNotes('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
+                <div>
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add any notes about this update"
+                    rows={1}
+                  />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  type="submit" 
+                  size="sm"
+                  disabled={updateHoursMutation.isPending}
+                >
+                  {updateHoursMutation.isPending ? 'Updating...' : 'Update Hours'}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setIsAddingHours(false);
+                    setNewHours('');
+                    setNotes('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
           )}
+        </div>
 
-          {/* Timeline */}
-          <div className="space-y-4">
-            <h3 className="font-medium">Update History</h3>
-            
-            {historyLoading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Loading history...
-              </div>
-            ) : history.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No working hours updates recorded yet.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {history.map((entry) => (
-                  <Card key={entry.id} className="border-l-4 border-l-primary">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="gap-1">
-                              {getSourceIcon(entry.update_source)}
-                              {getSourceLabel(entry.update_source)}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground">
-                              by {entry.updated_by_name || 'Unknown User'}
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center gap-4 text-sm">
-                            <span>
-                              <strong>From:</strong> {entry.old_hours?.toLocaleString() || '0'} hours
-                            </span>
-                            <span>
-                              <strong>To:</strong> {entry.new_hours.toLocaleString()} hours
-                            </span>
-                            <span className={`font-medium ${entry.hours_added >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {entry.hours_added >= 0 ? '+' : ''}{entry.hours_added.toLocaleString()} hours
-                            </span>
-                          </div>
-                          
-                          {entry.notes && (
-                            <p className="text-sm text-muted-foreground">{entry.notes}</p>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {formatDate(entry.created_at)}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+        {/* History Table */}
+        <div className="flex-1 min-h-0">
+          <DataTable
+            data={historyResult?.data || []}
+            columns={columns}
+            isLoading={isLoadingHistory}
+            pagination={pagination}
+            emptyMessage="No working hours history found."
+            className="h-full"
+          />
         </div>
       </DialogContent>
     </Dialog>

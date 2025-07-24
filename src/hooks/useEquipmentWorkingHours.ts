@@ -7,10 +7,14 @@ import {
 } from '@/services/equipmentWorkingHoursService';
 import { toast } from 'sonner';
 
-export const useEquipmentWorkingHoursHistory = (equipmentId: string) => {
+export const useEquipmentWorkingHoursHistory = (
+  equipmentId: string, 
+  page: number = 1, 
+  pageSize: number = 10
+) => {
   return useQuery({
-    queryKey: ['equipment-working-hours-history', equipmentId],
-    queryFn: () => getEquipmentWorkingHoursHistory(equipmentId),
+    queryKey: ['equipment-working-hours-history', equipmentId, page, pageSize],
+    queryFn: () => getEquipmentWorkingHoursHistory(equipmentId, page, pageSize),
     enabled: !!equipmentId,
   });
 };
