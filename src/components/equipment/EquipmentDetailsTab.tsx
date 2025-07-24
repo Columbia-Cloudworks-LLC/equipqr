@@ -140,20 +140,11 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
     <div className="space-y-6">
       {/* Basic Information Card */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Basic Information
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowQRCode(true)}
-            className="flex items-center gap-2"
-          >
-            <QrCode className="h-4 w-4" />
-            Show QR Code
-          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
