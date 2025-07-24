@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Download, Copy, CheckCircle } from 'lucide-react';
 import QRCode from 'qrcode';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface QRCodeDisplayProps {
   open: boolean;
@@ -18,6 +19,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
   const [qrCodeDataUrl, setQrCodeDataUrl] = React.useState<string>('');
   const [copied, setCopied] = React.useState(false);
   const [selectedFormat, setSelectedFormat] = React.useState<'png' | 'jpg'>('png');
+  const isMobile = useIsMobile();
 
   // Generate QR code URL - using the new /qr/ route for seamless authentication
   const qrCodeUrl = `${window.location.origin}/qr/${equipmentId}`;
@@ -99,25 +101,25 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className={`max-w-md ${isMobile ? 'max-h-[90vh] overflow-y-auto p-4' : ''}`}>
         <DialogHeader>
           <DialogTitle>Equipment QR Code</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
+        <div className={`${isMobile ? 'space-y-4' : 'space-y-6'}`}>
           {/* QR Code Display */}
           <div className="flex justify-center">
             {qrCodeDataUrl ? (
-              <div className="p-4 bg-white rounded-lg border">
+              <div className={`${isMobile ? 'p-2' : 'p-4'} bg-white rounded-lg border`}>
                 <img 
                   src={qrCodeDataUrl} 
                   alt="Equipment QR Code"
-                  className="w-64 h-64"
+                  className={isMobile ? 'w-48 h-48' : 'w-64 h-64'}
                 />
               </div>
             ) : (
-              <div className="w-64 h-64 bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-muted-foreground">Generating QR code...</div>
+              <div className={`${isMobile ? 'w-48 h-48' : 'w-64 h-64'} bg-muted rounded-lg flex items-center justify-center`}>
+                <div className="text-muted-foreground text-center px-2">Generating QR code...</div>
               </div>
             )}
           </div>
