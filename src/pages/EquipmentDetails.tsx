@@ -365,6 +365,7 @@ const EquipmentDetails = () => {
         open={isQRCodeOpen}
         onClose={handleCloseQRCode}
         equipmentId={equipment.id}
+        equipmentName={equipment.name}
       />
     </div>
   );

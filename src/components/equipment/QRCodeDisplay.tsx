@@ -2,6 +2,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Copy, CheckCircle } from 'lucide-react';
 import QRCode from 'qrcode';
 import { toast } from 'sonner';
@@ -10,11 +11,13 @@ interface QRCodeDisplayProps {
   open: boolean;
   onClose: () => void;
   equipmentId: string;
+  equipmentName?: string;
 }
 
-const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentId }) => {
+const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentId, equipmentName }) => {
   const [qrCodeDataUrl, setQrCodeDataUrl] = React.useState<string>('');
   const [copied, setCopied] = React.useState(false);
+  const [selectedFormat, setSelectedFormat] = React.useState<'png' | 'jpg'>('png');
 
   // Generate QR code URL - using the new /qr/ route for seamless authentication
   const qrCodeUrl = `${window.location.origin}/qr/${equipmentId}`;
@@ -42,17 +45,41 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
     }
   };
 
-  const downloadQRCode = () => {
+  // Sanitize equipment name for filename
+  const sanitizeFilename = (name: string) => {
+    return name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  };
+
+  const downloadQRCode = async () => {
     if (!qrCodeDataUrl) return;
 
-    const link = document.createElement('a');
-    link.download = `equipment-${equipmentId}-qr.png`;
-    link.href = qrCodeDataUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success('QR code downloaded successfully');
+    try {
+      // Generate QR code in the selected format
+      const formatOptions = {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        type: selectedFormat === 'jpg' ? 'image/jpeg' : 'image/png'
+      };
+
+      const dataUrl = await QRCode.toDataURL(qrCodeUrl, formatOptions);
+      
+      const link = document.createElement('a');
+      const baseFilename = equipmentName ? sanitizeFilename(equipmentName) : `equipment-${equipmentId}`;
+      link.download = `${baseFilename}-qr.${selectedFormat}`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`QR code downloaded as ${selectedFormat.toUpperCase()}`);
+    } catch (error) {
+      console.error('Error downloading QR code:', error);
+      toast.error('Failed to download QR code');
+    }
   };
 
   const copyQRCodeUrl = async () => {
@@ -119,6 +146,31 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
             </div>
           </div>
 
+          {/* Download Options */}
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Download Format:
+              </label>
+              <Select value={selectedFormat} onValueChange={(value: 'png' | 'jpg') => setSelectedFormat(value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="png">PNG</SelectItem>
+                  <SelectItem value="jpg">JPG</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {equipmentName && (
+              <div className="text-xs text-muted-foreground">
+                <span className="font-medium">Filename:</span>{' '}
+                {sanitizeFilename(equipmentName)}-qr.{selectedFormat}
+              </div>
+            )}
+          </div>
+
           {/* Instructions */}
           <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
             <p className="font-medium mb-1 text-foreground">How to use:</p>
@@ -138,7 +190,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
               className="flex items-center gap-2 flex-1"
             >
               <Download className="h-4 w-4" />
-              Download
+              Download {selectedFormat.toUpperCase()}
             </Button>
             <Button
               variant="outline"

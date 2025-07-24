@@ -397,6 +397,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         open={showQRCode}
         onClose={() => setShowQRCode(false)}
         equipmentId={equipment.id}
+        equipmentName={equipment.name}
       />
 
       {/* Working Hours Timeline Modal */}
