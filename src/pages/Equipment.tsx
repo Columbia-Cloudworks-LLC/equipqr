@@ -128,6 +128,7 @@ const Equipment = () => {
           equipmentId={showQRCode}
           open={!!showQRCode}
           onClose={() => setShowQRCode(null)}
+          equipmentName={equipment.find(eq => eq.id === showQRCode)?.name}
         />
       )}
     </div>
