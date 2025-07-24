@@ -106,9 +106,9 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       key: 'created_at',
       title: 'Date',
       width: '180px',
-      render: (entry) => (
+      render: (value, item, index) => (
         <div className="text-sm">
-          {formatDate(entry.created_at)}
+          {item ? formatDate(item.created_at) : '-'}
         </div>
       ),
     },
@@ -116,10 +116,10 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       key: 'update_source',
       title: 'Source',
       width: '120px',
-      render: (entry) => (
+      render: (value, item, index) => (
         <div className="flex items-center gap-2">
-          {getSourceIcon(entry.update_source)}
-          <span className="text-sm">{getSourceLabel(entry.update_source)}</span>
+          {item ? getSourceIcon(item.update_source) : null}
+          <span className="text-sm">{item ? getSourceLabel(item.update_source) : '-'}</span>
         </div>
       ),
     },
@@ -127,10 +127,10 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       key: 'updated_by_name',
       title: 'Updated By',
       width: '140px',
-      render: (entry) => (
+      render: (value, item, index) => (
         <div className="flex items-center gap-2">
           <User className="h-3 w-3" />
-          <span className="text-sm">{entry.updated_by_name || 'Unknown'}</span>
+          <span className="text-sm">{item?.updated_by_name || 'Unknown'}</span>
         </div>
       ),
     },
@@ -138,24 +138,26 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       key: 'hours_change',
       title: 'Hours Change',
       width: '140px',
-      render: (entry) => (
+      render: (value, item, index) => (
         <div className="flex items-center gap-2">
           <ArrowUpDown className="h-3 w-3" />
           <span className="text-sm font-medium">
-            {entry.old_hours !== null ? `${entry.old_hours}` : '0'} → {entry.new_hours}
+            {item ? `${item.old_hours !== null ? item.old_hours : '0'} → ${item.new_hours}` : '-'}
           </span>
-          <span className="text-xs text-muted-foreground">
-            ({entry.hours_added > 0 ? '+' : ''}{entry.hours_added})
-          </span>
+          {item && (
+            <span className="text-xs text-muted-foreground">
+              ({item.hours_added > 0 ? '+' : ''}{item.hours_added})
+            </span>
+          )}
         </div>
       ),
     },
     {
       key: 'notes',
       title: 'Notes',
-      render: (entry) => (
+      render: (value, item, index) => (
         <div className="text-sm text-muted-foreground max-w-xs truncate">
-          {entry.notes || '—'}
+          {item?.notes || '—'}
         </div>
       ),
     },
