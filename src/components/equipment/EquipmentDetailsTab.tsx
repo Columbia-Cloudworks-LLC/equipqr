@@ -2,12 +2,13 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { QrCode, Calendar, MapPin, Wrench, FileText, Settings, Users } from "lucide-react";
+import { QrCode, Calendar, MapPin, Wrench, FileText, Settings, Users, Clock } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import QRCodeDisplay from "./QRCodeDisplay";
 import InlineEditField from "./InlineEditField";
 import InlineEditCustomAttributes from "./InlineEditCustomAttributes";
+import { WorkingHoursTimelineModal } from "./WorkingHoursTimelineModal";
 import { useUpdateEquipment } from "@/hooks/useSupabaseData";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import { useTeams } from "@/hooks/useTeamManagement";
@@ -22,6 +23,7 @@ interface EquipmentDetailsTabProps {
 
 const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) => {
   const [showQRCode, setShowQRCode] = React.useState(false);
+  const [showWorkingHoursModal, setShowWorkingHoursModal] = React.useState(false);
   const permissions = useUnifiedPermissions();
   const { currentOrganization } = useSimpleOrganization();
   const { data: teams = [] } = useTeams(currentOrganization?.id);
@@ -228,6 +230,21 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
+              <label className="text-sm font-medium text-gray-500">Working Hours</label>
+              <div className="mt-1 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-gray-400" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowWorkingHoursModal(true)}
+                  className="h-auto p-0 font-normal text-base text-left justify-start hover:underline"
+                >
+                  {equipment.working_hours?.toLocaleString() || '0'} hours
+                </Button>
+              </div>
+            </div>
+
+            <div>
               <label className="text-sm font-medium text-gray-500">Location</label>
               <div className="mt-1 flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-gray-400" />
@@ -389,6 +406,14 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         open={showQRCode}
         onClose={() => setShowQRCode(false)}
         equipmentId={equipment.id}
+      />
+
+      {/* Working Hours Timeline Modal */}
+      <WorkingHoursTimelineModal
+        open={showWorkingHoursModal}
+        onClose={() => setShowWorkingHoursModal(false)}
+        equipmentId={equipment.id}
+        equipmentName={equipment.name || 'Unknown Equipment'}
       />
     </div>
   );

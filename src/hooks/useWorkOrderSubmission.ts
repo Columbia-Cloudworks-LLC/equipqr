@@ -32,7 +32,6 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           description: data.description,
           priority: data.priority,
           dueDate: data.dueDate || undefined,
-          estimatedHours: data.estimatedHours,
           hasPM: data.hasPM,
         };
         
@@ -48,10 +47,10 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           equipmentId: data.equipmentId,
           priority: data.priority,
           dueDate: data.dueDate || undefined,
-          estimatedHours: data.estimatedHours,
           hasPM: data.hasPM,
           assignmentType: data.assignmentType === 'unassigned' ? undefined : data.assignmentType,
           assignmentId: data.assignmentType === 'unassigned' ? undefined : data.assignmentId,
+          equipmentWorkingHours: data.equipmentWorkingHours,
         };
         
         await createWorkOrderMutation.mutateAsync(workOrderData);

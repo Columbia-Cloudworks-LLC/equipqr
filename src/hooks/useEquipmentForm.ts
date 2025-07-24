@@ -79,7 +79,8 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
           custom_attributes: values.custom_attributes || {},
           image_url: values.image_url || null,
           last_known_location: values.last_known_location || null,
-          team_id: values.team_id === 'unassigned' ? null : (values.team_id || null)
+          team_id: values.team_id === 'unassigned' ? null : (values.team_id || null),
+          working_hours: 0 // Initialize with 0 hours for new equipment
         };
         
         await createEquipmentMutation.mutateAsync(equipmentData);

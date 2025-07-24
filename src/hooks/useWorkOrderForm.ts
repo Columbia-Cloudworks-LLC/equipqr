@@ -9,7 +9,7 @@ const workOrderFormSchema = z.object({
   equipmentId: z.string().min(1, "Equipment is required"),
   priority: z.enum(['low', 'medium', 'high']),
   dueDate: z.string().optional(),
-  estimatedHours: z.number().min(0).optional(),
+  equipmentWorkingHours: z.number().min(0).optional(),
   hasPM: z.boolean().default(false),
   assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),
   assignmentId: z.string().optional(),
@@ -32,7 +32,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen }: UseWorkOrde
     equipmentId: workOrder?.equipment_id || equipmentId || '',
     priority: workOrder?.priority || 'medium',
     dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : '',
-    estimatedHours: workOrder?.estimated_hours || undefined,
+    equipmentWorkingHours: undefined,
     hasPM: workOrder?.has_pm || false,
     assignmentType: 'unassigned',
     assignmentId: '',
@@ -48,7 +48,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen }: UseWorkOrde
       form.setValue('equipmentId', initialValues.equipmentId || '');
       form.setValue('priority', initialValues.priority || 'medium');
       form.setValue('dueDate', initialValues.dueDate || '');
-      form.setValue('estimatedHours', initialValues.estimatedHours);
+      form.setValue('equipmentWorkingHours', initialValues.equipmentWorkingHours);
       form.setValue('hasPM', initialValues.hasPM || false);
       form.setValue('assignmentType', initialValues.assignmentType || 'unassigned');
       form.setValue('assignmentId', initialValues.assignmentId || '');

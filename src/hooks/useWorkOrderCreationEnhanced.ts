@@ -13,7 +13,7 @@ export interface EnhancedCreateWorkOrderData {
   equipmentId: string;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
-  estimatedHours?: number;
+  equipmentWorkingHours?: number;
   hasPM?: boolean;
   assignmentType?: 'user' | 'team';
   assignmentId?: string;
@@ -51,7 +51,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
         equipment_id: data.equipmentId,
         priority: data.priority,
         due_date: data.dueDate,
-        estimated_hours: data.estimatedHours,
+        estimated_hours: null, // No longer capturing this in work orders
         has_pm: data.hasPM || false,
         pm_required: data.hasPM || false,
         assignee_id: assigneeId,
@@ -66,6 +66,26 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
       
       if (!workOrder) {
         throw new Error('Failed to create work order');
+      }
+
+      // If equipment working hours are provided, update equipment
+      if (data.equipmentWorkingHours && data.equipmentWorkingHours > 0) {
+        try {
+          const { data: updateResult, error } = await supabase.rpc('update_equipment_working_hours', {
+            p_equipment_id: data.equipmentId,
+            p_new_hours: data.equipmentWorkingHours,
+            p_update_source: 'work_order',
+            p_work_order_id: workOrder.id,
+            p_notes: `Updated from work order: ${data.title}`
+          });
+
+          if (error) {
+            console.error('Failed to update equipment working hours:', error);
+            toast.error('Work order created but failed to update equipment hours');
+          }
+        } catch (error) {
+          console.error('Error updating equipment working hours:', error);
+        }
       }
 
       // If PM is required, create the PM record
