@@ -40,13 +40,9 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
         </ScrollArea>
       </div>
 
-      <div className={isMobile ? "px-4 mt-4" : "mt-6"}>
-        {children}
-      </div>
-
-      {/* Mobile: Additional tabs in separate section */}
+      {/* Mobile: Second row of tabs */}
       {isMobile && (
-        <div className="px-4 mt-4">
+        <div className="px-4 mt-2">
           <TabsList className="grid w-full grid-cols-2 h-auto">
             <TabsTrigger value="images" className="text-xs py-2">
               Images
@@ -57,6 +53,10 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
           </TabsList>
         </div>
       )}
+
+      <div className={isMobile ? "px-4 mt-4" : "mt-6"}>
+        {children}
+      </div>
     </Tabs>
   );
 };
