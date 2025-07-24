@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import TurnstileComponent from '@/components/ui/Turnstile';
+import HCaptchaComponent from '@/components/ui/HCaptcha';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SignUpFormProps {
@@ -23,7 +23,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
     confirmPassword: '',
     organizationName: ''
   });
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [hcaptchaToken, setHcaptchaToken] = useState<string | null>(null);
   const [passwordMatch, setPasswordMatch] = useState<boolean | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
@@ -49,7 +49,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
            formData.confirmPassword && 
            formData.organizationName.trim() && 
            passwordMatch === true && 
-           turnstileToken;
+           hcaptchaToken;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,35 +74,35 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
             name: formData.name,
             organization_name: formData.organizationName
           },
-          captchaToken: turnstileToken
+          captchaToken: hcaptchaToken
         }
       });
       
       if (error) {
         onError(error.message);
-        setTurnstileToken(null);
+        setHcaptchaToken(null);
       } else {
         onSuccess('Account created successfully! Please check your email to verify your account and complete organization setup.');
       }
     } catch (error: any) {
       onError(error.message || 'An error occurred during sign up');
-      setTurnstileToken(null);
+      setHcaptchaToken(null);
     }
     
     setIsLoading(false);
   };
 
-  const handleTurnstileVerify = (token: string) => {
-    setTurnstileToken(token);
+  const handleHCaptchaVerify = (token: string) => {
+    setHcaptchaToken(token);
   };
 
-  const handleTurnstileError = () => {
-    setTurnstileToken(null);
+  const handleHCaptchaError = () => {
+    setHcaptchaToken(null);
     onError('CAPTCHA verification failed. Please try again.');
   };
 
-  const handleTurnstileExpire = () => {
-    setTurnstileToken(null);
+  const handleHCaptchaExpire = () => {
+    setHcaptchaToken(null);
     onError('CAPTCHA expired. Please complete it again.');
   };
 
@@ -183,10 +183,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
         )}
       </div>
       
-      <TurnstileComponent
-        onSuccess={handleTurnstileVerify}
-        onError={handleTurnstileError}
-        onExpire={handleTurnstileExpire}
+      <HCaptchaComponent
+        onSuccess={handleHCaptchaVerify}
+        onError={handleHCaptchaError}
+        onExpire={handleHCaptchaExpire}
       />
       
       <Button 

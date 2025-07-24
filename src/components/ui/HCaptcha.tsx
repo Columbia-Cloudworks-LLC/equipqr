@@ -1,23 +1,22 @@
-
 import React from 'react';
-import { Turnstile } from '@marsidev/react-turnstile';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 
-interface TurnstileComponentProps {
+interface HCaptchaComponentProps {
   onSuccess: (token: string) => void;
   onError?: () => void;
   onExpire?: () => void;
 }
 
-const TurnstileComponent: React.FC<TurnstileComponentProps> = ({
+const HCaptchaComponent: React.FC<HCaptchaComponentProps> = ({
   onSuccess,
   onError,
   onExpire
 }) => {
   return (
     <div className="flex justify-center my-4">
-      <Turnstile
-        siteKey="0x4AAAAAABl-Ka0TxW5_4bLG"
-        onSuccess={onSuccess}
+      <HCaptcha
+        sitekey="0a70b436-810e-423e-8100-14e6829a319e"
+        onVerify={onSuccess}
         onError={onError}
         onExpire={onExpire}
       />
@@ -25,4 +24,4 @@ const TurnstileComponent: React.FC<TurnstileComponentProps> = ({
   );
 };
 
-export default TurnstileComponent;
+export default HCaptchaComponent;
