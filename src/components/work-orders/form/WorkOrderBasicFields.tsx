@@ -86,14 +86,14 @@ export const WorkOrderBasicFields: React.FC<WorkOrderBasicFieldsProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Estimated Hours</Label>
+            <Label>Equipment Working Hours</Label>
             <Input
               type="number"
               min="0"
               step="0.5"
-              placeholder="0"
-              value={values.estimatedHours || ''}
-              onChange={(e) => setValue('estimatedHours', parseFloat(e.target.value) || undefined)}
+              placeholder="Current working hours for this equipment"
+              value={values.equipmentWorkingHours || ''}
+              onChange={(e) => setValue('equipmentWorkingHours', parseFloat(e.target.value) || undefined)}
             />
           </div>
         </div>

@@ -166,6 +166,7 @@ export type Database = {
           team_id: string | null
           updated_at: string
           warranty_expiration: string | null
+          working_hours: number | null
         }
         Insert: {
           created_at?: string
@@ -186,6 +187,7 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           warranty_expiration?: string | null
+          working_hours?: number | null
         }
         Update: {
           created_at?: string
@@ -206,6 +208,7 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           warranty_expiration?: string | null
+          working_hours?: number | null
         }
         Relationships: [
           {
@@ -341,6 +344,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      equipment_working_hours_history: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          hours_added: number | null
+          id: string
+          new_hours: number
+          notes: string | null
+          old_hours: number | null
+          update_source: string
+          updated_by: string
+          updated_by_name: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          hours_added?: number | null
+          id?: string
+          new_hours: number
+          notes?: string | null
+          old_hours?: number | null
+          update_source?: string
+          updated_by: string
+          updated_by_name?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          hours_added?: number | null
+          id?: string
+          new_hours?: number
+          notes?: string | null
+          old_hours?: number | null
+          update_source?: string
+          updated_by?: string
+          updated_by_name?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: []
       }
       invitation_performance_logs: {
         Row: {
@@ -1887,6 +1932,16 @@ export type Database = {
           period_end: string
         }
         Returns: undefined
+      }
+      update_equipment_working_hours: {
+        Args: {
+          p_equipment_id: string
+          p_new_hours: number
+          p_update_source?: string
+          p_work_order_id?: string
+          p_notes?: string
+        }
+        Returns: Json
       }
       update_organization_billing_metrics: {
         Args: { org_id: string }
