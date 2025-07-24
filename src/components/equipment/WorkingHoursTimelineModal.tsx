@@ -71,7 +71,14 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    try {
+      // Normalize PostgreSQL timestamp format (replace space with T for ISO compliance)
+      const normalizedDate = dateString.replace(' ', 'T');
+      return format(new Date(normalizedDate), 'MMM d, yyyy h:mm a');
+    } catch (error) {
+      console.warn('Failed to format date:', dateString, error);
+      return 'Invalid date';
+    }
   };
 
   const getSourceIcon = (source: string) => {
