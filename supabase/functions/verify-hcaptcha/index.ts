@@ -1,14 +1,13 @@
-
 import { corsHeaders } from '../_shared/cors.ts';
 
-const TURNSTILE_SECRET_KEY = Deno.env.get('TURNSTILE_SECRET_KEY');
+const HCAPTCHA_SECRET_KEY = Deno.env.get('HCAPTCHA_SECRET_KEY');
 
-interface TurnstileVerificationRequest {
+interface HCaptchaVerificationRequest {
   token: string;
   remoteip?: string;
 }
 
-interface TurnstileVerificationResponse {
+interface HCaptchaVerificationResponse {
   success: boolean;
   'error-codes'?: string[];
   challenge_ts?: string;
@@ -22,8 +21,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (!TURNSTILE_SECRET_KEY) {
-      console.error('TURNSTILE_SECRET_KEY not configured');
+    if (!HCAPTCHA_SECRET_KEY) {
+      console.error('HCAPTCHA_SECRET_KEY not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'Server configuration error' }),
         { 
@@ -33,7 +32,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { token, remoteip }: TurnstileVerificationRequest = await req.json();
+    const { token, remoteip }: HCaptchaVerificationRequest = await req.json();
 
     if (!token) {
       return new Response(
@@ -45,22 +44,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify the token with Cloudflare
+    // Verify the token with hCaptcha
     const formData = new FormData();
-    formData.append('secret', TURNSTILE_SECRET_KEY);
+    formData.append('secret', HCAPTCHA_SECRET_KEY);
     formData.append('response', token);
     if (remoteip) {
       formData.append('remoteip', remoteip);
     }
 
-    const verificationResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    const verificationResponse = await fetch('https://hcaptcha.com/siteverify', {
       method: 'POST',
       body: formData,
     });
 
-    const result: TurnstileVerificationResponse = await verificationResponse.json();
+    const result: HCaptchaVerificationResponse = await verificationResponse.json();
 
-    console.log('Turnstile verification result:', result);
+    console.log('hCaptcha verification result:', result);
 
     return new Response(
       JSON.stringify({ 
@@ -74,7 +73,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Turnstile verification error:', error);
+    console.error('hCaptcha verification error:', error);
     return new Response(
       JSON.stringify({ success: false, error: 'Verification failed' }),
       { 
