@@ -1,40 +1,43 @@
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
 
 export default function TermsOfService() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-6">
-        {!user && (
-          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-center">
-            <p className="text-sm text-muted-foreground mb-3">
-              Have an account? Sign in to access your equipment management dashboard.
-            </p>
-            <Button onClick={() => navigate('/auth')} variant="default" size="sm">
-              <LogIn className="w-4 h-4 mr-2" />
-              Sign In
-            </Button>
-          </div>
-        )}
-        
+      <div className="mb-8">
+        <Button variant="ghost" asChild className="mb-4">
+          <Link to="/">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Link>
+        </Button>
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Terms of Service</h1>
-          <p className="text-muted-foreground mt-2">Last updated: {new Date().toLocaleDateString()}</p>
+          <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
+          <p className="text-muted-foreground">
+            Last updated: {new Date().toLocaleDateString()}
+          </p>
         </div>
+      </div>
 
+      <div className="space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>1. Acceptance of Terms</CardTitle>
+            <CardTitle>Acceptance of Terms</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              By accessing and using EquipQR ("the Service"), developed by COLUMBIA CLOUDWORKS LLC, you accept and agree to be bound by the terms and 
+              By accessing and using EquipQR ("the Service"), developed by{' '}
+              <a 
+                href="https://columbiacloudworks.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors underline"
+              >
+                COLUMBIA CLOUDWORKS LLC
+              </a>
+              , you accept and agree to be bound by the terms and 
               provision of this agreement. If you do not agree to abide by the above, please do not use this service.
             </p>
           </CardContent>
@@ -42,138 +45,171 @@ export default function TermsOfService() {
 
         <Card>
           <CardHeader>
-            <CardTitle>2. Description of Service</CardTitle>
+            <CardTitle>Description of Service</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              EquipQR is a fleet equipment management platform that provides QR code integration, work order management, 
-              and real-time monitoring capabilities for organizations to track, manage, and maintain their equipment fleet.
+              EquipQR is a fleet equipment management platform designed to help organizations efficiently manage their
+              equipment, track maintenance, and improve overall operational efficiency. The Service may include, but is
+              not limited to, features such as equipment tracking, maintenance scheduling, reporting, and user
+              management.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>3. User Accounts and Responsibilities</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <ul>
-              <li>You are responsible for maintaining the confidentiality of your account credentials</li>
-              <li>You agree to provide accurate and complete information when creating your account</li>
-              <li>You are responsible for all activities that occur under your account</li>
-              <li>You must notify us immediately of any unauthorized use of your account</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>4. Acceptable Use Policy</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <p>You agree not to use the Service to:</p>
-            <ul>
-              <li>Upload, post, or transmit any unlawful, harmful, or inappropriate content</li>
-              <li>Interfere with or disrupt the Service or servers connected to the Service</li>
-              <li>Attempt to gain unauthorized access to any portion of the Service</li>
-              <li>Use the Service for any illegal or unauthorized purpose</li>
-              <li>Violate any applicable local, state, national, or international law</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>5. Data and Privacy</CardTitle>
+            <CardTitle>User Accounts</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the Service, 
-              to understand our practices regarding the collection, use, and disclosure of your information.
+              To access certain features of the Service, you may be required to create a user account. You agree to
+              provide accurate, current, and complete information during the registration process and to update such
+              information to keep it accurate, current, and complete. You are responsible for maintaining the
+              confidentiality of your account credentials and for all activities that occur under your account.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>6. Intellectual Property</CardTitle>
+            <CardTitle>Acceptable Use</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              You agree to use the Service only for lawful purposes and in accordance with these Terms of Service. You
+              agree not to:
+            </p>
+            <ul className="list-disc pl-5">
+              <li>Use the Service in any way that violates any applicable laws or regulations.</li>
+              <li>
+                Engage in any conduct that could damage, disable, overburden, or impair the Service or interfere with
+                any other party's use of the Service.
+              </li>
+              <li>Attempt to gain unauthorized access to any portion of the Service or any other systems or networks.</li>
+              <li>Use the Service to transmit any viruses, malware, or other harmful code.</li>
+              <li>
+                Collect or harvest any information about other users of the Service without their consent.
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment and Subscription</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              Certain features of the Service may require payment of subscription fees. You agree to pay all fees and
+              charges associated with your subscription in accordance with the pricing and payment terms presented to
+              you. Subscriptions may be billed on a recurring basis, and you authorize us to automatically charge your
+              payment method for the applicable subscription fees.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Termination</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              We may terminate or suspend your access to the Service at any time, with or without cause, and without
+              prior notice. Upon termination, your right to use the Service will immediately cease.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Disclaimer of Warranties</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS, WITHOUT ANY WARRANTIES OF ANY KIND,
+              EITHER EXPRESS OR IMPLIED. TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, WE DISCLAIM ALL
+              WARRANTIES, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+              PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Limitation of Liability</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL WE BE LIABLE FOR ANY INDIRECT,
+              INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER
+              INCURRED DIRECTLY OR INDIRECTLY, ARISING OUT OF YOUR USE OF THE SERVICE.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Governing Law</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              These Terms of Service shall be governed by and construed in accordance with the laws of Delaware, without
+              regard to its conflict of law principles.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Intellectual Property Rights</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
               The Service and its original content, features, and functionality are and will remain the exclusive property 
-              of COLUMBIA CLOUDWORKS LLC and its licensors. The Service is protected by copyright, trademark, and other laws.
+              of{' '}
+              <a 
+                href="https://columbiacloudworks.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors underline"
+              >
+                COLUMBIA CLOUDWORKS LLC
+              </a>
+              {' '}and its licensors. The Service is protected by copyright, trademark, and other laws.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>7. Subscription and Payment Terms</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <ul>
-              <li>Subscription fees are charged in advance on a recurring basis</li>
-              <li>All fees are non-refundable unless otherwise stated</li>
-              <li>We reserve the right to change our pricing at any time</li>
-              <li>You are responsible for providing accurate billing information</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>8. Service Availability</CardTitle>
+            <CardTitle>Changes to Terms</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              While we strive to provide reliable service, we do not guarantee that the Service will be available 
-              at all times. We may experience hardware, software, or other problems that require maintenance or 
-              result in temporary interruptions.
+              We reserve the right to modify or revise these Terms of Service at any time. We will notify you of any
+              changes by posting the new Terms of Service on this page. Your continued use of the Service after the
+              effective date of any changes constitutes your acceptance of the new Terms of Service.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>9. Limitation of Liability</CardTitle>
+            <CardTitle>Entire Agreement</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              In no event shall EquipQR, its officers, directors, employees, or agents be liable for any indirect, 
-              incidental, special, consequential, or punitive damages, including without limitation, loss of profits, 
-              data, use, goodwill, or other intangible losses.
+              These Terms of Service constitute the entire agreement between you and us regarding your use of the
+              Service and supersede all prior and contemporaneous agreements and understandings, whether written or
+              oral.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>10. Termination</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <p>
-              We may terminate or suspend your account and bar access to the Service immediately, without prior notice 
-              or liability, under our sole discretion, for any reason whatsoever and without limitation, including but 
-              not limited to a breach of the Terms.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>11. Changes to Terms</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <p>
-              We reserve the right to modify or replace these Terms at any time. If a revision is material, we will 
-              provide at least 30 days notice prior to any new terms taking effect.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>12. Contact Information</CardTitle>
+            <CardTitle>Contact Information</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
@@ -182,7 +218,14 @@ export default function TermsOfService() {
             <p>
               Email: legal@equipqr.app<br />
               Website: https://equipqr.app<br />
-              COLUMBIA CLOUDWORKS LLC
+              <a 
+                href="https://columbiacloudworks.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors underline"
+              >
+                COLUMBIA CLOUDWORKS LLC
+              </a>
             </p>
           </CardContent>
         </Card>

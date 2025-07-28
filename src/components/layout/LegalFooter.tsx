@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 
 export default function LegalFooter() {
@@ -8,7 +9,16 @@ export default function LegalFooter() {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            © {currentYear} EquipQR by COLUMBIA CLOUDWORKS LLC. All rights reserved.
+            © {currentYear} EquipQR by{' '}
+            <a 
+              href="https://columbiacloudworks.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors underline"
+            >
+              COLUMBIA CLOUDWORKS LLC
+            </a>
+            . All rights reserved.
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-4 text-sm">

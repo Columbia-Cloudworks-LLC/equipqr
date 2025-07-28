@@ -1,40 +1,43 @@
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
 
 export default function PrivacyPolicy() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-6">
-        {!user && (
-          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-center">
-            <p className="text-sm text-muted-foreground mb-3">
-              Have an account? Sign in to access your equipment management dashboard.
-            </p>
-            <Button onClick={() => navigate('/auth')} variant="default" size="sm">
-              <LogIn className="w-4 h-4 mr-2" />
-              Sign In
-            </Button>
-          </div>
-        )}
-        
+      <div className="mb-8">
+        <Button variant="ghost" asChild className="mb-4">
+          <Link to="/">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Link>
+        </Button>
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
-          <p className="text-muted-foreground mt-2">Last updated: {new Date().toLocaleDateString()}</p>
+          <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
+          <p className="text-muted-foreground">
+            Last updated: {new Date().toLocaleDateString()}
+          </p>
         </div>
+      </div>
 
+      <div className="space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>1. Introduction</CardTitle>
+            <CardTitle>Introduction</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              EquipQR ("we," "our," or "us"), developed by COLUMBIA CLOUDWORKS LLC, is committed to protecting your privacy. This Privacy Policy explains 
+              EquipQR ("we," "our," or "us"), developed by{' '}
+              <a 
+                href="https://columbiacloudworks.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors underline"
+              >
+                COLUMBIA CLOUDWORKS LLC
+              </a>
+              , is committed to protecting your privacy. This Privacy Policy explains 
               how we collect, use, disclose, and safeguard your information when you use our fleet equipment 
               management platform and services.
             </p>
@@ -43,167 +46,164 @@ export default function PrivacyPolicy() {
 
         <Card>
           <CardHeader>
-            <CardTitle>2. Information We Collect</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <h4>Personal Information</h4>
-            <ul>
-              <li>Name, email address, and contact information</li>
-              <li>Account credentials and authentication data</li>
-              <li>Organization and team information</li>
-              <li>Profile information and preferences</li>
-            </ul>
-            
-            <h4>Equipment and Operational Data</h4>
-            <ul>
-              <li>Equipment details, specifications, and maintenance records</li>
-              <li>Work order information and status updates</li>
-              <li>Location data and equipment tracking information</li>
-              <li>Images and documents uploaded to the platform</li>
-            </ul>
-
-            <h4>Usage Information</h4>
-            <ul>
-              <li>Log data, including IP addresses and browser information</li>
-              <li>Device information and operating system details</li>
-              <li>Usage patterns and feature interaction data</li>
-              <li>Performance and analytics data</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>3. How We Use Your Information</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <p>We use the collected information to:</p>
-            <ul>
-              <li>Provide, operate, and maintain our services</li>
-              <li>Process transactions and manage your account</li>
-              <li>Send important notices, updates, and support communications</li>
-              <li>Improve our services and develop new features</li>
-              <li>Analyze usage patterns and optimize performance</li>
-              <li>Ensure security and prevent fraudulent activities</li>
-              <li>Comply with legal obligations and resolve disputes</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>4. Information Sharing and Disclosure</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <p>We may share your information in the following circumstances:</p>
-            <ul>
-              <li><strong>Within Your Organization:</strong> With team members and administrators in your organization</li>
-              <li><strong>Service Providers:</strong> With trusted third-party vendors who assist in providing our services</li>
-              <li><strong>Legal Requirements:</strong> When required by law or to protect our rights and safety</li>
-              <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets</li>
-              <li><strong>Consent:</strong> With your explicit consent for specific purposes</li>
-            </ul>
-            <p>We do not sell, rent, or trade your personal information to third parties for marketing purposes.</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>5. Data Security</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <p>We implement appropriate technical and organizational measures to protect your information:</p>
-            <ul>
-              <li>Encryption of data in transit and at rest</li>
-              <li>Regular security assessments and monitoring</li>
-              <li>Access controls and authentication mechanisms</li>
-              <li>Secure data centers and infrastructure</li>
-              <li>Employee training on data protection practices</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>6. Data Retention</CardTitle>
+            <CardTitle>Information We Collect</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              We retain your information for as long as necessary to provide our services and fulfill the purposes 
-              outlined in this Privacy Policy. We may retain certain information for longer periods as required by 
-              law or for legitimate business purposes.
+              We collect several types of information from and about users of our Services, including:
+            </p>
+            <ul>
+              <li>
+                <strong>Personal Information:</strong> This includes your name, email address, phone number,
+                organization name, and billing information, which you provide when you register for an account,
+                subscribe to our services, or contact us.
+              </li>
+              <li>
+                <strong>Equipment Data:</strong> Information about the equipment you manage using our platform,
+                such as equipment names, models, serial numbers, locations, maintenance schedules, and
+                performance data.
+              </li>
+              <li>
+                <strong>Usage Data:</strong> Details of your interactions with our Services, including the pages
+                you visit, the features you use, and the dates and times of your visits.
+              </li>
+              <li>
+                <strong>Log Data:</strong> Information automatically collected and stored in our server logs,
+                including your IP address, browser type, operating system, and referring website.
+              </li>
+              <li>
+                <strong>Cookies and Tracking Technologies:</strong> We use cookies, web beacons, and similar
+                technologies to track your activity on our Services and collect certain information about your
+                device and browsing behavior.
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>How We Use Your Information</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              We use the information we collect for various purposes, including:
+            </p>
+            <ul>
+              <li>
+                To provide, maintain, and improve our Services.
+              </li>
+              <li>
+                To personalize your experience and deliver content and features that match your interests and
+                preferences.
+              </li>
+              <li>
+                To process transactions and manage your account.
+              </li>
+              <li>
+                To communicate with you about updates, promotions, and other news and information.
+              </li>
+              <li>
+                To monitor and analyze usage trends and patterns.
+              </li>
+              <li>
+                To detect, investigate, and prevent fraudulent or illegal activities.
+              </li>
+              <li>
+                To comply with legal obligations and protect our rights and interests.
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>How We Share Your Information</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              We may share your information with third parties in the following circumstances:
+            </p>
+            <ul>
+              <li>
+                <strong>Service Providers:</strong> We may share your information with third-party service providers
+                who assist us in providing and maintaining our Services, such as hosting providers, payment
+                processors, and analytics providers.
+              </li>
+              <li>
+                <strong>Business Partners:</strong> We may share your information with our business partners who
+                offer products or services that may be of interest to you.
+              </li>
+              <li>
+                <strong>Legal Compliance:</strong> We may disclose your information if required to do so by law or
+                in response to a valid legal request, such as a subpoena or court order.
+              </li>
+              <li>
+                <strong>Business Transfers:</strong> In the event of a merger, acquisition, or sale of all or a
+                portion of our assets, your information may be transferred as part of the transaction.
+              </li>
+              <li>
+                <strong>With Your Consent:</strong> We may share your information with third parties when we have
+                your consent to do so.
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Security</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              We take reasonable measures to protect your information from unauthorized access, use, or disclosure.
+              These measures include encryption, firewalls, and regular security assessments. However, no method
+              of transmission over the Internet or method of electronic storage is completely secure, so we cannot
+              guarantee absolute security.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>7. Your Rights and Choices</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <p>Depending on your jurisdiction, you may have the following rights:</p>
-            <ul>
-              <li><strong>Access:</strong> Request information about the data we hold about you</li>
-              <li><strong>Correction:</strong> Request correction of inaccurate or incomplete data</li>
-              <li><strong>Deletion:</strong> Request deletion of your personal information</li>
-              <li><strong>Portability:</strong> Request a copy of your data in a portable format</li>
-              <li><strong>Restriction:</strong> Request limitation of how we process your data</li>
-              <li><strong>Objection:</strong> Object to certain types of data processing</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>8. Cookies and Tracking Technologies</CardTitle>
+            <CardTitle>Data Retention</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              We use cookies and similar technologies to enhance your experience, analyze usage, and provide 
-              personalized content. You can control cookie settings through your browser preferences.
+              We retain your information for as long as necessary to fulfill the purposes outlined in this Privacy
+              Policy, unless a longer retention period is required or permitted by law.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>9. International Data Transfers</CardTitle>
+            <CardTitle>Your Rights</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              Your information may be processed and stored in countries other than your own. We ensure appropriate 
-              safeguards are in place to protect your data in accordance with applicable privacy laws.
+              You have certain rights regarding your information, including the right to access, correct, or delete
+              your information. You may also have the right to object to or restrict certain processing of your
+              information. To exercise these rights, please contact us using the contact information provided below.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>10. Children's Privacy</CardTitle>
+            <CardTitle>Changes to This Privacy Policy</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              Our services are not intended for individuals under the age of 18. We do not knowingly collect 
-              personal information from children under 18 years of age.
+              We may update this Privacy Policy from time to time. We will notify you of any material changes by
+              posting the new Privacy Policy on our website. You are advised to review this Privacy Policy
+              periodically for any changes.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>11. Changes to This Privacy Policy</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <p>
-              We may update this Privacy Policy from time to time. We will notify you of any material changes by 
-              posting the new Privacy Policy on this page and updating the "Last updated" date.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>12. Contact Us</CardTitle>
+            <CardTitle>Contact Us</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
@@ -212,7 +212,14 @@ export default function PrivacyPolicy() {
             <p>
               Email: privacy@equipqr.app<br />
               Website: https://equipqr.app<br />
-              COLUMBIA CLOUDWORKS LLC<br />
+              <a 
+                href="https://columbiacloudworks.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors underline"
+              >
+                COLUMBIA CLOUDWORKS LLC
+              </a><br />
               Address: Contact us for business address information
             </p>
           </CardContent>
