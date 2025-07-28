@@ -32,7 +32,8 @@ import {
   FileText,
   ChevronUp,
   LogOut,
-  User
+  User,
+  HelpCircle
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -232,6 +233,12 @@ const AppSidebar = () => {
                   align="end"
                   sideOffset={4}
                 >
+                  <DropdownMenuItem asChild>
+                    <Link to="/support" onClick={handleNavClick} className="text-sm cursor-pointer">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Support
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut} className="text-sm">
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign out
