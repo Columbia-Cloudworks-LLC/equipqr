@@ -13,12 +13,12 @@ export default function LegalFooter() {
           
           <div className="flex flex-col sm:flex-row items-center gap-4 text-sm">
             <a 
-              href="https://equipqr.com" 
+              href="https://equipqr.app" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Visit EquipQR.com
+              EquipQR.app
             </a>
             
             <div className="flex items-center gap-4">
