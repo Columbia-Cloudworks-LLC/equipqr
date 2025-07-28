@@ -59,6 +59,8 @@ function App() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/invitation/:token" element={<InvitationAccept />} />
                 <Route path="/qr/:equipmentId" element={<QRRedirect />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 
                 {/* Protected routes */}
                 <Route path="/*" element={
@@ -85,8 +87,6 @@ function App() {
                                 <Route path="/billing" element={<Billing />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
-                                <Route path="/terms-of-service" element={<TermsOfService />} />
-                                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                               </Routes>
                             </main>
                             <LegalFooter />
