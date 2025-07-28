@@ -32,8 +32,8 @@ const Support: React.FC = () => {
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 <span>Email support: </span>
-                <a href="mailto:support@equipqr.com" className="text-primary hover:underline">
-                  support@equipqr.com
+                <a href="mailto:nicholas.king@columbiacloudworks.com" className="text-primary hover:underline">
+                  nicholas.king@columbiacloudworks.com
                 </a>
               </div>
               <div className="flex items-center gap-2">
