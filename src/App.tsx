@@ -28,6 +28,7 @@ import QRRedirect from '@/pages/QRRedirect';
 import Billing from '@/pages/Billing';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
+import Support from '@/pages/Support';
 import InvitationAccept from '@/pages/InvitationAccept';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
@@ -84,9 +85,10 @@ function App() {
                                 <Route path="/fleet-map" element={<FleetMap />} />
                                 <Route path="/organization" element={<Organization />} />
                                 <Route path="/scanner" element={<QRScanner />} />
-                                <Route path="/billing" element={<Billing />} />
-                                <Route path="/settings" element={<Settings />} />
-                                <Route path="/reports" element={<Reports />} />
+                      <Route path="/billing" element={<Billing />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/support" element={<Support />} />
                               </Routes>
                             </main>
                             <LegalFooter />
