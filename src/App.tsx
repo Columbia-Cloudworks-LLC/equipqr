@@ -29,6 +29,9 @@ import Billing from '@/pages/Billing';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
 import InvitationAccept from '@/pages/InvitationAccept';
+import TermsOfService from '@/pages/TermsOfService';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import LegalFooter from '@/components/layout/LegalFooter';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,8 +85,11 @@ function App() {
                                 <Route path="/billing" element={<Billing />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
+                                <Route path="/terms-of-service" element={<TermsOfService />} />
+                                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                               </Routes>
                             </main>
+                            <LegalFooter />
                           </SidebarInset>
                         </div>
                         </SidebarProvider>
