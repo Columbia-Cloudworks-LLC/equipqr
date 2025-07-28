@@ -1,9 +1,28 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 
 export default function PrivacyPolicy() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="space-y-6">
+        {!user && (
+          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-3">
+              Have an account? Sign in to access your equipment management dashboard.
+            </p>
+            <Button onClick={() => navigate('/auth')} variant="default" size="sm">
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign In
+            </Button>
+          </div>
+        )}
+        
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
           <p className="text-muted-foreground mt-2">Last updated: {new Date().toLocaleDateString()}</p>
