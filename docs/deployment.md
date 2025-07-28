@@ -50,7 +50,7 @@ VITE_LOG_LEVEL=debug
 #### `.env.production` (Production)
 ```env
 VITE_APP_TITLE=EquipQR
-VITE_API_URL=https://api.equipqr.com
+VITE_API_URL=https://api.equipqr.app
 VITE_ENABLE_DEVTOOLS=false
 VITE_LOG_LEVEL=error
 VITE_SENTRY_DSN=your-sentry-dsn

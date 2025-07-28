@@ -29,6 +29,9 @@ import Billing from '@/pages/Billing';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
 import InvitationAccept from '@/pages/InvitationAccept';
+import TermsOfService from '@/pages/TermsOfService';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import LegalFooter from '@/components/layout/LegalFooter';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +59,8 @@ function App() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/invitation/:token" element={<InvitationAccept />} />
                 <Route path="/qr/:equipmentId" element={<QRRedirect />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 
                 {/* Protected routes */}
                 <Route path="/*" element={
@@ -84,6 +89,7 @@ function App() {
                                 <Route path="/reports" element={<Reports />} />
                               </Routes>
                             </main>
+                            <LegalFooter />
                           </SidebarInset>
                         </div>
                         </SidebarProvider>
