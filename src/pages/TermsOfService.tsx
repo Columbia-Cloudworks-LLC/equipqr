@@ -34,7 +34,7 @@ export default function TermsOfService() {
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              By accessing and using EquipQR ("the Service"), you accept and agree to be bound by the terms and 
+              By accessing and using EquipQR ("the Service"), developed by COLUMBIA CLOUDWORKS LLC, you accept and agree to be bound by the terms and 
               provision of this agreement. If you do not agree to abide by the above, please do not use this service.
             </p>
           </CardContent>
@@ -101,7 +101,7 @@ export default function TermsOfService() {
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
               The Service and its original content, features, and functionality are and will remain the exclusive property 
-              of EquipQR and its licensors. The Service is protected by copyright, trademark, and other laws.
+              of COLUMBIA CLOUDWORKS LLC and its licensors. The Service is protected by copyright, trademark, and other laws.
             </p>
           </CardContent>
         </Card>
@@ -180,8 +180,9 @@ export default function TermsOfService() {
               If you have any questions about these Terms of Service, please contact us at:
             </p>
             <p>
-              Email: legal@equipqr.com<br />
-              Website: https://equipqr.com
+              Email: legal@equipqr.app<br />
+              Website: https://equipqr.app<br />
+              COLUMBIA CLOUDWORKS LLC
             </p>
           </CardContent>
         </Card>

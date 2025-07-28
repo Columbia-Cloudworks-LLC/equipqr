@@ -8,7 +8,7 @@ export default function LegalFooter() {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            © {currentYear} EquipQR. All rights reserved.
+            © {currentYear} EquipQR by COLUMBIA CLOUDWORKS LLC. All rights reserved.
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-4 text-sm">

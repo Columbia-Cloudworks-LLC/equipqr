@@ -34,7 +34,7 @@ export default function PrivacyPolicy() {
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              EquipQR ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains 
+              EquipQR ("we," "our," or "us"), developed by COLUMBIA CLOUDWORKS LLC, is committed to protecting your privacy. This Privacy Policy explains 
               how we collect, use, disclose, and safeguard your information when you use our fleet equipment 
               management platform and services.
             </p>
@@ -210,9 +210,10 @@ export default function PrivacyPolicy() {
               If you have any questions about this Privacy Policy or our data practices, please contact us at:
             </p>
             <p>
-              Email: privacy@equipqr.com<br />
-              Website: https://equipqr.com<br />
-              Address: [Company Address]
+              Email: privacy@equipqr.app<br />
+              Website: https://equipqr.app<br />
+              COLUMBIA CLOUDWORKS LLC<br />
+              Address: Contact us for business address information
             </p>
           </CardContent>
         </Card>
