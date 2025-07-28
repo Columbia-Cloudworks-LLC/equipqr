@@ -210,7 +210,7 @@ export default function PrivacyPolicy() {
               If you have any questions about this Privacy Policy or our data practices, please contact us at:
             </p>
             <p>
-              Email: privacy@equipqr.app<br />
+              Email: nicholas.king@columbiacloudworks.com<br />
               Website: https://equipqr.app<br />
               <a 
                 href="https://columbiacloudworks.com" 
