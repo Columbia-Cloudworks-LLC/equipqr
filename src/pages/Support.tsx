@@ -1,9 +1,10 @@
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { HelpCircle, Mail, MessageSquare, Users, Wrench, Eye, UserCheck, Shield, FileText, Clock } from "lucide-react";
 
-export default function Support() {
+const Support: React.FC = () => {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="space-y-6">
@@ -230,4 +231,6 @@ export default function Support() {
       </div>
     </div>
   );
-}
+};
+
+export default Support;
