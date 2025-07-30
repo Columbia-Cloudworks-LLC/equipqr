@@ -14,12 +14,12 @@ export default function LegalFooter() {
               href="https://columbiacloudworks.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors underline inline"
+              className="hover:text-foreground transition-colors underline inline-flex items-center gap-2"
             >
               <img 
                 src="/eqr-icons/columbia-cloudworks-logo.png" 
                 alt="Columbia Cloudworks" 
-                className="w-4 h-4 sm:w-5 sm:h-5 align-middle mr-2"
+                className="w-4 h-4 sm:w-5 sm:h-5"
               />
               COLUMBIA CLOUDWORKS LLC
             </a>
