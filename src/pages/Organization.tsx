@@ -8,9 +8,7 @@ import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
-import OrganizationOverview from '@/components/organization/OrganizationOverview';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
-import OrganizationSidebar from '@/components/organization/OrganizationSidebar';
 import { OrganizationSettingsDialog } from '@/components/organization/OrganizationSettingsDialog';
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import { toast } from 'sonner';
@@ -69,34 +67,20 @@ const Organization = () => {
         currentUserRole={currentUserRole}
       />
 
-      <OrganizationOverview 
-        organizationName={currentOrganization.name}
+      <OrganizationTabs
+        members={members}
+        admins={orgAdmins}
         organizationId={currentOrganization.id}
-        stats={organizationStats}
+        currentUserRole={currentUserRole}
+        permissions={permissions}
+        membersLoading={membersLoading}
+        adminsLoading={adminsLoading}
+        onInviteMember={handleInviteMember}
+        onUpgrade={handleUpgradeToPremium}
+        organization={currentOrganization}
+        organizationStats={organizationStats}
+        fleetMapSubscription={fleetMapSubscription}
       />
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-        <div className="xl:col-span-2 space-y-4 sm:space-y-6 min-w-0">
-          <OrganizationTabs
-            members={members}
-            admins={orgAdmins}
-            organizationId={currentOrganization.id}
-            currentUserRole={currentUserRole}
-            permissions={permissions}
-            membersLoading={membersLoading}
-            adminsLoading={adminsLoading}
-            onInviteMember={handleInviteMember}
-            onUpgrade={handleUpgradeToPremium}
-          />
-        </div>
-
-        <div className="xl:col-span-1 min-w-0">
-          <OrganizationSidebar
-            organization={currentOrganization}
-            onUpgrade={handleUpgradeToPremium}
-          />
-        </div>
-      </div>
 
       <OrganizationSettingsDialog
         open={settingsDialogOpen}
