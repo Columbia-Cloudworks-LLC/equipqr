@@ -3,12 +3,12 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Mail, Crown, UserPlus } from 'lucide-react';
+import { Users, Mail, Crown, UserPlus, BarChart3, CreditCard, Shield } from 'lucide-react';
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { OrganizationAdmin } from '@/hooks/useOrganizationAdmins';
 import { PagePermissions } from '@/hooks/usePagePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
-import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
+
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import MembersListReal from './MembersListReal';
 import AdminsTabContent from './AdminsTabContent';
@@ -16,6 +16,10 @@ import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
 import InvitationManagement from './InvitationManagement';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import ManageSubscriptionButton from '@/components/billing/ManageSubscriptionButton';
+import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
+import { SecurityStatus } from '@/components/security/SecurityStatus';
+import { SessionStatus } from '@/components/session/SessionStatus';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface OrganizationTabsProps {
   members: RealOrganizationMember[];
@@ -27,6 +31,9 @@ interface OrganizationTabsProps {
   adminsLoading: boolean;
   onInviteMember: () => void;
   onUpgrade: () => void;
+  organization: any;
+  organizationStats: any;
+  fleetMapSubscription: any;
 }
 
 const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
@@ -37,11 +44,13 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   permissions,
   membersLoading,
   adminsLoading,
-  onUpgrade
+  onUpgrade,
+  organization,
+  organizationStats,
+  fleetMapSubscription
 }) => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("members");
-  const { data: fleetMapSubscription } = useFleetMapSubscription(organizationId);
+  const [activeTab, setActiveTab] = useState("overview");
   const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
   const billing = calculateSimplifiedBilling(members);
 
@@ -62,24 +71,131 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <div className="overflow-x-auto">
-        <TabsList className="grid w-full grid-cols-3 min-w-fit">
-          <TabsTrigger value="members" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 min-w-fit">
+          <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
+            <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline sm:hidden">Over</span>
+            <span className="hidden sm:inline">Overview</span>
+            <span className="xs:hidden sm:hidden">O</span>
+          </TabsTrigger>
+          <TabsTrigger value="members" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
             <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline">Members</span>
-            <span className="xs:hidden">Members</span>
+            <span className="hidden xs:inline sm:hidden">Mem</span>
+            <span className="hidden sm:inline">Members</span>
+            <span className="xs:hidden sm:hidden">M</span>
           </TabsTrigger>
-          <TabsTrigger value="invitations" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+          <TabsTrigger value="invitations" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
             <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline">Invitations</span>
-            <span className="xs:hidden">Invites</span>
+            <span className="hidden xs:inline sm:hidden">Inv</span>
+            <span className="hidden sm:inline">Invitations</span>
+            <span className="xs:hidden sm:hidden">I</span>
           </TabsTrigger>
-          <TabsTrigger value="admins" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+          <TabsTrigger value="billing" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
+            <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline sm:hidden">Bill</span>
+            <span className="hidden sm:inline">Billing</span>
+            <span className="xs:hidden sm:hidden">B</span>
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
+            <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline sm:hidden">Sec</span>
+            <span className="hidden sm:inline">Security</span>
+            <span className="xs:hidden sm:hidden">S</span>
+          </TabsTrigger>
+          <TabsTrigger value="admins" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
             <Crown className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline">Admins</span>
-            <span className="xs:hidden">Admins</span>
+            <span className="hidden xs:inline sm:hidden">Adm</span>
+            <span className="hidden sm:inline">Admins</span>
+            <span className="xs:hidden sm:hidden">A</span>
           </TabsTrigger>
         </TabsList>
       </div>
+
+      <TabsContent value="overview" className="space-y-4">
+        <div className="grid gap-4 md:gap-6">
+          {/* Organization Summary */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Members</CardTitle>
+                <CardDescription>Active team members</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{organizationStats.memberCount}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Admins</CardTitle>
+                <CardDescription>Organization administrators</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{organizationStats.adminCount}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Plan</CardTitle>
+                <CardDescription>Current subscription</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-semibold">{organizationStats.plan}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Features</CardTitle>
+                <CardDescription>Available features</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{organizationStats.featureCount}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common organization management tasks</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {canInviteMembers && (
+                  <Button onClick={handleInviteMember} variant="default">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Invite Member
+                  </Button>
+                )}
+                {canShowManageSubscription && (
+                  <ManageSubscriptionButton variant="outline" />
+                )}
+                {canShowPurchaseLicenses && (
+                  <PurchaseLicensesButton variant="outline" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Fleet Map Status */}
+          {fleetMapSubscription && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Fleet Map</CardTitle>
+                <CardDescription>Premium add-on status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <span>Status:</span>
+                  <Badge variant={fleetMapSubscription.enabled ? "default" : "secondary"}>
+                    {fleetMapSubscription.enabled ? 'Enabled' : 'Disabled'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </TabsContent>
 
       <TabsContent value="members" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -155,6 +271,34 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
 
       <TabsContent value="invitations">
         <InvitationManagement />
+      </TabsContent>
+
+      <TabsContent value="billing" className="space-y-4">
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold">Billing & Licenses</h2>
+            <p className="text-sm text-muted-foreground">Manage your organization's billing and user licenses</p>
+          </div>
+          <SlotBasedBilling
+            storageUsedGB={0} // TODO: Get from organization data
+            fleetMapEnabled={fleetMapSubscription?.enabled || false}
+            onPurchaseSlots={(quantity) => onUpgrade()}
+            onUpgradeToMultiUser={onUpgrade}
+          />
+        </div>
+      </TabsContent>
+
+      <TabsContent value="security" className="space-y-4">
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold">Security & Status</h2>
+            <p className="text-sm text-muted-foreground">Monitor your organization's security and session status</p>
+          </div>
+          <div className="space-y-4">
+            <SessionStatus />
+            <SecurityStatus />
+          </div>
+        </div>
       </TabsContent>
 
       <TabsContent value="admins" className="space-y-4">

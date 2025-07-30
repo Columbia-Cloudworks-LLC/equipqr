@@ -59,10 +59,8 @@ export const calculateEnhancedBilling = (
   // Monthly recurring costs (storage + fleet map)
   const monthlyRecurring = storageCost + fleetMapCost;
   
-  // Estimate next billing - additional slots needed beyond current purchase and exemptions
-  const totalAvailable = slotAvailability.total_purchased + slotAvailability.exempted_slots;
-  const additionalSlotsNeeded = Math.max(0, totalSlotsNeeded - totalAvailable);
-  const estimatedNextBilling = monthlyRecurring + (additionalSlotsNeeded * costPerSlot);
+  // Estimate next billing - total slot value plus monthly recurring costs
+  const estimatedNextBilling = totalSlotValue + monthlyRecurring;
   
   return {
     userSlots: {
