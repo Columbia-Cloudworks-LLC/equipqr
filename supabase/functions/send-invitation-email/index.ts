@@ -82,20 +82,9 @@ serve(async (req) => {
     // Create email HTML content
     const emailHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <!-- Logos Section -->
+        <!-- EquipQR Logo Section -->
         <div style="text-align: center; margin-bottom: 16px; padding: 12px 0;">
-          <div style="display: inline-flex; align-items: center; gap: 20px; justify-content: center; flex-wrap: wrap;">
-            <!-- EquipQR Logo -->
-            <div style="flex: 0 0 auto;">
-              <img src="${equipQRLogoUrl}" alt="EquipQR Logo" style="height: 56px; width: auto; display: block;" />
-            </div>
-            ${organizationLogo ? `
-            <!-- Organization Logo -->
-            <div style="flex: 0 0 auto;">
-              <img src="${organizationLogo}" alt="${organizationName} Logo" style="height: 56px; width: auto; display: block;" />
-            </div>
-            ` : ''}
-          </div>
+          <img src="${equipQRLogoUrl}" alt="EquipQR Logo" style="width: 100px; height: auto; display: block; margin: 0 auto;" />
         </div>
         
         <div style="text-align: center; margin-bottom: 32px;">
@@ -104,6 +93,12 @@ serve(async (req) => {
         </div>
         
         <div style="background: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+          ${organizationLogo ? `
+          <!-- Organization Logo -->
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img src="${organizationLogo}" alt="${organizationName} Logo" style="height: 56px; width: auto; display: block; margin: 0 auto;" />
+          </div>
+          ` : ''}
           <h2 style="color: #1a1a1a; font-size: 24px; margin: 0 0 16px 0;">You're invited to join ${organizationName}</h2>
           <p style="color: #666; font-size: 16px; margin: 0 0 16px 0;">
             ${inviterName} has invited you to join their organization as a <strong>${role}</strong> on EquipQR.
