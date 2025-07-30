@@ -53,10 +53,13 @@ serve(async (req) => {
 
     logStep("Request received", { invitationId, email, role, organizationName });
 
-    // Get the invitation token from the database
+    // Get the invitation token and organization logo from the database
     const { data: invitation, error: invitationError } = await supabaseClient
       .from('organization_invitations')
-      .select('invitation_token')
+      .select(`
+        invitation_token,
+        organizations!inner(name, logo)
+      `)
       .eq('id', invitationId)
       .single();
 
@@ -66,13 +69,35 @@ serve(async (req) => {
 
     logStep("Invitation token retrieved", { token: invitation.invitation_token });
 
+    // Get organization logo from the invitation data
+    const organizationLogo = invitation.organizations?.logo;
+
     // Construct the invitation URL using production URL if available
     const baseUrl = Deno.env.get("PRODUCTION_URL") || `${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '')}.lovableproject.com`;
     const invitationUrl = `${baseUrl}/invitation/${invitation.invitation_token}`;
+    
+    // Construct absolute URLs for logos
+    const equipQRLogoUrl = `${baseUrl}/eqr-logo/inverse.png`;
 
     // Create email HTML content
     const emailHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <!-- Logos Section -->
+        <div style="text-align: center; margin-bottom: 24px; padding: 20px 0;">
+          <div style="display: inline-flex; align-items: center; gap: 20px; justify-content: center; flex-wrap: wrap;">
+            <!-- EquipQR Logo -->
+            <div style="flex: 0 0 auto;">
+              <img src="${equipQRLogoUrl}" alt="EquipQR Logo" style="height: 48px; width: auto; display: block;" />
+            </div>
+            ${organizationLogo ? `
+            <!-- Organization Logo -->
+            <div style="flex: 0 0 auto;">
+              <img src="${organizationLogo}" alt="${organizationName} Logo" style="height: 48px; width: auto; display: block;" />
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        
         <div style="text-align: center; margin-bottom: 32px;">
           <h1 style="color: #1a1a1a; font-size: 28px; font-weight: bold; margin: 0;">EquipQR</h1>
           <p style="color: #666; font-size: 16px; margin: 8px 0 0 0;">Fleet Equipment Management</p>
