@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, Mail, Crown, UserPlus, BarChart3, CreditCard, Shield } from 'lucide-react';
@@ -8,6 +9,7 @@ import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { OrganizationAdmin } from '@/hooks/useOrganizationAdmins';
 import { PagePermissions } from '@/hooks/usePagePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import MembersListReal from './MembersListReal';
@@ -51,6 +53,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
 }) => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const isMobile = useIsMobile();
   const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
   const billing = calculateSimplifiedBilling(members);
 
@@ -69,49 +72,64 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-      <div className="overflow-x-auto">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 min-w-fit">
-          <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
-            <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline sm:hidden">Over</span>
-            <span className="hidden sm:inline">Overview</span>
-            <span className="xs:hidden sm:hidden">O</span>
-          </TabsTrigger>
-          <TabsTrigger value="members" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
-            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline sm:hidden">Mem</span>
-            <span className="hidden sm:inline">Members</span>
-            <span className="xs:hidden sm:hidden">M</span>
-          </TabsTrigger>
-          <TabsTrigger value="invitations" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
-            <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline sm:hidden">Inv</span>
-            <span className="hidden sm:inline">Invitations</span>
-            <span className="xs:hidden sm:hidden">I</span>
-          </TabsTrigger>
-          <TabsTrigger value="billing" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
-            <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline sm:hidden">Bill</span>
-            <span className="hidden sm:inline">Billing</span>
-            <span className="xs:hidden sm:hidden">B</span>
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
-            <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline sm:hidden">Sec</span>
-            <span className="hidden sm:inline">Security</span>
-            <span className="xs:hidden sm:hidden">S</span>
-          </TabsTrigger>
-          <TabsTrigger value="admins" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3">
-            <Crown className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline sm:hidden">Adm</span>
-            <span className="hidden sm:inline">Admins</span>
-            <span className="xs:hidden sm:hidden">A</span>
-          </TabsTrigger>
-        </TabsList>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <div className={isMobile ? "px-4" : ""}>
+        <ScrollArea className="w-full">
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-6'} ${isMobile ? 'h-auto' : ''}`}>
+            <TabsTrigger value="overview" className={isMobile ? 'text-xs py-2' : ''}>
+              <BarChart3 className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
+              {isMobile ? 'Overview' : 'Overview'}
+            </TabsTrigger>
+            <TabsTrigger value="members" className={isMobile ? 'text-xs py-2' : ''}>
+              <Users className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
+              {isMobile ? 'Members' : 'Members'}
+            </TabsTrigger>
+            <TabsTrigger value="invitations" className={isMobile ? 'text-xs py-2' : ''}>
+              <Mail className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
+              {isMobile ? 'Invites' : 'Invitations'}
+            </TabsTrigger>
+            {!isMobile && (
+              <>
+                <TabsTrigger value="billing">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Billing
+                </TabsTrigger>
+                <TabsTrigger value="security">
+                  <Shield className="mr-2 h-4 w-4" />
+                  Security
+                </TabsTrigger>
+                <TabsTrigger value="admins">
+                  <Crown className="mr-2 h-4 w-4" />
+                  Admins
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+        </ScrollArea>
       </div>
 
-      <TabsContent value="overview" className="space-y-4">
+      {/* Mobile: Second row of tabs */}
+      {isMobile && (
+        <div className="px-4 mt-2">
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="billing" className="text-xs py-2">
+              <CreditCard className="mr-1 h-3 w-3" />
+              Billing
+            </TabsTrigger>
+            <TabsTrigger value="security" className="text-xs py-2">
+              <Shield className="mr-1 h-3 w-3" />
+              Security
+            </TabsTrigger>
+            <TabsTrigger value="admins" className="text-xs py-2">
+              <Crown className="mr-1 h-3 w-3" />
+              Admins
+            </TabsTrigger>
+          </TabsList>
+        </div>
+      )}
+
+      <div className={isMobile ? "px-4 mt-4" : "mt-6 space-y-4"}>
+        <TabsContent value="overview" className="space-y-4">
         <div className="grid gap-4 md:gap-6">
           {/* Organization Summary */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -312,11 +330,12 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
         <AdminsTabContent admins={admins} isLoading={adminsLoading} />
       </TabsContent>
 
-      <SimplifiedInvitationDialog
-        open={inviteDialogOpen}
-        onOpenChange={setInviteDialogOpen}
-        onSuccess={handleInviteSuccess}
-      />
+        <SimplifiedInvitationDialog
+          open={inviteDialogOpen}
+          onOpenChange={setInviteDialogOpen}
+          onSuccess={handleInviteSuccess}
+        />
+      </div>
     </Tabs>
   );
 };
