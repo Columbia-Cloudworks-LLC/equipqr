@@ -71,7 +71,6 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5" />
               User License Slots
-              <Badge variant={slotStatus.variant}>{slotStatus.message}</Badge>
             </div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Monthly Value</div>
