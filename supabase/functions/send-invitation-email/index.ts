@@ -77,7 +77,7 @@ serve(async (req) => {
     const invitationUrl = `${baseUrl}/invitation/${invitation.invitation_token}`;
     
     // Construct absolute URLs for logos
-    const equipQRLogoUrl = `${baseUrl}/eqr-logo/inverse.png`;
+    const equipQRLogoUrl = `${baseUrl}/eqr-icons/inverse.png`;
 
     // Create email HTML content
     const emailHtml = `
