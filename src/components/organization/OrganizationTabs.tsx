@@ -12,7 +12,7 @@ import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrga
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
-import MembersListReal from './MembersListReal';
+import OptimizedMembersList from './OptimizedMembersList';
 import AdminsTabContent from './AdminsTabContent';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
 import InvitationManagement from './InvitationManagement';
@@ -279,7 +279,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           </div>
         )}
 
-        <MembersListReal
+        <OptimizedMembersList
           members={members}
           organizationId={organizationId}
           currentUserRole={currentUserRole}
