@@ -5,16 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, Clock, History, Wrench } from "lucide-react";
+import { Calendar, Clock, History } from "lucide-react";
 import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from "@/hooks/useHistoricalWorkOrders";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useTeams } from "@/hooks/useTeams";
 import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
 import { useEquipmentByOrganization } from "@/hooks/useSupabaseData";
-import { format } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { WorkOrderPMSection } from "./WorkOrderPMSection";
 
 interface HistoricalWorkOrderFormProps {
   open: boolean;
@@ -32,6 +32,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
   const { teams } = useTeams();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id!);
   const createHistoricalWorkOrder = useCreateHistoricalWorkOrder();
+  const navigate = useNavigate();
 
   // State for team members of selected equipment's team
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
@@ -58,7 +59,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.equipmentId || !formData.title || !formData.historicalStartDate) {
+    if (!formData.equipmentId || !formData.title.trim() || !formData.historicalStartDate) {
       return;
     }
 
@@ -73,9 +74,14 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
         assigneeId: formData.assigneeId === 'none' ? undefined : formData.assigneeId,
         teamId: equipmentTeamId || undefined, // Use equipment's team
       };
-      await createHistoricalWorkOrder.mutateAsync(submitData);
-      onClose();
-      resetForm();
+      const result = await createHistoricalWorkOrder.mutateAsync(submitData);
+      
+      // Navigate to the created work order if successful
+      if (result?.work_order_id) {
+        navigate(`/work-orders/${result.work_order_id}`);
+      }
+      
+      handleClose();
     } catch (error) {
       // Error is handled in the hook
     }
@@ -91,7 +97,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
       historicalStartDate: '',
       historicalNotes: '',
       assigneeId: 'none',
-      teamId: 'none', // This will be auto-set based on equipment
+      teamId: 'none',
       dueDate: '',
       completedDate: '',
       hasPM: false,
@@ -100,6 +106,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
       pmNotes: '',
       pmChecklistData: []
     });
+    setTeamMembers([]);
   };
 
   const handleClose = () => {
@@ -107,7 +114,11 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
     resetForm();
   };
 
-  const isValid = formData.equipmentId && formData.title && formData.historicalStartDate;
+  const isValid = Boolean(
+    formData.equipmentId && 
+    formData.title.trim() && 
+    formData.historicalStartDate
+  );
 
   // Get selected equipment and its team
   const selectedEquipment = equipment.find(e => e.id === formData.equipmentId);
@@ -334,66 +345,11 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
             </div>
           </div>
 
-          {/* PM Integration */}
-          <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="hasPM"
-                checked={formData.hasPM}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasPM: checked as boolean }))}
-              />
-              <div className="flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-primary" />
-                <Label htmlFor="hasPM" className="cursor-pointer">
-                  Include Preventative Maintenance
-                </Label>
-              </div>
-            </div>
-
-            {formData.hasPM && (
-              <div className="space-y-4 ml-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="pmStatus">PM Status</Label>
-                    <Select
-                      value={formData.pmStatus}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, pmStatus: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {formData.pmStatus === 'completed' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="pmCompletionDate">PM Completion Date</Label>
-                      <Input
-                        id="pmCompletionDate"
-                        type="datetime-local"
-                        value={formData.pmCompletionDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, pmCompletionDate: e.target.value }))}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pmNotes">PM Notes</Label>
-                  <Textarea
-                    id="pmNotes"
-                    value={formData.pmNotes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, pmNotes: e.target.value }))}
-                    placeholder="Preventative maintenance notes..."
-                    rows={2}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          {/* PM Integration - Simplified to only show checkbox */}
+          <WorkOrderPMSection
+            values={formData}
+            setValue={(field, value) => setFormData(prev => ({ ...prev, [field]: value }))}
+          />
 
           {/* Actions */}
           <div className="flex gap-2 justify-end">
