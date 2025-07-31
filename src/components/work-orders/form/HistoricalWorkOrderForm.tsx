@@ -19,11 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { WorkOrderPMSection } from "./WorkOrderPMSection";
 
-// Helper function to convert Date to ISO string for submission
-const dateToISOString = (date: Date | null): string => {
-  if (!date) return '';
-  return date.toISOString();
-};
+import { dateToISOString } from "@/lib/utils";
 
 interface HistoricalWorkOrderFormProps {
   open: boolean;
@@ -58,8 +54,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
     status: 'completed',
     historicalStartDate: '',
     historicalNotes: '',
-    assigneeId: 'none',
-    teamId: 'none',
+    assigneeId: '',
+    teamId: '',
     dueDate: '',
     completedDate: '',
     hasPM: false,
@@ -81,12 +77,12 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
     const equipmentTeamId = selectedEquipment?.team_id;
 
     try {
-      // Convert "none" values back to undefined before submission
+      // Convert empty values to undefined before submission
       const submitData = {
         ...formData,
         historicalStartDate: dateToISOString(startDate),
         completedDate: dateToISOString(completionDate),
-        assigneeId: formData.assigneeId === 'none' ? undefined : formData.assigneeId,
+        assigneeId: formData.assigneeId || undefined,
         teamId: equipmentTeamId || undefined, // Use equipment's team
       };
       const result = await createHistoricalWorkOrder.mutateAsync(submitData);
@@ -111,8 +107,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
       status: 'completed',
       historicalStartDate: '',
       historicalNotes: '',
-      assigneeId: 'none',
-      teamId: 'none',
+      assigneeId: '',
+      teamId: '',
       dueDate: '',
       completedDate: '',
       hasPM: false,
@@ -192,7 +188,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
                 setFormData(prev => ({ 
                   ...prev, 
                   equipmentId: value,
-                  assigneeId: 'none' // Reset assignee when equipment changes
+                  assigneeId: '' // Reset assignee when equipment changes
                 }));
               }}
             >
@@ -344,7 +340,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
                   } />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No assignee</SelectItem>
+                  <SelectItem value="">No assignee</SelectItem>
                   {availableAssignees.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.name}
