@@ -41,12 +41,13 @@ const EquipmentDetails = () => {
   useEffect(() => {
     const isQRScan = searchParams.get('qr') === 'true';
     
-    // Reduced logging for performance
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Equipment page:', { isQRScan, hasEquipment: !!equipment });
-    }
-    
     if (isQRScan && equipment && equipmentId && currentOrganization && !scanLogged) {
+      // Show success message for QR scan
+      toast.success('QR Code scanned successfully!', {
+        description: `Viewing ${equipment.name} in ${currentOrganization.name}`,
+        duration: 4000
+      });
+      
       logScan();
     }
   }, [equipment, equipmentId, currentOrganization, searchParams, scanLogged]);
