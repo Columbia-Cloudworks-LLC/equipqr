@@ -47,20 +47,20 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
   const [completionDate, setCompletionDate] = useState<Date | null>(null);
 
   const [formData, setFormData] = useState<HistoricalWorkOrderData>({
-    equipmentId: equipmentId || '',
+    equipmentId: equipmentId || undefined,
     title: '',
     description: '',
     priority: 'medium',
     status: 'completed',
-    historicalStartDate: '',
+    historicalStartDate: undefined,
     historicalNotes: '',
-    assigneeId: 'none',
-    teamId: 'none',
-    dueDate: '',
-    completedDate: '',
+    assigneeId: undefined,
+    teamId: undefined,
+    dueDate: undefined,
+    completedDate: undefined,
     hasPM: false,
     pmStatus: 'pending',
-    pmCompletionDate: '',
+    pmCompletionDate: undefined,
     pmNotes: '',
     pmChecklistData: []
   });
@@ -77,13 +77,15 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
     const equipmentTeamId = selectedEquipment?.team_id;
 
     try {
-      // Convert "none" values to undefined before submission
+      // Convert dates and prepare submission data
       const submitData = {
         ...formData,
         historicalStartDate: dateToISOString(startDate),
         completedDate: dateToISOString(completionDate),
-        assigneeId: formData.assigneeId === 'none' ? undefined : formData.assigneeId,
         teamId: equipmentTeamId || undefined, // Use equipment's team
+        // Ensure empty date fields are undefined instead of empty strings
+        dueDate: formData.dueDate || undefined,
+        pmCompletionDate: formData.pmCompletionDate || undefined,
       };
       const result = await createHistoricalWorkOrder.mutateAsync(submitData);
       
@@ -100,20 +102,20 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
 
   const resetForm = () => {
     setFormData({
-      equipmentId: equipmentId || '',
+      equipmentId: equipmentId || undefined,
       title: '',
       description: '',
       priority: 'medium',
       status: 'completed',
-      historicalStartDate: '',
+      historicalStartDate: undefined,
       historicalNotes: '',
-      assigneeId: 'none',
-      teamId: 'none',
-      dueDate: '',
-      completedDate: '',
+      assigneeId: undefined,
+      teamId: undefined,
+      dueDate: undefined,
+      completedDate: undefined,
       hasPM: false,
       pmStatus: 'pending',
-      pmCompletionDate: '',
+      pmCompletionDate: undefined,
       pmNotes: '',
       pmChecklistData: []
     });
@@ -183,12 +185,12 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
           <div className="space-y-2">
             <Label htmlFor="equipment">Equipment *</Label>
             <Select
-              value={formData.equipmentId}
+              value={formData.equipmentId || ""}
               onValueChange={(value) => {
                 setFormData(prev => ({ 
                   ...prev, 
                   equipmentId: value,
-                  assigneeId: 'none' // Reset assignee when equipment changes
+                  assigneeId: undefined // Reset assignee when equipment changes
                 }));
               }}
             >
@@ -326,8 +328,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
             <div className="space-y-2">
               <Label htmlFor="assignee">Assignee</Label>
               <Select
-                value={formData.assigneeId}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value }))}
+                value={formData.assigneeId || "none"}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value === "none" ? undefined : value }))}
                 disabled={!selectedEquipment?.team_id}
               >
                 <SelectTrigger>
