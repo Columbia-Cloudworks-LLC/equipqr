@@ -25,9 +25,9 @@ const formatDatetimeForInput = (value: string): string => {
     return value;
   }
   
-  // If it's a date without time, add default time (09:00)
+  // If it's a date without time, add default time (08:00)
   if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    return `${value}T09:00`;
+    return `${value}T08:00`;
   }
   
   // If it's an ISO string, convert to local datetime-local format
@@ -63,7 +63,7 @@ const handleDatetimeChange = (value: string): string => {
   
   // If only date is provided, add default time
   if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    return `${value}T09:00`;
+    return `${value}T08:00`;
   }
   
   return value;
