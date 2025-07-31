@@ -272,7 +272,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
           {/* Historical Information */}
           <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
             <h3 className="font-medium flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+              <CalendarIcon className="h-4 w-4" />
               Historical Information
             </h3>
             
