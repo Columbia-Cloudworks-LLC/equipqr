@@ -5,12 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, Clock, History } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,19 +18,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { WorkOrderPMSection } from "./WorkOrderPMSection";
-
-// Helper function to create date with 8 AM time
-const createDateWith8AM = (date: Date): Date => {
-  const newDate = new Date(date);
-  newDate.setHours(8, 0, 0, 0);
-  return newDate;
-};
-
-// Helper function to format date for display
-const formatDateDisplay = (date: Date | null): string => {
-  if (!date) return "Pick a date";
-  return format(date, "PPP 'at' h:mm a");
-};
 
 // Helper function to convert Date to ISO string for submission
 const dateToISOString = (date: Date | null): string => {
@@ -279,34 +261,11 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Start Date *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formatDateDisplay(startDate)}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate || undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          setStartDate(createDateWith8AM(date));
-                        }
-                      }}
-                      disabled={(date) => date > new Date()}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DateTimePicker
+                  date={startDate || undefined}
+                  onDateChange={(date) => setStartDate(date || null)}
+                  placeholder="Pick start date and time"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
@@ -333,34 +292,11 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
             {(formData.status === 'completed' || formData.status === 'cancelled') && (
               <div className="space-y-2">
                 <Label>Completion Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !completionDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formatDateDisplay(completionDate)}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={completionDate || undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          setCompletionDate(createDateWith8AM(date));
-                        }
-                      }}
-                      disabled={(date) => date > new Date()}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DateTimePicker
+                  date={completionDate || undefined}
+                  onDateChange={(date) => setCompletionDate(date || null)}
+                  placeholder="Pick completion date and time"
+                />
               </div>
             )}
 
