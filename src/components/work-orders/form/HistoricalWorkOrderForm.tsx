@@ -54,8 +54,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
     status: 'completed',
     historicalStartDate: '',
     historicalNotes: '',
-    assigneeId: '',
-    teamId: '',
+    assigneeId: 'none',
+    teamId: 'none',
     dueDate: '',
     completedDate: '',
     hasPM: false,
@@ -77,12 +77,12 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
     const equipmentTeamId = selectedEquipment?.team_id;
 
     try {
-      // Convert empty values to undefined before submission
+      // Convert "none" values to undefined before submission
       const submitData = {
         ...formData,
         historicalStartDate: dateToISOString(startDate),
         completedDate: dateToISOString(completionDate),
-        assigneeId: formData.assigneeId || undefined,
+        assigneeId: formData.assigneeId === 'none' ? undefined : formData.assigneeId,
         teamId: equipmentTeamId || undefined, // Use equipment's team
       };
       const result = await createHistoricalWorkOrder.mutateAsync(submitData);
@@ -107,8 +107,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
       status: 'completed',
       historicalStartDate: '',
       historicalNotes: '',
-      assigneeId: '',
-      teamId: '',
+      assigneeId: 'none',
+      teamId: 'none',
       dueDate: '',
       completedDate: '',
       hasPM: false,
@@ -188,7 +188,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
                 setFormData(prev => ({ 
                   ...prev, 
                   equipmentId: value,
-                  assigneeId: '' // Reset assignee when equipment changes
+                  assigneeId: 'none' // Reset assignee when equipment changes
                 }));
               }}
             >
@@ -340,7 +340,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
                   } />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No assignee</SelectItem>
+                  <SelectItem value="none">No assignee</SelectItem>
                   {availableAssignees.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.name}
