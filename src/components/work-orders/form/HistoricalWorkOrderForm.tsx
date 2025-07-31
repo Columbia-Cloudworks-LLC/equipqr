@@ -16,6 +16,59 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { WorkOrderPMSection } from "./WorkOrderPMSection";
 
+// Helper functions for datetime formatting
+const formatDatetimeForInput = (value: string): string => {
+  if (!value) return '';
+  
+  // If it's already in the correct format (YYYY-MM-DDTHH:mm), return as is
+  if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
+    return value;
+  }
+  
+  // If it's a date without time, add default time (09:00)
+  if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return `${value}T09:00`;
+  }
+  
+  // If it's an ISO string, convert to local datetime-local format
+  try {
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+      return formatDateForDatetimeLocal(date);
+    }
+  } catch (error) {
+    console.warn('Failed to parse date:', value);
+  }
+  
+  return '';
+};
+
+const formatDateForDatetimeLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const handleDatetimeChange = (value: string): string => {
+  // If empty, return empty
+  if (!value) return '';
+  
+  // If it's already in correct format, return as is
+  if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
+    return value;
+  }
+  
+  // If only date is provided, add default time
+  if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return `${value}T09:00`;
+  }
+  
+  return value;
+};
+
 interface HistoricalWorkOrderFormProps {
   open: boolean;
   onClose: () => void;
@@ -117,7 +170,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
   const isValid = Boolean(
     formData.equipmentId && 
     formData.title.trim() && 
-    formData.historicalStartDate
+    formData.historicalStartDate &&
+    formData.historicalStartDate.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
   );
 
   // Get selected equipment and its team
@@ -247,8 +301,11 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
                 <Input
                   id="historicalStartDate"
                   type="datetime-local"
-                  value={formData.historicalStartDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, historicalStartDate: e.target.value }))}
+                  value={formatDatetimeForInput(formData.historicalStartDate)}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    historicalStartDate: handleDatetimeChange(e.target.value) 
+                  }))}
                 />
               </div>
               <div className="space-y-2">
@@ -279,8 +336,11 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
                 <Input
                   id="completedDate"
                   type="datetime-local"
-                  value={formData.completedDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, completedDate: e.target.value }))}
+                  value={formatDatetimeForInput(formData.completedDate)}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    completedDate: handleDatetimeChange(e.target.value) 
+                  }))}
                 />
               </div>
             )}
