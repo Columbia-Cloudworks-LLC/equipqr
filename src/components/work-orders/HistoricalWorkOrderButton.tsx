@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { History } from "lucide-react";
-import { HistoricalWorkOrderForm } from "./form/HistoricalWorkOrderForm";
+import WorkOrderFormEnhanced from './WorkOrderFormEnhanced';
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 interface HistoricalWorkOrderButtonProps {
@@ -14,6 +14,7 @@ export const HistoricalWorkOrderButton: React.FC<HistoricalWorkOrderButtonProps>
   className
 }) => {
   const [showForm, setShowForm] = useState(false);
+  const [historicalMode, setHistoricalMode] = useState(false);
   const { currentOrganization } = useOrganization();
 
   // Only show to organization admins - for now, show to all users with access
@@ -26,17 +27,24 @@ export const HistoricalWorkOrderButton: React.FC<HistoricalWorkOrderButtonProps>
       <Button
         variant="outline"
         size="sm"
-        onClick={() => setShowForm(true)}
+        onClick={() => {
+          setHistoricalMode(true);
+          setShowForm(true);
+        }}
         className={className}
       >
         <History className="h-4 w-4 mr-2" />
         Add Historical Work Order
       </Button>
 
-      <HistoricalWorkOrderForm
+      <WorkOrderFormEnhanced
         open={showForm}
-        onClose={() => setShowForm(false)}
+        onClose={() => {
+          setShowForm(false);
+          setHistoricalMode(false);
+        }}
         equipmentId={equipmentId}
+        initialIsHistorical={historicalMode}
       />
     </>
   );

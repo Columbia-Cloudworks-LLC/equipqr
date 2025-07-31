@@ -2,8 +2,10 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/hooks/useWorkOrderUpdate';
+import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/hooks/useHistoricalWorkOrders';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 import { WorkOrderFormData } from './useWorkOrderForm';
+import { dateToISOString } from '@/lib/utils';
 
 interface UseWorkOrderSubmissionProps {
   workOrder?: EnhancedWorkOrder;
@@ -20,6 +22,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
   );
   
   const updateWorkOrderMutation = useUpdateWorkOrder();
+  const createHistoricalWorkOrderMutation = useCreateHistoricalWorkOrder();
 
   const { execute: submitForm, isLoading: isSubmitting } = useAsyncOperation(
     async (data: WorkOrderFormData) => {
@@ -39,8 +42,30 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           workOrderId: workOrder.id,
           data: updateData
         });
+      } else if (data.isHistorical) {
+        // Create historical work order
+        const historicalData: HistoricalWorkOrderData = {
+          equipmentId: data.equipmentId,
+          title: data.title,
+          description: data.description,
+          priority: data.priority,
+          status: data.status || 'accepted',
+          historicalStartDate: dateToISOString(data.historicalStartDate) || '',
+          historicalNotes: data.historicalNotes,
+          assigneeId: data.assignmentId,
+          teamId: undefined, // Will be auto-determined by equipment
+          dueDate: data.dueDate,
+          completedDate: dateToISOString(data.completedDate),
+          hasPM: data.hasPM,
+          pmStatus: 'pending',
+          pmCompletionDate: undefined,
+          pmNotes: '',
+          pmChecklistData: []
+        };
+        
+        await createHistoricalWorkOrderMutation.mutateAsync(historicalData);
       } else {
-        // Create new work order
+        // Create new regular work order
         const workOrderData: EnhancedCreateWorkOrderData = {
           title: data.title,
           description: data.description,
@@ -67,7 +92,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
     }
   );
 
-  const isLoading = isSubmitting || createWorkOrderMutation.isPending || updateWorkOrderMutation.isPending;
+  const isLoading = isSubmitting || createWorkOrderMutation.isPending || updateWorkOrderMutation.isPending || createHistoricalWorkOrderMutation.isPending;
 
   return {
     submitForm,

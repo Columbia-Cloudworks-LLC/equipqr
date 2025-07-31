@@ -13,6 +13,12 @@ const workOrderFormSchema = z.object({
   hasPM: z.boolean().default(false),
   assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),
   assignmentId: z.string().optional(),
+  isHistorical: z.boolean().default(false),
+  // Historical fields
+  status: z.enum(['submitted', 'accepted', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled']).optional(),
+  historicalStartDate: z.date().optional(),
+  historicalNotes: z.string().optional(),
+  completedDate: z.date().optional().nullable(),
 });
 
 export type WorkOrderFormData = z.infer<typeof workOrderFormSchema>;
@@ -21,9 +27,10 @@ interface UseWorkOrderFormProps {
   workOrder?: EnhancedWorkOrder;
   equipmentId?: string;
   isOpen: boolean;
+  initialIsHistorical?: boolean;
 }
 
-export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen }: UseWorkOrderFormProps) => {
+export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHistorical = false }: UseWorkOrderFormProps) => {
   const isEditMode = !!workOrder;
 
   const initialValues: Partial<WorkOrderFormData> = {
@@ -36,6 +43,12 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen }: UseWorkOrde
     hasPM: workOrder?.has_pm || false,
     assignmentType: 'unassigned',
     assignmentId: '',
+    isHistorical: initialIsHistorical,
+    // Historical fields (only relevant when isHistorical is true)
+    status: 'accepted',
+    historicalStartDate: undefined,
+    historicalNotes: '',
+    completedDate: undefined,
   };
 
   const form = useFormValidation(workOrderFormSchema, initialValues);
@@ -52,6 +65,11 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen }: UseWorkOrde
       form.setValue('hasPM', initialValues.hasPM || false);
       form.setValue('assignmentType', initialValues.assignmentType || 'unassigned');
       form.setValue('assignmentId', initialValues.assignmentId || '');
+      form.setValue('isHistorical', initialValues.isHistorical || false);
+      form.setValue('status', initialValues.status);
+      form.setValue('historicalStartDate', initialValues.historicalStartDate);
+      form.setValue('historicalNotes', initialValues.historicalNotes || '');
+      form.setValue('completedDate', initialValues.completedDate);
     }
   }, [isOpen, workOrder]);
 
