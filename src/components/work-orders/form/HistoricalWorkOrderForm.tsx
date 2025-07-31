@@ -14,6 +14,7 @@ import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
 import { useEquipmentByOrganization } from "@/hooks/useSupabaseData";
 import { format } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 interface HistoricalWorkOrderFormProps {
   open: boolean;
@@ -31,6 +32,9 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
   const { teams } = useTeams();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id!);
   const createHistoricalWorkOrder = useCreateHistoricalWorkOrder();
+
+  // State for team members of selected equipment's team
+  const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
 
   const [formData, setFormData] = useState<HistoricalWorkOrderData>({
     equipmentId: equipmentId || '',
@@ -58,12 +62,16 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
       return;
     }
 
+    // Get the equipment's team to auto-assign
+    const selectedEquipment = equipment.find(e => e.id === formData.equipmentId);
+    const equipmentTeamId = selectedEquipment?.team_id;
+
     try {
       // Convert "none" values back to undefined before submission
       const submitData = {
         ...formData,
         assigneeId: formData.assigneeId === 'none' ? undefined : formData.assigneeId,
-        teamId: formData.teamId === 'none' ? undefined : formData.teamId,
+        teamId: equipmentTeamId || undefined, // Use equipment's team
       };
       await createHistoricalWorkOrder.mutateAsync(submitData);
       onClose();
@@ -83,7 +91,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
       historicalStartDate: '',
       historicalNotes: '',
       assigneeId: 'none',
-      teamId: 'none',
+      teamId: 'none', // This will be auto-set based on equipment
       dueDate: '',
       completedDate: '',
       hasPM: false,
@@ -100,6 +108,33 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
   };
 
   const isValid = formData.equipmentId && formData.title && formData.historicalStartDate;
+
+  // Get selected equipment and its team
+  const selectedEquipment = equipment.find(e => e.id === formData.equipmentId);
+  const equipmentTeam = teams.find(t => t.id === selectedEquipment?.team_id);
+  
+  // Fetch team members when equipment changes
+  React.useEffect(() => {
+    if (selectedEquipment?.team_id) {
+      const fetchTeamMembers = async () => {
+        const { data } = await supabase
+          .from('team_members')
+          .select(`
+            user_id,
+            profiles!inner(id, name, email)
+          `)
+          .eq('team_id', selectedEquipment.team_id);
+        
+        setTeamMembers(data || []);
+      };
+      fetchTeamMembers();
+    } else {
+      setTeamMembers([]);
+    }
+  }, [selectedEquipment?.team_id]);
+  
+  // Available assignees from the equipment's team
+  const availableAssignees = teamMembers.map(tm => tm.profiles).filter(Boolean);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -125,7 +160,13 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
             <Label htmlFor="equipment">Equipment *</Label>
             <Select
               value={formData.equipmentId}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, equipmentId: value }))}
+              onValueChange={(value) => {
+                setFormData(prev => ({ 
+                  ...prev, 
+                  equipmentId: value,
+                  assigneeId: 'none' // Reset assignee when equipment changes
+                }));
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select equipment" />
@@ -245,45 +286,51 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
             </div>
           </div>
 
-          {/* Assignment */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Assignment - Only Assignee, Team is auto-determined */}
+          <div className="space-y-4">
+            {selectedEquipment && (
+              <div className="p-3 bg-muted/30 rounded-lg">
+                <div className="text-sm text-muted-foreground">
+                  <strong>Team Assignment:</strong> {equipmentTeam?.name || 'No team assigned to equipment'}
+                </div>
+                {!equipmentTeam && (
+                  <div className="text-sm text-destructive mt-1">
+                    Equipment must be assigned to a team to select an assignee
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="assignee">Assignee</Label>
               <Select
                 value={formData.assigneeId}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value }))}
+                disabled={!selectedEquipment?.team_id}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select assignee" />
+                  <SelectValue placeholder={
+                    !selectedEquipment 
+                      ? "Select equipment first" 
+                      : !selectedEquipment.team_id 
+                        ? "Equipment has no team assigned" 
+                        : "Select assignee"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No assignee</SelectItem>
-                  {members.map((member) => (
+                  {availableAssignees.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="team">Team</Label>
-              <Select
-                value={formData.teamId}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, teamId: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select team" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No team</SelectItem>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {selectedEquipment?.team_id && availableAssignees.length === 0 && (
+                <div className="text-sm text-muted-foreground">
+                  No team members available for assignment
+                </div>
+              )}
             </div>
           </div>
 
