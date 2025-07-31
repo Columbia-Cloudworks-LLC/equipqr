@@ -1,0 +1,197 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from '@/contexts/SessionContext';
+import { getEquipmentOrganization, checkUserHasMultipleOrganizations, EquipmentOrganizationInfo } from '@/services/equipmentOrganizationService';
+import { toast } from 'sonner';
+
+export interface QRRedirectState {
+  isLoading: boolean;
+  needsAuth: boolean;
+  needsOrgSwitch: boolean;
+  canProceed: boolean;
+  error: string | null;
+  equipmentInfo: EquipmentOrganizationInfo | null;
+  targetPath: string | null;
+}
+
+interface UseQRRedirectWithOrgSwitchProps {
+  equipmentId: string | undefined;
+  onComplete?: (targetPath: string) => void;
+}
+
+export const useQRRedirectWithOrgSwitch = ({
+  equipmentId,
+  onComplete
+}: UseQRRedirectWithOrgSwitchProps) => {
+  const { user, isLoading: authLoading } = useAuth();
+  const { getCurrentOrganization, switchOrganization, refreshSession } = useSession();
+  
+  const [state, setState] = useState<QRRedirectState>({
+    isLoading: true,
+    needsAuth: false,
+    needsOrgSwitch: false,
+    canProceed: false,
+    error: null,
+    equipmentInfo: null,
+    targetPath: null
+  });
+
+  const [isSwitchingOrg, setIsSwitchingOrg] = useState(false);
+
+  useEffect(() => {
+    if (!equipmentId) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'No equipment ID provided',
+        targetPath: '/scanner'
+      }));
+      return;
+    }
+
+    // Store the intended destination for post-auth redirect
+    const targetPath = `/equipment/${equipmentId}?qr=true`;
+    sessionStorage.setItem('pendingRedirect', targetPath);
+
+    if (authLoading) {
+      return; // Wait for auth to complete
+    }
+
+    if (!user) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        needsAuth: true,
+        targetPath: '/auth'
+      }));
+      return;
+    }
+
+    // User is authenticated, proceed with organization check
+    checkEquipmentOrganization();
+  }, [equipmentId, user, authLoading]);
+
+  const checkEquipmentOrganization = async () => {
+    if (!equipmentId || !user) return;
+
+    try {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+      // Get equipment organization info
+      const equipmentInfo = await getEquipmentOrganization(equipmentId);
+      
+      if (!equipmentInfo) {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Equipment not found or access denied',
+          targetPath: '/scanner'
+        }));
+        return;
+      }
+
+      if (!equipmentInfo.userHasAccess) {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: `You don't have access to equipment in ${equipmentInfo.organizationName}`,
+          targetPath: '/scanner'
+        }));
+        return;
+      }
+
+      const currentOrg = getCurrentOrganization();
+      const targetPath = `/equipment/${equipmentId}?qr=true`;
+
+      // Check if we need to switch organizations
+      if (!currentOrg || currentOrg.id !== equipmentInfo.organizationId) {
+        console.log('🔄 Need to switch organization from', currentOrg?.id, 'to', equipmentInfo.organizationId);
+        
+        // Check if user has multiple organizations
+        const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
+        
+        if (hasMultipleOrgs) {
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            needsOrgSwitch: true,
+            equipmentInfo,
+            targetPath
+          }));
+        } else {
+          // Only one org, refresh session to ensure context is current
+          await refreshSession();
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            canProceed: true,
+            equipmentInfo,
+            targetPath
+          }));
+        }
+      } else {
+        // Already in correct organization
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          canProceed: true,
+          equipmentInfo,
+          targetPath
+        }));
+      }
+
+    } catch (error) {
+      console.error('❌ Error checking equipment organization:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to verify equipment access',
+        targetPath: '/scanner'
+      }));
+    }
+  };
+
+  const handleOrgSwitch = async () => {
+    if (!state.equipmentInfo || isSwitchingOrg) return;
+
+    try {
+      setIsSwitchingOrg(true);
+      
+      console.log('🔄 Switching to organization:', state.equipmentInfo.organizationId);
+      
+      await switchOrganization(state.equipmentInfo.organizationId);
+      
+      toast.success(`Switched to ${state.equipmentInfo.organizationName}`);
+      
+      setState(prev => ({
+        ...prev,
+        needsOrgSwitch: false,
+        canProceed: true
+      }));
+
+    } catch (error) {
+      console.error('❌ Error switching organization:', error);
+      toast.error('Failed to switch organization');
+      setState(prev => ({
+        ...prev,
+        error: 'Failed to switch organization'
+      }));
+    } finally {
+      setIsSwitchingOrg(false);
+    }
+  };
+
+  const handleProceed = () => {
+    if (state.targetPath && onComplete) {
+      onComplete(state.targetPath);
+    }
+  };
+
+  return {
+    state,
+    isSwitchingOrg,
+    handleOrgSwitch,
+    handleProceed,
+    retry: checkEquipmentOrganization
+  };
+};

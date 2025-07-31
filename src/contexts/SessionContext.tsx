@@ -289,11 +289,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     const organization = sessionData.organizations.find(org => org.id === organizationId);
     if (!organization) {
-      console.warn('Organization not found:', organizationId);
-      return;
+      console.warn('❌ Organization not found:', organizationId);
+      throw new Error(`Organization ${organizationId} not found in user's organizations`);
     }
 
-    console.log('🔄 Switching to organization:', organizationId);
+    console.log('🔄 Switching to organization:', organizationId, organization.name);
     
     // Save user preference immediately
     saveOrganizationPreference(organizationId);
