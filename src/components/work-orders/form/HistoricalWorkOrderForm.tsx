@@ -40,8 +40,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
     status: 'completed',
     historicalStartDate: '',
     historicalNotes: '',
-    assigneeId: '',
-    teamId: '',
+    assigneeId: 'none',
+    teamId: 'none',
     dueDate: '',
     completedDate: '',
     hasPM: false,
@@ -59,7 +59,13 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
     }
 
     try {
-      await createHistoricalWorkOrder.mutateAsync(formData);
+      // Convert "none" values back to undefined before submission
+      const submitData = {
+        ...formData,
+        assigneeId: formData.assigneeId === 'none' ? undefined : formData.assigneeId,
+        teamId: formData.teamId === 'none' ? undefined : formData.teamId,
+      };
+      await createHistoricalWorkOrder.mutateAsync(submitData);
       onClose();
       resetForm();
     } catch (error) {
@@ -76,8 +82,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
       status: 'completed',
       historicalStartDate: '',
       historicalNotes: '',
-      assigneeId: '',
-      teamId: '',
+      assigneeId: 'none',
+      teamId: 'none',
       dueDate: '',
       completedDate: '',
       hasPM: false,
@@ -251,7 +257,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No assignee</SelectItem>
+                  <SelectItem value="none">No assignee</SelectItem>
                   {members.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.name}
@@ -270,7 +276,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
                   <SelectValue placeholder="Select team" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No team</SelectItem>
+                  <SelectItem value="none">No team</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
