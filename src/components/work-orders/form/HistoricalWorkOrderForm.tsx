@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
+import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, History } from "lucide-react";
+import { CalendarIcon, Clock, History } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from "@/hooks/useHistoricalWorkOrders";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useTeams } from "@/hooks/useTeams";
@@ -16,57 +24,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { WorkOrderPMSection } from "./WorkOrderPMSection";
 
-// Helper functions for datetime formatting
-const formatDatetimeForInput = (value: string): string => {
-  if (!value) return '';
-  
-  // If it's already in the correct format (YYYY-MM-DDTHH:mm), return as is
-  if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
-    return value;
-  }
-  
-  // If it's a date without time, add default time (08:00)
-  if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    return `${value}T08:00`;
-  }
-  
-  // If it's an ISO string, convert to local datetime-local format
-  try {
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-      return formatDateForDatetimeLocal(date);
-    }
-  } catch (error) {
-    console.warn('Failed to parse date:', value);
-  }
-  
-  return '';
+// Helper function to create date with 8 AM time
+const createDateWith8AM = (date: Date): Date => {
+  const newDate = new Date(date);
+  newDate.setHours(8, 0, 0, 0);
+  return newDate;
 };
 
-const formatDateForDatetimeLocal = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+// Helper function to format date for display
+const formatDateDisplay = (date: Date | null): string => {
+  if (!date) return "Pick a date";
+  return format(date, "PPP 'at' h:mm a");
 };
 
-const handleDatetimeChange = (value: string): string => {
-  // If empty, return empty
-  if (!value) return '';
-  
-  // If it's already in correct format, return as is
-  if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
-    return value;
-  }
-  
-  // If only date is provided, add default time
-  if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    return `${value}T08:00`;
-  }
-  
-  return value;
+// Helper function to convert Date to ISO string for submission
+const dateToISOString = (date: Date | null): string => {
+  if (!date) return '';
+  return date.toISOString();
 };
 
 interface HistoricalWorkOrderFormProps {
@@ -89,6 +63,10 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
 
   // State for team members of selected equipment's team
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
+  
+  // Date states for the calendar components
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [completionDate, setCompletionDate] = useState<Date | null>(null);
 
   const [formData, setFormData] = useState<HistoricalWorkOrderData>({
     equipmentId: equipmentId || '',
@@ -112,7 +90,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.equipmentId || !formData.title.trim() || !formData.historicalStartDate) {
+    if (!formData.equipmentId || !formData.title.trim() || !startDate) {
       return;
     }
 
@@ -124,6 +102,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
       // Convert "none" values back to undefined before submission
       const submitData = {
         ...formData,
+        historicalStartDate: dateToISOString(startDate),
+        completedDate: dateToISOString(completionDate),
         assigneeId: formData.assigneeId === 'none' ? undefined : formData.assigneeId,
         teamId: equipmentTeamId || undefined, // Use equipment's team
       };
@@ -160,6 +140,8 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
       pmChecklistData: []
     });
     setTeamMembers([]);
+    setStartDate(null);
+    setCompletionDate(null);
   };
 
   const handleClose = () => {
@@ -170,8 +152,7 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
   const isValid = Boolean(
     formData.equipmentId && 
     formData.title.trim() && 
-    formData.historicalStartDate &&
-    formData.historicalStartDate.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+    startDate
   );
 
   // Get selected equipment and its team
@@ -297,16 +278,35 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="historicalStartDate">Start Date *</Label>
-                <Input
-                  id="historicalStartDate"
-                  type="datetime-local"
-                  value={formatDatetimeForInput(formData.historicalStartDate)}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    historicalStartDate: handleDatetimeChange(e.target.value) 
-                  }))}
-                />
+                <Label>Start Date *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formatDateDisplay(startDate)}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate || undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setStartDate(createDateWith8AM(date));
+                        }
+                      }}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
@@ -332,16 +332,35 @@ export const HistoricalWorkOrderForm: React.FC<HistoricalWorkOrderFormProps> = (
 
             {(formData.status === 'completed' || formData.status === 'cancelled') && (
               <div className="space-y-2">
-                <Label htmlFor="completedDate">Completion Date</Label>
-                <Input
-                  id="completedDate"
-                  type="datetime-local"
-                  value={formatDatetimeForInput(formData.completedDate)}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    completedDate: handleDatetimeChange(e.target.value) 
-                  }))}
-                />
+                <Label>Completion Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !completionDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formatDateDisplay(completionDate)}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={completionDate || undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setCompletionDate(createDateWith8AM(date));
+                        }
+                      }}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
 
