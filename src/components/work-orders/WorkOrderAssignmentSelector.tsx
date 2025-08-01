@@ -4,7 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { User, UserMinus, Check, X } from 'lucide-react';
-import { useWorkOrderAssignmentManagement } from '@/hooks/useWorkOrderAssignmentManagement';
+import { useOptimizedWorkOrderAssignment } from '@/hooks/useOptimizedWorkOrderAssignment';
+import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 
 interface WorkOrderAssignmentSelectorProps {
   workOrder: any;
@@ -20,19 +21,21 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
   disabled = false
 }) => {
   const [selectedValue, setSelectedValue] = useState<string>('');
-  const {
-    assignmentOptions,
-    optionsLoading,
-    isUpdating,
-    assignToUser,
-    unassign
-  } = useWorkOrderAssignmentManagement(organizationId, workOrder.id);
+  
+  // Use the same hooks as quick assignment
+  const { assignmentOptions, isLoading: optionsLoading } = useOptimizedWorkOrderAssignment(organizationId);
+  const quickAssignmentMutation = useQuickWorkOrderAssignment();
 
   const handleAssign = () => {
     if (!selectedValue) return;
 
     if (selectedValue === 'unassign') {
-      unassign();
+      quickAssignmentMutation.mutate({
+        workOrderId: workOrder.id,
+        assigneeId: null,
+        teamId: null,
+        organizationId
+      });
       onCancel();
       return;
     }
@@ -40,7 +43,12 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
     const option = assignmentOptions.find(opt => opt.id === selectedValue);
     if (!option) return;
 
-    assignToUser(option.id, option.name);
+    quickAssignmentMutation.mutate({
+      workOrderId: workOrder.id,
+      assigneeId: option.id,
+      teamId: null,
+      organizationId
+    });
     onCancel();
   };
 
@@ -60,7 +68,7 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
         <Select
           value={selectedValue}
           onValueChange={setSelectedValue}
-          disabled={disabled || optionsLoading || isUpdating}
+          disabled={disabled || optionsLoading || quickAssignmentMutation.isPending}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select new assignee..." />
@@ -112,18 +120,18 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
       <div className="flex gap-2">
         <Button
           onClick={handleAssign}
-          disabled={!isAssignmentChanged || isUpdating}
+          disabled={!isAssignmentChanged || quickAssignmentMutation.isPending}
           size="sm"
           className="flex-1"
         >
           <Check className="h-4 w-4 mr-1" />
-          {isUpdating ? 'Updating...' : 'Update Assignment'}
+          {quickAssignmentMutation.isPending ? 'Updating...' : 'Update Assignment'}
         </Button>
         <Button
           onClick={onCancel}
           variant="outline"
           size="sm"
-          disabled={isUpdating}
+          disabled={quickAssignmentMutation.isPending}
         >
           <X className="h-4 w-4 mr-1" />
           Cancel
