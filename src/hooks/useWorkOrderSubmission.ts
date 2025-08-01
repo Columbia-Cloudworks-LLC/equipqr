@@ -1,3 +1,4 @@
+
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
@@ -83,7 +84,6 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           hasPM: data.hasPM || false,
           assignmentType: data.assignmentType === 'unassigned' ? undefined : data.assignmentType,
           assignmentId: (data.assignmentType === 'unassigned' || !data.assignmentId) ? undefined : data.assignmentId,
-          equipmentWorkingHours: data.equipmentWorkingHours,
         };
         
         await createWorkOrderMutation.mutateAsync(workOrderData);
