@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { useFormValidation } from '@/hooks/useFormValidation';
@@ -9,7 +10,6 @@ const workOrderFormSchema = z.object({
   equipmentId: z.string().min(1, "Equipment is required"),
   priority: z.enum(['low', 'medium', 'high']),
   dueDate: z.string().optional().nullable(),
-  equipmentWorkingHours: z.number().min(0).optional(),
   hasPM: z.boolean().default(false),
   assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),
   assignmentId: z.string().optional().nullable().transform(val => val === '' ? null : val),
@@ -56,10 +56,9 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     equipmentId: workOrder?.equipment_id || equipmentId || '',
     priority: workOrder?.priority || 'medium',
     dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : undefined,
-    equipmentWorkingHours: undefined,
     hasPM: workOrder?.has_pm || false,
     assignmentType: 'unassigned',
-    assignmentId: null, // Use null instead of empty string
+    assignmentId: null,
     isHistorical: initialIsHistorical,
     // Historical fields (only relevant when isHistorical is true)
     status: 'accepted',
@@ -88,7 +87,6 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
           equipmentId: initialValues.equipmentId || '',
           priority: initialValues.priority || 'medium',
           dueDate: initialValues.dueDate || undefined,
-          equipmentWorkingHours: initialValues.equipmentWorkingHours,
           hasPM: initialValues.hasPM || false,
           assignmentType: initialValues.assignmentType || 'unassigned',
           assignmentId: null,
