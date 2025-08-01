@@ -3,6 +3,7 @@
 // This is a simplified version for backwards compatibility
 
 import { useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationAdmins } from './useOrganizationAdmins';
 
@@ -25,6 +26,7 @@ export interface EnhancedWorkOrderAssignmentData {
 }
 
 export const useWorkOrderAssignmentEnhanced = (organizationId: string, equipmentId?: string) => {
+  const { user } = useAuth();
   const { getCurrentOrganization, getUserTeamIds } = useSession();
   const currentOrg = getCurrentOrganization();
   
@@ -32,7 +34,7 @@ export const useWorkOrderAssignmentEnhanced = (organizationId: string, equipment
   const { data: orgAdmins = [] } = useOrganizationAdmins(organizationId);
 
   const userTeamIds = getUserTeamIds();
-  const currentUserId = 'current-user-id'; // This would come from auth context
+  const currentUserId = user?.id;
   
   const assignmentData: EnhancedWorkOrderAssignmentData = useMemo(() => {
     const availableAssignees: EnhancedAssignmentOption[] = [];

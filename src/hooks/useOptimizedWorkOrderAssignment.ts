@@ -30,7 +30,7 @@ export const useOptimizedWorkOrderAssignment = (organizationId?: string) => {
         `)
         .eq('organization_id', organizationId)
         .eq('status', 'active')
-        .in('role', ['owner', 'admin', 'member']) // All active members can be assigned work orders
+        .in('role', ['owner', 'admin']) // Only admins and owners can be assigned work orders
         .order('profiles.name');
 
       if (error) throw error;

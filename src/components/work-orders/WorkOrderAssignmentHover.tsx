@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Users, UserX, Shield } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useWorkOrderAssignmentEnhanced } from '@/hooks/useWorkOrderAssignmentEnhanced';
+import { useOptimizedWorkOrderAssignment } from '@/hooks/useOptimizedWorkOrderAssignment';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,10 +23,10 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
   const { toast } = useToast();
   const [isAssigning, setIsAssigning] = useState(false);
   
-  const assignmentData = useWorkOrderAssignmentEnhanced(currentOrganization?.id, workOrder.equipment_id);
+  const { assignmentOptions, isLoading: assigneesLoading } = useOptimizedWorkOrderAssignment(currentOrganization?.id);
   const assignmentMutation = useQuickWorkOrderAssignment();
 
-  const handleAssignment = useCallback(async (assignmentData: { type: 'admin' | 'unassign', id?: string }) => {
+  const handleAssignment = useCallback(async (assignmentData: { type: 'user' | 'unassign', id?: string }) => {
     if (!currentOrganization || isAssigning) return;
     
     setIsAssigning(true);
@@ -34,7 +34,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
       let assigneeId = null;
       let teamId = null;
       
-      if (assignmentData.type === 'admin') {
+      if (assignmentData.type === 'user') {
         assigneeId = assignmentData.id;
       }
       
@@ -73,8 +73,10 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
         <div className="space-y-3">
           <div className="text-sm font-medium">Quick Assignment</div>
           
-          {!assignmentData.availableAssignees || assignmentData.availableAssignees.length === 0 ? (
+          {assigneesLoading ? (
             <div className="text-xs text-muted-foreground">Loading options...</div>
+          ) : assignmentOptions.length === 0 ? (
+            <div className="text-xs text-muted-foreground">No admins available for assignment</div>
           ) : (
             <>
               <div className="space-y-2">
@@ -83,10 +85,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
                 </div>
                 <Select 
                   onValueChange={(value) => {
-                    const option = assignmentData.availableAssignees.find(opt => opt.id === value);
-                    if (option) {
-                      handleAssignment({ type: option.type, id: value });
-                    }
+                    handleAssignment({ type: 'user', id: value });
                   }}
                   disabled={isAssigning}
                 >
@@ -94,8 +93,8 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
                     <SelectValue placeholder="Select assignee..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {assignmentData.availableAssignees.map((assignee, index) => {
-                      const isFirstAdmin = assignee.type === 'admin' && index === 0;
+                    {assignmentOptions.map((assignee, index) => {
+                      const isFirstAdmin = index === 0;
                       
                       return (
                         <div key={assignee.id}>
@@ -106,8 +105,11 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
                           )}
                           <SelectItem value={assignee.id}>
                             <div className="flex items-center gap-2">
-                              {assignee.type === 'admin' && <Shield className="h-3 w-3" />}
-                              {assignee.name}
+                              <Shield className="h-3 w-3" />
+                              <div>
+                                <div className="font-medium">{assignee.name}</div>
+                                <div className="text-xs text-muted-foreground">{assignee.role}</div>
+                              </div>
                             </div>
                           </SelectItem>
                         </div>
