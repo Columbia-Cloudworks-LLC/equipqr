@@ -12,14 +12,26 @@ const workOrderFormSchema = z.object({
   equipmentWorkingHours: z.number().min(0).optional(),
   hasPM: z.boolean().default(false),
   assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),
-  assignmentId: z.string().optional(),
+  assignmentId: z.string().optional().nullable().transform(val => val === '' ? null : val),
   isHistorical: z.boolean().default(false),
-  // Historical fields
+  // Historical fields - conditionally required based on isHistorical
   status: z.enum(['submitted', 'accepted', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled']).optional(),
   historicalStartDate: z.date().optional(),
   historicalNotes: z.string().optional(),
   completedDate: z.date().optional().nullable(),
-});
+}).refine(
+  (data) => {
+    // If it's historical, require status field
+    if (data.isHistorical) {
+      return data.status !== undefined;
+    }
+    return true;
+  },
+  {
+    message: "Status is required for historical work orders",
+    path: ["status"]
+  }
+);
 
 export type WorkOrderFormData = z.infer<typeof workOrderFormSchema>;
 
@@ -42,7 +54,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     equipmentWorkingHours: undefined,
     hasPM: workOrder?.has_pm || false,
     assignmentType: 'unassigned',
-    assignmentId: '',
+    assignmentId: null, // Use null instead of empty string
     isHistorical: initialIsHistorical,
     // Historical fields (only relevant when isHistorical is true)
     status: 'accepted',
@@ -56,22 +68,31 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
   // Reset form when workOrder changes or dialog opens
   useEffect(() => {
     if (isOpen) {
-      form.setValue('title', initialValues.title || '');
-      form.setValue('description', initialValues.description || '');
-      form.setValue('equipmentId', initialValues.equipmentId || '');
-      form.setValue('priority', initialValues.priority || 'medium');
-      form.setValue('dueDate', initialValues.dueDate || undefined);
-      form.setValue('equipmentWorkingHours', initialValues.equipmentWorkingHours);
-      form.setValue('hasPM', initialValues.hasPM || false);
-      form.setValue('assignmentType', initialValues.assignmentType || 'unassigned');
-      form.setValue('assignmentId', initialValues.assignmentId || '');
-      form.setValue('isHistorical', initialValues.isHistorical || false);
-      form.setValue('status', initialValues.status);
-      form.setValue('historicalStartDate', initialValues.historicalStartDate);
-      form.setValue('historicalNotes', initialValues.historicalNotes || '');
-      form.setValue('completedDate', initialValues.completedDate);
+      // Reset to initial values
+      const resetValues = {
+        title: initialValues.title || '',
+        description: initialValues.description || '',
+        equipmentId: initialValues.equipmentId || '',
+        priority: initialValues.priority || 'medium',
+        dueDate: initialValues.dueDate || undefined,
+        equipmentWorkingHours: initialValues.equipmentWorkingHours,
+        hasPM: initialValues.hasPM || false,
+        assignmentType: initialValues.assignmentType || 'unassigned',
+        assignmentId: null, // Always start with null
+        isHistorical: initialValues.isHistorical || false,
+        // Historical fields - only set if isHistorical is true
+        ...(initialValues.isHistorical ? {
+          status: initialValues.status || 'accepted',
+          historicalStartDate: initialValues.historicalStartDate,
+          historicalNotes: initialValues.historicalNotes || '',
+          completedDate: initialValues.completedDate,
+        } : {})
+      };
+
+      // Set all values at once for better performance
+      form.setValues(resetValues);
     }
-  }, [isOpen, workOrder]);
+  }, [isOpen, workOrder, form, initialValues]);
 
   const checkForUnsavedChanges = (): boolean => {
     return Object.keys(form.values).some(
