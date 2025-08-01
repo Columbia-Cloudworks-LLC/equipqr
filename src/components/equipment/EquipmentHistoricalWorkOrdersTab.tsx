@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History, Calendar, User, Wrench } from "lucide-react";
 import { format } from "date-fns";
-import { HistoricalWorkOrderButton } from "../work-orders/HistoricalWorkOrderButton";
+
 
 interface EquipmentHistoricalWorkOrdersTabProps {
   equipmentId: string;
@@ -49,10 +49,7 @@ export const EquipmentHistoricalWorkOrdersTab: React.FC<EquipmentHistoricalWorkO
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Historical Work Orders</h3>
-          <HistoricalWorkOrderButton equipmentId={equipmentId} />
-        </div>
+        <h3 className="text-lg font-semibold">Historical Work Orders</h3>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-24 bg-muted animate-pulse rounded-md" />
@@ -64,13 +61,10 @@ export const EquipmentHistoricalWorkOrdersTab: React.FC<EquipmentHistoricalWorkO
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <History className="h-5 w-5" />
-          <h3 className="text-lg font-semibold">Historical Work Orders</h3>
-          <Badge variant="secondary">{historicalWorkOrders.length}</Badge>
-        </div>
-        <HistoricalWorkOrderButton equipmentId={equipmentId} />
+      <div className="flex items-center gap-2">
+        <History className="h-5 w-5" />
+        <h3 className="text-lg font-semibold">Historical Work Orders</h3>
+        <Badge variant="secondary">{historicalWorkOrders.length}</Badge>
       </div>
 
       {historicalWorkOrders.length === 0 ? (
@@ -81,7 +75,6 @@ export const EquipmentHistoricalWorkOrdersTab: React.FC<EquipmentHistoricalWorkO
             <p className="text-muted-foreground mb-4">
               No historical work orders have been recorded for this equipment.
             </p>
-            <HistoricalWorkOrderButton equipmentId={equipmentId} />
           </CardContent>
         </Card>
       ) : (

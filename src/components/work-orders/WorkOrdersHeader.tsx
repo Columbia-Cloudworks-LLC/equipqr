@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { HistoricalWorkOrderButton } from "./HistoricalWorkOrderButton";
+
 
 interface WorkOrdersHeaderProps {
   onCreateClick: () => void;
@@ -21,13 +21,10 @@ export const WorkOrdersHeader: React.FC<WorkOrdersHeaderProps> = ({
           <p className="text-muted-foreground mt-1">{subtitle}</p>
         )}
       </div>
-      <div className="flex gap-2">
-        <HistoricalWorkOrderButton />
-        <Button onClick={onCreateClick} className="w-full sm:w-auto">
+      <Button onClick={onCreateClick} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Create Work Order
-        </Button>
-      </div>
+      </Button>
     </div>
   );
 };
