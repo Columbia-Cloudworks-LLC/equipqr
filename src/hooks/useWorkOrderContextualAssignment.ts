@@ -34,7 +34,8 @@ export function useWorkOrderContextualAssignment(workOrder: any) {
               email
             )
           `)
-          .eq('team_id', equipmentTeamId);
+          .eq('team_id', equipmentTeamId)
+          .in('role', ['manager', 'technician']);
 
         if (teamError) {
           console.error('Error fetching team members:', teamError);
@@ -73,7 +74,8 @@ export function useWorkOrderContextualAssignment(workOrder: any) {
                 email
               )
             `)
-            .eq('team_id', equipment.team_id);
+            .eq('team_id', equipment.team_id)
+            .in('role', ['manager', 'technician']);
 
           if (teamError) {
             console.error('Error fetching team members:', teamError);
