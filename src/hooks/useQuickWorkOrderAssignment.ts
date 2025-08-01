@@ -18,11 +18,9 @@ export const useQuickWorkOrderAssignment = () => {
       organizationId: string 
     }) => {
       // Determine the new status based on assignment
-      let newStatus: string;
+      let newStatus = 'submitted';
       if (assigneeId || teamId) {
         newStatus = 'assigned';
-      } else {
-        newStatus = 'submitted';
       }
 
       const updateData: any = {
@@ -31,7 +29,7 @@ export const useQuickWorkOrderAssignment = () => {
         status: newStatus
       };
 
-      // Set acceptance_date when assigning, clear when unassigning
+      // Only set acceptance_date if actually assigning
       if (assigneeId || teamId) {
         updateData.acceptance_date = new Date().toISOString();
       } else {
