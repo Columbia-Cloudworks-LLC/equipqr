@@ -47,11 +47,22 @@ export const useQuickWorkOrderAssignment = () => {
       const message = assigneeId || teamId ? 'Work order assigned successfully' : 'Work order unassigned successfully';
       toast.success(message);
       
-      // Invalidate relevant queries with standardized keys
+      // Invalidate all work order related queries with partial matching
       queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', organizationId] });
       queryClient.invalidateQueries({ queryKey: ['workOrders', organizationId] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', organizationId] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', organizationId] });
+      
+      // Also invalidate with partial matching to catch any other work order queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['work-orders'], 
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['workOrders'], 
+        exact: false 
+      });
     },
     onError: (error) => {
       console.error('Error assigning work order:', error);
