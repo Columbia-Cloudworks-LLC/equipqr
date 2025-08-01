@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
@@ -44,6 +44,11 @@ interface UseWorkOrderFormProps {
 
 export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHistorical = false }: UseWorkOrderFormProps) => {
   const isEditMode = !!workOrder;
+  const initializationRef = useRef<{ 
+    lastWorkOrderId?: string; 
+    lastEquipmentId?: string; 
+    hasInitialized: boolean;
+  }>({ hasInitialized: false });
 
   const initialValues: Partial<WorkOrderFormData> = {
     title: workOrder?.title || '',
@@ -65,34 +70,52 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
 
   const form = useFormValidation(workOrderFormSchema, initialValues);
 
-  // Reset form when workOrder changes or dialog opens
+  // Reset form only when dialog opens for first time or when workOrder/equipment changes
   useEffect(() => {
     if (isOpen) {
-      // Reset to initial values
-      const resetValues = {
-        title: initialValues.title || '',
-        description: initialValues.description || '',
-        equipmentId: initialValues.equipmentId || '',
-        priority: initialValues.priority || 'medium',
-        dueDate: initialValues.dueDate || undefined,
-        equipmentWorkingHours: initialValues.equipmentWorkingHours,
-        hasPM: initialValues.hasPM || false,
-        assignmentType: initialValues.assignmentType || 'unassigned',
-        assignmentId: null, // Always start with null
-        isHistorical: initialValues.isHistorical || false,
-        // Historical fields - only set if isHistorical is true
-        ...(initialValues.isHistorical ? {
-          status: initialValues.status || 'accepted',
-          historicalStartDate: initialValues.historicalStartDate,
-          historicalNotes: initialValues.historicalNotes || '',
-          completedDate: initialValues.completedDate,
-        } : {})
-      };
+      const currentWorkOrderId = workOrder?.id || '';
+      const currentEquipmentId = equipmentId || '';
+      
+      // Only reset if this is a new dialog session or if workOrder/equipment changed
+      const shouldReset = !initializationRef.current.hasInitialized ||
+                         initializationRef.current.lastWorkOrderId !== currentWorkOrderId ||
+                         initializationRef.current.lastEquipmentId !== currentEquipmentId;
 
-      // Set all values at once for better performance
-      form.setValues(resetValues);
+      if (shouldReset) {
+        const resetValues = {
+          title: initialValues.title || '',
+          description: initialValues.description || '',
+          equipmentId: initialValues.equipmentId || '',
+          priority: initialValues.priority || 'medium',
+          dueDate: initialValues.dueDate || undefined,
+          equipmentWorkingHours: initialValues.equipmentWorkingHours,
+          hasPM: initialValues.hasPM || false,
+          assignmentType: initialValues.assignmentType || 'unassigned',
+          assignmentId: null,
+          isHistorical: initialValues.isHistorical || false,
+          // Historical fields - only set if isHistorical is true
+          ...(initialValues.isHistorical ? {
+            status: initialValues.status || 'accepted',
+            historicalStartDate: initialValues.historicalStartDate,
+            historicalNotes: initialValues.historicalNotes || '',
+            completedDate: initialValues.completedDate,
+          } : {})
+        };
+
+        form.setValues(resetValues);
+        
+        // Update initialization tracking
+        initializationRef.current = {
+          lastWorkOrderId: currentWorkOrderId,
+          lastEquipmentId: currentEquipmentId,
+          hasInitialized: true
+        };
+      }
+    } else {
+      // Reset initialization when dialog closes
+      initializationRef.current.hasInitialized = false;
     }
-  }, [isOpen, workOrder, form, initialValues]);
+  }, [isOpen, workOrder?.id, equipmentId, form, initialValues]);
 
   const checkForUnsavedChanges = (): boolean => {
     return Object.keys(form.values).some(
