@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { User, UserMinus, Check, X } from 'lucide-react';
-import { useOptimizedWorkOrderAssignment } from '@/hooks/useOptimizedWorkOrderAssignment';
+import { useWorkOrderContextualAssignment } from '@/hooks/useWorkOrderContextualAssignment';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 
 interface WorkOrderAssignmentSelectorProps {
@@ -22,8 +22,8 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
 }) => {
   const [selectedValue, setSelectedValue] = useState<string>('');
   
-  // Use the same hooks as quick assignment
-  const { assignmentOptions, isLoading: optionsLoading } = useOptimizedWorkOrderAssignment(organizationId);
+  // Use contextual assignment based on equipment team assignment
+  const { assignmentOptions, isLoading: optionsLoading, hasTeamAssignment } = useWorkOrderContextualAssignment(workOrder);
   const quickAssignmentMutation = useQuickWorkOrderAssignment();
 
   const handleAssign = () => {
@@ -86,7 +86,7 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
             {assignmentOptions.length > 0 && (
               <>
                 <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t">
-                  Team Members
+                  {hasTeamAssignment ? 'Team Members' : 'Organization Admins'}
                 </div>
                 {assignmentOptions.map((option) => (
                   <SelectItem key={option.id} value={option.id}>
