@@ -954,7 +954,10 @@ export type Database = {
           created_at: string
           created_by: string
           equipment_id: string
+          historical_completion_date: string | null
+          historical_notes: string | null
           id: string
+          is_historical: boolean
           notes: string | null
           organization_id: string
           status: string
@@ -968,7 +971,10 @@ export type Database = {
           created_at?: string
           created_by: string
           equipment_id: string
+          historical_completion_date?: string | null
+          historical_notes?: string | null
           id?: string
+          is_historical?: boolean
           notes?: string | null
           organization_id: string
           status?: string
@@ -982,7 +988,10 @@ export type Database = {
           created_at?: string
           created_by?: string
           equipment_id?: string
+          historical_completion_date?: string | null
+          historical_notes?: string | null
           id?: string
+          is_historical?: boolean
           notes?: string | null
           organization_id?: string
           status?: string
@@ -1449,6 +1458,7 @@ export type Database = {
           changed_by: string
           created_at: string
           id: string
+          is_historical_creation: boolean | null
           metadata: Json | null
           new_status: Database["public"]["Enums"]["work_order_status"]
           old_status: Database["public"]["Enums"]["work_order_status"] | null
@@ -1460,6 +1470,7 @@ export type Database = {
           changed_by: string
           created_at?: string
           id?: string
+          is_historical_creation?: boolean | null
           metadata?: Json | null
           new_status: Database["public"]["Enums"]["work_order_status"]
           old_status?: Database["public"]["Enums"]["work_order_status"] | null
@@ -1471,6 +1482,7 @@ export type Database = {
           changed_by?: string
           created_at?: string
           id?: string
+          is_historical_creation?: boolean | null
           metadata?: Json | null
           new_status?: Database["public"]["Enums"]["work_order_status"]
           old_status?: Database["public"]["Enums"]["work_order_status"] | null
@@ -1501,6 +1513,7 @@ export type Database = {
           assignee_name: string | null
           completed_date: string | null
           created_by: string
+          created_by_admin: string | null
           created_by_name: string | null
           created_date: string
           description: string
@@ -1508,7 +1521,10 @@ export type Database = {
           equipment_id: string
           estimated_hours: number | null
           has_pm: boolean
+          historical_notes: string | null
+          historical_start_date: string | null
           id: string
+          is_historical: boolean
           organization_id: string
           pm_required: boolean
           priority: Database["public"]["Enums"]["work_order_priority"]
@@ -1523,6 +1539,7 @@ export type Database = {
           assignee_name?: string | null
           completed_date?: string | null
           created_by: string
+          created_by_admin?: string | null
           created_by_name?: string | null
           created_date?: string
           description: string
@@ -1530,7 +1547,10 @@ export type Database = {
           equipment_id: string
           estimated_hours?: number | null
           has_pm?: boolean
+          historical_notes?: string | null
+          historical_start_date?: string | null
           id?: string
+          is_historical?: boolean
           organization_id: string
           pm_required?: boolean
           priority?: Database["public"]["Enums"]["work_order_priority"]
@@ -1545,6 +1565,7 @@ export type Database = {
           assignee_name?: string | null
           completed_date?: string | null
           created_by?: string
+          created_by_admin?: string | null
           created_by_name?: string | null
           created_date?: string
           description?: string
@@ -1552,7 +1573,10 @@ export type Database = {
           equipment_id?: string
           estimated_hours?: number | null
           has_pm?: boolean
+          historical_notes?: string | null
+          historical_start_date?: string | null
           id?: string
+          is_historical?: boolean
           organization_id?: string
           pm_required?: boolean
           priority?: Database["public"]["Enums"]["work_order_priority"]
@@ -1671,6 +1695,28 @@ export type Database = {
       clear_rls_context: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      create_historical_work_order_with_pm: {
+        Args: {
+          p_organization_id: string
+          p_equipment_id: string
+          p_title: string
+          p_description: string
+          p_priority: Database["public"]["Enums"]["work_order_priority"]
+          p_status: Database["public"]["Enums"]["work_order_status"]
+          p_historical_start_date: string
+          p_historical_notes?: string
+          p_assignee_id?: string
+          p_team_id?: string
+          p_due_date?: string
+          p_completed_date?: string
+          p_has_pm?: boolean
+          p_pm_status?: string
+          p_pm_completion_date?: string
+          p_pm_notes?: string
+          p_pm_checklist_data?: Json
+        }
+        Returns: Json
       }
       create_invitation_atomic: {
         Args: {

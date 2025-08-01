@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -75,27 +76,13 @@ export const WorkOrderBasicFields: React.FC<WorkOrderBasicFieldsProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Due Date</Label>
-            <Input
-              type="date"
-              value={values.dueDate || ''}
-              onChange={(e) => setValue('dueDate', e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Equipment Working Hours</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.5"
-              placeholder="Current working hours for this equipment"
-              value={values.equipmentWorkingHours || ''}
-              onChange={(e) => setValue('equipmentWorkingHours', parseFloat(e.target.value) || undefined)}
-            />
-          </div>
+        <div className="space-y-2">
+          <Label>Due Date</Label>
+          <Input
+            type="date"
+            value={values.dueDate || ''}
+            onChange={(e) => setValue('dueDate', e.target.value)}
+          />
         </div>
       </CardContent>
     </Card>

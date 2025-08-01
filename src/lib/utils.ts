@@ -27,3 +27,9 @@ export function isLightColor(color: string): boolean {
   
   return luminance > 0.5;
 }
+
+// Helper function to safely convert Date to ISO string for database submissions
+export function dateToISOString(date: Date | null | undefined): string | undefined {
+  if (!date) return undefined;
+  return date.toISOString();
+}

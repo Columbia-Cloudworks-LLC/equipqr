@@ -17,6 +17,8 @@ import { WorkOrderEquipmentSelector } from './form/WorkOrderEquipmentSelector';
 import { WorkOrderPMSection } from './form/WorkOrderPMSection';
 import { WorkOrderDescriptionField } from './form/WorkOrderDescriptionField';
 import { WorkOrderFormActions } from './form/WorkOrderFormActions';
+import { WorkOrderHistoricalToggle } from './form/WorkOrderHistoricalToggle';
+import { WorkOrderHistoricalFields } from './form/WorkOrderHistoricalFields';
 
 
 interface WorkOrderFormEnhancedProps {
@@ -25,6 +27,7 @@ interface WorkOrderFormEnhancedProps {
   equipmentId?: string;
   workOrder?: EnhancedWorkOrder; // Add workOrder prop for edit mode
   onSubmit?: (data: WorkOrderFormData) => void;
+  initialIsHistorical?: boolean;
 }
 
 const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({ 
@@ -32,14 +35,16 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
   onClose, 
   equipmentId,
   workOrder,
-  onSubmit 
+  onSubmit,
+  initialIsHistorical = false
 }) => {
   const { currentOrganization } = useOrganization();
   
   const { form, isEditMode, checkForUnsavedChanges } = useWorkOrderForm({
     workOrder,
     equipmentId,
-    isOpen: open
+    isOpen: open,
+    initialIsHistorical
   });
 
   const { allEquipment, preSelectedEquipment, isEquipmentPreSelected } = useEquipmentSelection({
@@ -89,6 +94,25 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
         />
 
         <div className="space-y-6">
+          {!isEditMode && (
+            <WorkOrderHistoricalToggle
+              isHistorical={form.values.isHistorical || false}
+              onToggle={(value) => {
+                form.setValue('isHistorical', value);
+                // Reset historical fields when toggling off
+                if (!value) {
+                  form.setValue('status', undefined);
+                  form.setValue('historicalStartDate', undefined);
+                  form.setValue('historicalNotes', '');
+                  form.setValue('completedDate', undefined);
+                } else {
+                  // Set default status for historical work orders
+                  form.setValue('status', 'accepted');
+                }
+              }}
+            />
+          )}
+
           <WorkOrderBasicFields
             values={form.values}
             errors={form.errors}
@@ -105,6 +129,14 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
             isEditMode={isEditMode}
             isEquipmentPreSelected={isEquipmentPreSelected}
           />
+
+          {form.values.isHistorical && (
+            <WorkOrderHistoricalFields
+              values={form.values}
+              errors={form.errors}
+              setValue={form.setValue}
+            />
+          )}
 
           <WorkOrderPMSection
             values={form.values}

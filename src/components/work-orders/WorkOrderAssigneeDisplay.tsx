@@ -22,10 +22,12 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
   const [isEditing, setIsEditing] = useState(false);
 
   const getAssignmentDisplay = () => {
-    if (workOrder.assignee_id && workOrder.assigneeName) {
+    const assigneeName = workOrder.assigneeName || workOrder.assignee?.name;
+    
+    if (workOrder.assignee_id && assigneeName) {
       return {
         type: 'user',
-        name: workOrder.assigneeName,
+        name: assigneeName,
         icon: User,
         color: 'bg-blue-100 text-blue-800 border-blue-200'
       };

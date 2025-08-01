@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+
+import { useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
@@ -8,12 +9,29 @@ const workOrderFormSchema = z.object({
   description: z.string().min(1, "Description is required").max(1000, "Description must be less than 1000 characters"),
   equipmentId: z.string().min(1, "Equipment is required"),
   priority: z.enum(['low', 'medium', 'high']),
-  dueDate: z.string().optional(),
-  equipmentWorkingHours: z.number().min(0).optional(),
+  dueDate: z.string().optional().nullable(),
   hasPM: z.boolean().default(false),
   assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),
-  assignmentId: z.string().optional(),
-});
+  assignmentId: z.string().optional().nullable().transform(val => val === '' ? null : val),
+  isHistorical: z.boolean().default(false),
+  // Historical fields - conditionally required based on isHistorical
+  status: z.enum(['submitted', 'accepted', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled']).optional(),
+  historicalStartDate: z.date().optional(),
+  historicalNotes: z.string().optional(),
+  completedDate: z.date().optional().nullable(),
+}).refine(
+  (data) => {
+    // If it's historical, require status field
+    if (data.isHistorical) {
+      return data.status !== undefined;
+    }
+    return true;
+  },
+  {
+    message: "Status is required for historical work orders",
+    path: ["status"]
+  }
+);
 
 export type WorkOrderFormData = z.infer<typeof workOrderFormSchema>;
 
@@ -21,39 +39,81 @@ interface UseWorkOrderFormProps {
   workOrder?: EnhancedWorkOrder;
   equipmentId?: string;
   isOpen: boolean;
+  initialIsHistorical?: boolean;
 }
 
-export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen }: UseWorkOrderFormProps) => {
+export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHistorical = false }: UseWorkOrderFormProps) => {
   const isEditMode = !!workOrder;
+  const initializationRef = useRef<{ 
+    lastWorkOrderId?: string; 
+    lastEquipmentId?: string; 
+    hasInitialized: boolean;
+  }>({ hasInitialized: false });
 
   const initialValues: Partial<WorkOrderFormData> = {
     title: workOrder?.title || '',
     description: workOrder?.description || '',
     equipmentId: workOrder?.equipment_id || equipmentId || '',
     priority: workOrder?.priority || 'medium',
-    dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : '',
-    equipmentWorkingHours: undefined,
+    dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : undefined,
     hasPM: workOrder?.has_pm || false,
     assignmentType: 'unassigned',
-    assignmentId: '',
+    assignmentId: null,
+    isHistorical: initialIsHistorical,
+    // Historical fields (only relevant when isHistorical is true)
+    status: 'accepted',
+    historicalStartDate: undefined,
+    historicalNotes: '',
+    completedDate: undefined,
   };
 
   const form = useFormValidation(workOrderFormSchema, initialValues);
 
-  // Reset form when workOrder changes or dialog opens
+  // Reset form only when dialog opens for first time or when workOrder/equipment changes
   useEffect(() => {
     if (isOpen) {
-      form.setValue('title', initialValues.title || '');
-      form.setValue('description', initialValues.description || '');
-      form.setValue('equipmentId', initialValues.equipmentId || '');
-      form.setValue('priority', initialValues.priority || 'medium');
-      form.setValue('dueDate', initialValues.dueDate || '');
-      form.setValue('equipmentWorkingHours', initialValues.equipmentWorkingHours);
-      form.setValue('hasPM', initialValues.hasPM || false);
-      form.setValue('assignmentType', initialValues.assignmentType || 'unassigned');
-      form.setValue('assignmentId', initialValues.assignmentId || '');
+      const currentWorkOrderId = workOrder?.id || '';
+      const currentEquipmentId = equipmentId || '';
+      
+      // Only reset if this is a new dialog session or if workOrder/equipment changed
+      const shouldReset = !initializationRef.current.hasInitialized ||
+                         initializationRef.current.lastWorkOrderId !== currentWorkOrderId ||
+                         initializationRef.current.lastEquipmentId !== currentEquipmentId;
+
+      if (shouldReset) {
+        const resetValues = {
+          title: initialValues.title || '',
+          description: initialValues.description || '',
+          equipmentId: initialValues.equipmentId || '',
+          priority: initialValues.priority || 'medium',
+          dueDate: initialValues.dueDate || undefined,
+          hasPM: initialValues.hasPM || false,
+          assignmentType: initialValues.assignmentType || 'unassigned',
+          assignmentId: null,
+          isHistorical: initialValues.isHistorical || false,
+          // Historical fields - only set if isHistorical is true
+          ...(initialValues.isHistorical ? {
+            status: initialValues.status || 'accepted',
+            historicalStartDate: initialValues.historicalStartDate,
+            historicalNotes: initialValues.historicalNotes || '',
+            completedDate: initialValues.completedDate,
+          } : {})
+        };
+
+        form.setValues(resetValues);
+        
+        // Update initialization tracking
+        initializationRef.current = {
+          lastWorkOrderId: currentWorkOrderId,
+          lastEquipmentId: currentEquipmentId,
+          hasInitialized: true
+        };
+      }
+    } else {
+      // Reset initialization when dialog closes
+      initializationRef.current.hasInitialized = false;
     }
-  }, [isOpen, workOrder]);
+  }, [isOpen, workOrder?.id, equipmentId, form, initialValues]);
 
   const checkForUnsavedChanges = (): boolean => {
     return Object.keys(form.values).some(

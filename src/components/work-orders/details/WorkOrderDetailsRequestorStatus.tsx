@@ -31,10 +31,12 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
   };
 
   const getAssignmentInfo = () => {
-    if (workOrder.assignee_id && workOrder.assigneeName) {
+    const assigneeName = workOrder.assigneeName || workOrder.assignee?.name;
+    
+    if (workOrder.assignee_id && assigneeName) {
       return {
         type: 'user',
-        name: workOrder.assigneeName,
+        name: assigneeName,
         icon: User,
         label: 'Assigned to'
       };
