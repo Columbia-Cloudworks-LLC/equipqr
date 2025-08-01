@@ -23,7 +23,7 @@ export interface HistoricalWorkOrderData {
   pmChecklistData?: any[];
 }
 
-export const useCreateHistoricalWorkOrder = () => {
+export const useCreateHistoricalWorkOrder = (options?: { onSuccess?: (workOrder: any) => void }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
 
@@ -82,6 +82,11 @@ export const useCreateHistoricalWorkOrder = () => {
       }
 
       toast.success('Historical work order created successfully');
+      
+      // Call custom onSuccess callback if provided
+      if (options?.onSuccess && result.work_order_id) {
+        options.onSuccess({ id: result.work_order_id, ...result });
+      }
     },
     onError: (error: any) => {
       console.error('Error creating historical work order:', error);

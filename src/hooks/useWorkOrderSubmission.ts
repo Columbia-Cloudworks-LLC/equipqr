@@ -6,6 +6,7 @@ import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/hooks/u
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 import { WorkOrderFormData } from './useWorkOrderForm';
 import { dateToISOString } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface UseWorkOrderSubmissionProps {
   workOrder?: EnhancedWorkOrder;
@@ -15,12 +16,18 @@ interface UseWorkOrderSubmissionProps {
 
 export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWorkOrderSubmissionProps) => {
   const { currentOrganization } = useOrganization();
+  const navigate = useNavigate();
   const isEditMode = !!workOrder;
 
   // Always call hooks in the same order to avoid hook order violations
   const createWorkOrderMutation = useCreateWorkOrderEnhanced();
   const updateWorkOrderMutation = useUpdateWorkOrder();
-  const createHistoricalWorkOrderMutation = useCreateHistoricalWorkOrder();
+  const createHistoricalWorkOrderMutation = useCreateHistoricalWorkOrder({
+    onSuccess: (createdWorkOrder) => {
+      navigate(`/work-orders/${createdWorkOrder.id}`);
+      onSuccess();
+    }
+  });
 
   const { execute: submitForm, isLoading: isSubmitting } = useAsyncOperation(
     async (data: WorkOrderFormData) => {
@@ -64,7 +71,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
         };
         
         await createHistoricalWorkOrderMutation.mutateAsync(historicalData);
-        onSuccess();
+        // Navigation and success handled by the hook's onSuccess callback
       } else {
         // Create new regular work order - handle UUID fields properly
         const workOrderData: EnhancedCreateWorkOrderData = {
