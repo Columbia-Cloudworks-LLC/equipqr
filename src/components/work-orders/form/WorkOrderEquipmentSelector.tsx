@@ -1,9 +1,12 @@
-import React from 'react';
-import { Package } from "lucide-react";
+import React, { useState } from 'react';
+import { Package, Clock, Edit } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
+import { useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from '@/hooks/useEquipmentWorkingHours';
 
 interface WorkOrderEquipmentSelectorProps {
   values: WorkOrderFormData;
@@ -14,6 +17,85 @@ interface WorkOrderEquipmentSelectorProps {
   isEditMode: boolean;
   isEquipmentPreSelected: boolean;
 }
+
+const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: any; }> = ({ equipmentId, setValue }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [newHours, setNewHours] = useState('');
+  
+  const { data: currentHours } = useEquipmentCurrentWorkingHours(equipmentId);
+  const updateWorkingHours = useUpdateEquipmentWorkingHours();
+
+  const handleUpdateClick = () => {
+    setIsUpdating(true);
+    setNewHours(currentHours?.toString() || '');
+  };
+
+  const handleSave = () => {
+    const hoursValue = parseFloat(newHours);
+    if (!isNaN(hoursValue) && hoursValue >= 0) {
+      setValue('equipmentWorkingHours', hoursValue);
+      updateWorkingHours.mutate({
+        equipmentId,
+        newHours: hoursValue,
+        updateSource: 'work_order'
+      });
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsUpdating(false);
+    setNewHours('');
+  };
+
+  return (
+    <div className="mt-3 p-3 bg-muted/30 rounded-md border">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Working Hours</span>
+        </div>
+        {!isUpdating && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleUpdateClick}
+            className="h-7 px-2"
+          >
+            <Edit className="h-3 w-3 mr-1" />
+            Update
+          </Button>
+        )}
+      </div>
+      
+      {isUpdating ? (
+        <div className="mt-2 space-y-2">
+          <Input
+            type="number"
+            min="0"
+            step="0.1"
+            value={newHours}
+            onChange={(e) => setNewHours(e.target.value)}
+            placeholder="Enter working hours"
+            className="h-8"
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleSave} disabled={updateWorkingHours.isPending}>
+              Save
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 text-sm text-muted-foreground">
+          Current: {currentHours ? `${currentHours} hours` : 'Not recorded'}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProps> = ({
   values,
@@ -43,6 +125,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
             {isEditMode ? 'Current' : 'Selected'}
           </Badge>
         </div>
+        <WorkingHoursSection equipmentId={equipment.id} setValue={setValue} />
       </div>
     );
   }
@@ -72,6 +155,9 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
       </Select>
       {errors.equipmentId && (
         <p className="text-sm text-destructive">{errors.equipmentId}</p>
+      )}
+      {values.equipmentId && (
+        <WorkingHoursSection equipmentId={values.equipmentId} setValue={setValue} />
       )}
     </div>
   );
