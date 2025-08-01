@@ -3,8 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Users, UserX, Shield } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { useWorkOrderAssignmentEnhanced } from '@/hooks/useWorkOrderAssignmentEnhanced';
+import { useWorkOrderContextualAssignment } from '@/hooks/useWorkOrderContextualAssignment';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,22 +18,21 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
   children,
   disabled = false
 }) => {
-  const { currentOrganization } = useOrganization();
   const { toast } = useToast();
   const [isAssigning, setIsAssigning] = useState(false);
   
-  const assignmentData = useWorkOrderAssignmentEnhanced(currentOrganization?.id, workOrder.equipment_id);
+  const { assignmentOptions, isLoading, hasTeamAssignment } = useWorkOrderContextualAssignment(workOrder);
   const assignmentMutation = useQuickWorkOrderAssignment();
 
-  const handleAssignment = useCallback(async (assignmentData: { type: 'admin' | 'unassign', id?: string }) => {
-    if (!currentOrganization || isAssigning) return;
+  const handleAssignment = useCallback(async (assignmentData: { type: 'assign' | 'unassign', id?: string }) => {
+    if (isAssigning) return;
     
     setIsAssigning(true);
     try {
       let assigneeId = null;
       let teamId = null;
       
-      if (assignmentData.type === 'admin') {
+      if (assignmentData.type === 'assign') {
         assigneeId = assignmentData.id;
       }
       
@@ -42,7 +40,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
         workOrderId: workOrder.id,
         assigneeId,
         teamId,
-        organizationId: currentOrganization.id
+        organizationId: workOrder.organization_id
       });
       
       toast({
@@ -60,7 +58,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
     } finally {
       setIsAssigning(false);
     }
-  }, [currentOrganization, isAssigning, assignmentMutation, workOrder.id, toast]);
+  }, [isAssigning, assignmentMutation, workOrder.id, workOrder.organization_id, toast]);
 
   if (disabled) return <>{children}</>;
 
@@ -73,20 +71,19 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
         <div className="space-y-3">
           <div className="text-sm font-medium">Quick Assignment</div>
           
-          {!assignmentData.availableAssignees || assignmentData.availableAssignees.length === 0 ? (
-            <div className="text-xs text-muted-foreground">Loading options...</div>
+          {isLoading || assignmentOptions.length === 0 ? (
+            <div className="text-xs text-muted-foreground">
+              {isLoading ? 'Loading options...' : 'No assignees available'}
+            </div>
           ) : (
             <>
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">
-                  Assign to organization admins
+                  {hasTeamAssignment ? 'Assign to team members' : 'Assign to organization admins'}
                 </div>
                 <Select 
                   onValueChange={(value) => {
-                    const option = assignmentData.availableAssignees.find(opt => opt.id === value);
-                    if (option) {
-                      handleAssignment({ type: option.type, id: value });
-                    }
+                    handleAssignment({ type: 'assign', id: value });
                   }}
                   disabled={isAssigning}
                 >
@@ -94,25 +91,21 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
                     <SelectValue placeholder="Select assignee..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {assignmentData.availableAssignees.map((assignee, index) => {
-                      const isFirstAdmin = assignee.type === 'admin' && index === 0;
-                      
-                      return (
-                        <div key={assignee.id}>
-                          {isFirstAdmin && (
-                            <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                              Organization Admins
-                            </div>
+                    {assignmentOptions.map((assignee) => (
+                      <SelectItem key={assignee.id} value={assignee.id}>
+                        <div className="flex items-center gap-2">
+                          {assignee.role === 'owner' || assignee.role === 'admin' ? (
+                            <Shield className="h-3 w-3" />
+                          ) : (
+                            <User className="h-3 w-3" />
                           )}
-                          <SelectItem value={assignee.id}>
-                            <div className="flex items-center gap-2">
-                              {assignee.type === 'admin' && <Shield className="h-3 w-3" />}
-                              {assignee.name}
-                            </div>
-                          </SelectItem>
+                          <span>{assignee.name}</span>
+                          {assignee.role && (
+                            <span className="text-xs text-muted-foreground">({assignee.role})</span>
+                          )}
                         </div>
-                      );
-                    })}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
