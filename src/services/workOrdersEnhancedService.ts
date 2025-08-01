@@ -19,6 +19,8 @@ export interface EnhancedWorkOrder {
   estimatedHours?: number;
   completedDate?: string;
   equipmentName?: string;
+  equipmentTeamId?: string;
+  equipmentTeamName?: string;
   createdByName?: string;
 }
 
@@ -42,7 +44,11 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
         completed_date,
         created_by,
         equipment:equipment_id (
-          name
+          name,
+          team_id,
+          teams:team_id (
+            name
+          )
         ),
         assignee:profiles!work_orders_assignee_id_fkey (
           name
@@ -77,6 +83,8 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
       estimatedHours: wo.estimated_hours,
       completedDate: wo.completed_date,
       equipmentName: wo.equipment?.name,
+      equipmentTeamId: wo.equipment?.team_id,
+      equipmentTeamName: wo.equipment?.teams?.name,
       createdByName: wo.creator?.name
     }));
   } catch (error) {
