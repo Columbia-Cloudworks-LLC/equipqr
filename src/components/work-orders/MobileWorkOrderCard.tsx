@@ -212,6 +212,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
                 workOrder={order}
                 onAssignClick={onAssignClick}
                 onReopenClick={onReopenClick}
+                hideReassign
               />
             </div>
 

@@ -18,6 +18,7 @@ interface WorkOrderQuickActionsProps {
   onReopenClick?: () => void;
   onDeleteSuccess?: () => void;
   showInline?: boolean;
+  hideReassign?: boolean;
 }
 
 export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
@@ -25,7 +26,8 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   onAssignClick,
   onReopenClick,
   onDeleteSuccess,
-  showInline = false
+  showInline = false,
+  hideReassign = false
 }) => {
   const permissions = useUnifiedPermissions();
   const navigate = useNavigate();
@@ -134,7 +136,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
       key: 'reassign',
       label: 'Reassign',
       icon: UserPlus,
-      show: canReassign,
+      show: canReassign && !hideReassign,
       onClick: onAssignClick
     },
     {
