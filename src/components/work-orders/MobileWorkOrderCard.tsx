@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
+import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
@@ -32,6 +32,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
   onReopenClick
 }) => {
   const quickAssignMutation = useQuickWorkOrderAssignment();
+  const statusUpdateMutation = useWorkOrderStatusUpdate();
   const [currentUser, setCurrentUser] = React.useState<any>(null);
 
   React.useEffect(() => {
@@ -50,6 +51,14 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
       organizationId: order.organizationId
     });
   };
+
+  const handleStatusUpdate = (newStatus: string) => {
+    statusUpdateMutation.mutate({
+      workOrderId: order.id,
+      newStatus
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'submitted':
@@ -244,8 +253,8 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => onStatusUpdate(order.id, 'in_progress')}
-                  disabled={isUpdating}
+                  onClick={() => handleStatusUpdate('in_progress')}
+                  disabled={statusUpdateMutation.isPending}
                   className="flex-1"
                 >
                   Start Work
@@ -255,8 +264,8 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => onStatusUpdate(order.id, 'completed')}
-                  disabled={isUpdating}
+                  onClick={() => handleStatusUpdate('completed')}
+                  disabled={statusUpdateMutation.isPending}
                   className="flex-1"
                 >
                   Complete
