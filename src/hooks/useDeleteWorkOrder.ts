@@ -11,23 +11,31 @@ export const useDeleteWorkOrder = () => {
   return useMutation({
     mutationFn: deleteWorkOrderCascade,
     onSuccess: () => {
-      // Invalidate all work order related queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['workOrders'] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['workOrder'] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['dashboardStats'] 
-      });
-      
       if (currentOrganization?.id) {
+        // Invalidate all work order related queries with comprehensive pattern matching
+        queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization.id] });
+        queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization.id] });
+        queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization.id] });
+        queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', currentOrganization.id] });
+        queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization.id] });
+        queryClient.invalidateQueries({ queryKey: ['notifications', currentOrganization.id] });
+        
+        // Also invalidate with partial matching to catch any other work order queries
         queryClient.invalidateQueries({ 
-          queryKey: ['workOrders', currentOrganization.id] 
+          queryKey: ['work-orders'], 
+          exact: false 
         });
         queryClient.invalidateQueries({ 
-          queryKey: ['dashboardStats', currentOrganization.id] 
+          queryKey: ['workOrders'], 
+          exact: false 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['workOrder'], 
+          exact: false 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['dashboardStats'], 
+          exact: false 
         });
       }
 
