@@ -190,6 +190,7 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
               onAssignClick={onAssignClick}
               onReopenClick={onReopenClick}
               showInline
+              hideReassign
             />
             <Button 
               variant="outline" 
