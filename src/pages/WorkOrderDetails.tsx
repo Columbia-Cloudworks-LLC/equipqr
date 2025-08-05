@@ -136,6 +136,11 @@ const WorkOrderDetails = () => {
               onUpdate={handlePMUpdate}
               readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
               isAdmin={permissionLevels.isManager}
+              workOrder={workOrder}
+              equipment={equipment}
+              team={{ name: workOrder.teamName }}
+              organization={currentOrganization}
+              assignee={{ name: workOrder.assigneeName }}
             />
           )}
 

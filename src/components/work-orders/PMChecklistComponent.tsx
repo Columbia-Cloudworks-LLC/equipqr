@@ -24,13 +24,23 @@ interface PMChecklistComponentProps {
   onUpdate: () => void;
   readOnly?: boolean;
   isAdmin?: boolean;
+  workOrder?: any;
+  equipment?: any;
+  team?: any;
+  organization?: any;
+  assignee?: any;
 }
 
 const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   pm,
   onUpdate,
   readOnly = false,
-  isAdmin = false
+  isAdmin = false,
+  workOrder,
+  equipment,
+  team,
+  organization,
+  assignee
 }) => {
   const isMobile = useIsMobile();
   const [checklist, setChecklist] = useState<PMChecklistItem[]>([]);
@@ -330,16 +340,21 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const handleDownloadPDF = useCallback(() => {
     try {
       PMChecklistPDFGenerator.generateAndDownload(pm, checklist, {
-        includeProgress: true,
+        includeProgress: false,
         includeNotes: true,
-        includeTimestamps: true
+        includeTimestamps: true,
+        workOrder,
+        equipment,
+        team,
+        organization,
+        assignee
       });
       toast.success('PDF downloaded successfully');
     } catch (error) {
       console.error('Error downloading PDF:', error);
       toast.error('Failed to download PDF');
     }
-  }, [pm, checklist]);
+  }, [pm, checklist, workOrder, equipment, team, organization, assignee]);
 
   const handleBrowserPrint = useCallback(() => {
     const printWindow = window.open('', '_blank');
@@ -602,9 +617,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 </CardTitle>
               </div>
               <PrintExportDropdown
-                onPrint={handlePrintPDF}
                 onDownloadPDF={handleDownloadPDF}
-                onPrintBrowser={handleBrowserPrint}
                 disabled={isUpdating}
               />
             </div>
@@ -652,9 +665,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
               </div>
             </div>
             <PrintExportDropdown
-              onPrint={handlePrintPDF}
               onDownloadPDF={handleDownloadPDF}
-              onPrintBrowser={handleBrowserPrint}
               disabled={isUpdating}
             />
           </div>
