@@ -106,7 +106,11 @@ export class PMChecklistPDFGenerator {
     
     // Equipment Information
     if (equipment?.name) {
-      this.addText(`Equipment: ${equipment.name}`, this.margin, 12, 'bold');
+      const workingHours = equipment.working_hours;
+      const equipmentText = workingHours && workingHours > 0 
+        ? `Equipment: ${equipment.name} (${workingHours} hours)`
+        : `Equipment: ${equipment.name}`;
+      this.addText(equipmentText, this.margin, 12, 'bold');
     }
     
     // Assignee/Certifying Mechanic
