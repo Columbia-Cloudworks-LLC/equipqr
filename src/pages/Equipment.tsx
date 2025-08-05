@@ -9,7 +9,6 @@ import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 import EquipmentHeader from '@/components/equipment/EquipmentHeader';
 import { EquipmentFilters } from '@/components/equipment/EquipmentFilters';
 import EquipmentSortHeader from '@/components/equipment/EquipmentSortHeader';
-import EquipmentInsights from '@/components/equipment/EquipmentInsights';
 import EquipmentGrid from '@/components/equipment/EquipmentGrid';
 import EquipmentLoadingState from '@/components/equipment/EquipmentLoadingState';
 
@@ -89,11 +88,6 @@ const Equipment = () => {
         onQuickFilter={applyQuickFilter}
         filterOptions={filterOptions}
         hasActiveFilters={hasActiveFilters}
-      />
-
-      <EquipmentInsights 
-        equipment={equipment}
-        filteredEquipment={filteredAndSortedEquipment}
       />
 
       <EquipmentSortHeader
