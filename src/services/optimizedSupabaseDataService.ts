@@ -62,12 +62,11 @@ export const getOptimizedTeamsByOrganization = async (organizationId: string): P
       return [];
     }
 
-    // Single query to get work order counts
+    // Get work order counts by joining through equipment
     const teamIds = teamsWithMembers.map(team => team.id);
     const { data: workOrderCounts } = await supabase
       .from('work_orders')
-      .select('team_id')
-      .in('team_id', teamIds)
+      .select('equipment_id, equipment:equipment_id(team_id)')
       .not('status', 'eq', 'completed');
 
     return teamsWithMembers.map(team => {
@@ -78,7 +77,7 @@ export const getOptimizedTeamsByOrganization = async (organizationId: string): P
         role: member.role,
       }));
 
-      const workOrderCount = (workOrderCounts || []).filter(wo => wo.team_id === team.id).length;
+      const workOrderCount = (workOrderCounts || []).filter(wo => wo.equipment?.team_id === team.id).length;
 
       return {
         ...team,

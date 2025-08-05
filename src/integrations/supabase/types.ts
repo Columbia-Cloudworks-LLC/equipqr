@@ -1529,7 +1529,6 @@ export type Database = {
           pm_required: boolean
           priority: Database["public"]["Enums"]["work_order_priority"]
           status: Database["public"]["Enums"]["work_order_status"]
-          team_id: string | null
           title: string
           updated_at: string
         }
@@ -1555,7 +1554,6 @@ export type Database = {
           pm_required?: boolean
           priority?: Database["public"]["Enums"]["work_order_priority"]
           status?: Database["public"]["Enums"]["work_order_status"]
-          team_id?: string | null
           title: string
           updated_at?: string
         }
@@ -1581,7 +1579,6 @@ export type Database = {
           pm_required?: boolean
           priority?: Database["public"]["Enums"]["work_order_priority"]
           status?: Database["public"]["Enums"]["work_order_status"]
-          team_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -1612,13 +1609,6 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_orders_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]

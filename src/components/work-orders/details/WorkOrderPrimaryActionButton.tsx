@@ -70,7 +70,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
   // Check if user can perform status actions
   const canPerformStatusActions = () => {
     if (isManager) return true;
-    if (isTechnician && (workOrder.assignee_id === user?.id || workOrder.team_id)) return true;
+    if (isTechnician && (workOrder.assignee_id === user?.id)) return true;
     if (workOrder.created_by === user?.id && workOrder.status === 'submitted') return true;
     return false;
   };

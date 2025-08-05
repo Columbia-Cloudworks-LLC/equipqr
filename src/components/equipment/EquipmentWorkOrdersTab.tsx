@@ -92,7 +92,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
               estimatedHours: workOrder.estimated_hours,
               completedDate: workOrder.completed_date,
               assigneeId: workOrder.assignee_id,
-              teamId: workOrder.team_id
+              teamId: undefined // Team info comes from equipment assignment
             };
 
             return isMobile ? (

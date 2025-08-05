@@ -44,19 +44,19 @@ export const getTeamBasedWorkOrders = async (
         priority,
         status,
         assignee_id,
-        team_id,
         created_date,
         due_date,
         estimated_hours,
         completed_date,
         created_by,
         equipment:equipment_id (
-          name
+          name,
+          team_id,
+          teams:team_id (
+            name
+          )
         ),
         assignee:profiles!work_orders_assignee_id_fkey (
-          name
-        ),
-        team:team_id (
           name
         ),
         creator:profiles!work_orders_created_by_fkey (
@@ -79,9 +79,9 @@ export const getTeamBasedWorkOrders = async (
       }
     }
 
-    if (filters.teamId && filters.teamId !== 'all') {
-      query = query.eq('team_id', filters.teamId);
-    }
+    // Team filtering is handled by equipment access - we already filtered by accessible equipment IDs
+    // If filtering by specific team, we would need to get equipment IDs for that team first
+    // For now, filtering by teamId is done at the equipment level in getAccessibleEquipmentIds
 
     if (filters.priority && filters.priority !== 'all') {
       query = query.eq('priority', filters.priority);
@@ -131,8 +131,8 @@ export const getTeamBasedWorkOrders = async (
       status: wo.status,
       assigneeId: wo.assignee_id,
       assigneeName: wo.assignee?.name,
-      teamId: wo.team_id,
-      teamName: wo.team?.name,
+      teamId: wo.equipment?.team_id,
+      teamName: wo.equipment?.teams?.name,
       createdDate: wo.created_date,
       created_date: wo.created_date,
       dueDate: wo.due_date,
