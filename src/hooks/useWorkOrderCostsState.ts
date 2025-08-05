@@ -98,6 +98,13 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
     })));
   }, []);
 
+  const ensureMinimumCosts = useCallback(() => {
+    const visibleCosts = costs.filter(cost => !cost.isDeleted);
+    if (visibleCosts.length === 0) {
+      addCost();
+    }
+  }, [costs, addCost]);
+
   return {
     costs: costs.filter(cost => !cost.isDeleted),
     addCost,
@@ -108,6 +115,7 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
     getUpdatedCosts,
     getDeletedCosts,
     validateCosts,
-    resetCosts
+    resetCosts,
+    ensureMinimumCosts
   };
 };

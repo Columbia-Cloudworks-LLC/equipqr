@@ -61,50 +61,50 @@ const WorkOrderCostsEditor: React.FC<WorkOrderCostsEditorProps> = ({
         </p>
       )}
 
-      {costs.length > 0 && (
-        <div className="space-y-3">
-          {/* Desktop Headers */}
-          {!isMobile && (
-            <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
-              <div>Description</div>
-              <div>Quantity</div>
-              <div>Unit Price</div>
-              <div className="text-right">Total</div>
-            </div>
-          )}
-
-          {/* Cost Items */}
-          <div className="space-y-3">
-            {costs.map((cost) => (
-              <div key={cost.id}>
-                {isMobile ? (
-                  <MobileCostItem 
-                    cost={cost}
-                    onRemoveCost={onRemoveCost}
-                    onUpdateCost={onUpdateCost}
-                    canRemove={canRemove}
-                  />
-                ) : (
-                  <DesktopCostItem 
-                    cost={cost}
-                    onRemoveCost={onRemoveCost}
-                    onUpdateCost={onUpdateCost}
-                    canRemove={canRemove}
-                  />
-                )}
-              </div>
-            ))}
+      <div className="space-y-3">
+        {/* Desktop Headers */}
+        {!isMobile && (
+          <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
+            <div>Description</div>
+            <div>Quantity</div>
+            <div>Unit Price</div>
+            <div className="text-right">Total</div>
           </div>
+        )}
 
-          {/* Subtotal */}
+        {/* Cost Items */}
+        <div className="space-y-3">
+          {costs.map((cost) => (
+            <div key={cost.id}>
+              {isMobile ? (
+                <MobileCostItem 
+                  cost={cost}
+                  onRemoveCost={onRemoveCost}
+                  onUpdateCost={onUpdateCost}
+                  canRemove={canRemove}
+                />
+              ) : (
+                <DesktopCostItem 
+                  cost={cost}
+                  onRemoveCost={onRemoveCost}
+                  onUpdateCost={onUpdateCost}
+                  canRemove={canRemove}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Subtotal */}
+        {costs.length > 0 && (
           <div className="border-t pt-4">
             <div className="flex items-center justify-between text-lg font-semibold">
               <span>Subtotal:</span>
               <span>{formatCurrency(calculateSubtotal())}</span>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
