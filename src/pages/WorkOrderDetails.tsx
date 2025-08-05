@@ -5,6 +5,7 @@ import { Clipboard } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/hooks/useWorkOrderDetailsData';
 import { useWorkOrderDetailsActions } from '@/hooks/useWorkOrderDetailsActions';
+import { logNavigationEvent } from '@/utils/navigationDebug';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
 import WorkOrderNotesSection from '@/components/work-orders/WorkOrderNotesSection';
@@ -52,11 +53,15 @@ const WorkOrderDetails = () => {
     handlePMUpdate
   } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '');
 
-  if (!workOrderId || !currentOrganization) {
+  // Only redirect if we definitely don't have the required data and aren't loading
+  if (!workOrderId) {
+    logNavigationEvent('REDIRECT_NO_WORK_ORDER_ID');
     return <Navigate to="/work-orders" replace />;
   }
 
-  if (workOrderLoading) {
+  // Show loading state while fetching data or organization
+  if (workOrderLoading || !currentOrganization) {
+    logNavigationEvent('LOADING_STATE', { workOrderLoading, hasOrganization: !!currentOrganization });
     return (
       <div className="space-y-6 p-4">
         <div className="h-8 bg-muted animate-pulse rounded" />
@@ -65,14 +70,19 @@ const WorkOrderDetails = () => {
     );
   }
 
+  // Only redirect if we're done loading and definitely don't have the work order
   if (!workOrder) {
+    logNavigationEvent('REDIRECT_NO_WORK_ORDER_DATA', { workOrderId });
     return <Navigate to="/work-orders" replace />;
   }
 
-  // Minimal debug logging for performance (only critical info)
-  if (process.env.NODE_ENV === 'development' && !workOrder.has_pm) {
-    console.log('🔍 WorkOrder:', workOrderId, 'Mode:', formMode);
-  }
+  // Log successful navigation to work order details
+  logNavigationEvent('SUCCESSFUL_RENDER', { 
+    workOrderId, 
+    formMode, 
+    hasPermissions: !!permissionLevels,
+    organizationId: currentOrganization.id 
+  });
 
   return (
     <div className="min-h-screen bg-background">

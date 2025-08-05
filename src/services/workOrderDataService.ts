@@ -39,13 +39,14 @@ export const getWorkOrderByIdWithAssignee = async (
           id,
           name
         ),
-        team:teams!work_orders_team_id_fkey (
-          id,
-          name
-        ),
         equipment:equipment!work_orders_equipment_id_fkey (
           id,
-          name
+          name,
+          team_id,
+          teams:team_id (
+            id,
+            name
+          )
         ),
         creator:profiles!work_orders_created_by_fkey (
           id,
