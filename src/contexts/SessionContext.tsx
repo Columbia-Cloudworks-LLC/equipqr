@@ -89,12 +89,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return null;
       }
       
-      // Use more lenient cache time for better user experience
+      // Use extended cache time for better performance and stability
       const lastUpdated = new Date(parsed.lastUpdated);
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
       
-      if (lastUpdated < oneHourAgo) {
-        console.log('⏰ Session data is older than 1 hour, will refresh on next fetch');
+      if (lastUpdated < fourHoursAgo) {
+        console.log('⏰ Session data is older than 4 hours, will refresh on next fetch');
         // Don't clear immediately, but mark for refresh
         return parsed;
       }
@@ -241,10 +241,15 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return;
     }
 
-    // Check if we should refresh based on timing
-    if (!force && lastRefreshTime && !shouldRefreshSession(lastRefreshTime)) {
-      console.log('⏭️ Skipping session refresh - too recent');
-      return;
+    // More conservative refresh timing to prevent unnecessary API calls
+    if (!force && lastRefreshTime) {
+      const lastRefresh = new Date(lastRefreshTime);
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      
+      if (lastRefresh > fiveMinutesAgo) {
+        console.log('⏭️ Skipping session refresh - refreshed within last 5 minutes');
+        return;
+      }
     }
 
     try {
@@ -354,19 +359,21 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return sessionData.teamMemberships.map(tm => tm.teamId);
   };
 
-  // Page visibility handling
+  // Page visibility handling - more conservative approach
   usePageVisibility({
     onVisibilityChange: (isVisible) => {
-      if (isVisible && user) {
-        console.log('👁️ Page became visible, checking session freshness');
-        // Only refresh if it's been a while since last refresh
-        if (lastRefreshTime && shouldRefreshSession(lastRefreshTime)) {
-          console.log('🔄 Refreshing session due to page visibility change');
+      if (isVisible && user && lastRefreshTime) {
+        const lastRefresh = new Date(lastRefreshTime);
+        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+        
+        // Only refresh on page visibility if it's been more than 30 minutes
+        if (lastRefresh < thirtyMinutesAgo) {
+          console.log('🔄 Refreshing session due to page visibility change (30+ min since last refresh)');
           refreshSession(false);
         }
       }
     },
-    debounceMs: 1000 // Debounce visibility changes
+    debounceMs: 2000 // Increased debounce for better performance
   });
 
   // Initialize session on mount or user change
