@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Search, Filter, Calendar, User, Clock, X, Users } from 'lucide-react';
+import { Search, Filter, Calendar, User, X, Users } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { WorkOrderFilters as FiltersType } from '@/types/workOrder';
 
@@ -51,7 +51,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
           />
         </div>
 
-        {/* Filter Button with Active Count and Quick Presets */}
+        {/* Filter Button with Active Count */}
         <div className="flex gap-2">
           <Sheet open={showMobileFilters} onOpenChange={onShowMobileFiltersChange}>
             <SheetTrigger asChild>
@@ -72,49 +72,10 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 <SheetTitle>Filter Work Orders</SheetTitle>
               </SheetHeader>
               
-              {/* Quick Filter Presets */}
+              {/* Filters */}
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-3">Quick Filters</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => onQuickFilter('my-work')}
-                      className="h-12 justify-start"
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      My Work
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => onQuickFilter('urgent')}
-                      className="h-12 justify-start"
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      Urgent
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => onQuickFilter('overdue')}
-                      className="h-12 justify-start"
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Overdue
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => onQuickFilter('unassigned')}
-                      className="h-12 justify-start"
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      Unassigned
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Detailed Filters */}
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Detailed Filters</h3>
+                  <h3 className="text-sm font-medium">Filters</h3>
                   
                   <div className="space-y-3">
                     <div>
@@ -266,7 +227,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
     );
   }
 
-  // Desktop Filters
   return (
     <Card>
       <CardContent className="pt-6">
