@@ -103,13 +103,14 @@ export const getOptimizedWorkOrdersByOrganization = async (organizationId: strin
           id,
           name
         ),
-        team:teams!work_orders_team_id_fkey (
-          id,
-          name
-        ),
         equipment:equipment!work_orders_equipment_id_fkey (
           id,
-          name
+          name,
+          team_id,
+          teams:team_id (
+            id,
+            name
+          )
         )
       `)
       .eq('organization_id', organizationId)
@@ -123,7 +124,7 @@ export const getOptimizedWorkOrdersByOrganization = async (organizationId: strin
     return (data || []).map(wo => ({
       ...wo,
       assigneeName: (wo.assignee as any)?.name,
-      teamName: (wo.team as any)?.name,
+      teamName: (wo.equipment as any)?.teams?.name,
       equipmentName: (wo.equipment as any)?.name
     }));
   } catch (error) {
@@ -237,13 +238,14 @@ export const getOptimizedWorkOrderById = async (organizationId: string, workOrde
           id,
           name
         ),
-        team:teams!work_orders_team_id_fkey (
-          id,
-          name
-        ),
         equipment:equipment!work_orders_equipment_id_fkey (
           id,
-          name
+          name,
+          team_id,
+          teams:team_id (
+            id,
+            name
+          )
         )
       `)
       .eq('id', workOrderId)
@@ -258,7 +260,7 @@ export const getOptimizedWorkOrderById = async (organizationId: string, workOrde
     return {
       ...data,
       assigneeName: (data.assignee as any)?.name,
-      teamName: (data.team as any)?.name,
+      teamName: (data.equipment as any)?.teams?.name,
       equipmentName: (data.equipment as any)?.name
     };
   } catch (error) {
