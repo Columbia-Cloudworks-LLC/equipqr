@@ -5,6 +5,11 @@ export interface PDFGeneratorOptions {
   includeProgress?: boolean;
   includeNotes?: boolean;
   includeTimestamps?: boolean;
+  workOrder?: any;
+  equipment?: any;
+  team?: any;
+  organization?: any;
+  assignee?: any;
 }
 
 export class PMChecklistPDFGenerator {
@@ -72,15 +77,45 @@ export class PMChecklistPDFGenerator {
     const {
       includeProgress = true,
       includeNotes = true,
-      includeTimestamps = true
+      includeTimestamps = true,
+      workOrder,
+      equipment,
+      team,
+      organization,
+      assignee
     } = options;
 
-    // Header
-    this.addText('PREVENTATIVE MAINTENANCE CHECKLIST', this.margin, 16, 'bold');
-    this.yPosition += 3;
+    // Header with centered title
+    this.doc.setFontSize(16);
+    this.doc.setFont('helvetica', 'bold');
+    const title = 'PREVENTATIVE MAINTENANCE CHECKLIST';
+    const titleWidth = this.doc.getTextWidth(title);
+    const pageWidth = this.doc.internal.pageSize.getWidth();
+    this.doc.text(title, (pageWidth - titleWidth) / 2, this.yPosition);
+    this.yPosition += 10;
+    
+    // Organization Information
+    if (organization?.name) {
+      this.addText(`Company: ${organization.name}`, this.margin, 12, 'bold');
+    }
+    
+    // Team/Customer Information  
+    if (team?.name) {
+      this.addText(`Customer: ${team.name}`, this.margin, 12, 'bold');
+    }
+    
+    // Equipment Information
+    if (equipment?.name) {
+      this.addText(`Equipment: ${equipment.name}`, this.margin, 12, 'bold');
+    }
+    
+    // Assignee/Certifying Mechanic
+    if (assignee?.name) {
+      this.addText(`Certifying Mechanic: ${assignee.name}`, this.margin, 12, 'bold');
+    }
     
     // PM Information
-    this.addText(`PM ID: ${pm.id}`, this.margin, 12, 'bold');
+    this.addText(`PM ID: ${pm.id}`, this.margin, 12);
     this.addText(`Status: ${this.getStatusText(pm.status)}`, this.margin, 12);
     
     if (includeTimestamps) {
@@ -88,11 +123,6 @@ export class PMChecklistPDFGenerator {
       if (pm.completed_at) {
         this.addText(`Completed: ${new Date(pm.completed_at).toLocaleDateString()}`, this.margin, 10);
       }
-    }
-
-    if (includeProgress) {
-      const completedItems = checklist.filter(item => item.condition !== null && item.condition !== undefined);
-      this.addText(`Progress: ${completedItems.length}/${checklist.length} items completed`, this.margin, 10);
     }
 
     this.addSeparator();
@@ -107,24 +137,16 @@ export class PMChecklistPDFGenerator {
       const sectionItems = checklist.filter(item => item.section === section);
       
       sectionItems.forEach(item => {
-        // Item title and status
-        const titleText = `${item.title} ${item.required ? '(Required)' : '(Optional)'}`;
+        // Item title with status in parentheses
+        const titleText = `${item.title} (${this.getConditionText(item.condition)})`;
         this.addText(titleText, this.margin + 5, 10, 'bold');
-        
-        const conditionText = `Status: ${this.getConditionText(item.condition)}`;
-        this.addText(conditionText, this.margin + 5, 9);
 
-        // Description
-        if (item.description) {
-          this.addMultilineText(`Description: ${item.description}`, this.margin + 5, 160, 9);
-        }
-
-        // Notes
+        // Notes only (no description)
         if (includeNotes && item.notes) {
-          this.addMultilineText(`Notes: ${item.notes}`, this.margin + 5, 160, 9);
+          this.addMultilineText(`  ${item.notes}`, this.margin + 10, 155, 9);
         }
 
-        this.yPosition += 2;
+        this.yPosition += 1; // Reduced padding between items
       });
 
       this.addSeparator();
