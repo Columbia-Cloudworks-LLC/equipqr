@@ -91,7 +91,7 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <div>
@@ -114,20 +114,24 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
             </div>
           )}
 
+          {/* Equipment Team - Static Display */}
+          {(workOrder as any).equipmentTeamName && (
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <div className="font-medium">Equipment Team</div>
+                <div className="text-muted-foreground">{(workOrder as any).equipmentTeamName}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Assigned User - Interactive */}
           <WorkOrderAssignmentHover 
             workOrder={workOrder}
-            disabled={!permissions.workOrders.getDetailedPermissions(workOrder as any).canEdit}
+            disabled={!permissions.workOrders.getDetailedPermissions(workOrder as any).canEditAssignment}
           >
             <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
-              {workOrder.teamName ? (
-                <>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">Team</div>
-                    <div className="text-muted-foreground">{workOrder.teamName}</div>
-                  </div>
-                </>
-              ) : workOrder.assigneeName ? (
+              {workOrder.assigneeName ? (
                 <>
                   <User className="h-4 w-4 text-muted-foreground" />
                   <div>

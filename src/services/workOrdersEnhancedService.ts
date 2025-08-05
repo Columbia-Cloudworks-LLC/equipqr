@@ -37,7 +37,6 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
         priority,
         status,
         assignee_id,
-        team_id,
         created_date,
         due_date,
         estimated_hours,
@@ -51,9 +50,6 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
           )
         ),
         assignee:profiles!work_orders_assignee_id_fkey (
-          name
-        ),
-        team:team_id (
           name
         ),
         creator:profiles!work_orders_created_by_fkey (
@@ -75,8 +71,8 @@ export const getEnhancedWorkOrdersByOrganization = async (organizationId: string
       status: wo.status,
       assigneeId: wo.assignee_id,
       assigneeName: wo.assignee?.name,
-      teamId: wo.team_id,
-      teamName: wo.team?.name,
+      teamId: wo.equipment?.team_id,
+      teamName: wo.equipment?.teams?.name,
       createdDate: wo.created_date,
       created_date: wo.created_date,
       dueDate: wo.due_date,

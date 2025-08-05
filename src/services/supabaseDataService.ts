@@ -115,11 +115,10 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
       console.error('Error fetching team members:', membersError);
     }
 
-    // Get work order counts for teams
+    // Get work order counts for teams by joining through equipment
     const { data: workOrderCounts, error: workOrderError } = await supabase
       .from('work_orders')
-      .select('team_id')
-      .in('team_id', teamIds)
+      .select('equipment_id, equipment:equipment_id(team_id)')
       .not('status', 'eq', 'completed');
 
     if (workOrderError) {
@@ -136,7 +135,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
           role: member.role,
         }));
 
-      const workOrderCount = (workOrderCounts || []).filter(wo => wo.team_id === team.id).length;
+      const workOrderCount = (workOrderCounts || []).filter(wo => wo.equipment?.team_id === team.id).length;
 
       return {
         ...team,
@@ -250,19 +249,17 @@ export const getWorkOrdersByEquipmentId = async (organizationId: string, equipme
       return [];
     }
 
-    // Get profiles and teams for transforming the data
+    // Get profiles for transforming the data - teams come from equipment assignment
     const assigneeIds = [...new Set((data || []).map(wo => wo.assignee_id).filter(Boolean))];
-    const teamIds = [...new Set((data || []).map(wo => wo.team_id).filter(Boolean))];
-
-    const [profilesResult, teamsResult] = await Promise.all([
-      assigneeIds.length > 0 ? supabase.from('profiles').select('id, name').in('id', assigneeIds) : { data: [], error: null },
-      teamIds.length > 0 ? supabase.from('teams').select('id, name').in('id', teamIds) : { data: [], error: null }
-    ]);
+    
+    const profilesResult = assigneeIds.length > 0 ? 
+      await supabase.from('profiles').select('id, name').in('id', assigneeIds) : 
+      { data: [], error: null };
 
     return (data || []).map(wo => ({
       ...wo,
       assigneeName: profilesResult.data?.find(p => p.id === wo.assignee_id)?.name,
-      teamName: teamsResult.data?.find(t => t.id === wo.team_id)?.name
+      teamName: undefined // Team info now comes from equipment assignment
     }));
   } catch (error) {
     console.error('Error in getWorkOrdersByEquipmentId:', error);
@@ -283,19 +280,17 @@ export const getAllWorkOrdersByOrganization = async (organizationId: string): Pr
       return [];
     }
 
-    // Get profiles and teams for transforming the data
+    // Get profiles for transforming the data - teams come from equipment assignment
     const assigneeIds = [...new Set((data || []).map(wo => wo.assignee_id).filter(Boolean))];
-    const teamIds = [...new Set((data || []).map(wo => wo.team_id).filter(Boolean))];
-
-    const [profilesResult, teamsResult] = await Promise.all([
-      assigneeIds.length > 0 ? supabase.from('profiles').select('id, name').in('id', assigneeIds) : { data: [], error: null },
-      teamIds.length > 0 ? supabase.from('teams').select('id, name').in('id', teamIds) : { data: [], error: null }
-    ]);
+    
+    const profilesResult = assigneeIds.length > 0 ? 
+      await supabase.from('profiles').select('id, name').in('id', assigneeIds) : 
+      { data: [], error: null };
 
     return (data || []).map(wo => ({
       ...wo,
       assigneeName: profilesResult.data?.find(p => p.id === wo.assignee_id)?.name,
-      teamName: teamsResult.data?.find(t => t.id === wo.team_id)?.name
+      teamName: undefined // Team info now comes from equipment assignment
     }));
   } catch (error) {
     console.error('Error in getAllWorkOrdersByOrganization:', error);
@@ -317,19 +312,15 @@ export const getWorkOrderById = async (organizationId: string, workOrderId: stri
       return undefined;
     }
 
-    // Get profiles and teams for transforming the data
+    // Get profiles for transforming the data - teams come from equipment assignment
     const profilesResult = data.assignee_id ? 
       await supabase.from('profiles').select('id, name').eq('id', data.assignee_id).single() : 
-      { data: null, error: null };
-    
-    const teamsResult = data.team_id ? 
-      await supabase.from('teams').select('id, name').eq('id', data.team_id).single() : 
       { data: null, error: null };
 
     return {
       ...data,
       assigneeName: profilesResult.data?.name,
-      teamName: teamsResult.data?.name
+      teamName: undefined // Team info now comes from equipment assignment
     };
   } catch (error) {
     console.error('Error in getWorkOrderById:', error);
@@ -511,19 +502,15 @@ export const createWorkOrder = async (
       return null;
     }
 
-    // Get profiles and teams for transforming the data
+    // Get profiles for transforming the data - teams come from equipment assignment
     const profilesResult = data.assignee_id ? 
       await supabase.from('profiles').select('id, name').eq('id', data.assignee_id).single() : 
-      { data: null, error: null };
-    
-    const teamsResult = data.team_id ? 
-      await supabase.from('teams').select('id, name').eq('id', data.team_id).single() : 
       { data: null, error: null };
 
     return {
       ...data,
       assigneeName: profilesResult.data?.name,
-      teamName: teamsResult.data?.name
+      teamName: undefined // Team info now comes from equipment assignment
     };
   } catch (error) {
     console.error('Error in createWorkOrder:', error);

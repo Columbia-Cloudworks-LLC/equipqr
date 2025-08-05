@@ -140,18 +140,21 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
         <div className="space-y-4">
           {/* Key Information - Stacked vertically */}
           <div className="space-y-2 text-sm">
-            {/* Assignment Info */}
+            {/* Equipment Team - Static Display */}
+            {(order as any).equipmentTeamName && (
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground">Team: {(order as any).equipmentTeamName}</span>
+              </div>
+            )}
+
+            {/* Assigned User - Interactive */}
             <WorkOrderAssignmentHover 
               workOrder={order}
               disabled={false}
             >
               <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
-                {order.teamName ? (
-                  <>
-                    <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-muted-foreground">Team: {order.teamName}</span>
-                  </>
-                ) : order.assigneeName ? (
+                {order.assigneeName ? (
                   <>
                     <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-muted-foreground">Assigned: {order.assigneeName}</span>

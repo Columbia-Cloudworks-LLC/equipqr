@@ -30,19 +30,19 @@ export const getFilteredWorkOrdersByOrganization = async (
         priority,
         status,
         assignee_id,
-        team_id,
         created_date,
         due_date,
         estimated_hours,
         completed_date,
         created_by,
         equipment:equipment_id (
-          name
+          name,
+          team_id,
+          teams:team_id (
+            name
+          )
         ),
         assignee:profiles!work_orders_assignee_id_fkey (
-          name
-        ),
-        team:team_id (
           name
         ),
         creator:profiles!work_orders_created_by_fkey (
@@ -66,9 +66,22 @@ export const getFilteredWorkOrdersByOrganization = async (
       }
     }
 
+    // Team filtering requires a separate approach since we can't filter on nested relations directly
+    // We'll need to get equipment IDs for the team first, then filter work orders
     if (filters.teamId && filters.teamId !== 'all') {
-      // Uses idx_work_orders_team_id index
-      query = query.eq('team_id', filters.teamId);
+      const { data: equipmentIds } = await supabase
+        .from('equipment')
+        .select('id')
+        .eq('organization_id', organizationId)
+        .eq('team_id', filters.teamId);
+      
+      const ids = equipmentIds?.map(e => e.id) || [];
+      if (ids.length > 0) {
+        query = query.in('equipment_id', ids);
+      } else {
+        // No equipment for this team, return empty result
+        return [];
+      }
     }
 
     if (filters.priority && filters.priority !== 'all') {
@@ -119,8 +132,8 @@ export const getFilteredWorkOrdersByOrganization = async (
       status: wo.status,
       assigneeId: wo.assignee_id,
       assigneeName: wo.assignee?.name,
-      teamId: wo.team_id,
-      teamName: wo.team?.name,
+      teamId: wo.equipment?.team_id,
+      teamName: wo.equipment?.teams?.name,
       createdDate: wo.created_date,
       created_date: wo.created_date,
       dueDate: wo.due_date,
