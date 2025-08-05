@@ -7,9 +7,8 @@ import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 import EquipmentHeader from '@/components/equipment/EquipmentHeader';
-import EnhancedEquipmentFilters from '@/components/equipment/EnhancedEquipmentFilters';
+import { EquipmentFilters } from '@/components/equipment/EquipmentFilters';
 import EquipmentSortHeader from '@/components/equipment/EquipmentSortHeader';
-import EquipmentInsights from '@/components/equipment/EquipmentInsights';
 import EquipmentGrid from '@/components/equipment/EquipmentGrid';
 import EquipmentLoadingState from '@/components/equipment/EquipmentLoadingState';
 
@@ -82,20 +81,13 @@ const Equipment = () => {
         onAddEquipment={handleAddEquipment}
       />
 
-      <EnhancedEquipmentFilters
+      <EquipmentFilters
         filters={filters}
-        showAdvancedFilters={showAdvancedFilters}
-        hasActiveFilters={hasActiveFilters}
-        filterOptions={filterOptions}
         onFilterChange={updateFilter}
-        onToggleAdvanced={() => setShowAdvancedFilters(!showAdvancedFilters)}
         onClearFilters={clearFilters}
         onQuickFilter={applyQuickFilter}
-      />
-
-      <EquipmentInsights 
-        equipment={equipment}
-        filteredEquipment={filteredAndSortedEquipment}
+        filterOptions={filterOptions}
+        hasActiveFilters={hasActiveFilters}
       />
 
       <EquipmentSortHeader

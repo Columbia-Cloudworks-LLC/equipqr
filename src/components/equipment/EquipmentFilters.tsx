@@ -1,54 +1,73 @@
-import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter } from 'lucide-react';
+import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileEquipmentFilters } from './MobileEquipmentFilters';
+import { DesktopEquipmentFilters } from './DesktopEquipmentFilters';
+import { EquipmentFilters as EquipmentFiltersType } from '@/hooks/useEquipmentFiltering';
 
-interface EquipmentFiltersProps {
-  searchQuery: string;
-  statusFilter: string;
-  onSearchChange: (value: string) => void;
-  onStatusFilterChange: (value: string) => void;
+interface Team {
+  id: string;
+  name: string;
 }
 
-const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
-  searchQuery,
-  statusFilter,
-  onSearchChange,
-  onStatusFilterChange
+interface FilterOptions {
+  manufacturers: string[];
+  locations: string[];
+  teams: Team[];
+}
+
+interface EquipmentFiltersProps {
+  filters: EquipmentFiltersType;
+  onFilterChange: (key: keyof EquipmentFiltersType, value: any) => void;
+  onClearFilters: () => void;
+  onQuickFilter: (preset: string) => void;
+  filterOptions: FilterOptions;
+  hasActiveFilters: boolean;
+}
+
+export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
+  filters,
+  onFilterChange,
+  onClearFilters,
+  onQuickFilter,
+  filterOptions,
+  hasActiveFilters
 }) => {
   const isMobile = useIsMobile();
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.status !== 'all') count++;
+    if (filters.manufacturer !== 'all') count++;
+    if (filters.location !== 'all') count++;
+    if (filters.team !== 'all') count++;
+    if (filters.maintenanceDateFrom || filters.maintenanceDateTo) count++;
+    if (filters.installationDateFrom || filters.installationDateTo) count++;
+    if (filters.warrantyExpiring) count++;
+    return count;
+  };
+
+  if (isMobile) {
+    return (
+      <MobileEquipmentFilters
+        filters={filters}
+        activeFilterCount={getActiveFilterCount()}
+        showMobileFilters={showMobileFilters}
+        onShowMobileFiltersChange={setShowMobileFilters}
+        onFilterChange={onFilterChange}
+        onClearFilters={onClearFilters}
+        onQuickFilter={onQuickFilter}
+        filterOptions={filterOptions}
+      />
+    );
+  }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search equipment..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-            <SelectTrigger className={isMobile ? "w-full" : "w-[180px]"}>
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="maintenance">Maintenance</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </CardContent>
-    </Card>
+    <DesktopEquipmentFilters
+      filters={filters}
+      onFilterChange={onFilterChange}
+      onClearFilters={onClearFilters}
+      filterOptions={filterOptions}
+    />
   );
 };
-
-export default EquipmentFilters;
