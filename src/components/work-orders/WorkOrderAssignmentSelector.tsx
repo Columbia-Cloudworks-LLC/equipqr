@@ -33,7 +33,6 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
       quickAssignmentMutation.mutate({
         workOrderId: workOrder.id,
         assigneeId: null,
-        teamId: null,
         organizationId
       });
       onCancel();
@@ -46,7 +45,6 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
     quickAssignmentMutation.mutate({
       workOrderId: workOrder.id,
       assigneeId: option.id,
-      teamId: null,
       organizationId
     });
     onCancel();

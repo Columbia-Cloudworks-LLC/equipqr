@@ -9,28 +9,25 @@ export const useQuickWorkOrderAssignment = () => {
     mutationFn: async ({ 
       workOrderId, 
       assigneeId, 
-      teamId, 
       organizationId 
     }: { 
       workOrderId: string; 
       assigneeId?: string | null; 
-      teamId?: string | null; 
       organizationId: string 
     }) => {
       // Determine the new status based on assignment
       let newStatus = 'submitted';
-      if (assigneeId || teamId) {
+      if (assigneeId) {
         newStatus = 'assigned';
       }
 
       const updateData: any = {
         assignee_id: assigneeId || null,
-        team_id: teamId || null,
         status: newStatus
       };
 
       // Only set acceptance_date if actually assigning
-      if (assigneeId || teamId) {
+      if (assigneeId) {
         updateData.acceptance_date = new Date().toISOString();
       } else {
         updateData.acceptance_date = null;
@@ -43,8 +40,8 @@ export const useQuickWorkOrderAssignment = () => {
 
       if (error) throw error;
     },
-    onSuccess: (_, { assigneeId, teamId, organizationId }) => {
-      const message = assigneeId || teamId ? 'Work order assigned successfully' : 'Work order unassigned successfully';
+    onSuccess: (_, { assigneeId, organizationId }) => {
+      const message = assigneeId ? 'Work order assigned successfully' : 'Work order unassigned successfully';
       toast.success(message);
       
       // Invalidate all work order related queries with partial matching
