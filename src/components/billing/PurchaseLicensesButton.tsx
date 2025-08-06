@@ -36,7 +36,7 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
   const isMobile = useIsMobile();
 
   const userRole = currentOrganization?.userRole;
-  const canManageBilling = ['owner', 'admin'].includes(userRole || '');
+  const canPurchaseLicenses = userRole === 'owner';
 
   const handlePurchase = async () => {
     if (!currentOrganization) {
@@ -44,8 +44,8 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
       return;
     }
 
-    if (!canManageBilling) {
-      toast.error('Only organization owners and admins can purchase licenses');
+    if (!canPurchaseLicenses) {
+      toast.error('Only organization owners can purchase licenses');
       return;
     }
 
@@ -83,7 +83,7 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
   };
 
   // Don't render the button if user doesn't have permission
-  if (!canManageBilling) {
+  if (!canPurchaseLicenses) {
     return null;
   }
 

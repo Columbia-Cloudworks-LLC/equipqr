@@ -38,6 +38,7 @@ const Billing = () => {
   // Get user role for permission checks
   const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
+  const canPurchaseLicenses = userRole === 'owner';
 
   // Calculate billing based on licenses
   const billing = slotAvailability ? calculateLicenseBilling(members, slotAvailability, storageUsedGB, fleetMapEnabled) : null;
@@ -127,7 +128,7 @@ const Billing = () => {
             <div className="flex items-start gap-2 text-amber-800">
               <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span className="text-sm">
-                <strong>Limited Access:</strong> Only organization owners and admins can manage billing settings and purchase licenses.
+                <strong>Limited Access:</strong> Only organization owners and admins can manage billing settings. Only organization owners can purchase licenses.
               </span>
             </div>
           </CardContent>

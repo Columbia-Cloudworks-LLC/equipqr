@@ -63,9 +63,9 @@ serve(async (req) => {
       throw new Error("Failed to verify organization membership");
     }
 
-    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    if (!membership || membership.role !== 'owner') {
       logStep("Authorization failed", { membership });
-      throw new Error("Insufficient permissions to purchase licenses");
+      throw new Error("Only organization owners can purchase licenses");
     }
     logStep("Authorization verified", { role: membership.role });
 
