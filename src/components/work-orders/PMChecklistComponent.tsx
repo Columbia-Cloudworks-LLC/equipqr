@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle, RotateCcw } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
@@ -52,6 +53,8 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error' | 'offline'>('saved');
   const [lastSaved, setLastSaved] = useState<Date>();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showSetAllOKDialog, setShowSetAllOKDialog] = useState(false);
+  const [isSettingAllOK, setIsSettingAllOK] = useState(false);
 
   // Browser storage for backup
   const storageKey = `pm-checklist-${pm.id}`;
@@ -321,6 +324,28 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       setIsReverting(false);
     }
   };
+
+  const handleSetAllToOK = useCallback(async () => {
+    setIsSettingAllOK(true);
+    try {
+      const updatedChecklist = checklist.map(item => ({
+        ...item,
+        condition: 1 as const // Set to "OK" while preserving notes and other properties
+      }));
+      
+      setChecklist(updatedChecklist);
+      setHasUnsavedChanges(true);
+      triggerAutoSave('selection'); // Trigger auto-save
+      
+      toast.success('All checklist items set to OK');
+      setShowSetAllOKDialog(false);
+    } catch (error) {
+      console.error('Error setting all items to OK:', error);
+      toast.error('Failed to set all items to OK');
+    } finally {
+      setIsSettingAllOK(false);
+    }
+  }, [checklist, triggerAutoSave]);
 
   // Print/Export handlers
   const handlePrintPDF = useCallback(() => {
@@ -677,6 +702,18 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-red-800">
               {unratedRequiredItems.length} required item(s) need to be rated before completion.
+              {!readOnly && (
+                <>
+                  {' '}
+                  <button 
+                    onClick={() => setShowSetAllOKDialog(true)}
+                    className="text-red-800 underline hover:no-underline focus:outline-none"
+                    disabled={isSettingAllOK}
+                  >
+                    Set All to OK
+                  </button>
+                </>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -831,6 +868,28 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             Completed on {new Date(pm.completed_at).toLocaleString()}
           </div>
         )}
+
+        {/* Set All to OK Confirmation Dialog */}
+        <AlertDialog open={showSetAllOKDialog} onOpenChange={setShowSetAllOKDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Set All Items to OK?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will set the condition of all checklist items to "OK". Any existing notes on the items will be preserved. 
+                This action is useful when the equipment is already in good working order.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSettingAllOK}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleSetAllToOK}
+                disabled={isSettingAllOK}
+              >
+                {isSettingAllOK ? 'Setting...' : 'Set All to OK'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
