@@ -68,6 +68,10 @@ export const useEnhancedOrganizationData = (organizationId?: string) => {
   const equipment = useEnhancedOptimizedEquipment(organizationId);
   const dashboard = useEnhancedOptimizedDashboard(organizationId);
   
+  // Use enhanced organization hooks for real-time updates
+  // Note: These are imported dynamically to avoid circular dependencies
+  // Components should use the specific hooks directly for better performance
+  
   const { invalidateOrganizationData } = useCacheInvalidation();
 
   // Cleanup subscriptions on unmount

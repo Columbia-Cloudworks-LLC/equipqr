@@ -30,7 +30,13 @@ export class CacheManager {
       ['equipment-optimized', organizationId],
       ['dashboard-optimized', organizationId],
       ['notes', organizationId],
-      ['scans', organizationId]
+      ['scans', organizationId],
+      ['organization-members', organizationId],
+      ['organization-admins', organizationId],
+      ['organization-slots', organizationId],
+      ['slot-availability', organizationId],
+      ['slot-purchases', organizationId],
+      ['organization-invitations', organizationId]
     ];
 
     patterns.forEach(pattern => {
@@ -96,9 +102,56 @@ export class CacheManager {
     });
   }
 
+  // Organization member related invalidation
+  invalidateOrganizationMemberRelated(organizationId: string) {
+    if (!this.queryClient) return;
+
+    // Invalidate all member-related queries
+    this.queryClient.invalidateQueries({ 
+      queryKey: ['organization-members', organizationId] 
+    });
+    this.queryClient.invalidateQueries({ 
+      queryKey: ['organization-admins', organizationId] 
+    });
+    
+    // Update dashboard stats
+    this.queryClient.invalidateQueries({ 
+      queryKey: ['dashboard-optimized', organizationId] 
+    });
+  }
+
+  // Organization slot related invalidation
+  invalidateOrganizationSlotRelated(organizationId: string) {
+    if (!this.queryClient) return;
+
+    // Invalidate all slot-related queries
+    this.queryClient.invalidateQueries({ 
+      queryKey: ['organization-slots', organizationId] 
+    });
+    this.queryClient.invalidateQueries({ 
+      queryKey: ['slot-availability', organizationId] 
+    });
+    this.queryClient.invalidateQueries({ 
+      queryKey: ['slot-purchases', organizationId] 
+    });
+  }
+
+  // Organization invitation related invalidation
+  invalidateOrganizationInvitationRelated(organizationId: string) {
+    if (!this.queryClient) return;
+
+    // Invalidate invitation queries
+    this.queryClient.invalidateQueries({ 
+      queryKey: ['organization-invitations', organizationId] 
+    });
+    
+    // Also invalidate slot data as invitations can affect slot usage
+    this.invalidateOrganizationSlotRelated(organizationId);
+  }
+
   // Batch invalidation to reduce re-renders
   batchInvalidate(organizationId: string, operations: Array<{
-    type: 'equipment' | 'workOrder' | 'team' | 'organization';
+    type: 'equipment' | 'workOrder' | 'team' | 'organization' | 'organizationMember' | 'organizationSlot' | 'organizationInvitation';
     id?: string;
     equipmentId?: string;
   }>) {
@@ -125,6 +178,20 @@ export class CacheManager {
           break;
         case 'organization':
           uniqueInvalidations.add(`dashboard-${organizationId}`);
+          break;
+        case 'organizationMember':
+          uniqueInvalidations.add(`organization-members-${organizationId}`);
+          uniqueInvalidations.add(`organization-admins-${organizationId}`);
+          uniqueInvalidations.add(`dashboard-${organizationId}`);
+          break;
+        case 'organizationSlot':
+          uniqueInvalidations.add(`organization-slots-${organizationId}`);
+          uniqueInvalidations.add(`slot-availability-${organizationId}`);
+          uniqueInvalidations.add(`slot-purchases-${organizationId}`);
+          break;
+        case 'organizationInvitation':
+          uniqueInvalidations.add(`organization-invitations-${organizationId}`);
+          uniqueInvalidations.add(`slot-availability-${organizationId}`);
           break;
       }
     });

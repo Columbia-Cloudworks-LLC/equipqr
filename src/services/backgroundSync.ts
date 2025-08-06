@@ -83,6 +83,36 @@ export class BackgroundSyncService {
         },
         (payload) => this.handleNoteChange(organizationId, payload)
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organization_members',
+          filter: `organization_id=eq.${organizationId}`
+        },
+        (payload) => this.handleOrganizationMemberChange(organizationId, payload)
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organization_slots',
+          filter: `organization_id=eq.${organizationId}`
+        },
+        (payload) => this.handleOrganizationSlotChange(organizationId, payload)
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organization_invitations',
+          filter: `organization_id=eq.${organizationId}`
+        },
+        (payload) => this.handleOrganizationInvitationChange(organizationId, payload)
+      )
       .subscribe((status) => {
         timer();
         console.log(`Real-time subscription status for org ${organizationId}:`, status);
@@ -157,6 +187,36 @@ export class BackgroundSyncService {
 
     if (!this.isOnline) {
       this.queueForSync('note', payload);
+    }
+  }
+
+  private handleOrganizationMemberChange(organizationId: string, payload: any) {
+    console.log('Organization member change detected:', payload);
+    
+    cacheManager.invalidateOrganizationMemberRelated(organizationId);
+
+    if (!this.isOnline) {
+      this.queueForSync('organization_member', payload);
+    }
+  }
+
+  private handleOrganizationSlotChange(organizationId: string, payload: any) {
+    console.log('Organization slot change detected:', payload);
+    
+    cacheManager.invalidateOrganizationSlotRelated(organizationId);
+
+    if (!this.isOnline) {
+      this.queueForSync('organization_slot', payload);
+    }
+  }
+
+  private handleOrganizationInvitationChange(organizationId: string, payload: any) {
+    console.log('Organization invitation change detected:', payload);
+    
+    cacheManager.invalidateOrganizationInvitationRelated(organizationId);
+
+    if (!this.isOnline) {
+      this.queueForSync('organization_invitation', payload);
     }
   }
 
