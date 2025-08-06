@@ -5,6 +5,7 @@ import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
+import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
 import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
 
 interface OrganizationSidebarProps {
@@ -18,6 +19,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
 }) => {
   const { data: members = [] } = useOrganizationMembers(organization?.id || '');
   const { data: fleetMapSubscription } = useFleetMapSubscription(organization?.id || '');
+  const { data: storageUsage, isLoading: storageLoading } = useOrganizationStorageUsage();
 
   const handlePurchaseSlots = (quantity: number) => {
     console.log('Purchase slots:', quantity);
@@ -34,7 +36,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
       </div>
       <div className="lg:sticky lg:top-6">
         <SlotBasedBilling
-          storageUsedGB={0} // TODO: Get from organization data
+          storageUsedGB={storageLoading ? 0 : (storageUsage?.totalSizeGB || 0)}
           fleetMapEnabled={fleetMapSubscription?.enabled || false}
           onPurchaseSlots={handlePurchaseSlots}
           onUpgradeToMultiUser={onUpgrade}

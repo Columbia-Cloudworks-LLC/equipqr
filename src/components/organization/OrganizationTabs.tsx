@@ -12,6 +12,7 @@ import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrga
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
+import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
 import OptimizedMembersList from './OptimizedMembersList';
 import AdminsTabContent from './AdminsTabContent';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
@@ -55,6 +56,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   const [activeTab, setActiveTab] = useState("overview");
   const isMobile = useIsMobile();
   const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
+  const { data: storageUsage, isLoading: storageLoading } = useOrganizationStorageUsage();
   const billing = calculateSimplifiedBilling(members);
 
   // Combine role-based permissions with organizational restrictions
@@ -298,7 +300,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
             <p className="text-sm text-muted-foreground">Manage your organization's billing and user licenses</p>
           </div>
           <SlotBasedBilling
-            storageUsedGB={0} // TODO: Get from organization data
+            storageUsedGB={storageLoading ? 0 : (storageUsage?.totalSizeGB || 0)}
             fleetMapEnabled={fleetMapSubscription?.enabled || false}
             onPurchaseSlots={(quantity) => onUpgrade()}
             onUpgradeToMultiUser={onUpgrade}
