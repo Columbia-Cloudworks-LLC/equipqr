@@ -30,7 +30,6 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
     setIsAssigning(true);
     try {
       let assigneeId = null;
-      let teamId = null;
       
       if (assignmentData.type === 'assign') {
         assigneeId = assignmentData.id;
@@ -39,7 +38,6 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
       await assignmentMutation.mutateAsync({
         workOrderId: workOrder.id,
         assigneeId,
-        teamId,
         organizationId: workOrder.organization_id
       });
       

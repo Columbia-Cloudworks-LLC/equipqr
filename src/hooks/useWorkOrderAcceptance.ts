@@ -8,14 +8,13 @@ interface AcceptWorkOrderParams {
   workOrderId: string;
   organizationId: string;
   assigneeId?: string;
-  teamId?: string;
 }
 
 export const useWorkOrderAcceptance = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ workOrderId, organizationId, assigneeId, teamId }: AcceptWorkOrderParams) => {
+    mutationFn: async ({ workOrderId, organizationId, assigneeId }: AcceptWorkOrderParams) => {
       // Get organization member count to determine if single-user org
       const { data: orgMembers } = await supabase
         .from('organization_members')
@@ -46,10 +45,6 @@ export const useWorkOrderAcceptance = () => {
       // Add assignment if provided or if single-user org
       if (assigneeId || isSingleUserOrg) {
         updateData.assignee_id = assigneeId;
-      }
-
-      if (teamId) {
-        updateData.team_id = teamId;
       }
 
       // Update the work order

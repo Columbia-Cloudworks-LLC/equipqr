@@ -107,14 +107,13 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     await updateStatus(newStatus);
   };
 
-  const handleAcceptance = async (assigneeId?: string, teamId?: string) => {
+  const handleAcceptance = async (assigneeId?: string) => {
     if (!currentOrganization) return;
     
     await acceptanceMutation.mutateAsync({
       workOrderId: workOrder.id,
       organizationId: currentOrganization.id,
-      assigneeId,
-      teamId
+      assigneeId
     });
 
     if (onStatusUpdate) {

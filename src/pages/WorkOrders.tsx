@@ -77,14 +77,13 @@ const WorkOrders = () => {
     setAcceptanceModal({ open: true, workOrder });
   };
 
-  const handleAcceptance = async (assigneeId?: string, teamId?: string) => {
+  const handleAcceptance = async (assigneeId?: string) => {
     if (!currentOrganization || !acceptanceModal.workOrder) return;
     
     await acceptanceMutation.mutateAsync({
       workOrderId: acceptanceModal.workOrder.id,
       organizationId: currentOrganization.id,
-      assigneeId,
-      teamId
+      assigneeId
     });
 
     setAcceptanceModal({ open: false, workOrder: null });

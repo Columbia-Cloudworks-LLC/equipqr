@@ -17,7 +17,7 @@ interface WorkOrderAcceptanceModalProps {
   onClose: () => void;
   workOrder: any;
   organizationId: string;
-  onAccept: (assigneeId?: string, teamId?: string) => Promise<void>;
+  onAccept: (assigneeId?: string) => Promise<void>;
 }
 
 interface AssigneeOption {
@@ -116,9 +116,8 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
     setIsSubmitting(true);
     try {
       const assigneeId = selectedAssignee === 'unassigned' ? undefined : selectedAssignee;
-      const teamId = equipment?.team_id || undefined;
       
-      await onAccept(assigneeId, teamId);
+      await onAccept(assigneeId);
       onClose();
       
       toast.success('Work order accepted successfully');
