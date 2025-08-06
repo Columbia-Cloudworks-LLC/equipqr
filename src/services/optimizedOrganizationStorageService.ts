@@ -56,24 +56,34 @@ export class OptimizedOrganizationStorageService {
       );
 
       // Fetch work order image storage with organization filtering
+      // Using separate queries to avoid PostgREST relationship issues
       const workOrderImageData = await monitorQuery(
         'work_order_images_storage_by_org',
         async () => {
-          const { data, error } = await supabase
-            .from('work_order_images')
-            .select(`
-              file_size,
-              work_order_id,
-              work_orders!inner (
-                organization_id
-              )
-            `)
-            .eq('work_orders.organization_id', organizationId);
+          // First get work order IDs for the organization
+          const { data: workOrders, error: workOrderError } = await supabase
+            .from('work_orders')
+            .select('id')
+            .eq('organization_id', organizationId);
 
-          if (error) throw error;
-          return data || [];
+          if (workOrderError) throw workOrderError;
+          
+          if (!workOrders || workOrders.length === 0) {
+            return [];
+          }
+
+          const workOrderIds = workOrders.map(wo => wo.id);
+
+          // Then get images for those work orders
+          const { data: images, error: imageError } = await supabase
+            .from('work_order_images')
+            .select('file_size, work_order_id')
+            .in('work_order_id', workOrderIds);
+
+          if (imageError) throw imageError;
+          return images || [];
         },
-        ['idx_work_order_images_work_order_id', 'idx_work_orders_organization_id']
+        ['idx_work_orders_organization_id', 'idx_work_order_images_work_order_id']
       );
 
       // Server-side aggregation
