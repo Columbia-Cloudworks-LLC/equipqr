@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useSession } from '@/contexts/SessionContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { toast } from 'sonner';
 
 interface ManageSubscriptionButtonProps {
@@ -18,9 +18,8 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
   className = ''
 }) => {
   const { openCustomerPortal } = useSubscription();
-  const { getCurrentOrganization } = useSession();
+  const { currentOrganization } = useSimpleOrganization();
   
-  const currentOrganization = getCurrentOrganization();
   const userRole = currentOrganization?.userRole;
   
   // Only allow owners and admins to manage subscriptions

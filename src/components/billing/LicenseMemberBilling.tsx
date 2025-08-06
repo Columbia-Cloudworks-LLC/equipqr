@@ -6,7 +6,6 @@ import { Users, AlertCircle, Calendar } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { useSession } from '@/contexts/SessionContext';
 import { calculateLicenseBilling, hasLicenses, getLicenseStatus } from '@/utils/licenseBillingUtils';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import MemberTable from '@/components/billing/MemberTable';
@@ -14,13 +13,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const LicenseMemberBilling: React.FC = () => {
   const { currentOrganization } = useSimpleOrganization();
-  const { getCurrentOrganization } = useSession();
   const { data: members = [], isLoading: membersLoading } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading: slotsLoading } = useSlotAvailability(currentOrganization?.id || '');
   const isMobile = useIsMobile();
 
-  const sessionOrganization = getCurrentOrganization();
-  const userRole = sessionOrganization?.userRole;
+  const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
 
   if (membersLoading || slotsLoading) {

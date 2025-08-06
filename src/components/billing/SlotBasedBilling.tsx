@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, AlertTriangle, TrendingUp } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
@@ -25,13 +24,11 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
   onPurchaseSlots,
   onUpgradeToMultiUser
 }) => {
-  const { getCurrentOrganization } = useSession();
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading, refetch } = useSlotAvailability(currentOrganization?.id || '');
 
-  const sessionOrganization = getCurrentOrganization();
-  const userRole = sessionOrganization?.userRole;
+  const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
 
   // Provide safe defaults for slot availability
