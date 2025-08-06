@@ -18,6 +18,7 @@ import AdminsTabContent from './AdminsTabContent';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
 import InvitationManagement from './InvitationManagement';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
+import PurchaseLicensesLink from '@/components/billing/PurchaseLicensesLink';
 import ManageSubscriptionButton from '@/components/billing/ManageSubscriptionButton';
 import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
@@ -257,7 +258,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
         {billing.userLicenses.totalUsers === 1 && !restrictions.hasAvailableSlots && (
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="text-sm text-blue-800">
-              <strong>License-based collaboration:</strong> Purchase user license subscriptions to invite team members and unlock collaboration features. 
+              <strong>License-based collaboration:</strong> <PurchaseLicensesLink>Purchase user license subscriptions</PurchaseLicensesLink> to invite team members and unlock collaboration features. 
               You pay monthly for a set number of licenses, then invite users up to that limit.
             </div>
           </div>
@@ -267,7 +268,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
             <div className="text-sm text-orange-800">
               <strong>No available licenses:</strong> You've used all your purchased user licenses. 
-              Purchase additional licenses to invite more team members.
+              <PurchaseLicensesLink>Purchase additional licenses</PurchaseLicensesLink> to invite more team members.
             </div>
           </div>
         )}

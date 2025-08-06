@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationStats } from '@/hooks/useOrganizationStats';
@@ -14,8 +14,7 @@ import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import { toast } from 'sonner';
 
 const Organization = () => {
-  const { getCurrentOrganization, isLoading } = useSession();
-  const currentOrganization = getCurrentOrganization();
+  const { currentOrganization, isLoading } = useSimpleOrganization();
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
   // Custom hooks for data and business logic

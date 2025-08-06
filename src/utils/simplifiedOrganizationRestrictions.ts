@@ -53,9 +53,9 @@ export const getRestrictionMessage = (restriction: keyof SimplifiedOrganizationR
     canAssignEquipmentToTeams: 'Equipment team assignment requires user licenses. Purchase licenses to unlock this feature.',
     canUploadImages: 'Image uploads require user licenses. Purchase licenses to unlock this feature.',
     canAccessFleetMap: 'Fleet Map is a premium add-on. Enable it from your billing settings.',
-    canInviteMembers: 'Purchase user licenses to invite team members.',
+    canInviteMembers: 'Purchase licenses to invite team members.',
     hasAvailableSlots: 'No available user licenses. Purchase more licenses to invite team members.',
-    upgradeMessage: 'Purchase user licenses to unlock collaboration features.'
+    upgradeMessage: 'Purchase licenses to unlock collaboration features.'
   };
   
   return messages[restriction] || 'This feature requires user licenses for your organization.';
