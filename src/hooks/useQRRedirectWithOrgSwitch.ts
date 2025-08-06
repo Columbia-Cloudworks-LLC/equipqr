@@ -37,6 +37,7 @@ export const useQRRedirectWithOrgSwitch = ({
   });
 
   const [isSwitchingOrg, setIsSwitchingOrg] = useState(false);
+  const [hasCalledComplete, setHasCalledComplete] = useState(false);
 
   useEffect(() => {
     if (!equipmentId) {
@@ -70,6 +71,14 @@ export const useQRRedirectWithOrgSwitch = ({
     // User is authenticated, proceed with organization check
     checkEquipmentOrganization();
   }, [equipmentId, user, authLoading]);
+
+  // Auto-call onComplete when ready to proceed
+  useEffect(() => {
+    if (state.canProceed && state.targetPath && !state.isLoading && !hasCalledComplete && onComplete) {
+      setHasCalledComplete(true);
+      onComplete(state.targetPath);
+    }
+  }, [state.canProceed, state.targetPath, state.isLoading, hasCalledComplete, onComplete]);
 
   const checkEquipmentOrganization = async () => {
     if (!equipmentId || !user) return;

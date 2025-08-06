@@ -11,10 +11,16 @@ interface QRRedirectHandlerProps {
 }
 
 export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentId }) => {
+  const [shouldNavigate, setShouldNavigate] = React.useState(false);
+  const [navigationTarget, setNavigationTarget] = React.useState<string | null>(null);
+  
   const { state, isSwitchingOrg, handleOrgSwitch, handleProceed, retry } = useQRRedirectWithOrgSwitch({
     equipmentId,
     onComplete: (targetPath) => {
-      // Navigation will be handled by the Navigate component below
+      // Allow parent component to run any additional logic here (analytics, toasts, etc.)
+      console.log('🎯 QR redirect complete, navigating to:', targetPath);
+      setNavigationTarget(targetPath);
+      setShouldNavigate(true);
     }
   });
 
@@ -39,8 +45,8 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
   }
 
   // Direct navigation cases
-  if (state.canProceed && state.targetPath) {
-    return <Navigate to={state.targetPath} replace />;
+  if (shouldNavigate && navigationTarget) {
+    return <Navigate to={navigationTarget} replace />;
   }
 
   if (state.needsAuth && state.targetPath) {
