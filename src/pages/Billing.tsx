@@ -140,7 +140,7 @@ const Billing = () => {
       <LicenseMemberBilling />
 
       {/* Image Storage Quota */}
-      <ImageStorageQuota />
+      <ImageStorageQuota organizationId={sessionOrganization?.id} />
 
       {/* Fleet Map Add-on */}
       {hasActiveLicenses && (

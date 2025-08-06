@@ -8,8 +8,12 @@ import { HardDrive, Image, AlertTriangle, Info } from 'lucide-react';
 import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const ImageStorageQuota: React.FC = () => {
-  const { data: storageUsage, isLoading, error } = useOrganizationStorageUsage();
+interface ImageStorageQuotaProps {
+  organizationId?: string;
+}
+
+const ImageStorageQuota: React.FC<ImageStorageQuotaProps> = ({ organizationId }) => {
+  const { data: storageUsage, isLoading, error } = useOrganizationStorageUsage(organizationId);
   const isMobile = useIsMobile();
 
   if (isLoading) {

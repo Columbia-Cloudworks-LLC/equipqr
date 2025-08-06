@@ -8,21 +8,24 @@ export type { StorageUsage };
  * Optimized hook for fetching organization storage usage
  * Uses server-side aggregation and proper organization filtering
  */
-export const useOrganizationStorageUsage = () => {
+export const useOrganizationStorageUsage = (organizationId?: string) => {
   const { currentOrganization } = useSimpleOrganization();
+  
+  // Use provided organizationId or fall back to current organization
+  const targetOrgId = organizationId || currentOrganization?.id;
 
   return useQuery({
-    queryKey: ['organization-storage-usage-optimized', currentOrganization?.id],
+    queryKey: ['organization-storage-usage-optimized', targetOrgId],
     queryFn: async (): Promise<StorageUsage> => {
-      if (!currentOrganization?.id) {
+      if (!targetOrgId) {
         throw new Error('No organization selected');
       }
 
       return OptimizedOrganizationStorageService.getOrganizationStorageUsage(
-        currentOrganization.id
+        targetOrgId
       );
     },
-    enabled: !!currentOrganization?.id,
+    enabled: !!targetOrgId,
     staleTime: 2 * 60 * 1000, // 2 minutes - increased for better performance
     refetchInterval: 10 * 60 * 1000, // 10 minutes - reduced frequency
     retry: 3,
@@ -33,21 +36,24 @@ export const useOrganizationStorageUsage = () => {
 /**
  * Hook for getting detailed storage breakdown by type
  */
-export const useDetailedStorageBreakdown = () => {
+export const useDetailedStorageBreakdown = (organizationId?: string) => {
   const { currentOrganization } = useSimpleOrganization();
+  
+  // Use provided organizationId or fall back to current organization
+  const targetOrgId = organizationId || currentOrganization?.id;
 
   return useQuery({
-    queryKey: ['organization-storage-breakdown', currentOrganization?.id],
+    queryKey: ['organization-storage-breakdown', targetOrgId],
     queryFn: async () => {
-      if (!currentOrganization?.id) {
+      if (!targetOrgId) {
         throw new Error('No organization selected');
       }
 
       return OptimizedOrganizationStorageService.getDetailedStorageBreakdown(
-        currentOrganization.id
+        targetOrgId
       );
     },
-    enabled: !!currentOrganization?.id,
+    enabled: !!targetOrgId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 15 * 60 * 1000, // 15 minutes
   });
