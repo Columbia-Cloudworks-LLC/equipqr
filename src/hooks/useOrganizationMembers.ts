@@ -14,9 +14,8 @@ export interface RealOrganizationMember {
 }
 
 export const useOrganizationMembers = (organizationId: string) => {
-  // Real-time subscriptions temporarily disabled to prevent subscription conflicts
-  // TODO: Implement centralized subscription manager
-
+  // Note: For real-time updates, use useEnhancedOrganizationMembers instead
+  
   return useQuery({
     queryKey: ['organization-members', organizationId],
     queryFn: async (): Promise<RealOrganizationMember[]> => {

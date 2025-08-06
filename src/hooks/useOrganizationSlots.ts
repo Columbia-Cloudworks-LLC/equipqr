@@ -67,9 +67,8 @@ export const useOrganizationSlots = (organizationId: string) => {
 };
 
 export const useSlotAvailability = (organizationId: string) => {
-  // Real-time subscriptions temporarily disabled to prevent subscription conflicts
-  // TODO: Implement centralized subscription manager
-
+  // Note: For real-time updates, use useEnhancedSlotAvailability instead
+  
   return useQuery({
     queryKey: ['slot-availability', organizationId],
     queryFn: async (): Promise<SlotAvailability> => {
