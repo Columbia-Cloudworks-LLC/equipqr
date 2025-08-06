@@ -333,19 +333,33 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         condition: 1 as const // Set to "OK" while preserving notes and other properties
       }));
       
-      setChecklist(updatedChecklist);
-      setHasUnsavedChanges(true);
-      triggerAutoSave('selection'); // Trigger auto-save
-      
-      toast.success('All checklist items set to OK');
-      setShowSetAllOKDialog(false);
+      // Save directly to database instead of relying on auto-save
+      const result = await updatePM(pm.id, {
+        checklistData: updatedChecklist,
+        notes: notes
+      });
+
+      if (result) {
+        setChecklist(updatedChecklist);
+        setHasUnsavedChanges(false);
+        // Clear backup since we've saved successfully
+        localStorage.removeItem(storageKey);
+        
+        toast.success('All items set to OK and PM saved successfully');
+        setShowSetAllOKDialog(false);
+        
+        // Update parent component
+        onUpdate();
+      } else {
+        throw new Error('Failed to update PM');
+      }
     } catch (error) {
-      console.error('Error setting all items to OK:', error);
-      toast.error('Failed to set all items to OK');
+      console.error('Error setting all items to OK and saving:', error);
+      toast.error('Failed to set all items to OK and save PM');
     } finally {
       setIsSettingAllOK(false);
     }
-  }, [checklist, triggerAutoSave]);
+  }, [checklist, notes, pm.id, onUpdate, storageKey]);
 
   // Print/Export handlers
   const handlePrintPDF = useCallback(() => {
@@ -885,7 +899,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 onClick={handleSetAllToOK}
                 disabled={isSettingAllOK}
               >
-                {isSettingAllOK ? 'Setting...' : 'Set All to OK'}
+                {isSettingAllOK ? 'Setting & Saving...' : 'Set All to OK & Save'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
