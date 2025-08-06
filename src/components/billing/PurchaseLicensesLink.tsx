@@ -34,7 +34,7 @@ const PurchaseLicensesLink: React.FC<PurchaseLicensesLinkProps> = ({
   const isMobile = useIsMobile();
 
   const userRole = currentOrganization?.userRole;
-  const canManageBilling = ['owner', 'admin'].includes(userRole || '');
+  const canPurchaseLicenses = userRole === 'owner';
 
   const handleLinkClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -44,7 +44,7 @@ const PurchaseLicensesLink: React.FC<PurchaseLicensesLinkProps> = ({
       onClick();
     }
     
-    if (canManageBilling) {
+    if (canPurchaseLicenses) {
       setDialogOpen(true);
     }
   };
@@ -55,8 +55,8 @@ const PurchaseLicensesLink: React.FC<PurchaseLicensesLinkProps> = ({
       return;
     }
 
-    if (!canManageBilling) {
-      toast.error('Only organization owners and admins can purchase licenses');
+    if (!canPurchaseLicenses) {
+      toast.error('Only organization owners can purchase licenses');
       return;
     }
 
@@ -95,8 +95,8 @@ const PurchaseLicensesLink: React.FC<PurchaseLicensesLinkProps> = ({
 
   const monthlyTotal = quantity * 10;
 
-  // Render as clickable link for owners/admins, plain text for others
-  const linkContent = canManageBilling ? (
+  // Render as clickable link for owners, plain text for others
+  const linkContent = canPurchaseLicenses ? (
     <button 
       onClick={handleLinkClick}
       className={`text-primary hover:text-primary/80 underline underline-offset-4 transition-colors ${className}`}
@@ -114,7 +114,7 @@ const PurchaseLicensesLink: React.FC<PurchaseLicensesLinkProps> = ({
     <>
       {linkContent}
       
-      {canManageBilling && (
+      {canPurchaseLicenses && (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-md mx-4 sm:mx-0">
             <DialogHeader>
