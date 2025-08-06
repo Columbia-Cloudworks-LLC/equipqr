@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Users, AlertCircle } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { useSession } from '@/contexts/SessionContext';
 import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import MemberTable from '@/components/billing/MemberTable';
@@ -13,12 +12,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const SimplifiedMemberBilling: React.FC = () => {
   const { currentOrganization } = useSimpleOrganization();
-  const { getCurrentOrganization } = useSession();
   const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
   const isMobile = useIsMobile();
 
-  const sessionOrganization = getCurrentOrganization();
-  const userRole = sessionOrganization?.userRole;
+  const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
 
   if (isLoading) {

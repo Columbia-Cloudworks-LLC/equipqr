@@ -8,7 +8,6 @@ import LicenseMemberBilling from '@/components/billing/LicenseMemberBilling';
 import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import BillingHeader from '@/components/billing/BillingHeader';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { useSession } from '@/contexts/SessionContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -18,7 +17,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const Billing = () => {
   const { currentOrganization } = useSimpleOrganization();
-  const { getCurrentOrganization } = useSession();
+  
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability } = useSlotAvailability(currentOrganization?.id || '');
   const { 
@@ -37,8 +36,7 @@ const Billing = () => {
   const [fleetMapEnabled, setFleetMapEnabled] = useState(false);
 
   // Get user role for permission checks
-  const sessionOrganization = getCurrentOrganization();
-  const userRole = sessionOrganization?.userRole;
+  const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
 
   // Calculate billing based on licenses
@@ -140,7 +138,7 @@ const Billing = () => {
       <LicenseMemberBilling />
 
       {/* Image Storage Quota */}
-      <ImageStorageQuota organizationId={sessionOrganization?.id} />
+      <ImageStorageQuota organizationId={currentOrganization?.id} />
 
       {/* Fleet Map Add-on */}
       {hasActiveLicenses && (

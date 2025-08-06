@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dialog';
 import { ShoppingCart, Users } from 'lucide-react';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { useSession } from '@/contexts/SessionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -31,14 +30,12 @@ const PurchaseLicensesButton: React.FC<PurchaseLicensesButtonProps> = ({
   className = ""
 }) => {
   const { currentOrganization } = useSimpleOrganization();
-  const { getCurrentOrganization } = useSession();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const isMobile = useIsMobile();
 
-  const sessionOrganization = getCurrentOrganization();
-  const userRole = sessionOrganization?.userRole;
+  const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
 
   const handlePurchase = async () => {
