@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import PurchaseLicensesLink from '@/components/billing/PurchaseLicensesLink';
 import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -140,7 +141,7 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              No available user licenses. Purchase more licenses before inviting members.
+              No available user licenses. <PurchaseLicensesLink>Purchase more licenses</PurchaseLicensesLink> before inviting members.
             </AlertDescription>
           </Alert>
         )}
