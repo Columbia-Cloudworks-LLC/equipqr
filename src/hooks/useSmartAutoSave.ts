@@ -37,13 +37,9 @@ export const useSmartAutoSave = <T>({
   const handleSave = useCallback(async () => {
     if (!hasDataChanged(data)) return;
     
-    try {
-      await onSave(data);
-      lastSavedDataRef.current = structuredClone(data);
-      setHasChanges(false);
-    } catch (error) {
-      throw error;
-    }
+    await onSave(data);
+    lastSavedDataRef.current = structuredClone(data);
+    setHasChanges(false);
   }, [data, onSave, hasDataChanged]);
 
   // Auto-save with smart detection

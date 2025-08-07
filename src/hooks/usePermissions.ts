@@ -1,6 +1,7 @@
 
 // Compatibility layer for usePermissions hook
 import { useUnifiedPermissions } from './useUnifiedPermissions';
+import { UnifiedWorkOrder } from '@/types/unifiedWorkOrder';
 
 export const usePermissions = () => {
   const permissions = useUnifiedPermissions();
@@ -14,11 +15,11 @@ export const usePermissions = () => {
     canViewEquipment: (equipmentTeamId?: string) => permissions.equipment.getPermissions(equipmentTeamId).canView,
     canCreateEquipment: () => permissions.equipment.canCreateAny,
     canUpdateEquipmentStatus: (equipmentTeamId?: string) => permissions.equipment.getPermissions(equipmentTeamId).canEdit,
-    canManageWorkOrder: (workOrder?: any) => permissions.workOrders.getPermissions(workOrder).canEdit,
-    canViewWorkOrder: (workOrder?: any) => permissions.workOrders.getPermissions(workOrder).canView,
+    canManageWorkOrder: (workOrder?: UnifiedWorkOrder) => permissions.workOrders.getPermissions(workOrder).canEdit,
+    canViewWorkOrder: (workOrder?: UnifiedWorkOrder) => permissions.workOrders.getPermissions(workOrder).canView,
     canCreateWorkOrder: () => permissions.workOrders.canCreateAny,
-    canAssignWorkOrder: (workOrder?: any) => permissions.workOrders.getPermissions(workOrder).canAssign,
-    canChangeWorkOrderStatus: (workOrder?: any) => permissions.workOrders.getPermissions(workOrder).canChangeStatus,
+    canAssignWorkOrder: (workOrder?: UnifiedWorkOrder) => permissions.workOrders.getPermissions(workOrder).canAssign,
+    canChangeWorkOrderStatus: (workOrder?: UnifiedWorkOrder) => permissions.workOrders.getPermissions(workOrder).canChangeStatus,
     // Organization permissions
     canManageOrganization: () => permissions.organization.canManage,
     canInviteMembers: () => permissions.organization.canInviteMembers,
@@ -30,7 +31,7 @@ export const usePermissions = () => {
 };
 
 // Add the specific hook that's being imported
-export const useWorkOrderPermissions = (workOrder?: any) => {
+export const useWorkOrderPermissions = (workOrder?: UnifiedWorkOrder) => {
   const permissions = useUnifiedPermissions();
   return permissions.workOrders.getPermissions(workOrder);
 };

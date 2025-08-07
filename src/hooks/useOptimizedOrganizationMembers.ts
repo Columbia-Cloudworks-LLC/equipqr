@@ -43,10 +43,16 @@ export const useOptimizedOrganizationMembers = (organizationId: string) => {
         throw error;
       }
 
+      interface ProfileData {
+        id?: string;
+        name?: string;
+        email?: string;
+      }
+
       return (data || []).map(member => ({
         id: member.user_id,
-        name: (member.profiles as { name?: string })?.name || 'Unknown',
-        email: (member.profiles as { email?: string })?.email || '',
+        name: (member.profiles as ProfileData)?.name || 'Unknown',
+        email: (member.profiles as ProfileData)?.email || '',
         role: member.role as 'owner' | 'admin' | 'member',
         status: member.status as 'active' | 'pending' | 'inactive',
         joinedDate: member.joined_date,

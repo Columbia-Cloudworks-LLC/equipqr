@@ -14,6 +14,9 @@ import {
   isTeamManager,
   TeamWithMembers
 } from '@/services/teamService';
+import { Database } from '@/integrations/supabase/types';
+
+type TeamInsert = Database['public']['Tables']['teams']['Insert'];
 
 // Hook for managing teams in an organization
 export const useTeams = (organizationId: string | undefined) => {
@@ -41,12 +44,12 @@ export const useTeamMutations = () => {
   const { toast } = useToast();
 
   const createTeamWithCreatorMutation = useMutation({
-    mutationFn: ({ teamData, creatorId }: { teamData: any; creatorId: string }) =>
+    mutationFn: ({ teamData, creatorId }: { teamData: TeamInsert; creatorId: string }) =>
       createTeamWithCreator(teamData, creatorId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['teams', variables.teamData.organization_id] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create team",
@@ -65,7 +68,7 @@ export const useTeamMutations = () => {
         description: "Team deleted successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete team",
@@ -104,7 +107,7 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
         description: "Team member added successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to add team member",
@@ -126,7 +129,7 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
         description: "Team member removed successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to remove team member",
@@ -150,7 +153,7 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
         description: "Team member role updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update team member role",
