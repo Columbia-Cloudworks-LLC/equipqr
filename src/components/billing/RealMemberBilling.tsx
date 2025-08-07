@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-const RealMemberBilling: React.FC = () => {
+const RealMemberBilling = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
 

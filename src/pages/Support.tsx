@@ -4,7 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { HelpCircle, Mail, MessageSquare, Users, Wrench, Eye, UserCheck, Shield, FileText, Clock } from "lucide-react";
 
-const Support: React.FC = () => {
+const Support = () => {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="space-y-6">

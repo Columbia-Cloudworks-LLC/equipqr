@@ -11,7 +11,7 @@ import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } 
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
 import { formatDistanceToNow } from 'date-fns';
 
-const InvitationManagement: React.FC = () => {
+const InvitationManagement = () => {
   const { currentOrganization } = useSimpleOrganization();
   const currentOrg = currentOrganization;
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);

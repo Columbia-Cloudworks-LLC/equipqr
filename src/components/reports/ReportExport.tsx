@@ -9,7 +9,7 @@ import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 
 interface ReportExportProps {
-  data: any[];
+  data: unknown[];
   filters: ReportFilters;
   organizationName: string;
   dashboardStats: DashboardStats | null;

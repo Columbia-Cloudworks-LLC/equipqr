@@ -2,11 +2,12 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clipboard } from 'lucide-react';
+import { WorkOrderData, PMData, PermissionLevels } from '@/types/workOrderDetails';
 
 interface WorkOrderDetailsPMInfoProps {
-  workOrder: any;
-  pmData: any;
-  permissionLevels: any;
+  workOrder: WorkOrderData;
+  pmData: PMData;
+  permissionLevels: PermissionLevels;
 }
 
 export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({

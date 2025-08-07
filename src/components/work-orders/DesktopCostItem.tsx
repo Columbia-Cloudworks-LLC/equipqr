@@ -8,7 +8,7 @@ import { WorkOrderCostItem } from '@/hooks/useWorkOrderCostsState';
 interface DesktopCostItemProps {
   cost: WorkOrderCostItem;
   onRemoveCost: (id: string) => void;
-  onUpdateCost: (id: string, field: keyof WorkOrderCostItem, value: any) => void;
+  onUpdateCost: (id: string, field: keyof WorkOrderCostItem, value: string | number) => void;
   canRemove: boolean;
 }
 

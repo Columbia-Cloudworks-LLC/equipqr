@@ -7,7 +7,7 @@ import { Crown, CreditCard, Calendar, RefreshCw } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 
-const SubscriptionManagement: React.FC = () => {
+const SubscriptionManagement = () => {
   const { 
     subscriptionData, 
     isLoading, 

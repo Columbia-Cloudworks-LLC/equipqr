@@ -7,7 +7,7 @@ import { Database, RefreshCw, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 import { formatDistanceToNow } from 'date-fns';
 
-export const SessionStatus: React.FC = () => {
+export const SessionStatus = () => {
   const { sessionData, isLoading, error, refreshSession } = useSession();
 
   const getSessionAge = () => {

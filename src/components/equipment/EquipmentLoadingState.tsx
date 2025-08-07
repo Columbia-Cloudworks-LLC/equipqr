@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const EquipmentLoadingState: React.FC = () => {
+const EquipmentLoadingState = () => {
   return (
     <div className="space-y-6">
       <div>

@@ -11,7 +11,7 @@ import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton'
 import MemberTable from '@/components/billing/MemberTable';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const LicenseMemberBilling: React.FC = () => {
+const LicenseMemberBilling = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [], isLoading: membersLoading } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading: slotsLoading } = useSlotAvailability(currentOrganization?.id || '');

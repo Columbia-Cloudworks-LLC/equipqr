@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Shield, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useOrganizationSecurity } from '@/hooks/useOrganizationSecurity';
 
-export const SecurityStatus: React.FC = () => {
+export const SecurityStatus = () => {
   const { testResult, isTestingComplete, runSecurityTest } = useOrganizationSecurity();
 
   const getStatusIcon = (success: boolean, hasErrors: boolean) => {

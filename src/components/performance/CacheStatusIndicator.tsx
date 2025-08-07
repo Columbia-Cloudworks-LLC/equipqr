@@ -16,16 +16,31 @@ import {
 import { useCacheManagerContext } from './CacheManagerProvider';
 
 // PHASE 3: Cache status indicator component
-export const CacheStatusIndicator: React.FC = () => {
+interface CacheStats {
+  totalQueries: number;
+  activeQueries: number;
+  staleQueries: number;
+  fetchingQueries: number;
+  errorQueries: number;
+}
+
+interface SyncStatus {
+  isOnline: boolean;
+  queuedItems: number;
+  reconnectAttempts: number;
+  activeSubscriptions: number;
+}
+
+export const CacheStatusIndicator = () => {
   const { getCacheStats, clearCache, getSyncStatus } = useCacheManagerContext();
-  const [cacheStats, setCacheStats] = useState<any>(null);
-  const [syncStatus, setSyncStatus] = useState<any>(null);
+  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
-    const updateStats = () => {
-      setCacheStats(getCacheStats());
-      setSyncStatus(getSyncStatus());
+  const updateStats = () => {
+      setCacheStats(getCacheStats() as CacheStats);
+      setSyncStatus(getSyncStatus() as SyncStatus);
     };
 
     updateStats();
@@ -38,12 +53,12 @@ export const CacheStatusIndicator: React.FC = () => {
 
   const handleClearCache = () => {
     clearCache();
-    setCacheStats(getCacheStats());
+    setCacheStats(getCacheStats() as CacheStats);
   };
 
   const getStatusColor = () => {
-    if (!syncStatus.isOnline) return 'destructive';
-    if (syncStatus.queuedItems > 0) return 'secondary';
+    if (!syncStatus?.isOnline) return 'destructive';
+    if ((syncStatus?.queuedItems ?? 0) > 0) return 'secondary';
     return 'default';
   };
 
@@ -56,13 +71,13 @@ export const CacheStatusIndicator: React.FC = () => {
             Cache Status
           </CardTitle>
           <div className="flex items-center gap-2">
-            {syncStatus.isOnline ? (
+            {syncStatus?.isOnline ? (
               <Wifi className="h-4 w-4 text-green-600" />
             ) : (
               <WifiOff className="h-4 w-4 text-red-600" />
             )}
             <Badge variant={getStatusColor()}>
-              {syncStatus.isOnline ? 'Online' : 'Offline'}
+              {syncStatus?.isOnline ? 'Online' : 'Offline'}
             </Badge>
           </div>
         </div>
@@ -73,33 +88,33 @@ export const CacheStatusIndicator: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">
-              {cacheStats.totalQueries}
+              {cacheStats?.totalQueries ?? 0}
             </div>
             <div className="text-xs text-muted-foreground">Total Queries</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
-              {cacheStats.activeQueries}
+              {cacheStats?.activeQueries ?? 0}
             </div>
             <div className="text-xs text-muted-foreground">Active</div>
           </div>
         </div>
 
         {/* Sync Status */}
-        {syncStatus.queuedItems > 0 && (
+        {(syncStatus?.queuedItems ?? 0) > 0 && (
           <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg">
             <Clock className="h-4 w-4 text-orange-600" />
             <span className="text-sm">
-              {syncStatus.queuedItems} items queued for sync
+              {syncStatus?.queuedItems} items queued for sync
             </span>
           </div>
         )}
 
-        {syncStatus.reconnectAttempts > 0 && (
+        {(syncStatus?.reconnectAttempts ?? 0) > 0 && (
           <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded-lg">
             <AlertCircle className="h-4 w-4 text-destructive" />
             <span className="text-sm">
-              Reconnection attempts: {syncStatus.reconnectAttempts}
+              Reconnection attempts: {syncStatus?.reconnectAttempts}
             </span>
           </div>
         )}
@@ -121,19 +136,19 @@ export const CacheStatusIndicator: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Stale:</span>
-                  <span>{cacheStats.staleQueries}</span>
+                  <span>{cacheStats?.staleQueries ?? 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Fetching:</span>
-                  <span>{cacheStats.fetchingQueries}</span>
+                  <span>{cacheStats?.fetchingQueries ?? 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Errors:</span>
-                  <span className="text-destructive">{cacheStats.errorQueries}</span>
+                  <span className="text-destructive">{cacheStats?.errorQueries ?? 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subscriptions:</span>
-                  <span>{syncStatus.activeSubscriptions}</span>
+                  <span>{syncStatus?.activeSubscriptions ?? 0}</span>
                 </div>
               </div>
 

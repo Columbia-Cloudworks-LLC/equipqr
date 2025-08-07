@@ -3,10 +3,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, User, UserMinus } from 'lucide-react';
+import { WorkOrderData, PermissionLevels } from '@/types/workOrderDetails';
 
 interface WorkOrderDetailsRequestorStatusProps {
-  workOrder: any;
-  permissionLevels: any;
+  workOrder: WorkOrderData;
+  permissionLevels: PermissionLevels;
 }
 
 export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestorStatusProps> = ({

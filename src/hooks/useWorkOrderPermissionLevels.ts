@@ -10,6 +10,11 @@ export interface WorkOrderPermissionLevels {
   isRequestor: boolean;
   isTechnician: boolean;
   canEdit: boolean;
+  canDelete: boolean;
+  canAssign: boolean;
+  canChangeStatus: boolean;
+  canAddNotes: boolean;
+  canAddImages: boolean;
   getFormMode: (workOrder: any, createdByCurrentUser: boolean) => 'manager' | 'requestor' | 'view_only';
 }
 
@@ -55,6 +60,11 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
       isRequestor,
       isTechnician,
       canEdit,
+      canDelete: isManager,
+      canAssign: isManager,
+      canChangeStatus: isManager || isTechnician,
+      canAddNotes: true,
+      canAddImages: true,
       getFormMode
     };
   }, [user?.id, currentOrganization?.id, members, teamMemberships]);

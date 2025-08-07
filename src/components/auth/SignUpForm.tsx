@@ -84,8 +84,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
       } else {
         onSuccess('Account created successfully! Please check your email to verify your account and complete organization setup.');
       }
-    } catch (error: any) {
-      onError(error.message || 'An error occurred during sign up');
+    } catch (error) {
+      onError(error instanceof Error ? error.message : 'An error occurred during sign up');
       setHcaptchaToken(null);
     }
     
