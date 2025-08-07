@@ -1,12 +1,8 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-
-interface QRScannerComponentProps {
-  onScan: (result: string) => void;
-  onError: (error: any) => void;
-}
+import { QRScannerComponentProps, ScannerError } from '@/types/scanner';
 
 const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -15,14 +11,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
   const [error, setError] = useState<string | null>(null);
   const scanningRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    startCamera();
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -45,17 +34,29 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
     } catch (err) {
       console.error('Error accessing camera:', err);
       setError('Unable to access camera. Please ensure camera permissions are granted.');
-      onError(err);
+      const scannerError: ScannerError = {
+        message: 'Unable to access camera',
+        code: err instanceof Error ? err.name : 'CAMERA_ERROR'
+      };
+      onError(scannerError);
     }
-  };
+  }, [onError]);
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     scanningRef.current = false;
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
-  };
+  }, [stream]);
+
+  useEffect(() => {
+    startCamera();
+    return () => {
+      stopCamera();
+    };
+  }, [startCamera, stopCamera]);
+
 
   const startScanning = () => {
     if (!videoRef.current || !canvasRef.current) return;

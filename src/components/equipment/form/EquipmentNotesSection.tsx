@@ -2,12 +2,13 @@ import React from 'react';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from 'react-hook-form';
+import { EquipmentFormData } from '@/types/equipment';
 
 interface EquipmentNotesSectionProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<EquipmentFormData>;
 }
 
-const EquipmentNotesSection: React.FC<EquipmentNotesSectionProps> = ({ form }) => {
+function EquipmentNotesSection({ form }: EquipmentNotesSectionProps) {
   return (
     <FormField
       control={form.control}
@@ -27,6 +28,6 @@ const EquipmentNotesSection: React.FC<EquipmentNotesSectionProps> = ({ form }) =
       )}
     />
   );
-};
+}
 
 export default EquipmentNotesSection;

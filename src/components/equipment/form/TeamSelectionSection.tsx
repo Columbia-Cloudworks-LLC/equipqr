@@ -6,12 +6,13 @@ import { UseFormReturn } from 'react-hook-form';
 import { useTeams } from '@/hooks/useTeams';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Loader2 } from 'lucide-react';
+import { EquipmentFormData } from '@/types/equipment';
 
 interface TeamSelectionSectionProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<EquipmentFormData>;
 }
 
-const TeamSelectionSection: React.FC<TeamSelectionSectionProps> = ({ form }) => {
+function TeamSelectionSection({ form }: TeamSelectionSectionProps) {
   const { teams, managedTeams, isLoading } = useTeams();
   const { hasRole } = usePermissions();
   const isAdmin = hasRole(['owner', 'admin']);
@@ -90,6 +91,6 @@ const TeamSelectionSection: React.FC<TeamSelectionSectionProps> = ({ form }) => 
       </CardContent>
     </Card>
   );
-};
+}
 
 export default TeamSelectionSection;

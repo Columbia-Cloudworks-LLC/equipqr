@@ -1,21 +1,14 @@
 import React from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
+import { WorkOrderFormFieldProps } from '@/types/workOrderForm';
 
-interface WorkOrderDescriptionFieldProps {
-  values: WorkOrderFormData;
-  errors: Record<string, string>;
-  setValue: (field: keyof WorkOrderFormData, value: any) => void;
-  preSelectedEquipment?: any;
-}
-
-export const WorkOrderDescriptionField: React.FC<WorkOrderDescriptionFieldProps> = ({
+export function WorkOrderDescriptionField({
   values,
   errors,
   setValue,
   preSelectedEquipment
-}) => {
+}: WorkOrderFormFieldProps) {
   return (
     <div className="space-y-2">
       <Label>Description *</Label>
@@ -33,4 +26,4 @@ export const WorkOrderDescriptionField: React.FC<WorkOrderDescriptionFieldProps>
       )}
     </div>
   );
-};
+}

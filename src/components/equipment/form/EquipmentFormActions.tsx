@@ -7,11 +7,11 @@ interface EquipmentFormActionsProps {
   onClose: () => void;
 }
 
-const EquipmentFormActions: React.FC<EquipmentFormActionsProps> = ({
+function EquipmentFormActions({
   isEdit,
   isPending,
   onClose
-}) => {
+}: EquipmentFormActionsProps) {
   return (
     <div className="flex gap-2 justify-end">
       <Button type="button" variant="outline" onClick={onClose}>
@@ -22,6 +22,6 @@ const EquipmentFormActions: React.FC<EquipmentFormActionsProps> = ({
       </Button>
     </div>
   );
-};
+}
 
 export default EquipmentFormActions;

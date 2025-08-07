@@ -3,12 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from 'react-hook-form';
+import { EquipmentFormData } from '@/types/equipment';
 
 interface EquipmentBasicInfoSectionProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<EquipmentFormData>;
 }
 
-const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ form }) => {
+function EquipmentBasicInfoSection({ form }: EquipmentBasicInfoSectionProps) {
   return (
     <Card>
       <CardContent className="pt-4 space-y-4">
@@ -74,6 +75,6 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ f
       </CardContent>
     </Card>
   );
-};
+}
 
 export default EquipmentBasicInfoSection;

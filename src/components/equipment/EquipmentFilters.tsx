@@ -3,35 +3,16 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileEquipmentFilters } from './MobileEquipmentFilters';
 import { DesktopEquipmentFilters } from './DesktopEquipmentFilters';
 import { EquipmentFilters as EquipmentFiltersType } from '@/hooks/useEquipmentFiltering';
+import { EquipmentFiltersComponentProps } from '@/types/equipmentFilter';
 
-interface Team {
-  id: string;
-  name: string;
-}
-
-interface FilterOptions {
-  manufacturers: string[];
-  locations: string[];
-  teams: Team[];
-}
-
-interface EquipmentFiltersProps {
-  filters: EquipmentFiltersType;
-  onFilterChange: (key: keyof EquipmentFiltersType, value: any) => void;
-  onClearFilters: () => void;
-  onQuickFilter: (preset: string) => void;
-  filterOptions: FilterOptions;
-  hasActiveFilters: boolean;
-}
-
-export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
+export function EquipmentFilters({
   filters,
   onFilterChange,
   onClearFilters,
   onQuickFilter,
   filterOptions,
   hasActiveFilters
-}) => {
+}: EquipmentFiltersComponentProps) {
   const isMobile = useIsMobile();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
@@ -70,4 +51,4 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
       filterOptions={filterOptions}
     />
   );
-};
+}

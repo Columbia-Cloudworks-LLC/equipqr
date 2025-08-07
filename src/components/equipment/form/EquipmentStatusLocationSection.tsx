@@ -4,12 +4,13 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UseFormReturn } from 'react-hook-form';
+import { EquipmentFormData } from '@/types/equipment';
 
 interface EquipmentStatusLocationSectionProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<EquipmentFormData>;
 }
 
-const EquipmentStatusLocationSection: React.FC<EquipmentStatusLocationSectionProps> = ({ form }) => {
+function EquipmentStatusLocationSection({ form }: EquipmentStatusLocationSectionProps) {
   return (
     <Card>
       <CardContent className="pt-4 space-y-4">
@@ -98,6 +99,6 @@ const EquipmentStatusLocationSection: React.FC<EquipmentStatusLocationSectionPro
       </CardContent>
     </Card>
   );
-};
+}
 
 export default EquipmentStatusLocationSection;

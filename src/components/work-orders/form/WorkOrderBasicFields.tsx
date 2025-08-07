@@ -4,21 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
+import { WorkOrderFormFieldProps } from '@/types/workOrderForm';
 
-interface WorkOrderBasicFieldsProps {
-  values: WorkOrderFormData;
-  errors: Record<string, string>;
-  setValue: (field: keyof WorkOrderFormData, value: any) => void;
-  preSelectedEquipment?: any;
-}
-
-export const WorkOrderBasicFields: React.FC<WorkOrderBasicFieldsProps> = ({
+export function WorkOrderBasicFields({
   values,
   errors,
   setValue,
   preSelectedEquipment
-}) => {
+}: WorkOrderFormFieldProps) {
   return (
     <Card>
       <CardContent className="pt-4 space-y-4">
@@ -87,4 +80,4 @@ export const WorkOrderBasicFields: React.FC<WorkOrderBasicFieldsProps> = ({
       </CardContent>
     </Card>
   );
-};
+}

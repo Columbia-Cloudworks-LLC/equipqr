@@ -18,13 +18,31 @@ import EquipmentNotesSection from './form/EquipmentNotesSection';
 import EquipmentFormActions from './form/EquipmentFormActions';
 import TeamSelectionSection from './form/TeamSelectionSection';
 
+interface Equipment {
+  id: string;
+  name: string;
+  manufacturer: string;
+  model: string;
+  serial_number: string;
+  status: 'active' | 'maintenance' | 'inactive';
+  location: string;
+  installation_date: string;
+  warranty_expiration?: string;
+  last_maintenance?: string;
+  notes: string;
+  custom_attributes?: Record<string, any>;
+  image_url?: string;
+  last_known_location?: any;
+  team_id?: string;
+}
+
 interface EquipmentFormProps {
   open: boolean;
   onClose: () => void;
-  equipment?: any;
+  equipment?: Equipment;
 }
 
-const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment }) => {
+function EquipmentForm({ open, onClose, equipment }: EquipmentFormProps) {
   const { attributes } = useCustomAttributes();
   const { form, onSubmit, isEdit, isPending } = useEquipmentForm({ equipment, onClose });
 
@@ -73,6 +91,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
       </DialogContent>
     </Dialog>
   );
-};
+}
 
 export default EquipmentForm;
