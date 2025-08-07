@@ -17,7 +17,7 @@ interface TimelineEvent {
   description: string;
   timestamp: string;
   type: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   user: string;
   isPublic: boolean;
 }
@@ -36,7 +36,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         const { data } = await workOrderRevertService.getWorkOrderHistory(workOrder.id);
         
         if (data) {
-          const events: TimelineEvent[] = data.map((history: any) => ({
+          const events: TimelineEvent[] = data.map((history: Record<string, any>) => ({
             id: history.id,
             title: getStatusChangeTitle(history.old_status, history.new_status),
             description: getStatusChangeDescription(history.old_status, history.new_status, history.reason),

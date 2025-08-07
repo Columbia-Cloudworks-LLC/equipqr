@@ -7,9 +7,9 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name?: string) => Promise<{ error: import('@/types/authTypes').AuthError | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: import('@/types/authTypes').AuthError | null }>;
+  signInWithGoogle: () => Promise<{ error: import('@/types/authTypes').AuthError | null }>;
   signOut: () => Promise<void>;
 }
 

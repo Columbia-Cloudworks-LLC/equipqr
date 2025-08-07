@@ -6,14 +6,9 @@ import { ArrowLeft, Edit, Menu, Clipboard } from 'lucide-react';
 import { getPriorityColor, getStatusColor, formatStatus } from '@/utils/workOrderHelpers';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 
-interface WorkOrderDetailsMobileHeaderProps {
-  workOrder: any;
-  canEdit: boolean;
-  showMobileSidebar: boolean;
-  organizationId: string;
-  onEditClick: () => void;
-  onToggleSidebar: () => void;
-}
+import { WorkOrderDetailsMobileHeaderProps as MobileHeaderProps } from '@/types/workOrderDetails';
+
+interface WorkOrderDetailsMobileHeaderProps extends MobileHeaderProps {}
 
 export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeaderProps> = ({
   workOrder,

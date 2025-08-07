@@ -12,11 +12,11 @@ import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { useAuth } from '@/hooks/useAuth';
-import { WorkOrder } from '@/services/supabaseDataService';
+import { UnifiedWorkOrder } from '@/types/unifiedWorkOrder';
 import WorkOrderAcceptanceModal from '../WorkOrderAcceptanceModal';
 
 interface WorkOrderPrimaryActionButtonProps {
-  workOrder: WorkOrder;
+  workOrder: UnifiedWorkOrder;
   organizationId: string;
 }
 
@@ -54,7 +54,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
     }
   };
 
-  const handleAcceptanceComplete = async (acceptanceData: any) => {
+  const handleAcceptanceComplete = async (assigneeId?: string) => {
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,

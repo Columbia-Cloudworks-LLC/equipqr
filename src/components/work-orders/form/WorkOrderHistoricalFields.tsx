@@ -9,7 +9,7 @@ import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 interface WorkOrderHistoricalFieldsProps {
   values: Partial<WorkOrderFormData>;
   errors: Record<string, string>;
-  setValue: (field: keyof WorkOrderFormData, value: any) => void;
+  setValue: (field: keyof WorkOrderFormData, value: unknown) => void;
 }
 
 export const WorkOrderHistoricalFields: React.FC<WorkOrderHistoricalFieldsProps> = ({

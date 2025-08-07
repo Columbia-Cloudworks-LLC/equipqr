@@ -5,17 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import EnhancedWorkOrderStatusManagerWithPM from '@/components/work-orders/EnhancedWorkOrderStatusManagerWithPM';
 import { WorkOrderDetailsQuickInfo } from './WorkOrderDetailsQuickInfo';
 import { WorkOrderDetailsRequestorStatus } from './WorkOrderDetailsRequestorStatus';
-
-interface WorkOrderDetailsSidebarProps {
-  workOrder: any;
-  equipment: any;
-  pmData: any;
-  formMode: string;
-  permissionLevels: any;
-  currentOrganization: any;
-  showMobileSidebar: boolean;
-  onCloseMobileSidebar: () => void;
-}
+import { WorkOrderDetailsSidebarProps } from '@/types/workOrderDetails';
 
 export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = ({
   workOrder,

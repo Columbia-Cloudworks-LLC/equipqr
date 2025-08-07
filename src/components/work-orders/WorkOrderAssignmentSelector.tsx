@@ -7,12 +7,9 @@ import { User, UserMinus, Check, X } from 'lucide-react';
 import { useWorkOrderContextualAssignment } from '@/hooks/useWorkOrderContextualAssignment';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 
-interface WorkOrderAssignmentSelectorProps {
-  workOrder: any;
-  organizationId: string;
-  onCancel: () => void;
-  disabled?: boolean;
-}
+import { WorkOrderAssignmentSelectorProps as AssignmentProps } from '@/types/workOrderDetails';
+
+interface WorkOrderAssignmentSelectorProps extends AssignmentProps {}
 
 const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = ({
   workOrder,

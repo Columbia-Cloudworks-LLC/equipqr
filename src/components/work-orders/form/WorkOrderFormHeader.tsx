@@ -7,7 +7,7 @@ import {
 
 interface WorkOrderFormHeaderProps {
   isEditMode: boolean;
-  preSelectedEquipment?: any;
+  preSelectedEquipment?: import('@/types/equipment').Equipment;
 }
 
 export const WorkOrderFormHeader: React.FC<WorkOrderFormHeaderProps> = ({

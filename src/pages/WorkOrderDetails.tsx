@@ -18,6 +18,7 @@ import { WorkOrderDetailsDesktopHeader } from '@/components/work-orders/details/
 import { WorkOrderDetailsStatusLockWarning } from '@/components/work-orders/details/WorkOrderDetailsStatusLockWarning';
 import { WorkOrderDetailsPMInfo } from '@/components/work-orders/details/WorkOrderDetailsPMInfo';
 import { WorkOrderDetailsSidebar } from '@/components/work-orders/details/WorkOrderDetailsSidebar';
+import { mapPermissions } from '@/types/workOrderDetails';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -100,7 +101,7 @@ const WorkOrderDetails = () => {
       <WorkOrderDetailsDesktopHeader
         workOrder={workOrder}
         formMode={formMode}
-        permissionLevels={permissionLevels}
+        permissionLevels={mapPermissions(permissionLevels)}
         canEdit={canEdit}
         onEditClick={handleEditWorkOrder}
       />
@@ -163,7 +164,7 @@ const WorkOrderDetails = () => {
           <WorkOrderDetailsPMInfo 
             workOrder={workOrder}
             pmData={pmData}
-            permissionLevels={permissionLevels}
+            permissionLevels={mapPermissions(permissionLevels)}
           />
 
           {/* Notes Section */}
@@ -192,7 +193,7 @@ const WorkOrderDetails = () => {
           equipment={equipment}
           pmData={pmData}
           formMode={formMode}
-          permissionLevels={permissionLevels}
+          permissionLevels={mapPermissions(permissionLevels)}
           currentOrganization={currentOrganization}
           showMobileSidebar={showMobileSidebar}
           onCloseMobileSidebar={() => setShowMobileSidebar(false)}

@@ -123,7 +123,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     }
   };
 
-  const handleActionClick = (action: any) => {
+  const handleActionClick = (action: { isCustomAction?: boolean; value?: string }) => {
     if (action.isCustomAction && action.value === 'accept') {
       setShowAcceptanceModal(true);
     } else {

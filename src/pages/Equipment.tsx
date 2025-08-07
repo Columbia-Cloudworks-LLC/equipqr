@@ -61,7 +61,7 @@ const Equipment = () => {
     setShowForm(true);
   };
 
-  const handleEditEquipment = (equipment: any) => {
+  const handleEditEquipment = (equipment: import('@/types/equipment').Equipment) => {
     setEditingEquipment(equipment);
     setShowForm(true);
   };

@@ -42,7 +42,7 @@ export interface Equipment {
   created_at: string;
   updated_at: string;
   image_url?: string | null;
-  custom_attributes?: Record<string, any>;
+  custom_attributes?: Record<string, any> | any;
 }
 
 export interface CustomAttribute {

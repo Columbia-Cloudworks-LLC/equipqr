@@ -8,7 +8,7 @@ import { defaultForkliftChecklist } from '@/services/preventativeMaintenanceServ
 
 interface WorkOrderPMSectionProps {
   values: WorkOrderFormData;
-  setValue: (field: keyof WorkOrderFormData, value: any) => void;
+  setValue: (field: keyof WorkOrderFormData, value: unknown) => void;
 }
 
 export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({

@@ -5,13 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Shield, Clipboard } from 'lucide-react';
 import { getPriorityColor, getStatusColor, formatStatus } from '@/utils/workOrderHelpers';
 
-interface WorkOrderDetailsDesktopHeaderProps {
-  workOrder: any;
-  formMode: string;
-  permissionLevels: any;
-  canEdit: boolean;
-  onEditClick: () => void;
-}
+import { WorkOrderDetailsHeaderProps } from '@/types/workOrderDetails';
+
+interface WorkOrderDetailsDesktopHeaderProps extends WorkOrderDetailsHeaderProps {}
 
 export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHeaderProps> = ({
   workOrder,

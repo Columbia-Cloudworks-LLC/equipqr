@@ -27,6 +27,11 @@ export interface UnifiedWorkOrder {
   notes?: string;
   preventative_maintenance?: any[];
   updated_at?: string;
+  assignee?: {
+    id: string;
+    name: string;
+    email?: string;
+  };
 }
 
 // Type guards to safely convert between types
