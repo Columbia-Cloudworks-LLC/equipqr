@@ -105,57 +105,82 @@ export const deleteTeam = async (id: string): Promise<void> => {
 
 // Get teams by organization with member details
 export const getTeamsByOrganization = async (organizationId: string): Promise<TeamWithMembers[]> => {
-  const { data, error } = await supabase
+  // First get all teams for the organization
+  const { data: teams, error: teamsError } = await supabase
     .from('teams')
-    .select(`
-      *,
-      team_members (
-        *,
-        profiles (
-          name,
-          email
-        )
-      )
-    `)
+    .select('*')
     .eq('organization_id', organizationId)
     .order('name');
 
-  if (error) throw error;
+  if (teamsError) throw teamsError;
+  if (!teams || teams.length === 0) return [];
 
-  // Transform the data to include teams even without members
-  return (data || []).map((team: any) => ({
+  // Get all team IDs
+  const teamIds = teams.map(team => team.id);
+
+  // Get team members with profile data using a separate query
+  const { data: teamMembersData, error: membersError } = await supabase
+    .from('team_members')
+    .select(`
+      *,
+      profiles!team_members_user_id_fkey (
+        name,
+        email
+      )
+    `)
+    .in('team_id', teamIds);
+
+  if (membersError) throw membersError;
+
+  // Group members by team_id
+  const membersByTeam = (teamMembersData || []).reduce((acc, member) => {
+    if (!acc[member.team_id]) {
+      acc[member.team_id] = [];
+    }
+    acc[member.team_id].push(member);
+    return acc;
+  }, {} as Record<string, typeof teamMembersData>);
+
+  // Combine teams with their members
+  return teams.map(team => ({
     ...team,
-    members: team.team_members || [],
-    member_count: (team.team_members || []).length
+    members: membersByTeam[team.id] || [],
+    member_count: (membersByTeam[team.id] || []).length
   }));
 };
 
 // Get single team with members
 export const getTeamById = async (id: string): Promise<TeamWithMembers | null> => {
-  const { data, error } = await supabase
+  // First get the team
+  const { data: team, error: teamError } = await supabase
     .from('teams')
-    .select(`
-      *,
-      team_members (
-        *,
-        profiles (
-          name,
-          email
-        )
-      )
-    `)
+    .select('*')
     .eq('id', id)
     .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') return null;
-    throw error;
+  if (teamError) {
+    if (teamError.code === 'PGRST116') return null;
+    throw teamError;
   }
 
+  // Get team members with profile data using a separate query
+  const { data: teamMembersData, error: membersError } = await supabase
+    .from('team_members')
+    .select(`
+      *,
+      profiles!team_members_user_id_fkey (
+        name,
+        email
+      )
+    `)
+    .eq('team_id', id);
+
+  if (membersError) throw membersError;
+
   return {
-    ...data,
-    members: data.team_members || [],
-    member_count: (data.team_members || []).length
+    ...team,
+    members: teamMembersData || [],
+    member_count: (teamMembersData || []).length
   };
 };
 
