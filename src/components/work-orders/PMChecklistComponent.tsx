@@ -10,6 +10,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle, RotateCcw } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { SegmentedProgress } from '@/components/ui/segmented-progress';
+import { createSegmentsForSection } from '@/utils/pmChecklistHelpers';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -744,13 +746,16 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         <div className="space-y-4">
           {sections.map((section) => {
             const sectionProgress = getSectionProgress(section);
+            const sectionItems = checklist.filter(item => item.section === section);
+            const segments = createSegmentsForSection(sectionItems);
+            
             return (
               <Collapsible key={section} open={openSections[section]} onOpenChange={() => toggleSection(section)}>
                 <CollapsibleTrigger asChild>
                   <div className="relative overflow-hidden rounded-lg border">
-                    <Progress 
-                      value={sectionProgress.percentage} 
-                      className="absolute inset-0 h-full opacity-20"
+                    <SegmentedProgress 
+                      segments={segments}
+                      className="absolute inset-0 h-full opacity-30"
                     />
                     <Button variant="ghost" className="relative w-full justify-between p-4 h-auto bg-transparent hover:bg-white/50">
                       <div className="flex flex-col items-start gap-1">
