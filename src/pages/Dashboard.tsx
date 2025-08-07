@@ -2,20 +2,20 @@
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Wrench, Users, ClipboardList, TrendingUp, AlertTriangle } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useDashboardStats, useEquipmentByOrganization, useAllWorkOrders } from '@/hooks/useSupabaseData';
 import { Badge } from '@/components/ui/badge';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
-  const { getCurrentOrganization, isLoading: sessionLoading } = useSession();
-  const currentOrganization = getCurrentOrganization();
+  const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
+  const organizationId = currentOrganization?.id;
   
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  const { data: equipment, isLoading: equipmentLoading } = useEquipmentByOrganization();
-  const { data: workOrders, isLoading: workOrdersLoading } = useAllWorkOrders();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(organizationId);
+  const { data: equipment, isLoading: equipmentLoading } = useEquipmentByOrganization(organizationId);
+  const { data: workOrders, isLoading: workOrdersLoading } = useAllWorkOrders(organizationId);
 
-  const isLoading = sessionLoading || statsLoading;
+  const isLoading = orgLoading || statsLoading;
 
   // Debug logging for organization context
   useEffect(() => {

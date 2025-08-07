@@ -80,6 +80,7 @@ export const getEquipmentById = async (organizationId: string, equipmentId: stri
 // Team functions
 export const getTeamsByOrganization = async (organizationId: string): Promise<Team[]> => {
   try {
+    // First get all teams for the organization
     const { data: teamsData, error: teamsError } = await supabase
       .from('teams')
       .select('*')
@@ -95,15 +96,17 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
       return [];
     }
 
-    // Get team members for all teams
+    // Get team IDs
     const teamIds = teamsData.map(team => team.id);
+
+    // Get team members with profile data using separate query to avoid RLS context issues
     const { data: membersData, error: membersError } = await supabase
       .from('team_members')
       .select(`
         team_id,
         user_id,
         role,
-        profiles:user_id (
+        profiles!team_members_user_id_fkey (
           id,
           name,
           email
@@ -115,16 +118,32 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
       console.error('Error fetching team members:', membersError);
     }
 
-    // Get work order counts for teams by joining through equipment
-    const { data: workOrderCounts, error: workOrderError } = await supabase
-      .from('work_orders')
-      .select('equipment_id, equipment:equipment_id(team_id)')
-      .not('status', 'eq', 'completed');
+    // Get work order counts for teams through equipment
+    const { data: equipment, error: equipmentError } = await supabase
+      .from('equipment')
+      .select('id, team_id')
+      .eq('organization_id', organizationId)
+      .in('team_id', teamIds);
+
+    if (equipmentError) {
+      console.error('Error fetching equipment for work order counts:', equipmentError);
+    }
+
+    // Get work order counts
+    const equipmentIds = (equipment || []).map(eq => eq.id);
+    const { data: workOrderCounts, error: workOrderError } = equipmentIds.length > 0 ? 
+      await supabase
+        .from('work_orders')
+        .select('equipment_id')
+        .in('equipment_id', equipmentIds)
+        .not('status', 'eq', 'completed') : 
+      { data: [], error: null };
 
     if (workOrderError) {
       console.error('Error fetching work order counts:', workOrderError);
     }
 
+    // Build teams with member and work order data
     return teamsData.map(team => {
       const teamMembers = (membersData || [])
         .filter(member => member.team_id === team.id)
@@ -135,7 +154,12 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
           role: member.role,
         }));
 
-      const workOrderCount = (workOrderCounts || []).filter(wo => wo.equipment?.team_id === team.id).length;
+      // Count work orders for this team
+      const teamEquipment = (equipment || []).filter(eq => eq.team_id === team.id);
+      const teamEquipmentIds = teamEquipment.map(eq => eq.id);
+      const workOrderCount = (workOrderCounts || []).filter(wo => 
+        teamEquipmentIds.includes(wo.equipment_id)
+      ).length;
 
       return {
         ...team,
@@ -269,27 +293,38 @@ export const getWorkOrdersByEquipmentId = async (organizationId: string, equipme
 
 export const getAllWorkOrdersByOrganization = async (organizationId: string): Promise<WorkOrder[]> => {
   try {
-    const { data, error } = await supabase
+    // First get all work orders for the organization
+    const { data: workOrders, error: workOrdersError } = await supabase
       .from('work_orders')
       .select('*')
       .eq('organization_id', organizationId)
       .order('created_date', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching all work orders:', error);
+    if (workOrdersError) {
+      console.error('Error fetching all work orders:', workOrdersError);
       return [];
     }
 
-    // Get profiles for transforming the data - teams come from equipment assignment
-    const assigneeIds = [...new Set((data || []).map(wo => wo.assignee_id).filter(Boolean))];
+    if (!workOrders || workOrders.length === 0) {
+      return [];
+    }
+
+    // Get unique assignee IDs from work orders
+    const assigneeIds = [...new Set(workOrders.map(wo => wo.assignee_id).filter(Boolean))];
     
-    const profilesResult = assigneeIds.length > 0 ? 
+    // Get assignee profiles in separate query to avoid RLS context issues
+    const { data: profiles, error: profilesError } = assigneeIds.length > 0 ? 
       await supabase.from('profiles').select('id, name').in('id', assigneeIds) : 
       { data: [], error: null };
 
-    return (data || []).map(wo => ({
+    if (profilesError) {
+      console.error('Error fetching assignee profiles:', profilesError);
+    }
+
+    // Combine work orders with assignee names
+    return workOrders.map(wo => ({
       ...wo,
-      assigneeName: profilesResult.data?.find(p => p.id === wo.assignee_id)?.name,
+      assigneeName: profiles?.find(p => p.id === wo.assignee_id)?.name,
       teamName: undefined // Team info now comes from equipment assignment
     }));
   } catch (error) {
