@@ -9,6 +9,8 @@ import {
   OrganizationPermissions,
   EquipmentNotesPermissions
 } from '@/types/permissions';
+import { EntityContext, WorkOrder } from '@/types/workOrder';
+import { PERMISSIONS_CONSTANTS } from '@/constants/permissions';
 
 export const useUnifiedPermissions = () => {
   const { getCurrentOrganization, getUserTeamIds, hasTeamAccess, canManageTeam } = useSession();
@@ -24,7 +26,7 @@ export const useUnifiedPermissions = () => {
     return {
       userId: user.id,
       organizationId: currentOrganization.id,
-      userRole: currentOrganization.userRole as any,
+      userRole: currentOrganization.userRole as 'owner' | 'admin' | 'member',
       teamMemberships: userTeamIds.map(teamId => ({
         teamId,
         role: canManageTeam(teamId) ? 'manager' : 'technician'
@@ -33,7 +35,7 @@ export const useUnifiedPermissions = () => {
   }, [currentOrganization, user, userTeamIds, canManageTeam]);
 
   // Helper functions
-  const hasPermission = (permission: string, entityContext?: any): boolean => {
+  const hasPermission = (permission: string, entityContext?: EntityContext): boolean => {
     if (!userContext) return false;
     return permissionEngine.hasPermission(permission, userContext, entityContext);
   };
@@ -81,7 +83,7 @@ export const useUnifiedPermissions = () => {
 
   // Work order permissions
   const workOrders = {
-    getPermissions: (workOrder?: any): EntityPermissions => {
+    getPermissions: (workOrder?: WorkOrder): EntityPermissions => {
       const entityContext = workOrder ? {
         teamId: workOrder.team_id,
         assigneeId: workOrder.assignee_id,
@@ -100,7 +102,7 @@ export const useUnifiedPermissions = () => {
         canAddImages: hasPermission('workorder.view', entityContext)
       };
     },
-    getDetailedPermissions: (workOrder?: any): WorkOrderDetailedPermissions => {
+    getDetailedPermissions: (workOrder?: WorkOrder): WorkOrderDetailedPermissions => {
       const entityContext = workOrder ? {
         teamId: workOrder.team_id,
         assigneeId: workOrder.assignee_id,

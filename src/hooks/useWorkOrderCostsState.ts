@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { WorkOrderCost } from '@/services/workOrderCostsService';
+import { WORK_ORDER_COSTS_CONSTANTS } from '@/constants/workOrderCosts';
 
 export interface WorkOrderCostItem extends Omit<WorkOrderCost, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'created_by_name'> {
   id: string;
@@ -43,7 +44,7 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
     ).filter(Boolean) as WorkOrderCostItem[]);
   }, []);
 
-  const updateCost = useCallback((id: string, field: keyof WorkOrderCostItem, value: any) => {
+  const updateCost = useCallback((id: string, field: keyof WorkOrderCostItem, value: string | number) => {
     setCosts(prev => prev.map(cost => {
       if (cost.id === id) {
         const updatedCost = { ...cost, [field]: value };

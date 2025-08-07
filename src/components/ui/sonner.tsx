@@ -27,6 +27,3 @@ const Toaster = ({ ...props }: ToasterProps) => {
 }
 
 export { Toaster, toast }
-
-// Import constants from separate file
-import { TOAST_CONSTANTS } from '@/constants/toast';

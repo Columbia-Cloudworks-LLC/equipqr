@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { ORGANIZATION_CONSTANTS } from '@/constants/organization';
+import { SIMPLE_ORGANIZATION_CONSTANTS } from '@/constants/simpleOrganization';
 
 export interface SimpleOrganization {
   id: string;
@@ -125,8 +126,8 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       return orgs;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 3,
+    staleTime: SIMPLE_ORGANIZATION_CONSTANTS.QUERY_STALE_TIME,
+    retry: SIMPLE_ORGANIZATION_CONSTANTS.QUERY_RETRY_COUNT,
   });
 
   // Auto-select first organization if none selected and organizations are available

@@ -6,6 +6,8 @@ import { createWorkOrder } from '@/services/supabaseDataService';
 import { createPM } from '@/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { WorkOrder } from '@/types/workOrder';
+import { WORK_ORDER_CREATION_CONSTANTS } from '@/constants/workOrderCreation';
 
 export interface EnhancedCreateWorkOrderData {
   title: string;
@@ -19,7 +21,7 @@ export interface EnhancedCreateWorkOrderData {
   assignmentId?: string;
 }
 
-export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: any) => void }) => {
+export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: WorkOrder) => void }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -32,7 +34,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
 
       // Auto-assign logic for single-user organizations
       let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
-      let teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
+      const teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
       let status: 'submitted' | 'assigned' = 'submitted';
 
       // If no explicit assignment and it's a single-user org, auto-assign to creator

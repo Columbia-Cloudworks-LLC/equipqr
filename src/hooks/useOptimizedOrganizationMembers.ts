@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useMemo } from 'react';
+import { ORGANIZATION_MEMBERS_CONSTANTS } from '@/constants/organizationMembers';
 
 export interface RealOrganizationMember {
   id: string;
@@ -49,19 +50,22 @@ export const useOptimizedOrganizationMembers = (organizationId: string) => {
         email?: string;
       }
 
-      return (data || []).map(member => ({
-        id: member.user_id,
-        name: (member.profiles as ProfileData)?.name || 'Unknown',
-        email: (member.profiles as ProfileData)?.email || '',
-        role: member.role as 'owner' | 'admin' | 'member',
-        status: member.status as 'active' | 'pending' | 'inactive',
-        joinedDate: member.joined_date,
-        avatar: undefined
-      }));
+      return (data || []).map(member => {
+        const profile = member.profiles as ProfileData;
+        return {
+          id: member.user_id,
+          name: profile?.name || 'Unknown',
+          email: profile?.email || '',
+          role: member.role as 'owner' | 'admin' | 'member',
+          status: member.status as 'active' | 'pending' | 'inactive',
+          joinedDate: member.joined_date,
+          avatar: undefined
+        };
+      });
     },
     enabled: !!organizationId,
-    staleTime: 5 * 60 * 1000, // Increased to 5 minutes for better caching
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: ORGANIZATION_MEMBERS_CONSTANTS.QUERY_STALE_TIME,
+    gcTime: ORGANIZATION_MEMBERS_CONSTANTS.QUERY_GC_TIME,
   });
 };
 

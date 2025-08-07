@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { WorkOrder } from '@/types/workOrder';
+import { WORK_ORDER_ASSIGNMENT_CONSTANTS } from '@/constants/workOrderAssignment';
 
 interface AssignmentOption {
   id: string;
@@ -8,14 +10,14 @@ interface AssignmentOption {
   role?: string;
 }
 
-export function useWorkOrderContextualAssignment(workOrder: any) {
+export function useWorkOrderContextualAssignment(workOrder: WorkOrder | null) {
   const { data: assignmentOptions = [], isLoading, error } = useQuery({
-    queryKey: ['workOrderContextualAssignment', workOrder?.id, workOrder?.equipment_id || workOrder?.equipmentId],
+    queryKey: ['workOrderContextualAssignment', workOrder?.id, workOrder?.equipment_id],
     queryFn: async (): Promise<AssignmentOption[]> => {
-      // Handle both snake_case and camelCase field names
-      const equipmentId = workOrder?.equipment_id || workOrder?.equipmentId;
-      const organizationId = workOrder?.organization_id || workOrder?.organizationId;
-      const equipmentTeamId = workOrder?.equipmentTeamId;
+      // Use snake_case field names from WorkOrder interface
+      const equipmentId = workOrder?.equipment_id;
+      const organizationId = workOrder?.organization_id;
+      const equipmentTeamId = workOrder?.team_id;
 
       if (!equipmentId || !organizationId) {
         return [];
@@ -119,14 +121,14 @@ export function useWorkOrderContextualAssignment(workOrder: any) {
         }
       }
     },
-    enabled: !!(workOrder?.equipment_id || workOrder?.equipmentId) && !!(workOrder?.organization_id || workOrder?.organizationId),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!(workOrder?.equipment_id) && !!(workOrder?.organization_id),
+    staleTime: WORK_ORDER_ASSIGNMENT_CONSTANTS.QUERY_STALE_TIME,
   });
 
   return {
     assignmentOptions,
     isLoading,
     error,
-    hasTeamAssignment: !!(workOrder?.equipment_id || workOrder?.equipmentId) && assignmentOptions.length > 0
+    hasTeamAssignment: !!(workOrder?.equipment_id) && assignmentOptions.length > 0
   };
 }
