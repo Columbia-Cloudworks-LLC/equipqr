@@ -9,7 +9,7 @@ import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment
 
 import { WorkOrderAssignmentSelectorProps as AssignmentProps } from '@/types/workOrderDetails';
 
-interface WorkOrderAssignmentSelectorProps extends AssignmentProps {}
+type WorkOrderAssignmentSelectorProps = AssignmentProps;
 
 const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = ({
   workOrder,

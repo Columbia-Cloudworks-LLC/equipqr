@@ -7,7 +7,22 @@ import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { equipmentFormSchema, type EquipmentFormData } from '@/types/equipment';
 
 interface UseEquipmentFormProps {
-  equipment?: any;
+  equipment?: {
+    name?: string;
+    manufacturer?: string;
+    model?: string;
+    serial_number?: string;
+    status?: string;
+    location?: string;
+    installation_date?: string;
+    warranty_expiration?: string;
+    last_maintenance?: string;
+    notes?: string;
+    custom_attributes?: Record<string, unknown>;
+    image_url?: string;
+    last_known_location?: unknown;
+    team_id?: string;
+  };
   onClose: () => void;
 }
 
@@ -24,7 +39,7 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
       manufacturer: equipment?.manufacturer || '',
       model: equipment?.model || '',
       serial_number: equipment?.serial_number || '',
-      status: equipment?.status || 'active',
+      status: (equipment?.status as 'active' | 'inactive' | 'maintenance') || 'active',
       location: equipment?.location || '',
       installation_date: equipment?.installation_date || new Date().toISOString().split('T')[0],
       warranty_expiration: equipment?.warranty_expiration || '',

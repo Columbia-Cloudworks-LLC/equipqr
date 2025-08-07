@@ -6,7 +6,10 @@ import { useToast } from '@/hooks/use-toast';
 import { workOrderRevertService } from '@/services/workOrderRevertService';
 
 interface WorkOrderDetailsStatusLockWarningProps {
-  workOrder: any;
+  workOrder: {
+    id: string;
+    status: string;
+  };
   isWorkOrderLocked: boolean;
   baseCanAddNotes: boolean;
   isAdmin?: boolean;

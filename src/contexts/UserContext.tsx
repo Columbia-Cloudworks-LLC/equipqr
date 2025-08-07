@@ -16,6 +16,12 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// Export constants to satisfy ESLint
+export const USER_CONSTANTS = {
+  CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+  REFRESH_INTERVAL: 30 * 60 * 1000, // 30 minutes
+} as const;
+
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {

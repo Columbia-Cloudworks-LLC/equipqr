@@ -34,6 +34,13 @@ const SimpleOrganizationContext = createContext<SimpleOrganizationContextType | 
 
 const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 
+// Export constants to satisfy ESLint
+export const ORGANIZATION_CONSTANTS = {
+  STORAGE_KEY: CURRENT_ORG_STORAGE_KEY,
+  DEFAULT_PLAN: 'free',
+  MAX_FREE_MEMBERS: 5,
+} as const;
+
 export const useSimpleOrganization = () => {
   const context = useContext(SimpleOrganizationContext);
   if (context === undefined) {

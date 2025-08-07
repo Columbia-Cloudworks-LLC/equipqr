@@ -53,7 +53,9 @@ export const useInvitationPerformanceMonitoring = () => {
             success,
             error_message: error || null
           });
-        } catch {} // Silently fail
+        } catch {
+          // Silently fail - non-critical logging operation
+        }
       })();
     }
 

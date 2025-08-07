@@ -16,6 +16,10 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Hook moved to separate file to avoid Fast Refresh warnings
+export const AUTH_CONSTANTS = {
+  MAX_RETRY_ATTEMPTS: 3,
+  RETRY_DELAY: 1000,
+} as const;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);

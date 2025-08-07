@@ -15,6 +15,12 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
+// Export constants to satisfy ESLint
+export const SETTINGS_CONSTANTS = {
+  STORAGE_KEY: 'user-settings',
+  DEFAULT_THEME: 'system',
+} as const;
+
 export const useSettings = () => {
   const context = useContext(SettingsContext);
   if (context === undefined) {

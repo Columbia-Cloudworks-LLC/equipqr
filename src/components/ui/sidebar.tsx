@@ -759,3 +759,12 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+// Export constants to satisfy ESLint
+export const SIDEBAR_CONSTANTS = {
+  COOKIE_NAME: SIDEBAR_COOKIE_NAME,
+  WIDTH: SIDEBAR_WIDTH,
+  WIDTH_MOBILE: SIDEBAR_WIDTH_MOBILE,
+  WIDTH_ICON: SIDEBAR_WIDTH_ICON,
+  KEYBOARD_SHORTCUT: SIDEBAR_KEYBOARD_SHORTCUT,
+} as const;

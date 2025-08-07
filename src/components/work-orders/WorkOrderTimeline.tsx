@@ -36,14 +36,14 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         const { data } = await workOrderRevertService.getWorkOrderHistory(workOrder.id);
         
         if (data) {
-          const events: TimelineEvent[] = data.map((history: Record<string, any>) => ({
-            id: history.id,
-            title: getStatusChangeTitle(history.old_status, history.new_status),
-            description: getStatusChangeDescription(history.old_status, history.new_status, history.reason),
-            timestamp: history.changed_at,
-            type: history.new_status,
-            icon: getStatusIcon(history.new_status),
-            user: history.profiles?.name || 'System',
+          const events: TimelineEvent[] = data.map((history: Record<string, unknown>) => ({
+            id: history.id as string,
+            title: getStatusChangeTitle(history.old_status as string | null, history.new_status as string),
+            description: getStatusChangeDescription(history.old_status as string | null, history.new_status as string, history.reason as string | undefined),
+            timestamp: history.changed_at as string,
+            type: history.new_status as string,
+            icon: getStatusIcon(history.new_status as string),
+            user: (history.profiles as { name?: string })?.name || 'System',
             isPublic: true
           }));
           

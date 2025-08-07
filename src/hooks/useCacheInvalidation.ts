@@ -63,9 +63,9 @@ export const useCacheInvalidation = () => {
 // Hook for optimistic updates with automatic rollback
 export const useOptimisticUpdates = () => {
   const optimisticUpdate = useCallback(async <T>(
-    queryKey: any[],
+    queryKey: unknown[],
     updater: (old: T | undefined) => T,
-    mutationFn: () => Promise<any>
+    mutationFn: () => Promise<unknown>
   ) => {
     const timer = performanceMonitor.startTimer('optimistic-update');
     

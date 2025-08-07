@@ -9,7 +9,7 @@ import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
 
 interface WorkOrdersListProps {
   workOrders: EnhancedWorkOrder[];
-  onAcceptClick: (workOrder: any) => void;
+  onAcceptClick: (workOrder: EnhancedWorkOrder) => void;
   onStatusUpdate: (workOrderId: string, newStatus: string) => void;
   isUpdating: boolean;
   isAccepting: boolean;

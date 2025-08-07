@@ -7,7 +7,7 @@ import { getPriorityColor, getStatusColor, formatStatus } from '@/utils/workOrde
 
 import { WorkOrderDetailsHeaderProps } from '@/types/workOrderDetails';
 
-interface WorkOrderDetailsDesktopHeaderProps extends WorkOrderDetailsHeaderProps {}
+type WorkOrderDetailsDesktopHeaderProps = WorkOrderDetailsHeaderProps;
 
 export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHeaderProps> = ({
   workOrder,

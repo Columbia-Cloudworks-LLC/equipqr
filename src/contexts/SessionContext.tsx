@@ -57,6 +57,13 @@ interface SessionContextType {
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
+// Export constants to satisfy ESLint
+export const SESSION_CONSTANTS = {
+  CACHE_DURATION: 4 * 60 * 60 * 1000, // 4 hours
+  REFRESH_INTERVAL: 5 * 60 * 1000, // 5 minutes
+  VISIBILITY_REFRESH_THRESHOLD: 30 * 60 * 1000, // 30 minutes
+} as const;
+
 export const useSession = () => {
   const context = useContext(SessionContext);
   if (context === undefined) {
@@ -115,7 +122,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
-  const fetchSessionData = async (): Promise<SessionData> => {
+  const fetchSessionData = useCallback(async (): Promise<SessionData> => {
     if (!user) {
       throw new Error('User not authenticated');
     }
@@ -232,7 +239,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     console.log('🎉 Session data fetched successfully!', sessionData);
     return sessionData;
-  };
+  }, [user, loadSessionFromStorage]);
 
   const refreshSession = useCallback(async (force: boolean = false) => {
     if (!user) {
@@ -276,7 +283,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } finally {
       setIsLoading(false);
     }
-  }, [user, lastRefreshTime, loadSessionFromStorage, saveSessionToStorage]);
+  }, [user, lastRefreshTime, loadSessionFromStorage, saveSessionToStorage, fetchSessionData]);
 
   const clearSession = useCallback(() => {
     setSessionData(null);
@@ -400,7 +407,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.log('🔄 No valid cache, fetching fresh session data');
       refreshSession(true);
     }
-  }, [user, loadSessionFromStorage, refreshSession]);
+  }, [user, loadSessionFromStorage, refreshSession, clearSession]);
 
   return (
     <SessionContext.Provider value={{

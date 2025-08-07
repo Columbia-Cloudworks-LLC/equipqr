@@ -13,7 +13,11 @@ import { useDeleteWorkOrder } from '@/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/hooks/useWorkOrderImageCount';
 
 interface WorkOrderQuickActionsProps {
-  workOrder: any;
+  workOrder: {
+    id: string;
+    has_pm?: boolean;
+    status: string;
+  };
   onAssignClick?: () => void;
   onReopenClick?: () => void;
   onDeleteSuccess?: () => void;

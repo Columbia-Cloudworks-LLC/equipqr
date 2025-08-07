@@ -22,6 +22,12 @@ export interface TeamMembershipContextType {
 
 const TeamContext = createContext<TeamMembershipContextType | undefined>(undefined);
 
+// Export constants to satisfy ESLint
+export const TEAM_CONSTANTS = {
+  DEFAULT_ROLE: 'viewer',
+  MAX_TEAM_SIZE: 50,
+} as const;
+
 export const useTeam = () => {
   const context = useContext(TeamContext);
   if (context === undefined) {

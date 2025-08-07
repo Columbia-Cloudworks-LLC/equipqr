@@ -8,7 +8,7 @@ import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 
 import { WorkOrderDetailsMobileHeaderProps as MobileHeaderProps } from '@/types/workOrderDetails';
 
-interface WorkOrderDetailsMobileHeaderProps extends MobileHeaderProps {}
+type WorkOrderDetailsMobileHeaderProps = MobileHeaderProps;
 
 export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeaderProps> = ({
   workOrder,

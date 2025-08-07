@@ -12,7 +12,7 @@ export interface FormValidationHook<T> {
   errors: Record<string, string>;
   isValid: boolean;
   isSubmitting: boolean;
-  setValue: (field: keyof T, value: any) => void;
+  setValue: (field: keyof T, value: unknown) => void;
   setValues: (values: Partial<T>) => void;
   validate: () => ValidationResult;
   validateField: (field: keyof T) => boolean;
@@ -20,7 +20,7 @@ export interface FormValidationHook<T> {
   handleSubmit: (onSubmit: (values: T) => Promise<void> | void) => Promise<void>;
 }
 
-export const useFormValidation = <T extends Record<string, any>>(
+export const useFormValidation = <T extends Record<string, unknown>>(
   schema: ZodSchema<T>,
   initialValues: Partial<T> = {}
 ): FormValidationHook<T> => {
@@ -28,7 +28,7 @@ export const useFormValidation = <T extends Record<string, any>>(
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const setValue = useCallback((field: keyof T, value: any) => {
+  const setValue = useCallback((field: keyof T, value: unknown) => {
     setValuesState(prev => ({ ...prev, [field]: value }));
     // Clear field error when value changes
     if (errors[field as string]) {

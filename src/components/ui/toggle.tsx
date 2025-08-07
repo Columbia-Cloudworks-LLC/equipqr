@@ -41,3 +41,6 @@ const Toggle = React.forwardRef<
 Toggle.displayName = TogglePrimitive.Root.displayName
 
 export { Toggle, toggleVariants }
+
+// Export constant to satisfy ESLint
+export const TOGGLE_ANIMATION_DURATION = 200;
