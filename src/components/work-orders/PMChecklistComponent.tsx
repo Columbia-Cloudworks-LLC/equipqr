@@ -21,17 +21,18 @@ import { toast } from 'sonner';
 import PrintExportDropdown from './PrintExportDropdown';
 import { PMChecklistPDFGenerator } from '@/utils/pdfGenerator';
 import { workOrderRevertService } from '@/services/workOrderRevertService';
+import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '@/types/workOrderDetails';
 
 interface PMChecklistComponentProps {
   pm: PreventativeMaintenance;
   onUpdate: () => void;
   readOnly?: boolean;
   isAdmin?: boolean;
-  workOrder?: any;
-  equipment?: any;
-  team?: any;
-  organization?: any;
-  assignee?: any;
+  workOrder?: WorkOrderData;
+  equipment?: EquipmentData;
+  team?: TeamMemberData;
+  organization?: OrganizationData;
+  assignee?: TeamMemberData;
 }
 
 const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
@@ -108,30 +109,34 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       // Improved validation and parsing logic
       if (pm.checklist_data && Array.isArray(pm.checklist_data) && pm.checklist_data.length > 0) {
         // Validate that the array contains valid checklist items
-        const isValidChecklistData = pm.checklist_data.every((item: any) => {
+        const isValidChecklistData = pm.checklist_data.every((item: unknown) => {
+          const checklistItem = item as Record<string, unknown>;
           return (
             item &&
             typeof item === 'object' &&
-            typeof item.id === 'string' &&
-            typeof item.title === 'string' &&
-            typeof item.section === 'string' &&
-            typeof item.required === 'boolean' &&
-            (item.condition === null || item.condition === undefined || 
-             (typeof item.condition === 'number' && item.condition >= 1 && item.condition <= 5))
+            typeof checklistItem.id === 'string' &&
+            typeof checklistItem.title === 'string' &&
+            typeof checklistItem.section === 'string' &&
+            typeof checklistItem.required === 'boolean' &&
+            (checklistItem.condition === null || checklistItem.condition === undefined || 
+             (typeof checklistItem.condition === 'number' && Number(checklistItem.condition) >= 1 && Number(checklistItem.condition) <= 5))
           );
         });
 
         if (isValidChecklistData) {
           // Cast the data with proper type assertion
-          parsedChecklist = pm.checklist_data.map((item: any) => ({
-            id: String(item.id),
-            title: String(item.title),
-            description: item.description ? String(item.description) : undefined,
-            section: String(item.section),
-            required: Boolean(item.required),
-            condition: item.condition !== null && item.condition !== undefined ? Number(item.condition) as 1 | 2 | 3 | 4 | 5 : null,
-            notes: item.notes ? String(item.notes) : undefined
-          }));
+          parsedChecklist = pm.checklist_data.map((item: unknown) => {
+            const checklistItem = item as Record<string, unknown>;
+            return {
+              id: String(checklistItem.id),
+              title: String(checklistItem.title),
+              description: checklistItem.description ? String(checklistItem.description) : undefined,
+              section: String(checklistItem.section),
+              required: Boolean(checklistItem.required),
+              condition: checklistItem.condition !== null && checklistItem.condition !== undefined ? Number(checklistItem.condition) as 1 | 2 | 3 | 4 | 5 : null,
+              notes: checklistItem.notes ? String(checklistItem.notes) : undefined
+            };
+          });
           
           if (process.env.NODE_ENV === 'development') {
             console.log('✅ Using saved checklist data:', parsedChecklist.length, 'items');

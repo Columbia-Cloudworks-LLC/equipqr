@@ -4,8 +4,8 @@ import { AutoSaveIndicator } from '@/components/common/AutoSaveIndicator';
 
 interface WorkOrderData {
   notes: string;
-  costs: any[];
-  images: any[];
+  costs: unknown[];
+  images: unknown[];
 }
 
 interface WorkOrderAutoSaveProps {

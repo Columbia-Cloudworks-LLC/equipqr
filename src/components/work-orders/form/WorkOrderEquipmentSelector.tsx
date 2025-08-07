@@ -11,14 +11,27 @@ import { useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from 
 interface WorkOrderEquipmentSelectorProps {
   values: WorkOrderFormData;
   errors: Record<string, string>;
-  setValue: (field: keyof WorkOrderFormData, value: any) => void;
-  preSelectedEquipment?: any;
-  allEquipment: any[];
+  setValue: (field: keyof WorkOrderFormData, value: unknown) => void;
+  preSelectedEquipment?: { 
+    id: string; 
+    name: string; 
+    manufacturer?: string | null; 
+    model?: string | null; 
+    serial_number?: string | null;
+    location?: string | null;
+  };
+  allEquipment: Array<{ 
+    id: string; 
+    name: string; 
+    manufacturer?: string | null; 
+    model?: string | null; 
+    location?: string | null;
+  }>;
   isEditMode: boolean;
   isEquipmentPreSelected: boolean;
 }
 
-const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: any; }> = ({ equipmentId, setValue }) => {
+const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: string, value: unknown) => void; }> = ({ equipmentId, setValue }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [newHours, setNewHours] = useState('');
   
@@ -118,7 +131,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
           <div className="flex-1">
             <div className="font-medium">{equipment.name}</div>
             <div className="text-sm text-muted-foreground">
-              {equipment.manufacturer} {equipment.model} • {equipment.serial_number}
+              {equipment.manufacturer || ''} {equipment.model || ''} • {equipment.serial_number || ''}
             </div>
           </div>
           <Badge variant="secondary" className="text-xs">
@@ -146,7 +159,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
               <div className="flex flex-col">
                 <span>{equipment.name}</span>
                 <span className="text-xs text-muted-foreground">
-                  {equipment.manufacturer} {equipment.model} • {equipment.location}
+                  {equipment.manufacturer || ''} {equipment.model || ''} • {equipment.location || ''}
                 </span>
               </div>
             </SelectItem>

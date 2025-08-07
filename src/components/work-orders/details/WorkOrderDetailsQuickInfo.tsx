@@ -11,13 +11,14 @@ import { useDeleteWorkOrder } from '@/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/hooks/useWorkOrderImageCount';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { WorkOrderData, EquipmentData, PermissionLevels, PMData } from '@/types/workOrderDetails';
 
 interface WorkOrderDetailsQuickInfoProps {
-  workOrder: any;
-  equipment: any;
+  workOrder: WorkOrderData;
+  equipment: EquipmentData;
   formMode: string;
-  permissionLevels: any;
-  pmData: any;
+  permissionLevels: PermissionLevels;
+  pmData: PMData;
 }
 
 export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps> = ({

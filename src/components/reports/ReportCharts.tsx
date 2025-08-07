@@ -5,7 +5,7 @@ import { ReportType } from '@/pages/Reports';
 import { Equipment, WorkOrder, DashboardStats } from '@/services/supabaseDataService';
 
 interface ReportChartsProps {
-  data: any[];
+  data: unknown[];
   type: ReportType;
   dashboardStats: DashboardStats | null;
 }
