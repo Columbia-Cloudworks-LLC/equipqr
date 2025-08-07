@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { toast } from 'sonner';
+import { WorkOrderUpdateData } from '@/types/updateData';
 
 interface AcceptWorkOrderParams {
   workOrderId: string;
@@ -25,7 +26,7 @@ export const useWorkOrderAcceptance = () => {
       const isSingleUserOrg = (orgMembers?.length || 0) === 1;
 
       // Determine the target status based on assignment and org size
-      let targetStatus = 'accepted';
+      let targetStatus: 'accepted' | 'in_progress' | 'assigned' = 'accepted';
       
       if (isSingleUserOrg) {
         // Single user org: go directly to in_progress with auto-assignment
@@ -37,7 +38,7 @@ export const useWorkOrderAcceptance = () => {
       // Multi-user org without assignment: stay at accepted
 
       // Build update object
-      const updateData: any = {
+      const updateData: WorkOrderUpdateData = {
         status: targetStatus,
         acceptance_date: new Date().toISOString()
       };

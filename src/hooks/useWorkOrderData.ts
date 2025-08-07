@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { WorkOrderUpdateData } from '@/types/updateData';
 
 export interface WorkOrderNote {
   id: string;
@@ -251,10 +252,10 @@ export const useUpdateWorkOrderStatus = () => {
       organizationId
     }: {
       workOrderId: string;
-      status: string;
+      status: 'submitted' | 'assigned' | 'accepted' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
       organizationId: string;
     }) => {
-      const updateData: any = { status };
+      const updateData: WorkOrderUpdateData = { status };
       
       // Set acceptance date when accepting
       if (status === 'accepted') {

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import { WorkOrderUpdateData } from '@/types/updateData';
 
 // Use native Supabase types directly
 export type Equipment = Tables<'equipment'>;
@@ -458,7 +459,7 @@ export const updateWorkOrderStatus = async (
   newStatus: WorkOrder['status']
 ): Promise<boolean> => {
   try {
-    const updateData: any = { status: newStatus };
+    const updateData: WorkOrderUpdateData = { status: newStatus };
     
     // Set completion date if marking as completed
     if (newStatus === 'completed') {

@@ -2,7 +2,8 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
-import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/hooks/useWorkOrderUpdate';
+import { useUpdateWorkOrder } from '@/hooks/useWorkOrderUpdate';
+import { UpdateWorkOrderData } from '@/types/updateData';
 import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/hooks/useHistoricalWorkOrders';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 import { WorkOrderFormData } from './useWorkOrderForm';

@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import { PMUpdateData } from '@/types/updateData';
 
 export type PreventativeMaintenance = Tables<'preventative_maintenance'>;
 
@@ -944,8 +945,8 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       return null;
     }
 
-    const updateData: any = {
-      checklist_data: data.checklistData as any, // Cast to any to satisfy Json type
+    const updateData: PMUpdateData = {
+      checklist_data: data.checklistData,
       notes: data.notes,
     };
 

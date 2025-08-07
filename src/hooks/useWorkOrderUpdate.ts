@@ -3,15 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from '@/hooks/use-toast';
-
-export interface UpdateWorkOrderData {
-  title?: string;
-  description?: string;
-  priority?: 'low' | 'medium' | 'high';
-  dueDate?: string;
-  estimatedHours?: number;
-  hasPM?: boolean;
-}
+import { WorkOrderUpdateData, UpdateWorkOrderData } from '@/types/updateData';
 
 export const useUpdateWorkOrder = () => {
   const { currentOrganization } = useOrganization();
@@ -19,7 +11,7 @@ export const useUpdateWorkOrder = () => {
 
   return useMutation({
     mutationFn: async ({ workOrderId, data }: { workOrderId: string; data: UpdateWorkOrderData }) => {
-      const updateData: any = {};
+      const updateData: WorkOrderUpdateData = {};
       
       if (data.title !== undefined) updateData.title = data.title;
       if (data.description !== undefined) updateData.description = data.description;

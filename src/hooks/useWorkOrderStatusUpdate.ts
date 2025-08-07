@@ -3,11 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useOrganization } from '@/contexts/OrganizationContext';
-
-interface StatusUpdateData {
-  workOrderId: string;
-  newStatus: string;
-}
+import { WorkOrderUpdateData, StatusUpdateData } from '@/types/updateData';
 
 export const useWorkOrderStatusUpdate = () => {
   const queryClient = useQueryClient();
@@ -16,7 +12,7 @@ export const useWorkOrderStatusUpdate = () => {
 
   return useMutation({
     mutationFn: async ({ workOrderId, newStatus }: StatusUpdateData) => {
-      const updateData: any = {
+      const updateData: WorkOrderUpdateData = {
         status: newStatus,
         updated_at: new Date().toISOString()
       };

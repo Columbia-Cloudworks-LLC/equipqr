@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { WorkOrderUpdateData } from '@/types/updateData';
 
 export const useQuickWorkOrderAssignment = () => {
   const queryClient = useQueryClient();
@@ -16,12 +17,12 @@ export const useQuickWorkOrderAssignment = () => {
       organizationId: string 
     }) => {
       // Determine the new status based on assignment
-      let newStatus = 'submitted';
+      let newStatus: 'submitted' | 'assigned' = 'submitted';
       if (assigneeId) {
         newStatus = 'assigned';
       }
 
-      const updateData: any = {
+      const updateData: WorkOrderUpdateData = {
         assignee_id: assigneeId || null,
         status: newStatus
       };

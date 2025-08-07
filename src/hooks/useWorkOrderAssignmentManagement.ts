@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useOptimizedWorkOrderAssignment } from './useOptimizedWorkOrderAssignment';
+import { WorkOrderUpdateData } from '@/types/updateData';
 
 export interface AssignmentUpdateData {
   assigneeId?: string | null;
@@ -16,7 +17,7 @@ export const useWorkOrderAssignmentManagement = (organizationId: string, workOrd
 
   const updateAssignmentMutation = useMutation({
     mutationFn: async (data: AssignmentUpdateData) => {
-      const updateData: any = {
+      const updateData: WorkOrderUpdateData = {
         assignee_id: data.assigneeId,
         team_id: null, // Always clear team_id since we're only doing user assignments
         updated_at: new Date().toISOString()
