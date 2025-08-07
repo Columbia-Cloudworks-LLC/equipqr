@@ -16,7 +16,7 @@ const Equipment = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { canCreateEquipment } = usePermissions();
   
-  // Use the new enhanced filtering hook
+  // Use the new enhanced filtering hook with explicit organization ID
   const {
     filters,
     sortConfig,
@@ -31,7 +31,7 @@ const Equipment = () => {
     clearFilters,
     applyQuickFilter,
     setShowAdvancedFilters
-  } = useEquipmentFiltering();
+  } = useEquipmentFiltering(currentOrganization?.id);
   
   const [showForm, setShowForm] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState(null);
