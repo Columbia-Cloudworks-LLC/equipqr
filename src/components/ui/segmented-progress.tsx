@@ -34,7 +34,7 @@ const SegmentedProgress = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "relative h-4 w-full overflow-hidden rounded-full bg-secondary flex",
+      "relative h-4 w-full overflow-hidden rounded-md bg-secondary flex",
       className
     )}
   >
