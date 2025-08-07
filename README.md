@@ -167,7 +167,7 @@ src/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Copyright © 2024 Columbia Cloudworks LLC. All rights reserved.
 
 ## 🆘 Support
 
