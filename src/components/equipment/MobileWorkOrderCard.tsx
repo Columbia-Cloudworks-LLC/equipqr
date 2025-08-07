@@ -151,7 +151,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-2 border-t">
-            {permissions.workOrders.getDetailedPermissions(workOrder as any).canEdit && (
+            {permissions.workOrders.getDetailedPermissions(workOrder).canEdit && (
               <WorkOrderCostSubtotal 
                 workOrderId={workOrder.id}
                 className="text-sm"

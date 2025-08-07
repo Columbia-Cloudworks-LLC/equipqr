@@ -54,7 +54,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: newStatus as any,
+        status: newStatus as 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled',
         organizationId
       });
     } catch (error) {

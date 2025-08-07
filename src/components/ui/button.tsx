@@ -27,5 +27,4 @@ Button.displayName = "Button"
 
 export { Button, buttonVariants }
 
-// Export constant to satisfy ESLint
-export const BUTTON_DEFAULT_SIZE = "default";
+// Import constants from separate file

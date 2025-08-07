@@ -37,12 +37,12 @@ export const useOrganizationAdmins = (organizationId: string) => {
         return [];
       }
 
-      return (data || []).map(member => ({
-        id: member.user_id,
-        name: (member.profiles as any)?.name || 'Unknown',
-        email: (member.profiles as any)?.email || '',
-        role: member.role
-      }));
+        return (data || []).map(member => ({
+          id: member.user_id,
+          name: (member.profiles as { name?: string })?.name || 'Unknown',
+          email: (member.profiles as { email?: string })?.email || '',
+          role: member.role
+        }));
     },
     enabled: !!organizationId,
     staleTime: 10 * 60 * 1000, // 10 minutes

@@ -11,7 +11,7 @@ export const useMemoryOptimization = () => {
     // Force garbage collection if available (Chrome DevTools)
     if (typeof window !== 'undefined' && 'gc' in window) {
       try {
-        (window as any).gc();
+        (window as { gc?: () => void }).gc?.();
       } catch (e) {
         // gc() is not available in production
       }

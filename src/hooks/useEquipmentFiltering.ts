@@ -62,7 +62,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
 
   // Filter and sort equipment
   const filteredAndSortedEquipment = useMemo(() => {
-    let filtered = equipment.filter(item => {
+    const filtered = equipment.filter(item => {
       // Search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
@@ -149,8 +149,8 @@ export const useEquipmentFiltering = (organizationId?: string) => {
 
     // Sort equipment
     filtered.sort((a, b) => {
-      let aValue: unknown = a[sortConfig.field as keyof typeof a];
-      let bValue: unknown = b[sortConfig.field as keyof typeof b];
+      let aValue: string | number | Date = a[sortConfig.field as keyof typeof a] as string | number | Date;
+      let bValue: string | number | Date = b[sortConfig.field as keyof typeof b] as string | number | Date;
 
       // Handle null/undefined values
       if (aValue == null && bValue == null) return 0;

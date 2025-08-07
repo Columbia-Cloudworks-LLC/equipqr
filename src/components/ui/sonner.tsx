@@ -28,5 +28,4 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
 export { Toaster, toast }
 
-// Export constant to satisfy ESLint
-export const TOAST_DURATION = 5000;
+// Import constants from separate file
