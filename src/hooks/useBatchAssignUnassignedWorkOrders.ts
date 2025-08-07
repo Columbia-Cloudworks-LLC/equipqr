@@ -32,8 +32,7 @@ export const useBatchAssignUnassignedWorkOrders = () => {
         .select('id')
         .eq('organization_id', organizationId)
         .eq('status', 'submitted')
-        .is('assignee_id', null)
-        .is('team_id', null);
+        .is('assignee_id', null);
 
       if (ordersError) throw ordersError;
 
