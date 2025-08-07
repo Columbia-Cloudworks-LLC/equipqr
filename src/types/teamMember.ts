@@ -1,17 +1,19 @@
 export interface TeamMember {
   id: string;
-  name: string;
-  email: string;
-  role: 'manager' | 'technician' | 'requestor' | 'viewer';
-  status: 'active' | 'pending' | 'inactive';
+  user_id: string;
+  role: 'owner' | 'manager' | 'technician' | 'requestor' | 'viewer';
   team_id: string;
-  organization_id: string;
-  joined_at?: string;
-  skills?: string[];
+  joined_date?: string;
   profiles?: {
     name: string;
     email: string;
   } | null;
+  // Computed properties for convenience
+  name?: string;
+  email?: string;
+  status?: 'active' | 'pending' | 'inactive';
+  organization_id?: string;
+  skills?: string[];
 }
 
 export interface TeamMemberFormData {
