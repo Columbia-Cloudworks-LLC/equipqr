@@ -27,7 +27,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   const permissions = useUnifiedPermissions();
   const { currentOrganization } = useSimpleOrganization();
   const { data: teams = [] } = useTeams(currentOrganization?.id);
-  const updateEquipmentMutation = useUpdateEquipment();
+  const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
 
   // Check if user can edit equipment
   const equipmentPermissions = permissions.equipment.getPermissions(equipment.team_id || undefined);

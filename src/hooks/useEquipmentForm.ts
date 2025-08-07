@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from '@/hooks/use-toast';
 import { useCreateEquipment } from '@/hooks/useSupabaseData';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { equipmentFormSchema, type EquipmentFormData } from '@/types/equipment';
 
 interface UseEquipmentFormProps {
@@ -12,7 +13,8 @@ interface UseEquipmentFormProps {
 
 export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) => {
   const isEdit = !!equipment;
-  const createEquipmentMutation = useCreateEquipment();
+  const { currentOrganization } = useSimpleOrganization();
+  const createEquipmentMutation = useCreateEquipment(currentOrganization?.id || '');
   const { canManageEquipment, hasRole } = usePermissions();
 
   const form = useForm<EquipmentFormData>({

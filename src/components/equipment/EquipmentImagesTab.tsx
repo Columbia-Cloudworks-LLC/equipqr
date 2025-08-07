@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from '@/contexts/SessionContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useEquipmentNotesPermissions } from '@/hooks/useEquipmentNotesPermissions';
 import ImageGallery from '@/components/common/ImageGallery';
 import { 
@@ -26,16 +26,14 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
   currentDisplayImage
 }) => {
   const queryClient = useQueryClient();
-  const { sessionData } = useSession();
+  const { currentOrganization } = useSimpleOrganization();
   const { user } = useAuth();
   const permissions = useEquipmentNotesPermissions(equipmentTeamId);
 
   // Get user's role and team information
-  const userRole = sessionData?.organizations?.find(
-    org => org.id === organizationId
-  )?.userRole || 'viewer';
+  const userRole = currentOrganization?.userRole || 'member';
   
-  const userTeamIds = sessionData?.teamMemberships?.map(tm => tm.teamId) || [];
+  const userTeamIds: string[] = []; // This would need to be fetched from team membership data
 
   // Fetch all equipment images
   const { data: images = [], isLoading } = useQuery({
