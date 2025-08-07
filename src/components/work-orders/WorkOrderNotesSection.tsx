@@ -114,7 +114,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       });
       
       console.log('✅ createNoteMutation completed successfully:', result);
-      return result;
+      // Return void to match ImageUploadWithNote interface
+      return;
     } catch (error) {
       console.error('❌ Error in handleCreateNoteWithImages:', error);
       // Re-throw the error so ImageUploadWithNote can handle it properly

@@ -14,7 +14,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 export interface Column<T> {
   key: keyof T | string;
   title: string;
-  render?: (value: any, item: T, index: number) => React.ReactNode;
+  render?: (value: unknown, item: T, index: number) => React.ReactNode;
   sortable?: boolean;
   width?: string;
 }
@@ -38,7 +38,7 @@ export interface DataTableProps<T> {
   className?: string;
 }
 
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T extends Record<string, unknown>>({
   data,
   columns,
   isLoading = false,
@@ -69,7 +69,7 @@ export function DataTable<T extends Record<string, any>>({
       return column.render(value, item, index);
     }
 
-    return value;
+    return value as React.ReactNode;
   };
 
   if (isLoading) {

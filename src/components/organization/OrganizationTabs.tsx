@@ -24,6 +24,11 @@ import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  OrganizationTabsOrganization, 
+  OrganizationTabsStats, 
+  OrganizationTabsFleetMapSubscription 
+} from '@/types/organizationTabsTypes';
 
 interface OrganizationTabsProps {
   members: RealOrganizationMember[];
@@ -35,9 +40,9 @@ interface OrganizationTabsProps {
   adminsLoading: boolean;
   onInviteMember: () => void;
   onUpgrade: () => void;
-  organization: any;
-  organizationStats: any;
-  fleetMapSubscription: any;
+  organization: OrganizationTabsOrganization;
+  organizationStats: OrganizationTabsStats;
+  fleetMapSubscription: OrganizationTabsFleetMapSubscription;
 }
 
 const OrganizationTabs: React.FC<OrganizationTabsProps> = ({

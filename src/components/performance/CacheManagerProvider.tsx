@@ -7,12 +7,12 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 
 // PHASE 3: Cache management provider with automatic setup
 interface CacheManagerContextType {
-  getCacheStats: () => any;
+  getCacheStats: () => { totalQueries: number; activeQueries: number; staleQueries: number; fetchingQueries: number; errorQueries: number };
   clearCache: (pattern?: string) => void;
-  getSyncStatus: () => any;
+  getSyncStatus: () => { isOnline: boolean; syncErrors: number; queuedItems: number; reconnectAttempts: number; activeSubscriptions: number };
 }
 
-const CacheManagerContext = createContext<CacheManagerContextType | undefined>(undefined);
+export const CacheManagerContext = createContext<CacheManagerContextType | undefined>(undefined);
 
 interface CacheManagerProviderProps {
   children: ReactNode;

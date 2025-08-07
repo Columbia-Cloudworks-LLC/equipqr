@@ -33,7 +33,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
 }) => {
   const quickAssignMutation = useQuickWorkOrderAssignment();
   const statusUpdateMutation = useWorkOrderStatusUpdate();
-  const [currentUser, setCurrentUser] = React.useState<any>(null);
+  const [currentUser, setCurrentUser] = React.useState<{ id: string } | null>(null);
 
   React.useEffect(() => {
     const getCurrentUser = async () => {
@@ -141,10 +141,10 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
           {/* Key Information - Stacked vertically */}
           <div className="space-y-2 text-sm">
             {/* Equipment Team - Static Display */}
-            {(order as any).equipmentTeamName && (
+            {(order as EnhancedWorkOrder & { equipmentTeamName?: string }).equipmentTeamName && (
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-muted-foreground">Team: {(order as any).equipmentTeamName}</span>
+                <span className="text-muted-foreground">Team: {(order as EnhancedWorkOrder & { equipmentTeamName?: string }).equipmentTeamName}</span>
               </div>
             )}
 

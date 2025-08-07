@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export interface WorkingHoursHistoryEntry {
+export interface WorkingHoursHistoryEntry extends Record<string, unknown> {
   id: string;
   equipment_id: string;
   old_hours: number | null;

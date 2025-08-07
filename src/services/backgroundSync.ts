@@ -343,7 +343,8 @@ export class BackgroundSyncService {
       isOnline: this.isOnline,
       activeSubscriptions: this.subscriptions.size,
       queuedItems: this.syncQueue.length,
-      reconnectAttempts: this.reconnectAttempts
+      reconnectAttempts: this.reconnectAttempts,
+      syncErrors: 0 // Add missing property
     };
   }
 }

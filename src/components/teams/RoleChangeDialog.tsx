@@ -15,11 +15,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TeamWithMembers } from '@/services/teamService';
 import { useTeamMembers } from '@/hooks/useTeamManagement';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { TeamMember } from '@/types/teamMember';
 
 interface RoleChangeDialogProps {
   open: boolean;
   onClose: () => void;
-  member: any;
+  member: TeamMember;
   team: TeamWithMembers;
 }
 
