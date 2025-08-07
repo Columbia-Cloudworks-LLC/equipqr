@@ -65,7 +65,7 @@ const WorkOrders = () => {
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId,
-        status: newStatus,
+        status: newStatus as any,
         organizationId: currentOrganization.id
       });
     } catch (error) {

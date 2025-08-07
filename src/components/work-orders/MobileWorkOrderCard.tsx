@@ -53,10 +53,10 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
     });
   };
 
-  const handleStatusUpdate = (newStatus: WorkOrderStatus) => {
+  const handleStatusUpdate = (newStatus: string) => {
     statusUpdateMutation.mutate({
       workOrderId: order.id,
-      newStatus
+      newStatus: newStatus as any
     });
   };
 
