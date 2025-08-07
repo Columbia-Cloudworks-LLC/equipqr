@@ -1,73 +1,185 @@
-# Welcome to your Lovable project
+# EquipQR - Fleet Equipment Management Platform
 
-## Project info
+A comprehensive fleet equipment management platform built with React, TypeScript, and modern web technologies.
 
-**URL**: https://lovable.dev/projects/39c55989-8df1-479b-bd1f-77dde7f9ece2
+## 🚀 Features
 
-## How can I edit this code?
+- **Equipment Tracking**: QR code integration for quick equipment access
+- **Work Order Management**: Create, assign, and track maintenance work orders
+- **Team Management**: Organize teams and assign responsibilities
+- **Fleet Visualization**: Interactive maps for equipment location tracking
+- **Real-time Updates**: Live tracking and notifications
 
-There are several ways of editing your application.
+## 🛠️ Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript, Vite
+- **Styling**: Tailwind CSS, shadcn/ui
+- **Backend**: Supabase (Auth, Database, Storage)
+- **State Management**: TanStack Query
+- **Testing**: Vitest, React Testing Library
+- **CI/CD**: GitHub Actions
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/39c55989-8df1-479b-bd1f-77dde7f9ece2) and start prompting.
+## 📋 Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js 18.x or 20.x
+- npm or yarn
+- Supabase account and project
 
-**Use your preferred IDE**
+## 🏗️ Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd equipqr
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+2. Install dependencies:
+```bash
+npm install
+```
 
-Follow these steps:
+3. Set up environment variables:
+Create a `.env.local` file with your Supabase credentials:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🧪 Testing
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Run the test suite:
+```bash
+# Run all tests
+npm run test
 
-**Use GitHub Codespaces**
+# Run tests with coverage
+npm run test:coverage
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Run tests in watch mode
+npm run test:watch
 
-## What technologies are used for this project?
+# Run tests with UI
+npm run test:ui
+```
 
-This project is built with:
+### Test Coverage
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+The project maintains a minimum test coverage threshold of 70% across:
+- Lines
+- Functions  
+- Branches
+- Statements
 
-## How can I deploy this project?
+## 🔧 Development
 
-Simply open [Lovable](https://lovable.dev/projects/39c55989-8df1-479b-bd1f-77dde7f9ece2) and click on Share -> Publish.
+### Available Scripts
 
-## Can I connect a custom domain to my Lovable project?
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+- `npm run test` - Run tests
+- `npm run test:coverage` - Run tests with coverage
 
-Yes, you can!
+### Code Quality
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The project uses:
+- **ESLint** for code linting
+- **TypeScript** for type safety
+- **Vitest** for unit testing
+- **React Testing Library** for component testing
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🚀 CI/CD
+
+The project includes GitHub Actions workflows for:
+
+### Pull Request Testing (`pr-tests.yml`)
+- **Multi-Node Testing**: Tests against Node.js 18.x and 20.x
+- **Code Quality**: ESLint and TypeScript checks
+- **Test Coverage**: Runs tests with coverage reporting
+- **Security Audits**: Checks for package vulnerabilities
+- **Build Validation**: Ensures the application builds successfully
+- **Quality Gates**: Enforces coverage thresholds and build size limits
+
+### Workflow Triggers
+- Pull requests to `main` or `develop` branches
+- Direct pushes to `main` or `develop` branches
+
+### Required GitHub Secrets
+Add these secrets to your GitHub repository:
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+
+## 📁 Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   ├── equipment/      # Equipment-specific components
+│   ├── work-orders/    # Work order components
+│   └── teams/          # Team management components
+├── pages/              # Main application pages
+├── hooks/              # Custom React hooks
+├── services/           # API service layers
+├── utils/              # Utility functions
+├── types/              # TypeScript type definitions
+└── test/               # Test utilities and setup
+```
+
+## 🔒 Security
+
+- Row Level Security (RLS) policies for data isolation
+- Authentication via Supabase Auth
+- Input validation with Zod schemas
+- Regular security audits in CI pipeline
+
+## 📖 Documentation
+
+- [Features Overview](./docs/features.md)
+- [Technical Guide](./docs/technical-guide.md)
+- [Deployment Guide](./docs/deployment.md)
+- [Work Order Workflow](./docs/work-order-workflow.md)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes and add tests
+4. Ensure all tests pass: `npm run test`
+5. Run the linter: `npm run lint`
+6. Commit your changes: `git commit -m 'Add your feature'`
+7. Push to the branch: `git push origin feature/your-feature`
+8. Open a pull request
+
+### Pull Request Guidelines
+
+- All tests must pass
+- Code coverage must meet the 70% threshold
+- No high-severity security vulnerabilities
+- Build size must not exceed 10MB
+- Follow the existing code style and conventions
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue in the GitHub repository
+- Check the documentation in the `/docs` folder
+- Review the troubleshooting guide
+
+## 🎯 Roadmap
+
+- [ ] Mobile app integration
+- [ ] Advanced analytics dashboard
+- [ ] IoT sensor integration
+- [ ] Predictive maintenance algorithms
+- [ ] API integrations with external ERP systems

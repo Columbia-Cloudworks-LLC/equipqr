@@ -1,0 +1,139 @@
+name: PR Tests
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run ESLint
+      run: npm run lint
+      
+    - name: Run type check
+      run: npx tsc --noEmit
+      
+    - name: Run tests
+      run: npm run test
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+    - name: Run tests with coverage
+      run: npm run test:coverage
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        
+    - name: Build application
+      run: npm run build
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+    - name: Check bundle size
+      run: |
+        npm run build
+        du -sh dist/
+        find dist/ -name "*.js" -exec du -sh {} \; | sort -hr | head -10
+        
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run security audit
+      run: npm audit --audit-level=moderate
+      
+    - name: Check for vulnerabilities
+      run: |
+        if npm audit --audit-level=high --json | grep -q '"vulnerabilities"'; then
+          echo "High severity vulnerabilities found!"
+          npm audit --audit-level=high
+          exit 1
+        else
+          echo "No high severity vulnerabilities found."
+        fi
+
+  quality-gates:
+    runs-on: ubuntu-latest
+    needs: [test]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Check test coverage
+      run: |
+        npm run test:coverage
+        coverage_percentage=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+        echo "Coverage: $coverage_percentage%"
+        if (( $(echo "$coverage_percentage < 70" | bc -l) )); then
+          echo "Coverage $coverage_percentage% is below minimum threshold of 70%"
+          exit 1
+        fi
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+    - name: Check build size
+      run: |
+        npm run build
+        build_size=$(du -sb dist/ | cut -f1)
+        max_size=$((10 * 1024 * 1024)) # 10MB in bytes
+        if [ $build_size -gt $max_size ]; then
+          echo "Build size $(($build_size / 1024 / 1024))MB exceeds maximum of 10MB"
+          exit 1
+        fi
+        echo "Build size: $(($build_size / 1024 / 1024))MB"
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
