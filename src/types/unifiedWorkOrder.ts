@@ -11,6 +11,7 @@ export interface UnifiedWorkOrder {
   assigneeName?: string;
   team_id?: string | null;
   teamName?: string;
+  team_name?: string;
   created_date: string;
   created_by?: string;
   due_date?: string | null;
@@ -32,6 +33,10 @@ export interface UnifiedWorkOrder {
     name: string;
     email?: string;
   };
+  // Computed properties for backward compatibility
+  equipmentId?: string;
+  organizationId?: string;
+  createdDate?: string;
 }
 
 // Type guards to safely convert between types
@@ -67,6 +72,10 @@ export const toUnifiedWorkOrder = (workOrder: any): UnifiedWorkOrder => {
     equipment_name: workOrder.equipment_name,
     notes: workOrder.notes,
     preventative_maintenance: workOrder.preventative_maintenance,
-    updated_at: workOrder.updated_at
+    updated_at: workOrder.updated_at,
+    // Add computed properties for compatibility
+    equipmentId: workOrder.equipment_id || workOrder.equipmentId,
+    organizationId: workOrder.organization_id || workOrder.organizationId,
+    createdDate: workOrder.created_date || workOrder.createdDate
   };
 };

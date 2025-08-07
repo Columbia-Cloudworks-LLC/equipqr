@@ -139,9 +139,9 @@ const WorkOrderDetails = () => {
               isAdmin={permissionLevels.isManager}
               workOrder={workOrder}
               equipment={equipment}
-              team={{ name: workOrder.teamName }}
+              team={{ name: workOrder.teamName || '' }}
               organization={currentOrganization}
-              assignee={{ name: workOrder.assigneeName }}
+              assignee={{ name: workOrder.assigneeName || '' }}
             />
           )}
 

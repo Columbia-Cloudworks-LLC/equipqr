@@ -60,13 +60,8 @@ export interface PMData {
   work_order_id?: string;
 }
 
-// Legacy type aliases for compatibility - extend with missing properties
-export interface WorkOrderData extends UnifiedWorkOrder {
-  equipmentId: string;
-  organizationId: string;
-  createdDate: string;
-}
-
+// Legacy type aliases for compatibility - use UnifiedWorkOrder directly
+export type WorkOrderData = UnifiedWorkOrder;
 export type EquipmentData = Equipment;
 export type OrganizationData = Organization;
 
