@@ -139,7 +139,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
     }
     acc[member.team_id].push(member);
     return acc;
-  }, {} as Record<string, typeof teamMembersData>);
+  }, {} as Record<string, Array<TeamMember & { profiles: { name: string; email: string; } | null }>>);
 
   // Combine teams with their members
   return teams.map(team => ({
