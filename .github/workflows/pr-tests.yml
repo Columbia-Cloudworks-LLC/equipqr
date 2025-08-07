@@ -25,7 +25,7 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: npm install
       
     - name: Run ESLint
       run: npm run lint
@@ -79,7 +79,7 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: npm install
       
     - name: Run security audit
       run: npm audit --audit-level=moderate
@@ -109,7 +109,7 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: npm install
       
     - name: Check test coverage
       run: |
