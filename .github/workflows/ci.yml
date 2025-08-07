@@ -1,0 +1,317 @@
+name: Enhanced CI Pipeline
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+  checks: write
+
+env:
+  NODE_VERSION: 20.x
+  CACHE_VERSION: v1
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+      
+    - name: Run ESLint
+      run: npx eslint . --format=json --output-file=eslint-report.json
+      continue-on-error: true
+      
+    - name: Annotate ESLint Results
+      uses: ataylorme/eslint-annotate-action@v3
+      if: always()
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        report-json: "eslint-report.json"
+        
+    - name: Run type check
+      run: npx tsc --noEmit
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ matrix.node-version }}-${{ env.CACHE_VERSION }}-
+          
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+      
+    - name: Run tests with coverage
+      run: npm run test:coverage
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      if: matrix.node-version == '20.x'
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+      
+    - name: Run enhanced security audit
+      run: npx npm-audit-ci --moderate
+      continue-on-error: true
+      
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript
+        queries: security-and-quality
+        
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:javascript"
+
+  build:
+    name: Build & Bundle Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint-and-typecheck]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+      
+    - name: Cache build output
+      uses: actions/cache@v4
+      with:
+        path: dist
+        key: ${{ runner.os }}-build-${{ github.sha }}
+        
+    - name: Build application
+      run: npm run build
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+    - name: Analyze bundle size
+      run: npx size-limit
+      continue-on-error: true
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-files
+        path: dist/
+        retention-days: 7
+
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    needs: [test, security, build]
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+      
+    - name: Restore build cache
+      uses: actions/cache@v4
+      with:
+        path: dist
+        key: ${{ runner.os }}-build-${{ github.sha }}
+        
+    - name: Check test coverage threshold
+      run: |
+        npm run test:coverage
+        coverage_lines=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+        coverage_functions=$(cat coverage/coverage-summary.json | jq '.total.functions.pct')
+        coverage_branches=$(cat coverage/coverage-summary.json | jq '.total.branches.pct')
+        coverage_statements=$(cat coverage/coverage-summary.json | jq '.total.statements.pct')
+        
+        echo "Coverage Report:"
+        echo "Lines: $coverage_lines%"
+        echo "Functions: $coverage_functions%"
+        echo "Branches: $coverage_branches%"
+        echo "Statements: $coverage_statements%"
+        
+        THRESHOLD=70
+        if (( $(echo "$coverage_lines < $THRESHOLD" | bc -l) )); then
+          echo "❌ Line coverage $coverage_lines% is below minimum threshold of $THRESHOLD%"
+          exit 1
+        fi
+        if (( $(echo "$coverage_functions < $THRESHOLD" | bc -l) )); then
+          echo "❌ Function coverage $coverage_functions% is below minimum threshold of $THRESHOLD%"
+          exit 1
+        fi
+        if (( $(echo "$coverage_branches < $THRESHOLD" | bc -l) )); then
+          echo "❌ Branch coverage $coverage_branches% is below minimum threshold of $THRESHOLD%"
+          exit 1
+        fi
+        if (( $(echo "$coverage_statements < $THRESHOLD" | bc -l) )); then
+          echo "❌ Statement coverage $coverage_statements% is below minimum threshold of $THRESHOLD%"
+          exit 1
+        fi
+        echo "✅ All coverage thresholds met!"
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+    - name: Check bundle size limits
+      run: |
+        if [ ! -d "dist" ]; then
+          echo "Build directory not found, running build..."
+          npm run build
+        fi
+        
+        build_size=$(du -sb dist/ | cut -f1)
+        max_size=$((12 * 1024 * 1024)) # 12MB in bytes
+        
+        echo "Build size: $(($build_size / 1024 / 1024))MB"
+        echo "Maximum allowed: $(($max_size / 1024 / 1024))MB"
+        
+        if [ $build_size -gt $max_size ]; then
+          echo "❌ Build size $(($build_size / 1024 / 1024))MB exceeds maximum of $(($max_size / 1024 / 1024))MB"
+          echo "Large files in build:"
+          find dist/ -type f -size +1M -exec du -sh {} \; | sort -hr | head -10
+          exit 1
+        fi
+        echo "✅ Build size within limits!"
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+    - name: Performance budget check
+      run: |
+        echo "📊 Performance Analysis:"
+        echo "JavaScript bundles:"
+        find dist/assets -name "*.js" -exec du -sh {} \; | sort -hr | head -5
+        echo "CSS bundles:"
+        find dist/assets -name "*.css" -exec du -sh {} \; | sort -hr | head -3
+        echo "Images:"
+        find dist -name "*.png" -o -name "*.jpg" -o -name "*.svg" | wc -l | xargs echo "Image count:"
+        
+    - name: Success notification
+      run: |
+        echo "🎉 All quality gates passed!"
+        echo "✅ Linting and type checking passed"
+        echo "✅ All tests passed with sufficient coverage" 
+        echo "✅ Security scan completed"
+        echo "✅ Build completed successfully"
+        echo "✅ Bundle size within limits"
