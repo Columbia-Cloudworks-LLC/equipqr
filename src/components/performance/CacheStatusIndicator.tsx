@@ -13,7 +13,7 @@ import {
   Clock,
   AlertCircle
 } from 'lucide-react';
-import { useCacheManagerContext } from './CacheManagerProvider';
+import { useCacheManagerContext } from '@/hooks/useCacheManagerContext';
 
 // PHASE 3: Cache status indicator component
 interface CacheStats {

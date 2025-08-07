@@ -17,6 +17,7 @@ import {
   getWorkOrderNotesWithImages,
   deleteWorkOrderImage
 } from '@/services/workOrderNotesService';
+import { type WorkOrderImage, type WorkOrderNote } from '@/types/workOrderTypes';
 import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
 
 interface WorkOrderNotesSectionProps {
@@ -137,7 +138,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     });
   };
 
-  const canDeleteImage = (image: any) => {
+  const canDeleteImage = (image: WorkOrderImage) => {
     return image.uploaded_by === user?.id;
   };
 

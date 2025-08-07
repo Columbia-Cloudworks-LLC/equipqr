@@ -12,34 +12,17 @@ import CustomAttributesSection from './CustomAttributesSection';
 import { useCustomAttributes, type CustomAttribute } from '@/hooks/useCustomAttributes';
 import { useEquipmentForm } from '@/hooks/useEquipmentForm';
 import { type EquipmentFormData } from '@/types/equipment';
+import { type EquipmentFormEquipment } from '@/types/equipmentFormTypes';
 import EquipmentBasicInfoSection from './form/EquipmentBasicInfoSection';
 import EquipmentStatusLocationSection from './form/EquipmentStatusLocationSection';
 import EquipmentNotesSection from './form/EquipmentNotesSection';
 import EquipmentFormActions from './form/EquipmentFormActions';
 import TeamSelectionSection from './form/TeamSelectionSection';
 
-interface Equipment {
-  id: string;
-  name: string;
-  manufacturer: string;
-  model: string;
-  serial_number: string;
-  status: 'active' | 'maintenance' | 'inactive';
-  location: string;
-  installation_date: string;
-  warranty_expiration?: string;
-  last_maintenance?: string;
-  notes: string;
-  custom_attributes?: Record<string, any>;
-  image_url?: string;
-  last_known_location?: any;
-  team_id?: string;
-}
-
 interface EquipmentFormProps {
   open: boolean;
   onClose: () => void;
-  equipment?: Equipment;
+  equipment?: EquipmentFormEquipment;
 }
 
 function EquipmentForm({ open, onClose, equipment }: EquipmentFormProps) {

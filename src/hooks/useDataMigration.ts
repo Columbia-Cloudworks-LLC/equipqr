@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { DataMigrationContext } from '@/components/migration/DataMigrationProvider';
+import { DataMigrationContext } from '@/contexts/DataMigrationContext';
 
 export const useDataMigration = () => {
   const context = useContext(DataMigrationContext);

@@ -1,14 +1,7 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from '@/contexts/SessionContext';
-
-interface DataMigrationContextType {
-  useSupabaseData: boolean;
-  toggleDataSource: () => void;
-  isReady: boolean;
-}
-
-export const DataMigrationContext = createContext<DataMigrationContextType | undefined>(undefined);
+import { DataMigrationContext, DataMigrationContextType } from '@/contexts/DataMigrationContext';
 
 interface DataMigrationProviderProps {
   children: React.ReactNode;

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, User, Users, UserX } from 'lucide-react';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { WorkOrder } from '@/services/syncDataService';
+import { type ExtendedWorkOrderProps } from '@/types/workOrderTypes';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
@@ -90,12 +91,12 @@ function DesktopWorkOrderCard({
           )}
 
           {/* Equipment Team - Static Display */}
-          {(workOrder as any).equipmentTeamName && (
+          {(workOrder as ExtendedWorkOrder & ExtendedWorkOrderProps).equipmentTeamName && (
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="font-medium">Equipment Team</div>
-                <div className="text-muted-foreground">{(workOrder as any).equipmentTeamName}</div>
+                <div className="text-muted-foreground">{(workOrder as ExtendedWorkOrder & ExtendedWorkOrderProps).equipmentTeamName}</div>
               </div>
             </div>
           )}
@@ -107,7 +108,7 @@ function DesktopWorkOrderCard({
               equipment_id: workOrder.equipmentId || '',
               organization_id: workOrder.organizationId || ''
             }}
-            disabled={!permissions.workOrders.getDetailedPermissions(workOrder as any).canEditAssignment}
+            disabled={!permissions.workOrders.getDetailedPermissions(workOrder as ExtendedWorkOrder).canEditAssignment}
           >
             <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
               {workOrder.assigneeName ? (
@@ -159,7 +160,7 @@ function DesktopWorkOrderCard({
         <div className="flex items-center justify-between mt-4 pt-4 border-t">
           <div className="flex items-center gap-4">
             {/* Cost Display - Only for team managers and org admins */}
-            {permissions.workOrders.getDetailedPermissions(workOrder as any).canEdit && (
+            {permissions.workOrders.getDetailedPermissions(workOrder as ExtendedWorkOrder).canEdit && (
               <WorkOrderCostSubtotal 
                 workOrderId={workOrder.id}
                 className="text-sm"

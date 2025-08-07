@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Wrench, CheckCircle2 } from 'lucide-react';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
+import { type PMChecklistItem } from '@/types/workOrderTypes';
 
 interface PMProgressIndicatorProps {
   workOrderId: string;
@@ -16,7 +17,7 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
     return null;
   }
 
-  const calculateCompletionPercentage = (checklistData: any): number => {
+  const calculateCompletionPercentage = (checklistData: PMChecklistItem[]): number => {
     if (!Array.isArray(checklistData) || checklistData.length === 0) return 0;
     
     const completedItems = checklistData.filter(item => item.completed || item.checked).length;
@@ -24,7 +25,7 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
   };
 
   const completionPercentage = pmData?.checklist_data 
-    ? calculateCompletionPercentage(pmData.checklist_data)
+    ? calculateCompletionPercentage(pmData.checklist_data as unknown as PMChecklistItem[])
     : 0;
 
   const isCompleted = pmData?.status === 'completed';

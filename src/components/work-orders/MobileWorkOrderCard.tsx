@@ -6,6 +6,7 @@ import { Calendar, User, Clock, DollarSign, UserPlus, Users, UserX } from 'lucid
 import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+import { type ExtendedWorkOrderProps } from '@/types/workOrderTypes';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
 import { supabase } from '@/integrations/supabase/client';
@@ -141,10 +142,10 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
           {/* Key Information - Stacked vertically */}
           <div className="space-y-2 text-sm">
             {/* Equipment Team - Static Display */}
-            {(order as EnhancedWorkOrder & { equipmentTeamName?: string }).equipmentTeamName && (
+            {(order as EnhancedWorkOrder & ExtendedWorkOrderProps).equipmentTeamName && (
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-muted-foreground">Team: {(order as EnhancedWorkOrder & { equipmentTeamName?: string }).equipmentTeamName}</span>
+                <span className="text-muted-foreground">Team: {(order as EnhancedWorkOrder & ExtendedWorkOrderProps).equipmentTeamName}</span>
               </div>
             )}
 
