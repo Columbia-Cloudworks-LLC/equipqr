@@ -66,7 +66,9 @@ export const useOrganizationInvitations = (organizationId: string) => {
             execution_time_ms: executionTime,
             success: true
           });
-        } catch {} // Silently fail
+        } catch {
+          // eslint-disable-next-line no-empty
+        } // Silently fail
 
         return (invitationsData || []).map(invitation => ({
           id: invitation.id,
@@ -84,7 +86,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
           declined_at: invitation.declined_at || undefined,
           expired_at: invitation.expired_at || undefined
         }));
-      } catch (error: any) {
+        } catch (error: unknown) {
         const executionTime = performance.now() - startTime;
         
         // Log performance error
@@ -93,9 +95,11 @@ export const useOrganizationInvitations = (organizationId: string) => {
             function_name: 'get_invitations',
             execution_time_ms: executionTime,
             success: false,
-            error_message: error.message
+            error_message: error instanceof Error ? error.message : 'Unknown error'
           });
-        } catch {} // Silently fail
+        } catch {
+          // eslint-disable-next-line no-empty
+        } // Silently fail
         
         throw error;
       }
@@ -146,7 +150,9 @@ export const useCreateInvitation = (organizationId: string) => {
             execution_time_ms: executionTime,
             success: true
           });
-        } catch {} // Silently fail
+        } catch {
+          // eslint-disable-next-line no-empty
+        } // Silently fail
 
         // Get the created invitation data for return
         const { data: createdInvitation, error: fetchError } = await supabase
@@ -211,7 +217,7 @@ export const useCreateInvitation = (organizationId: string) => {
         console.log(`[INVITATION] Successfully created invitation ${createdInvitation.id} for ${requestData.email}`);
         return createdInvitation;
         
-      } catch (error: any) {
+      } catch (error: unknown) {
         const executionTime = performance.now() - startTime;
         
         // Log performance error
@@ -220,9 +226,11 @@ export const useCreateInvitation = (organizationId: string) => {
             function_name: 'create_invitation',
             execution_time_ms: executionTime,
             success: false,
-            error_message: error.message
+            error_message: error instanceof Error ? error.message : 'Unknown error'
           });
-        } catch {} // Silently fail
+        } catch {
+          // eslint-disable-next-line no-empty
+        } // Silently fail
         
         throw error;
       }
@@ -232,15 +240,15 @@ export const useCreateInvitation = (organizationId: string) => {
       queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
       toast.success('Invitation sent successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error creating invitation:', error);
       
       // Handle specific error types from the optimized function
-      if (error.message?.includes('PERMISSION_DENIED')) {
+      if (error instanceof Error && error.message?.includes('PERMISSION_DENIED')) {
         toast.error('You do not have permission to invite members');
-      } else if (error.message?.includes('DUPLICATE_INVITATION')) {
+      } else if (error instanceof Error && error.message?.includes('DUPLICATE_INVITATION')) {
         toast.error('An invitation to this email already exists');
-      } else if (error.message?.includes('INVITATION_ERROR')) {
+      } else if (error instanceof Error && error.message?.includes('INVITATION_ERROR')) {
         toast.error('Failed to send invitation - please try again');
       } else {
         toast.error('Failed to send invitation');

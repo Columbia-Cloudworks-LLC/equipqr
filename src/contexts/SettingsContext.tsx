@@ -2,6 +2,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { UserSettings } from '@/types/settings';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { SETTINGS_CONSTANTS } from '@/constants/settings';
 
 interface SettingsContextType {
   settings: UserSettings;
@@ -15,11 +16,6 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-// Export constants to satisfy ESLint
-export const SETTINGS_CONSTANTS = {
-  STORAGE_KEY: 'user-settings',
-  DEFAULT_THEME: 'system',
-} as const;
 
 export const useSettings = () => {
   const context = useContext(SettingsContext);

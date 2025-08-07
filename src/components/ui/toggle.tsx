@@ -43,3 +43,4 @@ Toggle.displayName = TogglePrimitive.Root.displayName
 export { Toggle, toggleVariants }
 
 // Import constants from separate file
+import { TOGGLE_CONSTANTS } from '@/constants/toggle';

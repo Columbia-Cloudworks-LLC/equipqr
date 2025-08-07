@@ -56,7 +56,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
   const handleStatusUpdate = (newStatus: string) => {
     statusUpdateMutation.mutate({
       workOrderId: order.id,
-      newStatus: newStatus as any
+      newStatus: newStatus as 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
     });
   };
 

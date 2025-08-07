@@ -45,8 +45,8 @@ export const useOptimizedOrganizationMembers = (organizationId: string) => {
 
       return (data || []).map(member => ({
         id: member.user_id,
-        name: (member.profiles as any)?.name || 'Unknown',
-        email: (member.profiles as any)?.email || '',
+        name: (member.profiles as { name?: string })?.name || 'Unknown',
+        email: (member.profiles as { email?: string })?.email || '',
         role: member.role as 'owner' | 'admin' | 'member',
         status: member.status as 'active' | 'pending' | 'inactive',
         joinedDate: member.joined_date,

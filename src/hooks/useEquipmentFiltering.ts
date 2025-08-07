@@ -149,8 +149,8 @@ export const useEquipmentFiltering = (organizationId?: string) => {
 
     // Sort equipment
     filtered.sort((a, b) => {
-      let aValue: string | number | Date = a[sortConfig.field as keyof typeof a] as string | number | Date;
-      let bValue: string | number | Date = b[sortConfig.field as keyof typeof b] as string | number | Date;
+      const aValue: string | number | Date = a[sortConfig.field as keyof typeof a] as string | number | Date;
+      const bValue: string | number | Date = b[sortConfig.field as keyof typeof b] as string | number | Date;
 
       // Handle null/undefined values
       if (aValue == null && bValue == null) return 0;
@@ -158,21 +158,22 @@ export const useEquipmentFiltering = (organizationId?: string) => {
       if (bValue == null) return sortConfig.direction === 'asc' ? -1 : 1;
 
       // Handle date fields
+      let sortValueA: string | number | Date = aValue;
+      let sortValueB: string | number | Date = bValue;
+      
       if (['installation_date', 'last_maintenance', 'warranty_expiration', 'created_at', 'updated_at'].includes(sortConfig.field)) {
-        aValue = new Date(aValue as string).getTime();
-        bValue = new Date(bValue as string).getTime();
+        sortValueA = new Date(aValue as string).getTime();
+        sortValueB = new Date(bValue as string).getTime();
+      } else if (typeof aValue === 'string' && typeof bValue === 'string') {
+        // Handle string comparison
+        sortValueA = aValue.toLowerCase();
+        sortValueB = bValue.toLowerCase();
       }
 
-      // Handle string comparison
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
-      }
-
-      if (aValue < bValue) {
+      if (sortValueA < sortValueB) {
         return sortConfig.direction === 'asc' ? -1 : 1;
       }
-      if (aValue > bValue) {
+      if (sortValueA > sortValueB) {
         return sortConfig.direction === 'asc' ? 1 : -1;
       }
       return 0;

@@ -28,3 +28,4 @@ Button.displayName = "Button"
 export { Button, buttonVariants }
 
 // Import constants from separate file
+import { BUTTON_CONSTANTS } from '@/constants/button';

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { ORGANIZATION_CONSTANTS } from '@/constants/organization';
 
 export interface SimpleOrganization {
   id: string;
@@ -32,14 +33,8 @@ export interface SimpleOrganizationContextType {
 
 const SimpleOrganizationContext = createContext<SimpleOrganizationContextType | undefined>(undefined);
 
-const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
+const CURRENT_ORG_STORAGE_KEY = ORGANIZATION_CONSTANTS.STORAGE_KEY;
 
-// Export constants to satisfy ESLint
-export const ORGANIZATION_CONSTANTS = {
-  STORAGE_KEY: CURRENT_ORG_STORAGE_KEY,
-  DEFAULT_PLAN: 'free',
-  MAX_FREE_MEMBERS: 5,
-} as const;
 
 export const useSimpleOrganization = () => {
   const context = useContext(SimpleOrganizationContext);

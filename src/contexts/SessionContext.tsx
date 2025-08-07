@@ -57,7 +57,6 @@ interface SessionContextType {
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
-// Import constants from separate file
 import { SESSION_CONSTANTS } from '@/constants/session';
 
 export const useSession = () => {
