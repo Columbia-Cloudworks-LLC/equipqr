@@ -71,7 +71,7 @@ export const useWorkOrderStatusUpdate = () => {
         description: "Work order status has been successfully updated.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Status update error:', error);
       toast({
         title: "Update Failed",

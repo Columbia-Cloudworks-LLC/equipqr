@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cacheManager } from '@/services/cacheManager';
 import { backgroundSync } from '@/services/backgroundSync';
@@ -9,7 +9,7 @@ export const useCacheInvalidation = () => {
   const queryClient = useQueryClient();
 
   // Initialize cache manager with query client
-  React.useEffect(() => {
+  useEffect(() => {
     cacheManager.setQueryClient(queryClient);
   }, [queryClient]);
 

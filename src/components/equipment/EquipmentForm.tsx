@@ -1,5 +1,5 @@
 
-import React from 'react';
+
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import { Form } from "@/components/ui/form";
 import CustomAttributesSection from './CustomAttributesSection';
 import { useCustomAttributes, type CustomAttribute } from '@/hooks/useCustomAttributes';
 import { useEquipmentForm } from '@/hooks/useEquipmentForm';
-import { type EquipmentFormData } from '@/types/equipment';
+
 import { type EquipmentFormEquipment } from '@/types/equipmentFormTypes';
 import EquipmentBasicInfoSection from './form/EquipmentBasicInfoSection';
 import EquipmentStatusLocationSection from './form/EquipmentStatusLocationSection';
