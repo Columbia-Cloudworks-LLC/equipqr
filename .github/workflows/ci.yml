@@ -26,27 +26,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
+        bun-version: latest
         
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
         path: |
-          ~/.npm
+          ~/.bun/install/cache
           node_modules
-        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-${{ hashFiles('**/bun.lockb') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-
           
     - name: Install dependencies
-      run: npm ci --prefer-offline --no-audit
+      run: bun install --frozen-lockfile
       
     - name: Run ESLint
-      run: npx eslint . --format=json --output-file=eslint-report.json
+      run: bun run eslint . --format=json --output-file=eslint-report.json
       continue-on-error: true
       
     - name: Annotate ESLint Results
@@ -57,7 +56,7 @@ jobs:
         report-json: "eslint-report.json"
         
     - name: Run type check
-      run: npx tsc --noEmit
+      run: bun run tsc --noEmit
 
   test:
     name: Test Suite
@@ -72,27 +71,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+        bun-version: latest
         
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
         path: |
-          ~/.npm
+          ~/.bun/install/cache
           node_modules
-        key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-${{ hashFiles('**/bun.lockb') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ matrix.node-version }}-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-
           
     - name: Install dependencies
-      run: npm ci --prefer-offline --no-audit
+      run: bun install --frozen-lockfile
       
     - name: Run tests with coverage
-      run: npm run test:coverage
+      run: bun run test:coverage
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -116,27 +114,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
+        bun-version: latest
         
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
         path: |
-          ~/.npm
+          ~/.bun/install/cache
           node_modules
-        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-${{ hashFiles('**/bun.lockb') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-
           
     - name: Install dependencies
-      run: npm ci --prefer-offline --no-audit
+      run: bun install --frozen-lockfile
       
     - name: Run enhanced security audit
-      run: npx npm-audit-ci --moderate
+      run: bun run npm-audit-ci --moderate
       continue-on-error: true
       
     - name: Initialize CodeQL
@@ -160,24 +157,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
+        bun-version: latest
         
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
         path: |
-          ~/.npm
+          ~/.bun/install/cache
           node_modules
-        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-${{ hashFiles('**/bun.lockb') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-
           
     - name: Install dependencies
-      run: npm ci --prefer-offline --no-audit
+      run: bun install --frozen-lockfile
       
     - name: Cache build output
       uses: actions/cache@v4
@@ -186,13 +182,13 @@ jobs:
         key: ${{ runner.os }}-build-${{ github.sha }}
         
     - name: Build application
-      run: npm run build
+      run: bun run build
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         
     - name: Analyze bundle size
-      run: npx size-limit
+      run: bun run size-limit
       continue-on-error: true
       
     - name: Upload build artifacts
@@ -212,24 +208,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
+        bun-version: latest
         
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
         path: |
-          ~/.npm
+          ~/.bun/install/cache
           node_modules
-        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-${{ hashFiles('**/bun.lockb') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-bun-${{ env.CACHE_VERSION }}-
           
     - name: Install dependencies
-      run: npm ci --prefer-offline --no-audit
+      run: bun install --frozen-lockfile
       
     - name: Restore build cache
       uses: actions/cache@v4
@@ -239,7 +234,7 @@ jobs:
         
     - name: Check test coverage threshold
       run: |
-        npm run test:coverage
+        bun run test:coverage
         coverage_lines=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
         coverage_functions=$(cat coverage/coverage-summary.json | jq '.total.functions.pct')
         coverage_branches=$(cat coverage/coverage-summary.json | jq '.total.branches.pct')
@@ -277,7 +272,7 @@ jobs:
       run: |
         if [ ! -d "dist" ]; then
           echo "Build directory not found, running build..."
-          npm run build
+          bun run build
         fi
         
         build_size=$(du -sb dist/ | cut -f1)
