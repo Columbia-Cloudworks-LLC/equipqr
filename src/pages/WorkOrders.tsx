@@ -211,7 +211,11 @@ const WorkOrders = () => {
         <WorkOrderAcceptanceModal
           open={acceptanceModal.open}
           onClose={() => setAcceptanceModal({ open: false, workOrder: null })}
-          workOrder={acceptanceModal.workOrder}
+          workOrder={acceptanceModal.workOrder ? {
+            ...acceptanceModal.workOrder,
+            equipment_id: acceptanceModal.workOrder.equipmentId || '',
+            organization_id: acceptanceModal.workOrder.organizationId || ''
+          } : null}
           organizationId={currentOrganization.id}
           onAccept={handleAcceptance}
         />

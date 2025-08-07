@@ -18,6 +18,8 @@ interface ExtendedWorkOrder extends WorkOrder {
   estimated_hours?: number;
   completed_date?: string;
   has_pm?: boolean;
+  equipmentId: string;
+  organizationId: string;
 }
 
 interface DesktopWorkOrderCardProps {
@@ -100,7 +102,11 @@ function DesktopWorkOrderCard({
 
           {/* Assigned User - Interactive */}
           <WorkOrderAssignmentHover 
-            workOrder={workOrder}
+            workOrder={{
+              ...workOrder,
+              equipment_id: workOrder.equipmentId || '',
+              organization_id: workOrder.organizationId || ''
+            }}
             disabled={!permissions.workOrders.getDetailedPermissions(workOrder as any).canEditAssignment}
           >
             <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">

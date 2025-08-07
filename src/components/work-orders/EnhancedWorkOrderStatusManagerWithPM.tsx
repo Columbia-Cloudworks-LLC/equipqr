@@ -18,12 +18,12 @@ import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { useAuth } from '@/hooks/useAuth';
-import { WorkOrder } from '@/services/supabaseDataService';
+import { UnifiedWorkOrder } from '@/types/unifiedWorkOrder';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
 
 interface EnhancedWorkOrderStatusManagerWithPMProps {
-  workOrder: WorkOrder;
+  workOrder: UnifiedWorkOrder;
   organizationId: string;
 }
 
@@ -62,7 +62,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
     }
   };
 
-  const handleAcceptanceComplete = async (acceptanceData: any) => {
+  const handleAcceptanceComplete = async (assigneeId?: string) => {
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
@@ -89,7 +89,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
     const canComplete = !workOrder.has_pm || (pmData && pmData.status === 'completed');
     
     switch (workOrder.status) {
-      case 'submitted':
+      case 'submitted': {
         const actions = [];
         if (isManager || isTechnician) {
           actions.push({ 
@@ -108,6 +108,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
           description: 'Cancel this work order'
         });
         return actions;
+      }
 
       case 'accepted':
         if (!isManager && !isTechnician) return [];

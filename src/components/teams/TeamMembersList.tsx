@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Users, User, Settings, Trash2 } from 'lucide-react';
 import { TeamWithMembers } from '@/services/teamService';
+import { TeamMember } from '@/types/teamMember';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTeamMembers } from '@/hooks/useTeamManagement';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -20,7 +21,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
   const { currentOrganization } = useOrganization();
   const { removeMember } = useTeamMembers(team.id, currentOrganization?.id);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const { canManageTeam } = usePermissions();
   
   const canManage = canManageTeam(team.id);
@@ -55,12 +56,12 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
     }
   };
 
-  const handleChangeRole = (member: any) => {
+  const handleChangeRole = (member: TeamMember) => {
     setSelectedMember(member);
     setShowRoleDialog(true);
   };
 
-  const handleRemoveMember = async (member: any) => {
+  const handleRemoveMember = async (member: TeamMember) => {
     const memberName = member.profiles?.name || 'this member';
     const confirmed = window.confirm(`Are you sure you want to remove ${memberName} from the team?`);
     

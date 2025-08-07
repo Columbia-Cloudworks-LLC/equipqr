@@ -7,8 +7,10 @@ import { useWorkOrderContextualAssignment } from '@/hooks/useWorkOrderContextual
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 import { useToast } from '@/hooks/use-toast';
 
+import { UnifiedWorkOrder } from '@/types/unifiedWorkOrder';
+
 interface WorkOrderAssignmentHoverProps {
-  workOrder: any;
+  workOrder: UnifiedWorkOrder;
   children: React.ReactNode;
   disabled?: boolean;
 }

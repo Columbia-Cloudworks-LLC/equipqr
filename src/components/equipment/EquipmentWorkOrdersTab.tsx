@@ -87,6 +87,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
             const adaptedWorkOrder = {
               ...workOrder,
               equipmentId: workOrder.equipment_id || '',
+              organizationId: workOrder.organization_id || '',
               createdDate: workOrder.created_date,
               dueDate: workOrder.due_date,
               estimatedHours: workOrder.estimated_hours,

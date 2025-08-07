@@ -18,11 +18,12 @@ import { updateTeam } from '@/services/teamService';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeamMutations } from '@/hooks/useTeamManagement';
 import { useAuth } from '@/hooks/useAuth';
+import { TeamData } from '@/types/teamMember';
 
 interface TeamFormProps {
   open: boolean;
   onClose: () => void;
-  team?: any;
+  team?: TeamData;
 }
 
 const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
@@ -41,7 +42,7 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateTeamMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: any }) => updateTeam(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<TeamData> }) => updateTeam(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['team', team?.id] });
@@ -51,7 +52,7 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
       });
       onClose();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update team",

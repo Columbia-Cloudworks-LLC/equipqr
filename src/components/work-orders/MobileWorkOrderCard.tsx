@@ -150,7 +150,11 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
 
             {/* Assigned User - Interactive */}
             <WorkOrderAssignmentHover 
-              workOrder={order}
+              workOrder={{
+                ...order,
+                equipment_id: order.equipmentId || '',
+                organization_id: order.organizationId || ''
+              }}
               disabled={false}
             >
               <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">

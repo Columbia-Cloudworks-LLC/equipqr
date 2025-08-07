@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, UserMinus, Edit3, Clock } from 'lucide-react';
 import WorkOrderAssignmentSelector from './WorkOrderAssignmentSelector';
 
+import { UnifiedWorkOrder } from '@/types/unifiedWorkOrder';
+
 interface WorkOrderAssigneeDisplayProps {
-  workOrder: any;
+  workOrder: UnifiedWorkOrder;
   organizationId: string;
   canManageAssignment: boolean;
   showEditControls?: boolean;
@@ -22,7 +24,7 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
   const [isEditing, setIsEditing] = useState(false);
 
   const getAssignmentDisplay = () => {
-    const assigneeName = workOrder.assigneeName || workOrder.assignee?.name;
+    const assigneeName = workOrder.assigneeName;
     
     if (workOrder.assignee_id && assigneeName) {
       return {
