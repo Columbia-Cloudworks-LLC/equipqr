@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useEquipmentByOrganization, useTeamsByOrganization } from '@/hooks/useSupabaseData';
+import { useSyncEquipmentByOrganization, useSyncTeamsByOrganization } from '@/services/syncDataService';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export interface EquipmentFilters {
@@ -38,14 +38,14 @@ const initialSort: SortConfig = {
   direction: 'asc'
 };
 
-export const useEquipmentFiltering = () => {
+export const useEquipmentFiltering = (organizationId?: string) => {
   const [filters, setFilters] = useState<EquipmentFilters>(initialFilters);
   const [sortConfig, setSortConfig] = useState<SortConfig>(initialSort);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // Get equipment data - now filtered by RLS policies based on team membership
-  const { data: equipment = [], isLoading } = useEquipmentByOrganization();
-  const { data: teams = [] } = useTeamsByOrganization();
+  // Get equipment data using explicit organization ID
+  const { data: equipment = [], isLoading } = useSyncEquipmentByOrganization(organizationId);
+  const { data: teams = [] } = useSyncTeamsByOrganization(organizationId);
   const { canManageOrganization } = usePermissions();
 
   // Extract unique values for filter options
