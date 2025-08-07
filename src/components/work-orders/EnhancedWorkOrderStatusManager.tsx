@@ -134,7 +134,7 @@ const EnhancedWorkOrderStatusManager: React.FC<EnhancedWorkOrderStatusManagerPro
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: newStatus,
+        status: newStatus as any,
         organizationId
       });
       toast.success(`Work order ${formatStatus(newStatus).toLowerCase()}`);

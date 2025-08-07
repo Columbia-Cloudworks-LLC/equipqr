@@ -54,7 +54,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: newStatus,
+        status: newStatus as any,
         organizationId
       });
     } catch (error) {
