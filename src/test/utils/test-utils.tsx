@@ -29,6 +29,3 @@ const customRender = (
 
 export * from '@testing-library/react';
 export { customRender as render };
-
-// Re-export screen specifically
-export { screen } from '@testing-library/react';

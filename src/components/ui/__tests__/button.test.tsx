@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@/test/utils/test-utils';
+import { render } from '@/test/utils/test-utils';
+import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { Button } from '../button';
 
