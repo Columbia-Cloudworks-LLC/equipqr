@@ -27,8 +27,8 @@ const EquipmentDetails = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
-  const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(equipmentId);
-  const createScanMutation = useCreateScan();
+  const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(currentOrganization?.id || '', equipmentId);
+  const createScanMutation = useCreateScan(currentOrganization?.id || '');
   const isMobile = useIsMobile();
   
   const [activeTab, setActiveTab] = useState('details');

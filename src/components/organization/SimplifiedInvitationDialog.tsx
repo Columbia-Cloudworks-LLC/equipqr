@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useSession } from '@/contexts/SessionContext';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useCreateInvitation } from '@/hooks/useOrganizationInvitations';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
@@ -60,13 +59,12 @@ const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
   onOpenChange,
   onSuccess
 }) => {
-  const { getCurrentOrganization } = useSession();
   const { currentOrganization } = useSimpleOrganization();
   const { data: fleetMapSubscription } = useFleetMapSubscription(currentOrganization?.id || '');
   const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
   const { mutate: createInvitation, isPending } = useCreateInvitation(currentOrganization?.id || '');
   
-  const sessionOrganization = getCurrentOrganization();
+  const sessionOrganization = currentOrganization;
   const userRole = sessionOrganization?.userRole;
   const canInviteMembers = ['owner', 'admin'].includes(userRole || '');
 

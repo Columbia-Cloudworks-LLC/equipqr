@@ -6,14 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { UserPlus, MoreHorizontal, Mail, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
 import { formatDistanceToNow } from 'date-fns';
 
 const InvitationManagement: React.FC = () => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
+  const { currentOrganization } = useSimpleOrganization();
+  const currentOrg = currentOrganization;
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   
   const { data: invitations = [], isLoading } = useOrganizationInvitations(currentOrg?.id || '');

@@ -1,143 +1,113 @@
 
 import { useQuery,useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from '@/contexts/SessionContext';
 import * as supabaseService from '@/services/supabaseDataService';
 import { toast } from '@/hooks/use-toast';
 
 // Equipment hooks
-export const useEquipmentByOrganization = () => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-
+export const useEquipmentByOrganization = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['equipment', currentOrg?.id],
-    queryFn: () => currentOrg ? supabaseService.getEquipmentByOrganization(currentOrg.id) : Promise.resolve([]),
-    enabled: !!currentOrg?.id,
+    queryKey: ['equipment', organizationId],
+    queryFn: () => organizationId ? supabaseService.getEquipmentByOrganization(organizationId) : Promise.resolve([]),
+    enabled: !!organizationId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
-export const useEquipmentById = (equipmentId?: string) => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-
+export const useEquipmentById = (organizationId: string, equipmentId?: string) => {
   return useQuery({
-    queryKey: ['equipment', currentOrg?.id, equipmentId],
-    queryFn: () => currentOrg && equipmentId ? 
-      supabaseService.getEquipmentById(currentOrg.id, equipmentId) : 
+    queryKey: ['equipment', organizationId, equipmentId],
+    queryFn: () => organizationId && equipmentId ? 
+      supabaseService.getEquipmentById(organizationId, equipmentId) : 
       Promise.resolve(undefined),
-    enabled: !!currentOrg?.id && !!equipmentId,
+    enabled: !!organizationId && !!equipmentId,
     staleTime: 5 * 60 * 1000,
   });
 };
 
 // Teams hooks
-export const useTeamsByOrganization = () => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-
+export const useTeamsByOrganization = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['teams', currentOrg?.id],
-    queryFn: () => currentOrg ? supabaseService.getTeamsByOrganization(currentOrg.id) : Promise.resolve([]),
-    enabled: !!currentOrg?.id,
+    queryKey: ['teams', organizationId],
+    queryFn: () => organizationId ? supabaseService.getTeamsByOrganization(organizationId) : Promise.resolve([]),
+    enabled: !!organizationId,
     staleTime: 5 * 60 * 1000,
   });
 };
 
 // Dashboard stats hook
-export const useDashboardStats = () => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-
+export const useDashboardStats = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['dashboard-stats', currentOrg?.id],
-    queryFn: () => currentOrg ? supabaseService.getDashboardStatsByOrganization(currentOrg.id) : Promise.resolve({
+    queryKey: ['dashboard-stats', organizationId],
+    queryFn: () => organizationId ? supabaseService.getDashboardStatsByOrganization(organizationId) : Promise.resolve({
       totalEquipment: 0,
       activeEquipment: 0,
       maintenanceEquipment: 0,
       totalWorkOrders: 0
     }),
-    enabled: !!currentOrg?.id,
+    enabled: !!organizationId,
     staleTime: 2 * 60 * 1000, // 2 minutes for stats
   });
 };
 
 // Work orders hooks
-export const useWorkOrdersByEquipment = (equipmentId?: string) => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-
+export const useWorkOrdersByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
-    queryKey: ['work-orders', 'equipment', currentOrg?.id, equipmentId],
-    queryFn: () => currentOrg && equipmentId ? 
-      supabaseService.getWorkOrdersByEquipmentId(currentOrg.id, equipmentId) : 
+    queryKey: ['work-orders', 'equipment', organizationId, equipmentId],
+    queryFn: () => organizationId && equipmentId ? 
+      supabaseService.getWorkOrdersByEquipmentId(organizationId, equipmentId) : 
       Promise.resolve([]),
-    enabled: !!currentOrg?.id && !!equipmentId,
+    enabled: !!organizationId && !!equipmentId,
     staleTime: 3 * 60 * 1000,
   });
 };
 
-export const useAllWorkOrders = () => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-
+export const useAllWorkOrders = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['work-orders', currentOrg?.id],
-    queryFn: () => currentOrg ? supabaseService.getAllWorkOrdersByOrganization(currentOrg.id) : Promise.resolve([]),
-    enabled: !!currentOrg?.id,
+    queryKey: ['work-orders', organizationId],
+    queryFn: () => organizationId ? supabaseService.getAllWorkOrdersByOrganization(organizationId) : Promise.resolve([]),
+    enabled: !!organizationId,
     staleTime: 3 * 60 * 1000,
   });
 };
 
-export const useWorkOrderById = (workOrderId?: string) => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-
+export const useWorkOrderById = (organizationId: string, workOrderId?: string) => {
   return useQuery({
-    queryKey: ['work-orders', currentOrg?.id, workOrderId],
-    queryFn: () => currentOrg && workOrderId ? 
-      supabaseService.getWorkOrderById(currentOrg.id, workOrderId) : 
+    queryKey: ['work-orders', organizationId, workOrderId],
+    queryFn: () => organizationId && workOrderId ? 
+      supabaseService.getWorkOrderById(organizationId, workOrderId) : 
       Promise.resolve(undefined),
-    enabled: !!currentOrg?.id && !!workOrderId,
+    enabled: !!organizationId && !!workOrderId,
     staleTime: 3 * 60 * 1000,
   });
 };
 
 // Notes hooks
-export const useNotesByEquipment = (equipmentId?: string) => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-
+export const useNotesByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
-    queryKey: ['notes', 'equipment', currentOrg?.id, equipmentId],
-    queryFn: () => currentOrg && equipmentId ? 
-      supabaseService.getNotesByEquipmentId(currentOrg.id, equipmentId) : 
+    queryKey: ['notes', 'equipment', organizationId, equipmentId],
+    queryFn: () => organizationId && equipmentId ? 
+      supabaseService.getNotesByEquipmentId(organizationId, equipmentId) : 
       Promise.resolve([]),
-    enabled: !!currentOrg?.id && !!equipmentId,
+    enabled: !!organizationId && !!equipmentId,
     staleTime: 5 * 60 * 1000,
   });
 };
 
 // Scans hooks
-export const useScansByEquipment = (equipmentId?: string) => {
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
-
+export const useScansByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
-    queryKey: ['scans', 'equipment', currentOrg?.id, equipmentId],
-    queryFn: () => currentOrg && equipmentId ? 
-      supabaseService.getScansByEquipmentId(currentOrg.id, equipmentId) : 
+    queryKey: ['scans', 'equipment', organizationId, equipmentId],
+    queryFn: () => organizationId && equipmentId ? 
+      supabaseService.getScansByEquipmentId(organizationId, equipmentId) : 
       Promise.resolve([]),
-    enabled: !!currentOrg?.id && !!equipmentId,
+    enabled: !!organizationId && !!equipmentId,
     staleTime: 10 * 60 * 1000, // 10 minutes for scans
   });
 };
 
 // Create scan mutation
-export const useCreateScan = () => {
+export const useCreateScan = (organizationId: string) => {
   const queryClient = useQueryClient();
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
 
   return useMutation({
     mutationFn: async ({ equipmentId, location, notes }: { 
@@ -145,14 +115,14 @@ export const useCreateScan = () => {
       location?: string; 
       notes?: string 
     }) => {
-      if (!currentOrg) throw new Error('No current organization');
-      return supabaseService.createScan(currentOrg.id, equipmentId, location, notes);
+      if (!organizationId) throw new Error('No organization ID provided');
+      return supabaseService.createScan(organizationId, equipmentId, location, notes);
     },
     onSuccess: (result, variables) => {
       if (result) {
         // Invalidate scans queries for this equipment
         queryClient.invalidateQueries({ 
-          queryKey: ['scans', 'equipment', currentOrg?.id, variables.equipmentId] 
+          queryKey: ['scans', 'equipment', organizationId, variables.equipmentId] 
         });
         
         console.log('Scan logged successfully');
@@ -167,18 +137,16 @@ export const useCreateScan = () => {
 };
 
 // Mutation hooks
-export const useUpdateWorkOrderStatus = () => {
+export const useUpdateWorkOrderStatus = (organizationId: string) => {
   const queryClient = useQueryClient();
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
 
   return useMutation({
     mutationFn: async ({ workOrderId, newStatus }: { 
       workOrderId: string; 
       newStatus: supabaseService.WorkOrder['status'] 
     }) => {
-      if (!currentOrg) throw new Error('No current organization');
-      return supabaseService.updateWorkOrderStatus(currentOrg.id, workOrderId, newStatus);
+      if (!organizationId) throw new Error('No organization ID provided');
+      return supabaseService.updateWorkOrderStatus(organizationId, workOrderId, newStatus);
     },
     onSuccess: (success, variables) => {
       if (success) {
@@ -209,15 +177,13 @@ export const useUpdateWorkOrderStatus = () => {
   });
 };
 
-export const useCreateEquipment = () => {
+export const useCreateEquipment = (organizationId: string) => {
   const queryClient = useQueryClient();
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
 
   return useMutation({
     mutationFn: async (equipmentData: Omit<supabaseService.Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>) => {
-      if (!currentOrg) throw new Error('No current organization');
-      return supabaseService.createEquipment(currentOrg.id, equipmentData);
+      if (!organizationId) throw new Error('No organization ID provided');
+      return supabaseService.createEquipment(organizationId, equipmentData);
     },
     onSuccess: (result) => {
       if (result) {
@@ -248,15 +214,13 @@ export const useCreateEquipment = () => {
   });
 };
 
-export const useCreateWorkOrder = () => {
+export const useCreateWorkOrder = (organizationId: string) => {
   const queryClient = useQueryClient();
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
 
   return useMutation({
     mutationFn: async (workOrderData: Omit<supabaseService.WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date'>) => {
-      if (!currentOrg) throw new Error('No current organization');
-      return supabaseService.createWorkOrder(currentOrg.id, workOrderData);
+      if (!organizationId) throw new Error('No organization ID provided');
+      return supabaseService.createWorkOrder(organizationId, workOrderData);
     },
     onSuccess: (result) => {
       if (result) {
@@ -287,10 +251,8 @@ export const useCreateWorkOrder = () => {
   });
 };
 
-export const useCreateNote = () => {
+export const useCreateNote = (organizationId: string) => {
   const queryClient = useQueryClient();
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
 
   return useMutation({
     mutationFn: async ({ equipmentId, content, isPrivate = false }: { 
@@ -298,14 +260,14 @@ export const useCreateNote = () => {
       content: string; 
       isPrivate?: boolean 
     }) => {
-      if (!currentOrg) throw new Error('No current organization');
-      return supabaseService.createNote(currentOrg.id, equipmentId, content, isPrivate);
+      if (!organizationId) throw new Error('No organization ID provided');
+      return supabaseService.createNote(organizationId, equipmentId, content, isPrivate);
     },
     onSuccess: (result, variables) => {
       if (result) {
         // Invalidate notes queries for this equipment
         queryClient.invalidateQueries({ 
-          queryKey: ['notes', 'equipment', currentOrg?.id, variables.equipmentId] 
+          queryKey: ['notes', 'equipment', organizationId, variables.equipmentId] 
         });
         
         toast({
@@ -331,24 +293,22 @@ export const useCreateNote = () => {
   });
 };
 
-export const useUpdateEquipment = () => {
+export const useUpdateEquipment = (organizationId: string) => {
   const queryClient = useQueryClient();
-  const { getCurrentOrganization } = useSession();
-  const currentOrg = getCurrentOrganization();
 
   return useMutation({
     mutationFn: async ({ equipmentId, equipmentData }: { 
       equipmentId: string; 
       equipmentData: Partial<Omit<supabaseService.Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>> 
     }) => {
-      if (!currentOrg) throw new Error('No current organization');
-      return supabaseService.updateEquipment(currentOrg.id, equipmentId, equipmentData);
+      if (!organizationId) throw new Error('No organization ID provided');
+      return supabaseService.updateEquipment(organizationId, equipmentId, equipmentData);
     },
     onSuccess: (result, variables) => {
       if (result) {
         // Invalidate relevant queries
         queryClient.invalidateQueries({ queryKey: ['equipment'] });
-        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrg?.id, variables.equipmentId] });
+        queryClient.invalidateQueries({ queryKey: ['equipment', organizationId, variables.equipmentId] });
         
         toast({
           title: 'Equipment Updated',
