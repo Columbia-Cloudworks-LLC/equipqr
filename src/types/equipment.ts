@@ -24,3 +24,36 @@ export const equipmentFormSchema = z.object({
 });
 
 export type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
+
+export interface Equipment {
+  id: string;
+  name: string;
+  manufacturer?: string | null;
+  model?: string | null;
+  serial_number?: string | null;
+  status: 'active' | 'maintenance' | 'inactive';
+  location?: string | null;
+  installation_date?: string | null;
+  warranty_expiration?: string | null;
+  last_maintenance?: string | null;
+  notes?: string | null;
+  team_id?: string | null;
+  organization_id: string;
+  created_at: string;
+  updated_at: string;
+  image_url?: string | null;
+  custom_attributes?: Record<string, any>;
+}
+
+export interface CustomAttribute {
+  id: string;
+  name: string;
+  type: 'text' | 'number' | 'date' | 'select';
+  options?: string[];
+  required: boolean;
+  organization_id: string;
+}
+
+export interface EquipmentWithCustomAttributes extends Equipment {
+  custom_attributes: Record<string, any>;
+}

@@ -25,7 +25,7 @@ interface MobileEquipmentFiltersProps {
   activeFilterCount: number;
   showMobileFilters: boolean;
   onShowMobileFiltersChange: (show: boolean) => void;
-  onFilterChange: (key: keyof EquipmentFilters, value: any) => void;
+  onFilterChange: (key: keyof EquipmentFilters, value: string) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
   filterOptions: FilterOptions;

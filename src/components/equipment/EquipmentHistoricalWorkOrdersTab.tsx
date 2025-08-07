@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History, Calendar, User, Wrench } from "lucide-react";
 import { format } from "date-fns";
+import { HistoricalWorkOrder, PreventativeMaintenance } from '@/types/workOrderDetails';
 
 
 interface EquipmentHistoricalWorkOrdersTabProps {
@@ -79,7 +80,7 @@ export const EquipmentHistoricalWorkOrdersTab: React.FC<EquipmentHistoricalWorkO
         </Card>
       ) : (
         <div className="space-y-4">
-          {historicalWorkOrders.map((workOrder: any) => (
+          {historicalWorkOrders.map((workOrder: HistoricalWorkOrder) => (
             <Card key={workOrder.id} className="border-l-4 border-l-amber-500">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -146,7 +147,7 @@ export const EquipmentHistoricalWorkOrdersTab: React.FC<EquipmentHistoricalWorkO
                       <Wrench className="h-4 w-4" />
                       Preventative Maintenance
                     </h5>
-                    {workOrder.preventative_maintenance.map((pm: any) => (
+                    {workOrder.preventative_maintenance.map((pm: PreventativeMaintenance) => (
                       <div key={pm.id} className="flex items-center justify-between text-sm">
                         <span>Status: {pm.status}</span>
                         {pm.historical_completion_date && (

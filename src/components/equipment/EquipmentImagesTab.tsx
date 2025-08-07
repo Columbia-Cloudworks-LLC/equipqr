@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useEquipmentNotesPermissions } from '@/hooks/useEquipmentNotesPermissions';
 import ImageGallery from '@/components/common/ImageGallery';

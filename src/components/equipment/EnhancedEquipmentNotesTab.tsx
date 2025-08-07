@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Plus, MessageSquare, Images, Clock, User, Eye, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   createEquipmentNoteWithImages, 
@@ -22,6 +22,7 @@ import {
 } from '@/services/equipmentNotesService';
 import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
 import ImageGallery from '@/components/common/ImageGallery';
+import { EquipmentNote, EquipmentImage } from '@/types/media';
 
 interface EnhancedEquipmentNotesTabProps {
   equipmentId: string;
@@ -139,7 +140,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     });
   };
 
-  const canDeleteImage = (image: any) => {
+  const canDeleteImage = (image: EquipmentImage) => {
     return image.uploaded_by === user?.id;
   };
 

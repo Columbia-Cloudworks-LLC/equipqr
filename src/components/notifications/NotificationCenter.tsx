@@ -8,6 +8,7 @@ import { useNotifications, useMarkNotificationAsRead } from '@/hooks/useWorkOrde
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { Notification as NotificationData } from '@/hooks/useWorkOrderData';
 
 interface NotificationCenterProps {
   organizationId: string;
@@ -59,7 +60,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
-  const getNotificationMessage = (notification: any) => {
+  const getNotificationMessage = (notification: NotificationData) => {
     if (permissionLevels.isRequestor && notification.type === 'work_order_request') {
       return 'Your work order request has been submitted for review';
     }

@@ -40,6 +40,50 @@ export interface PMData {
   created_at: string;
 }
 
+export interface PreventativeMaintenance {
+  id: string;
+  status: string;
+  completed_at?: string;
+  notes?: string;
+  is_historical: boolean;
+  historical_completion_date?: string;
+}
+
+export interface HistoricalWorkOrder {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: 'low' | 'medium' | 'high';
+  historical_start_date?: string;
+  historical_notes?: string;
+  completed_date?: string;
+  assignee_name?: string;
+  created_by_name?: string;
+  equipment_id: string;
+  organization_id: string;
+  is_historical: boolean;
+  preventative_maintenance?: PreventativeMaintenance[];
+}
+
+export interface ExtendedWorkOrder {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  priority: 'low' | 'medium' | 'high';
+  created_date: string;
+  due_date?: string;
+  completed_date?: string;
+  estimated_hours?: number;
+  assignee_name?: string;
+  team_name?: string;
+  has_pm?: boolean;
+  equipment_name?: string;
+  equipment_id: string;
+  organization_id: string;
+}
+
 export interface PermissionLevels {
   isManager: boolean;
   isRequestor: boolean;

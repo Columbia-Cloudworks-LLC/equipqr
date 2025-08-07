@@ -17,7 +17,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { updateTeam } from '@/services/teamService';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeamMutations } from '@/hooks/useTeamManagement';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TeamFormProps {
   open: boolean;

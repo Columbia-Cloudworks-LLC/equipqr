@@ -11,7 +11,7 @@ import {
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { WorkOrder } from '@/services/supabaseDataService';
 import WorkOrderAcceptanceModal from '../WorkOrderAcceptanceModal';
 
