@@ -58,9 +58,9 @@ export interface EquipmentNotesPermissions {
   canSetDisplayImage: boolean;
 }
 
-export interface PermissionRule {
+export interface PermissionRule<E = unknown> {
   name: string;
-  check: (context: UserContext, entityContext?: any) => boolean;
+  check: (context: UserContext, entityContext?: E) => boolean;
   priority: number;
 }
 

@@ -9,9 +9,9 @@ export interface EquipmentFilters extends FilterParams {
   model?: string;
 }
 
-export interface EquipmentCreateData extends Omit<Equipment, 'id'> {}
+export type EquipmentCreateData = Omit<Equipment, 'id'>;
 
-export interface EquipmentUpdateData extends Partial<Omit<Equipment, 'id'>> {}
+export type EquipmentUpdateData = Partial<Omit<Equipment, 'id'>>;
 
 export class EquipmentService extends BaseService {
   async getAll(

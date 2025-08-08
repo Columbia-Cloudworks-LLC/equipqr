@@ -8,7 +8,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Loader2 } from 'lucide-react';
 
 interface TeamSelectionSectionProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<import('@/types/equipment').EquipmentFormData>;
 }
 
 const TeamSelectionSection: React.FC<TeamSelectionSectionProps> = ({ form }) => {
