@@ -61,7 +61,7 @@ export const useWorkOrderNotes = (workOrderId: string) => {
 
       return (data || []).map(note => ({
         ...note,
-        author_name: (note.profiles as any)?.name || 'Unknown'
+        author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown'
       })) as WorkOrderNote[];
     },
     enabled: !!workOrderId
@@ -132,7 +132,7 @@ export const useWorkOrderImages = (workOrderId: string) => {
 
       return (data || []).map(image => ({
         ...image,
-        uploaded_by_name: (image.profiles as any)?.name || 'Unknown'
+        uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown'
       })) as WorkOrderImage[];
     },
     enabled: !!workOrderId
@@ -254,7 +254,7 @@ export const useUpdateWorkOrderStatus = () => {
       status: string;
       organizationId: string;
     }) => {
-      const updateData: any = { status };
+      const updateData: Partial<{ status: string; acceptance_date?: string; completed_date?: string }> = { status };
       
       // Set acceptance date when accepting
       if (status === 'accepted') {

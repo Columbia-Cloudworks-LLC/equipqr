@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Shield, Clipboard } from 'lucide-react';
 import { getPriorityColor, getStatusColor, formatStatus } from '@/utils/workOrderHelpers';
+import { WorkOrderData, PermissionLevels } from '@/types/workOrderDetails';
 
 interface WorkOrderDetailsDesktopHeaderProps {
-  workOrder: any;
+  workOrder: WorkOrderData;
   formMode: string;
-  permissionLevels: any;
+  permissionLevels: PermissionLevels;
   canEdit: boolean;
   onEditClick: () => void;
 }

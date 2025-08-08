@@ -1,21 +1,21 @@
 
 import { useState, useCallback } from 'react';
 
-export interface AsyncOperationState<T = any> {
+export interface AsyncOperationState<T = unknown> {
   data: T | null;
   isLoading: boolean;
   error: string | null;
   isSuccess: boolean;
 }
 
-export interface AsyncOperationHook<T = any> extends AsyncOperationState<T> {
-  execute: (...args: any[]) => Promise<T | null>;
+export interface AsyncOperationHook<T = unknown> extends AsyncOperationState<T> {
+  execute: (...args: unknown[]) => Promise<T | null>;
   reset: () => void;
   setData: (data: T) => void;
 }
 
-export const useAsyncOperation = <T = any>(
-  operation: (...args: any[]) => Promise<T>,
+export const useAsyncOperation = <T = unknown>(
+  operation: (...args: unknown[]) => Promise<T>,
   options: {
     onSuccess?: (data: T) => void;
     onError?: (error: string) => void;
@@ -29,7 +29,7 @@ export const useAsyncOperation = <T = any>(
     isSuccess: false
   });
 
-  const execute = useCallback(async (...args: any[]): Promise<T | null> => {
+  const execute = useCallback(async (...args: unknown[]): Promise<T | null> => {
     if (options.resetOnExecute) {
       setState({
         data: null,

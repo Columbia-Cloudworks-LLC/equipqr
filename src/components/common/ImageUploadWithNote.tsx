@@ -9,7 +9,7 @@ import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ImageUploadWithNoteProps {
-  onUpload: (files: File[]) => Promise<any>;
+  onUpload: (files: File[]) => Promise<void>;
   maxFiles?: number;
   acceptedTypes?: string[];
   disabled?: boolean;
@@ -118,9 +118,8 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
     setIsUploading(true);
     
     try {
-      console.log('🔍 Calling onUpload with files:', selectedFiles.length);
-      const result = await onUpload(selectedFiles);
-      console.log('✅ Upload successful, result:', result);
+      await onUpload(selectedFiles);
+      console.log('✅ Upload successful');
       
       setSelectedFiles([]);
       console.log('🔍 Cleared selected files');

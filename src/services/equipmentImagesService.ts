@@ -36,15 +36,17 @@ export const getAllEquipmentImages = async (
       .eq('equipment_id', equipmentId)
       .eq('organization_id', organizationId);
 
-    let workOrderImages: any[] = [];
+    let workOrderImages: EquipmentImageData[] = [];
     if (workOrders && workOrders.length > 0) {
       for (const wo of workOrders) {
         const images = await getWorkOrderImages(wo.id);
-        workOrderImages.push(...images.map(img => ({
-          ...img,
-          source_type: 'work_order_note',
-          source_id: wo.id
-        })));
+        workOrderImages.push(
+          ...images.map((img) => ({
+            ...(img as unknown as Omit<EquipmentImageData, 'source_type' | 'source_id'>),
+            source_type: 'work_order_note' as const,
+            source_id: wo.id
+          }))
+        );
       }
     }
 
@@ -52,7 +54,7 @@ export const getAllEquipmentImages = async (
     const equipmentNotesImages: EquipmentImageData[] = equipmentImages.map(img => ({
       ...img,
       source_type: 'equipment_note' as const,
-      source_id: (img as any).equipment_note_id
+      source_id: ('equipment_note_id' in img ? (img as { equipment_note_id: string }).equipment_note_id : undefined)
     }));
 
     const allImages: EquipmentImageData[] = [

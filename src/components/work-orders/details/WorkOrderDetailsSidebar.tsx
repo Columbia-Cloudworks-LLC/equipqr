@@ -5,14 +5,15 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import EnhancedWorkOrderStatusManagerWithPM from '@/components/work-orders/EnhancedWorkOrderStatusManagerWithPM';
 import { WorkOrderDetailsQuickInfo } from './WorkOrderDetailsQuickInfo';
 import { WorkOrderDetailsRequestorStatus } from './WorkOrderDetailsRequestorStatus';
+import { WorkOrderData, EquipmentData, PMData, PermissionLevels, OrganizationData } from '@/types/workOrderDetails';
 
 interface WorkOrderDetailsSidebarProps {
-  workOrder: any;
-  equipment: any;
-  pmData: any;
+  workOrder: WorkOrderData;
+  equipment: EquipmentData;
+  pmData: PMData | null;
   formMode: string;
-  permissionLevels: any;
-  currentOrganization: any;
+  permissionLevels: PermissionLevels;
+  currentOrganization: OrganizationData;
   showMobileSidebar: boolean;
   onCloseMobileSidebar: () => void;
 }

@@ -19,7 +19,7 @@ interface FilterOptions {
 
 interface DesktopEquipmentFiltersProps {
   filters: EquipmentFilters;
-  onFilterChange: (key: keyof EquipmentFilters, value: any) => void;
+  onFilterChange: (key: keyof EquipmentFilters, value: string) => void;
   onClearFilters: () => void;
   filterOptions: FilterOptions;
 }
