@@ -106,7 +106,7 @@ describe('useEquipmentForm', () => {
 
   it('creates equipment successfully', async () => {
     const perms = await import('@/hooks/usePermissions');
-    (perms.usePermissions as unknown as vi.Mock).mockReturnValue({
+    (perms.usePermissions as any).mockReturnValue({
       canManageEquipment: () => true,
       hasRole: () => false, // non-admin but team assigned -> allowed
     });
