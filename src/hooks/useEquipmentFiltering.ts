@@ -57,12 +57,12 @@ export const useEquipmentFiltering = (organizationId?: string) => {
       manufacturers,
       locations,
       teams: teams.map(team => ({ id: team.id, name: team.name }))
-    };
+    } as const;
   }, [equipment, teams]);
 
   // Filter and sort equipment
   const filteredAndSortedEquipment = useMemo(() => {
-    let filtered = equipment.filter(item => {
+    const filtered = equipment.filter(item => {
       // Search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
@@ -149,8 +149,8 @@ export const useEquipmentFiltering = (organizationId?: string) => {
 
     // Sort equipment
     filtered.sort((a, b) => {
-      let aValue: any = a[sortConfig.field as keyof typeof a];
-      let bValue: any = b[sortConfig.field as keyof typeof b];
+      let aValue: unknown = a[sortConfig.field as keyof typeof a];
+      let bValue: unknown = b[sortConfig.field as keyof typeof b];
 
       // Handle null/undefined values
       if (aValue == null && bValue == null) return 0;
@@ -159,21 +159,24 @@ export const useEquipmentFiltering = (organizationId?: string) => {
 
       // Handle date fields
       if (['installation_date', 'last_maintenance', 'warranty_expiration', 'created_at', 'updated_at'].includes(sortConfig.field)) {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+        aValue = new Date(aValue as string).getTime();
+        bValue = new Date(bValue as string).getTime();
       }
 
       // Handle string comparison
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
+        const aStr = aValue.toLowerCase();
+        const bStr = bValue.toLowerCase();
+        if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
       }
 
-      if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
+      const aNum = Number(aValue);
+      const bNum = Number(bValue);
+      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+        if (aNum < bNum) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aNum > bNum) return sortConfig.direction === 'asc' ? 1 : -1;
       }
       return 0;
     });
@@ -211,7 +214,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     }
   };
 
-  const updateFilter = (key: keyof EquipmentFilters, value: any) => {
+  const updateFilter = (key: keyof EquipmentFilters, value: EquipmentFilters[keyof EquipmentFilters]) => {
     setFilters(prev => ({
       ...prev,
       [key]: value

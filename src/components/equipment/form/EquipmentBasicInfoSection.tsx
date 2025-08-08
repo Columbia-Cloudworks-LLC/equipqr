@@ -3,9 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from 'react-hook-form';
+import { type EquipmentFormData } from '@/types/equipment';
 
 interface EquipmentBasicInfoSectionProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<EquipmentFormData>;
 }
 
 const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ form }) => {

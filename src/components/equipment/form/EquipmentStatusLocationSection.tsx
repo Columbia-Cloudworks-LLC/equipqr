@@ -4,9 +4,10 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UseFormReturn } from 'react-hook-form';
+import { type EquipmentFormData } from '@/types/equipment';
 
 interface EquipmentStatusLocationSectionProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<EquipmentFormData>;
 }
 
 const EquipmentStatusLocationSection: React.FC<EquipmentStatusLocationSectionProps> = ({ form }) => {

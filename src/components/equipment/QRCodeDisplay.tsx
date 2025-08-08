@@ -24,13 +24,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
   // Generate QR code URL - using the new /qr/ route for seamless authentication
   const qrCodeUrl = `${window.location.origin}/qr/${equipmentId}`;
 
-  React.useEffect(() => {
-    if (open && equipmentId) {
-      generateQRCode();
-    }
-  }, [open, equipmentId]);
-
-  const generateQRCode = async () => {
+  const generateQRCode = React.useCallback(async () => {
     try {
       const dataUrl = await QRCode.toDataURL(qrCodeUrl, {
         width: 256,
@@ -45,7 +39,13 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
       console.error('Error generating QR code:', error);
       toast.error('Failed to generate QR code');
     }
-  };
+  }, [qrCodeUrl]);
+
+  React.useEffect(() => {
+    if (open && equipmentId) {
+      generateQRCode();
+    }
+  }, [open, equipmentId, generateQRCode]);
 
   // Sanitize equipment name for filename
   const sanitizeFilename = (name: string) => {

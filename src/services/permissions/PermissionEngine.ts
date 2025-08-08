@@ -1,7 +1,9 @@
 import { UserContext, PermissionRule, PermissionCache } from '@/types/permissions';
 
+type EntityContext = { teamId?: string; assigneeId?: string; [key: string]: unknown };
+
 export class PermissionEngine {
-  private rules: Map<string, PermissionRule[]> = new Map();
+  private rules: Map<string, PermissionRule<EntityContext>[]> = new Map();
   private cache: PermissionCache = {};
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -163,7 +165,7 @@ export class PermissionEngine {
     });
   }
 
-  private addRule(permission: string, rule: PermissionRule) {
+  private addRule(permission: string, rule: PermissionRule<EntityContext>) {
     if (!this.rules.has(permission)) {
       this.rules.set(permission, []);
     }
