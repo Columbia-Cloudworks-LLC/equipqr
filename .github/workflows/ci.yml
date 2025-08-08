@@ -106,7 +106,7 @@ jobs:
       run: npm ci --prefer-offline --no-audit
 
     - name: Run tests with coverage
-      run: npm run test:coverage
+      run: npx vitest run --coverage
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -267,7 +267,7 @@ jobs:
         
     - name: Check test coverage threshold
       run: |
-        npm run test:coverage
+        npx vitest run --coverage
         coverage_lines=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
         coverage_functions=$(cat coverage/coverage-summary.json | jq '.total.functions.pct')
         coverage_branches=$(cat coverage/coverage-summary.json | jq '.total.branches.pct')
