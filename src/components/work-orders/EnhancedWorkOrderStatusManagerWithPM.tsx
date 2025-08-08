@@ -18,12 +18,25 @@ import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { useAuth } from '@/contexts/AuthContext';
-import { WorkOrder } from '@/services/supabaseDataService';
+
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
+type WorkOrderStatus = 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+
+type StatusWorkOrder = {
+  id: string;
+  status: WorkOrderStatus;
+  has_pm?: boolean;
+  assignee_id?: string | null;
+  created_by?: string | null;
+  assigneeName?: string | null;
+  teamName?: string | null;
+  acceptance_date?: string | null;
+  completed_date?: string | null;
+};
 
 interface EnhancedWorkOrderStatusManagerWithPMProps {
-  workOrder: WorkOrder;
+  workOrder: StatusWorkOrder;
   organizationId: string;
 }
 
@@ -37,7 +50,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
   const { canEdit, isManager, isTechnician } = useWorkOrderPermissionLevels();
   const { user } = useAuth();
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: WorkOrderStatus) => {
     // Check if trying to complete work order with incomplete PM
     if (newStatus === 'completed' && workOrder.has_pm && pmData) {
       if (pmData.status !== 'completed') {

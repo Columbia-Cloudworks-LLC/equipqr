@@ -76,51 +76,50 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     }
   });
 
-  const handleCreateNoteWithImages = async (files: File[]) => {
-    console.log('🔍 handleCreateNoteWithImages called with files:', files.length);
-    
-    // Generate content if none provided
-    let noteContent = formData.content.trim();
-    if (!noteContent && files.length > 0) {
-      const userName = user?.email?.split('@')[0] || 'User';
-      if (files.length === 1) {
-        noteContent = `${userName} uploaded: ${files[0].name}`;
-      } else {
-        const fileNames = files.map(f => f.name).join(', ');
-        noteContent = `${userName} uploaded ${files.length} images: ${fileNames}`;
-      }
-      console.log('🔍 Auto-generated note content:', noteContent);
+const handleCreateNoteWithImages = async (files: File[]): Promise<void> => {
+  console.log('🔍 handleCreateNoteWithImages called with files:', files.length);
+  
+  // Generate content if none provided
+  let noteContent = formData.content.trim();
+  if (!noteContent && files.length > 0) {
+    const userName = user?.email?.split('@')[0] || 'User';
+    if (files.length === 1) {
+      noteContent = `${userName} uploaded: ${files[0].name}`;
+    } else {
+      const fileNames = files.map(f => f.name).join(', ');
+      noteContent = `${userName} uploaded ${files.length} images: ${fileNames}`;
     }
+    console.log('🔍 Auto-generated note content:', noteContent);
+  }
+  
+  if (!noteContent) {
+    console.error('❌ No content or images provided');
+    toast.error('Please enter note content or upload images');
+    return;
+  }
+  
+  try {
+    console.log('🔍 Calling createNoteMutation with:', {
+      content: noteContent,
+      hoursWorked: formData.hoursWorked,
+      isPrivate: formData.isPrivate,
+      images: files.length
+    });
     
-    if (!noteContent) {
-      console.error('❌ No content or images provided');
-      toast.error('Please enter note content or upload images');
-      return;
-    }
+    await createNoteMutation.mutateAsync({
+      content: noteContent,
+      hoursWorked: formData.hoursWorked,
+      isPrivate: formData.isPrivate,
+      images: files
+    });
     
-    try {
-      console.log('🔍 Calling createNoteMutation with:', {
-        content: noteContent,
-        hoursWorked: formData.hoursWorked,
-        isPrivate: formData.isPrivate,
-        images: files.length
-      });
-      
-      const result = await createNoteMutation.mutateAsync({
-        content: noteContent,
-        hoursWorked: formData.hoursWorked,
-        isPrivate: formData.isPrivate,
-        images: files
-      });
-      
-      console.log('✅ createNoteMutation completed successfully:', result);
-      return result;
-    } catch (error) {
-      console.error('❌ Error in handleCreateNoteWithImages:', error);
-      // Re-throw the error so ImageUploadWithNote can handle it properly
-      throw error;
-    }
-  };
+    console.log('✅ createNoteMutation completed successfully');
+  } catch (error) {
+    console.error('❌ Error in handleCreateNoteWithImages:', error);
+    // Re-throw the error so ImageUploadWithNote can handle it properly
+    throw error;
+  }
+};
 
   const handleCreateNoteOnly = () => {
     if (!formData.content.trim()) {

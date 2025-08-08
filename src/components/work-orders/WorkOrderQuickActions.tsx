@@ -17,7 +17,6 @@ interface WorkOrderLike {
   id: string;
   status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
   has_pm?: boolean;
-  [key: string]: unknown;
 }
 
 interface WorkOrderQuickActionsProps {
