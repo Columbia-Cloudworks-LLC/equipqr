@@ -66,10 +66,10 @@ const TeamDetails = () => {
     );
   }
 
-  // Mock permissions - in real implementation, these would come from usePermissions hook
-  const canEdit = true; // currentOrganization.userRole in ['owner', 'admin'] or user is team manager
-  const canDelete = true; // currentOrganization.userRole in ['owner', 'admin'] or user is team manager
-  const canManageMembers = true; // currentOrganization.userRole in ['owner', 'admin'] or user is team manager
+  // Permissions
+  const canEdit = permissions.canManageTeam(team.id);
+  const canDelete = permissions.canManageTeam(team.id);
+  const canManageMembers = permissions.canManageTeam(team.id);
 
   const handleDeleteTeam = async () => {
     if (!team) return;
