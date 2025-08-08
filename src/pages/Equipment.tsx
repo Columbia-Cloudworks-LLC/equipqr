@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
+import type { EquipmentRecord } from '@/types/equipment';
 
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
@@ -33,8 +34,8 @@ const Equipment = () => {
     setShowAdvancedFilters
   } = useEquipmentFiltering(currentOrganization?.id);
   
-  const [showForm, setShowForm] = useState(false);
-  const [editingEquipment, setEditingEquipment] = useState(null);
+  const [showForm, setShowForm] = useState<boolean>(false);
+  const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
 
   const canCreate = canCreateEquipment();
@@ -61,7 +62,7 @@ const Equipment = () => {
     setShowForm(true);
   };
 
-  const handleEditEquipment = (equipment: any) => {
+  const handleEditEquipment = (equipment: EquipmentRecord) => {
     setEditingEquipment(equipment);
     setShowForm(true);
   };

@@ -41,15 +41,15 @@ export const useTeamMutations = () => {
   const { toast } = useToast();
 
   const createTeamWithCreatorMutation = useMutation({
-    mutationFn: ({ teamData, creatorId }: { teamData: any; creatorId: string }) =>
+    mutationFn: ({ teamData, creatorId }: { teamData: Parameters<typeof createTeamWithCreator>[0]; creatorId: string }) =>
       createTeamWithCreator(teamData, creatorId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['teams', variables.teamData.organization_id] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create team",
+        description: error instanceof Error ? error.message : "Failed to create team",
         variant: "destructive"
       });
     }
@@ -65,10 +65,10 @@ export const useTeamMutations = () => {
         description: "Team deleted successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete team",
+        description: error instanceof Error ? error.message : "Failed to delete team",
         variant: "destructive"
       });
     }
@@ -104,10 +104,10 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
         description: "Team member added successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to add team member",
+        description: error instanceof Error ? error.message : "Failed to add team member",
         variant: "destructive"
       });
     }
@@ -126,10 +126,10 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
         description: "Team member removed successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to remove team member",
+        description: error instanceof Error ? error.message : "Failed to remove team member",
         variant: "destructive"
       });
     }
@@ -150,10 +150,10 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
         description: "Team member role updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update team member role",
+        description: error instanceof Error ? error.message : "Failed to update team member role",
         variant: "destructive"
       });
     }

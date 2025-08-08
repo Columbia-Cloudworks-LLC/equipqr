@@ -24,3 +24,27 @@ export const equipmentFormSchema = z.object({
 });
 
 export type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
+
+// Strongly-typed Equipment record used across forms and pages (DB shape)
+export interface EquipmentRecord {
+  id: string;
+  name: string;
+  manufacturer: string;
+  model: string;
+  serial_number: string;
+  status: 'active' | 'maintenance' | 'inactive';
+  location: string;
+  installation_date: string;
+  warranty_expiration: string | null;
+  last_maintenance: string | null;
+  notes?: string | null;
+  custom_attributes?: Record<string, unknown>;
+  image_url?: string | null;
+  last_known_location?: unknown | null;
+  team_id?: string | null;
+  organization_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Optional app-specific fields
+  working_hours?: number;
+}
