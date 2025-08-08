@@ -15,7 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   createWorkOrderNoteWithImages, 
   getWorkOrderNotesWithImages,
-  deleteWorkOrderImage
+  deleteWorkOrderImage,
+  type WorkOrderNoteImage
 } from '@/services/workOrderNotesService';
 import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
 
@@ -135,7 +136,7 @@ const handleCreateNoteWithImages = async (files: File[]): Promise<void> => {
     });
   };
 
-  const canDeleteImage = (image: any) => {
+  const canDeleteImage = (image: WorkOrderNoteImage) => {
     return image.uploaded_by === user?.id;
   };
 

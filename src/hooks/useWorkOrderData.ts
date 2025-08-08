@@ -29,6 +29,11 @@ export interface WorkOrderImage {
   uploaded_by_name?: string;
 }
 
+export type NotificationData = {
+  work_order_id?: string;
+  [key: string]: unknown;
+};
+
 export interface Notification {
   id: string;
   organization_id: string;
@@ -36,7 +41,7 @@ export interface Notification {
   type: string;
   title: string;
   message: string;
-  data: Record<string, any>;
+  data: NotificationData;
   read: boolean;
   created_at: string;
   updated_at: string;

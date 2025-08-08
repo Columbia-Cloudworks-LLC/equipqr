@@ -35,6 +35,15 @@ type StatusWorkOrder = {
   completed_date?: string | null;
 };
 
+interface StatusAction {
+  label: string;
+  action: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  variant: 'default' | 'destructive' | 'outline';
+  description: string;
+  disabled?: boolean;
+}
+
 interface EnhancedWorkOrderStatusManagerWithPMProps {
   workOrder: StatusWorkOrder;
   organizationId: string;
@@ -75,7 +84,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
     }
   };
 
-  const handleAcceptanceComplete = async (acceptanceData: any) => {
+  const handleAcceptanceComplete = async (assigneeId?: string) => {
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
@@ -96,14 +105,14 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
     return false;
   };
 
-  const getStatusActions = () => {
+const getStatusActions = (): StatusAction[] => {
     if (!canPerformStatusActions()) return [];
 
     const canComplete = !workOrder.has_pm || (pmData && pmData.status === 'completed');
     
     switch (workOrder.status) {
-      case 'submitted':
-        const actions = [];
+      case 'submitted': {
+        const actions: StatusAction[] = [];
         if (isManager || isTechnician) {
           actions.push({ 
             label: 'Accept', 
@@ -121,6 +130,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
           description: 'Cancel this work order'
         });
         return actions;
+      }
 
       case 'accepted':
         if (!isManager && !isTechnician) return [];
