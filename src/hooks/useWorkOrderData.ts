@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+type WorkOrderStatus = 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+
 export interface WorkOrderNote {
-  id: string;
   work_order_id: string;
   author_id: string;
   content: string;
@@ -28,6 +29,11 @@ export interface WorkOrderImage {
   uploaded_by_name?: string;
 }
 
+export type NotificationData = {
+  work_order_id?: string;
+  [key: string]: unknown;
+};
+
 export interface Notification {
   id: string;
   organization_id: string;
@@ -35,7 +41,7 @@ export interface Notification {
   type: string;
   title: string;
   message: string;
-  data: Record<string, any>;
+  data: NotificationData;
   read: boolean;
   created_at: string;
   updated_at: string;
@@ -61,7 +67,7 @@ export const useWorkOrderNotes = (workOrderId: string) => {
 
       return (data || []).map(note => ({
         ...note,
-        author_name: (note.profiles as any)?.name || 'Unknown'
+        author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown'
       })) as WorkOrderNote[];
     },
     enabled: !!workOrderId
@@ -132,7 +138,7 @@ export const useWorkOrderImages = (workOrderId: string) => {
 
       return (data || []).map(image => ({
         ...image,
-        uploaded_by_name: (image.profiles as any)?.name || 'Unknown'
+        uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown'
       })) as WorkOrderImage[];
     },
     enabled: !!workOrderId
@@ -254,7 +260,8 @@ export const useUpdateWorkOrderStatus = () => {
       status: string;
       organizationId: string;
     }) => {
-      const updateData: any = { status };
+      const nextStatus = status as WorkOrderStatus;
+      const updateData: Partial<{ status: WorkOrderStatus; acceptance_date?: string; completed_date?: string }> = { status: nextStatus };
       
       // Set acceptance date when accepting
       if (status === 'accepted') {

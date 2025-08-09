@@ -50,8 +50,8 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 
   return (data || []).map(note => ({
     ...note,
-    author_name: (note.profiles as any)?.name || 'Unknown',
-    images: (note.equipment_note_images || []).map((img: any) => ({
+    author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
+    images: (note.equipment_note_images || []).map((img: EquipmentNoteImage & { profiles?: { name?: string } }) => ({
       ...img,
       uploaded_by_name: img.profiles?.name || 'Unknown'
     }))
@@ -263,10 +263,10 @@ export const getEquipmentImages = async (equipmentId: string) => {
 
   return (data || []).map(image => ({
     ...image,
-    uploaded_by_name: (image.profiles as any)?.name || 'Unknown',
-    note_content: (image.equipment_notes as any)?.content,
-    note_author_name: (image.equipment_notes as any)?.profiles?.name || 'Unknown',
-    is_private_note: (image.equipment_notes as any)?.is_private
+    uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
+    note_content: (image.equipment_notes as { content?: string } | null | undefined)?.content,
+    note_author_name: (image.equipment_notes as { profiles?: { name?: string } } | null | undefined)?.profiles?.name || 'Unknown',
+    is_private_note: (image.equipment_notes as { is_private?: boolean } | null | undefined)?.is_private
   }));
 };
 

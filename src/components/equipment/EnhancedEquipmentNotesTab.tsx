@@ -139,7 +139,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     });
   };
 
-  const canDeleteImage = (image: any) => {
+  const canDeleteImage = (image: { uploaded_by: string }) => {
     return image.uploaded_by === user?.id;
   };
 

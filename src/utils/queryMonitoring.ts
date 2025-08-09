@@ -1,6 +1,6 @@
 interface QueryLog {
   query: string;
-  params?: any;
+  params?: unknown;
   duration: number;
   timestamp: Date;
   indexes_used?: string[];
@@ -105,13 +105,13 @@ export function monitorQuery<T>(
 export const performanceUtils = {
   logIndexUsage: (queryName: string, indexes: string[]) => {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🔍 Query \"${queryName}\" should use indexes:`, indexes);
+      console.log(`🔍 Query "${queryName}" should use indexes:`, indexes);
     }
   },
 
   warnMissingIndex: (queryName: string, missingIndex: string) => {
     if (process.env.NODE_ENV === 'development') {
-      console.warn(`⚠️ Query \"${queryName}\" may benefit from index:`, missingIndex);
+      console.warn(`⚠️ Query "${queryName}" may benefit from index:`, missingIndex);
     }
   },
 

@@ -11,9 +11,16 @@ import { generateCostsCSV } from '@/services/workOrderCSVService';
 import { useToast } from '@/hooks/use-toast';
 import { useDeleteWorkOrder } from '@/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/hooks/useWorkOrderImageCount';
+import { WorkOrderData } from '@/types/workOrderDetails';
+
+interface WorkOrderLike {
+  id: string;
+  status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+  has_pm?: boolean;
+}
 
 interface WorkOrderQuickActionsProps {
-  workOrder: any;
+  workOrder: WorkOrderLike;
   onAssignClick?: () => void;
   onReopenClick?: () => void;
   onDeleteSuccess?: () => void;

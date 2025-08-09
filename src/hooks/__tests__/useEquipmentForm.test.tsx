@@ -3,10 +3,14 @@ import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+// Create stable mock objects
+const mockCreateMutateAsync = vi.fn();
+const mockUpdateMutateAsync = vi.fn();
+
 vi.mock('@/hooks/useSupabaseData', () => {
   return {
-    useCreateEquipment: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
-    useUpdateEquipment: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+    useCreateEquipment: vi.fn(() => ({ mutateAsync: mockCreateMutateAsync, isPending: false })),
+    useUpdateEquipment: vi.fn(() => ({ mutateAsync: mockUpdateMutateAsync, isPending: false })),
   };
 });
 
@@ -28,18 +32,69 @@ vi.mock('@/contexts/SimpleOrganizationContext', () => ({
 import { useEquipmentForm } from '@/hooks/useEquipmentForm';
 import { useCreateEquipment, useUpdateEquipment } from '@/hooks/useSupabaseData';
 import { toast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
+import { EquipmentFormData, EquipmentRecord } from '@/types/equipment';
 
 const createWrapper = (client: QueryClient) =>
   ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
 
-const baseValues = {
+// Simple shape of our mocked mutation object
+type MutationMock = { mutateAsync: ReturnType<typeof vi.fn>; isPending: boolean };
+
+// Helper to create complete usePermissions mock
+const createPermissionsMock = (overrides: Partial<ReturnType<typeof usePermissions>> = {}) => ({
+  canManageTeam: () => true,
+  canViewTeam: () => true,
+  canCreateTeam: () => true,
+  canManageEquipment: () => true,
+  canViewEquipment: () => true,
+  canCreateEquipment: () => true,
+  canUpdateEquipmentStatus: () => true,
+  canManageWorkOrder: () => true,
+  canViewWorkOrder: () => true,
+  canCreateWorkOrder: () => true,
+  canAssignWorkOrder: () => true,
+  canChangeWorkOrderStatus: () => true,
+  canManageOrganization: () => true,
+  canInviteMembers: () => true,
+  hasRole: () => true,
+  isTeamMember: () => true,
+  isTeamManager: () => true,
+  ...overrides,
+});
+
+// Helper to create mock equipment
+const createMockEquipment = (overrides: Partial<EquipmentRecord> = {}): EquipmentRecord => ({
+  id: 'eq-1',
+  name: 'Test Equipment',
+  manufacturer: 'Test Manufacturer',
+  model: 'Test Model',
+  serial_number: 'TEST123',
+  status: 'active',
+  location: 'Test Location',
+  installation_date: '2025-01-01',
+  warranty_expiration: null,
+  last_maintenance: null,
+  notes: null,
+  custom_attributes: {},
+  image_url: null,
+  last_known_location: null,
+  team_id: null,
+  organization_id: 'org-1',
+  created_at: '2025-01-01T00:00:00Z',
+  updated_at: '2025-01-01T00:00:00Z',
+  working_hours: 0,
+  ...overrides,
+});
+
+const baseValues: EquipmentFormData = {
   name: 'Eq Name',
   manufacturer: 'Acme',
   model: 'X1',
   serial_number: 'SN',
-  status: 'active' as const,
+  status: 'active',
   location: 'NY',
   installation_date: '2025-01-01',
   warranty_expiration: '',
@@ -47,21 +102,22 @@ const baseValues = {
   notes: '',
   custom_attributes: {},
   image_url: '',
-  last_known_location: null as string | null,
-  team_id: 'team-1' as any,
+  last_known_location: null,
+  team_id: 'team-1',
 };
 
 describe('useEquipmentForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCreateMutateAsync.mockClear();
+    mockUpdateMutateAsync.mockClear();
   });
 
   it('prevents submit when permission denied', async () => {
-    const perms = await import('@/hooks/usePermissions');
-    (perms.usePermissions as any).mockReturnValue({
+    vi.mocked(usePermissions).mockReturnValue(createPermissionsMock({
       canManageEquipment: () => false,
       hasRole: () => false,
-    });
+    }));
 
     const client = new QueryClient();
     const { result } = renderHook(() =>
@@ -75,18 +131,15 @@ describe('useEquipmentForm', () => {
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Permission Denied' })
     );
-    const createMock = (useCreateEquipment as any).mock.results[0].value;
-    const updateMock = (useUpdateEquipment as any).mock.results[0]?.value;
-    expect(createMock.mutateAsync).not.toHaveBeenCalled();
-    expect(updateMock?.mutateAsync).toBeUndefined();
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+    expect(mockUpdateMutateAsync).not.toHaveBeenCalled();
   });
 
   it('requires team assignment for non-admin users', async () => {
-    const perms = await import('@/hooks/usePermissions');
-    (perms.usePermissions as any).mockReturnValue({
+    vi.mocked(usePermissions).mockReturnValue(createPermissionsMock({
       canManageEquipment: () => true,
       hasRole: () => false,
-    });
+    }));
 
     const client = new QueryClient();
     const { result } = renderHook(() =>
@@ -94,22 +147,20 @@ describe('useEquipmentForm', () => {
     , { wrapper: createWrapper(client) });
 
     await act(async () => {
-      await result.current.onSubmit({ ...baseValues, team_id: 'unassigned' as any });
+      await result.current.onSubmit({ ...baseValues, team_id: 'unassigned' });
     });
 
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Team Assignment Required' })
     );
-    const createMock = (useCreateEquipment as any).mock.results[0].value;
-    expect(createMock.mutateAsync).not.toHaveBeenCalled();
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
   });
 
   it('creates equipment successfully', async () => {
-    const perms = await import('@/hooks/usePermissions');
-    (perms.usePermissions as any).mockReturnValue({
+    vi.mocked(usePermissions).mockReturnValue(createPermissionsMock({
       canManageEquipment: () => true,
       hasRole: () => false, // non-admin but team assigned -> allowed
-    });
+    }));
 
     const client = new QueryClient();
     const onClose = vi.fn();
@@ -117,13 +168,11 @@ describe('useEquipmentForm', () => {
       useEquipmentForm({ equipment: undefined, onClose })
     , { wrapper: createWrapper(client) });
 
-    const createMock = (useCreateEquipment as any).mock.results[0].value;
-
     await act(async () => {
-      await result.current.onSubmit({ ...baseValues, team_id: 'team-1' as any });
+      await result.current.onSubmit({ ...baseValues, team_id: 'team-1' });
     });
 
-    expect(createMock.mutateAsync).toHaveBeenCalledWith(
+    expect(mockCreateMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Eq Name',
         manufacturer: 'Acme',
@@ -139,19 +188,17 @@ describe('useEquipmentForm', () => {
     const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
 
     const onClose = vi.fn();
-    const equipment = { id: 'eq-1' } as any;
+    const equipment = createMockEquipment({ id: 'eq-1' });
 
     const { result } = renderHook(() =>
       useEquipmentForm({ equipment, onClose })
     , { wrapper: createWrapper(client) });
 
-    const updateMock = (useUpdateEquipment as any).mock.results[0].value;
-
     await act(async () => {
       await result.current.onSubmit({ ...baseValues });
     });
 
-    expect(updateMock.mutateAsync).toHaveBeenCalledWith(
+    expect(mockUpdateMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         equipmentId: 'eq-1',
       })
@@ -162,8 +209,9 @@ describe('useEquipmentForm', () => {
 
   it('shows error toast when editing without id', async () => {
     const client = new QueryClient();
+    const invalidEquipment = createMockEquipment({ id: '' }); // Invalid id
     const { result } = renderHook(() =>
-      useEquipmentForm({ equipment: {} as any, onClose: vi.fn() })
+      useEquipmentForm({ equipment: invalidEquipment, onClose: vi.fn() })
     , { wrapper: createWrapper(client) });
 
     await act(async () => {

@@ -128,6 +128,6 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
     form,
     onSubmit,
     isEdit,
-    isPending: isEdit ? updateEquipmentMutation.isPending : createEquipmentMutation.isPending
+    isPending: createEquipmentMutation.isPending || updateEquipmentMutation.isPending
   };
 };

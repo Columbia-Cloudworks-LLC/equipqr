@@ -116,14 +116,12 @@ const Equipment = () => {
       />
 
       {/* QR Code Modal */}
-      {showQRCode && (
-        <QRCodeDisplay
-          equipmentId={showQRCode}
-          open={!!showQRCode}
-          onClose={() => setShowQRCode(null)}
-          equipmentName={equipment.find(eq => eq.id === showQRCode)?.name}
-        />
-      )}
+      <QRCodeDisplay
+        equipmentId={showQRCode || ''}
+        open={!!showQRCode}
+        onClose={() => setShowQRCode(null)}
+        equipmentName={equipment.find(eq => eq.id === showQRCode)?.name}
+      />
     </div>
   );
 };

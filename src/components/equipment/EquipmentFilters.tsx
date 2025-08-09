@@ -17,7 +17,7 @@ interface FilterOptions {
 
 interface EquipmentFiltersProps {
   filters: EquipmentFiltersType;
-  onFilterChange: (key: keyof EquipmentFiltersType, value: any) => void;
+  onFilterChange: (key: keyof EquipmentFiltersType, value: string) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
   filterOptions: FilterOptions;
