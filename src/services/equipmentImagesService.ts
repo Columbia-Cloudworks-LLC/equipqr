@@ -36,7 +36,7 @@ export const getAllEquipmentImages = async (
       .eq('equipment_id', equipmentId)
       .eq('organization_id', organizationId);
 
-    let workOrderImages: EquipmentImageData[] = [];
+    const workOrderImages: EquipmentImageData[] = [];
     if (workOrders && workOrders.length > 0) {
       for (const wo of workOrders) {
         const images = await getWorkOrderImages(wo.id);
