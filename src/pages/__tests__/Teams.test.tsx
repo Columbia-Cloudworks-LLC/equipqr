@@ -28,8 +28,8 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock all contexts and hooks
-vi.mock('@/contexts/OrganizationContext', () => ({
-  useOrganization: vi.fn()
+vi.mock('@/contexts/SessionContext', () => ({
+  useSession: vi.fn()
 }));
 
 vi.mock('@/hooks/useTeamManagement', () => ({
@@ -42,11 +42,11 @@ vi.mock('@/hooks/useUnifiedPermissions', () => ({
 }));
 
 // Import mocks after setting up the mocks
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSession } from '@/contexts/SessionContext';
 import { useTeams, useTeamMutations } from '@/hooks/useTeamManagement';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 
-const mockUseOrganization = vi.mocked(useOrganization);
+const mockUseSession = vi.mocked(useSession);
 const mockUseTeams = vi.mocked(useTeams);
 const mockUseTeamMutations = vi.mocked(useTeamMutations);
 const mockUseUnifiedPermissions = vi.mocked(useUnifiedPermissions);
@@ -119,15 +119,24 @@ describe('Teams Page', () => {
     vi.clearAllMocks();
     
     // Default mock implementations
-    mockUseOrganization.mockReturnValue({
-      currentOrganization: mockOrganization,
-      userOrganizations: [mockOrganization],
-      organizations: [mockOrganization],
+    mockUseSession.mockReturnValue({
+      getCurrentOrganization: () => mockOrganization,
+      sessionData: { 
+        organizations: [mockOrganization], 
+        currentOrganizationId: 'org-1',
+        teamMemberships: [],
+        lastUpdated: '2024-01-01T00:00:00Z',
+        version: 1
+      },
       isLoading: false,
       error: null,
-      setCurrentOrganization: vi.fn(),
+      refreshSession: vi.fn(),
+      clearSession: vi.fn(),
       switchOrganization: vi.fn(),
-      refetch: vi.fn()
+      hasTeamRole: vi.fn(),
+      hasTeamAccess: vi.fn(),
+      canManageTeam: vi.fn(),
+      getUserTeamIds: vi.fn()
     });
 
     mockUseTeams.mockReturnValue({
@@ -491,17 +500,20 @@ describe('Teams Page', () => {
     });
 
     it('handles organization loading state', () => {
-      mockUseOrganization.mockReturnValue({
-        currentOrganization: null,
-        userOrganizations: [],
-        organizations: [],
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => null,
+        sessionData: null,
         isLoading: true,
         error: null,
-        setCurrentOrganization: vi.fn(),
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
         switchOrganization: vi.fn(),
-        refetch: vi.fn()
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn(),
+        getUserTeamIds: vi.fn()
       });
-
+      
       renderTeamsPage();
       
       // Should show loading when organization is loading
@@ -509,15 +521,24 @@ describe('Teams Page', () => {
     });
 
     it('handles no organization selected', () => {
-      mockUseOrganization.mockReturnValue({
-        currentOrganization: null,
-        userOrganizations: [],
-        organizations: [],
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => null,
+        sessionData: { 
+          organizations: [], 
+          currentOrganizationId: null,
+          teamMemberships: [],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
         isLoading: false,
         error: null,
-        setCurrentOrganization: vi.fn(),
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
         switchOrganization: vi.fn(),
-        refetch: vi.fn()
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn(),
+        getUserTeamIds: vi.fn()
       });
 
       renderTeamsPage();
