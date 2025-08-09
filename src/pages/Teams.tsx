@@ -26,6 +26,7 @@ const Teams = () => {
   
   // Check permissions
   const permissions = useUnifiedPermissions();
+  const canCreateTeams = permissions.organization.canCreateTeams;
 
   if (isLoading || teamsLoading || !currentOrganization) {
     return (
@@ -103,10 +104,12 @@ const Teams = () => {
             Manage teams for {currentOrganization.name}
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="flex items-center gap-2" data-testid="header-create-team-button">
-          <Plus className="h-4 w-4" />
-          Create Team
-        </Button>
+        {teams.length > 0 && canCreateTeams && (
+          <Button onClick={() => setShowForm(true)} className="flex items-center gap-2" data-testid="header-create-team-button">
+            <Plus className="h-4 w-4" />
+            Create Team
+          </Button>
+        )}
       </div>
 
       {/* Teams Grid */}
@@ -208,7 +211,7 @@ const Teams = () => {
       </div>
 
       {/* Empty State */}
-      {teams.length === 0 && (
+      {teams.length === 0 && canCreateTeams && (
         <Card>
           <CardContent className="text-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
