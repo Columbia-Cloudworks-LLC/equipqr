@@ -265,7 +265,7 @@ describe('Teams Page', () => {
 
       renderTeamsPage();
       
-      const createButton = screen.getByTestId('header-create-team-button');
+      const createButton = screen.getByTestId('empty-state-create-team-button');
       fireEvent.click(createButton);
       
       expect(screen.getByTestId('team-form-modal')).toBeInTheDocument();

@@ -18,6 +18,7 @@ import { updateTeam } from '@/services/teamService';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeamMutations } from '@/hooks/useTeamManagement';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 
 interface TeamFormProps {
   open: boolean;
@@ -32,7 +33,9 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { createTeamWithCreator } = useTeamMutations();
-  
+  const permissions = useUnifiedPermissions();
+  const canCreateTeams = permissions.organization.canCreateTeams;
+
   const [formData, setFormData] = useState({
     name: team?.name || '',
     description: team?.description || ''
@@ -85,6 +88,15 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
       toast({
         title: "Error",
         description: "Team name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!isEdit && !canCreateTeams) {
+      toast({
+        title: "Permission denied",
+        description: "Only organization admins can create teams.",
         variant: "destructive"
       });
       return;
@@ -173,7 +185,7 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting || createTeamWithCreator.isPending || updateTeamMutation.isPending}
+              disabled={isSubmitting || createTeamWithCreator.isPending || updateTeamMutation.isPending || (!isEdit && !canCreateTeams)}
             >
               {(isSubmitting || createTeamWithCreator.isPending || updateTeamMutation.isPending) 
                 ? (isEdit ? 'Updating...' : 'Creating...') 
