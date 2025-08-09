@@ -19,11 +19,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeamMutations } from '@/hooks/useTeamManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import type { TeamWithMembers } from '@/services/teamService';
 
 interface TeamFormProps {
   open: boolean;
   onClose: () => void;
-  team?: any;
+  team?: TeamWithMembers;
 }
 
 const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
@@ -43,8 +44,13 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  type TeamUpdatePayload = {
+    name?: string;
+    description?: string | null;
+  };
+
   const updateTeamMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: any }) => updateTeam(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: TeamUpdatePayload }) => updateTeam(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['team', team?.id] });
@@ -54,10 +60,11 @@ const TeamForm: React.FC<TeamFormProps> = ({ open, onClose, team }) => {
       });
       onClose();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update team';
       toast({
         title: "Error",
-        description: error.message || "Failed to update team",
+        description: message,
         variant: "destructive"
       });
     }
