@@ -103,7 +103,7 @@ const Teams = () => {
             Manage teams for {currentOrganization.name}
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
+        <Button onClick={() => setShowForm(true)} className="flex items-center gap-2" data-testid="header-create-team-button">
           <Plus className="h-4 w-4" />
           Create Team
         </Button>
@@ -196,6 +196,7 @@ const Teams = () => {
                     size="sm"
                     onClick={() => handleDeleteTeam(team.id)}
                     className="text-destructive hover:text-destructive"
+                    aria-label="Delete team"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -215,7 +216,7 @@ const Teams = () => {
             <p className="text-muted-foreground mb-4">
               Get started by creating your first team for {currentOrganization.name}.
             </p>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => setShowForm(true)} data-testid="empty-state-create-team-button">
               <Plus className="h-4 w-4 mr-2" />
               Create Team
             </Button>
