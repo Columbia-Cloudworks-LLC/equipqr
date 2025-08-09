@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { useSession } from './SessionContext';
 
 export interface SimpleOrganization {
   id: string;
@@ -45,6 +46,9 @@ export const useSimpleOrganization = () => {
 export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(null);
+  
+  // Get session context to keep them synchronized
+  const sessionContext = useSession();
 
   // Initialize from localStorage
   useEffect(() => {
@@ -170,7 +174,9 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
 
   const switchOrganization = useCallback((organizationId: string) => {
     setCurrentOrganization(organizationId);
-  }, [setCurrentOrganization]);
+    // Also update session context to keep them synchronized
+    sessionContext.switchOrganization(organizationId);
+  }, [setCurrentOrganization, sessionContext]);
 
   const currentOrganization = currentOrganizationId 
     ? organizations.find(org => org.id === currentOrganizationId) || null

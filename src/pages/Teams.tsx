@@ -7,13 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Users, Settings, Crown, User, Trash2 } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSession } from '@/contexts/SessionContext';
 import { useTeams, useTeamMutations } from '@/hooks/useTeamManagement';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import TeamForm from '@/components/teams/TeamForm';
 
 const Teams = () => {
-  const { currentOrganization, isLoading } = useOrganization();
+  const { getCurrentOrganization, isLoading } = useSession();
+  const currentOrganization = getCurrentOrganization();
   const [showForm, setShowForm] = useState(false);
   const [deleteTeamId, setDeleteTeamId] = useState<string | null>(null);
   const navigate = useNavigate();
