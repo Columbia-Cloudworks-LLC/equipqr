@@ -16,8 +16,8 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
   const isEdit = !!equipment;
   const { currentOrganization } = useSimpleOrganization();
   const queryClient = useQueryClient();
-  const createEquipmentMutation = !isEdit ? useCreateEquipment(currentOrganization?.id || '') : null;
-  const updateEquipmentMutation = isEdit ? useUpdateEquipment(currentOrganization?.id || '') : null;
+  const createEquipmentMutation = useCreateEquipment(currentOrganization?.id || '');
+  const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
   const { canManageEquipment, hasRole } = usePermissions();
 
   const form = useForm<EquipmentFormData>({
@@ -89,7 +89,7 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
           team_id: values.team_id === 'unassigned' ? null : (values.team_id || null),
         } as const;
 
-        await updateEquipmentMutation!.mutateAsync({
+        await updateEquipmentMutation.mutateAsync({
           equipmentId: equipment.id,
           equipmentData,
         });
@@ -116,7 +116,7 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
           working_hours: 0 // Initialize with 0 hours for new equipment
         };
         
-        await createEquipmentMutation!.mutateAsync(equipmentData);
+        await createEquipmentMutation.mutateAsync(equipmentData);
       }
       onClose();
     } catch (error) {
@@ -128,6 +128,6 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
     form,
     onSubmit,
     isEdit,
-    isPending: isEdit ? !!updateEquipmentMutation?.isPending : !!createEquipmentMutation?.isPending
+    isPending: createEquipmentMutation.isPending || updateEquipmentMutation.isPending
   };
 };

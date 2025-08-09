@@ -76,9 +76,9 @@ describe('useEquipmentForm', () => {
       expect.objectContaining({ title: 'Permission Denied' })
     );
     const createMock = (useCreateEquipment as any).mock.results[0].value;
-    const updateMock = (useUpdateEquipment as any).mock.results[0]?.value;
+    const updateMock = (useUpdateEquipment as any).mock.results[0].value;
     expect(createMock.mutateAsync).not.toHaveBeenCalled();
-    expect(updateMock?.mutateAsync).toBeUndefined();
+    expect(updateMock.mutateAsync).not.toHaveBeenCalled();
   });
 
   it('requires team assignment for non-admin users', async () => {
