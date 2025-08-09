@@ -1,10 +1,14 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { UseQueryResult } from '@tanstack/react-query';
 import Dashboard from '../Dashboard';
 import * as useSupabaseDataModule from '@/hooks/useSupabaseData';
 import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
 import * as usePermissionsModule from '@/hooks/usePermissions';
+
+// Mock query result type
+type MockQueryResult<T> = UseQueryResult<T, Error>;
 
 // Mock dependencies
 vi.mock('@/hooks/useSupabaseData', () => ({
@@ -107,7 +111,7 @@ describe('Dashboard', () => {
       isSuccess: false,
       refetch: vi.fn(),
       fetchStatus: 'fetching'
-    } as any);
+    } as unknown as MockQueryResult<unknown[]>);
 
     render(<Dashboard />);
     
@@ -128,7 +132,7 @@ describe('Dashboard', () => {
       isSuccess: true,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as unknown as MockQueryResult<unknown[]>);
 
     render(<Dashboard />);
     
@@ -160,7 +164,7 @@ describe('Dashboard', () => {
       isSuccess: false,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as unknown as MockQueryResult<unknown[]>);
 
     render(<Dashboard />);
     

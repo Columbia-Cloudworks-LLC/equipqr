@@ -1,10 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { UseQueryResult } from '@tanstack/react-query';
 import WorkOrders from '../WorkOrders';
 import * as useEnhancedWorkOrdersModule from '@/hooks/useEnhancedWorkOrders';
 import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
 import * as usePermissionsModule from '@/hooks/usePermissions';
+
+// Mock query result type
+type MockQueryResult<T> = UseQueryResult<T, Error>;
 
 // Mock dependencies
 vi.mock('@/hooks/useEnhancedWorkOrders', () => ({
@@ -156,7 +160,7 @@ describe('WorkOrders Page', () => {
       isSuccess: false,
       refetch: vi.fn(),
       fetchStatus: 'fetching'
-    } as any);
+    } as unknown as MockQueryResult<unknown[]>);
 
     render(<WorkOrders />);
     
@@ -190,7 +194,7 @@ describe('WorkOrders Page', () => {
       isSuccess: true,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as unknown as MockQueryResult<unknown[]>);
 
     render(<WorkOrders />);
     
@@ -215,7 +219,7 @@ describe('WorkOrders Page', () => {
       isSuccess: false,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as unknown as MockQueryResult<unknown[]>);
 
     render(<WorkOrders />);
     
