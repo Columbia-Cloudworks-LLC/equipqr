@@ -2,11 +2,6 @@ import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { UserProvider } from '@/contexts/UserContext';
-import { SessionProvider } from '@/contexts/SessionContext';
-import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationContext';
-import { TeamProvider } from '@/contexts/TeamContext';
 
 // Create a custom render function that includes providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
@@ -21,17 +16,7 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <UserProvider>
-            <SessionProvider>
-              <SimpleOrganizationProvider>
-                <TeamProvider>
-                  {children}
-                </TeamProvider>
-              </SimpleOrganizationProvider>
-            </SessionProvider>
-          </UserProvider>
-        </AuthProvider>
+        {children}
       </QueryClientProvider>
     </BrowserRouter>
   );
