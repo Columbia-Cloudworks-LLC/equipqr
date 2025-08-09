@@ -3,6 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import Teams from '../Teams';
+import type { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import type { TeamWithMembers } from '@/services/teamService';
+import type { UnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 
 // Mock the TeamForm component
 vi.mock('@/components/teams/TeamForm', () => ({
@@ -132,15 +135,20 @@ describe('Teams Page', () => {
       isLoading: false,
       error: null,
       refetch: vi.fn()
-    } as any);
+    } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
     mockUseTeamMutations.mockReturnValue({
-      createTeamWithCreator: { mutate: vi.fn(), isPending: false } as any,
-      deleteTeam: { mutate: vi.fn(), isPending: false } as any
-    } as any);
+      createTeamWithCreator: { mutate: vi.fn(), isPending: false },
+      deleteTeam: { mutate: vi.fn(), isPending: false }
+    } as unknown as ReturnType<typeof useTeamMutations>);
 
     mockUseUnifiedPermissions.mockReturnValue({
-      userContext: { userId: 'user-1', organizationId: 'org-1' },
+      context: { 
+        userId: 'user-1', 
+        organizationId: 'org-1',
+        userRole: 'admin',
+        teamMemberships: []
+      },
       teams: {
         getPermissions: vi.fn().mockReturnValue({
           canView: true,
@@ -175,18 +183,18 @@ describe('Teams Page', () => {
         canAssignAny: true
       },
       getEquipmentNotesPermissions: vi.fn(),
-      clearCache: vi.fn()
-    } as any);
+      clearPermissionCache: vi.fn()
+    } as unknown as UnifiedPermissions);
   });
 
   describe('Core Rendering', () => {
     it('displays loading state with skeleton cards', () => {
       mockUseTeams.mockReturnValue({
-        data: [],
+        data: undefined,
         isLoading: true,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       renderTeamsPage();
       
@@ -200,7 +208,7 @@ describe('Teams Page', () => {
         isLoading: false,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       renderTeamsPage();
       
@@ -215,7 +223,7 @@ describe('Teams Page', () => {
         isLoading: false,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       renderTeamsPage();
       
@@ -230,7 +238,7 @@ describe('Teams Page', () => {
         isLoading: false,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       renderTeamsPage();
       
@@ -253,7 +261,7 @@ describe('Teams Page', () => {
         isLoading: false,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       renderTeamsPage();
       
@@ -269,7 +277,7 @@ describe('Teams Page', () => {
         isLoading: false,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       renderTeamsPage();
       
@@ -285,11 +293,16 @@ describe('Teams Page', () => {
         isLoading: false,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       // Mock permissions to allow deletion
       mockUseUnifiedPermissions.mockReturnValue({
-        userContext: { userId: 'user-1', organizationId: 'org-1' },
+        context: { 
+          userId: 'user-1', 
+          organizationId: 'org-1',
+          userRole: 'admin',
+          teamMemberships: []
+        },
         teams: {
           getPermissions: vi.fn().mockReturnValue({
             canView: true,
@@ -324,8 +337,8 @@ describe('Teams Page', () => {
         isTeamMember: vi.fn(),
         isTeamManager: vi.fn(),
         getEquipmentNotesPermissions: vi.fn(),
-        clearCache: vi.fn()
-      } as any);
+        clearPermissionCache: vi.fn()
+      } as unknown as UnifiedPermissions);
 
       renderTeamsPage();
       
@@ -345,11 +358,16 @@ describe('Teams Page', () => {
         isLoading: false,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       // Mock permissions to deny deletion
       mockUseUnifiedPermissions.mockReturnValue({
-        userContext: { userId: 'user-1', organizationId: 'org-1' },
+        context: { 
+          userId: 'user-1', 
+          organizationId: 'org-1',
+          userRole: 'member',
+          teamMemberships: []
+        },
         teams: {
           getPermissions: vi.fn().mockReturnValue({
             canView: true,
@@ -384,8 +402,8 @@ describe('Teams Page', () => {
         isTeamMember: vi.fn(),
         isTeamManager: vi.fn(),
         getEquipmentNotesPermissions: vi.fn(),
-        clearCache: vi.fn()
-      } as any);
+        clearPermissionCache: vi.fn()
+      } as unknown as UnifiedPermissions);
 
       renderTeamsPage();
       
@@ -402,11 +420,16 @@ describe('Teams Page', () => {
         isLoading: false,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       // Mock permissions to allow deletion
       mockUseUnifiedPermissions.mockReturnValue({
-        userContext: { userId: 'user-1', organizationId: 'org-1' },
+        context: { 
+          userId: 'user-1', 
+          organizationId: 'org-1',
+          userRole: 'admin',
+          teamMemberships: []
+        },
         teams: {
           getPermissions: vi.fn().mockReturnValue({
             canView: true,
@@ -441,8 +464,8 @@ describe('Teams Page', () => {
         isTeamMember: vi.fn(),
         isTeamManager: vi.fn(),
         getEquipmentNotesPermissions: vi.fn(),
-        clearCache: vi.fn()
-      } as any);
+        clearPermissionCache: vi.fn()
+      } as unknown as UnifiedPermissions);
 
       renderTeamsPage();
       
@@ -458,7 +481,7 @@ describe('Teams Page', () => {
         isLoading: false,
         error: null,
         refetch: vi.fn()
-      } as any);
+      } as unknown as UseQueryResult<TeamWithMembers[], Error>);
 
       renderTeamsPage();
       
@@ -477,7 +500,7 @@ describe('Teams Page', () => {
         setCurrentOrganization: vi.fn(),
         switchOrganization: vi.fn(),
         refetch: vi.fn()
-      } as any);
+      });
 
       renderTeamsPage();
       
@@ -495,7 +518,7 @@ describe('Teams Page', () => {
         setCurrentOrganization: vi.fn(),
         switchOrganization: vi.fn(),
         refetch: vi.fn()
-      } as any);
+      });
 
       renderTeamsPage();
       
