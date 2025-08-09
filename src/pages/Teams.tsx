@@ -145,28 +145,33 @@ const Teams = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Team Members</h4>
                 <div className="space-y-2">
-                  {team.members.slice(0, 3).map((member) => (
-                    <div key={member.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                         <Avatar className="h-6 w-6">
-                           <AvatarImage src={undefined} />
-                           <AvatarFallback className="text-xs">
-                             {(member.profiles?.name || 'U').split(' ').map(n => n[0]).join('')}
-                           </AvatarFallback>
-                         </Avatar>
-                         <div>
-                           <p className="text-sm font-medium">{member.profiles?.name || 'Unknown'}</p>
-                           <p className="text-xs text-muted-foreground">{member.profiles?.email || 'No email'}</p>
+                   {team.members.slice(0, 3).map((member) => {
+                     const memberName = member.profiles?.name || 'Unknown User';
+                     const memberEmail = member.profiles?.email || 'No email';
+                     
+                     return (
+                       <div key={member.id} className="flex items-center justify-between">
+                         <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={undefined} />
+                              <AvatarFallback className="text-xs">
+                                {memberName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">{memberName}</p>
+                              <p className="text-xs text-muted-foreground">{memberEmail}</p>
+                            </div>
                          </div>
-                      </div>
-                      <Badge className={getRoleColor(member.role)} variant="outline">
-                        <div className="flex items-center gap-1">
-                          {getRoleIcon(member.role)}
-                          {member.role}
-                        </div>
-                      </Badge>
-                    </div>
-                  ))}
+                         <Badge className={getRoleColor(member.role)} variant="outline">
+                           <div className="flex items-center gap-1">
+                             {getRoleIcon(member.role)}
+                             {member.role}
+                           </div>
+                         </Badge>
+                       </div>
+                     );
+                   })}
                   {team.members.length > 3 && (
                     <p className="text-xs text-muted-foreground text-center">
                       +{team.members.length - 3} more members
