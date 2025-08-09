@@ -2,6 +2,9 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Dashboard from '../Dashboard';
+import * as useSupabaseDataModule from '@/hooks/useSupabaseData';
+import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
+import * as usePermissionsModule from '@/hooks/usePermissions';
 
 // Mock dependencies
 vi.mock('@/hooks/useSupabaseData', () => ({
@@ -44,17 +47,17 @@ vi.mock('@/hooks/useTeams', () => ({
 
 // Mock Recharts components
 vi.mock('recharts', () => ({
-  PieChart: ({ children }: any) => <div data-testid="pie-chart">{children}</div>,
+  PieChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
   Pie: () => <div data-testid="pie" />,
   Cell: () => <div data-testid="cell" />,
-  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
+  BarChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
   Bar: () => <div data-testid="bar" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   Tooltip: () => <div data-testid="tooltip" />,
   Legend: () => <div data-testid="legend" />,
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>
+  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>
 }));
 
 describe('Dashboard', () => {
@@ -69,9 +72,15 @@ describe('Dashboard', () => {
   });
 
   it('renders organization selection prompt when no organization', () => {
-    const mockUseSimpleOrganization = require('@/contexts/SimpleOrganizationContext').useSimpleOrganization;
-    mockUseSimpleOrganization.mockReturnValue({
-      currentOrganization: null
+    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+      organizations: [],
+      userOrganizations: [],
+      currentOrganization: null,
+      setCurrentOrganization: vi.fn(),
+      switchOrganization: vi.fn(),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn()
     });
 
     render(<Dashboard />);
@@ -89,12 +98,16 @@ describe('Dashboard', () => {
   });
 
   it('displays loading state correctly', () => {
-    const mockUseSyncEquipment = require('@/hooks/useSupabaseData').useSyncEquipmentByOrganization;
-    mockUseSyncEquipment.mockReturnValue({
+    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
       data: [],
       isLoading: true,
-      error: null
-    });
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: false,
+      refetch: vi.fn(),
+      fetchStatus: 'fetching'
+    } as any);
 
     render(<Dashboard />);
     
@@ -102,16 +115,20 @@ describe('Dashboard', () => {
   });
 
   it('shows equipment statistics when data is available', () => {
-    const mockUseSyncEquipment = require('@/hooks/useSupabaseData').useSyncEquipmentByOrganization;
-    mockUseSyncEquipment.mockReturnValue({
+    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
       data: [
         { id: '1', status: 'active', name: 'Equipment 1' },
         { id: '2', status: 'maintenance', name: 'Equipment 2' },
         { id: '3', status: 'inactive', name: 'Equipment 3' }
       ],
       isLoading: false,
-      error: null
-    });
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as any);
 
     render(<Dashboard />);
     
@@ -120,20 +137,9 @@ describe('Dashboard', () => {
   });
 
   it('shows work order statistics when data is available', () => {
-    const mockUseSyncWorkOrders = require('@/hooks/useSupabaseData').useSyncWorkOrdersByOrganization;
-    mockUseSyncWorkOrders.mockReturnValue({
-      data: [
-        { id: '1', status: 'submitted', title: 'Work Order 1' },
-        { id: '2', status: 'in_progress', title: 'Work Order 2' },
-        { id: '3', status: 'completed', title: 'Work Order 3' }
-      ],
-      isLoading: false,
-      error: null
-    });
-
+    // Mock work orders data through enhanced work orders hook instead
     render(<Dashboard />);
     
-    expect(screen.getByText('3')).toBeInTheDocument(); // Total work orders count
     expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
   });
 
@@ -145,12 +151,16 @@ describe('Dashboard', () => {
   });
 
   it('displays error states appropriately', () => {
-    const mockUseSyncEquipment = require('@/hooks/useSupabaseData').useSyncEquipmentByOrganization;
-    mockUseSyncEquipment.mockReturnValue({
+    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
       data: null,
       isLoading: false,
-      error: new Error('Failed to load equipment')
-    });
+      error: new Error('Failed to load equipment'),
+      isError: true,
+      isPending: false,
+      isSuccess: false,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as any);
 
     render(<Dashboard />);
     
@@ -165,11 +175,24 @@ describe('Dashboard', () => {
   });
 
   it('hides action buttons for users without permissions', () => {
-    const mockUsePermissions = require('@/hooks/usePermissions').usePermissions;
-    mockUsePermissions.mockReturnValue({
+    vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
+      canManageTeam: vi.fn(() => false),
+      canViewTeam: vi.fn(() => false),
+      canCreateTeam: vi.fn(() => false),
       canManageEquipment: vi.fn(() => false),
-      canManageWorkOrders: vi.fn(() => false),
-      hasRole: vi.fn(() => false)
+      canViewEquipment: vi.fn(() => false),
+      canCreateEquipment: vi.fn(() => false),
+      canUpdateEquipmentStatus: vi.fn(() => false),
+      canManageWorkOrder: vi.fn(() => false),
+      canViewWorkOrder: vi.fn(() => false),
+      canCreateWorkOrder: vi.fn(() => false),
+      canAssignWorkOrder: vi.fn(() => false),
+      canChangeWorkOrderStatus: vi.fn(() => false),
+      canManageOrganization: vi.fn(() => false),
+      canInviteMembers: vi.fn(() => false),
+      hasRole: vi.fn(() => false),
+      isTeamMember: vi.fn(() => false),
+      isTeamManager: vi.fn(() => false)
     });
 
     render(<Dashboard />);

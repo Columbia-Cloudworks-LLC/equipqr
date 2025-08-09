@@ -2,6 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WorkOrders from '../WorkOrders';
+import * as useEnhancedWorkOrdersModule from '@/hooks/useEnhancedWorkOrders';
+import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
+import * as usePermissionsModule from '@/hooks/usePermissions';
 
 // Mock dependencies
 vi.mock('@/hooks/useEnhancedWorkOrders', () => ({
@@ -64,9 +67,15 @@ describe('WorkOrders Page', () => {
   });
 
   it('shows organization selection message when no organization', () => {
-    const mockUseSimpleOrganization = require('@/contexts/SimpleOrganizationContext').useSimpleOrganization;
-    mockUseSimpleOrganization.mockReturnValue({
-      currentOrganization: null
+    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+      organizations: [],
+      userOrganizations: [],
+      currentOrganization: null,
+      setCurrentOrganization: vi.fn(),
+      switchOrganization: vi.fn(),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn()
     });
 
     render(<WorkOrders />);
@@ -81,10 +90,24 @@ describe('WorkOrders Page', () => {
   });
 
   it('hides create button for unauthorized users', () => {
-    const mockUsePermissions = require('@/hooks/usePermissions').usePermissions;
-    mockUsePermissions.mockReturnValue({
-      canManageWorkOrders: vi.fn(() => false),
-      hasRole: vi.fn(() => false)
+    vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
+      canManageTeam: vi.fn(() => false),
+      canViewTeam: vi.fn(() => false),
+      canCreateTeam: vi.fn(() => false),
+      canManageEquipment: vi.fn(() => false),
+      canViewEquipment: vi.fn(() => false),
+      canCreateEquipment: vi.fn(() => false),
+      canUpdateEquipmentStatus: vi.fn(() => false),
+      canManageWorkOrder: vi.fn(() => false),
+      canViewWorkOrder: vi.fn(() => false),
+      canCreateWorkOrder: vi.fn(() => false),
+      canAssignWorkOrder: vi.fn(() => false),
+      canChangeWorkOrderStatus: vi.fn(() => false),
+      canManageOrganization: vi.fn(() => false),
+      canInviteMembers: vi.fn(() => false),
+      hasRole: vi.fn(() => false),
+      isTeamMember: vi.fn(() => false),
+      isTeamManager: vi.fn(() => false)
     });
 
     render(<WorkOrders />);
@@ -124,12 +147,16 @@ describe('WorkOrders Page', () => {
   });
 
   it('displays loading state correctly', () => {
-    const mockUseEnhancedWorkOrders = require('@/hooks/useEnhancedWorkOrders').useEnhancedWorkOrders;
-    mockUseEnhancedWorkOrders.mockReturnValue({
+    vi.mocked(useEnhancedWorkOrdersModule.useEnhancedWorkOrders).mockReturnValue({
       data: [],
       isLoading: true,
-      error: null
-    });
+      error: null,
+      isError: false,
+      isPending: true,
+      isSuccess: false,
+      refetch: vi.fn(),
+      fetchStatus: 'fetching'
+    } as any);
 
     render(<WorkOrders />);
     
@@ -154,12 +181,16 @@ describe('WorkOrders Page', () => {
       }
     ];
 
-    const mockUseEnhancedWorkOrders = require('@/hooks/useEnhancedWorkOrders').useEnhancedWorkOrders;
-    mockUseEnhancedWorkOrders.mockReturnValue({
+    vi.mocked(useEnhancedWorkOrdersModule.useEnhancedWorkOrders).mockReturnValue({
       data: mockWorkOrders,
       isLoading: false,
-      error: null
-    });
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as any);
 
     render(<WorkOrders />);
     
@@ -175,12 +206,16 @@ describe('WorkOrders Page', () => {
   });
 
   it('shows error state when loading fails', () => {
-    const mockUseEnhancedWorkOrders = require('@/hooks/useEnhancedWorkOrders').useEnhancedWorkOrders;
-    mockUseEnhancedWorkOrders.mockReturnValue({
+    vi.mocked(useEnhancedWorkOrdersModule.useEnhancedWorkOrders).mockReturnValue({
       data: null,
       isLoading: false,
-      error: new Error('Failed to load work orders')
-    });
+      error: new Error('Failed to load work orders'),
+      isError: true,
+      isPending: false,
+      isSuccess: false,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as any);
 
     render(<WorkOrders />);
     
