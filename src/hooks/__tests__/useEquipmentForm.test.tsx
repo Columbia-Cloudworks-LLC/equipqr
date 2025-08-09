@@ -3,10 +3,14 @@ import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+// Create stable mock objects
+const mockCreateMutateAsync = vi.fn();
+const mockUpdateMutateAsync = vi.fn();
+
 vi.mock('@/hooks/useSupabaseData', () => {
   return {
-    useCreateEquipment: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
-    useUpdateEquipment: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+    useCreateEquipment: vi.fn(() => ({ mutateAsync: mockCreateMutateAsync, isPending: false })),
+    useUpdateEquipment: vi.fn(() => ({ mutateAsync: mockUpdateMutateAsync, isPending: false })),
   };
 });
 
@@ -105,6 +109,8 @@ const baseValues: EquipmentFormData = {
 describe('useEquipmentForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCreateMutateAsync.mockClear();
+    mockUpdateMutateAsync.mockClear();
   });
 
   it('prevents submit when permission denied', async () => {
@@ -125,10 +131,8 @@ describe('useEquipmentForm', () => {
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Permission Denied' })
     );
-const createMock = vi.mocked(useCreateEquipment).mock.results[0]!.value as MutationMock;
-const updateMock = vi.mocked(useUpdateEquipment).mock.results[0]!.value as MutationMock;
-    expect(createMock.mutateAsync).not.toHaveBeenCalled();
-    expect(updateMock.mutateAsync).not.toHaveBeenCalled();
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+    expect(mockUpdateMutateAsync).not.toHaveBeenCalled();
   });
 
   it('requires team assignment for non-admin users', async () => {
@@ -149,8 +153,7 @@ const updateMock = vi.mocked(useUpdateEquipment).mock.results[0]!.value as Mutat
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Team Assignment Required' })
     );
-    const createMock = vi.mocked(useCreateEquipment).mock.results[0]!.value as MutationMock;
-    expect(createMock.mutateAsync).not.toHaveBeenCalled();
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
   });
 
   it('creates equipment successfully', async () => {
@@ -165,13 +168,11 @@ const updateMock = vi.mocked(useUpdateEquipment).mock.results[0]!.value as Mutat
       useEquipmentForm({ equipment: undefined, onClose })
     , { wrapper: createWrapper(client) });
 
-    const createMock = vi.mocked(useCreateEquipment).mock.results[0]!.value as MutationMock;
-
     await act(async () => {
       await result.current.onSubmit({ ...baseValues, team_id: 'team-1' });
     });
 
-    expect(createMock.mutateAsync).toHaveBeenCalledWith(
+    expect(mockCreateMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Eq Name',
         manufacturer: 'Acme',
@@ -193,13 +194,11 @@ const updateMock = vi.mocked(useUpdateEquipment).mock.results[0]!.value as Mutat
       useEquipmentForm({ equipment, onClose })
     , { wrapper: createWrapper(client) });
 
-    const updateMock = vi.mocked(useUpdateEquipment).mock.results[0]!.value as MutationMock;
-
     await act(async () => {
       await result.current.onSubmit({ ...baseValues });
     });
 
-    expect(updateMock.mutateAsync).toHaveBeenCalledWith(
+    expect(mockUpdateMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         equipmentId: 'eq-1',
       })
