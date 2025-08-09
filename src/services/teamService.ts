@@ -123,7 +123,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
     .from('team_members')
     .select(`
       *,
-      profiles!team_members_user_id_fkey (
+      profiles (
         name,
         email
       )
@@ -168,7 +168,7 @@ export const getTeamById = async (id: string): Promise<TeamWithMembers | null> =
     .from('team_members')
     .select(`
       *,
-      profiles!team_members_user_id_fkey (
+      profiles (
         name,
         email
       )

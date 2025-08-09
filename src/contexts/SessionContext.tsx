@@ -346,12 +346,24 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const canManageTeam = (teamId: string): boolean => {
     const currentOrg = getCurrentOrganization();
-    if (!currentOrg) return false;
+    if (!currentOrg) {
+      console.log('🐛 canManageTeam: No current organization');
+      return false;
+    }
     
     const isOrgAdmin = ['owner', 'admin'].includes(currentOrg.userRole);
     const isTeamManager = sessionData?.teamMemberships.find(tm => tm.teamId === teamId)?.role === 'manager';
     
-    return isOrgAdmin || isTeamManager;
+    console.log('🐛 canManageTeam debug:', {
+      teamId,
+      userRole: currentOrg.userRole,
+      isOrgAdmin,
+      teamMemberships: sessionData?.teamMemberships,
+      isTeamManager,
+      result: isOrgAdmin || !!isTeamManager
+    });
+    
+    return isOrgAdmin || !!isTeamManager;
   };
 
   const getUserTeamIds = (): string[] => {
