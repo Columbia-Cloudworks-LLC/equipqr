@@ -20,7 +20,15 @@ vi.mock('@/contexts/SessionContext', () => ({
       session: { access_token: 'token' }
     },
     isLoading: false,
-    error: null
+    error: null,
+    getCurrentOrganization: vi.fn(() => ({
+      id: 'org-1',
+      name: 'Test Organization',
+      userRole: 'member'
+    })),
+    getUserTeamIds: vi.fn(() => []),
+    hasTeamAccess: vi.fn(() => false),
+    canManageTeam: vi.fn(() => false)
   }))
 }));
 
