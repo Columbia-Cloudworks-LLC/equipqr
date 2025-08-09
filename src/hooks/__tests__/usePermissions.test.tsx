@@ -3,6 +3,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePermissions } from '../usePermissions';
 
 // Mock the dependencies
+vi.mock('@/contexts/SessionContext', () => ({
+  useSession: vi.fn(() => ({
+    sessionData: {
+      user: { id: 'user-1' },
+      session: { access_token: 'token' }
+    },
+    isLoading: false,
+    error: null
+  }))
+}));
+
 vi.mock('@/contexts/SimpleOrganizationContext', () => ({
   useSimpleOrganization: vi.fn()
 }));
