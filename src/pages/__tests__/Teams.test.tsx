@@ -9,8 +9,8 @@ import type { UnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 
 // Mock the TeamForm component
 vi.mock('@/components/teams/TeamForm', () => ({
-  default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => 
-    isOpen ? (
+  default: ({ open, onClose }: { open: boolean; onClose: () => void }) => 
+    open ? (
       <div data-testid="team-form-modal">
         <button onClick={onClose}>Close Form</button>
       </div>
@@ -214,7 +214,7 @@ describe('Teams Page', () => {
       
       expect(screen.getByText('No teams found')).toBeInTheDocument();
       expect(screen.getByText(/Get started by creating your first team/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /create team/i })).toBeInTheDocument();
+      expect(screen.getByTestId('empty-state-create-team-button')).toBeInTheDocument();
     });
 
     it('displays teams grid with proper team information', () => {
@@ -265,7 +265,7 @@ describe('Teams Page', () => {
 
       renderTeamsPage();
       
-      const createButton = screen.getByRole('button', { name: /create team/i });
+      const createButton = screen.getByTestId('header-create-team-button');
       fireEvent.click(createButton);
       
       expect(screen.getByTestId('team-form-modal')).toBeInTheDocument();
@@ -342,7 +342,7 @@ describe('Teams Page', () => {
 
       renderTeamsPage();
       
-      const deleteButton = screen.getByRole('button', { name: /delete/i });
+      const deleteButton = screen.getByRole('button', { name: /delete team/i });
       fireEvent.click(deleteButton);
       
       // Should show confirmation dialog
@@ -408,7 +408,7 @@ describe('Teams Page', () => {
       renderTeamsPage();
       
       // Delete button should not be present
-      expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /delete team/i })).not.toBeInTheDocument();
       
       // View details button should still be present
       expect(screen.getByRole('button', { name: /view details/i })).toBeInTheDocument();
@@ -470,7 +470,7 @@ describe('Teams Page', () => {
       renderTeamsPage();
       
       // Delete button should be present
-      expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /delete team/i })).toBeInTheDocument();
     });
   });
 
