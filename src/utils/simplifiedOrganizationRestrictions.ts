@@ -18,7 +18,8 @@ export const getSimplifiedOrganizationRestrictions = (
   fleetMapEnabled: boolean = false
 ): SimplifiedOrganizationRestrictions => {
   const activeMemberCount = members.filter(member => member.status === 'active').length;
-  const isFree = activeMemberCount === 1 && slotAvailability.total_purchased === 0;
+  // Organization is free only if it has a single user AND no available slots (neither purchased nor exempted)
+  const isFree = activeMemberCount === 1 && slotAvailability.available_slots === 0;
   
   // For free organizations (single user, no purchased slots)
   if (isFree) {
