@@ -18,12 +18,12 @@ const HeroSection = () => {
           
           {/* Main Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6">
-            Next-Generation Fleet Equipment Management
+            Heavy Equipment Management Made Simple
           </h1>
           
           {/* Subheadline */}
           <p className="text-xl sm:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Streamline your equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders.
+            Perfect for repair shops and rental operations. Track equipment with QR codes, manage work orders, and coordinate your team. Start free - pay only $10/month per additional user.
           </p>
           
           {/* Key Features */}
@@ -46,22 +46,17 @@ const HeroSection = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button asChild size="lg" className="text-lg px-8 py-6">
               <Link to="/auth">
-                Start Free Trial
+                Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
-              <Link to="/support">
-                Request Demo
               </Link>
             </Button>
           </div>
           
           {/* Trust Signal */}
           <div className="mt-12 pt-8 border-t border-border">
-            <p className="text-sm text-muted-foreground mb-4">Trusted by equipment professionals</p>
+            <p className="text-sm text-muted-foreground mb-4">Field-tested solution</p>
             <div className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">Currently in field testing</span> with 3-A Equipment and other industry leaders
+              <span className="font-semibold text-foreground">Currently deployed</span> at 3-A Equipment, a heavy equipment repair shop
             </div>
           </div>
         </div>
