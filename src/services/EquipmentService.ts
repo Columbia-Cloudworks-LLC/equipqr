@@ -39,12 +39,12 @@ export class EquipmentService extends BaseService {
         name: 'Mock Equipment',
         manufacturer: 'Mock Manufacturer',
         model: 'Mock Model',
-        serialNumber: 'MOCK-001',
+        serial_number: 'MOCK-001',
         status: 'active',
         location: 'Mock Location',
-        installationDate: new Date().toISOString(),
-        warrantyExpiration: new Date().toISOString(),
-        lastMaintenance: new Date().toISOString(),
+        installation_date: new Date().toISOString(),
+        warranty_expiration: new Date().toISOString(),
+        last_maintenance: new Date().toISOString(),
       };
       return this.handleSuccess(mockEquipment);
     } catch (error) {
@@ -73,12 +73,12 @@ export class EquipmentService extends BaseService {
         name: data.name || 'Updated Equipment',
         manufacturer: data.manufacturer || 'Updated Manufacturer',
         model: data.model || 'Updated Model',
-        serialNumber: data.serialNumber || 'UPD-001',
+        serial_number: data.serial_number || 'UPD-001',
         status: data.status || 'active',
         location: data.location || 'Updated Location',
-        installationDate: data.installationDate || new Date().toISOString(),
-        warrantyExpiration: data.warrantyExpiration || new Date().toISOString(),
-        lastMaintenance: data.lastMaintenance || new Date().toISOString(),
+        installation_date: data.installation_date || new Date().toISOString(),
+        warranty_expiration: data.warranty_expiration || new Date().toISOString(),
+        last_maintenance: data.last_maintenance || new Date().toISOString(),
         notes: data.notes
       };
       return this.handleSuccess(updated);

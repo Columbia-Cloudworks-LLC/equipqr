@@ -12,10 +12,10 @@ interface Equipment {
   name: string;
   manufacturer: string;
   model: string;
-  serialNumber: string;
+  serial_number: string;
   status: string;
   location: string;
-  lastMaintenance?: string;
+  last_maintenance?: string;
   image_url?: string;
 }
 
@@ -68,17 +68,17 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <span className="font-medium">Serial:</span>
-            <span className="text-muted-foreground">{equipment.serialNumber}</span>
+            <span className="text-muted-foreground">{equipment.serial_number}</span>
           </div>
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">{equipment.location}</span>
           </div>
-          {equipment.lastMaintenance && (
+          {equipment.last_maintenance && (
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">
-                Last maintenance: {new Date(equipment.lastMaintenance).toLocaleDateString()}
+                Last maintenance: {new Date(equipment.last_maintenance).toLocaleDateString()}
               </span>
             </div>
           )}

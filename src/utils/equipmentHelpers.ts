@@ -3,10 +3,10 @@ interface Equipment {
   name: string;
   manufacturer: string;
   model: string;
-  serialNumber: string;
+  serial_number: string;
   status: string;
   location: string;
-  lastMaintenance?: string;
+  last_maintenance?: string;
   image_url?: string;
 }
 
@@ -32,7 +32,7 @@ export const filterEquipment = (
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          item.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          item.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.serialNumber.toLowerCase().includes(searchQuery.toLowerCase());
+                         item.serial_number.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
