@@ -7,6 +7,7 @@ import { AlertCircle, RefreshCw, Settings, ExternalLink } from 'lucide-react';
 import LicenseMemberBilling from '@/components/billing/LicenseMemberBilling';
 import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import BillingHeader from '@/components/billing/BillingHeader';
+import RestrictedBillingAccess from '@/components/billing/RestrictedBillingAccess';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
@@ -37,7 +38,7 @@ const Billing = () => {
 
   // Get user role for permission checks
   const userRole = currentOrganization?.userRole;
-  const canManageBilling = ['owner', 'admin'].includes(userRole || '');
+  const canManageBilling = userRole === 'owner';
   const canPurchaseLicenses = userRole === 'owner';
 
   // Calculate billing based on licenses
@@ -74,7 +75,7 @@ const Billing = () => {
     if (!canManageBilling) {
       toast({
         title: 'Permission Denied',
-        description: 'Only organization owners and admins can manage subscriptions.',
+        description: 'Only organization owners can manage subscriptions.',
         variant: 'destructive',
       });
       return;
@@ -112,6 +113,11 @@ const Billing = () => {
     );
   }
 
+  // Only organization owners can access billing
+  if (!canManageBilling) {
+    return <RestrictedBillingAccess currentOrganizationName={currentOrganization.name} />;
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <BillingHeader
@@ -121,19 +127,6 @@ const Billing = () => {
         canManageBilling={canManageBilling}
         onManageSubscription={handleManageSubscription}
       />
-
-      {!canManageBilling && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-2 text-amber-800">
-              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <span className="text-sm">
-                <strong>Limited Access:</strong> Only organization owners and admins can manage billing settings. Only organization owners can purchase licenses.
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* License-based Member Billing */}
       <LicenseMemberBilling />
@@ -172,7 +165,7 @@ const Billing = () => {
                 )}
                 {!canManageBilling && (
                   <div className="text-sm text-muted-foreground">
-                    Contact admin
+                    Contact owner
                   </div>
                 )}
               </div>
