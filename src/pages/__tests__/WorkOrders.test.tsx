@@ -107,7 +107,7 @@ vi.mock('@/hooks/useTeams', () => ({
 }));
 
 vi.mock('@/components/work-orders/WorkOrderForm', () => ({
-  WorkOrderForm: ({ onClose }: { onClose: () => void }) => (
+  default: ({ onClose }: { onClose: () => void }) => (
     <div data-testid="work-order-form">
       <button onClick={onClose}>Close Form</button>
     </div>
