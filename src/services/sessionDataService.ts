@@ -110,8 +110,21 @@ export class SessionDataService {
       };
     }
 
-    // Determine current organization with improved logic
-    let currentOrganizationId = organizations[0].id;
+    // Helper function to prioritize organizations by user role (same as SimpleOrganizationProvider)
+    const getPrioritizedOrganization = (orgs: SessionOrganization[]): string => {
+      if (orgs.length === 0) return '';
+      
+      // Sort by role priority: owner > admin > member
+      const prioritized = [...orgs].sort((a, b) => {
+        const roleWeight = { owner: 3, admin: 2, member: 1 };
+        return (roleWeight[b.userRole] || 0) - (roleWeight[a.userRole] || 0);
+      });
+      
+      return prioritized[0].id;
+    };
+
+    // Determine current organization with role-based prioritization
+    let currentOrganizationId = getPrioritizedOrganization(organizations);
     
     // Check user preference first
     if (preferredOrgId && organizations.find(org => org.id === preferredOrgId)) {
@@ -120,6 +133,13 @@ export class SessionDataService {
     } else if (storedOrgId && organizations.find(org => org.id === storedOrgId)) {
       console.log('📦 Using stored session organization:', storedOrgId);
       currentOrganizationId = storedOrgId;
+    } else {
+      const prioritizedOrg = organizations.find(org => org.id === currentOrganizationId);
+      console.log('🎯 Using role-prioritized organization:', {
+        orgId: currentOrganizationId,
+        orgName: prioritizedOrg?.name,
+        userRole: prioritizedOrg?.userRole
+      });
     }
 
     // Fetch team memberships for the current organization

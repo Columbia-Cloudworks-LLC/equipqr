@@ -27,7 +27,7 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }
   const handleOrganizationSwitch = (organizationId: string) => {
     switchOrganization(organizationId);
     // Navigate to dashboard after switching organizations
-    navigate('/');
+    navigate('/dashboard');
   };
 
   if (!currentOrganization || isLoading) {

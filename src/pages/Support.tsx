@@ -2,11 +2,16 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { HelpCircle, Mail, MessageSquare, Users, Wrench, Eye, UserCheck, Shield, FileText, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HelpCircle, Mail, MessageSquare, Users, Wrench, Eye, UserCheck, Shield, FileText, Clock, ArrowRight } from "lucide-react";
+import LandingHeader from '@/components/landing/LandingHeader';
+import LegalFooter from '@/components/layout/LegalFooter';
 
 const Support = () => {
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="min-h-screen bg-background">
+      <LandingHeader />
+      <div className="container mx-auto p-6 max-w-4xl mt-16">
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
@@ -228,7 +233,25 @@ const Support = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Call to Action for Public Users */}
+        <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+          <CardContent className="p-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">Ready to Get Started?</h3>
+            <p className="text-muted-foreground mb-4">
+              Join thousands of teams using EquipQR to streamline their equipment management
+            </p>
+            <Button asChild>
+              <a href="/auth" className="inline-flex items-center gap-2">
+                Start Free Trial
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+      </div>
+      <LegalFooter />
     </div>
   );
 };
