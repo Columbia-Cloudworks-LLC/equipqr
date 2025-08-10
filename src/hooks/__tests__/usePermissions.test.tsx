@@ -47,7 +47,7 @@ import { useSession } from '@/contexts/SessionContext';
 // Mock the permission engine
 vi.mock('@/services/permissions/PermissionEngine', () => ({
   permissionEngine: {
-    hasPermission: vi.fn((permission: string, context: any) => {
+    hasPermission: vi.fn((permission: string, context: { userRole?: string; organizationId?: string }) => {
       const role = context.userRole;
       
       if (permission === 'workorder.edit') {

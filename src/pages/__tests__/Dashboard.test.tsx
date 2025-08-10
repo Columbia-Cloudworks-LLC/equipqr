@@ -171,7 +171,7 @@ describe('Dashboard', () => {
       },
       isLoading: false,
       error: null
-    } as unknown as MockQueryResult<any>);
+    } as MockQueryResult<any>);
 
     render(<Dashboard />);
     
@@ -207,7 +207,7 @@ describe('Dashboard', () => {
       data: null,
       isLoading: true,
       error: null
-    } as unknown as MockQueryResult<any>);
+    } as MockQueryResult<any>);
 
     render(<Dashboard />);
     
@@ -269,7 +269,7 @@ describe('Dashboard', () => {
       ],
       isLoading: false,
       error: null
-    } as unknown as MockQueryResult<any>);
+    } as MockQueryResult<any>);
 
     vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
       data: {
@@ -332,7 +332,7 @@ describe('Dashboard', () => {
       data: [],
       isLoading: false,
       error: null
-    } as unknown as MockQueryResult<any>);
+    } as MockQueryResult<any>);
 
     vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
       data: {
@@ -343,7 +343,7 @@ describe('Dashboard', () => {
       },
       isLoading: false,
       error: null
-    } as unknown as MockQueryResult<any>);
+    } as MockQueryResult<any>);
 
     render(<Dashboard />);
     
