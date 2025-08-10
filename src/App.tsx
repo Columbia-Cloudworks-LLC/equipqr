@@ -60,6 +60,7 @@ function App() {
                 {/* Public routes */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/support" element={<Support />} />
                 <Route path="/invitation/:token" element={<InvitationAccept />} />
                 <Route path="/qr/:equipmentId" element={<QRRedirect />} />
                 <Route path="/terms-of-service" element={<TermsOfService />} />
@@ -90,7 +91,6 @@ function App() {
                                 <Route path="/billing" element={<Billing />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
-                                <Route path="/support" element={<Support />} />
                               </Routes>
                             </main>
                             <LegalFooter />
