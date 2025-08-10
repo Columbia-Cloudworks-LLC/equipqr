@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { getEquipmentOrganization, checkUserHasMultipleOrganizations, EquipmentOrganizationInfo } from '@/services/equipmentOrganizationService';
 import { toast } from 'sonner';
 
@@ -39,48 +39,7 @@ export const useQRRedirectWithOrgSwitch = ({
   const [isSwitchingOrg, setIsSwitchingOrg] = useState(false);
   const [hasCalledComplete, setHasCalledComplete] = useState(false);
 
-  useEffect(() => {
-    if (!equipmentId) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'No equipment ID provided',
-        targetPath: '/scanner'
-      }));
-      return;
-    }
-
-    // Store the intended destination for post-auth redirect
-    const targetPath = `/equipment/${equipmentId}?qr=true`;
-    sessionStorage.setItem('pendingRedirect', targetPath);
-
-    if (authLoading) {
-      return; // Wait for auth to complete
-    }
-
-    if (!user) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        needsAuth: true,
-        targetPath: '/auth'
-      }));
-      return;
-    }
-
-    // User is authenticated, proceed with organization check
-    checkEquipmentOrganization();
-  }, [equipmentId, user, authLoading]);
-
-  // Auto-call onComplete when ready to proceed
-  useEffect(() => {
-    if (state.canProceed && state.targetPath && !state.isLoading && !hasCalledComplete && onComplete) {
-      setHasCalledComplete(true);
-      onComplete(state.targetPath);
-    }
-  }, [state.canProceed, state.targetPath, state.isLoading, hasCalledComplete, onComplete]);
-
-  const checkEquipmentOrganization = async () => {
+  const checkEquipmentOrganization = useCallback(async () => {
     if (!equipmentId || !user) return;
 
     try {
@@ -158,7 +117,48 @@ export const useQRRedirectWithOrgSwitch = ({
         targetPath: '/scanner'
       }));
     }
-  };
+  }, [equipmentId, user, getCurrentOrganization, refreshSession]);
+
+  useEffect(() => {
+    if (!equipmentId) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'No equipment ID provided',
+        targetPath: '/scanner'
+      }));
+      return;
+    }
+
+    // Store the intended destination for post-auth redirect
+    const targetPath = `/equipment/${equipmentId}?qr=true`;
+    sessionStorage.setItem('pendingRedirect', targetPath);
+
+    if (authLoading) {
+      return; // Wait for auth to complete
+    }
+
+    if (!user) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        needsAuth: true,
+        targetPath: '/auth'
+      }));
+      return;
+    }
+
+    // User is authenticated, proceed with organization check
+    checkEquipmentOrganization();
+  }, [equipmentId, user, authLoading, checkEquipmentOrganization]);
+
+  // Auto-call onComplete when ready to proceed
+  useEffect(() => {
+    if (state.canProceed && state.targetPath && !state.isLoading && !hasCalledComplete && onComplete) {
+      setHasCalledComplete(true);
+      onComplete(state.targetPath);
+    }
+  }, [state.canProceed, state.targetPath, state.isLoading, hasCalledComplete, onComplete]);
 
   const handleOrgSwitch = async () => {
     if (!state.equipmentInfo || isSwitchingOrg) return;

@@ -27,7 +27,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock all contexts and hooks
-vi.mock('@/contexts/SessionContext', () => ({
+vi.mock('@/hooks/useSession', () => ({
   useSession: vi.fn()
 }));
 
@@ -41,14 +41,21 @@ vi.mock('@/hooks/useUnifiedPermissions', () => ({
 }));
 
 // Import mocks after setting up the mocks
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { useTeams, useTeamMutations } from '@/hooks/useTeamManagement';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 
-const mockUseSession = vi.mocked(useSession);
-const mockUseTeams = vi.mocked(useTeams);
-const mockUseTeamMutations = vi.mocked(useTeamMutations);
-const mockUseUnifiedPermissions = vi.mocked(useUnifiedPermissions);
+// Create stable mock functions
+const mockUseSession = vi.fn();
+const mockUseTeams = vi.fn();
+const mockUseTeamMutations = vi.fn();
+const mockUseUnifiedPermissions = vi.fn();
+
+// Apply mocks to the actual imports
+vi.mocked(useSession).mockImplementation(mockUseSession);
+vi.mocked(useTeams).mockImplementation(mockUseTeams);
+vi.mocked(useTeamMutations).mockImplementation(mockUseTeamMutations);
+vi.mocked(useUnifiedPermissions).mockImplementation(mockUseUnifiedPermissions);
 
 // Test data
 const mockOrganization = {
@@ -207,6 +214,26 @@ describe('Teams Page', () => {
     });
 
     it('displays empty state when no teams exist', () => {
+      // Admin user with no teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [],
+        sessionData: { 
+          organizations: [mockOrganization], 
+          currentOrganizationId: 'org-1',
+          teamMemberships: [],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
+        switchOrganization: vi.fn(),
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn()
+      });
+
       mockUseTeams.mockReturnValue({
         data: [],
         isLoading: false,
@@ -222,6 +249,26 @@ describe('Teams Page', () => {
     });
 
     it('displays teams grid with proper team information', () => {
+      // Admin user with teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { 
+          organizations: [mockOrganization], 
+          currentOrganizationId: 'org-1',
+          teamMemberships: [{ teamId: mockTeamWithMembers.id }],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
+        switchOrganization: vi.fn(),
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn()
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,
@@ -237,6 +284,26 @@ describe('Teams Page', () => {
     });
 
     it('displays team members with proper information', () => {
+      // Admin user with teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { 
+          organizations: [mockOrganization], 
+          currentOrganizationId: 'org-1',
+          teamMemberships: [{ teamId: mockTeamWithMembers.id }],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
+        switchOrganization: vi.fn(),
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn()
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,
@@ -251,6 +318,7 @@ describe('Teams Page', () => {
       expect(screen.getByText('john.doe@example.com')).toBeInTheDocument();
       expect(screen.getByText('Jane Smith')).toBeInTheDocument();
       expect(screen.getByText('jane.smith@example.com')).toBeInTheDocument();
+      expect(screen.getByText('Unknown User')).toBeInTheDocument();
       
       // Role badges
       expect(screen.getByText('manager')).toBeInTheDocument();
@@ -260,6 +328,26 @@ describe('Teams Page', () => {
 
   describe('User Interactions', () => {
     it('opens team form modal when create button is clicked', () => {
+      // Admin user with no teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [],
+        sessionData: { 
+          organizations: [mockOrganization], 
+          currentOrganizationId: 'org-1',
+          teamMemberships: [],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
+        switchOrganization: vi.fn(),
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn()
+      });
+
       mockUseTeams.mockReturnValue({
         data: [],
         isLoading: false,
@@ -276,6 +364,26 @@ describe('Teams Page', () => {
     });
 
     it('navigates to team details when view details button is clicked', () => {
+      // Admin user with teams and permissions
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { 
+          organizations: [mockOrganization], 
+          currentOrganizationId: 'org-1',
+          teamMemberships: [{ teamId: mockTeamWithMembers.id }],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
+        switchOrganization: vi.fn(),
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn()
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,
@@ -292,6 +400,26 @@ describe('Teams Page', () => {
     });
 
     it('shows delete confirmation dialog when delete button is clicked', async () => {
+      // Admin user with teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { 
+          organizations: [mockOrganization], 
+          currentOrganizationId: 'org-1',
+          teamMemberships: [{ teamId: mockTeamWithMembers.id }],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
+        switchOrganization: vi.fn(),
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn()
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,
@@ -357,6 +485,26 @@ describe('Teams Page', () => {
 
   describe('Permission Integration', () => {
     it('hides delete button when user lacks delete permission', () => {
+      // Member user with teams (no delete permissions)
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'member' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { 
+          organizations: [mockOrganization], 
+          currentOrganizationId: 'org-1',
+          teamMemberships: [{ teamId: mockTeamWithMembers.id }],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
+        switchOrganization: vi.fn(),
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn()
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,
@@ -419,6 +567,26 @@ describe('Teams Page', () => {
     });
 
     it('shows delete button when user has delete permission', () => {
+      // Admin user with teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { 
+          organizations: [mockOrganization], 
+          currentOrganizationId: 'org-1',
+          teamMemberships: [{ teamId: mockTeamWithMembers.id }],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
+        switchOrganization: vi.fn(),
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn()
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,
@@ -480,6 +648,26 @@ describe('Teams Page', () => {
 
   describe('Edge Cases & Error Handling', () => {
     it('handles missing profile data with proper fallbacks', () => {
+      // Admin user with teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { 
+          organizations: [mockOrganization], 
+          currentOrganizationId: 'org-1',
+          teamMemberships: [{ teamId: mockTeamWithMembers.id }],
+          lastUpdated: '2024-01-01T00:00:00Z',
+          version: 1
+        },
+        refreshSession: vi.fn(),
+        clearSession: vi.fn(),
+        switchOrganization: vi.fn(),
+        hasTeamRole: vi.fn(),
+        hasTeamAccess: vi.fn(),
+        canManageTeam: vi.fn()
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,

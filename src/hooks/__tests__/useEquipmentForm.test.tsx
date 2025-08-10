@@ -25,7 +25,7 @@ vi.mock('@/hooks/usePermissions', () => ({
   })),
 }));
 
-vi.mock('@/contexts/SimpleOrganizationContext', () => ({
+vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: () => ({ currentOrganization: { id: 'org-1', name: 'Org 1' } }),
 }));
 

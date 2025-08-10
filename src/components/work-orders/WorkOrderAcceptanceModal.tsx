@@ -9,13 +9,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useSyncTeamsByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { toast } from 'sonner';
+
+import { WorkOrderLike } from '@/utils/workOrderTypeConversion';
 
 interface WorkOrderAcceptanceModalProps {
   open: boolean;
   onClose: () => void;
-  workOrder: any;
+  workOrder: WorkOrderLike;
   organizationId: string;
   onAccept: (assigneeId?: string) => Promise<void>;
 }
@@ -42,7 +44,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
   const { data: organizationMembers = [] } = useOrganizationMembers(organizationId);
   const { data: organizationAdmins = [] } = useOrganizationAdmins(organizationId);
   const { data: teams = [] } = useSyncTeamsByOrganization(organizationId);
-  const { data: equipment } = useSyncEquipmentById(organizationId, workOrder?.equipment_id);
+  const { data: equipment } = useSyncEquipmentById(organizationId, workOrder?.equipment_id || workOrder?.equipmentId);
 
   // Get current user info
   const isSingleUserOrg = organizationMembers.length === 1;

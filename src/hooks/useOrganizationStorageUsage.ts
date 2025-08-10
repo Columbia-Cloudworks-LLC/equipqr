@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { OptimizedOrganizationStorageService, type StorageUsage } from '@/services/optimizedOrganizationStorageService';
 
 export type { StorageUsage };

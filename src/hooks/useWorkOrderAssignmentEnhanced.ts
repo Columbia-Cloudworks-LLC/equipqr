@@ -3,7 +3,7 @@
 // This is a simplified version for backwards compatibility
 
 import { useMemo } from 'react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { useOrganizationAdmins } from './useOrganizationAdmins';
 
 export interface EnhancedAssignmentOption {

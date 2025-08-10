@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Download, BarChart3, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useSyncEquipmentByOrganization, useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/services/syncDataService';
 import ReportFilters from '@/components/reports/ReportFilters';
 import ReportCharts from '@/components/reports/ReportCharts';

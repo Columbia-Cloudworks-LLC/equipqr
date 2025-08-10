@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Users, AlertCircle, Calendar } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { calculateLicenseBilling, hasLicenses, getLicenseStatus } from '@/utils/licenseBillingUtils';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import MemberTable from '@/components/billing/MemberTable';

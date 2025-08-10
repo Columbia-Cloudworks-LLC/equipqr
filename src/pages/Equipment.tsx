@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
 import type { EquipmentRecord } from '@/types/equipment';

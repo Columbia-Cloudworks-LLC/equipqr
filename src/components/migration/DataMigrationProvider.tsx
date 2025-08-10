@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 
 interface DataMigrationContextType {
   useSupabaseData: boolean;
@@ -8,15 +8,7 @@ interface DataMigrationContextType {
   isReady: boolean;
 }
 
-const DataMigrationContext = createContext<DataMigrationContextType | undefined>(undefined);
-
-export const useDataMigration = () => {
-  const context = useContext(DataMigrationContext);
-  if (context === undefined) {
-    throw new Error('useDataMigration must be used within a DataMigrationProvider');
-  }
-  return context;
-};
+export const DataMigrationContext = createContext<DataMigrationContextType | undefined>(undefined);
 
 interface DataMigrationProviderProps {
   children: React.ReactNode;

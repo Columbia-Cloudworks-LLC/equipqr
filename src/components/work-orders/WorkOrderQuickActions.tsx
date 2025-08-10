@@ -12,12 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDeleteWorkOrder } from '@/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/hooks/useWorkOrderImageCount';
 import { WorkOrderData } from '@/types/workOrderDetails';
-
-interface WorkOrderLike {
-  id: string;
-  status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
-  has_pm?: boolean;
-}
+import { WorkOrderLike, ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
 
 interface WorkOrderQuickActionsProps {
   workOrder: WorkOrderLike;
@@ -46,7 +41,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   const deleteWorkOrderMutation = useDeleteWorkOrder();
   const { data: imageData } = useWorkOrderImageCount(workOrder?.id);
 
-  const workOrderPermissions = permissions.workOrders.getDetailedPermissions(workOrder);
+  const workOrderPermissions = permissions.workOrders.getDetailedPermissions(ensureWorkOrderData(workOrder));
   
   const canViewPMChecklist = workOrder.has_pm;
   const canDownloadPMPDF = workOrder.has_pm && workOrder.status === 'completed';

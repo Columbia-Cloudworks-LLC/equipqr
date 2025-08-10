@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useSession } from '@/contexts/SessionContext';
+import { useMemo, useCallback } from 'react';
+import { useSession } from '@/hooks/useSession';
 import { useAuth } from '@/contexts/AuthContext';
 import { permissionEngine } from '@/services/permissions/PermissionEngine';
 import { 
@@ -7,8 +7,10 @@ import {
   EntityPermissions, 
   WorkOrderDetailedPermissions,
   OrganizationPermissions,
-  EquipmentNotesPermissions
+  EquipmentNotesPermissions,
+  Role
 } from '@/types/permissions';
+import { WorkOrderData } from '@/types/workOrder';
 
 export const useUnifiedPermissions = () => {
   const { getCurrentOrganization, getUserTeamIds, hasTeamAccess, canManageTeam } = useSession();
@@ -24,7 +26,7 @@ export const useUnifiedPermissions = () => {
     return {
       userId: user.id,
       organizationId: currentOrganization.id,
-      userRole: currentOrganization.userRole as any,
+      userRole: currentOrganization.userRole as Role,
       teamMemberships: userTeamIds.map(teamId => ({
         teamId,
         role: canManageTeam(teamId) ? 'manager' : 'technician'
@@ -33,16 +35,16 @@ export const useUnifiedPermissions = () => {
   }, [currentOrganization, user, userTeamIds, canManageTeam]);
 
   // Helper functions
-  const hasPermission = (permission: string, entityContext?: any): boolean => {
+  const hasPermission = useCallback((permission: string, entityContext?: { teamId?: string; assigneeId?: string; status?: string; createdBy?: string }): boolean => {
     if (!userContext) return false;
     return permissionEngine.hasPermission(permission, userContext, entityContext);
-  };
+  }, [userContext]);
 
-  const hasRole = (roles: string | string[]): boolean => {
+  const hasRole = useCallback((roles: string | string[]): boolean => {
     if (!userContext) return false;
     const roleArray = Array.isArray(roles) ? roles : [roles];
     return roleArray.includes(userContext.userRole);
-  };
+  }, [userContext]);
 
   const isTeamMember = (teamId: string): boolean => {
     return hasTeamAccess(teamId);
@@ -59,7 +61,7 @@ export const useUnifiedPermissions = () => {
     canCreateTeams: hasPermission('organization.manage'),
     canViewBilling: hasRole(['owner', 'admin']),
     canManageMembers: hasRole(['owner', 'admin'])
-  }), [userContext]);
+  }), [hasPermission, hasRole]);
 
   // Equipment permissions
   const equipment = {
@@ -81,12 +83,12 @@ export const useUnifiedPermissions = () => {
 
   // Work order permissions
   const workOrders = {
-    getPermissions: (workOrder?: any): EntityPermissions => {
+    getPermissions: (workOrder?: WorkOrderData): EntityPermissions => {
       const entityContext = workOrder ? {
-        teamId: workOrder.team_id,
-        assigneeId: workOrder.assignee_id,
+        teamId: workOrder.teamId,
+        assigneeId: workOrder.assigneeId,
         status: workOrder.status,
-        createdBy: workOrder.created_by
+        createdBy: workOrder.createdByName
       } : undefined;
 
       return {
@@ -100,12 +102,12 @@ export const useUnifiedPermissions = () => {
         canAddImages: hasPermission('workorder.view', entityContext)
       };
     },
-    getDetailedPermissions: (workOrder?: any): WorkOrderDetailedPermissions => {
+    getDetailedPermissions: (workOrder?: WorkOrderData): WorkOrderDetailedPermissions => {
       const entityContext = workOrder ? {
-        teamId: workOrder.team_id,
-        assigneeId: workOrder.assignee_id,
+        teamId: workOrder.teamId,
+        assigneeId: workOrder.assigneeId,
         status: workOrder.status,
-        createdBy: workOrder.created_by
+        createdBy: workOrder.createdByName
       } : undefined;
 
       const canEdit = hasPermission('workorder.edit', entityContext);
@@ -121,10 +123,10 @@ export const useUnifiedPermissions = () => {
         canChangeStatus: hasPermission('workorder.changestatus', entityContext),
         canAddNotes: canView && !isLocked,
         canAddImages: canView && !isLocked,
-        canAddCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.team_id)) && !isLocked,
-        canEditCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.team_id)) && !isLocked,
-        canViewPM: hasRole(['owner', 'admin']) || isTeamMember(workOrder?.team_id),
-        canEditPM: (hasRole(['owner', 'admin']) || isTeamMember(workOrder?.team_id)) && !isLocked
+        canAddCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.teamId)) && !isLocked,
+        canEditCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.teamId)) && !isLocked,
+        canViewPM: hasRole(['owner', 'admin']) || isTeamMember(workOrder?.teamId),
+        canEditPM: (hasRole(['owner', 'admin']) || isTeamMember(workOrder?.teamId)) && !isLocked
       };
     },
     canViewAll: hasRole(['owner', 'admin']),

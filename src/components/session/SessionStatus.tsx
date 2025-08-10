@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Database, RefreshCw, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { formatDistanceToNow } from 'date-fns';
 
 export const SessionStatus = () => {

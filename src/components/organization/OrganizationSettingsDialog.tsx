@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, 'Organization name is required').max(100, 'Name must be less than 100 characters'),

@@ -3,13 +3,14 @@ import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UseQueryResult } from '@tanstack/react-query';
 import Dashboard from '../Dashboard';
-import * as useSupabaseDataModule from '@/hooks/useSupabaseData';
-import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
-import * as usePermissionsModule from '@/hooks/usePermissions';
+import * as useSimpleOrganizationModule from '@/hooks/useSimpleOrganization';
+import * as useTeamBasedDashboardModule from '@/hooks/useTeamBasedDashboard';
 import { DashboardStats, Equipment, WorkOrder, TestOrganization } from '@/test/types/test-types';
 
-// Mock query result type
-type MockQueryResult<T> = UseQueryResult<T, Error>;
+// Mock query result type for testing
+// Note: Using 'any' here is acceptable for test mocks to avoid complex UseQueryResult typing
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MockQueryResult = any;
 
 // Mock all context dependencies first
 vi.mock('@/contexts/AuthContext', () => ({
@@ -24,7 +25,7 @@ vi.mock('@/contexts/AuthContext', () => ({
   }))
 }));
 
-vi.mock('@/contexts/SessionContext', () => ({
+vi.mock('@/hooks/useSession', () => ({
   useSession: vi.fn(() => ({
     sessionData: {
       organizations: [],
@@ -35,7 +36,16 @@ vi.mock('@/contexts/SessionContext', () => ({
     error: null,
     refreshSession: vi.fn(),
     clearSession: vi.fn(),
-    getCurrentOrganization: vi.fn(),
+    getCurrentOrganization: vi.fn(() => ({
+      id: 'org-1',
+      name: 'Test Organization',
+      plan: 'free',
+      memberCount: 5,
+      maxMembers: 10,
+      features: [],
+      userRole: 'admin',
+      userStatus: 'active'
+    })),
     switchOrganization: vi.fn(),
     hasTeamRole: vi.fn(() => false),
     hasTeamAccess: vi.fn(() => false),
@@ -101,13 +111,15 @@ vi.mock('@/hooks/useSupabaseData', () => ({
   }))
 }));
 
-vi.mock('@/contexts/SimpleOrganizationContext', () => ({
-  useSimpleOrganization: vi.fn(() => ({
-    currentOrganization: {
-      id: 'org-1',
-      name: 'Test Organization'
-    }
-  }))
+vi.mock('@/hooks/useSimpleOrganization', () => ({
+  useSimpleOrganization: vi.fn()
+}));
+
+vi.mock('@/hooks/useTeamBasedDashboard', () => ({
+  useTeamBasedDashboardStats: vi.fn(),
+  useTeamBasedEquipment: vi.fn(),
+  useTeamBasedRecentWorkOrders: vi.fn(),
+  useTeamBasedDashboardAccess: vi.fn()
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
@@ -144,6 +156,77 @@ vi.mock('recharts', () => ({
 describe('Dashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Setup default mocks
+    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+      currentOrganization: {
+        id: 'org-1',
+        name: 'Test Organization',
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      },
+      organizations: [],
+      userOrganizations: [],
+      setCurrentOrganization: vi.fn(),
+      switchOrganization: vi.fn(),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn()
+    });
+
+    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardAccess).mockReturnValue({
+      userTeamIds: ['team-1'],
+      hasTeamAccess: true,
+      isManager: false,
+      isLoading: false
+    });
+
+    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
+      data: {
+        totalEquipment: 10,
+        activeEquipment: 8,
+        maintenanceEquipment: 2,
+        inactiveEquipment: 0,
+        totalWorkOrders: 15,
+        openWorkOrders: 5,
+        overdueWorkOrders: 1,
+        completedWorkOrders: 10,
+        totalTeams: 2
+      },
+      isLoading: false,
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as MockQueryResult);
+
+    vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as MockQueryResult);
+
+    vi.mocked(useTeamBasedDashboardModule.useTeamBasedRecentWorkOrders).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as MockQueryResult);
   });
 
   it('renders dashboard title', () => {
@@ -153,7 +236,8 @@ describe('Dashboard', () => {
   });
 
   it('renders organization selection prompt when no organization', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+    const mockHook = vi.mocked(useSimpleOrganizationModule.useSimpleOrganization);
+    mockHook.mockReturnValue({
       organizations: [],
       userOrganizations: [],
       currentOrganization: null,
@@ -170,56 +254,6 @@ describe('Dashboard', () => {
   });
 
   it('renders dashboard content when organization is selected', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
-      organizations: [{ 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      }],
-      userOrganizations: [{ 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      }],
-      currentOrganization: { 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      },
-      setCurrentOrganization: vi.fn(),
-      switchOrganization: vi.fn(),
-      isLoading: false,
-      error: null,
-      refetch: vi.fn()
-    });
-
-    // Mock dashboard stats
-    vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
-      data: {
-        totalEquipment: 10,
-        activeEquipment: 8,
-        maintenanceEquipment: 2,
-        totalWorkOrders: 15
-      },
-      isLoading: false,
-      error: null
-    } as MockQueryResult<DashboardStats>);
-
     render(<Dashboard />);
     
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
@@ -229,32 +263,16 @@ describe('Dashboard', () => {
   });
 
   it('displays loading state correctly', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
-      organizations: [],
-      userOrganizations: [],
-      currentOrganization: { 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      },
-      setCurrentOrganization: vi.fn(),
-      switchOrganization: vi.fn(),
-      isLoading: false,
-      error: null,
-      refetch: vi.fn()
-    });
-
-    // Mock loading stats
-    vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
+    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
       data: null,
       isLoading: true,
-      error: null
-    } as MockQueryResult<DashboardStats | null>);
+      error: null,
+      isError: false,
+      isPending: true,
+      isSuccess: false,
+      refetch: vi.fn(),
+      fetchStatus: 'fetching'
+    } as MockQueryResult);
 
     render(<Dashboard />);
     
@@ -270,131 +288,86 @@ describe('Dashboard', () => {
   });
 
   it('shows equipment statistics when data is available', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
-      organizations: [{ 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      }],
-      userOrganizations: [{ 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      }],
-      currentOrganization: { 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
+    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
+      data: {
+        totalEquipment: 3,
+        activeEquipment: 2,
+        maintenanceEquipment: 1,
+        inactiveEquipment: 0,
+        totalWorkOrders: 5,
+        openWorkOrders: 2,
+        overdueWorkOrders: 0,
+        completedWorkOrders: 3,
+        totalTeams: 1
       },
-      setCurrentOrganization: vi.fn(),
-      switchOrganization: vi.fn(),
       isLoading: false,
       error: null,
-      refetch: vi.fn()
-    });
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as MockQueryResult);
 
-    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
+    vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
       data: [
         { id: '1', name: 'Equipment 1', status: 'active', manufacturer: 'Test Mfg', model: 'Model 1' },
         { id: '2', name: 'Equipment 2', status: 'maintenance', manufacturer: 'Test Mfg', model: 'Model 2' },
         { id: '3', name: 'Equipment 3', status: 'active', manufacturer: 'Test Mfg', model: 'Model 3' }
       ],
       isLoading: false,
-      error: null
-    } as MockQueryResult<Equipment[]>);
-
-    vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
-      data: {
-        totalEquipment: 3,
-        activeEquipment: 2,
-        maintenanceEquipment: 1,
-        totalWorkOrders: 5
-      },
-      isLoading: false,
-      error: null
-    } as MockQueryResult<DashboardStats>);
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as MockQueryResult);
 
     render(<Dashboard />);
     
-    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByTestId('total-equipment-stat')).toHaveTextContent('3');
     expect(screen.getByText('Recent Equipment')).toBeInTheDocument();
     expect(screen.getByText('Equipment 1')).toBeInTheDocument();
   });
 
   it('handles empty data states gracefully', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
-      organizations: [{ 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      }],
-      userOrganizations: [{ 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      }],
-      currentOrganization: { 
-        id: 'org-1', 
-        name: 'Test Organization', 
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      },
-      setCurrentOrganization: vi.fn(),
-      switchOrganization: vi.fn(),
-      isLoading: false,
-      error: null,
-      refetch: vi.fn()
-    });
-
-    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null
-    } as MockQueryResult<Equipment[]>);
-
-    vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
+    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
       data: {
         totalEquipment: 0,
         activeEquipment: 0,
         maintenanceEquipment: 0,
-        totalWorkOrders: 0
+        inactiveEquipment: 0,
+        totalWorkOrders: 0,
+        openWorkOrders: 0,
+        overdueWorkOrders: 0,
+        completedWorkOrders: 0,
+        totalTeams: 0
       },
       isLoading: false,
-      error: null
-    } as MockQueryResult<DashboardStats>);
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as MockQueryResult);
+
+    vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as MockQueryResult);
 
     render(<Dashboard />);
     
-    expect(screen.getByText('No equipment found')).toBeInTheDocument();
-    expect(screen.getByText('No work orders found')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
+    expect(screen.getByTestId('total-equipment-stat')).toHaveTextContent('0');
   });
 });

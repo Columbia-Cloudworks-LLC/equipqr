@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext } from 'react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 
 export interface TeamMembership {
   team_id: string;
@@ -20,15 +20,7 @@ export interface TeamMembershipContextType {
   getUserTeamIds: () => string[];
 }
 
-const TeamContext = createContext<TeamMembershipContextType | undefined>(undefined);
-
-export const useTeam = () => {
-  const context = useContext(TeamContext);
-  if (context === undefined) {
-    throw new Error('useTeam must be used within a TeamProvider');
-  }
-  return context;
-};
+export const TeamContext = createContext<TeamMembershipContextType | undefined>(undefined);
 
 export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { 

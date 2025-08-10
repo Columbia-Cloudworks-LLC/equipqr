@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Crown } from 'lucide-react';
 import { useOrganizationMembers, RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { calculateUserLicenseCost, isFreeOrganization } from '@/utils/billingUtils';
 import {
   Table,

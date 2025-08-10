@@ -1,6 +1,6 @@
 
 import { useOrganizationMembers } from './useOrganizationMembers';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { getOrganizationRestrictions, getRestrictionMessage } from '@/utils/organizationRestrictions';
 
 export const useOrganizationRestrictions = (fleetMapEnabled: boolean = false) => {

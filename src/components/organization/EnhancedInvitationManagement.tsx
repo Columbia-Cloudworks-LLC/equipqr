@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Mail, Clock, CheckCircle, XCircle, AlertTriangle, ShoppingCart, CreditCard } from 'lucide-react';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
 import { useSlotAvailability, useReleaseSlot } from '@/hooks/useOrganizationSlots';
 import { shouldBlockInvitation } from '@/utils/enhancedBillingUtils';

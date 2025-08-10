@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, HardDrive, Map, CreditCard, Crown, Info } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { calculateTotalBilling, isFreeOrganization } from '@/utils/billingUtils';
 import { getOrganizationRestrictions, getRestrictionMessage } from '@/utils/organizationRestrictions';
 
