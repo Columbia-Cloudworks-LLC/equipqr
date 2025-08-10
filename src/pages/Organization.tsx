@@ -10,6 +10,7 @@ import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
 import { OrganizationSettingsDialog } from '@/components/organization/OrganizationSettingsDialog';
+import RestrictedOrganizationAccess from '@/components/organization/RestrictedOrganizationAccess';
 import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
 import { toast } from 'sonner';
 
@@ -36,6 +37,15 @@ const Organization = () => {
           <p className="text-sm sm:text-base text-muted-foreground">Loading...</p>
         </div>
       </div>
+    );
+  }
+
+  // Restrict access for regular members
+  if (currentUserRole === 'member') {
+    return (
+      <RestrictedOrganizationAccess 
+        currentOrganizationName={currentOrganization.name}
+      />
     );
   }
 
