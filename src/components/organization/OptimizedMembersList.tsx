@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search, MoreVertical, UserMinus, Mail, Calendar, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDebouncedSearch } from "@/hooks/useDebounced";
@@ -174,15 +175,14 @@ export default function OptimizedMembersList({
                 Change to {member.role === 'admin' ? 'Member' : 'Admin'}
               </DropdownMenuItem>
             )}
-            {canRemoveMember(member) && !isLastOwner(member) && (
-              <DropdownMenuItem
-                onSelect={() => setMemberToRemove(member)}
-                className="text-destructive"
-              >
-                <UserMinus className="mr-2 h-4 w-4" />
-                Remove Member
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onSelect={() => setMemberToRemove(member)}
+              disabled={!canRemoveMember(member) || isLastOwner(member)}
+              className="text-destructive disabled:text-muted-foreground"
+            >
+              <UserMinus className="mr-2 h-4 w-4" />
+              Remove Member
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -237,16 +237,26 @@ export default function OptimizedMembersList({
                 </SelectContent>
               </Select>
             )}
-            {canRemoveMember(member) && !isLastOwner(member) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMemberToRemove(member)}
-                className="h-8 w-8 p-0 text-destructive"
-              >
-                <UserMinus className="h-4 w-4" />
-              </Button>
-            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMemberToRemove(member)}
+                  disabled={!canRemoveMember(member) || isLastOwner(member)}
+                  className="h-8 w-8 p-0 text-destructive disabled:text-muted-foreground"
+                >
+                  <UserMinus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              {(!canRemoveMember(member) || isLastOwner(member)) && (
+                <TooltipContent>
+                  {isLastOwner(member) 
+                    ? "Cannot remove the last owner" 
+                    : "Insufficient permissions to remove this member"}
+                </TooltipContent>
+              )}
+            </Tooltip>
           </div>
         )}
       </TableCell>
@@ -275,8 +285,9 @@ export default function OptimizedMembersList({
   const shouldUseVirtualization = filteredMembers.length > VIRTUALIZATION_THRESHOLD;
 
   return (
-    <Card className="p-6">
-      <div className="space-y-4">
+    <TooltipProvider>
+      <Card className="p-6">
+        <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center gap-4 pb-4 border-b border-border">
           <Users className="h-5 w-5" />
@@ -420,6 +431,7 @@ export default function OptimizedMembersList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+      </Card>
+    </TooltipProvider>
   );
 }
