@@ -14,6 +14,7 @@ const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(null);
+  const [syncWarningCount, setSyncWarningCount] = useState(0);
   
   // Get session context to keep them synchronized
   const sessionContext = useSession();
@@ -112,9 +113,63 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     return prioritized[0].id;
   }, []);
 
+  // Synchronization monitoring and recovery
+  const syncWithSession = useCallback(() => {
+    if (!sessionContext?.sessionData?.currentOrganizationId || !currentOrganizationId) {
+      return; // Don't sync if either context is not ready
+    }
+
+    const sessionOrgId = sessionContext.sessionData.currentOrganizationId;
+    
+    if (sessionOrgId !== currentOrganizationId) {
+      setSyncWarningCount(prev => prev + 1);
+      console.warn('⚠️ SimpleOrganizationProvider: Sync mismatch detected', {
+        simple: currentOrganizationId,
+        session: sessionOrgId,
+        warningCount: syncWarningCount + 1
+      });
+
+      // Auto-recover after a few warnings by syncing to session context
+      if (syncWarningCount >= 2) {
+        console.log('🔄 SimpleOrganizationProvider: Auto-recovering sync with session');
+        setCurrentOrganizationId(sessionOrgId);
+        try {
+          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
+        } catch (error) {
+          console.warn('Failed to save synced organization to storage:', error);
+        }
+        setSyncWarningCount(0);
+      }
+    } else if (syncWarningCount > 0) {
+      // Reset warning count when sync is restored
+      setSyncWarningCount(0);
+    }
+  }, [sessionContext, currentOrganizationId, syncWarningCount]);
+
   // Auto-select prioritized organization if none selected and organizations are available
   useEffect(() => {
     if (!currentOrganizationId && organizations.length > 0) {
+      // Wait for session context to be ready before auto-selecting
+      if (sessionContext?.isLoading) {
+        console.log('⏳ SimpleOrganizationProvider: Waiting for session context to load');
+        return;
+      }
+
+      const sessionOrgId = sessionContext?.sessionData?.currentOrganizationId;
+      
+      // If session has an org and it exists in our organizations, use it
+      if (sessionOrgId && organizations.find(org => org.id === sessionOrgId)) {
+        console.log('🔄 SimpleOrganizationProvider: Syncing with session organization:', sessionOrgId);
+        setCurrentOrganizationId(sessionOrgId);
+        try {
+          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
+        } catch (error) {
+          console.warn('Failed to save current organization to storage:', error);
+        }
+        return;
+      }
+
+      // Otherwise, use role-based prioritization
       const prioritizedOrgId = getPrioritizedOrganization(organizations);
       const selectedOrg = organizations.find(org => org.id === prioritizedOrgId);
       console.log('🎯 SimpleOrganizationProvider: Auto-selecting prioritized organization:', {
@@ -129,7 +184,12 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         console.warn('Failed to save current organization to storage:', error);
       }
     }
-  }, [currentOrganizationId, organizations, getPrioritizedOrganization]);
+  }, [currentOrganizationId, organizations, getPrioritizedOrganization, sessionContext]);
+
+  // Monitor synchronization with session context
+  useEffect(() => {
+    syncWithSession();
+  }, [syncWithSession]);
 
   // Validate current organization exists in user's organizations
   useEffect(() => {
@@ -184,9 +244,11 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       currentOrganization: currentOrganization?.name,
       organizationsCount: organizations.length,
       sessionOrgId: sessionContext?.sessionData?.currentOrganizationId,
-      sessionOrgName: sessionContext?.getCurrentOrganization()?.name
+      sessionOrgName: sessionContext?.getCurrentOrganization()?.name,
+      isSessionLoading: sessionContext?.isLoading,
+      syncWarningCount
     });
-  }, [currentOrganizationId, currentOrganization, organizations, sessionContext]);
+  }, [currentOrganizationId, currentOrganization, organizations, sessionContext, syncWarningCount]);
 
   const refetchData = useCallback(async () => {
     await refetch();

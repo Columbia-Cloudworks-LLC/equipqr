@@ -28,7 +28,7 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
     };
   }, []);
 
-  const refreshSession = useCallback(async (force: boolean = false) => {
+  const refreshSession = useCallback(async (force: boolean = false, preserveOrgSelection: boolean = false) => {
     if (!user) {
       onSessionUpdate({
         organizations: [],
@@ -57,10 +57,15 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       const userPreference = getOrganizationPreference();
       const storedData = SessionStorageService.loadSessionFromStorage();
       
+      // If preserving org selection, prioritize current selection over stored data
+      const prioritizedOrgId = preserveOrgSelection && storedData?.currentOrganizationId 
+        ? storedData.currentOrganizationId 
+        : userPreference?.selectedOrgId;
+
       const { organizations, currentOrganizationId, teamMemberships } = 
         await SessionDataService.fetchSessionData(
           user.id,
-          userPreference?.selectedOrgId,
+          prioritizedOrgId,
           storedData?.currentOrganizationId
         );
 
