@@ -12,6 +12,7 @@ import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import { Play, Pause, CheckCircle, XCircle, Settings, AlertTriangle, UserCheck } from 'lucide-react';
 import { WorkOrder } from '@/services/supabaseDataService';
 import { WorkOrderService } from '@/services/WorkOrderService';
+import { ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 
 interface WorkOrderStatusManagerProps {
@@ -61,7 +62,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     }
   );
 
-  const workOrderPermissions = permissions.workOrders.getPermissions(workOrder);
+  const workOrderPermissions = permissions.workOrders.getPermissions(ensureWorkOrderData(workOrder));
 
   const getNextStatusOptions = (currentStatus: WorkOrder['status']) => {
     switch (currentStatus) {
@@ -230,7 +231,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
         <WorkOrderAcceptanceModal
           open={showAcceptanceModal}
           onClose={() => setShowAcceptanceModal(false)}
-          workOrder={workOrder}
+          workOrder={ensureWorkOrderData(workOrder)}
           organizationId={currentOrganization.id}
           onAccept={handleAcceptance}
         />
