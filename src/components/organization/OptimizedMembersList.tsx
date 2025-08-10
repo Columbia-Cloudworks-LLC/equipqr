@@ -131,137 +131,149 @@ export default function OptimizedMembersList({
     }
   };
 
-  // Mobile list item component
-  const MobileListItem = useCallback(({ member, index }: { member: RealOrganizationMember; index: number }) => (
-    <div className="flex items-center justify-between p-4 border-b border-border last:border-b-0">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={member.avatar} alt={member.name} />
-          <AvatarFallback>
-            {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <p className="font-medium truncate">{member.name}</p>
-            <Badge variant={getRoleBadgeVariant(member.role)} className="text-xs">
-              {member.role}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground truncate">{member.email}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant={getStatusBadgeVariant(member.status)} className="text-xs">
-              {member.status}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              {new Date(member.joinedDate).toLocaleDateString()}
-            </span>
-          </div>
-        </div>
-      </div>
-      {canEditMember(member) && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0 shrink-0">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {member.role !== 'owner' && (
-              <DropdownMenuItem
-                onSelect={() => handleRoleChange(member.id, member.role === 'admin' ? 'member' : 'admin')}
-                disabled={updateMemberRole.isPending}
-              >
-                Change to {member.role === 'admin' ? 'Member' : 'Admin'}
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              onSelect={() => setMemberToRemove(member)}
-              disabled={!canRemoveMember(member) || isLastOwner(member)}
-              className="text-destructive disabled:text-muted-foreground"
-            >
-              <UserMinus className="mr-2 h-4 w-4" />
-              Remove Member
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </div>
-  ), [canEditMember, canRemoveMember, isLastOwner, handleRoleChange, updateMemberRole.isPending]);
-
-  // Desktop table row component
-  const DesktopTableRow = useCallback(({ member, index }: { member: RealOrganizationMember; index: number }) => (
-    <TableRow>
-      <TableCell>
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
+  // Mobile list item component - removed useCallback to fix infinite re-render
+  const MobileListItem = ({ member, index }: { member: RealOrganizationMember; index: number }) => {
+    const canEdit = currentUserRole === 'owner' || (currentUserRole === 'admin' && member.role !== 'owner');
+    const canRemove = (currentUserRole === 'owner' && member.role !== 'owner') || (currentUserRole === 'admin' && member.role === 'member');
+    const isLastOwnerCheck = member.role === 'owner' && ownerCount === 1;
+    
+    return (
+      <div className="flex items-center justify-between p-4 border-b border-border last:border-b-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Avatar className="h-10 w-10 shrink-0">
             <AvatarImage src={member.avatar} alt={member.name} />
             <AvatarFallback>
               {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <p className="font-medium">{member.name}</p>
-            <p className="text-sm text-muted-foreground">{member.email}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="font-medium truncate">{member.name}</p>
+              <Badge variant={getRoleBadgeVariant(member.role)} className="text-xs">
+                {member.role}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground truncate">{member.email}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant={getStatusBadgeVariant(member.status)} className="text-xs">
+                {member.status}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {new Date(member.joinedDate).toLocaleDateString()}
+              </span>
+            </div>
           </div>
         </div>
-      </TableCell>
-      <TableCell>
-        <Badge variant={getRoleBadgeVariant(member.role)}>
-          {member.role}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <Badge variant={getStatusBadgeVariant(member.status)}>
-          {member.status}
-        </Badge>
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {new Date(member.joinedDate).toLocaleDateString()}
-      </TableCell>
-      <TableCell>
-        {canEditMember(member) && (
-          <div className="flex items-center gap-2">
-            {member.role !== 'owner' && (
-              <Select
-                value={member.role}
-                onValueChange={(value) => handleRoleChange(member.id, value as 'admin' | 'member')}
-                disabled={updateMemberRole.isPending}
-              >
-                <SelectTrigger className="w-20 h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="member">Member</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setMemberToRemove(member)}
-                  disabled={!canRemoveMember(member) || isLastOwner(member)}
-                  className="h-8 w-8 p-0 text-destructive disabled:text-muted-foreground"
+        {canEdit && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0 shrink-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {member.role !== 'owner' && (
+                <DropdownMenuItem
+                  onSelect={() => handleRoleChange(member.id, member.role === 'admin' ? 'member' : 'admin')}
+                  disabled={updateMemberRole.isPending}
                 >
-                  <UserMinus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              {(!canRemoveMember(member) || isLastOwner(member)) && (
-                <TooltipContent>
-                  {isLastOwner(member) 
-                    ? "Cannot remove the last owner" 
-                    : "Insufficient permissions to remove this member"}
-                </TooltipContent>
+                  Change to {member.role === 'admin' ? 'Member' : 'Admin'}
+                </DropdownMenuItem>
               )}
-            </Tooltip>
-          </div>
+              <DropdownMenuItem
+                onSelect={() => setMemberToRemove(member)}
+                disabled={!canRemove || isLastOwnerCheck}
+                className="text-destructive disabled:text-muted-foreground"
+              >
+                <UserMinus className="mr-2 h-4 w-4" />
+                Remove Member
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
-      </TableCell>
-    </TableRow>
-  ), [canEditMember, canRemoveMember, isLastOwner, handleRoleChange, updateMemberRole.isPending]);
+      </div>
+    );
+  };
+
+  // Desktop table row component - removed useCallback to fix infinite re-render
+  const DesktopTableRow = ({ member, index }: { member: RealOrganizationMember; index: number }) => {
+    const canEdit = currentUserRole === 'owner' || (currentUserRole === 'admin' && member.role !== 'owner');
+    const canRemove = (currentUserRole === 'owner' && member.role !== 'owner') || (currentUserRole === 'admin' && member.role === 'member');
+    const isLastOwnerCheck = member.role === 'owner' && ownerCount === 1;
+    
+    return (
+      <TableRow>
+        <TableCell>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={member.avatar} alt={member.name} />
+              <AvatarFallback>
+                {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium">{member.name}</p>
+              <p className="text-sm text-muted-foreground">{member.email}</p>
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant={getRoleBadgeVariant(member.role)}>
+            {member.role}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          <Badge variant={getStatusBadgeVariant(member.status)}>
+            {member.status}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-sm text-muted-foreground">
+          {new Date(member.joinedDate).toLocaleDateString()}
+        </TableCell>
+        <TableCell>
+          {canEdit && (
+            <div className="flex items-center gap-2">
+              {member.role !== 'owner' && (
+                <Select
+                  value={member.role}
+                  onValueChange={(value) => handleRoleChange(member.id, value as 'admin' | 'member')}
+                  disabled={updateMemberRole.isPending}
+                >
+                  <SelectTrigger className="w-20 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="member">Member</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setMemberToRemove(member)}
+                    disabled={!canRemove || isLastOwnerCheck}
+                    className="h-8 w-8 p-0 text-destructive disabled:text-muted-foreground"
+                  >
+                    <UserMinus className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                {(!canRemove || isLastOwnerCheck) && (
+                  <TooltipContent>
+                    {isLastOwnerCheck 
+                      ? "Cannot remove the last owner" 
+                      : "Insufficient permissions to remove this member"}
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </div>
+          )}
+        </TableCell>
+      </TableRow>
+    );
+  };
 
   if (isLoading) {
     return (
