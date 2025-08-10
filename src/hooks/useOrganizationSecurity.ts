@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { showErrorToast } from '@/utils/errorHandling';
@@ -25,7 +25,7 @@ export const useOrganizationSecurity = () => {
   });
   const [isTestingComplete, setIsTestingComplete] = useState(false);
 
-  const runSecurityTest = async () => {
+  const runSecurityTest = useCallback(async () => {
     if (!user) {
       setTestResult({
         canFetchOrganizations: false,
@@ -135,7 +135,7 @@ export const useOrganizationSecurity = () => {
     console.log('🎯 Security test completed:', result);
     setTestResult(result);
     setIsTestingComplete(true);
-  };
+  }, [user]);
 
   // Run test automatically when component mounts and user is available
   useEffect(() => {
@@ -143,7 +143,7 @@ export const useOrganizationSecurity = () => {
       console.log('🚀 Auto-starting security validation...');
       runSecurityTest();
     }
-  }, [user]);
+  }, [user, isTestingComplete, runSecurityTest]);
 
   return {
     testResult,

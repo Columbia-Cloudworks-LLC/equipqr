@@ -1,6 +1,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from '@/hooks/use-toast';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
@@ -20,7 +21,7 @@ export const useUpdateWorkOrder = () => {
 
   return useMutation({
     mutationFn: async ({ workOrderId, data }: { workOrderId: string; data: UpdateWorkOrderData }) => {
-      const updateData: any = {};
+      const updateData: Database["public"]["Tables"]["work_orders"]["Update"] = {};
       
       if (data.title !== undefined) updateData.title = data.title;
       if (data.description !== undefined) updateData.description = data.description;

@@ -9,6 +9,7 @@ import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 
@@ -52,7 +53,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
     });
   };
 
-  const handleStatusUpdate = (newStatus: string) => {
+  const handleStatusUpdate = (newStatus: Database["public"]["Enums"]["work_order_status"]) => {
     statusUpdateMutation.mutate({
       workOrderId: order.id,
       newStatus
