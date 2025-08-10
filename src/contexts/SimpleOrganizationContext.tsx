@@ -123,19 +123,37 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     retry: 3,
   });
 
-  // Auto-select first organization if none selected and organizations are available
+  // Helper function to prioritize organizations by user role
+  const getPrioritizedOrganization = useCallback((orgs: SimpleOrganization[]): string => {
+    if (orgs.length === 0) return '';
+    
+    // Sort by role priority: owner > admin > member
+    const prioritized = [...orgs].sort((a, b) => {
+      const roleWeight = { owner: 3, admin: 2, member: 1 };
+      return (roleWeight[b.userRole] || 0) - (roleWeight[a.userRole] || 0);
+    });
+    
+    return prioritized[0].id;
+  }, []);
+
+  // Auto-select prioritized organization if none selected and organizations are available
   useEffect(() => {
     if (!currentOrganizationId && organizations.length > 0) {
-      const firstOrgId = organizations[0].id;
-      console.log('🎯 SimpleOrganizationProvider: Auto-selecting first organization:', firstOrgId);
-      setCurrentOrganizationId(firstOrgId);
+      const prioritizedOrgId = getPrioritizedOrganization(organizations);
+      const selectedOrg = organizations.find(org => org.id === prioritizedOrgId);
+      console.log('🎯 SimpleOrganizationProvider: Auto-selecting prioritized organization:', {
+        orgId: prioritizedOrgId,
+        orgName: selectedOrg?.name,
+        userRole: selectedOrg?.userRole
+      });
+      setCurrentOrganizationId(prioritizedOrgId);
       try {
-        localStorage.setItem(CURRENT_ORG_STORAGE_KEY, firstOrgId);
+        localStorage.setItem(CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
       } catch (error) {
         console.warn('Failed to save current organization to storage:', error);
       }
     }
-  }, [currentOrganizationId, organizations]);
+  }, [currentOrganizationId, organizations, getPrioritizedOrganization]);
 
   // Validate current organization exists in user's organizations
   useEffect(() => {
@@ -143,16 +161,22 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       const orgExists = organizations.some(org => org.id === currentOrganizationId);
       if (!orgExists) {
         console.warn('⚠️ SimpleOrganizationProvider: Current organization not found in user organizations, resetting');
-        const firstOrgId = organizations[0].id;
-        setCurrentOrganizationId(firstOrgId);
+        const prioritizedOrgId = getPrioritizedOrganization(organizations);
+        const selectedOrg = organizations.find(org => org.id === prioritizedOrgId);
+        console.log('🎯 SimpleOrganizationProvider: Resetting to prioritized organization:', {
+          orgId: prioritizedOrgId,
+          orgName: selectedOrg?.name,
+          userRole: selectedOrg?.userRole
+        });
+        setCurrentOrganizationId(prioritizedOrgId);
         try {
-          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, firstOrgId);
+          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
         } catch (error) {
           console.warn('Failed to save current organization to storage:', error);
         }
       }
     }
-  }, [currentOrganizationId, organizations]);
+  }, [currentOrganizationId, organizations, getPrioritizedOrganization]);
 
   const setCurrentOrganization = useCallback((organizationId: string) => {
     console.log('🔄 SimpleOrganizationProvider: Setting current organization:', organizationId);
