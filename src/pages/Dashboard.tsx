@@ -102,7 +102,7 @@ const Dashboard = () => {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalEquipment || 0}</div>
+              <div className="text-2xl font-bold" data-testid="total-equipment-stat">{stats?.totalEquipment || 0}</div>
               <p className="text-xs text-muted-foreground">
                 {stats?.activeEquipment || 0} active
               </p>
@@ -117,7 +117,7 @@ const Dashboard = () => {
               <Wrench className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.maintenanceEquipment || 0}</div>
+              <div className="text-2xl font-bold" data-testid="maintenance-equipment-stat">{stats?.maintenanceEquipment || 0}</div>
               <p className="text-xs text-muted-foreground">
                 Equipment needing attention
               </p>
@@ -132,7 +132,7 @@ const Dashboard = () => {
               <ClipboardList className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalWorkOrders || 0}</div>
+              <div className="text-2xl font-bold" data-testid="total-workorders-stat">{stats?.totalWorkOrders || 0}</div>
               <p className="text-xs text-muted-foreground">
                 {workOrders?.filter(wo => wo.status !== 'completed').length || 0} active
               </p>
@@ -147,7 +147,7 @@ const Dashboard = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{currentOrganization.memberCount}</div>
+              <div className="text-2xl font-bold" data-testid="member-count-stat">{currentOrganization.memberCount}</div>
               <p className="text-xs text-muted-foreground">
                 Active organization members
               </p>
