@@ -8,6 +8,19 @@ schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
+[db.seed]
+enabled = true
+sql_paths = [
+  './seeds/01_users_and_profiles.sql',
+  './seeds/02_organizations.sql', 
+  './seeds/03_organization_members.sql',
+  './seeds/04_teams_and_memberships.sql',
+  './seeds/05_equipment.sql',
+  './seeds/06_work_orders.sql',
+  './seeds/07_billing_and_slots.sql',
+  './seeds/08_operational_data.sql'
+]
+
 [functions.purchase-user-licenses]
 verify_jwt = true
 
