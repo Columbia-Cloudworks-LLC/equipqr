@@ -22,8 +22,8 @@ const RestrictedOrganizationAccess: React.FC<RestrictedOrganizationAccessProps> 
     if (ownedOrganizations.length > 0) {
       const firstOwnedOrg = ownedOrganizations[0];
       switchOrganization(firstOwnedOrg.id);
-      // Navigate to settings page for the organization they own
-      navigate('/settings');
+      // Navigate to organization page for the organization they own
+      navigate('/organization');
     }
   };
 
