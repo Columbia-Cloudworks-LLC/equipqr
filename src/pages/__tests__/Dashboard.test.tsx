@@ -6,11 +6,58 @@ import Dashboard from '../Dashboard';
 import * as useSupabaseDataModule from '@/hooks/useSupabaseData';
 import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
 import * as usePermissionsModule from '@/hooks/usePermissions';
+import { DashboardStats, Equipment, WorkOrder, TestOrganization } from '@/test/types/test-types';
 
 // Mock query result type
 type MockQueryResult<T> = UseQueryResult<T, Error>;
 
-// Mock dependencies
+// Mock all context dependencies first
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: vi.fn(() => ({
+    user: { id: 'user-1', email: 'test@test.com' },
+    session: { user: { id: 'user-1' } },
+    isLoading: false,
+    signUp: vi.fn(),
+    signIn: vi.fn(),
+    signInWithGoogle: vi.fn(),
+    signOut: vi.fn()
+  }))
+}));
+
+vi.mock('@/contexts/SessionContext', () => ({
+  useSession: vi.fn(() => ({
+    sessionData: {
+      organizations: [],
+      currentOrganizationId: 'org-1',
+      teamMemberships: []
+    },
+    isLoading: false,
+    error: null,
+    refreshSession: vi.fn(),
+    clearSession: vi.fn(),
+    getCurrentOrganization: vi.fn(),
+    switchOrganization: vi.fn(),
+    hasTeamRole: vi.fn(() => false),
+    hasTeamAccess: vi.fn(() => false),
+    canManageTeam: vi.fn(() => false),
+    getUserTeamIds: vi.fn(() => [])
+  }))
+}));
+
+vi.mock('@/hooks/useTeamMembership', () => ({
+  useTeamMembership: vi.fn(() => ({
+    teamMemberships: [],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+    hasTeamRole: vi.fn(() => false),
+    hasTeamAccess: vi.fn(() => false),
+    canManageTeam: vi.fn(() => false),
+    getUserTeamIds: vi.fn(() => [])
+  }))
+}));
+
+// Mock data dependencies
 vi.mock('@/hooks/useSupabaseData', () => ({
   useSyncEquipmentByOrganization: vi.fn(() => ({
     data: [],
@@ -171,7 +218,7 @@ describe('Dashboard', () => {
       },
       isLoading: false,
       error: null
-    } as MockQueryResult<any>);
+    } as MockQueryResult<DashboardStats>);
 
     render(<Dashboard />);
     
@@ -207,7 +254,7 @@ describe('Dashboard', () => {
       data: null,
       isLoading: true,
       error: null
-    } as MockQueryResult<any>);
+    } as MockQueryResult<DashboardStats | null>);
 
     render(<Dashboard />);
     
@@ -269,7 +316,7 @@ describe('Dashboard', () => {
       ],
       isLoading: false,
       error: null
-    } as MockQueryResult<any>);
+    } as MockQueryResult<Equipment[]>);
 
     vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
       data: {
@@ -280,7 +327,7 @@ describe('Dashboard', () => {
       },
       isLoading: false,
       error: null
-    } as unknown as MockQueryResult<any>);
+    } as MockQueryResult<DashboardStats>);
 
     render(<Dashboard />);
     
@@ -332,7 +379,7 @@ describe('Dashboard', () => {
       data: [],
       isLoading: false,
       error: null
-    } as MockQueryResult<any>);
+    } as MockQueryResult<Equipment[]>);
 
     vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
       data: {
@@ -343,7 +390,7 @@ describe('Dashboard', () => {
       },
       isLoading: false,
       error: null
-    } as MockQueryResult<any>);
+    } as MockQueryResult<DashboardStats>);
 
     render(<Dashboard />);
     

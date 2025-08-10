@@ -4,7 +4,39 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UseQueryResult } from '@tanstack/react-query';
 import WorkOrders from '../WorkOrders';
 
-// Mock UserContext
+// Mock all required contexts
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: vi.fn(() => ({
+    user: { id: 'user-1', email: 'test@test.com' },
+    session: { user: { id: 'user-1' } },
+    isLoading: false,
+    signUp: vi.fn(),
+    signIn: vi.fn(), 
+    signInWithGoogle: vi.fn(),
+    signOut: vi.fn()
+  }))
+}));
+
+vi.mock('@/contexts/SessionContext', () => ({
+  useSession: vi.fn(() => ({
+    sessionData: {
+      organizations: [],
+      currentOrganizationId: 'org-1',
+      teamMemberships: []
+    },
+    isLoading: false,
+    error: null,
+    refreshSession: vi.fn(),
+    clearSession: vi.fn(),
+    getCurrentOrganization: vi.fn(),
+    switchOrganization: vi.fn(),
+    hasTeamRole: vi.fn(() => false),
+    hasTeamAccess: vi.fn(() => false),
+    canManageTeam: vi.fn(() => false),
+    getUserTeamIds: vi.fn(() => [])
+  }))
+}));
+
 vi.mock('@/contexts/UserContext', () => ({
   useUser: vi.fn(() => ({
     currentUser: { id: 'test-user', email: 'test@test.com', name: 'Test User' },
@@ -12,6 +44,19 @@ vi.mock('@/contexts/UserContext', () => ({
     setCurrentUser: vi.fn()
   })),
   UserProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
+}));
+
+vi.mock('@/hooks/useTeamMembership', () => ({
+  useTeamMembership: vi.fn(() => ({
+    teamMemberships: [],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+    hasTeamRole: vi.fn(() => false),
+    hasTeamAccess: vi.fn(() => false),
+    canManageTeam: vi.fn(() => false),
+    getUserTeamIds: vi.fn(() => [])
+  }))
 }));
 import * as useEnhancedWorkOrdersModule from '@/hooks/useEnhancedWorkOrders';
 import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
