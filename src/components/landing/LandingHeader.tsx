@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from '@/components/ui/Logo';
 import { Menu } from 'lucide-react';
 import {
@@ -17,6 +17,24 @@ const navigation = [
 ];
 
 const LandingHeader = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isOnLandingPage = location.pathname === '/';
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('#')) {
+      e.preventDefault();
+      if (isOnLandingPage) {
+        // If on landing page, smooth scroll to section
+        const element = document.querySelector(href);
+        element?.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // If on other pages, navigate to landing page with anchor
+        navigate(`/${href}`);
+      }
+    }
+  };
+
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,13 +54,7 @@ const LandingHeader = () => {
                 key={item.name}
                 href={item.href}
                 className="text-muted-foreground hover:text-foreground transition-colors"
-                onClick={(e) => {
-                  if (item.href.startsWith('#')) {
-                    e.preventDefault();
-                    const element = document.querySelector(item.href);
-                    element?.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
+                onClick={(e) => handleNavClick(e, item.href)}
               >
                 {item.name}
               </a>
@@ -74,13 +86,7 @@ const LandingHeader = () => {
                       key={item.name}
                       href={item.href}
                       className="text-lg font-medium text-muted-foreground hover:text-foreground transition-colors"
-                      onClick={(e) => {
-                        if (item.href.startsWith('#')) {
-                          e.preventDefault();
-                          const element = document.querySelector(item.href);
-                          element?.scrollIntoView({ behavior: 'smooth' });
-                        }
-                      }}
+                      onClick={(e) => handleNavClick(e, item.href)}
                     >
                       {item.name}
                     </a>
