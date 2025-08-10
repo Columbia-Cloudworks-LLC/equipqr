@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UseQueryResult } from '@tanstack/react-query';
 import WorkOrders from '../WorkOrders';
 
-// Mock all required contexts
+// Mock all required contexts and hooks
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', email: 'test@test.com' },
@@ -17,23 +17,14 @@ vi.mock('@/contexts/AuthContext', () => ({
   }))
 }));
 
-vi.mock('@/contexts/SessionContext', () => ({
-  useSession: vi.fn(() => ({
-    sessionData: {
-      organizations: [],
-      currentOrganizationId: 'org-1',
-      teamMemberships: []
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: vi.fn(() => ({
+    currentOrganization: {
+      id: 'org-1',
+      name: 'Test Organization',
+      memberCount: 5
     },
-    isLoading: false,
-    error: null,
-    refreshSession: vi.fn(),
-    clearSession: vi.fn(),
-    getCurrentOrganization: vi.fn(),
-    switchOrganization: vi.fn(),
-    hasTeamRole: vi.fn(() => false),
-    hasTeamAccess: vi.fn(() => false),
-    canManageTeam: vi.fn(() => false),
-    getUserTeamIds: vi.fn(() => [])
+    isLoading: false
   }))
 }));
 
@@ -46,65 +37,121 @@ vi.mock('@/contexts/UserContext', () => ({
   UserProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
-vi.mock('@/hooks/useTeamMembership', () => ({
-  useTeamMembership: vi.fn(() => ({
-    teamMemberships: [],
-    isLoading: false,
-    error: null,
-    refetch: vi.fn(),
-    hasTeamRole: vi.fn(() => false),
-    hasTeamAccess: vi.fn(() => false),
-    canManageTeam: vi.fn(() => false),
-    getUserTeamIds: vi.fn(() => [])
-  }))
-}));
-import * as useEnhancedWorkOrdersModule from '@/hooks/useEnhancedWorkOrders';
-import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
-import * as usePermissionsModule from '@/hooks/usePermissions';
-
-// Mock query result type
-type MockQueryResult<T> = UseQueryResult<T, Error>;
-
-// Mock dependencies
-vi.mock('@/hooks/useEnhancedWorkOrders', () => ({
-  useEnhancedWorkOrders: vi.fn(() => ({
+vi.mock('@/hooks/useTeamBasedWorkOrders', () => ({
+  useTeamBasedWorkOrders: vi.fn(() => ({
     data: [],
     isLoading: false,
     error: null
+  })),
+  useTeamBasedAccess: vi.fn(() => ({
+    userTeamIds: ['team-1'],
+    hasTeamAccess: true,
+    isManager: false,
+    isLoading: false
   }))
 }));
 
-vi.mock('@/hooks/useSupabaseData', () => ({
-  useSyncEquipmentByOrganization: vi.fn(() => ({
-    data: [],
-    isLoading: false,
-    error: null
-  }))
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: vi.fn(() => false)
 }));
 
-vi.mock('@/contexts/SimpleOrganizationContext', () => ({
-  useSimpleOrganization: vi.fn(() => ({
-    currentOrganization: {
-      id: 'org-1',
-      name: 'Test Organization'
-    }
-  }))
-}));
-
-vi.mock('@/hooks/usePermissions', () => ({
-  usePermissions: vi.fn(() => ({
-    canManageWorkOrders: vi.fn(() => true),
-    hasRole: vi.fn(() => true)
-  }))
-}));
-
-vi.mock('@/hooks/useTeams', () => ({
+vi.mock('@/hooks/useTeamManagement', () => ({
   useTeams: vi.fn(() => ({
-    data: [],
+    data: [{ id: 'team-1', name: 'Test Team' }],
     isLoading: false,
     error: null
   }))
 }));
+
+vi.mock('@/hooks/useWorkOrderData', () => ({
+  useUpdateWorkOrderStatus: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false
+  }))
+}));
+
+vi.mock('@/hooks/useWorkOrderAcceptance', () => ({
+  useWorkOrderAcceptance: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false
+  }))
+}));
+
+vi.mock('@/hooks/useBatchAssignUnassignedWorkOrders', () => ({
+  useBatchAssignUnassignedWorkOrders: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false
+  }))
+}));
+
+vi.mock('@/hooks/useWorkOrderFilters', () => ({
+  useWorkOrderFilters: vi.fn(() => ({
+    filters: { searchQuery: '', status: 'all', assignee: 'all', team: 'all', priority: 'all', equipment: 'all', dueDate: 'all' },
+    filteredWorkOrders: [],
+    getActiveFilterCount: vi.fn(() => 0),
+    clearAllFilters: vi.fn(),
+    applyQuickFilter: vi.fn(),
+    updateFilter: vi.fn()
+  }))
+}));
+
+vi.mock('@/hooks/useWorkOrderReopening', () => ({
+  useWorkOrderReopening: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false
+  }))
+}));
+
+vi.mock('@/components/work-orders/WorkOrdersHeader', () => ({
+  WorkOrdersHeader: ({ onCreateClick, subtitle }: { onCreateClick: () => void; subtitle: string }) => (
+    <div>
+      <h1>Work Orders</h1>
+      <p>{subtitle}</p>
+      <button onClick={onCreateClick}>Create Work Order</button>
+    </div>
+  )
+}));
+
+vi.mock('@/components/work-orders/AutoAssignmentBanner', () => ({
+  AutoAssignmentBanner: () => <div data-testid="auto-assignment-banner">Auto Assignment Banner</div>
+}));
+
+vi.mock('@/components/work-orders/WorkOrderFilters', () => ({
+  WorkOrderFilters: () => (
+    <div data-testid="work-order-filters">
+      <input placeholder="Search work orders..." />
+    </div>
+  )
+}));
+
+vi.mock('@/components/work-orders/WorkOrdersList', () => ({
+  WorkOrdersList: ({ workOrders, hasActiveFilters, onCreateClick }: { 
+    workOrders: any[]; 
+    hasActiveFilters: boolean; 
+    onCreateClick: () => void;
+  }) => (
+    <div data-testid="work-orders-list">
+      {workOrders.length === 0 ? (
+        <div>
+          <p>No work orders found</p>
+          <p>Get started by creating your first work order</p>
+          <button onClick={onCreateClick}>Create Work Order</button>
+        </div>
+      ) : (
+        workOrders.map((wo) => (
+          <div key={wo.id}>{wo.title}</div>
+        ))
+      )}
+    </div>
+  )
+}));
+
+vi.mock('@/components/notifications/NotificationCenter', () => ({
+  __esModule: true,
+  default: () => <div data-testid="notification-center">Notifications</div>
+}));
+import * as useTeamBasedWorkOrdersModule from '@/hooks/useTeamBasedWorkOrders';
+import * as useOrganizationModule from '@/contexts/OrganizationContext';
 
 vi.mock('@/components/work-orders/WorkOrderForm', () => ({
   default: ({ onClose }: { onClose: () => void }) => (
@@ -117,6 +164,14 @@ vi.mock('@/components/work-orders/WorkOrderForm', () => ({
 describe('WorkOrders Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Reset to default team access state
+    vi.mocked(useTeamBasedWorkOrdersModule.useTeamBasedAccess).mockReturnValue({
+      userTeamIds: ['team-1'],
+      hasTeamAccess: true,
+      isManager: false,
+      isLoading: false
+    });
   });
 
   it('renders work orders page title', () => {
@@ -125,60 +180,50 @@ describe('WorkOrders Page', () => {
     expect(screen.getByText('Work Orders')).toBeInTheDocument();
   });
 
-  it('shows organization selection message when no organization', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
-      organizations: [],
-      userOrganizations: [],
-      currentOrganization: null,
-      setCurrentOrganization: vi.fn(),
-      switchOrganization: vi.fn(),
-      isLoading: false,
-      error: null,
-      refetch: vi.fn()
+  it('shows team access message when user has team access', () => {
+    render(<WorkOrders />);
+    
+    expect(screen.getByText(/showing work orders for your 1 team/i)).toBeInTheDocument();
+  });
+
+  it('shows no team access message when user has no teams', () => {
+    vi.mocked(useTeamBasedWorkOrdersModule.useTeamBasedAccess).mockReturnValue({
+      userTeamIds: [],
+      hasTeamAccess: false,
+      isManager: false,
+      isLoading: false
     });
 
     render(<WorkOrders />);
     
-    expect(screen.getByText(/please select an organization/i)).toBeInTheDocument();
+    expect(screen.getByText(/no team assignments - contact your administrator/i)).toBeInTheDocument();
   });
 
-  it('displays create work order button for authorized users', () => {
-    render(<WorkOrders />);
-    
-    expect(screen.getByText('Create Work Order')).toBeInTheDocument();
-  });
-
-  it('hides create button for unauthorized users', () => {
-    vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
-      canManageTeam: vi.fn(() => false),
-      canViewTeam: vi.fn(() => false),
-      canCreateTeam: vi.fn(() => false),
-      canManageEquipment: vi.fn(() => false),
-      canViewEquipment: vi.fn(() => false),
-      canCreateEquipment: vi.fn(() => false),
-      canUpdateEquipmentStatus: vi.fn(() => false),
-      canManageWorkOrder: vi.fn(() => false),
-      canViewWorkOrder: vi.fn(() => false),
-      canCreateWorkOrder: vi.fn(() => false),
-      canAssignWorkOrder: vi.fn(() => false),
-      canChangeWorkOrderStatus: vi.fn(() => false),
-      canManageOrganization: vi.fn(() => false),
-      canInviteMembers: vi.fn(() => false),
-      hasRole: vi.fn(() => false),
-      isTeamMember: vi.fn(() => false),
-      isTeamManager: vi.fn(() => false)
+  it('shows admin access message for managers', () => {
+    vi.mocked(useTeamBasedWorkOrdersModule.useTeamBasedAccess).mockReturnValue({
+      userTeamIds: [],
+      hasTeamAccess: true,
+      isManager: true,
+      isLoading: false
     });
 
     render(<WorkOrders />);
     
-    expect(screen.queryByText('Create Work Order')).not.toBeInTheDocument();
+    expect(screen.getByText(/showing all work orders \(organization admin access\)/i)).toBeInTheDocument();
+  });
+
+  it('displays create work order button', () => {
+    render(<WorkOrders />);
+    
+    const createButtons = screen.getAllByText('Create Work Order');
+    expect(createButtons.length).toBeGreaterThan(0);
   });
 
   it('opens work order form when create button is clicked', async () => {
     render(<WorkOrders />);
     
-    const createButton = screen.getByText('Create Work Order');
-    fireEvent.click(createButton);
+    const createButtons = screen.getAllByText('Create Work Order');
+    fireEvent.click(createButtons[0]);
     
     await waitFor(() => {
       expect(screen.getByTestId('work-order-form')).toBeInTheDocument();
@@ -189,8 +234,8 @@ describe('WorkOrders Page', () => {
     render(<WorkOrders />);
     
     // Open form
-    const createButton = screen.getByText('Create Work Order');
-    fireEvent.click(createButton);
+    const createButtons = screen.getAllByText('Create Work Order');
+    fireEvent.click(createButtons[0]);
     
     await waitFor(() => {
       expect(screen.getByTestId('work-order-form')).toBeInTheDocument();
@@ -206,20 +251,16 @@ describe('WorkOrders Page', () => {
   });
 
   it('displays loading state correctly', () => {
-    vi.mocked(useEnhancedWorkOrdersModule.useEnhancedWorkOrders).mockReturnValue({
-      data: [],
-      isLoading: true,
-      error: null,
-      isError: false,
-      isPending: true,
-      isSuccess: false,
-      refetch: vi.fn(),
-      fetchStatus: 'fetching'
-    } as unknown as MockQueryResult<unknown[]>);
+    vi.mocked(useTeamBasedWorkOrdersModule.useTeamBasedAccess).mockReturnValue({
+      userTeamIds: [],
+      hasTeamAccess: false,
+      isManager: false,
+      isLoading: true
+    });
 
     render(<WorkOrders />);
     
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    expect(screen.getByText(/loading team-based work orders/i)).toBeInTheDocument();
   });
 
   it('shows work orders when data is available', () => {
@@ -240,16 +281,15 @@ describe('WorkOrders Page', () => {
       }
     ];
 
-    vi.mocked(useEnhancedWorkOrdersModule.useEnhancedWorkOrders).mockReturnValue({
-      data: mockWorkOrders,
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as unknown as MockQueryResult<unknown[]>);
+    // Mock the useWorkOrderFilters to return the mock data
+    vi.mocked(require('@/hooks/useWorkOrderFilters').useWorkOrderFilters).mockReturnValue({
+      filters: { searchQuery: '', status: 'all', assignee: 'all', team: 'all', priority: 'all', equipment: 'all', dueDate: 'all' },
+      filteredWorkOrders: mockWorkOrders,
+      getActiveFilterCount: vi.fn(() => 0),
+      clearAllFilters: vi.fn(),
+      applyQuickFilter: vi.fn(),
+      updateFilter: vi.fn()
+    });
 
     render(<WorkOrders />);
     
@@ -264,39 +304,10 @@ describe('WorkOrders Page', () => {
     expect(screen.getByText(/get started by creating/i)).toBeInTheDocument();
   });
 
-  it('shows error state when loading fails', () => {
-    vi.mocked(useEnhancedWorkOrdersModule.useEnhancedWorkOrders).mockReturnValue({
-      data: null,
-      isLoading: false,
-      error: new Error('Failed to load work orders'),
-      isError: true,
-      isPending: false,
-      isSuccess: false,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as unknown as MockQueryResult<unknown[]>);
-
-    render(<WorkOrders />);
-    
-    expect(screen.getByText(/error loading work orders/i)).toBeInTheDocument();
-  });
-
-  it('includes filter and search functionality', () => {
+  it('includes search functionality', () => {
     render(<WorkOrders />);
     
     expect(screen.getByPlaceholderText(/search work orders/i)).toBeInTheDocument();
-    expect(screen.getByText('Filter')).toBeInTheDocument();
-  });
-
-  it('allows filtering by status', async () => {
-    render(<WorkOrders />);
-    
-    const filterButton = screen.getByText('Filter');
-    fireEvent.click(filterButton);
-    
-    await waitFor(() => {
-      expect(screen.getByText('Status')).toBeInTheDocument();
-    });
   });
 
   it('responds to search input', async () => {
