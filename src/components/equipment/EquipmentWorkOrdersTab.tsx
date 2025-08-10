@@ -104,7 +104,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
               <DesktopWorkOrderCard 
                 key={workOrder.id} 
                 workOrder={adaptedWorkOrder}
-                onNavigate={(id) => navigate(`/work-orders/${id}`)}
+                onNavigate={(id) => navigate(`/dashboard/work-orders/${id}`)}
               />
             );
           })

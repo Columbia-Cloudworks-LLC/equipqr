@@ -52,8 +52,8 @@ export const useQRRedirectWithOrgSwitch = ({
         setState(prev => ({
           ...prev,
           isLoading: false,
-          error: 'Equipment not found or access denied',
-          targetPath: '/scanner'
+           error: 'Equipment not found or access denied',
+           targetPath: '/dashboard/scanner'
         }));
         return;
       }
@@ -62,14 +62,14 @@ export const useQRRedirectWithOrgSwitch = ({
         setState(prev => ({
           ...prev,
           isLoading: false,
-          error: `You don't have access to equipment in ${equipmentInfo.organizationName}`,
-          targetPath: '/scanner'
+           error: `You don't have access to equipment in ${equipmentInfo.organizationName}`,
+           targetPath: '/dashboard/scanner'
         }));
         return;
       }
 
       const currentOrg = getCurrentOrganization();
-      const targetPath = `/equipment/${equipmentId}?qr=true`;
+      const targetPath = `/dashboard/equipment/${equipmentId}?qr=true`;
 
       // Check if we need to switch organizations
       if (!currentOrg || currentOrg.id !== equipmentInfo.organizationId) {
@@ -113,8 +113,8 @@ export const useQRRedirectWithOrgSwitch = ({
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: 'Failed to verify equipment access',
-        targetPath: '/scanner'
+         error: 'Failed to verify equipment access',
+         targetPath: '/dashboard/scanner'
       }));
     }
   }, [equipmentId, user, getCurrentOrganization, refreshSession]);
@@ -124,14 +124,14 @@ export const useQRRedirectWithOrgSwitch = ({
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: 'No equipment ID provided',
-        targetPath: '/scanner'
+         error: 'No equipment ID provided',
+         targetPath: '/dashboard/scanner'
       }));
       return;
     }
 
     // Store the intended destination for post-auth redirect
-    const targetPath = `/equipment/${equipmentId}?qr=true`;
+    const targetPath = `/dashboard/equipment/${equipmentId}?qr=true`;
     sessionStorage.setItem('pendingRedirect', targetPath);
 
     if (authLoading) {

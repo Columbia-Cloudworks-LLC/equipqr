@@ -77,7 +77,7 @@ const QRScanner = () => {
 
   const viewEquipment = () => {
     if (resolvedEquipment) {
-      navigate(`/equipment/${resolvedEquipment.id}`);
+      navigate(`/dashboard/equipment/${resolvedEquipment.id}`);
     }
   };
 

@@ -13,6 +13,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppSidebar from '@/components/layout/AppSidebar';
 import TopBar from '@/components/layout/TopBar';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { Navigate, useParams } from 'react-router-dom';
 import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
 import Dashboard from '@/pages/Dashboard';
@@ -48,6 +49,17 @@ const BrandedTopBar = () => {
   return <TopBar />;
 };
 
+// Redirect components for backward compatibility
+const RedirectToEquipment = () => {
+  const { equipmentId } = useParams();
+  return <Navigate to={`/dashboard/equipment/${equipmentId}`} replace />;
+};
+
+const RedirectToWorkOrder = () => {
+  const { workOrderId } = useParams();
+  return <Navigate to={`/dashboard/work-orders/${workOrderId}`} replace />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -65,6 +77,22 @@ function App() {
                 <Route path="/qr/:equipmentId" element={<QRRedirect />} />
                 <Route path="/terms-of-service" element={<TermsOfService />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                
+                {/* Redirect routes for backward compatibility */}
+                <Route path="/equipment/:equipmentId" element={
+                  <ProtectedRoute>
+                    <SimpleOrganizationProvider>
+                      <RedirectToEquipment />
+                    </SimpleOrganizationProvider>
+                  </ProtectedRoute>
+                } />
+                <Route path="/work-orders/:workOrderId" element={
+                  <ProtectedRoute>
+                    <SimpleOrganizationProvider>
+                      <RedirectToWorkOrder />
+                    </SimpleOrganizationProvider>
+                  </ProtectedRoute>
+                } />
                 
                 {/* Protected routes */}
                 <Route path="/dashboard/*" element={

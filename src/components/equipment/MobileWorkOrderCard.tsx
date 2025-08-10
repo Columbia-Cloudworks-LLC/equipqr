@@ -161,7 +161,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => navigate(`/work-orders/${workOrder.id}`)}
+              onClick={() => navigate(`/dashboard/work-orders/${workOrder.id}`)}
               className="ml-auto"
             >
               View Details

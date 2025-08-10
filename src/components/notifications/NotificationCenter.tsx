@@ -158,7 +158,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                           asChild
                           className="h-6 text-xs"
                         >
-                          <Link to={`/work-orders/${notification.data.work_order_id}`}>
+                          <Link to={`/dashboard/work-orders/${notification.data.work_order_id}`}>
                             View
                           </Link>
                         </Button>

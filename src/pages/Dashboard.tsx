@@ -182,7 +182,7 @@ const Dashboard = () => {
                 {recentEquipment.map((item) => (
                   <Link 
                     key={item.id} 
-                    to={`/equipment/${item.id}`}
+                    to={`/dashboard/equipment/${item.id}`}
                     className="flex items-center justify-between p-2 -m-2 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div>
@@ -233,7 +233,7 @@ const Dashboard = () => {
                 {recentWorkOrders.map((order) => (
                   <Link 
                     key={order.id} 
-                    to={`/work-orders/${order.id}`}
+                    to={`/dashboard/work-orders/${order.id}`}
                     className="flex items-center justify-between p-2 -m-2 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div>
@@ -277,7 +277,7 @@ const Dashboard = () => {
               {highPriorityWorkOrders.map((order) => (
                 <Link 
                   key={order.id} 
-                  to={`/work-orders/${order.id}`}
+                  to={`/dashboard/work-orders/${order.id}`}
                   className="flex items-center justify-between p-3 border border-destructive/20 rounded-lg hover:bg-destructive/5 transition-colors"
                 >
                   <div>

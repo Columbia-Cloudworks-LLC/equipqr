@@ -56,7 +56,7 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
               <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <Link 
-                    to={`/equipment/${equipment.id}`}
+                    to={`/dashboard/equipment/${equipment.id}`}
                     className="text-lg font-medium text-primary hover:underline break-words"
                   >
                     {equipment.name}

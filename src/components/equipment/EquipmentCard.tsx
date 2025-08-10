@@ -98,7 +98,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             variant="outline" 
             size="sm" 
             className={isMobile ? "w-full" : "flex-1"}
-            onClick={() => navigate(`/equipment/${equipment.id}`)}
+            onClick={() => navigate(`/dashboard/equipment/${equipment.id}`)}
           >
             View Details
           </Button>
