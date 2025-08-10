@@ -7,7 +7,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
 import { TeamProvider } from '@/contexts/TeamContext';
-import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationContext';
+import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvider';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppSidebar from '@/components/layout/AppSidebar';
