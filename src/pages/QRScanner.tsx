@@ -62,7 +62,7 @@ const QRScanner = () => {
     }
   }, [resolvedEquipment, scannedEquipmentId, currentOrganization, scanResult, toast]);
 
-  const handleError = useCallback((error: any) => {
+  const handleError = useCallback((error: Error | unknown) => {
     console.error('QR Scanner error:', error);
     setError('Failed to scan QR code. Please try again.');
     setIsScanning(false);
@@ -77,7 +77,7 @@ const QRScanner = () => {
 
   const viewEquipment = () => {
     if (resolvedEquipment) {
-      navigate(`/equipment/${resolvedEquipment.id}`);
+      navigate(`/dashboard/equipment/${resolvedEquipment.id}`);
     }
   };
 

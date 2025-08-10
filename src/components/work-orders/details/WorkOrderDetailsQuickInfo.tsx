@@ -134,7 +134,7 @@ export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps>
                 <div>
                   <div className="font-medium">Equipment</div>
                   <Link 
-                    to={`/equipment/${equipment.id}`}
+                    to={`/dashboard/equipment/${equipment.id}`}
                     className="text-primary hover:underline"
                   >
                     {equipment.name}

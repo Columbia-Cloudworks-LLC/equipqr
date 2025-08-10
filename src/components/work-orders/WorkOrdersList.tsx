@@ -60,7 +60,7 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
           <DesktopWorkOrderCard
             key={order.id}
             workOrder={order}
-            onNavigate={(id) => navigate(`/work-orders/${id}`)}
+            onNavigate={(id) => navigate(`/dashboard/work-orders/${id}`)}
             onAssignClick={onAssignClick}
             onReopenClick={onReopenClick}
           />

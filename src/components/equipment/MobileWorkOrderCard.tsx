@@ -151,7 +151,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-2 border-t">
-            {permissions.workOrders.getDetailedPermissions(workOrder as any).canEdit && (
+            {permissions.workOrders.getDetailedPermissions({ ...workOrder, organizationId: '' }).canEdit && (
               <WorkOrderCostSubtotal 
                 workOrderId={workOrder.id}
                 className="text-sm"
@@ -161,7 +161,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => navigate(`/work-orders/${workOrder.id}`)}
+              onClick={() => navigate(`/dashboard/work-orders/${workOrder.id}`)}
               className="ml-auto"
             >
               View Details

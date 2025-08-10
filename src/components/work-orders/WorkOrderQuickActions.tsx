@@ -51,7 +51,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   const canDelete = permissions.hasRole(['owner', 'admin']); // Only org admins can delete
 
   const handleViewPMChecklist = () => {
-    navigate(`/work-orders/${workOrder.id}?tab=pm`);
+    navigate(`/dashboard/work-orders/${workOrder.id}?tab=pm`);
   };
 
   const handleDownloadPMPDF = async () => {

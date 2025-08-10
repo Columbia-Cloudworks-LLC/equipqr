@@ -218,7 +218,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
           <div className="space-y-2 pt-2 border-t">
             <div className="flex gap-2">
               <Button variant="outline" size="sm" asChild className="flex-1 justify-center">
-                <Link to={`/work-orders/${order.id}`}>
+                <Link to={`/dashboard/work-orders/${order.id}`}>
                   View Details
                 </Link>
               </Button>
