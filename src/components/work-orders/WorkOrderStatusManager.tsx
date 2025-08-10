@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';

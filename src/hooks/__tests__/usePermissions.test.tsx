@@ -13,7 +13,7 @@ vi.mock('@/contexts/AuthContext', () => ({
   }))
 }));
 
-vi.mock('@/contexts/SessionContext', () => ({
+vi.mock('@/hooks/useSession', () => ({
   useSession: vi.fn(() => ({
     sessionData: {
       user: { id: 'user-1' },
@@ -40,7 +40,7 @@ vi.mock('@/contexts/UserContext', () => ({
   useUser: vi.fn()
 }));
 
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useUser } from '@/contexts/UserContext';
 import { useSession } from '@/hooks/useSession';
 
@@ -66,9 +66,9 @@ vi.mock('@/services/permissions/PermissionEngine', () => ({
   }
 }));
 
-const mockUseSimpleOrganization = useSimpleOrganization as ReturnType<typeof vi.fn>;
-const mockUseUser = useUser as ReturnType<typeof vi.fn>;
-const mockUseSession = useSession as ReturnType<typeof vi.fn>;
+const mockUseSimpleOrganization = vi.mocked(useSimpleOrganization);
+const mockUseUser = vi.mocked(useUser);
+const mockUseSession = vi.mocked(useSession);
 
 describe('usePermissions', () => {
   beforeEach(() => {

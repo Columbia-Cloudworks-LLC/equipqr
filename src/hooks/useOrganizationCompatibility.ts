@@ -1,5 +1,5 @@
 
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 
 // Backward compatibility layer for existing organization hooks
 export const useSupabaseOrganization = () => {

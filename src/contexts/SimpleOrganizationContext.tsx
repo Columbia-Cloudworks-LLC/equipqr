@@ -31,17 +31,9 @@ export interface SimpleOrganizationContextType {
   refetch: () => Promise<void>;
 }
 
-const SimpleOrganizationContext = createContext<SimpleOrganizationContextType | undefined>(undefined);
+export const SimpleOrganizationContext = createContext<SimpleOrganizationContextType | undefined>(undefined);
 
 const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
-
-export const useSimpleOrganization = () => {
-  const context = useContext(SimpleOrganizationContext);
-  if (context === undefined) {
-    throw new Error('useSimpleOrganization must be used within a SimpleOrganizationProvider');
-  }
-  return context;
-};
 
 export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();

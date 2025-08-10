@@ -96,9 +96,9 @@ const InvitationAccept = () => {
           expires_at: invitationData.expires_at
         });
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching invitation:', err);
-        setError('Failed to load invitation');
+        setError(err instanceof Error ? err.message : 'Failed to load invitation');
       } finally {
         setLoading(false);
       }
@@ -135,9 +135,9 @@ const InvitationAccept = () => {
       // Navigate to the organization page
       navigate('/organization');
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error accepting invitation:', err);
-      toast.error(err.message || 'Failed to accept invitation');
+      toast.error(err instanceof Error ? err.message : 'Failed to accept invitation');
     } finally {
       setAccepting(false);
     }
@@ -160,7 +160,7 @@ const InvitationAccept = () => {
       toast.success('Invitation declined');
       navigate('/');
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error declining invitation:', err);
       toast.error('Failed to decline invitation');
     }

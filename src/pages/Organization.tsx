@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationStats } from '@/hooks/useOrganizationStats';

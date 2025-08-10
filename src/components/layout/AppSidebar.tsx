@@ -41,7 +41,7 @@ import { isLightColor } from "@/lib/utils";
 import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/contexts/UserContext";
-import { useSimpleOrganization } from "@/contexts/SimpleOrganizationContext";
+import { useSimpleOrganization } from "@/hooks/useSimpleOrganization";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar";
 import Icon from "@/components/ui/Icon";

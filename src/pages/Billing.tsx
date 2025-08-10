@@ -8,7 +8,7 @@ import LicenseMemberBilling from '@/components/billing/LicenseMemberBilling';
 import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import BillingHeader from '@/components/billing/BillingHeader';
 import RestrictedBillingAccess from '@/components/billing/RestrictedBillingAccess';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { useSubscription } from '@/hooks/useSubscription';

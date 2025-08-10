@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useCreateEquipment, useUpdateEquipment } from '@/hooks/useSupabaseData';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { equipmentFormSchema, type EquipmentFormData, type EquipmentRecord } from '@/types/equipment';
 
 interface UseEquipmentFormProps {

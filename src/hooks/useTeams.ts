@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useTeam } from '@/contexts/TeamContext';
+import { useTeam } from '@/hooks/useTeam';
 
 export interface Team {
   id: string;

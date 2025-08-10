@@ -12,7 +12,7 @@ import { WorkingHoursTimelineModal } from "./WorkingHoursTimelineModal";
 import { useUpdateEquipment } from "@/hooks/useSupabaseData";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import { useTeams } from "@/hooks/useTeamManagement";
-import { useSimpleOrganization } from "@/contexts/SimpleOrganizationContext";
+import { useSimpleOrganization } from "@/hooks/useSimpleOrganization";
 import { toast } from "sonner";
 
 type Equipment = Tables<'equipment'>;

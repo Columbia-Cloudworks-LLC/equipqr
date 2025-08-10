@@ -77,7 +77,7 @@ vi.mock('@/components/equipment/QRCodeDisplay', () => ({
 }));
 
 import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 
 describe('Equipment page', () => {
   beforeEach(() => {

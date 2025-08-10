@@ -15,7 +15,16 @@ import { toast } from 'sonner';
 interface WorkOrderAcceptanceModalProps {
   open: boolean;
   onClose: () => void;
-  workOrder: any;
+  workOrder: {
+    id: string;
+    title: string;
+    description: string;
+    equipment_id: string;
+    status: string;
+    team_id?: string;
+    assignee_id?: string;
+    created_by?: string;
+  };
   organizationId: string;
   onAccept: (assigneeId?: string) => Promise<void>;
 }
