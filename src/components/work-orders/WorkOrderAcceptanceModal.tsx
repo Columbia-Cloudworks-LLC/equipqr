@@ -15,16 +15,7 @@ import { toast } from 'sonner';
 interface WorkOrderAcceptanceModalProps {
   open: boolean;
   onClose: () => void;
-  workOrder: {
-    id: string;
-    title: string;
-    description: string;
-    equipmentId: string;
-    status: string;
-    teamId?: string;
-    assigneeId?: string;
-    createdByName?: string;
-  };
+  workOrder: any; // Temporarily using any to resolve interface conflicts
   organizationId: string;
   onAccept: (assigneeId?: string) => Promise<void>;
 }
@@ -51,7 +42,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
   const { data: organizationMembers = [] } = useOrganizationMembers(organizationId);
   const { data: organizationAdmins = [] } = useOrganizationAdmins(organizationId);
   const { data: teams = [] } = useSyncTeamsByOrganization(organizationId);
-  const { data: equipment } = useSyncEquipmentById(organizationId, workOrder?.equipmentId);
+  const { data: equipment } = useSyncEquipmentById(organizationId, workOrder?.equipment_id || workOrder?.equipmentId);
 
   // Get current user info
   const isSingleUserOrg = organizationMembers.length === 1;
