@@ -44,6 +44,28 @@ import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useUser } from '@/contexts/UserContext';
 import { useSession } from '@/contexts/SessionContext';
 
+// Mock the permission engine
+vi.mock('@/services/permissions/PermissionEngine', () => ({
+  permissionEngine: {
+    hasPermission: vi.fn((permission: string, context: any) => {
+      const role = context.userRole;
+      
+      if (permission === 'workorder.edit') {
+        return ['admin', 'technician', 'manager'].includes(role);
+      }
+      if (permission === 'equipment.edit') {
+        return ['admin', 'owner', 'manager'].includes(role);
+      }
+      if (permission === 'team.create') {
+        return ['owner', 'admin'].includes(role);
+      }
+      
+      return false;
+    }),
+    clearCache: vi.fn()
+  }
+}));
+
 const mockUseSimpleOrganization = useSimpleOrganization as ReturnType<typeof vi.fn>;
 const mockUseUser = useUser as ReturnType<typeof vi.fn>;
 const mockUseSession = useSession as ReturnType<typeof vi.fn>;

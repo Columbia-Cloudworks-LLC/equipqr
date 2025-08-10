@@ -41,6 +41,16 @@ vi.mock('@/hooks/useSupabaseData', () => ({
     },
     isLoading: false,
     error: null
+  })),
+  useAllWorkOrders: vi.fn(() => ({
+    data: [],
+    isLoading: false,
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    refetch: vi.fn(),
+    fetchStatus: 'idle'
   }))
 }));
 
