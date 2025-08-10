@@ -2,7 +2,11 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UseQueryResult } from '@tanstack/react-query';
+import { WorkOrderData } from '@/types/workOrder';
 import WorkOrders from '../WorkOrders';
+import * as useTeamBasedWorkOrdersModule from '@/hooks/useTeamBasedWorkOrders';
+import * as useOrganizationModule from '@/contexts/OrganizationContext';
+import * as useWorkOrderFiltersModule from '@/hooks/useWorkOrderFilters';
 
 // Mock all required contexts and hooks
 vi.mock('@/contexts/AuthContext', () => ({
@@ -86,7 +90,14 @@ vi.mock('@/hooks/useBatchAssignUnassignedWorkOrders', () => ({
 
 vi.mock('@/hooks/useWorkOrderFilters', () => ({
   useWorkOrderFilters: vi.fn(() => ({
-    filters: { searchQuery: '', status: 'all', assignee: 'all', team: 'all', priority: 'all', equipment: 'all', dueDate: 'all' },
+    filters: { 
+      searchQuery: '', 
+      statusFilter: 'all', 
+      assigneeFilter: 'all', 
+      teamFilter: 'all', 
+      priorityFilter: 'all', 
+      dueDateFilter: 'all' 
+    },
     filteredWorkOrders: [],
     getActiveFilterCount: vi.fn(() => 0),
     clearAllFilters: vi.fn(),
@@ -126,7 +137,7 @@ vi.mock('@/components/work-orders/WorkOrderFilters', () => ({
 
 vi.mock('@/components/work-orders/WorkOrdersList', () => ({
   WorkOrdersList: ({ workOrders, hasActiveFilters, onCreateClick }: { 
-    workOrders: any[]; 
+    workOrders: WorkOrderData[]; 
     hasActiveFilters: boolean; 
     onCreateClick: () => void;
   }) => (
@@ -150,8 +161,6 @@ vi.mock('@/components/notifications/NotificationCenter', () => ({
   __esModule: true,
   default: () => <div data-testid="notification-center">Notifications</div>
 }));
-import * as useTeamBasedWorkOrdersModule from '@/hooks/useTeamBasedWorkOrders';
-import * as useOrganizationModule from '@/contexts/OrganizationContext';
 
 vi.mock('@/components/work-orders/WorkOrderForm', () => ({
   default: ({ onClose }: { onClose: () => void }) => (
@@ -264,26 +273,41 @@ describe('WorkOrders Page', () => {
   });
 
   it('shows work orders when data is available', () => {
-    const mockWorkOrders = [
+    const mockWorkOrders: WorkOrderData[] = [
       {
         id: 'wo-1',
         title: 'Test Work Order 1',
+        description: 'Test description 1',
+        equipmentId: 'eq-1',
+        organizationId: 'org-1',
         status: 'submitted',
         priority: 'high',
+        createdDate: '2024-01-01',
         created_date: '2024-01-01'
       },
       {
         id: 'wo-2',
-        title: 'Test Work Order 2', 
+        title: 'Test Work Order 2',
+        description: 'Test description 2',
+        equipmentId: 'eq-2',
+        organizationId: 'org-1',
         status: 'in_progress',
         priority: 'medium',
+        createdDate: '2024-01-02',
         created_date: '2024-01-02'
       }
     ];
 
     // Mock the useWorkOrderFilters to return the mock data
-    vi.mocked(require('@/hooks/useWorkOrderFilters').useWorkOrderFilters).mockReturnValue({
-      filters: { searchQuery: '', status: 'all', assignee: 'all', team: 'all', priority: 'all', equipment: 'all', dueDate: 'all' },
+    vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue({
+      filters: { 
+        searchQuery: '', 
+        statusFilter: 'all', 
+        assigneeFilter: 'all', 
+        teamFilter: 'all', 
+        priorityFilter: 'all', 
+        dueDateFilter: 'all' 
+      },
       filteredWorkOrders: mockWorkOrders,
       getActiveFilterCount: vi.fn(() => 0),
       clearAllFilters: vi.fn(),
