@@ -16,7 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UserPlus, Mail, Info } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { useCreateInvitation, CreateInvitationData } from '@/hooks/useOrganizationInvitations';
 
 interface EnhancedInviteMemberDialogProps {

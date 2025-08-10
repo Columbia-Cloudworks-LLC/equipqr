@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
-import { SessionData, SessionTeamMembership } from '@/contexts/SessionContext';
+import { User } from '@supabase/supabase-js';
+import { SessionData, SessionTeamMembership, SessionOrganization } from '@/contexts/SessionContext';
 import { SessionDataService } from '@/services/sessionDataService';
 import { SessionStorageService } from '@/services/sessionStorageService';
 import { getOrganizationPreference, saveOrganizationPreference, shouldRefreshSession, getSessionVersion } from '@/utils/sessionPersistence';
 
 interface UseSessionManagerProps {
-  user: any;
+  user: User | null;
   onSessionUpdate: (data: SessionData) => void;
   onError: (error: string) => void;
 }
@@ -14,7 +15,7 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
   const [lastRefreshTime, setLastRefreshTime] = useState<string | null>(null);
 
   const createSessionData = useCallback((
-    organizations: any[],
+    organizations: SessionOrganization[],
     currentOrganizationId: string | null,
     teamMemberships: SessionTeamMembership[]
   ): SessionData => {

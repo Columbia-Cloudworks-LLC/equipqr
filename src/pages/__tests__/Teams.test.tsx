@@ -41,7 +41,7 @@ vi.mock('@/hooks/useUnifiedPermissions', () => ({
 }));
 
 // Import mocks after setting up the mocks
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { useTeams, useTeamMutations } from '@/hooks/useTeamManagement';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 

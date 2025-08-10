@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useSyncTeamsByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { toast } from 'sonner';
 
 interface WorkOrderAcceptanceModalProps {

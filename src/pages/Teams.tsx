@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Users, Settings, Crown, User, Trash2, UserX } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { useTeams, useTeamMutations } from '@/hooks/useTeamManagement';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import TeamForm from '@/components/teams/TeamForm';
@@ -35,7 +35,7 @@ const Teams = () => {
   
   // Determine what teams to show based on user role and memberships
   const { teamsToShow, userHasTeamMemberships, isOrgAdmin } = useMemo(() => {
-    if (!currentOrganization) {
+    if (!currentOrganization || !userTeamIds) {
       return { teamsToShow: [], userHasTeamMemberships: false, isOrgAdmin: false };
     }
     

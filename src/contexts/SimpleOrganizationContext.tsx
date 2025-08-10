@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
-import { useSession } from './SessionContext';
+import { useSession } from '@/hooks/useSession';
 
 export interface SimpleOrganization {
   id: string;

@@ -1,5 +1,5 @@
 
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 
 export interface TeamMembership {
   team_id: string;

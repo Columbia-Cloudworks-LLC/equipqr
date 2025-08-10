@@ -42,7 +42,7 @@ vi.mock('@/contexts/UserContext', () => ({
 
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useUser } from '@/contexts/UserContext';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 
 // Mock the permission engine
 vi.mock('@/services/permissions/PermissionEngine', () => ({

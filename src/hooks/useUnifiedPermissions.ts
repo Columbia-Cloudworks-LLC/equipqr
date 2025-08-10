@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { useAuth } from '@/contexts/AuthContext';
 import { permissionEngine } from '@/services/permissions/PermissionEngine';
 import { 
