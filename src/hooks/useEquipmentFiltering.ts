@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSyncEquipmentByOrganization, useSyncTeamsByOrganization } from '@/services/syncDataService';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -185,7 +185,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   }, [equipment, filters, sortConfig]);
 
   // Quick filter presets
-  const applyQuickFilter = (type: string) => {
+  const applyQuickFilter = useCallback((type: string) => {
     switch (type) {
       case 'maintenance-due':
         setFilters(prev => ({
@@ -212,26 +212,26 @@ export const useEquipmentFiltering = (organizationId?: string) => {
         }));
         break;
     }
-  };
+  }, []);
 
-  const updateFilter = (key: keyof EquipmentFilters, value: EquipmentFilters[keyof EquipmentFilters]) => {
+  const updateFilter = useCallback((key: keyof EquipmentFilters, value: EquipmentFilters[keyof EquipmentFilters]) => {
     setFilters(prev => ({
       ...prev,
       [key]: value
     }));
-  };
+  }, []);
 
-  const updateSort = (field: string) => {
+  const updateSort = useCallback((field: string) => {
     setSortConfig(prev => ({
       field,
       direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
-  };
+  }, []);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setFilters(initialFilters);
     setSortConfig(initialSort);
-  };
+  }, []);
 
   const hasActiveFilters = useMemo(() => {
     return Object.entries(filters).some(([key, value]) => {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { isToday, isThisWeek } from 'date-fns';
 import { WorkOrderFilters, WorkOrderData } from '@/types/workOrder';
 
@@ -38,7 +38,7 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
     });
   }, [workOrders, filters, currentUserId]);
 
-  const getActiveFilterCount = () => {
+  const getActiveFilterCount = useCallback(() => {
     let count = 0;
     if (filters.statusFilter !== 'all') count++;
     if (filters.assigneeFilter !== 'all') count++;
@@ -46,9 +46,9 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
     if (filters.priorityFilter !== 'all') count++;
     if (filters.dueDateFilter !== 'all') count++;
     return count;
-  };
+  }, [filters]);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilters({
       searchQuery: '',
       statusFilter: 'all',
@@ -57,11 +57,18 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
       priorityFilter: 'all',
       dueDateFilter: 'all'
     });
-  };
+  }, []);
 
-  const applyQuickFilter = (preset: string) => {
-    clearAllFilters();
-    const newFilters = { ...filters };
+  const applyQuickFilter = useCallback((preset: string) => {
+    const newFilters = {
+      searchQuery: '',
+      statusFilter: 'all',
+      assigneeFilter: 'all',
+      teamFilter: 'all',
+      priorityFilter: 'all',
+      dueDateFilter: 'all'
+    };
+    
     switch (preset) {
       case 'my-work':
         newFilters.assigneeFilter = 'mine';
@@ -77,11 +84,11 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
         break;
     }
     setFilters(newFilters);
-  };
+  }, []);
 
-  const updateFilter = (key: keyof WorkOrderFilters, value: string) => {
+  const updateFilter = useCallback((key: keyof WorkOrderFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
   return {
     filters,

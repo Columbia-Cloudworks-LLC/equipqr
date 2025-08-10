@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 export interface CustomAttribute {
   id: string;
@@ -12,31 +12,31 @@ export const useCustomAttributes = (initialAttributes: CustomAttribute[] = []) =
     initialAttributes.length > 0 ? initialAttributes : [{ id: crypto.randomUUID(), key: '', value: '' }]
   );
 
-  const addAttribute = () => {
+  const addAttribute = useCallback(() => {
     setAttributes(prev => [...prev, { id: crypto.randomUUID(), key: '', value: '' }]);
-  };
+  }, []);
 
-  const removeAttribute = (id: string) => {
+  const removeAttribute = useCallback((id: string) => {
     setAttributes(prev => prev.filter(attr => attr.id !== id));
-  };
+  }, []);
 
-  const updateAttribute = (id: string, field: 'key' | 'value', newValue: string) => {
+  const updateAttribute = useCallback((id: string, field: 'key' | 'value', newValue: string) => {
     setAttributes(prev => 
       prev.map(attr => 
         attr.id === id ? { ...attr, [field]: newValue } : attr
       )
     );
-  };
+  }, []);
 
-  const validateAttributes = () => {
+  const validateAttributes = useCallback(() => {
     const keys = attributes.map(attr => attr.key.trim()).filter(Boolean);
     const uniqueKeys = new Set(keys);
     return keys.length === uniqueKeys.size;
-  };
+  }, [attributes]);
 
-  const getCleanAttributes = () => {
+  const getCleanAttributes = useCallback(() => {
     return attributes.filter(attr => attr.key.trim() !== '' && attr.value.trim() !== '');
-  };
+  }, [attributes]);
 
   return {
     attributes,
