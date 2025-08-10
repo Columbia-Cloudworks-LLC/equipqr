@@ -163,11 +163,12 @@ vi.mock('@/components/notifications/NotificationCenter', () => ({
 }));
 
 vi.mock('@/components/work-orders/WorkOrderForm', () => ({
-  default: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="work-order-form">
-      <button onClick={onClose}>Close Form</button>
-    </div>
-  )
+  default: ({ open, onClose }: { open: boolean; onClose: () => void }) => 
+    open ? (
+      <div data-testid="work-order-form">
+        <button onClick={onClose}>Close Form</button>
+      </div>
+    ) : null
 }));
 
 describe('WorkOrders Page', () => {
@@ -322,6 +323,23 @@ describe('WorkOrders Page', () => {
   });
 
   it('displays empty state when no work orders', () => {
+    // Ensure the mock returns empty array for this test
+    vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue({
+      filters: { 
+        searchQuery: '', 
+        statusFilter: 'all', 
+        assigneeFilter: 'all', 
+        teamFilter: 'all', 
+        priorityFilter: 'all', 
+        dueDateFilter: 'all' 
+      },
+      filteredWorkOrders: [],
+      getActiveFilterCount: vi.fn(() => 0),
+      clearAllFilters: vi.fn(),
+      applyQuickFilter: vi.fn(),
+      updateFilter: vi.fn()
+    });
+
     render(<WorkOrders />);
     
     expect(screen.getByText('No work orders found')).toBeInTheDocument();
