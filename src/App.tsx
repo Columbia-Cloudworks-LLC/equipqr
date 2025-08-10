@@ -14,7 +14,7 @@ import AppSidebar from '@/components/layout/AppSidebar';
 import TopBar from '@/components/layout/TopBar';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import Auth from '@/pages/Auth';
-import Landing from '@/pages/Landing';
+import SmartLanding from '@/components/landing/SmartLanding';
 import Dashboard from '@/pages/Dashboard';
 import Equipment from '@/pages/Equipment';
 import EquipmentDetails from '@/pages/EquipmentDetails';
@@ -58,7 +58,7 @@ function App() {
             <Router>
               <Routes>
                 {/* Public routes */}
-                <Route path="/" element={<Landing />} />
+                <Route path="/" element={<SmartLanding />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/support" element={<Support />} />
                 <Route path="/invitation/:token" element={<InvitationAccept />} />
