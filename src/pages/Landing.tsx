@@ -12,9 +12,13 @@ const Landing = () => {
       <LandingHeader />
       <main>
         <HeroSection />
-        <FeaturesSection />
-        <SocialProofSection />
-        <CTASection />
+        <FeaturesSection id="features" />
+        <div id="pricing">
+          <SocialProofSection />
+        </div>
+        <div id="about">
+          <CTASection />
+        </div>
       </main>
       <LegalFooter />
     </div>

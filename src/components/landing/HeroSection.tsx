@@ -6,7 +6,7 @@ import Logo from '@/components/ui/Logo';
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
+    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,transparent,black)] dark:bg-grid-slate-800"></div>
       
       <div className="container relative z-10 px-4 mx-auto">
@@ -56,7 +56,16 @@ const HeroSection = () => {
           <div className="mt-12 pt-8 border-t border-border">
             <p className="text-sm text-muted-foreground mb-4">Field-tested solution</p>
             <div className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">Currently deployed</span> at 3-A Equipment, a heavy equipment repair shop
+              <span className="font-semibold text-foreground">Currently deployed</span> at{' '}
+              <a 
+                href="https://3aequip.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:text-primary/80 transition-colors underline"
+              >
+                3-A Equipment
+              </a>
+              , a heavy equipment repair shop
             </div>
           </div>
         </div>

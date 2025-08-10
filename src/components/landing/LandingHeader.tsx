@@ -32,13 +32,20 @@ const LandingHeader = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navigation.map((item) => (
-              <Link
+              <a
                 key={item.name}
-                to={item.href}
+                href={item.href}
                 className="text-muted-foreground hover:text-foreground transition-colors"
+                onClick={(e) => {
+                  if (item.href.startsWith('#')) {
+                    e.preventDefault();
+                    const element = document.querySelector(item.href);
+                    element?.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
               >
                 {item.name}
-              </Link>
+              </a>
             ))}
           </div>
 
@@ -63,13 +70,20 @@ const LandingHeader = () => {
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                 <div className="flex flex-col space-y-4 mt-8">
                   {navigation.map((item) => (
-                    <Link
+                    <a
                       key={item.name}
-                      to={item.href}
+                      href={item.href}
                       className="text-lg font-medium text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={(e) => {
+                        if (item.href.startsWith('#')) {
+                          e.preventDefault();
+                          const element = document.querySelector(item.href);
+                          element?.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
                     >
                       {item.name}
-                    </Link>
+                    </a>
                   ))}
                   <div className="pt-4 border-t border-border space-y-2">
                     <Button asChild variant="ghost" className="w-full justify-start">

@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 
 const CTASection = () => {
   return (
-    <section className="py-24 bg-primary/5">
+    <section className="py-24 bg-gradient-to-br from-success/5 to-info/5">
       <div className="container px-4 mx-auto">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">

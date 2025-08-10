@@ -45,8 +45,8 @@ const features = [
   {
     icon: Shield,
     title: 'Enterprise Security',
-    description: 'Bank-grade security with advanced RBAC, audit trails, and data protection. Compliant with industry standards.',
-    benefits: ['Role-based access', 'Audit trails', 'Data encryption']
+    description: 'Advanced role-based access control, audit trails, and secure data protection. Built for enterprise compliance.',
+    benefits: ['Role-based access', 'Audit trails', 'Secure permissions']
   },
   {
     icon: Smartphone,
@@ -62,9 +62,9 @@ const features = [
   }
 ];
 
-const FeaturesSection = () => {
+const FeaturesSection = ({ id }: { id?: string }) => {
   return (
-    <section className="py-24 bg-muted/30">
+    <section id={id} className="py-24 bg-muted/30">
       <div className="container px-4 mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
@@ -76,12 +76,18 @@ const FeaturesSection = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, index) => (
-            <Card key={index} className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
-              <CardHeader className="pb-4">
-                <div className="mb-4">
-                  <feature.icon className="h-8 w-8 text-primary" />
-                </div>
+          {features.map((feature, index) => {
+            const getIconColor = (index: number) => {
+              const colors = ['text-primary', 'text-info', 'text-success', 'text-warning'];
+              return colors[index % colors.length];
+            };
+            
+            return (
+              <Card key={index} className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+                <CardHeader className="pb-4">
+                  <div className="mb-4">
+                    <feature.icon className={`h-8 w-8 ${getIconColor(index)}`} />
+                  </div>
                 <CardTitle className="text-xl">{feature.title}</CardTitle>
                 <CardDescription className="text-sm">
                   {feature.description}
@@ -98,7 +104,8 @@ const FeaturesSection = () => {
                 </ul>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

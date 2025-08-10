@@ -25,7 +25,16 @@ const SocialProofSection = () => {
                   <Building className="h-12 w-12 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-foreground mb-2">3-A Equipment</h3>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">
+                    <a 
+                      href="https://3aequip.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:text-primary/80 transition-colors underline"
+                    >
+                      3-A Equipment
+                    </a>
+                  </h3>
                   <Badge variant="secondary" className="mb-4">Heavy Equipment Repair Shop</Badge>
                   <p className="text-muted-foreground leading-relaxed">
                     "EquipQR has streamlined how we manage our heavy equipment. The QR code system makes it easy for our technicians to access equipment records and update maintenance status right from their phones in the field."
