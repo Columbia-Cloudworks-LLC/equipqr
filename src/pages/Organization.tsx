@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
-import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import { useOptimizedOrganizationMembers } from '@/hooks/useOptimizedOrganizationMembers';
 import { useOrganizationStats } from '@/hooks/useOrganizationStats';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
@@ -19,7 +19,7 @@ const Organization = () => {
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
   // Custom hooks for data and business logic
-  const { data: members = [], isLoading: membersLoading } = useOrganizationMembers(currentOrganization?.id || '');
+  const { data: members = [], isLoading: membersLoading } = useOptimizedOrganizationMembers(currentOrganization?.id || '');
   const { data: orgAdmins = [], isLoading: adminsLoading } = useOrganizationAdmins(currentOrganization?.id || '');
   const { data: fleetMapSubscription } = useFleetMapSubscription(currentOrganization?.id || '');
   const organizationStats = useOrganizationStats(currentOrganization);

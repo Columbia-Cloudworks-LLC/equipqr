@@ -17,6 +17,169 @@ import { useUpdateMemberRole, useRemoveMember, type RealOrganizationMember } fro
 import OptimizedVirtualizedList from "@/components/performance/OptimizedVirtualizedList";
 import { toast } from "sonner";
 
+// Move components outside to prevent re-creation on every render
+const MobileListItem = React.memo<{
+  member: RealOrganizationMember;
+  index: number;
+  currentUserRole: 'owner' | 'admin' | 'member';
+  ownerCount: number;
+  onRoleChange: (memberId: string, newRole: 'admin' | 'member') => void;
+  onRemoveMember: (member: RealOrganizationMember) => void;
+  updateMemberRole: any;
+  getRoleBadgeVariant: (role: string) => any;
+  getStatusBadgeVariant: (status: string) => any;
+}>(({ member, currentUserRole, ownerCount, onRoleChange, onRemoveMember, updateMemberRole, getRoleBadgeVariant, getStatusBadgeVariant }) => {
+  const canEdit = currentUserRole === 'owner' || (currentUserRole === 'admin' && member.role !== 'owner');
+  const canRemove = (currentUserRole === 'owner' && member.role !== 'owner') || (currentUserRole === 'admin' && member.role === 'member');
+  const isLastOwnerCheck = member.role === 'owner' && ownerCount === 1;
+  
+  return (
+    <div className="flex items-center justify-between p-4 border-b border-border last:border-b-0">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar className="h-10 w-10 shrink-0">
+          <AvatarImage src={member.avatar} alt={member.name} />
+          <AvatarFallback>
+            {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-medium truncate">{member.name}</p>
+            <Badge variant={getRoleBadgeVariant(member.role)} className="text-xs">
+              {member.role}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground truncate">{member.email}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge variant={getStatusBadgeVariant(member.status)} className="text-xs">
+              {member.status}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {new Date(member.joinedDate).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+      </div>
+      {canEdit && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0 shrink-0">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {member.role !== 'owner' && (
+              <DropdownMenuItem
+                onSelect={() => onRoleChange(member.id, member.role === 'admin' ? 'member' : 'admin')}
+                disabled={updateMemberRole.isPending}
+              >
+                Change to {member.role === 'admin' ? 'Member' : 'Admin'}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onSelect={() => onRemoveMember(member)}
+              disabled={!canRemove || isLastOwnerCheck}
+              className="text-destructive disabled:text-muted-foreground"
+            >
+              <UserMinus className="mr-2 h-4 w-4" />
+              Remove Member
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
+});
+
+const DesktopTableRow = React.memo<{
+  member: RealOrganizationMember;
+  index: number;
+  currentUserRole: 'owner' | 'admin' | 'member';
+  ownerCount: number;
+  onRoleChange: (memberId: string, newRole: 'admin' | 'member') => void;
+  onRemoveMember: (member: RealOrganizationMember) => void;
+  updateMemberRole: any;
+  getRoleBadgeVariant: (role: string) => any;
+  getStatusBadgeVariant: (status: string) => any;
+}>(({ member, currentUserRole, ownerCount, onRoleChange, onRemoveMember, updateMemberRole, getRoleBadgeVariant, getStatusBadgeVariant }) => {
+  const canEdit = currentUserRole === 'owner' || (currentUserRole === 'admin' && member.role !== 'owner');
+  const canRemove = (currentUserRole === 'owner' && member.role !== 'owner') || (currentUserRole === 'admin' && member.role === 'member');
+  const isLastOwnerCheck = member.role === 'owner' && ownerCount === 1;
+  
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={member.avatar} alt={member.name} />
+            <AvatarFallback>
+              {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium">{member.name}</p>
+            <p className="text-sm text-muted-foreground">{member.email}</p>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant={getRoleBadgeVariant(member.role)}>
+          {member.role}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <Badge variant={getStatusBadgeVariant(member.status)}>
+          {member.status}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {new Date(member.joinedDate).toLocaleDateString()}
+      </TableCell>
+      <TableCell>
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            {member.role !== 'owner' && (
+              <Select
+                value={member.role}
+                onValueChange={(value) => onRoleChange(member.id, value as 'admin' | 'member')}
+                disabled={updateMemberRole.isPending}
+              >
+                <SelectTrigger className="w-20 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="member">Member</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRemoveMember(member)}
+                  disabled={!canRemove || isLastOwnerCheck}
+                  className="h-8 w-8 p-0 text-destructive disabled:text-muted-foreground"
+                >
+                  <UserMinus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              {(!canRemove || isLastOwnerCheck) && (
+                <TooltipContent>
+                  {isLastOwnerCheck 
+                    ? "Cannot remove the last owner" 
+                    : "Insufficient permissions to remove this member"}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </div>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+});
+
 interface OptimizedMembersListProps {
   members: RealOrganizationMember[];
   organizationId: string;
@@ -131,149 +294,6 @@ export default function OptimizedMembersList({
     }
   };
 
-  // Mobile list item component - removed useCallback to fix infinite re-render
-  const MobileListItem = ({ member, index }: { member: RealOrganizationMember; index: number }) => {
-    const canEdit = currentUserRole === 'owner' || (currentUserRole === 'admin' && member.role !== 'owner');
-    const canRemove = (currentUserRole === 'owner' && member.role !== 'owner') || (currentUserRole === 'admin' && member.role === 'member');
-    const isLastOwnerCheck = member.role === 'owner' && ownerCount === 1;
-    
-    return (
-      <div className="flex items-center justify-between p-4 border-b border-border last:border-b-0">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Avatar className="h-10 w-10 shrink-0">
-            <AvatarImage src={member.avatar} alt={member.name} />
-            <AvatarFallback>
-              {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="font-medium truncate">{member.name}</p>
-              <Badge variant={getRoleBadgeVariant(member.role)} className="text-xs">
-                {member.role}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground truncate">{member.email}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant={getStatusBadgeVariant(member.status)} className="text-xs">
-                {member.status}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                {new Date(member.joinedDate).toLocaleDateString()}
-              </span>
-            </div>
-          </div>
-        </div>
-        {canEdit && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0 shrink-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {member.role !== 'owner' && (
-                <DropdownMenuItem
-                  onSelect={() => handleRoleChange(member.id, member.role === 'admin' ? 'member' : 'admin')}
-                  disabled={updateMemberRole.isPending}
-                >
-                  Change to {member.role === 'admin' ? 'Member' : 'Admin'}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem
-                onSelect={() => setMemberToRemove(member)}
-                disabled={!canRemove || isLastOwnerCheck}
-                className="text-destructive disabled:text-muted-foreground"
-              >
-                <UserMinus className="mr-2 h-4 w-4" />
-                Remove Member
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-    );
-  };
-
-  // Desktop table row component - removed useCallback to fix infinite re-render
-  const DesktopTableRow = ({ member, index }: { member: RealOrganizationMember; index: number }) => {
-    const canEdit = currentUserRole === 'owner' || (currentUserRole === 'admin' && member.role !== 'owner');
-    const canRemove = (currentUserRole === 'owner' && member.role !== 'owner') || (currentUserRole === 'admin' && member.role === 'member');
-    const isLastOwnerCheck = member.role === 'owner' && ownerCount === 1;
-    
-    return (
-      <TableRow>
-        <TableCell>
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={member.avatar} alt={member.name} />
-              <AvatarFallback>
-                {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium">{member.name}</p>
-              <p className="text-sm text-muted-foreground">{member.email}</p>
-            </div>
-          </div>
-        </TableCell>
-        <TableCell>
-          <Badge variant={getRoleBadgeVariant(member.role)}>
-            {member.role}
-          </Badge>
-        </TableCell>
-        <TableCell>
-          <Badge variant={getStatusBadgeVariant(member.status)}>
-            {member.status}
-          </Badge>
-        </TableCell>
-        <TableCell className="text-sm text-muted-foreground">
-          {new Date(member.joinedDate).toLocaleDateString()}
-        </TableCell>
-        <TableCell>
-          {canEdit && (
-            <div className="flex items-center gap-2">
-              {member.role !== 'owner' && (
-                <Select
-                  value={member.role}
-                  onValueChange={(value) => handleRoleChange(member.id, value as 'admin' | 'member')}
-                  disabled={updateMemberRole.isPending}
-                >
-                  <SelectTrigger className="w-20 h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="member">Member</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setMemberToRemove(member)}
-                    disabled={!canRemove || isLastOwnerCheck}
-                    className="h-8 w-8 p-0 text-destructive disabled:text-muted-foreground"
-                  >
-                    <UserMinus className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                {(!canRemove || isLastOwnerCheck) && (
-                  <TooltipContent>
-                    {isLastOwnerCheck 
-                      ? "Cannot remove the last owner" 
-                      : "Insufficient permissions to remove this member"}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </div>
-          )}
-        </TableCell>
-      </TableRow>
-    );
-  };
 
   if (isLoading) {
     return (
@@ -357,14 +377,35 @@ export default function OptimizedMembersList({
               itemHeight={MOBILE_ITEM_HEIGHT}
               height={400}
               renderItem={(member: RealOrganizationMember, index: number) => (
-                <MobileListItem member={member} index={index} />
+                <MobileListItem 
+                  member={member} 
+                  index={index}
+                  currentUserRole={currentUserRole}
+                  ownerCount={ownerCount}
+                  onRoleChange={handleRoleChange}
+                  onRemoveMember={setMemberToRemove}
+                  updateMemberRole={updateMemberRole}
+                  getRoleBadgeVariant={getRoleBadgeVariant}
+                  getStatusBadgeVariant={getStatusBadgeVariant}
+                />
               )}
               className="border border-border rounded-lg"
             />
           ) : (
             <div className="border border-border rounded-lg">
               {filteredMembers.map((member, index) => (
-                <MobileListItem key={member.id} member={member} index={index} />
+                <MobileListItem 
+                  key={member.id} 
+                  member={member} 
+                  index={index}
+                  currentUserRole={currentUserRole}
+                  ownerCount={ownerCount}
+                  onRoleChange={handleRoleChange}
+                  onRemoveMember={setMemberToRemove}
+                  updateMemberRole={updateMemberRole}
+                  getRoleBadgeVariant={getRoleBadgeVariant}
+                  getStatusBadgeVariant={getStatusBadgeVariant}
+                />
               ))}
             </div>
           )
@@ -391,7 +432,17 @@ export default function OptimizedMembersList({
                   <div className="w-full">
                     <Table>
                       <TableBody>
-                        <DesktopTableRow member={member} index={index} />
+                        <DesktopTableRow 
+                          member={member} 
+                          index={index}
+                          currentUserRole={currentUserRole}
+                          ownerCount={ownerCount}
+                          onRoleChange={handleRoleChange}
+                          onRemoveMember={setMemberToRemove}
+                          updateMemberRole={updateMemberRole}
+                          getRoleBadgeVariant={getRoleBadgeVariant}
+                          getStatusBadgeVariant={getStatusBadgeVariant}
+                        />
                       </TableBody>
                     </Table>
                   </div>
@@ -412,7 +463,18 @@ export default function OptimizedMembersList({
                 </TableHeader>
                 <TableBody>
                   {filteredMembers.map((member, index) => (
-                    <DesktopTableRow key={member.id} member={member} index={index} />
+                    <DesktopTableRow 
+                      key={member.id} 
+                      member={member} 
+                      index={index}
+                      currentUserRole={currentUserRole}
+                      ownerCount={ownerCount}
+                      onRoleChange={handleRoleChange}
+                      onRemoveMember={setMemberToRemove}
+                      updateMemberRole={updateMemberRole}
+                      getRoleBadgeVariant={getRoleBadgeVariant}
+                      getStatusBadgeVariant={getStatusBadgeVariant}
+                    />
                   ))}
                 </TableBody>
               </Table>
