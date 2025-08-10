@@ -18,7 +18,7 @@ const HeroSection = () => {
           
           {/* Main Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6">
-            Heavy Equipment Management Made Simple
+            Equipment Management Made Simple
           </h1>
           
           {/* Subheadline */}
