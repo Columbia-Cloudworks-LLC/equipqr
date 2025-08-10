@@ -65,6 +65,12 @@ export default function OptimizedMembersList({
     return filtered;
   }, [searchFilteredMembers, roleFilter, statusFilter]);
 
+  // Memoize owner count to prevent recalculation on every render
+  const ownerCount = useMemo(() => 
+    members.filter(m => m.role === 'owner').length, 
+    [members]
+  );
+
   // Permission checks
   const canEditMember = useCallback((member: RealOrganizationMember): boolean => {
     if (currentUserRole === 'owner') return true;
@@ -79,9 +85,8 @@ export default function OptimizedMembersList({
   }, [currentUserRole]);
 
   const isLastOwner = useCallback((member: RealOrganizationMember): boolean => {
-    const ownerCount = members.filter(m => m.role === 'owner').length;
     return member.role === 'owner' && ownerCount === 1;
-  }, [members]);
+  }, [ownerCount]);
 
   // Handlers
   const handleRoleChange = useCallback(async (memberId: string, newRole: 'admin' | 'member') => {
