@@ -16,6 +16,7 @@ import { useDebouncedSearch } from "@/hooks/useDebounced";
 import { useUpdateMemberRole, useRemoveMember, type RealOrganizationMember } from "@/hooks/useOptimizedOrganizationMembers";
 import OptimizedVirtualizedList from "@/components/performance/OptimizedVirtualizedList";
 import { toast } from "sonner";
+import { type UseMutationResult } from "@tanstack/react-query";
 
 // Move components outside to prevent re-creation on every render
 const MobileListItem = React.memo<{
@@ -25,9 +26,9 @@ const MobileListItem = React.memo<{
   ownerCount: number;
   onRoleChange: (memberId: string, newRole: 'admin' | 'member') => void;
   onRemoveMember: (member: RealOrganizationMember) => void;
-  updateMemberRole: any;
-  getRoleBadgeVariant: (role: string) => any;
-  getStatusBadgeVariant: (status: string) => any;
+  updateMemberRole: UseMutationResult<any, Error, { memberId: string; newRole: 'admin' | 'member' }, unknown>;
+  getRoleBadgeVariant: (role: string) => 'default' | 'secondary' | 'outline';
+  getStatusBadgeVariant: (status: string) => 'default' | 'secondary' | 'destructive' | 'outline';
 }>(({ member, currentUserRole, ownerCount, onRoleChange, onRemoveMember, updateMemberRole, getRoleBadgeVariant, getStatusBadgeVariant }) => {
   const canEdit = currentUserRole === 'owner' || (currentUserRole === 'admin' && member.role !== 'owner');
   const canRemove = (currentUserRole === 'owner' && member.role !== 'owner') || (currentUserRole === 'admin' && member.role === 'member');
@@ -98,9 +99,9 @@ const DesktopTableRow = React.memo<{
   ownerCount: number;
   onRoleChange: (memberId: string, newRole: 'admin' | 'member') => void;
   onRemoveMember: (member: RealOrganizationMember) => void;
-  updateMemberRole: any;
-  getRoleBadgeVariant: (role: string) => any;
-  getStatusBadgeVariant: (status: string) => any;
+  updateMemberRole: UseMutationResult<any, Error, { memberId: string; newRole: 'admin' | 'member' }, unknown>;
+  getRoleBadgeVariant: (role: string) => 'default' | 'secondary' | 'outline';
+  getStatusBadgeVariant: (status: string) => 'default' | 'secondary' | 'destructive' | 'outline';
 }>(({ member, currentUserRole, ownerCount, onRoleChange, onRemoveMember, updateMemberRole, getRoleBadgeVariant, getStatusBadgeVariant }) => {
   const canEdit = currentUserRole === 'owner' || (currentUserRole === 'admin' && member.role !== 'owner');
   const canRemove = (currentUserRole === 'owner' && member.role !== 'owner') || (currentUserRole === 'admin' && member.role === 'member');
