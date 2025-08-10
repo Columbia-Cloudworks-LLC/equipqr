@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Wrench, Users, ClipboardList, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
-import { useDashboardStats, useEquipmentByOrganization, useAllWorkOrders } from '@/hooks/useSupabaseData';
+import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/hooks/useTeamBasedDashboard';
 import { Badge } from '@/components/ui/badge';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -11,11 +11,12 @@ const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
   const organizationId = currentOrganization?.id;
   
-  const { data: stats, isLoading: statsLoading } = useDashboardStats(organizationId);
-  const { data: equipment, isLoading: equipmentLoading } = useEquipmentByOrganization(organizationId);
-  const { data: workOrders, isLoading: workOrdersLoading } = useAllWorkOrders(organizationId);
+  const { hasTeamAccess, isLoading: accessLoading } = useTeamBasedDashboardAccess();
+  const { data: stats, isLoading: statsLoading } = useTeamBasedDashboardStats(organizationId);
+  const { data: equipment, isLoading: equipmentLoading } = useTeamBasedEquipment(organizationId);
+  const { data: workOrders, isLoading: workOrdersLoading } = useTeamBasedRecentWorkOrders(organizationId);
 
-  const isLoading = orgLoading || statsLoading;
+  const isLoading = orgLoading || statsLoading || accessLoading;
 
   // Debug logging for organization context
   useEffect(() => {
@@ -31,6 +32,28 @@ const Dashboard = () => {
             Please select an organization to view your dashboard.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // Show message for users without team access
+  if (!isLoading && !hasTeamAccess) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome to {currentOrganization.name}
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Welcome to {currentOrganization.name}</CardTitle>
+            <CardDescription>
+              You are not yet a member of any teams in {currentOrganization.name}. Contact an organization administrator to give you a role on a team to see equipment and work orders for that team.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
