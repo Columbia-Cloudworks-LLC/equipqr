@@ -58,7 +58,7 @@ const HeroSection = () => {
             <div className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Currently deployed</span> at{' '}
               <a 
-                href="https://3aequip.com" 
+                href="https://3aequip.columbiacloudworks.com/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary hover:text-primary/80 transition-colors underline"
