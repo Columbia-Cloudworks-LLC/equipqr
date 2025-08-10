@@ -7,8 +7,10 @@ import * as useSimpleOrganizationModule from '@/hooks/useSimpleOrganization';
 import * as useTeamBasedDashboardModule from '@/hooks/useTeamBasedDashboard';
 import { DashboardStats, Equipment, WorkOrder, TestOrganization } from '@/test/types/test-types';
 
-// Mock query result type
-type MockQueryResult<T> = UseQueryResult<T, Error>;
+// Mock query result type for testing
+// Note: Using 'any' here is acceptable for test mocks to avoid complex UseQueryResult typing
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MockQueryResult = any;
 
 // Mock all context dependencies first
 vi.mock('@/contexts/AuthContext', () => ({
@@ -202,7 +204,7 @@ describe('Dashboard', () => {
       isSuccess: true,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as MockQueryResult);
 
     vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
       data: [],
@@ -213,7 +215,7 @@ describe('Dashboard', () => {
       isSuccess: true,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as MockQueryResult);
 
     vi.mocked(useTeamBasedDashboardModule.useTeamBasedRecentWorkOrders).mockReturnValue({
       data: [],
@@ -224,7 +226,7 @@ describe('Dashboard', () => {
       isSuccess: true,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as MockQueryResult);
   });
 
   it('renders dashboard title', () => {
@@ -270,7 +272,7 @@ describe('Dashboard', () => {
       isSuccess: false,
       refetch: vi.fn(),
       fetchStatus: 'fetching'
-    } as any);
+    } as MockQueryResult);
 
     render(<Dashboard />);
     
@@ -305,7 +307,7 @@ describe('Dashboard', () => {
       isSuccess: true,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as MockQueryResult);
 
     vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
       data: [
@@ -320,7 +322,7 @@ describe('Dashboard', () => {
       isSuccess: true,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as MockQueryResult);
 
     render(<Dashboard />);
     
@@ -349,7 +351,7 @@ describe('Dashboard', () => {
       isSuccess: true,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as MockQueryResult);
 
     vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
       data: [],
@@ -360,7 +362,7 @@ describe('Dashboard', () => {
       isSuccess: true,
       refetch: vi.fn(),
       fetchStatus: 'idle'
-    } as any);
+    } as MockQueryResult);
 
     render(<Dashboard />);
     

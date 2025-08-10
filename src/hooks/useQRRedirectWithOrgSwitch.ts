@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/hooks/useSession';
 import { getEquipmentOrganization, checkUserHasMultipleOrganizations, EquipmentOrganizationInfo } from '@/services/equipmentOrganizationService';
@@ -39,7 +39,7 @@ export const useQRRedirectWithOrgSwitch = ({
   const [isSwitchingOrg, setIsSwitchingOrg] = useState(false);
   const [hasCalledComplete, setHasCalledComplete] = useState(false);
 
-  const checkEquipmentOrganization = async () => {
+  const checkEquipmentOrganization = useCallback(async () => {
     if (!equipmentId || !user) return;
 
     try {
@@ -117,7 +117,7 @@ export const useQRRedirectWithOrgSwitch = ({
         targetPath: '/scanner'
       }));
     }
-  };
+  }, [equipmentId, user, getCurrentOrganization, refreshSession]);
 
   useEffect(() => {
     if (!equipmentId) {

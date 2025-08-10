@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useSession } from '@/hooks/useSession';
 import { useAuth } from '@/contexts/AuthContext';
 import { permissionEngine } from '@/services/permissions/PermissionEngine';
@@ -35,16 +35,16 @@ export const useUnifiedPermissions = () => {
   }, [currentOrganization, user, userTeamIds, canManageTeam]);
 
   // Helper functions
-  const hasPermission = (permission: string, entityContext?: { teamId?: string; assigneeId?: string; status?: string; createdBy?: string }): boolean => {
+  const hasPermission = useCallback((permission: string, entityContext?: { teamId?: string; assigneeId?: string; status?: string; createdBy?: string }): boolean => {
     if (!userContext) return false;
     return permissionEngine.hasPermission(permission, userContext, entityContext);
-  };
+  }, [userContext]);
 
-  const hasRole = (roles: string | string[]): boolean => {
+  const hasRole = useCallback((roles: string | string[]): boolean => {
     if (!userContext) return false;
     const roleArray = Array.isArray(roles) ? roles : [roles];
     return roleArray.includes(userContext.userRole);
-  };
+  }, [userContext]);
 
   const isTeamMember = (teamId: string): boolean => {
     return hasTeamAccess(teamId);
