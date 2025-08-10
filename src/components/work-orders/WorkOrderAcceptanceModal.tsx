@@ -19,11 +19,11 @@ interface WorkOrderAcceptanceModalProps {
     id: string;
     title: string;
     description: string;
-    equipment_id: string;
+    equipmentId: string;
     status: string;
-    team_id?: string;
-    assignee_id?: string;
-    created_by?: string;
+    teamId?: string;
+    assigneeId?: string;
+    createdByName?: string;
   };
   organizationId: string;
   onAccept: (assigneeId?: string) => Promise<void>;
@@ -51,7 +51,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
   const { data: organizationMembers = [] } = useOrganizationMembers(organizationId);
   const { data: organizationAdmins = [] } = useOrganizationAdmins(organizationId);
   const { data: teams = [] } = useSyncTeamsByOrganization(organizationId);
-  const { data: equipment } = useSyncEquipmentById(organizationId, workOrder?.equipment_id);
+  const { data: equipment } = useSyncEquipmentById(organizationId, workOrder?.equipmentId);
 
   // Get current user info
   const isSingleUserOrg = organizationMembers.length === 1;

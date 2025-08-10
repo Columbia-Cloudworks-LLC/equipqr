@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UseQueryResult } from '@tanstack/react-query';
 import Dashboard from '../Dashboard';
 import * as useSupabaseDataModule from '@/hooks/useSupabaseData';
-import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
+import * as useSimpleOrganizationModule from '@/hooks/useSimpleOrganization';
 import * as usePermissionsModule from '@/hooks/usePermissions';
 import { DashboardStats, Equipment, WorkOrder, TestOrganization } from '@/test/types/test-types';
 
