@@ -27,7 +27,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock all contexts and hooks
-vi.mock('@/contexts/SessionContext', () => ({
+vi.mock('@/hooks/useSession', () => ({
   useSession: vi.fn()
 }));
 
@@ -45,10 +45,17 @@ import { useSession } from '@/hooks/useSession';
 import { useTeams, useTeamMutations } from '@/hooks/useTeamManagement';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 
-const mockUseSession = vi.mocked(useSession);
-const mockUseTeams = vi.mocked(useTeams);
-const mockUseTeamMutations = vi.mocked(useTeamMutations);
-const mockUseUnifiedPermissions = vi.mocked(useUnifiedPermissions);
+// Create stable mock functions
+const mockUseSession = vi.fn();
+const mockUseTeams = vi.fn();
+const mockUseTeamMutations = vi.fn();
+const mockUseUnifiedPermissions = vi.fn();
+
+// Apply mocks to the actual imports
+vi.mocked(useSession).mockImplementation(mockUseSession);
+vi.mocked(useTeams).mockImplementation(mockUseTeams);
+vi.mocked(useTeamMutations).mockImplementation(mockUseTeamMutations);
+vi.mocked(useUnifiedPermissions).mockImplementation(mockUseUnifiedPermissions);
 
 // Test data
 const mockOrganization = {

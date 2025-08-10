@@ -110,12 +110,19 @@ vi.mock('@/hooks/useSupabaseData', () => ({
   }))
 }));
 
-vi.mock('@/contexts/SimpleOrganizationContext', () => ({
+vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn(() => ({
     currentOrganization: {
       id: 'org-1',
       name: 'Test Organization'
-    }
+    },
+    organizations: [],
+    userOrganizations: [],
+    setCurrentOrganization: vi.fn(),
+    switchOrganization: vi.fn(),
+    isLoading: false,
+    error: null,
+    refetch: vi.fn()
   }))
 }));
 
@@ -162,7 +169,8 @@ describe('Dashboard', () => {
   });
 
   it('renders organization selection prompt when no organization', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+    const mockHook = vi.mocked(useSimpleOrganizationModule.useSimpleOrganization);
+    mockHook.mockReturnValue({
       organizations: [],
       userOrganizations: [],
       currentOrganization: null,
@@ -179,7 +187,8 @@ describe('Dashboard', () => {
   });
 
   it('renders dashboard content when organization is selected', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+    const mockHook = vi.mocked(useSimpleOrganizationModule.useSimpleOrganization);
+    mockHook.mockReturnValue({
       organizations: [{ 
         id: 'org-1', 
         name: 'Test Organization', 
@@ -238,7 +247,8 @@ describe('Dashboard', () => {
   });
 
   it('displays loading state correctly', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+    const mockHook = vi.mocked(useSimpleOrganizationModule.useSimpleOrganization);
+    mockHook.mockReturnValue({
       organizations: [],
       userOrganizations: [],
       currentOrganization: { 
@@ -279,7 +289,8 @@ describe('Dashboard', () => {
   });
 
   it('shows equipment statistics when data is available', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+    const mockHook = vi.mocked(useSimpleOrganizationModule.useSimpleOrganization);
+    mockHook.mockReturnValue({
       organizations: [{ 
         id: 'org-1', 
         name: 'Test Organization', 
@@ -346,7 +357,8 @@ describe('Dashboard', () => {
   });
 
   it('handles empty data states gracefully', () => {
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+    const mockHook = vi.mocked(useSimpleOrganizationModule.useSimpleOrganization);
+    mockHook.mockReturnValue({
       organizations: [{ 
         id: 'org-1', 
         name: 'Test Organization', 
