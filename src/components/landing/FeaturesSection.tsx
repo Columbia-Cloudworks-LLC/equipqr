@@ -40,7 +40,8 @@ const features = [
     icon: BarChart3,
     title: 'Analytics & Reports',
     description: 'Comprehensive dashboards and reports providing insights into equipment utilization, maintenance costs, and team performance.',
-    benefits: ['Performance metrics', 'Cost analysis', 'Predictive insights']
+    benefits: ['Performance metrics', 'Cost analysis', 'Predictive insights'],
+    developmentNotice: 'Currently under active development'
   },
   {
     icon: Shield,
@@ -58,7 +59,8 @@ const features = [
     icon: FileText,
     title: 'Documentation Hub',
     description: 'Centralized storage for manuals, warranties, certifications, and maintenance records. Always accessible in the field.',
-    benefits: ['Document management', 'Version control', 'Field accessibility']
+    benefits: ['Document management', 'Version control', 'Field accessibility'],
+    developmentNotice: 'Currently under active development'
   }
 ];
 
@@ -102,6 +104,13 @@ const FeaturesSection = ({ id }: { id?: string }) => {
                     </li>
                   ))}
                 </ul>
+                {feature.developmentNotice && (
+                  <div className="mt-4 pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground/70 italic">
+                      {feature.developmentNotice}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
             );
