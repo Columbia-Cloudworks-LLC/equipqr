@@ -18,6 +18,18 @@ import OptimizedVirtualizedList from "@/components/performance/OptimizedVirtuali
 import { toast } from "sonner";
 import { type UseMutationResult } from "@tanstack/react-query";
 
+// Type for organization member record returned from Supabase
+type OrganizationMemberRecord = {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  role: string;
+  status: string;
+  joined_date: string;
+  slot_purchase_id: string | null;
+  activated_slot_at: string | null;
+};
+
 // Move components outside to prevent re-creation on every render
 const MobileListItem = React.memo<{
   member: RealOrganizationMember;
@@ -26,7 +38,7 @@ const MobileListItem = React.memo<{
   ownerCount: number;
   onRoleChange: (memberId: string, newRole: 'admin' | 'member') => void;
   onRemoveMember: (member: RealOrganizationMember) => void;
-  updateMemberRole: UseMutationResult<any, Error, { memberId: string; newRole: 'admin' | 'member' }, unknown>;
+  updateMemberRole: UseMutationResult<OrganizationMemberRecord, Error, { memberId: string; newRole: 'admin' | 'member' }, unknown>;
   getRoleBadgeVariant: (role: string) => 'default' | 'secondary' | 'outline';
   getStatusBadgeVariant: (status: string) => 'default' | 'secondary' | 'destructive' | 'outline';
 }>(({ member, currentUserRole, ownerCount, onRoleChange, onRemoveMember, updateMemberRole, getRoleBadgeVariant, getStatusBadgeVariant }) => {
@@ -99,7 +111,7 @@ const DesktopTableRow = React.memo<{
   ownerCount: number;
   onRoleChange: (memberId: string, newRole: 'admin' | 'member') => void;
   onRemoveMember: (member: RealOrganizationMember) => void;
-  updateMemberRole: UseMutationResult<any, Error, { memberId: string; newRole: 'admin' | 'member' }, unknown>;
+  updateMemberRole: UseMutationResult<OrganizationMemberRecord, Error, { memberId: string; newRole: 'admin' | 'member' }, unknown>;
   getRoleBadgeVariant: (role: string) => 'default' | 'secondary' | 'outline';
   getStatusBadgeVariant: (status: string) => 'default' | 'secondary' | 'destructive' | 'outline';
 }>(({ member, currentUserRole, ownerCount, onRoleChange, onRemoveMember, updateMemberRole, getRoleBadgeVariant, getStatusBadgeVariant }) => {
