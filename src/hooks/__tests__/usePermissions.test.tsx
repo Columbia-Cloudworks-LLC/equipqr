@@ -39,7 +39,7 @@ vi.mock('@/hooks/useSession', () => ({
   }))
 }));
 
-vi.mock('@/contexts/SimpleOrganizationContext', () => ({
+vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn()
 }));
 
@@ -289,7 +289,7 @@ describe('usePermissions', () => {
     it('should handle empty members array', () => {
       const orgWithNoMembers = createTestOrganization('admin');
       // Remove members property to test edge case
-      delete (orgWithNoMembers as any).members;
+      delete (orgWithNoMembers as unknown as { members?: unknown }).members;
       
       mockUseSimpleOrganization.mockReturnValue(
         createMockSimpleOrganizationContext(orgWithNoMembers)

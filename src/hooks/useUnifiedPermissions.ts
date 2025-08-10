@@ -61,7 +61,7 @@ export const useUnifiedPermissions = () => {
     canCreateTeams: hasPermission('organization.manage'),
     canViewBilling: hasRole(['owner', 'admin']),
     canManageMembers: hasRole(['owner', 'admin'])
-  }), [userContext, hasPermission, hasRole]);
+  }), [hasPermission, hasRole]);
 
   // Equipment permissions
   const equipment = {

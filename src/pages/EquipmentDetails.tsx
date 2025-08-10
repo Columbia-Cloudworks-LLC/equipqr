@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,22 +38,7 @@ const EquipmentDetails = () => {
 
   const isLoading = orgLoading || equipmentLoading;
 
-  // Detect if this page was accessed via QR code scan
-  useEffect(() => {
-    const isQRScan = searchParams.get('qr') === 'true';
-    
-    if (isQRScan && equipment && equipmentId && currentOrganization && !scanLogged) {
-      // Show success message for QR scan
-      toast.success('QR Code scanned successfully!', {
-        description: `Viewing ${equipment.name} in ${currentOrganization.name}`,
-        duration: 4000
-      });
-      
-      logScan();
-    }
-  }, [equipment, equipmentId, currentOrganization, searchParams, scanLogged]);
-
-  const logScan = async () => {
+  const logScan = useCallback(async () => {
     if (!equipmentId || !currentOrganization || scanLogged) {
       return;
     }
@@ -116,7 +101,22 @@ const EquipmentDetails = () => {
       console.error('Unexpected error during scan logging:', error);
       toast.error('Failed to log scan');
     }
-  };
+  }, [equipmentId, currentOrganization, scanLogged, createScanMutation]);
+
+  // Detect if this page was accessed via QR code scan
+  useEffect(() => {
+    const isQRScan = searchParams.get('qr') === 'true';
+    
+    if (isQRScan && equipment && equipmentId && currentOrganization && !scanLogged) {
+      // Show success message for QR scan
+      toast.success('QR Code scanned successfully!', {
+        description: `Viewing ${equipment.name} in ${currentOrganization.name}`,
+        duration: 4000
+      });
+      
+      logScan();
+    }
+  }, [equipment, equipmentId, currentOrganization, searchParams, scanLogged, logScan]);
 
   const handleCreateWorkOrder = () => {
     setIsWorkOrderFormOpen(true);

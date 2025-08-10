@@ -124,26 +124,38 @@ export const createMinimalWorkOrder = (
 /**
  * Type guard to check if an object has the required WorkOrderData properties
  */
-export const isWorkOrderData = (obj: any): obj is WorkOrderData => {
-  return obj && 
-    typeof obj.id === 'string' &&
-    typeof obj.title === 'string' &&
-    typeof obj.description === 'string' &&
-    typeof obj.equipmentId === 'string' &&
-    typeof obj.organizationId === 'string' &&
-    typeof obj.status === 'string';
+export const isWorkOrderData = (obj: unknown): obj is WorkOrderData => {
+  return obj !== null &&
+    typeof obj === 'object' &&
+    'id' in obj &&
+    'title' in obj &&
+    'description' in obj &&
+    'equipmentId' in obj &&
+    'organizationId' in obj &&
+    'status' in obj &&
+    typeof (obj as Record<string, unknown>).id === 'string' &&
+    typeof (obj as Record<string, unknown>).title === 'string' &&
+    typeof (obj as Record<string, unknown>).description === 'string' &&
+    typeof (obj as Record<string, unknown>).equipmentId === 'string' &&
+    typeof (obj as Record<string, unknown>).organizationId === 'string' &&
+    typeof (obj as Record<string, unknown>).status === 'string';
 };
 
 /**
  * Safe converter that ensures we always get a valid WorkOrderData object
  */
-export const ensureWorkOrderData = (workOrder: any): WorkOrderData => {
+export const ensureWorkOrderData = (workOrder: unknown): WorkOrderData => {
   if (isWorkOrderData(workOrder)) {
     return workOrder;
   }
   
   // If it's a work order-like object, convert it
-  if (workOrder && typeof workOrder.id === 'string' && workOrder.status) {
+  if (workOrder && 
+      typeof workOrder === 'object' && 
+      'id' in workOrder && 
+      'status' in workOrder &&
+      typeof (workOrder as Record<string, unknown>).id === 'string' && 
+      (workOrder as Record<string, unknown>).status) {
     return convertToWorkOrderData(workOrder as WorkOrderLike);
   }
   

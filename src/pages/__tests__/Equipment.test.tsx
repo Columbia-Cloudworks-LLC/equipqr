@@ -4,7 +4,7 @@ import React from 'react';
 import Equipment from '@/pages/Equipment';
 import { render } from '@/test/utils/test-utils';
 
-vi.mock('@/contexts/SimpleOrganizationContext', () => ({
+vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn(() => ({ currentOrganization: { id: 'org-1', name: 'Org 1' } })),
 }));
 
@@ -33,7 +33,7 @@ vi.mock('@/hooks/useEquipmentFiltering', () => ({
 
 // Stub child components to simplify rendering assertions
 vi.mock('@/components/equipment/EquipmentHeader', () => ({
-  default: ({ organizationName, onAddEquipment }: any) => (
+  default: ({ organizationName, onAddEquipment }: { organizationName?: string; onAddEquipment?: () => void }) => (
     <div>
       <div>Header - {organizationName}</div>
       <button onClick={onAddEquipment}>Add Equipment</button>
@@ -46,16 +46,16 @@ vi.mock('@/components/equipment/EquipmentFilters', () => ({
 }));
 
 vi.mock('@/components/equipment/EquipmentSortHeader', () => ({
-  default: ({ resultCount, totalCount }: any) => (
+  default: ({ resultCount, totalCount }: { resultCount?: number; totalCount?: number }) => (
     <div>SortHeader resultCount={resultCount} totalCount={totalCount}</div>
   ),
 }));
 
 vi.mock('@/components/equipment/EquipmentGrid', () => ({
-  default: ({ onShowQRCode }: any) => (
+  default: ({ onShowQRCode }: { onShowQRCode?: (id: string) => void }) => (
     <div>
       <div>Grid</div>
-      <button onClick={() => onShowQRCode('1')}>Show QR</button>
+      <button onClick={() => onShowQRCode?.('1')}>Show QR</button>
     </div>
   ),
 }));
@@ -65,13 +65,13 @@ vi.mock('@/components/equipment/EquipmentLoadingState', () => ({
 }));
 
 vi.mock('@/components/equipment/EquipmentForm', () => ({
-  default: ({ open }: any) => (
+  default: ({ open }: { open?: boolean }) => (
     <div data-testid="equipment-form">{open ? 'Form Open' : 'Form Closed'}</div>
   ),
 }));
 
 vi.mock('@/components/equipment/QRCodeDisplay', () => ({
-  default: ({ open, equipmentName }: any) => (
+  default: ({ open, equipmentName }: { open?: boolean; equipmentName?: string }) => (
     <div data-testid="qr-modal">{open ? `QR for ${equipmentName}` : 'Closed'}</div>
   ),
 }));
@@ -85,10 +85,10 @@ describe('Equipment page', () => {
   });
 
   it('shows message when no organization is selected', () => {
-    (useSimpleOrganization as any).mockReturnValue({ currentOrganization: null });
+    (useSimpleOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: null });
 
     // Ensure hook returns something minimal even when org null
-    (useEquipmentFiltering as any).mockReturnValue({
+    (useEquipmentFiltering as ReturnType<typeof vi.fn>).mockReturnValue({
       filters: { search: '', status: 'all' },
       sortConfig: { field: 'name', direction: 'asc' },
       showAdvancedFilters: false,
@@ -111,8 +111,8 @@ describe('Equipment page', () => {
   });
 
   it('renders loading state', () => {
-    (useSimpleOrganization as any).mockReturnValue({ currentOrganization: { id: 'org-1', name: 'Org 1' } });
-    (useEquipmentFiltering as any).mockReturnValue({
+    (useSimpleOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: { id: 'org-1', name: 'Org 1' } });
+    (useEquipmentFiltering as ReturnType<typeof vi.fn>).mockReturnValue({
       filters: { search: '', status: 'all' },
       sortConfig: { field: 'name', direction: 'asc' },
       showAdvancedFilters: false,
@@ -133,9 +133,9 @@ describe('Equipment page', () => {
   });
 
   it('renders counts and opens form and QR modal', () => {
-    (useSimpleOrganization as any).mockReturnValue({ currentOrganization: { id: 'org-1', name: 'Org 1' } });
+    (useSimpleOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: { id: 'org-1', name: 'Org 1' } });
 
-    (useEquipmentFiltering as any).mockReturnValue({
+    (useEquipmentFiltering as ReturnType<typeof vi.fn>).mockReturnValue({
       filters: { search: '', status: 'all' },
       sortConfig: { field: 'name', direction: 'asc' },
       showAdvancedFilters: false,

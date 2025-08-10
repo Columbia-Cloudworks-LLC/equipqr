@@ -150,7 +150,7 @@ export const useQRRedirectWithOrgSwitch = ({
 
     // User is authenticated, proceed with organization check
     checkEquipmentOrganization();
-  }, [equipmentId, user, authLoading]);
+  }, [equipmentId, user, authLoading, checkEquipmentOrganization]);
 
   // Auto-call onComplete when ready to proceed
   useEffect(() => {

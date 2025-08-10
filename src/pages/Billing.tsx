@@ -69,7 +69,7 @@ const Billing = () => {
       
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [toast, checkSubscription]);
+  }, [checkSubscription]);
 
   const handleManageSubscription = async () => {
     if (!canManageBilling) {

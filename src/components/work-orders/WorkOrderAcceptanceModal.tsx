@@ -12,10 +12,12 @@ import { useSyncTeamsByOrganization, useSyncEquipmentById } from '@/services/syn
 import { useSession } from '@/hooks/useSession';
 import { toast } from 'sonner';
 
+import { WorkOrderLike } from '@/utils/workOrderTypeConversion';
+
 interface WorkOrderAcceptanceModalProps {
   open: boolean;
   onClose: () => void;
-  workOrder: any; // Temporarily using any to resolve interface conflicts
+  workOrder: WorkOrderLike;
   organizationId: string;
   onAccept: (assigneeId?: string) => Promise<void>;
 }
