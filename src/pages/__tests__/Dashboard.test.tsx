@@ -21,6 +21,26 @@ vi.mock('@/hooks/useSupabaseData', () => ({
     data: [],
     isLoading: false,
     error: null
+  })),
+  useEquipmentByOrganization: vi.fn(() => ({
+    data: [],
+    isLoading: false,
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    refetch: vi.fn(),
+    fetchStatus: 'idle'
+  })),
+  useDashboardStats: vi.fn(() => ({
+    data: {
+      totalEquipment: 0,
+      activeEquipment: 0,
+      maintenanceEquipment: 0,
+      totalWorkOrders: 0
+    },
+    isLoading: false,
+    error: null
   }))
 }));
 

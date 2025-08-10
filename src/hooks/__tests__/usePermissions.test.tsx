@@ -24,7 +24,7 @@ vi.mock('@/contexts/SessionContext', () => ({
     getCurrentOrganization: vi.fn(() => ({
       id: 'org-1',
       name: 'Test Organization',
-      userRole: 'member'
+      userRole: 'admin'
     })),
     getUserTeamIds: vi.fn(() => []),
     hasTeamAccess: vi.fn(() => false),
@@ -42,9 +42,11 @@ vi.mock('@/contexts/UserContext', () => ({
 
 import { useSimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { useUser } from '@/contexts/UserContext';
+import { useSession } from '@/contexts/SessionContext';
 
 const mockUseSimpleOrganization = useSimpleOrganization as ReturnType<typeof vi.fn>;
 const mockUseUser = useUser as ReturnType<typeof vi.fn>;
+const mockUseSession = useSession as ReturnType<typeof vi.fn>;
 
 describe('usePermissions', () => {
   beforeEach(() => {
@@ -64,6 +66,25 @@ describe('usePermissions', () => {
     ]
   });
 
+  const updateSessionMockForRole = (role: string) => {
+    mockUseSession.mockReturnValue({
+      sessionData: {
+        user: { id: 'user-1' },
+        session: { access_token: 'token' }
+      },
+      isLoading: false,
+      error: null,
+      getCurrentOrganization: vi.fn(() => ({
+        id: 'org-1',
+        name: 'Test Organization',
+        userRole: role
+      })),
+      getUserTeamIds: vi.fn(() => []),
+      hasTeamAccess: vi.fn(() => false),
+      canManageTeam: vi.fn(() => false)
+    });
+  };
+
   const createMockUser = () => ({
     id: 'user-1',
     email: 'test@example.com'
@@ -71,6 +92,7 @@ describe('usePermissions', () => {
 
   describe('hasRole', () => {
     it('should return true for matching role', () => {
+      updateSessionMockForRole('admin');
       mockUseSimpleOrganization.mockReturnValue({
         currentOrganization: createMockOrganization('admin')
       });
@@ -82,6 +104,7 @@ describe('usePermissions', () => {
     });
 
     it('should return false for non-matching role', () => {
+      updateSessionMockForRole('member');
       mockUseSimpleOrganization.mockReturnValue({
         currentOrganization: createMockOrganization('member')
       });
@@ -93,6 +116,7 @@ describe('usePermissions', () => {
     });
 
     it('should return true if user has any of the specified roles', () => {
+      updateSessionMockForRole('admin');
       mockUseSimpleOrganization.mockReturnValue({
         currentOrganization: createMockOrganization('admin')
       });
@@ -106,6 +130,7 @@ describe('usePermissions', () => {
 
   describe('canManageEquipment', () => {
     it('should return true for admin role', () => {
+      updateSessionMockForRole('admin');
       mockUseSimpleOrganization.mockReturnValue({
         currentOrganization: createMockOrganization('admin')
       });
@@ -117,6 +142,7 @@ describe('usePermissions', () => {
     });
 
     it('should return false for view-only role', () => {
+      updateSessionMockForRole('viewer');
       mockUseSimpleOrganization.mockReturnValue({
         currentOrganization: createMockOrganization('viewer')
       });
@@ -130,6 +156,7 @@ describe('usePermissions', () => {
 
   describe('canManageWorkOrder', () => {
     it('should return true for technician role', () => {
+      updateSessionMockForRole('technician');
       mockUseSimpleOrganization.mockReturnValue({
         currentOrganization: createMockOrganization('technician')
       });
@@ -141,6 +168,7 @@ describe('usePermissions', () => {
     });
 
     it('should return false for viewer role', () => {
+      updateSessionMockForRole('viewer');
       mockUseSimpleOrganization.mockReturnValue({
         currentOrganization: createMockOrganization('viewer')
       });
@@ -154,6 +182,7 @@ describe('usePermissions', () => {
 
   describe('canCreateTeam', () => {
     it('should return true for owner role', () => {
+      updateSessionMockForRole('owner');
       mockUseSimpleOrganization.mockReturnValue({
         currentOrganization: createMockOrganization('owner')
       });
@@ -165,6 +194,7 @@ describe('usePermissions', () => {
     });
 
     it('should return false for member role', () => {
+      updateSessionMockForRole('member');
       mockUseSimpleOrganization.mockReturnValue({
         currentOrganization: createMockOrganization('member')
       });
