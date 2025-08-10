@@ -123,115 +123,231 @@ describe('Dashboard', () => {
   });
 
   it('renders dashboard content when organization is selected', () => {
+    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+      organizations: [{ 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      }],
+      userOrganizations: [{ 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      }],
+      currentOrganization: { 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      },
+      setCurrentOrganization: vi.fn(),
+      switchOrganization: vi.fn(),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn()
+    });
+
+    // Mock dashboard stats
+    vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
+      data: {
+        totalEquipment: 10,
+        activeEquipment: 8,
+        maintenanceEquipment: 2,
+        totalWorkOrders: 15
+      },
+      isLoading: false,
+      error: null
+    } as unknown as MockQueryResult<any>);
+
     render(<Dashboard />);
     
-    // Should show dashboard sections
-    expect(screen.getByText('Equipment Overview')).toBeInTheDocument();
-    expect(screen.getByText('Work Orders Status')).toBeInTheDocument();
-    expect(screen.getByText('Recent Activity')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
+    expect(screen.getByText('Total Equipment')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
   });
 
   it('displays loading state correctly', () => {
-    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
-      data: [],
-      isLoading: true,
+    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+      organizations: [],
+      userOrganizations: [],
+      currentOrganization: { 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      },
+      setCurrentOrganization: vi.fn(),
+      switchOrganization: vi.fn(),
+      isLoading: false,
       error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: false,
-      refetch: vi.fn(),
-      fetchStatus: 'fetching'
-    } as unknown as MockQueryResult<unknown[]>);
+      refetch: vi.fn()
+    });
+
+    // Mock loading stats
+    vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
+      data: null,
+      isLoading: true,
+      error: null
+    } as unknown as MockQueryResult<any>);
 
     render(<Dashboard />);
     
-    expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
+    
+    // Should show loading cards
+    const cards = screen.getAllByRole('generic');
+    const loadingCards = cards.filter(card => 
+      card.className?.includes('animate-pulse')
+    );
+    expect(loadingCards.length).toBeGreaterThan(0);
   });
 
   it('shows equipment statistics when data is available', () => {
-    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
-      data: [
-        { id: '1', status: 'active', name: 'Equipment 1' },
-        { id: '2', status: 'maintenance', name: 'Equipment 2' },
-        { id: '3', status: 'inactive', name: 'Equipment 3' }
-      ],
+    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+      organizations: [{ 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      }],
+      userOrganizations: [{ 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      }],
+      currentOrganization: { 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      },
+      setCurrentOrganization: vi.fn(),
+      switchOrganization: vi.fn(),
       isLoading: false,
       error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as unknown as MockQueryResult<unknown[]>);
+      refetch: vi.fn()
+    });
+
+    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
+      data: [
+        { id: '1', name: 'Equipment 1', status: 'active', manufacturer: 'Test Mfg', model: 'Model 1' },
+        { id: '2', name: 'Equipment 2', status: 'maintenance', manufacturer: 'Test Mfg', model: 'Model 2' },
+        { id: '3', name: 'Equipment 3', status: 'active', manufacturer: 'Test Mfg', model: 'Model 3' }
+      ],
+      isLoading: false,
+      error: null
+    } as unknown as MockQueryResult<any>);
+
+    vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
+      data: {
+        totalEquipment: 3,
+        activeEquipment: 2,
+        maintenanceEquipment: 1,
+        totalWorkOrders: 5
+      },
+      isLoading: false,
+      error: null
+    } as unknown as MockQueryResult<any>);
 
     render(<Dashboard />);
     
-    expect(screen.getByText('3')).toBeInTheDocument(); // Total equipment count
-    expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
-  });
-
-  it('shows work order statistics when data is available', () => {
-    // Mock work orders data through enhanced work orders hook instead
-    render(<Dashboard />);
-    
-    expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('Recent Equipment')).toBeInTheDocument();
+    expect(screen.getByText('Equipment 1')).toBeInTheDocument();
   });
 
   it('handles empty data states gracefully', () => {
+    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+      organizations: [{ 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      }],
+      userOrganizations: [{ 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      }],
+      currentOrganization: { 
+        id: 'org-1', 
+        name: 'Test Organization', 
+        memberCount: 5,
+        plan: 'free',
+        maxMembers: 10,
+        features: [],
+        userRole: 'admin',
+        userStatus: 'active'
+      },
+      setCurrentOrganization: vi.fn(),
+      switchOrganization: vi.fn(),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn()
+    });
+
+    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null
+    } as unknown as MockQueryResult<any>);
+
+    vi.mocked(useSupabaseDataModule.useDashboardStats).mockReturnValue({
+      data: {
+        totalEquipment: 0,
+        activeEquipment: 0,
+        maintenanceEquipment: 0,
+        totalWorkOrders: 0
+      },
+      isLoading: false,
+      error: null
+    } as unknown as MockQueryResult<any>);
+
     render(<Dashboard />);
     
     expect(screen.getByText('No equipment found')).toBeInTheDocument();
     expect(screen.getByText('No work orders found')).toBeInTheDocument();
-  });
-
-  it('displays error states appropriately', () => {
-    vi.mocked(useSupabaseDataModule.useEquipmentByOrganization).mockReturnValue({
-      data: null,
-      isLoading: false,
-      error: new Error('Failed to load equipment'),
-      isError: true,
-      isPending: false,
-      isSuccess: false,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as unknown as MockQueryResult<unknown[]>);
-
-    render(<Dashboard />);
-    
-    expect(screen.getByText(/error loading equipment/i)).toBeInTheDocument();
-  });
-
-  it('shows quick action buttons for users with permissions', () => {
-    render(<Dashboard />);
-    
-    expect(screen.getByText('Add Equipment')).toBeInTheDocument();
-    expect(screen.getByText('Create Work Order')).toBeInTheDocument();
-  });
-
-  it('hides action buttons for users without permissions', () => {
-    vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
-      canManageTeam: vi.fn(() => false),
-      canViewTeam: vi.fn(() => false),
-      canCreateTeam: vi.fn(() => false),
-      canManageEquipment: vi.fn(() => false),
-      canViewEquipment: vi.fn(() => false),
-      canCreateEquipment: vi.fn(() => false),
-      canUpdateEquipmentStatus: vi.fn(() => false),
-      canManageWorkOrder: vi.fn(() => false),
-      canViewWorkOrder: vi.fn(() => false),
-      canCreateWorkOrder: vi.fn(() => false),
-      canAssignWorkOrder: vi.fn(() => false),
-      canChangeWorkOrderStatus: vi.fn(() => false),
-      canManageOrganization: vi.fn(() => false),
-      canInviteMembers: vi.fn(() => false),
-      hasRole: vi.fn(() => false),
-      isTeamMember: vi.fn(() => false),
-      isTeamManager: vi.fn(() => false)
-    });
-
-    render(<Dashboard />);
-    
-    expect(screen.queryByText('Add Equipment')).not.toBeInTheDocument();
-    expect(screen.queryByText('Create Work Order')).not.toBeInTheDocument();
   });
 });

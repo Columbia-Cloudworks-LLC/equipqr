@@ -3,6 +3,16 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UseQueryResult } from '@tanstack/react-query';
 import WorkOrders from '../WorkOrders';
+
+// Mock UserContext
+vi.mock('@/contexts/UserContext', () => ({
+  useUser: vi.fn(() => ({
+    currentUser: { id: 'test-user', email: 'test@test.com', name: 'Test User' },
+    isLoading: false,
+    setCurrentUser: vi.fn()
+  })),
+  UserProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
+}));
 import * as useEnhancedWorkOrdersModule from '@/hooks/useEnhancedWorkOrders';
 import * as useSimpleOrganizationModule from '@/contexts/SimpleOrganizationContext';
 import * as usePermissionsModule from '@/hooks/usePermissions';
