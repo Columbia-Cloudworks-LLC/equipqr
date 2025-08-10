@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UseQueryResult } from '@tanstack/react-query';
 import Dashboard from '../Dashboard';

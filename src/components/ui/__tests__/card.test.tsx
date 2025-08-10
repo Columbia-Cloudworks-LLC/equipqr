@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect } from 'vitest';
 import { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from '../card';
 
