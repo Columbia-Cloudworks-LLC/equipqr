@@ -165,14 +165,28 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   }, []);
 
   const switchOrganization = useCallback((organizationId: string) => {
+    console.log('🔄 SimpleOrganizationProvider: Switch organization called:', organizationId);
     setCurrentOrganization(organizationId);
     // Also update session context to keep them synchronized
-    sessionContext.switchOrganization(organizationId);
+    if (sessionContext?.switchOrganization) {
+      sessionContext.switchOrganization(organizationId);
+    }
   }, [setCurrentOrganization, sessionContext]);
 
   const currentOrganization = currentOrganizationId 
     ? organizations.find(org => org.id === currentOrganizationId) || null
     : null;
+
+  // Log current state for debugging
+  useEffect(() => {
+    console.log('🏢 SimpleOrganizationProvider: Current state', {
+      currentOrganizationId,
+      currentOrganization: currentOrganization?.name,
+      organizationsCount: organizations.length,
+      sessionOrgId: sessionContext?.sessionData?.currentOrganizationId,
+      sessionOrgName: sessionContext?.getCurrentOrganization()?.name
+    });
+  }, [currentOrganizationId, currentOrganization, organizations, sessionContext]);
 
   const refetchData = useCallback(async () => {
     await refetch();
