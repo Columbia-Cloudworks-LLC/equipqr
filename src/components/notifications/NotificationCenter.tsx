@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Check, X, AlertCircle, CheckCircle, Settings, Users } from 'lucide-react';
-import { useNotifications, useMarkNotificationAsRead } from '@/hooks/useWorkOrderData';
+import { useNotifications, useMarkNotificationAsRead, type Notification } from '@/hooks/useWorkOrderData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -59,7 +59,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
-  const getNotificationMessage = (notification: any) => {
+  const getNotificationMessage = (notification: Notification) => {
     if (permissionLevels.isRequestor && notification.type === 'work_order_request') {
       return 'Your work order request has been submitted for review';
     }
