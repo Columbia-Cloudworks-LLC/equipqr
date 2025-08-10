@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { ZodSchema, ZodError } from 'zod';
+import { showErrorToast } from '@/utils/errorHandling';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -105,7 +106,8 @@ export const useFormValidation = <T extends Record<string, unknown>>(
       await onSubmit(values as T);
     } catch (error) {
       console.error('Form submission error:', error);
-      setErrors({ general: 'Submission failed. Please try again.' });
+      const standardError = showErrorToast(error, 'Form Submission');
+      setErrors({ general: standardError.message });
     } finally {
       setIsSubmitting(false);
     }

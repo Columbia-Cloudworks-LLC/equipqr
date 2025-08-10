@@ -4,6 +4,7 @@ import { useSession } from '@/hooks/useSession';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 
 export interface CreateWorkOrderData {
   title: string;
@@ -62,7 +63,17 @@ export const useCreateWorkOrder = () => {
     },
     onError: (error) => {
       console.error('Error creating work order:', error);
-      toast.error('Failed to create work order');
+      const errorMessage = getErrorMessage(error);
+      const specificMessage = errorMessage.includes('permission')
+        ? "You don't have permission to create work orders. Contact your administrator."
+        : errorMessage.includes('equipment')
+        ? "The selected equipment is not available. Please choose different equipment."
+        : errorMessage.includes('validation') || errorMessage.includes('required')
+        ? "Please check all required fields and try again."
+        : "Failed to create work order. Please check your connection and try again.";
+      
+      toast.error('Work Order Creation Failed', { description: specificMessage });
+      showErrorToast(error, 'Work Order Creation');
     }
   });
 };

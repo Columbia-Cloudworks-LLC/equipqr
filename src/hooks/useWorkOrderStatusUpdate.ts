@@ -1,12 +1,14 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 
 interface StatusUpdateData {
   workOrderId: string;
-  newStatus: string;
+  newStatus: Database["public"]["Enums"]["work_order_status"];
 }
 
 export const useWorkOrderStatusUpdate = () => {
@@ -16,7 +18,7 @@ export const useWorkOrderStatusUpdate = () => {
 
   return useMutation({
     mutationFn: async ({ workOrderId, newStatus }: StatusUpdateData) => {
-      const updateData: any = {
+      const updateData: Database["public"]["Tables"]["work_orders"]["Update"] = {
         status: newStatus,
         updated_at: new Date().toISOString()
       };
@@ -75,13 +77,24 @@ export const useWorkOrderStatusUpdate = () => {
         description: "Work order status has been successfully updated.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Status update error:', error);
+      const errorMessage = getErrorMessage(error);
+      const specificMessage = errorMessage.includes('permission')
+        ? "You don't have permission to change this work order status. Contact your administrator."
+        : errorMessage.includes('not found')
+        ? "Work order not found. It may have been deleted or moved."
+        : errorMessage.includes('invalid')
+        ? "Invalid status transition. Please refresh the page and try again."
+        : "Failed to update work order status. Please check your connection and try again.";
+      
       toast({
-        title: "Update Failed",
-        description: "Failed to update work order status. Please try again.",
+        title: "Status Update Failed",
+        description: specificMessage,
         variant: "destructive",
       });
+      
+      showErrorToast(error, 'Work Order Status Update');
     }
   });
 };

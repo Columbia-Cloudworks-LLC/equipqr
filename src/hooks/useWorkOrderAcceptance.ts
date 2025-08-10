@@ -1,8 +1,10 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { toast } from 'sonner';
+import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 
 interface AcceptWorkOrderParams {
   workOrderId: string;
@@ -25,7 +27,7 @@ export const useWorkOrderAcceptance = () => {
       const isSingleUserOrg = (orgMembers?.length || 0) === 1;
 
       // Determine the target status based on assignment and org size
-      let targetStatus = 'accepted';
+      let targetStatus: Database["public"]["Enums"]["work_order_status"] = 'accepted';
       
       if (isSingleUserOrg) {
         // Single user org: go directly to in_progress with auto-assignment
@@ -37,7 +39,7 @@ export const useWorkOrderAcceptance = () => {
       // Multi-user org without assignment: stay at accepted
 
       // Build update object
-      const updateData: any = {
+      const updateData: Database["public"]["Tables"]["work_orders"]["Update"] = {
         status: targetStatus,
         acceptance_date: new Date().toISOString()
       };
@@ -68,7 +70,17 @@ export const useWorkOrderAcceptance = () => {
     },
     onError: (error) => {
       console.error('Error accepting work order:', error);
-      toast.error('Failed to accept work order');
+      const errorMessage = getErrorMessage(error);
+      const specificMessage = errorMessage.includes('permission')
+        ? "You don't have permission to accept this work order. Contact your administrator."
+        : errorMessage.includes('not found')
+        ? "Work order not found. It may have been deleted or reassigned."
+        : errorMessage.includes('already')
+        ? "This work order has already been accepted by someone else."
+        : "Failed to accept work order. Please check your connection and try again.";
+      
+      toast.error('Work Order Acceptance Failed', { description: specificMessage });
+      showErrorToast(error, 'Work Order Acceptance');
     }
   });
 };

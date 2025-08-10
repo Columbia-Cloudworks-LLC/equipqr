@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { showErrorToast } from '@/utils/errorHandling';
 
 export interface Organization {
   id: string;
@@ -35,6 +36,7 @@ export const useUserOrganizations = () => {
 
       if (membershipError) {
         console.error('❌ Error fetching memberships:', membershipError);
+        showErrorToast(membershipError, 'Loading Organization Memberships');
         throw membershipError;
       }
 
@@ -52,6 +54,7 @@ export const useUserOrganizations = () => {
 
       if (orgError) {
         console.error('❌ Error fetching organizations:', orgError);
+        showErrorToast(orgError, 'Loading Organizations');
         throw orgError;
       }
 

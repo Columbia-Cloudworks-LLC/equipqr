@@ -9,6 +9,8 @@ import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 
@@ -33,7 +35,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
 }) => {
   const quickAssignMutation = useQuickWorkOrderAssignment();
   const statusUpdateMutation = useWorkOrderStatusUpdate();
-  const [currentUser, setCurrentUser] = React.useState<any>(null);
+  const [currentUser, setCurrentUser] = React.useState<SupabaseUser | null>(null);
 
   React.useEffect(() => {
     const getCurrentUser = async () => {
@@ -52,7 +54,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
     });
   };
 
-  const handleStatusUpdate = (newStatus: string) => {
+  const handleStatusUpdate = (newStatus: Database["public"]["Enums"]["work_order_status"]) => {
     statusUpdateMutation.mutate({
       workOrderId: order.id,
       newStatus
@@ -141,10 +143,10 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
           {/* Key Information - Stacked vertically */}
           <div className="space-y-2 text-sm">
             {/* Equipment Team - Static Display */}
-            {(order as any).equipmentTeamName && (
+            {order.equipmentTeamName && (
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-muted-foreground">Team: {(order as any).equipmentTeamName}</span>
+                <span className="text-muted-foreground">Team: {order.equipmentTeamName}</span>
               </div>
             )}
 

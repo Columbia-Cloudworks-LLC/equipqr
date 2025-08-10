@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { showErrorToast } from '@/utils/errorHandling';
 
 export interface FleetMapSubscription {
   enabled: boolean;
@@ -24,7 +25,7 @@ export const useFleetMapSubscription = (organizationId: string) => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching fleet map subscription:', error);
+        showErrorToast(error, 'Fleet Map Subscription Check');
         return { enabled: false, status: 'inactive' };
       }
 
