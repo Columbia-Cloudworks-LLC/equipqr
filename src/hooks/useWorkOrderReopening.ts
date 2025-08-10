@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 
 interface ReopenWorkOrderParams {
   workOrderId: string;
@@ -40,11 +41,20 @@ export const useWorkOrderReopening = () => {
     },
     onError: (error) => {
       console.error('Error reopening work order:', error);
+      const errorMessage = getErrorMessage(error);
+      const specificMessage = errorMessage.includes('permission') 
+        ? "You don't have permission to reopen this work order. Contact your administrator."
+        : errorMessage.includes('not found')
+        ? "Work order not found. It may have been deleted."
+        : "Failed to reopen work order. Please check your connection and try again.";
+      
       toast({
-        title: "Error",
-        description: "Failed to reopen work order",
+        title: "Reopen Failed",
+        description: specificMessage,
         variant: "destructive",
       });
+      
+      showErrorToast(error, 'Work Order Reopening');
     },
   });
 };

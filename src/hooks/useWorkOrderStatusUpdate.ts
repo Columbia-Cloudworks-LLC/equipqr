@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 
 interface StatusUpdateData {
   workOrderId: string;
@@ -77,11 +78,22 @@ export const useWorkOrderStatusUpdate = () => {
     },
     onError: (error: any) => {
       console.error('Status update error:', error);
+      const errorMessage = getErrorMessage(error);
+      const specificMessage = errorMessage.includes('permission')
+        ? "You don't have permission to change this work order status. Contact your administrator."
+        : errorMessage.includes('not found')
+        ? "Work order not found. It may have been deleted or moved."
+        : errorMessage.includes('invalid')
+        ? "Invalid status transition. Please refresh the page and try again."
+        : "Failed to update work order status. Please check your connection and try again.";
+      
       toast({
-        title: "Update Failed",
-        description: "Failed to update work order status. Please try again.",
+        title: "Status Update Failed",
+        description: specificMessage,
         variant: "destructive",
       });
+      
+      showErrorToast(error, 'Work Order Status Update');
     }
   });
 };

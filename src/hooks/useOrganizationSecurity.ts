@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { showErrorToast } from '@/utils/errorHandling';
 
 interface SecurityTestResult {
   canFetchOrganizations: boolean;
@@ -54,6 +55,7 @@ export const useOrganizationSecurity = () => {
 
       if (orgError) {
         console.error('❌ Organization access failed:', orgError);
+        showErrorToast(orgError, 'Organization Security Test');
         errors.push(`Organization access: ${orgError.message}`);
       } else {
         console.log('✅ Organization access successful:', orgData?.length || 0, 'organizations found');

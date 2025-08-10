@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { toast } from 'sonner';
+import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 
 interface AcceptWorkOrderParams {
   workOrderId: string;
@@ -68,7 +69,17 @@ export const useWorkOrderAcceptance = () => {
     },
     onError: (error) => {
       console.error('Error accepting work order:', error);
-      toast.error('Failed to accept work order');
+      const errorMessage = getErrorMessage(error);
+      const specificMessage = errorMessage.includes('permission')
+        ? "You don't have permission to accept this work order. Contact your administrator."
+        : errorMessage.includes('not found')
+        ? "Work order not found. It may have been deleted or reassigned."
+        : errorMessage.includes('already')
+        ? "This work order has already been accepted by someone else."
+        : "Failed to accept work order. Please check your connection and try again.";
+      
+      toast.error('Work Order Acceptance Failed', { description: specificMessage });
+      showErrorToast(error, 'Work Order Acceptance');
     }
   });
 };
