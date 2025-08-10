@@ -214,6 +214,14 @@ describe('Teams Page', () => {
     });
 
     it('displays empty state when no teams exist', () => {
+      // Admin user with no teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [],
+        sessionData: { teamMemberships: [] }
+      });
+
       mockUseTeams.mockReturnValue({
         data: [],
         isLoading: false,
@@ -229,6 +237,14 @@ describe('Teams Page', () => {
     });
 
     it('displays teams grid with proper team information', () => {
+      // Admin user with teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { teamMemberships: [{ teamId: mockTeamWithMembers.id }] }
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,
@@ -244,6 +260,14 @@ describe('Teams Page', () => {
     });
 
     it('displays team members with proper information', () => {
+      // Admin user with teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { teamMemberships: [{ teamId: mockTeamWithMembers.id }] }
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,
@@ -267,6 +291,14 @@ describe('Teams Page', () => {
 
   describe('User Interactions', () => {
     it('opens team form modal when create button is clicked', () => {
+      // Admin user with no teams
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [],
+        sessionData: { teamMemberships: [] }
+      });
+
       mockUseTeams.mockReturnValue({
         data: [],
         isLoading: false,
@@ -283,6 +315,14 @@ describe('Teams Page', () => {
     });
 
     it('navigates to team details when view details button is clicked', () => {
+      // Admin user with teams and permissions
+      mockUseSession.mockReturnValue({
+        getCurrentOrganization: () => ({ ...mockOrganization, userRole: 'admin' }),
+        isLoading: false,
+        getUserTeamIds: () => [mockTeamWithMembers.id],
+        sessionData: { teamMemberships: [{ teamId: mockTeamWithMembers.id }] }
+      });
+
       mockUseTeams.mockReturnValue({
         data: [mockTeamWithMembers],
         isLoading: false,
