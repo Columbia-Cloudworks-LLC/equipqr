@@ -6,12 +6,12 @@ export interface TeamAccessibleEquipment {
   name: string;
   manufacturer: string;
   model: string;
-  serialNumber: string;
+  serial_number: string;
   status: 'active' | 'maintenance' | 'inactive';
   location: string;
-  organizationId: string;
-  teamId: string | null;
-  teamName?: string;
+  organization_id: string;
+  team_id: string | null;
+  team_name?: string;
 }
 
 // Get equipment that a user can access based on their team memberships and role
@@ -70,12 +70,12 @@ export const getTeamAccessibleEquipment = async (
       name: equipment.name,
       manufacturer: equipment.manufacturer,
       model: equipment.model,
-      serialNumber: equipment.serial_number,
+      serial_number: equipment.serial_number,
       status: equipment.status,
       location: equipment.location,
-      organizationId: equipment.organization_id,
-      teamId: equipment.team_id,
-      teamName: equipment.teams?.name
+      organization_id: equipment.organization_id,
+      team_id: equipment.team_id,
+      team_name: equipment.teams?.name
     }));
   } catch (error) {
     console.error('💥 Error in getTeamAccessibleEquipment:', error);

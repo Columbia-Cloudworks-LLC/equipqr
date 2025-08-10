@@ -9,10 +9,10 @@ interface Equipment {
   name: string;
   manufacturer: string;
   model: string;
-  serialNumber: string;
+  serial_number: string;
   status: string;
   location: string;
-  lastMaintenance?: string;
+  last_maintenance?: string;
   image_url?: string;
 }
 

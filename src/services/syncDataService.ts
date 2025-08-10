@@ -7,14 +7,14 @@ export interface Equipment {
   name: string;
   manufacturer: string;
   model: string;
-  serialNumber: string;
+  serial_number: string;
   status: 'active' | 'maintenance' | 'inactive';
   location: string;
-  installationDate: string;
-  warrantyExpiration: string;
-  lastMaintenance: string;
+  installation_date: string;
+  warranty_expiration: string;
+  last_maintenance: string;
   notes?: string;
-  imageUrl?: string;
+  image_url?: string;
 }
 
 export interface WorkOrder {
