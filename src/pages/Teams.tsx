@@ -1,26 +1,26 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Users, Settings, Crown, User, Trash2 } from 'lucide-react';
+import { Plus, Users, Settings, Crown, User, Trash2, UserX } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 import { useTeams, useTeamMutations } from '@/hooks/useTeamManagement';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import TeamForm from '@/components/teams/TeamForm';
 
 const Teams = () => {
-  const { getCurrentOrganization, isLoading } = useSession();
+  const { getCurrentOrganization, isLoading, getUserTeamIds, sessionData } = useSession();
   const currentOrganization = getCurrentOrganization();
   const [showForm, setShowForm] = useState(false);
   const [deleteTeamId, setDeleteTeamId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Use teams hook for data
-  const { data: teams = [], isLoading: teamsLoading } = useTeams(currentOrganization?.id);
+  const { data: allTeams = [], isLoading: teamsLoading } = useTeams(currentOrganization?.id);
   
   // Team mutations
   const { deleteTeam } = useTeamMutations();
@@ -28,6 +28,29 @@ const Teams = () => {
   // Check permissions
   const permissions = useUnifiedPermissions();
   const canCreateTeams = permissions.organization.canCreateTeams;
+  
+  // Get user's team memberships for current organization
+  const userTeamIds = getUserTeamIds();
+  const userTeamMemberships = sessionData?.teamMemberships || [];
+  
+  // Determine what teams to show based on user role and memberships
+  const { teamsToShow, userHasTeamMemberships, isOrgAdmin } = useMemo(() => {
+    if (!currentOrganization) {
+      return { teamsToShow: [], userHasTeamMemberships: false, isOrgAdmin: false };
+    }
+    
+    const isOrgAdmin = ['owner', 'admin'].includes(currentOrganization.userRole);
+    const userHasTeamMemberships = userTeamIds.length > 0;
+    
+    // Organization admins can see all teams
+    if (isOrgAdmin) {
+      return { teamsToShow: allTeams, userHasTeamMemberships, isOrgAdmin };
+    }
+    
+    // Regular members can only see teams they belong to
+    const userTeams = allTeams.filter(team => userTeamIds.includes(team.id));
+    return { teamsToShow: userTeams, userHasTeamMemberships, isOrgAdmin };
+  }, [allTeams, userTeamIds, currentOrganization]);
 
   if (isLoading || teamsLoading || !currentOrganization) {
     return (
@@ -94,7 +117,7 @@ const Teams = () => {
     }
   };
 
-  const selectedTeam = teams.find(team => team.id === deleteTeamId);
+  const selectedTeam = teamsToShow.find(team => team.id === deleteTeamId);
 
   return (
     <div className="space-y-6">
@@ -105,7 +128,7 @@ const Teams = () => {
             Manage teams for {currentOrganization.name}
           </p>
         </div>
-        {teams.length > 0 && canCreateTeams && (
+        {teamsToShow.length > 0 && canCreateTeams && (
           <Button onClick={() => setShowForm(true)} className="flex items-center gap-2" data-testid="header-create-team-button">
             <Plus className="h-4 w-4" />
             Create Team
@@ -113,9 +136,23 @@ const Teams = () => {
         )}
       </div>
 
+      {/* No Team Memberships Message */}
+      {!userHasTeamMemberships && !isOrgAdmin && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <UserX className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Team Access</h3>
+            <p className="text-muted-foreground mb-4">
+              You are not yet a member of any teams in {currentOrganization?.name}. Contact an organization administrator to give you a role on a team to see equipment and work orders for that team.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Teams Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {teams.map((team) => (
+      {(userHasTeamMemberships || isOrgAdmin) && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {teamsToShow.map((team) => (
           <Card key={team.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -208,17 +245,18 @@ const Teams = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Empty State */}
-      {teams.length === 0 && canCreateTeams && (
+      {/* Empty State for Admins */}
+      {isOrgAdmin && teamsToShow.length === 0 && canCreateTeams && (
         <Card>
           <CardContent className="text-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No teams found</h3>
             <p className="text-muted-foreground mb-4">
-              Get started by creating your first team for {currentOrganization.name}.
+              Get started by creating your first team for {currentOrganization?.name}.
             </p>
             <Button onClick={() => setShowForm(true)} data-testid="empty-state-create-team-button">
               <Plus className="h-4 w-4 mr-2" />
