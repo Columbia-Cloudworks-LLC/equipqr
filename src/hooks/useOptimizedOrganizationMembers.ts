@@ -124,21 +124,39 @@ export const useUpdateMemberRole = (organizationId: string) => {
   });
 };
 
+interface RemovalResult {
+  success: boolean;
+  error?: string;
+  removed_user_name?: string;
+  removed_user_role?: string;
+  teams_transferred?: number;
+  new_manager_id?: string;
+}
+
 export const useRemoveMember = (organizationId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (memberId: string) => {
-      const { data, error } = await supabase
-        .from('organization_members')
-        .delete()
-        .eq('user_id', memberId)
-        .eq('organization_id', organizationId)
-        .select()
-        .single();
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase.rpc('remove_organization_member_safely', {
+        user_uuid: memberId,
+        org_id: organizationId,
+        removed_by: currentUser.user.id
+      });
 
       if (error) throw error;
-      return data;
+
+      const result = data as unknown as RemovalResult;
+
+      // The function returns a JSON object with success status and details
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to remove member');
+      }
+
+      return result;
     },
     onMutate: async (memberId) => {
       // Optimistic update
@@ -159,10 +177,16 @@ export const useRemoveMember = (organizationId: string) => {
         queryClient.setQueryData(['organization-members-optimized', organizationId], context.previousMembers);
       }
       console.error('Error removing member:', error);
-      toast.error('Failed to remove member');
+      toast.error(error.message || 'Failed to remove member');
     },
-    onSuccess: () => {
-      toast.success('Member removed successfully');
+    onSuccess: (data) => {
+      // Show detailed success message based on what happened
+      let message = `${data.removed_user_name} was removed successfully`;
+      if (data.teams_transferred && data.teams_transferred > 0) {
+        message += `. Team management for ${data.teams_transferred} team(s) was transferred to the organization owner.`;
+      }
+      
+      toast.success(message);
     }
   });
 };

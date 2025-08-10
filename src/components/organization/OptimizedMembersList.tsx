@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, MoreVertical, UserMinus, Mail, Calendar, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDebouncedSearch } from "@/hooks/useDebounced";
-import { useUpdateMemberRole, useRemoveMember, type RealOrganizationMember } from "@/hooks/useOrganizationMembers";
+import { useUpdateMemberRole, useRemoveMember, type RealOrganizationMember } from "@/hooks/useOptimizedOrganizationMembers";
 import OptimizedVirtualizedList from "@/components/performance/OptimizedVirtualizedList";
 import { toast } from "sonner";
 
@@ -237,7 +237,7 @@ export default function OptimizedMembersList({
                 variant="ghost"
                 size="sm"
                 onClick={() => setMemberToRemove(member)}
-                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                className="h-8 w-8 p-0 text-destructive"
               >
                 <UserMinus className="h-4 w-4" />
               </Button>
