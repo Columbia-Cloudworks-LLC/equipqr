@@ -47,19 +47,19 @@ import { useSidebar } from "@/components/ui/sidebar";
 import Icon from "@/components/ui/Icon";
 
 const mainNavigation = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Equipment", url: "/equipment", icon: Package },
-  { title: "Work Orders", url: "/work-orders", icon: ClipboardList },
-  { title: "Teams", url: "/teams", icon: Users },
-  { title: "Fleet Map", url: "/fleet-map", icon: Map },
+  { title: "Dashboard", url: "/dashboard", icon: Home },
+  { title: "Equipment", url: "/dashboard/equipment", icon: Package },
+  { title: "Work Orders", url: "/dashboard/work-orders", icon: ClipboardList },
+  { title: "Teams", url: "/dashboard/teams", icon: Users },
+  { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
 ];
 
 const managementNavigation = [
-  { title: "Organization", url: "/organization", icon: Building },
-  { title: "QR Scanner", url: "/scanner", icon: QrCode },
-  { title: "Billing", url: "/billing", icon: CreditCard },
-  { title: "Reports", url: "/reports", icon: FileText },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Organization", url: "/dashboard/organization", icon: Building },
+  { title: "QR Scanner", url: "/dashboard/scanner", icon: QrCode },
+  { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
+  { title: "Reports", url: "/dashboard/reports", icon: FileText },
+  { title: "Settings", url: "/dashboard/settings", icon: Settings },
 ];
 
 const AppSidebar = () => {
@@ -234,7 +234,7 @@ const AppSidebar = () => {
                   sideOffset={4}
                 >
                   <DropdownMenuItem asChild>
-                    <Link to="/support" onClick={handleNavClick} className="text-sm cursor-pointer">
+                    <Link to="/dashboard/support" onClick={handleNavClick} className="text-sm cursor-pointer">
                       <HelpCircle className="mr-2 h-4 w-4" />
                       Support
                     </Link>

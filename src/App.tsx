@@ -14,6 +14,7 @@ import AppSidebar from '@/components/layout/AppSidebar';
 import TopBar from '@/components/layout/TopBar';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import Auth from '@/pages/Auth';
+import Landing from '@/pages/Landing';
 import Dashboard from '@/pages/Dashboard';
 import Equipment from '@/pages/Equipment';
 import EquipmentDetails from '@/pages/EquipmentDetails';
@@ -57,6 +58,7 @@ function App() {
             <Router>
               <Routes>
                 {/* Public routes */}
+                <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/invitation/:token" element={<InvitationAccept />} />
                 <Route path="/qr/:equipmentId" element={<QRRedirect />} />
@@ -64,7 +66,7 @@ function App() {
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 
                 {/* Protected routes */}
-                <Route path="/*" element={
+                <Route path="/dashboard/*" element={
                   <ProtectedRoute>
                     <SimpleOrganizationProvider>
                       <TeamProvider>
@@ -85,10 +87,10 @@ function App() {
                                 <Route path="/fleet-map" element={<FleetMap />} />
                                 <Route path="/organization" element={<Organization />} />
                                 <Route path="/scanner" element={<QRScanner />} />
-                      <Route path="/billing" element={<Billing />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/reports" element={<Reports />} />
-                      <Route path="/support" element={<Support />} />
+                                <Route path="/billing" element={<Billing />} />
+                                <Route path="/settings" element={<Settings />} />
+                                <Route path="/reports" element={<Reports />} />
+                                <Route path="/support" element={<Support />} />
                               </Routes>
                             </main>
                             <LegalFooter />
