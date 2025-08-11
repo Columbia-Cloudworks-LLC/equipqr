@@ -56,7 +56,7 @@ const WorkOrderDetails = () => {
   // Only redirect if we definitely don't have the required data and aren't loading
   if (!workOrderId) {
     logNavigationEvent('REDIRECT_NO_WORK_ORDER_ID');
-    return <Navigate to="/work-orders" replace />;
+    return <Navigate to="/dashboard/work-orders" replace />;
   }
 
   // Show loading state while fetching data or organization
@@ -73,7 +73,7 @@ const WorkOrderDetails = () => {
   // Only redirect if we're done loading and definitely don't have the work order
   if (!workOrder) {
     logNavigationEvent('REDIRECT_NO_WORK_ORDER_DATA', { workOrderId });
-    return <Navigate to="/work-orders" replace />;
+    return <Navigate to="/dashboard/work-orders" replace />;
   }
 
   // Log successful navigation to work order details

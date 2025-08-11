@@ -29,7 +29,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
         {/* Top Row: Back Button and Actions */}
         <div className="flex items-center justify-between mb-3">
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/work-orders">
+            <Link to="/dashboard/work-orders">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>

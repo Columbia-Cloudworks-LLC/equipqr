@@ -91,7 +91,7 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Link to="/equipment">
+        <Link to="/dashboard/equipment">
           <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Equipment</CardTitle>
@@ -106,7 +106,7 @@ const Dashboard = () => {
           </Card>
         </Link>
 
-        <Link to="/equipment?status=maintenance">
+        <Link to="/dashboard/equipment?status=maintenance">
           <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Maintenance Required</CardTitle>
@@ -121,7 +121,7 @@ const Dashboard = () => {
           </Card>
         </Link>
 
-        <Link to="/work-orders">
+        <Link to="/dashboard/work-orders">
           <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Work Orders</CardTitle>
@@ -156,7 +156,7 @@ const Dashboard = () => {
         {/* Recent Equipment */}
         <Card>
           <CardHeader>
-            <Link to="/equipment" className="hover:opacity-80 transition-opacity">
+            <Link to="/dashboard/equipment" className="hover:opacity-80 transition-opacity">
               <CardTitle className="flex items-center gap-2 cursor-pointer">
                 <Package className="h-5 w-5" />
                 Recent Equipment
@@ -207,7 +207,7 @@ const Dashboard = () => {
         {/* Recent Work Orders */}
         <Card>
           <CardHeader>
-            <Link to="/work-orders" className="hover:opacity-80 transition-opacity">
+            <Link to="/dashboard/work-orders" className="hover:opacity-80 transition-opacity">
               <CardTitle className="flex items-center gap-2 cursor-pointer">
                 <ClipboardList className="h-5 w-5" />
                 Recent Work Orders

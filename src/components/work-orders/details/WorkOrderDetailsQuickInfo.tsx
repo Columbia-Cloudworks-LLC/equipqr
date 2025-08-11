@@ -45,7 +45,7 @@ export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps>
     try {
       await deleteWorkOrderMutation.mutateAsync(workOrder.id);
       setShowDeleteDialog(false);
-      navigate('/work-orders');
+      navigate('/dashboard/work-orders');
     } catch (error) {
       // Error is handled in the mutation
     }
