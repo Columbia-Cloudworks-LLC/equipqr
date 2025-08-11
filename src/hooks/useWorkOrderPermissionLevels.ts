@@ -4,6 +4,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
+import { Tables } from '@/integrations/supabase/types';
 
 export interface WorkOrderPermissionLevels {
   isManager: boolean;
@@ -15,7 +16,7 @@ export interface WorkOrderPermissionLevels {
   canChangeStatus: boolean;
   canAddNotes: boolean;
   canAddImages: boolean;
-  getFormMode: (workOrder: any, createdByCurrentUser: boolean) => 'manager' | 'requestor' | 'view_only';
+  getFormMode: (workOrder: Tables<'work_orders'>, createdByCurrentUser: boolean) => 'manager' | 'requestor' | 'view_only';
 }
 
 export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
@@ -39,7 +40,7 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
     // Users can edit if they are managers or technicians
     const canEdit = isManager || isTechnician;
 
-    const getFormMode = (workOrder: any, createdByCurrentUser: boolean): 'manager' | 'requestor' | 'view_only' => {
+    const getFormMode = (workOrder: Tables<'work_orders'>, createdByCurrentUser: boolean): 'manager' | 'requestor' | 'view_only' => {
       if (isManager) {
         return 'manager';
       }
@@ -48,7 +49,7 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
         return 'requestor';
       }
       
-      if (isTechnician && (workOrder?.assignee_id === user?.id || workOrder?.team_id)) {
+      if (isTechnician && workOrder?.assignee_id === user?.id) {
         return 'manager'; // Technicians can act as managers for their assigned work orders
       }
       
@@ -67,7 +68,7 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
       canAddImages: true,
       getFormMode
     };
-  }, [user?.id, currentOrganization?.id, members, teamMemberships]);
+  }, [user?.id, members, teamMemberships]);
 
   return permissions;
 };

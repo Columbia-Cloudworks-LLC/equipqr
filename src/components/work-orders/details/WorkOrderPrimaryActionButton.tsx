@@ -3,10 +3,7 @@ import { Button } from '@/components/ui/button';
 import { 
   CheckCircle, 
   Play, 
-  Pause, 
-  X, 
-  AlertTriangle,
-  Clipboard
+  AlertTriangle
 } from 'lucide-react';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
@@ -16,7 +13,13 @@ import { WorkOrder } from '@/services/supabaseDataService';
 import WorkOrderAcceptanceModal from '../WorkOrderAcceptanceModal';
 
 interface WorkOrderPrimaryActionButtonProps {
-  workOrder: WorkOrder;
+  workOrder: {
+    id: string;
+    status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+    has_pm?: boolean;
+    assignee_id?: string;
+    created_by?: string;
+  };
   organizationId: string;
 }
 
@@ -27,7 +30,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const { data: pmData } = usePMByWorkOrderId(workOrder.id);
-  const { canEdit, isManager, isTechnician } = useWorkOrderPermissionLevels();
+  const { isManager, isTechnician } = useWorkOrderPermissionLevels();
   const { user } = useAuth();
 
   const handleStatusChange = async (newStatus: string) => {
@@ -177,7 +180,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
       <WorkOrderAcceptanceModal
         open={showAcceptanceModal}
         onClose={() => setShowAcceptanceModal(false)}
-        workOrder={workOrder}
+        workOrder={workOrder as any}
         organizationId={organizationId}
         onAccept={handleAcceptanceComplete}
       />

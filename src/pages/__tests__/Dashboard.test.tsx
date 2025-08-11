@@ -1,11 +1,9 @@
 import React from 'react';
 import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UseQueryResult } from '@tanstack/react-query';
 import Dashboard from '../Dashboard';
 import * as useSimpleOrganizationModule from '@/hooks/useSimpleOrganization';
 import * as useTeamBasedDashboardModule from '@/hooks/useTeamBasedDashboard';
-import { DashboardStats, Equipment, WorkOrder, TestOrganization } from '@/test/types/test-types';
 
 // Mock query result type for testing
 // Note: Using 'any' here is acceptable for test mocks to avoid complex UseQueryResult typing

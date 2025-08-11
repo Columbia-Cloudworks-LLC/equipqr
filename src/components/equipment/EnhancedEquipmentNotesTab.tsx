@@ -47,7 +47,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
   });
 
   // Fetch images for gallery
-  const { data: images = [], isLoading: imagesLoading } = useQuery({
+  const { data: images = [] } = useQuery({
     queryKey: ['equipment-images', equipmentId],
     queryFn: () => getEquipmentImages(equipmentId),
     enabled: !!equipmentId

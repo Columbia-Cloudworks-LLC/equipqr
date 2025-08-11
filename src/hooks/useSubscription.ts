@@ -109,7 +109,7 @@ export const useSubscription = () => {
 
   useEffect(() => {
     checkSubscription();
-  }, [user]);
+  }, [user, checkSubscription]);
 
   return {
     subscriptionData,

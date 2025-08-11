@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UseQueryResult } from '@tanstack/react-query';
 import { WorkOrderData } from '@/types/workOrder';
 import WorkOrders from '../WorkOrders';
 import * as useTeamBasedWorkOrdersModule from '@/hooks/useTeamBasedWorkOrders';
@@ -136,7 +135,7 @@ vi.mock('@/components/work-orders/WorkOrderFilters', () => ({
 }));
 
 vi.mock('@/components/work-orders/WorkOrdersList', () => ({
-  WorkOrdersList: ({ workOrders, hasActiveFilters, onCreateClick }: { 
+  WorkOrdersList: ({ workOrders, onCreateClick }: { 
     workOrders: WorkOrderData[]; 
     hasActiveFilters: boolean; 
     onCreateClick: () => void;

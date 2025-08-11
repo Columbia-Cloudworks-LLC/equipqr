@@ -11,9 +11,10 @@ interface WorkOrderDetailsMobileHeaderProps {
     id: string;
     title: string;
     priority: 'low' | 'medium' | 'high';
-    status: string;
+    status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
     has_pm?: boolean;
-    [key: string]: unknown;
+    assignee_id?: string;
+    created_by?: string;
   };
   canEdit: boolean;
   organizationId: string;
@@ -83,7 +84,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
             
             {/* Primary Action Button */}
             <WorkOrderPrimaryActionButton 
-              workOrder={workOrder as any}
+              workOrder={workOrder}
               organizationId={organizationId}
             />
           </div>

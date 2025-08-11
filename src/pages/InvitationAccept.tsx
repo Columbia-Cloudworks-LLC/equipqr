@@ -31,7 +31,7 @@ interface AcceptInvitationResponse {
 const InvitationAccept = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { sessionData, isLoading: sessionLoading, refreshSession } = useSession();
+  const { isLoading: sessionLoading, refreshSession } = useSession();
   const { user } = useAuth();
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
   const [loading, setLoading] = useState(true);

@@ -26,7 +26,7 @@ export const useWorkOrderDetailsData = (workOrderId: string) => {
 
   // Calculate derived state
   const createdByCurrentUser = workOrder?.created_by === user?.id;
-  const formMode = workOrder ? permissionLevels.getFormMode(workOrder, createdByCurrentUser) : 'viewer';
+  const formMode = workOrder ? permissionLevels.getFormMode(workOrder as any, createdByCurrentUser) : 'viewer';
   const isWorkOrderLocked = workOrder?.status === 'completed' || workOrder?.status === 'cancelled';
   
   // Calculate permissions

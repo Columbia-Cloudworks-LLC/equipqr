@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[SEND-INVITATION] ${step}${detailsStr}`);
 };
@@ -185,12 +185,15 @@ serve(async (req) => {
       },
     });
 
-  } catch (error: any) {
-    logStep("ERROR", { message: error.message, stack: error.stack });
+  } catch (error: unknown) {
+    logStep("ERROR", { 
+      message: error instanceof Error ? error.message : 'Unknown error', 
+      stack: error instanceof Error ? error.stack : undefined 
+    });
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to send invitation email" 
+        error: error instanceof Error ? error.message : "Failed to send invitation email" 
       }),
       {
         status: 500,

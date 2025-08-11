@@ -88,7 +88,7 @@ const WorkOrderDetails = () => {
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
       <WorkOrderDetailsMobileHeader
-        workOrder={workOrder as any}
+        workOrder={workOrder}
         canEdit={canEdit}
         organizationId={currentOrganization.id}
         onEditClick={handleEditWorkOrder}
