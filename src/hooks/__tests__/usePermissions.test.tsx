@@ -10,7 +10,7 @@ import {
 } from '@/test/mocks/testTypes';
 
 // Mock the dependencies
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', email: 'test@example.com' },
     isLoading: false,

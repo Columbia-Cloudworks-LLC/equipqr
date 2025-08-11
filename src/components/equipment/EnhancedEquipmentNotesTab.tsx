@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, MessageSquare, Images, Clock, User, Eye, EyeOff } from 'lucide-react';
+import { Plus, MessageSquare, Images, Clock, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,14 +25,10 @@ import ImageGallery from '@/components/common/ImageGallery';
 
 interface EnhancedEquipmentNotesTabProps {
   equipmentId: string;
-  organizationId: string;
-  equipmentTeamId?: string;
 }
 
 const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
-  equipmentId,
-  organizationId,
-  equipmentTeamId
+  equipmentId
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();

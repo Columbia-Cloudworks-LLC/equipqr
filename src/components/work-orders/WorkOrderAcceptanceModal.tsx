@@ -9,7 +9,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useSyncTeamsByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
-import { useSession } from '@/hooks/useSession';
 import { toast } from 'sonner';
 
 import { WorkOrderLike } from '@/utils/workOrderTypeConversion';

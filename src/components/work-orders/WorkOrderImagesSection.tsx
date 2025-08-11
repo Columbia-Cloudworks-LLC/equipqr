@@ -33,7 +33,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
     }
   });
 
-  const canDeleteImage = (image: any) => {
+  const canDeleteImage = (image: { uploaded_by: string }) => {
     return image.uploaded_by === user?.id;
   };
 

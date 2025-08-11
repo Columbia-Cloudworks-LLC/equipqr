@@ -69,6 +69,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   });
 
   // Delete image mutation
+  // Currently not used in UI but kept for future implementation
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const deleteImageMutation = useMutation({
     mutationFn: deleteWorkOrderImage,
     onSuccess: () => {
@@ -136,6 +138,9 @@ const handleCreateNoteWithImages = async (files: File[]): Promise<void> => {
     });
   };
 
+  // Function to check if user can delete image
+  // Currently not used in UI but kept for future implementation  
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const canDeleteImage = (image: WorkOrderNoteImage) => {
     return image.uploaded_by === user?.id;
   };

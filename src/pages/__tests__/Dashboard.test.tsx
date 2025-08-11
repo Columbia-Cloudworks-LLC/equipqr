@@ -13,7 +13,7 @@ import { DashboardStats, Equipment, WorkOrder, TestOrganization } from '@/test/t
 type MockQueryResult = any;
 
 // Mock all context dependencies first
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', email: 'test@test.com' },
     session: { user: { id: 'user-1' } },

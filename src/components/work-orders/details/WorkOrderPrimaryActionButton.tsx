@@ -54,7 +54,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
     }
   };
 
-  const handleAcceptanceComplete = async (acceptanceData: any) => {
+  const handleAcceptanceComplete = async () => {
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,

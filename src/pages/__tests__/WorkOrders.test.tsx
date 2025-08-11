@@ -9,7 +9,7 @@ import * as useOrganizationModule from '@/contexts/OrganizationContext';
 import * as useWorkOrderFiltersModule from '@/hooks/useWorkOrderFilters';
 
 // Mock all required contexts and hooks
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', email: 'test@test.com' },
     session: { user: { id: 'user-1' } },

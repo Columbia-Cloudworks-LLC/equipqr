@@ -324,9 +324,7 @@ const EquipmentDetails = () => {
 
         <TabsContent value="notes">
           <EnhancedEquipmentNotesTab 
-            equipmentId={equipment.id} 
-            organizationId={currentOrganization.id}
-            equipmentTeamId={equipment.team_id || undefined}
+            equipmentId={equipment.id}
           />
         </TabsContent>
 
