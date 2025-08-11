@@ -14,6 +14,7 @@ interface UseSessionManagerProps {
 
 export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSessionManagerProps) => {
   const [lastRefreshTime, setLastRefreshTime] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const createSessionData = useMemo(() => (
     organizations: SessionOrganization[],
@@ -37,6 +38,11 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       return;
     }
 
+    // Prevent concurrent refreshes
+    if (isRefreshing && !force) {
+      return;
+    }
+
     // More conservative refresh timing to prevent unnecessary API calls
     if (!force && lastRefreshTime) {
       const lastRefresh = new Date(lastRefreshTime);
@@ -46,6 +52,8 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
         return;
       }
     }
+
+    setIsRefreshing(true);
 
     try {
       onError('');
@@ -89,8 +97,10 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
           OrganizationSyncService.setSessionReady(true);
         }
       }
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [user, lastRefreshTime, onSessionUpdate, onError, createSessionData]);
+  }, [user, lastRefreshTime, onSessionUpdate, onError, createSessionData, isRefreshing]);
 
   const switchOrganization = useCallback(async (
     organizationId: string,

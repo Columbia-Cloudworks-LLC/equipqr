@@ -67,11 +67,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setError(error);
   }, []);
 
-  const sessionManager = useSessionManager({
+  const sessionManager = useMemo(() => useSessionManager({
     user,
     onSessionUpdate,
     onError
-  });
+  }), [user, onSessionUpdate, onError]);
 
   const clearSession = useCallback(() => {
     setSessionData(null);

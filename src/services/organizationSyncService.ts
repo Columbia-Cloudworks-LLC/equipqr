@@ -12,6 +12,8 @@ class OrganizationSyncServiceClass {
   private listeners: Map<string, EventListener[]> = new Map();
   private currentOrganizationId: string | null = null;
   private isSessionReady = false;
+  private lastSwitchTime = 0;
+  private readonly DEBOUNCE_MS = 100; // Debounce switches to prevent rapid fire
 
   public on(event: string, listener: EventListener) {
     if (!this.listeners.has(event)) {
@@ -45,10 +47,17 @@ class OrganizationSyncServiceClass {
   }
 
   public switchOrganization(organizationId: string, source: 'session' | 'organization' | 'user') {
+    // Debounce rapid switches
+    const now = Date.now();
+    if (now - this.lastSwitchTime < this.DEBOUNCE_MS) {
+      return;
+    }
+    
     if (this.currentOrganizationId === organizationId) {
       return; // No change needed
     }
     
+    this.lastSwitchTime = now;
     this.currentOrganizationId = organizationId;
     
     const event: OrganizationSyncEvent = {

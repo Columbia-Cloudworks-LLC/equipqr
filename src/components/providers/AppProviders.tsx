@@ -5,7 +5,7 @@ import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
-import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvider';
+import { SimpleOrganizationProvider } from '@/contexts/SimplifiedOrganizationProvider';
 import { Toaster } from '@/components/ui/toaster';
 
 const queryClient = new QueryClient({
