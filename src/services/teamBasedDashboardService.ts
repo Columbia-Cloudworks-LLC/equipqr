@@ -19,11 +19,8 @@ export const getTeamBasedDashboardStats = async (
   isOrgAdmin: boolean = false
 ): Promise<TeamBasedDashboardStats> => {
   try {
-    console.log('📊 Fetching team-based dashboard stats for teams:', userTeamIds, 'isAdmin:', isOrgAdmin);
-
     // If user has no team access and isn't admin, return empty stats
     if (!isOrgAdmin && userTeamIds.length === 0) {
-      console.log('⚠️ User has no team access - returning empty stats');
       return {
         totalEquipment: 0,
         activeEquipment: 0,
@@ -56,7 +53,7 @@ export const getTeamBasedDashboardStats = async (
     const { data: equipmentData, error: equipmentError } = await equipmentQuery;
 
     if (equipmentError) {
-      console.error('❌ Error fetching equipment stats:', equipmentError);
+      console.error('Error fetching equipment stats:', equipmentError);
       throw equipmentError;
     }
 
@@ -83,7 +80,7 @@ export const getTeamBasedDashboardStats = async (
     const { data: workOrderData, error: workOrderError } = await workOrderQuery;
 
     if (workOrderError) {
-      console.error('❌ Error fetching work order stats:', workOrderError);
+      console.error('Error fetching work order stats:', workOrderError);
       throw workOrderError;
     }
 
@@ -116,7 +113,7 @@ export const getTeamBasedDashboardStats = async (
     const { data: teamData, error: teamError } = await teamQuery;
 
     if (teamError) {
-      console.error('❌ Error fetching team stats:', teamError);
+      console.error('Error fetching team stats:', teamError);
       throw teamError;
     }
 
@@ -130,11 +127,10 @@ export const getTeamBasedDashboardStats = async (
       ...teamStats,
     };
 
-    console.log('✅ Team-based dashboard stats:', stats);
     return stats;
 
   } catch (error) {
-    console.error('💥 Error in getTeamBasedDashboardStats:', error);
+    console.error('Error in getTeamBasedDashboardStats:', error);
     throw error;
   }
 };

@@ -5,7 +5,7 @@ import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useOptimizedOrganizationMembers } from '@/hooks/useOptimizedOrganizationMembers';
 import { useOrganizationStats } from '@/hooks/useOrganizationStats';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
@@ -24,7 +24,7 @@ const Organization = () => {
   const { data: fleetMapSubscription } = useFleetMapSubscription(currentOrganization?.id || '');
   const organizationStats = useOrganizationStats(currentOrganization);
   const permissions = usePagePermissions(currentOrganization);
-  const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
+  
 
   const currentUserRole: 'owner' | 'admin' | 'member' = currentOrganization?.userRole || 'member';
 
@@ -65,7 +65,6 @@ const Organization = () => {
 
   const handleInviteMember = () => {
     // This is now handled by the unified dialog in OrganizationTabs
-    console.log('Invite member action triggered');
   };
 
   return (

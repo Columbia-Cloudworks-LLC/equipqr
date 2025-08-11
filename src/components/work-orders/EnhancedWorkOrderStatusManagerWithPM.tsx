@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   CheckCircle, 
-  Clock, 
   Play, 
   Pause, 
   X, 
@@ -17,7 +16,7 @@ import {
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
@@ -56,7 +55,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const { data: pmData } = usePMByWorkOrderId(workOrder.id);
-  const { canEdit, isManager, isTechnician } = useWorkOrderPermissionLevels();
+  const { isManager, isTechnician } = useWorkOrderPermissionLevels();
   const { user } = useAuth();
 
   const handleStatusChange = async (newStatus: WorkOrderStatus) => {
@@ -84,7 +83,7 @@ const EnhancedWorkOrderStatusManagerWithPM: React.FC<EnhancedWorkOrderStatusMana
     }
   };
 
-  const handleAcceptanceComplete = async (assigneeId?: string) => {
+  const handleAcceptanceComplete = async () => {
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
@@ -232,7 +231,6 @@ const getStatusActions = (): StatusAction[] => {
   };
 
   const statusActions = getStatusActions();
-  const canComplete = !workOrder.has_pm || (pmData && pmData.status === 'completed');
 
   return (
     <div className="space-y-4">

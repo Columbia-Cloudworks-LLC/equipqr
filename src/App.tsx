@@ -1,18 +1,13 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from 'next-themes';
-import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { UserProvider } from '@/contexts/UserContext';
-import { SessionProvider } from '@/contexts/SessionContext';
+import { Routes, Route } from 'react-router-dom';
+import { AppProviders } from '@/components/providers/AppProviders';
 import { TeamProvider } from '@/contexts/TeamContext';
 import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvider'; // Fixed import path
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppSidebar from '@/components/layout/AppSidebar';
 import TopBar from '@/components/layout/TopBar';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+
 import { Navigate, useParams } from 'react-router-dom';
 import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
@@ -36,14 +31,6 @@ import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import LegalFooter from '@/components/layout/LegalFooter';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1,
-    },
-  },
-});
 
 const BrandedTopBar = () => {
   return <TopBar />;
@@ -62,12 +49,7 @@ const RedirectToWorkOrder = () => {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AuthProvider>
-        <UserProvider>
-          <SessionProvider>
-            <Router>
+    <AppProviders>
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<SmartLanding />} />
@@ -130,13 +112,7 @@ function App() {
                   </ProtectedRoute>
                 } />
               </Routes>
-            </Router>
-          </SessionProvider>
-        </UserProvider>
-      </AuthProvider>
-      <Toaster />
-      </ThemeProvider>
-    </QueryClientProvider>
+    </AppProviders>
   );
 }
 

@@ -65,36 +65,50 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "Chart"
 
+// Validate and sanitize color values to prevent XSS
+const sanitizeColor = (color: string): string => {
+  // Only allow hex colors, rgb/rgba values, and CSS color names
+  const colorRegex = /^(#[0-9a-fA-F]{3,6}|rgb\([\d\s,]+\)|rgba\([\d\s,.]+\)|[a-zA-Z]+)$/;
+  if (!colorRegex.test(color)) {
+    console.warn(`Invalid color value detected: ${color}. Using fallback.`);
+    return '#000000'; // Safe fallback color
+  }
+  return color;
+};
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([_, config]) => config.theme || config.color
+    ([, itemConfig]) => itemConfig.theme || itemConfig.color
   )
 
   if (!colorConfig.length) {
     return null
   }
 
+  // Generate CSS safely without dangerouslySetInnerHTML
+  const cssRules = Object.entries(THEMES)
+    .map(([theme, prefix]) => {
+      const rules = colorConfig
+        .map(([key, itemConfig]) => {
+          const color =
+            itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+            itemConfig.color
+          if (!color) return null;
+          
+          const sanitizedColor = sanitizeColor(color);
+          return `  --color-${key}: ${sanitizedColor};`;
+        })
+        .filter(Boolean)
+        .join('\n');
+      
+      return `${prefix} [data-chart="${id}"] {\n${rules}\n}`;
+    })
+    .join('\n');
+
   return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
-}
-`
-          )
-          .join("\n"),
-      }}
-    />
+    <style>
+      {cssRules}
+    </style>
   )
 }
 

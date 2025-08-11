@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SubscriptionData {
@@ -15,7 +15,7 @@ export const useSubscription = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const checkSubscription = async () => {
+  const checkSubscription = useCallback(async () => {
     if (!user) {
       setSubscriptionData(null);
       setIsLoading(false);
@@ -52,7 +52,7 @@ export const useSubscription = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   const createCheckout = async (priceId: string, organizationId?: string) => {
     if (!user) {
@@ -109,7 +109,7 @@ export const useSubscription = () => {
 
   useEffect(() => {
     checkSubscription();
-  }, [user]);
+  }, [user, checkSubscription]);
 
   return {
     subscriptionData,

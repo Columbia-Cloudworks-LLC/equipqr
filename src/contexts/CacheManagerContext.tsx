@@ -1,18 +1,18 @@
-import React, { createContext, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useEffect, ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cacheManager } from '@/services/cacheManager';
 import { backgroundSync } from '@/services/backgroundSync';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { CacheStats, SyncStatus } from '@/types/cache';
 
-// PHASE 3: Cache management provider with automatic setup
 interface CacheManagerContextType {
-  getCacheStats: () => any;
+  getCacheStats: () => CacheStats;
   clearCache: (pattern?: string) => void;
-  getSyncStatus: () => any;
+  getSyncStatus: () => SyncStatus;
 }
 
-const CacheManagerContext = createContext<CacheManagerContextType | undefined>(undefined);
+export const CacheManagerContext = createContext<CacheManagerContextType | undefined>(undefined);
 
 interface CacheManagerProviderProps {
   children: ReactNode;
@@ -51,7 +51,7 @@ export const CacheManagerProvider: React.FC<CacheManagerProviderProps> = ({ chil
     };
   }, []);
 
-  const getCacheStats = () => {
+  const getCacheStats = (): CacheStats => {
     return cacheManager.getCacheStats();
   };
 
@@ -59,7 +59,7 @@ export const CacheManagerProvider: React.FC<CacheManagerProviderProps> = ({ chil
     cacheManager.clearCache(pattern);
   };
 
-  const getSyncStatus = () => {
+  const getSyncStatus = (): SyncStatus => {
     return backgroundSync.getSyncStatus();
   };
 
@@ -74,12 +74,4 @@ export const CacheManagerProvider: React.FC<CacheManagerProviderProps> = ({ chil
       {children}
     </CacheManagerContext.Provider>
   );
-};
-
-export const useCacheManagerContext = () => {
-  const context = useContext(CacheManagerContext);
-  if (context === undefined) {
-    throw new Error('useCacheManagerContext must be used within a CacheManagerProvider');
-  }
-  return context;
 };

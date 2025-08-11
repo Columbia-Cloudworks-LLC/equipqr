@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+
 import { ArrowLeft, Settings, Users, Trash2, Plus, Edit } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam, useTeamMutations } from '@/hooks/useTeamManagement';
@@ -45,7 +45,7 @@ const TeamDetails = () => {
       <div className="space-y-6">
         <Button
           variant="ghost"
-          onClick={() => navigate('/teams')}
+          onClick={() => navigate('/dashboard/teams')}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -57,7 +57,7 @@ const TeamDetails = () => {
             <p className="text-muted-foreground mb-4">
               The team you're looking for doesn't exist or you don't have permission to view it.
             </p>
-            <Button onClick={() => navigate('/teams')}>
+            <Button onClick={() => navigate('/dashboard/teams')}>
               Return to Teams
             </Button>
           </CardContent>
@@ -79,8 +79,8 @@ const TeamDetails = () => {
 
     try {
       await deleteTeam.mutateAsync(team.id);
-      navigate('/teams');
-    } catch (error) {
+      navigate('/dashboard/teams');
+    } catch {
       // Error is handled by the mutation
     }
   };
@@ -92,7 +92,7 @@ const TeamDetails = () => {
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
-            onClick={() => navigate('/teams')}
+            onClick={() => navigate('/dashboard/teams')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />

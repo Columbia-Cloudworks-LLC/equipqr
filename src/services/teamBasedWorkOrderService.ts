@@ -20,16 +20,10 @@ export const getTeamBasedWorkOrders = async (
   filters: TeamBasedWorkOrderFilters = {}
 ): Promise<EnhancedWorkOrder[]> => {
   try {
-    console.log('🔍 Fetching team-based work orders for organization:', organizationId);
-    console.log('👥 User team IDs:', userTeamIds, 'isAdmin:', isOrgAdmin);
-
     // First, get the equipment IDs that this user can access
     const accessibleEquipmentIds = await getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
     
-    console.log('🔧 Accessible equipment IDs:', accessibleEquipmentIds.length);
-
     if (accessibleEquipmentIds.length === 0) {
-      console.log('⚠️ No accessible equipment found, returning empty array');
       return [];
     }
 
@@ -98,11 +92,12 @@ export const getTeamBasedWorkOrders = async (
         case 'overdue':
           query = query.lt('due_date', today.toISOString());
           break;
-        case 'today':
+        case 'today': {
           const tomorrow = new Date(today);
           tomorrow.setDate(tomorrow.getDate() + 1);
           query = query.gte('due_date', today.toISOString()).lt('due_date', tomorrow.toISOString());
           break;
+        }
         case 'this_week':
           query = query.gte('due_date', today.toISOString()).lt('due_date', weekFromNow.toISOString());
           break;
@@ -118,8 +113,6 @@ export const getTeamBasedWorkOrders = async (
       console.error('❌ Error fetching team-based work orders:', error);
       throw error;
     }
-
-    console.log('✅ Found team-based work orders:', data?.length || 0);
 
     return (data || []).map(wo => ({
       id: wo.id,
@@ -142,7 +135,7 @@ export const getTeamBasedWorkOrders = async (
       createdByName: wo.creator?.name
     }));
   } catch (error) {
-    console.error('💥 Error in getTeamBasedWorkOrders:', error);
+    console.error('Error in getTeamBasedWorkOrders:', error);
     throw error;
   }
 };

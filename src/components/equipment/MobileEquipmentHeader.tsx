@@ -38,7 +38,7 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
         <Button 
           variant="outline" 
           size="sm"
-          onClick={() => navigate('/equipment')}
+          onClick={() => navigate('/dashboard/equipment')}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { usePageVisibility } from '@/hooks/usePageVisibility';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { SessionStorageService } from '@/services/sessionStorageService';
@@ -105,7 +105,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   usePageVisibility({
     onVisibilityChange: (isVisible) => {
       if (sessionManager.shouldRefreshOnVisibility(isVisible)) {
-        console.log('🔄 Refreshing session due to page visibility change (30+ min since last refresh)');
+        // Refreshing session due to page visibility change
         refreshSession(false);
       }
     },
@@ -117,17 +117,17 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const { shouldLoadFromCache, cachedData, needsRefresh } = sessionManager.initializeSession();
     
     if (shouldLoadFromCache && cachedData) {
-      console.log('📦 Loading session from cache');
+      // Loading session from cache
       setSessionData(cachedData);
       setIsLoading(false);
       
       // Refresh in background if needed
       if (needsRefresh) {
-        console.log('🔄 Background refresh needed');
+        // Background refresh needed
         refreshSession(false);
       }
     } else {
-      console.log('🔄 No valid cache, fetching fresh session data');
+      // No valid cache, fetching fresh session data
       refreshSession(true);
     }
   }, [user, sessionManager, refreshSession]);

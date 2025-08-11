@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[SEND-INVITATION] ${step}${detailsStr}`);
 };
@@ -22,6 +22,16 @@ interface InvitationEmailRequest {
   inviterName: string;
   message?: string;
 }
+
+// HTML escape function to prevent XSS in email templates
+const escapeHtml = (unsafe: string): string => {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
 
 serve(async (req) => {
   try {
@@ -52,6 +62,12 @@ serve(async (req) => {
     }: InvitationEmailRequest = await req.json();
 
     logStep("Request received", { invitationId, email, role, organizationName });
+
+    // Sanitize user inputs to prevent XSS
+    const safeOrganizationName = escapeHtml(organizationName);
+    const safeInviterName = escapeHtml(inviterName);
+    const safeRole = escapeHtml(role);
+    const safeMessage = message ? escapeHtml(message) : undefined;
 
     // Get the invitation token and organization logo from the database
     const { data: invitation, error: invitationError } = await supabaseClient
@@ -99,13 +115,13 @@ serve(async (req) => {
             <img src="${organizationLogo}" alt="${organizationName} Logo" style="height: 56px; width: auto; display: block; margin: 0 auto;" />
           </div>
           ` : ''}
-          <h2 style="color: #1a1a1a; font-size: 24px; margin: 0 0 16px 0;">You're invited to join ${organizationName}</h2>
+          <h2 style="color: #1a1a1a; font-size: 24px; margin: 0 0 16px 0;">You're invited to join ${safeOrganizationName}</h2>
           <p style="color: #666; font-size: 16px; margin: 0 0 16px 0;">
-            ${inviterName} has invited you to join their organization as a <strong>${role}</strong> on EquipQR.
+            ${safeInviterName} has invited you to join their organization as a <strong>${safeRole}</strong> on EquipQR.
           </p>
-          ${message ? `
+          ${safeMessage ? `
             <div style="background: white; border-left: 4px solid #2563eb; padding: 16px; margin: 16px 0; border-radius: 4px;">
-              <p style="color: #374151; font-style: italic; margin: 0;">"${message}"</p>
+              <p style="color: #374151; font-style: italic; margin: 0;">"${safeMessage}"</p>
             </div>
           ` : ''}
         </div>
@@ -152,7 +168,7 @@ serve(async (req) => {
     const emailResponse = await resend.emails.send({
       from: "EquipQR <invite@equipqr.app>",
       to: [email],
-      subject: `You're invited to join ${organizationName} on EquipQR`,
+      subject: `You're invited to join ${safeOrganizationName} on EquipQR`,
       html: emailHtml,
     });
 
@@ -169,12 +185,15 @@ serve(async (req) => {
       },
     });
 
-  } catch (error: any) {
-    logStep("ERROR", { message: error.message, stack: error.stack });
+  } catch (error: unknown) {
+    logStep("ERROR", { 
+      message: error instanceof Error ? error.message : 'Unknown error', 
+      stack: error instanceof Error ? error.stack : undefined 
+    });
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to send invitation email" 
+        error: error instanceof Error ? error.message : "Failed to send invitation email" 
       }),
       {
         status: 500,

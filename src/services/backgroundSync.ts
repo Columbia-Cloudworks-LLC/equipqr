@@ -1,15 +1,17 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { cacheManager } from './cacheManager';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
+import { logger } from '@/utils/logger';
 
 // PHASE 3: Background sync service for real-time updates
 export class BackgroundSyncService {
   private static instance: BackgroundSyncService;
-  private subscriptions: Map<string, any> = new Map();
+  private subscriptions: Map<string, RealtimeChannel | NodeJS.Timeout> = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private isOnline = navigator.onLine;
-  private syncQueue: Array<{ type: string; data: any; timestamp: number }> = [];
+  private syncQueue: Array<{ type: string; data: unknown; timestamp: number }> = [];
 
   private constructor() {
     this.setupNetworkListeners();
@@ -115,7 +117,7 @@ export class BackgroundSyncService {
       )
       .subscribe((status) => {
         timer();
-        console.log(`Real-time subscription status for org ${organizationId}:`, status);
+        logger.debug(`Real-time subscription status for org ${organizationId}: ${status}`);
         
         if (status === 'SUBSCRIBED') {
           this.reconnectAttempts = 0;
@@ -130,21 +132,23 @@ export class BackgroundSyncService {
   // Unsubscribe from organization updates
   unsubscribeFromOrganization(organizationId: string) {
     const channel = this.subscriptions.get(organizationId);
-    if (channel) {
-      supabase.removeChannel(channel);
+    if (channel && !organizationId.startsWith('periodic-')) {
+      supabase.removeChannel(channel as RealtimeChannel);
       this.subscriptions.delete(organizationId);
     }
   }
 
-  private handleEquipmentChange(organizationId: string, payload: any) {
-    console.log('Equipment change detected:', payload);
+  private handleEquipmentChange(organizationId: string, payload: Record<string, unknown>) {
+    logger.debug('Equipment change detected', payload);
     
-    const equipmentId = payload.new?.id || payload.old?.id;
+    const payloadNew = payload.new as Record<string, unknown> | null;
+    const payloadOld = payload.old as Record<string, unknown> | null;
+    const equipmentId = payloadNew?.id || payloadOld?.id;
     
     if (payload.eventType === 'DELETE') {
       cacheManager.invalidateOrganizationData(organizationId);
     } else {
-      cacheManager.invalidateEquipmentRelated(organizationId, equipmentId);
+      cacheManager.invalidateEquipmentRelated(organizationId, equipmentId as string);
     }
 
     // Queue for offline sync if needed
@@ -153,36 +157,42 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleWorkOrderChange(organizationId: string, payload: any) {
-    console.log('Work order change detected:', payload);
+  private handleWorkOrderChange(organizationId: string, payload: Record<string, unknown>) {
+    logger.debug('Work order change detected', payload);
     
-    const workOrderId = payload.new?.id || payload.old?.id;
-    const equipmentId = payload.new?.equipment_id || payload.old?.equipment_id;
+    const payloadNew = payload.new as Record<string, unknown> | null;
+    const payloadOld = payload.old as Record<string, unknown> | null;
+    const workOrderId = payloadNew?.id || payloadOld?.id;
+    const equipmentId = payloadNew?.equipment_id || payloadOld?.equipment_id;
     
-    cacheManager.invalidateWorkOrderRelated(organizationId, workOrderId, equipmentId);
+    cacheManager.invalidateWorkOrderRelated(organizationId, workOrderId as string, equipmentId as string);
 
     if (!this.isOnline) {
       this.queueForSync('work_order', payload);
     }
   }
 
-  private handleTeamChange(organizationId: string, payload: any) {
-    console.log('Team change detected:', payload);
+  private handleTeamChange(organizationId: string, payload: Record<string, unknown>) {
+    logger.debug('Team change detected', payload);
     
-    const teamId = payload.new?.id || payload.old?.id;
-    cacheManager.invalidateTeamRelated(organizationId, teamId);
+    const payloadNew = payload.new as Record<string, unknown> | null;
+    const payloadOld = payload.old as Record<string, unknown> | null;
+    const teamId = payloadNew?.id || payloadOld?.id;
+    cacheManager.invalidateTeamRelated(organizationId, teamId as string);
 
     if (!this.isOnline) {
       this.queueForSync('team', payload);
     }
   }
 
-  private handleNoteChange(organizationId: string, payload: any) {
-    console.log('Note change detected:', payload);
+  private handleNoteChange(organizationId: string, payload: Record<string, unknown>) {
+    logger.debug('Note change detected', payload);
     
-    const equipmentId = payload.new?.equipment_id || payload.old?.equipment_id;
+    const payloadNew = payload.new as Record<string, unknown> | null;
+    const payloadOld = payload.old as Record<string, unknown> | null;
+    const equipmentId = payloadNew?.equipment_id || payloadOld?.equipment_id;
     if (equipmentId) {
-      cacheManager.invalidateEquipmentRelated(organizationId, equipmentId);
+      cacheManager.invalidateEquipmentRelated(organizationId, equipmentId as string);
     }
 
     if (!this.isOnline) {
@@ -190,8 +200,8 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleOrganizationMemberChange(organizationId: string, payload: any) {
-    console.log('Organization member change detected:', payload);
+  private handleOrganizationMemberChange(organizationId: string, payload: Record<string, unknown>) {
+    logger.debug('Organization member change detected', payload);
     
     cacheManager.invalidateOrganizationMemberRelated(organizationId);
 
@@ -200,8 +210,8 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleOrganizationSlotChange(organizationId: string, payload: any) {
-    console.log('Organization slot change detected:', payload);
+  private handleOrganizationSlotChange(organizationId: string, payload: Record<string, unknown>) {
+    logger.debug('Organization slot change detected', payload);
     
     cacheManager.invalidateOrganizationSlotRelated(organizationId);
 
@@ -210,8 +220,8 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleOrganizationInvitationChange(organizationId: string, payload: any) {
-    console.log('Organization invitation change detected:', payload);
+  private handleOrganizationInvitationChange(organizationId: string, payload: Record<string, unknown>) {
+    logger.debug('Organization invitation change detected', payload);
     
     cacheManager.invalidateOrganizationInvitationRelated(organizationId);
 
@@ -230,13 +240,13 @@ export class BackgroundSyncService {
     const delay = Math.pow(2, this.reconnectAttempts) * 1000; // Exponential backoff
 
     setTimeout(() => {
-      console.log(`Attempting to reconnect to org ${organizationId} (attempt ${this.reconnectAttempts})`);
+      logger.info(`Attempting to reconnect to org ${organizationId} (attempt ${this.reconnectAttempts})`);
       this.unsubscribeFromOrganization(organizationId);
       this.subscribeToOrganization(organizationId);
     }, delay);
   }
 
-  private queueForSync(type: string, data: any) {
+  private queueForSync(type: string, data: unknown) {
     this.syncQueue.push({
       type,
       data,
@@ -254,7 +264,7 @@ export class BackgroundSyncService {
       return;
     }
 
-    console.log(`Processing ${this.syncQueue.length} queued sync items`);
+    logger.debug(`Processing ${this.syncQueue.length} queued sync items`);
     
     // Process items in batches
     const batchSize = 10;
@@ -272,10 +282,10 @@ export class BackgroundSyncService {
     }
   }
 
-  private async processSyncItem(item: { type: string; data: any; timestamp: number }) {
+  private async processSyncItem(item: { type: string; data: unknown; timestamp: number }) {
     // Process the queued sync item
     // This could involve re-fetching data, showing notifications, etc.
-    console.log(`Processing sync item:`, item);
+    logger.debug('Processing sync item:', item);
     
     // For now, just invalidate relevant caches
     // In a real implementation, you might want to show notifications
@@ -283,7 +293,7 @@ export class BackgroundSyncService {
   }
 
   private reconnectSubscriptions() {
-    console.log('Reconnecting all subscriptions after coming online');
+    logger.info('Reconnecting all subscriptions after coming online');
     
     for (const [organizationId] of this.subscriptions) {
       this.unsubscribeFromOrganization(organizationId);
@@ -329,9 +339,9 @@ export class BackgroundSyncService {
   cleanup() {
     for (const [key, subscription] of this.subscriptions) {
       if (key.startsWith('periodic-')) {
-        clearInterval(subscription);
+        clearInterval(subscription as NodeJS.Timeout);
       } else {
-        supabase.removeChannel(subscription);
+        supabase.removeChannel(subscription as RealtimeChannel);
       }
     }
     this.subscriptions.clear();

@@ -9,7 +9,7 @@ import { Calendar, Clock, User, Users, Wrench, Clipboard, Trash2 } from 'lucide-
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useDeleteWorkOrder } from '@/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/hooks/useWorkOrderImageCount';
-import { useToast } from '@/hooks/use-toast';
+
 import { useNavigate } from 'react-router-dom';
 import { WorkOrderData, EquipmentData, PermissionLevels, PMData } from '@/types/workOrderDetails';
 
@@ -31,7 +31,7 @@ export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps>
   const permissions = useUnifiedPermissions();
   const deleteWorkOrderMutation = useDeleteWorkOrder();
   const { data: imageData } = useWorkOrderImageCount(workOrder?.id);
-  const { toast } = useToast();
+  
   const navigate = useNavigate();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -45,8 +45,8 @@ export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps>
     try {
       await deleteWorkOrderMutation.mutateAsync(workOrder.id);
       setShowDeleteDialog(false);
-      navigate('/work-orders');
-    } catch (error) {
+      navigate('/dashboard/work-orders');
+    } catch {
       // Error is handled in the mutation
     }
   };

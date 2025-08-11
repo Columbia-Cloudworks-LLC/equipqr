@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +39,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { isLightColor } from "@/lib/utils";
 import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useUser } from "@/contexts/UserContext";
 import { useSimpleOrganization } from "@/hooks/useSimpleOrganization";
 import { useIsMobile } from "@/hooks/use-mobile";

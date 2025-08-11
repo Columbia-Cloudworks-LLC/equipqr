@@ -13,7 +13,7 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import TeamForm from '@/components/teams/TeamForm';
 
 const Teams = () => {
-  const { getCurrentOrganization, isLoading, getUserTeamIds, sessionData } = useSession();
+  const { getCurrentOrganization, isLoading, getUserTeamIds } = useSession();
   const currentOrganization = getCurrentOrganization();
   const [showForm, setShowForm] = useState(false);
   const [deleteTeamId, setDeleteTeamId] = useState<string | null>(null);
@@ -31,7 +31,6 @@ const Teams = () => {
   
   // Get user's team memberships for current organization
   const userTeamIds = getUserTeamIds();
-  const userTeamMemberships = sessionData?.teamMemberships || [];
   
   // Determine what teams to show based on user role and memberships
   const { teamsToShow, userHasTeamMemberships, isOrgAdmin } = useMemo(() => {
@@ -227,7 +226,7 @@ const Teams = () => {
                   variant="outline" 
                   size="sm" 
                   className="flex-1"
-                  onClick={() => navigate(`/teams/${team.id}`)}
+                  onClick={() => navigate(`/dashboard/teams/${team.id}`)}
                 >
                   View Details
                 </Button>

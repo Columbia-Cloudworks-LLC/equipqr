@@ -5,7 +5,14 @@ import { toast } from '@/hooks/use-toast';
 import { useCreateEquipment, useUpdateEquipment } from '@/hooks/useSupabaseData';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { equipmentFormSchema, type EquipmentFormData, type EquipmentRecord } from '@/types/equipment';
+import { 
+  createEquipmentValidationSchema, 
+  type EquipmentFormData, 
+  type EquipmentRecord 
+} from '@/types/equipment';
+import { useTeamMembership } from '@/hooks/useTeamMembership';
+import { useSession } from '@/hooks/useSession';
+import { createValidationContext } from '@/utils/validationHelpers';
 
 interface UseEquipmentFormProps {
   equipment?: EquipmentRecord;
@@ -19,9 +26,19 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
   const createEquipmentMutation = useCreateEquipment(currentOrganization?.id || '');
   const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
   const { canManageEquipment, hasRole } = usePermissions();
+  const { teamMemberships } = useTeamMembership();
+  const { getCurrentOrganization } = useSession();
+
+  // Create validation context for role-based validation
+  const currentOrg = getCurrentOrganization();
+  const validationContext = createValidationContext(
+    currentOrg?.userRole || 'member',
+    currentOrg?.userRole === 'admin' || currentOrg?.userRole === 'owner',
+    teamMemberships || []
+  );
 
   const form = useForm<EquipmentFormData>({
-    resolver: zodResolver(equipmentFormSchema),
+    resolver: zodResolver(createEquipmentValidationSchema(validationContext)),
     defaultValues: {
       name: equipment?.name || '',
       manufacturer: equipment?.manufacturer || '',

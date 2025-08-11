@@ -6,11 +6,11 @@ import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import { useBatchAssignUnassignedWorkOrders } from '@/hooks/useBatchAssignUnassignedWorkOrders';
 import { useWorkOrderFilters } from '@/hooks/useWorkOrderFilters';
-import { useWorkOrderReopening } from '@/hooks/useWorkOrderReopening';
+
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTeams } from '@/hooks/useTeamManagement';
 import { useUser } from '@/contexts/UserContext';
-import { WorkOrderAcceptanceModalState } from '@/types/workOrder';
+import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/types/workOrder';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import WorkOrderAcceptanceModal from '@/components/work-orders/WorkOrderAcceptanceModal';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
@@ -32,7 +32,7 @@ const WorkOrders = () => {
   const isMobile = useIsMobile();
 
   // Use team-based access control
-  const { userTeamIds, hasTeamAccess, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
+  const { userTeamIds, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
   
   // Use team-based work orders hook with proper admin flag
   const { data: allWorkOrders = [], isLoading: workOrdersLoading } = useTeamBasedWorkOrders();
@@ -41,7 +41,7 @@ const WorkOrders = () => {
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
   const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
-  const reopenMutation = useWorkOrderReopening();
+  
 
   // Use custom filters hook
   const {
@@ -73,7 +73,7 @@ const WorkOrders = () => {
     }
   };
 
-  const handleAcceptClick = (workOrder: any) => {
+  const handleAcceptClick = (workOrder: WorkOrderData) => {
     setAcceptanceModal({ open: true, workOrder });
   };
 
@@ -94,14 +94,6 @@ const WorkOrders = () => {
     setShowMobileFilters(false);
   };
 
-  const handleReopen = async (workOrderId: string) => {
-    if (!currentOrganization) return;
-    
-    await reopenMutation.mutateAsync({
-      workOrderId,
-      organizationId: currentOrganization.id
-    });
-  };
 
   const handleAssignClick = () => {
     // For now, we'll focus on the assignment hover functionality
@@ -126,14 +118,6 @@ const WorkOrders = () => {
     );
   }
 
-  // Show access control information
-  console.log('🔍 Team-based access debug:', {
-    userTeamIds,
-    hasTeamAccess,
-    isManager,
-    workOrdersCount: allWorkOrders.length,
-    organizationId: currentOrganization?.id
-  });
 
   const hasActiveFilters = getActiveFilterCount() > 0 || filters.searchQuery.length > 0;
 

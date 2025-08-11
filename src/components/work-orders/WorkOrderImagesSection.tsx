@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { getWorkOrderImages, deleteWorkOrderImage } from '@/services/workOrderNotesService';
 import ImageGallery from '@/components/common/ImageGallery';
 
@@ -33,7 +33,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
     }
   });
 
-  const canDeleteImage = (image: any) => {
+  const canDeleteImage = (image: { uploaded_by: string }) => {
     return image.uploaded_by === user?.id;
   };
 

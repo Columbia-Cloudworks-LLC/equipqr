@@ -7,9 +7,16 @@ import { getPriorityColor, getStatusColor, formatStatus } from '@/utils/workOrde
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 
 interface WorkOrderDetailsMobileHeaderProps {
-  workOrder: any;
+  workOrder: {
+    id: string;
+    title: string;
+    priority: 'low' | 'medium' | 'high';
+    status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+    has_pm?: boolean;
+    assignee_id?: string;
+    created_by?: string;
+  };
   canEdit: boolean;
-  showMobileSidebar: boolean;
   organizationId: string;
   onEditClick: () => void;
   onToggleSidebar: () => void;
@@ -18,7 +25,6 @@ interface WorkOrderDetailsMobileHeaderProps {
 export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeaderProps> = ({
   workOrder,
   canEdit,
-  showMobileSidebar,
   organizationId,
   onEditClick,
   onToggleSidebar
@@ -29,7 +35,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
         {/* Top Row: Back Button and Actions */}
         <div className="flex items-center justify-between mb-3">
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/work-orders">
+            <Link to="/dashboard/work-orders">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
