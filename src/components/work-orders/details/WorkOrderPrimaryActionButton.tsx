@@ -9,7 +9,7 @@ import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import { useAuth } from '@/hooks/useAuth';
-import { WorkOrder } from '@/services/supabaseDataService';
+import { WorkOrderLike } from '@/utils/workOrderTypeConversion';
 import WorkOrderAcceptanceModal from '../WorkOrderAcceptanceModal';
 
 interface WorkOrderPrimaryActionButtonProps {
@@ -180,7 +180,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
       <WorkOrderAcceptanceModal
         open={showAcceptanceModal}
         onClose={() => setShowAcceptanceModal(false)}
-        workOrder={workOrder as any}
+        workOrder={workOrder as WorkOrderLike}
         organizationId={organizationId}
         onAccept={handleAcceptanceComplete}
       />

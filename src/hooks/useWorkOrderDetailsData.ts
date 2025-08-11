@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
+import { WorkOrderLike } from '@/utils/workOrderTypeConversion';
 
 export const useWorkOrderDetailsData = (workOrderId: string) => {
   const { currentOrganization } = useOrganization();

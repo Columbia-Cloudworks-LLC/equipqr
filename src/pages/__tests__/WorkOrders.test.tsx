@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkOrderData } from '@/types/workOrder';
 import WorkOrders from '../WorkOrders';
 import * as useTeamBasedWorkOrdersModule from '@/hooks/useTeamBasedWorkOrders';
-import * as useOrganizationModule from '@/contexts/OrganizationContext';
+import '@/contexts/OrganizationContext';
 import * as useWorkOrderFiltersModule from '@/hooks/useWorkOrderFilters';
 
 // Mock all required contexts and hooks
