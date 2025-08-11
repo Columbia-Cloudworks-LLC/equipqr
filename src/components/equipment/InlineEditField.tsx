@@ -42,7 +42,9 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
 
     setIsSaving(true);
     try {
-      console.log('InlineEditField saving:', { type, oldValue: value, newValue: editValue });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('InlineEditField saving:', { type, oldValue: value, newValue: editValue });
+      }
       await onSave(editValue);
       setIsEditing(false);
     } catch (error) {

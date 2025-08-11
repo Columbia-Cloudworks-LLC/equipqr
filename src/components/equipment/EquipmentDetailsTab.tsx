@@ -47,7 +47,9 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
 
   const handleFieldUpdate = async (field: keyof Equipment, value: string) => {
     try {
-      console.log(`Updating field ${String(field)} with value:`, value);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Updating field ${String(field)} with value:`, value);
+      }
       await updateEquipmentMutation.mutateAsync({
         equipmentId: equipment.id,
         equipmentData: { [field]: value }
@@ -62,7 +64,9 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
 
   const handleCustomAttributesUpdate = async (newAttributes: Record<string, string>) => {
     try {
-      console.log('Updating custom attributes with value:', newAttributes);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Updating custom attributes with value:', newAttributes);
+      }
       await updateEquipmentMutation.mutateAsync({
         equipmentId: equipment.id,
         equipmentData: { custom_attributes: newAttributes }
@@ -79,7 +83,9 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   const handleTeamAssignment = async (teamId: string) => {
     try {
       const teamValue = teamId === 'unassigned' ? null : teamId;
-      console.log('Updating team assignment with value:', teamValue);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Updating team assignment with value:', teamValue);
+      }
       await updateEquipmentMutation.mutateAsync({
         equipmentId: equipment.id,
         equipmentData: { team_id: teamValue }
@@ -128,13 +134,15 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   };
 
   // Debug logging
-  console.log('Equipment data:', {
-    serial_number: equipment.serial_number,
-    installation_date: equipment.installation_date,
-    warranty_expiration: equipment.warranty_expiration,
-    last_maintenance: equipment.last_maintenance,
-    custom_attributes: equipment.custom_attributes
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Equipment data:', {
+      serial_number: equipment.serial_number,
+      installation_date: equipment.installation_date,
+      warranty_expiration: equipment.warranty_expiration,
+      last_maintenance: equipment.last_maintenance,
+      custom_attributes: equipment.custom_attributes
+    });
+  }
 
   return (
     <div className="space-y-6">

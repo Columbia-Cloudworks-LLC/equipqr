@@ -18,10 +18,6 @@ const Dashboard = () => {
 
   const isLoading = orgLoading || statsLoading || accessLoading;
 
-  // Debug logging for organization context
-  useEffect(() => {
-    console.log('🏠 Dashboard rendered with organization:', currentOrganization?.id, currentOrganization?.name);
-  }, [currentOrganization]);
 
   if (!currentOrganization) {
     return (
