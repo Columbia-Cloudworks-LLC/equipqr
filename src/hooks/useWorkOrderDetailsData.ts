@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
-import { WorkOrderLike } from '@/utils/workOrderTypeConversion';
+import type { Tables } from '@/integrations/supabase/types';
 
 export const useWorkOrderDetailsData = (workOrderId: string) => {
   const { currentOrganization } = useOrganization();
@@ -27,7 +27,7 @@ export const useWorkOrderDetailsData = (workOrderId: string) => {
 
   // Calculate derived state
   const createdByCurrentUser = workOrder?.created_by === user?.id;
-  const formMode = workOrder ? permissionLevels.getFormMode(workOrder as any, createdByCurrentUser) : 'viewer';
+  const formMode = workOrder ? permissionLevels.getFormMode(workOrder as Tables<'work_orders'>, createdByCurrentUser) : 'viewer';
   const isWorkOrderLocked = workOrder?.status === 'completed' || workOrder?.status === 'cancelled';
   
   // Calculate permissions
