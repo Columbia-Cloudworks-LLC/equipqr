@@ -13,7 +13,26 @@ const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 
 export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const { sessionData, switchOrganization: sessionSwitchOrg } = useSession();
+  
+  // Safely access session context - it may not be available during initialization
+  let sessionData = null;
+  let sessionSwitchOrg = (organizationId: string) => {
+    // Fallback function - save to localStorage only
+    try {
+      localStorage.setItem(CURRENT_ORG_STORAGE_KEY, organizationId);
+    } catch (error) {
+      console.warn('Failed to save organization to storage:', error);
+    }
+  };
+  
+  try {
+    const session = useSession();
+    sessionData = session.sessionData;
+    sessionSwitchOrg = session.switchOrganization;
+  } catch (error) {
+    // SessionProvider not yet available - this is expected during initialization
+    console.log('Session context not yet available, using fallback');
+  }
 
   // Fetch organizations using React Query
   const {
