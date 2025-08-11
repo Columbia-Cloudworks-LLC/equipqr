@@ -1,5 +1,4 @@
 import { SessionData, SessionOrganization } from '@/contexts/SessionContext';
-import { logger } from '@/utils/logger';
 
 export class SessionPermissionService {
   static hasTeamRole(

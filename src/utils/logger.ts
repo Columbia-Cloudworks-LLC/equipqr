@@ -1,4 +1,4 @@
-type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+
 
 interface Logger {
   error: (message: string, ...args: unknown[]) => void;

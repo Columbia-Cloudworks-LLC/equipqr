@@ -92,11 +92,12 @@ export const getTeamBasedWorkOrders = async (
         case 'overdue':
           query = query.lt('due_date', today.toISOString());
           break;
-        case 'today':
+        case 'today': {
           const tomorrow = new Date(today);
           tomorrow.setDate(tomorrow.getDate() + 1);
           query = query.gte('due_date', today.toISOString()).lt('due_date', tomorrow.toISOString());
           break;
+        }
         case 'this_week':
           query = query.gte('due_date', today.toISOString()).lt('due_date', weekFromNow.toISOString());
           break;

@@ -141,12 +141,14 @@ export class BackgroundSyncService {
   private handleEquipmentChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Equipment change detected', payload);
     
-    const equipmentId = (payload.new as any)?.id || (payload.old as any)?.id;
+    const payloadNew = payload.new as Record<string, unknown> | null;
+    const payloadOld = payload.old as Record<string, unknown> | null;
+    const equipmentId = payloadNew?.id || payloadOld?.id;
     
     if (payload.eventType === 'DELETE') {
       cacheManager.invalidateOrganizationData(organizationId);
     } else {
-      cacheManager.invalidateEquipmentRelated(organizationId, equipmentId);
+      cacheManager.invalidateEquipmentRelated(organizationId, equipmentId as string);
     }
 
     // Queue for offline sync if needed
@@ -158,10 +160,12 @@ export class BackgroundSyncService {
   private handleWorkOrderChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Work order change detected', payload);
     
-    const workOrderId = (payload.new as any)?.id || (payload.old as any)?.id;
-    const equipmentId = (payload.new as any)?.equipment_id || (payload.old as any)?.equipment_id;
+    const payloadNew = payload.new as Record<string, unknown> | null;
+    const payloadOld = payload.old as Record<string, unknown> | null;
+    const workOrderId = payloadNew?.id || payloadOld?.id;
+    const equipmentId = payloadNew?.equipment_id || payloadOld?.equipment_id;
     
-    cacheManager.invalidateWorkOrderRelated(organizationId, workOrderId, equipmentId);
+    cacheManager.invalidateWorkOrderRelated(organizationId, workOrderId as string, equipmentId as string);
 
     if (!this.isOnline) {
       this.queueForSync('work_order', payload);
@@ -171,8 +175,10 @@ export class BackgroundSyncService {
   private handleTeamChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Team change detected', payload);
     
-    const teamId = (payload.new as any)?.id || (payload.old as any)?.id;
-    cacheManager.invalidateTeamRelated(organizationId, teamId);
+    const payloadNew = payload.new as Record<string, unknown> | null;
+    const payloadOld = payload.old as Record<string, unknown> | null;
+    const teamId = payloadNew?.id || payloadOld?.id;
+    cacheManager.invalidateTeamRelated(organizationId, teamId as string);
 
     if (!this.isOnline) {
       this.queueForSync('team', payload);
@@ -182,9 +188,11 @@ export class BackgroundSyncService {
   private handleNoteChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Note change detected', payload);
     
-    const equipmentId = (payload.new as any)?.equipment_id || (payload.old as any)?.equipment_id;
+    const payloadNew = payload.new as Record<string, unknown> | null;
+    const payloadOld = payload.old as Record<string, unknown> | null;
+    const equipmentId = payloadNew?.equipment_id || payloadOld?.equipment_id;
     if (equipmentId) {
-      cacheManager.invalidateEquipmentRelated(organizationId, equipmentId);
+      cacheManager.invalidateEquipmentRelated(organizationId, equipmentId as string);
     }
 
     if (!this.isOnline) {

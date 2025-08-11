@@ -6,11 +6,11 @@ import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import { useBatchAssignUnassignedWorkOrders } from '@/hooks/useBatchAssignUnassignedWorkOrders';
 import { useWorkOrderFilters } from '@/hooks/useWorkOrderFilters';
-import { useWorkOrderReopening } from '@/hooks/useWorkOrderReopening';
+
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTeams } from '@/hooks/useTeamManagement';
 import { useUser } from '@/contexts/UserContext';
-import { WorkOrderAcceptanceModalState } from '@/types/workOrder';
+import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/types/workOrder';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import WorkOrderAcceptanceModal from '@/components/work-orders/WorkOrderAcceptanceModal';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
@@ -41,7 +41,7 @@ const WorkOrders = () => {
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
   const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
-  const reopenMutation = useWorkOrderReopening();
+  
 
   // Use custom filters hook
   const {
@@ -73,7 +73,7 @@ const WorkOrders = () => {
     }
   };
 
-  const handleAcceptClick = (workOrder: any) => {
+  const handleAcceptClick = (workOrder: WorkOrderData) => {
     setAcceptanceModal({ open: true, workOrder });
   };
 

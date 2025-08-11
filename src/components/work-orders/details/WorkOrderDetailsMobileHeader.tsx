@@ -13,6 +13,7 @@ interface WorkOrderDetailsMobileHeaderProps {
     priority: 'low' | 'medium' | 'high';
     status: string;
     has_pm?: boolean;
+    [key: string]: unknown;
   };
   canEdit: boolean;
   organizationId: string;
