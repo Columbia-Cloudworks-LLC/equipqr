@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { QrCode, Calendar, MapPin, Wrench, FileText, Settings, Users, Clock } from "lucide-react";
+import { Calendar, MapPin, Wrench, FileText, Settings, Users, Clock } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import QRCodeDisplay from "./QRCodeDisplay";

@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+
 import { ArrowLeft, Settings, Users, Trash2, Plus, Edit } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam, useTeamMutations } from '@/hooks/useTeamManagement';
@@ -80,7 +80,7 @@ const TeamDetails = () => {
     try {
       await deleteTeam.mutateAsync(team.id);
       navigate('/dashboard/teams');
-    } catch (error) {
+    } catch {
       // Error is handled by the mutation
     }
   };

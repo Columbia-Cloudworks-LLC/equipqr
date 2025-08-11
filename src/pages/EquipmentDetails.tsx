@@ -65,7 +65,7 @@ const EquipmentDetails = () => {
               toast.error('Failed to log scan');
             }
           },
-          async (error) => {
+          async () => {
             try {
               // Log scan without location
               await createScanMutation.mutateAsync({

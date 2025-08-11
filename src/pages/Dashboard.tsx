@@ -1,11 +1,11 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Wrench, Users, ClipboardList, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Package, Wrench, Users, ClipboardList, AlertTriangle } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/hooks/useTeamBasedDashboard';
 import { Badge } from '@/components/ui/badge';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();

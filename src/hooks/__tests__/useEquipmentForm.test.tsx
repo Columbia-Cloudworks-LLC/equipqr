@@ -29,6 +29,25 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: () => ({ currentOrganization: { id: 'org-1', name: 'Org 1' } }),
 }));
 
+vi.mock('@/hooks/useSession', () => ({
+  useSession: () => ({
+    sessionData: {
+      organizations: [{ id: 'org-1', name: 'Org 1' }],
+      currentOrganizationId: 'org-1',
+      teamMemberships: []
+    },
+    getCurrentOrganization: () => ({ id: 'org-1', name: 'Org 1' })
+  })
+}));
+
+vi.mock('@/hooks/useTeamMembership', () => ({
+  useTeamMembership: () => ({
+    teamMemberships: [],
+    isTeamMember: () => false,
+    getUserTeamIds: () => []
+  })
+}));
+
 import { useEquipmentForm } from '@/hooks/useEquipmentForm';
 import { useCreateEquipment, useUpdateEquipment } from '@/hooks/useSupabaseData';
 import { toast } from '@/hooks/use-toast';

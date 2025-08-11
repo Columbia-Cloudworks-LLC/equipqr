@@ -16,3 +16,7 @@ export const MockUserProvider = ({ children }: { children: React.ReactNode }) =>
 export const MockSimpleOrganizationProvider = ({ children }: { children: React.ReactNode }) => (
   <div data-testid="mock-organization-provider">{children}</div>
 );
+
+export const MockSessionProvider2 = ({ children }: { children: React.ReactNode }) => (
+  <div data-testid="mock-session-provider-2">{children}</div>
+);

@@ -31,7 +31,7 @@ export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps>
   const permissions = useUnifiedPermissions();
   const deleteWorkOrderMutation = useDeleteWorkOrder();
   const { data: imageData } = useWorkOrderImageCount(workOrder?.id);
-  const { toast } = useToast();
+  
   const navigate = useNavigate();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -46,7 +46,7 @@ export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps>
       await deleteWorkOrderMutation.mutateAsync(workOrder.id);
       setShowDeleteDialog(false);
       navigate('/dashboard/work-orders');
-    } catch (error) {
+    } catch {
       // Error is handled in the mutation
     }
   };

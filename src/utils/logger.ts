@@ -1,10 +1,10 @@
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
 interface Logger {
-  error: (message: string, ...args: any[]) => void;
-  warn: (message: string, ...args: any[]) => void;
-  info: (message: string, ...args: any[]) => void;
-  debug: (message: string, ...args: any[]) => void;
+  error: (message: string, ...args: unknown[]) => void;
+  warn: (message: string, ...args: unknown[]) => void;
+  info: (message: string, ...args: unknown[]) => void;
+  debug: (message: string, ...args: unknown[]) => void;
 }
 
 const isDevelopment = import.meta.env.DEV;
@@ -28,24 +28,24 @@ const shouldLog = (message: string): boolean => {
 };
 
 export const logger: Logger = {
-  error: (message: string, ...args: any[]) => {
+  error: (message: string, ...args: unknown[]) => {
     // Always log errors, even in production
     console.error(`🚨 ${message}`, ...args);
   },
   
-  warn: (message: string, ...args: any[]) => {
+  warn: (message: string, ...args: unknown[]) => {
     if (isDevelopment) {
       console.warn(`⚠️ ${message}`, ...args);
     }
   },
   
-  info: (message: string, ...args: any[]) => {
+  info: (message: string, ...args: unknown[]) => {
     if (shouldLog(message)) {
       console.info(`ℹ️ ${message}`, ...args);
     }
   },
   
-  debug: (message: string, ...args: any[]) => {
+  debug: (message: string, ...args: unknown[]) => {
     if (shouldLog(message)) {
       console.log(`🔍 ${message}`, ...args);
     }

@@ -6,7 +6,8 @@ import {
   MockAuthProvider, 
   MockSessionProvider, 
   MockUserProvider, 
-  MockSimpleOrganizationProvider 
+  MockSimpleOrganizationProvider,
+  MockSessionProvider2 
 } from './mock-providers';
 
 // Test providers wrapper
@@ -24,11 +25,13 @@ const TestProviders = ({ children }: { children: React.ReactNode }) => {
       <QueryClientProvider client={queryClient}>
         <MockAuthProvider>
           <MockSessionProvider>
-            <MockUserProvider>
-              <MockSimpleOrganizationProvider>
-                {children}
-              </MockSimpleOrganizationProvider>
-            </MockUserProvider>
+            <MockSessionProvider2>
+              <MockUserProvider>
+                <MockSimpleOrganizationProvider>
+                  {children}
+                </MockSimpleOrganizationProvider>
+              </MockUserProvider>
+            </MockSessionProvider2>
           </MockSessionProvider>
         </MockAuthProvider>
       </QueryClientProvider>

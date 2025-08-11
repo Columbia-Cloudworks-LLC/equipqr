@@ -7,9 +7,14 @@ import { getPriorityColor, getStatusColor, formatStatus } from '@/utils/workOrde
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 
 interface WorkOrderDetailsMobileHeaderProps {
-  workOrder: any;
+  workOrder: {
+    id: string;
+    title: string;
+    priority: 'low' | 'medium' | 'high';
+    status: string;
+    has_pm?: boolean;
+  };
   canEdit: boolean;
-  showMobileSidebar: boolean;
   organizationId: string;
   onEditClick: () => void;
   onToggleSidebar: () => void;
@@ -18,7 +23,6 @@ interface WorkOrderDetailsMobileHeaderProps {
 export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeaderProps> = ({
   workOrder,
   canEdit,
-  showMobileSidebar,
   organizationId,
   onEditClick,
   onToggleSidebar
@@ -78,7 +82,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
             
             {/* Primary Action Button */}
             <WorkOrderPrimaryActionButton 
-              workOrder={workOrder}
+              workOrder={workOrder as any}
               organizationId={organizationId}
             />
           </div>

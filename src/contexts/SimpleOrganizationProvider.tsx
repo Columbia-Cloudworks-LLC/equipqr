@@ -167,7 +167,6 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
 
       // Otherwise, use role-based prioritization
       const prioritizedOrgId = getPrioritizedOrganization(organizations);
-      const selectedOrg = organizations.find(org => org.id === prioritizedOrgId);
       // Auto-selecting prioritized organization
       setCurrentOrganizationId(prioritizedOrgId);
       try {
@@ -190,7 +189,6 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       if (!orgExists) {
         console.warn('⚠️ SimpleOrganizationProvider: Current organization not found in user organizations, resetting');
         const prioritizedOrgId = getPrioritizedOrganization(organizations);
-        const selectedOrg = organizations.find(org => org.id === prioritizedOrgId);
         // Resetting to prioritized organization
         setCurrentOrganizationId(prioritizedOrgId);
         try {

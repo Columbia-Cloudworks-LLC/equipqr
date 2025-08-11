@@ -31,7 +31,6 @@ const Teams = () => {
   
   // Get user's team memberships for current organization
   const userTeamIds = getUserTeamIds();
-  const userTeamMemberships = sessionData?.teamMemberships || [];
   
   // Determine what teams to show based on user role and memberships
   const { teamsToShow, userHasTeamMemberships, isOrgAdmin } = useMemo(() => {

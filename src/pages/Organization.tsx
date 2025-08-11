@@ -24,7 +24,7 @@ const Organization = () => {
   const { data: fleetMapSubscription } = useFleetMapSubscription(currentOrganization?.id || '');
   const organizationStats = useOrganizationStats(currentOrganization);
   const permissions = usePagePermissions(currentOrganization);
-  const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
+  
 
   const currentUserRole: 'owner' | 'admin' | 'member' = currentOrganization?.userRole || 'member';
 

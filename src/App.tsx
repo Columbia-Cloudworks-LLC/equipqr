@@ -7,7 +7,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppSidebar from '@/components/layout/AppSidebar';
 import TopBar from '@/components/layout/TopBar';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+
 import { Navigate, useParams } from 'react-router-dom';
 import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';

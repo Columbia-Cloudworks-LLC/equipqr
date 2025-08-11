@@ -90,7 +90,6 @@ const WorkOrderDetails = () => {
       <WorkOrderDetailsMobileHeader
         workOrder={workOrder}
         canEdit={canEdit}
-        showMobileSidebar={showMobileSidebar}
         organizationId={currentOrganization.id}
         onEditClick={handleEditWorkOrder}
         onToggleSidebar={() => setShowMobileSidebar(!showMobileSidebar)}

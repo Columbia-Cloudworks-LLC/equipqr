@@ -396,7 +396,7 @@ describe('Teams Page', () => {
       const viewDetailsButton = screen.getByRole('button', { name: /view details/i });
       fireEvent.click(viewDetailsButton);
       
-      expect(mockNavigate).toHaveBeenCalledWith('/teams/team-1');
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/teams/team-1');
     });
 
     it('shows delete confirmation dialog when delete button is clicked', async () => {
