@@ -117,7 +117,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const { shouldLoadFromCache, cachedData, needsRefresh } = sessionManager.initializeSession();
     
     if (shouldLoadFromCache && cachedData) {
-      console.log('📦 Loading session from cache');
+      //console.log('📦 Loading session from cache');
       setSessionData(cachedData);
       setIsLoading(false);
       
@@ -127,7 +127,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         refreshSession(false);
       }
     } else {
-      console.log('🔄 No valid cache, fetching fresh session data');
+      //console.log('🔄 No valid cache, fetching fresh session data');
       refreshSession(true);
     }
   }, [user, sessionManager, refreshSession]);

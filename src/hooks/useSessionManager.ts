@@ -148,7 +148,7 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       return { shouldLoadFromCache: true, cachedData, needsRefresh };
     }
     
-    console.log('🔄 No valid cache, fetching fresh session data');
+    //console.log('🔄 No valid cache, fetching fresh session data');
     return { shouldLoadFromCache: false, cachedData: null };
   }, [user]);
 
