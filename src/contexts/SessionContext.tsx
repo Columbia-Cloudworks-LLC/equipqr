@@ -105,7 +105,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   usePageVisibility({
     onVisibilityChange: (isVisible) => {
       if (sessionManager.shouldRefreshOnVisibility(isVisible)) {
-        console.log('🔄 Refreshing session due to page visibility change (30+ min since last refresh)');
+        //console.log('🔄 Refreshing session due to page visibility change (30+ min since last refresh)');
         refreshSession(false);
       }
     },
@@ -123,7 +123,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       
       // Refresh in background if needed
       if (needsRefresh) {
-        console.log('🔄 Background refresh needed');
+        //console.log('🔄 Background refresh needed');
         refreshSession(false);
       }
     } else {

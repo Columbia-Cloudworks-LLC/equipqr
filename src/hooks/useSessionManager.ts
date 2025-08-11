@@ -83,7 +83,7 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       if (!force) {
         const cachedData = SessionStorageService.loadSessionFromStorage();
         if (cachedData && SessionStorageService.isSessionVersionValid(cachedData)) {
-          console.log('📦 Using cached session data due to error');
+          //console.log('📦 Using cached session data due to error');
           onSessionUpdate(cachedData);
         }
       }
@@ -142,7 +142,7 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
     // Try to load from cache first
     const cachedData = SessionStorageService.loadSessionFromStorage();
     if (cachedData && SessionStorageService.isSessionVersionValid(cachedData)) {
-      console.log('📦 Loading session from cache');
+      //console.log('📦 Loading session from cache');
       
       const needsRefresh = shouldRefreshSession(cachedData.lastUpdated);
       return { shouldLoadFromCache: true, cachedData, needsRefresh };

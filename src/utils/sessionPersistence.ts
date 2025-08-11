@@ -53,7 +53,7 @@ export const getOrganizationPreference = (): { selectedOrgId: string | null; sel
 export const clearOrganizationPreference = () => {
   try {
     localStorage.removeItem(ORGANIZATION_PREFERENCE_KEY);
-    console.log('🗑️ Organization preference cleared');
+    //console.log('🗑️ Organization preference cleared');
   } catch (error) {
     console.warn('Failed to clear organization preference:', error);
   }
