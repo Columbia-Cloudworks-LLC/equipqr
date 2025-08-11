@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { User, Users, UserCheck, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useSyncTeamsByOrganization, useSyncEquipmentById } from '@/services/syncDataService';

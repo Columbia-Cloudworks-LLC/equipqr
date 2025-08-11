@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { usePageVisibility } from '@/hooks/usePageVisibility';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { SessionStorageService } from '@/services/sessionStorageService';

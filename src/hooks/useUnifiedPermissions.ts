@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useSession } from '@/hooks/useSession';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { permissionEngine } from '@/services/permissions/PermissionEngine';
 import { 
   UserContext, 

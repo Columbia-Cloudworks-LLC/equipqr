@@ -1,7 +1,7 @@
 
 import { useMemo } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
 

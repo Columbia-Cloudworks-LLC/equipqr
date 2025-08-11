@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, QrCode } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { usePendingRedirectHandler } from '@/hooks/usePendingRedirectHandler';
 import Logo from '@/components/ui/Logo';
 import SignUpForm from '@/components/auth/SignUpForm';
