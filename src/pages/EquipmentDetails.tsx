@@ -139,7 +139,7 @@ const EquipmentDetails = () => {
       <div className="space-y-6">
         <Button 
           variant="outline" 
-          onClick={() => navigate('/equipment')}
+          onClick={() => navigate('/dashboard/equipment')}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -172,7 +172,7 @@ const EquipmentDetails = () => {
       <div className={`space-y-6 ${isMobile ? 'px-4' : ''}`}>
         <Button 
           variant="outline" 
-          onClick={() => navigate('/equipment')}
+          onClick={() => navigate('/dashboard/equipment')}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -222,7 +222,7 @@ const EquipmentDetails = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate('/equipment')}
+                onClick={() => navigate('/dashboard/equipment')}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
