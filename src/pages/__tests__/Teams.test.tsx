@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Teams from '../Teams';
-import type { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 import type { TeamWithMembers } from '@/services/teamService';
 import type { UnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 

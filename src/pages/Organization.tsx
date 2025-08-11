@@ -5,7 +5,7 @@ import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useOptimizedOrganizationMembers } from '@/hooks/useOptimizedOrganizationMembers';
 import { useOrganizationStats } from '@/hooks/useOrganizationStats';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';

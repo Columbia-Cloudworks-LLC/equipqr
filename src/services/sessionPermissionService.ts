@@ -1,4 +1,4 @@
-import { SessionData, SessionOrganization, SessionTeamMembership } from '@/contexts/SessionContext';
+import { SessionData, SessionOrganization } from '@/contexts/SessionContext';
 import { logger } from '@/utils/logger';
 
 export class SessionPermissionService {

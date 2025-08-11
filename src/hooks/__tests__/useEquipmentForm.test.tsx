@@ -49,7 +49,7 @@ vi.mock('@/hooks/useTeamMembership', () => ({
 }));
 
 import { useEquipmentForm } from '@/hooks/useEquipmentForm';
-import { useCreateEquipment, useUpdateEquipment } from '@/hooks/useSupabaseData';
+
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { EquipmentFormData, EquipmentRecord } from '@/types/equipment';
@@ -59,8 +59,6 @@ const createWrapper = (client: QueryClient) =>
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
 
-// Simple shape of our mocked mutation object
-type MutationMock = { mutateAsync: ReturnType<typeof vi.fn>; isPending: boolean };
 
 // Helper to create complete usePermissions mock
 const createPermissionsMock = (overrides: Partial<ReturnType<typeof usePermissions>> = {}) => ({

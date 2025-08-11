@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { cacheManager } from './cacheManager';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 import { logger } from '@/utils/logger';
@@ -6,11 +7,11 @@ import { logger } from '@/utils/logger';
 // PHASE 3: Background sync service for real-time updates
 export class BackgroundSyncService {
   private static instance: BackgroundSyncService;
-  private subscriptions: Map<string, any> = new Map();
+  private subscriptions: Map<string, RealtimeChannel | NodeJS.Timeout> = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private isOnline = navigator.onLine;
-  private syncQueue: Array<{ type: string; data: any; timestamp: number }> = [];
+  private syncQueue: Array<{ type: string; data: unknown; timestamp: number }> = [];
 
   private constructor() {
     this.setupNetworkListeners();
@@ -131,16 +132,16 @@ export class BackgroundSyncService {
   // Unsubscribe from organization updates
   unsubscribeFromOrganization(organizationId: string) {
     const channel = this.subscriptions.get(organizationId);
-    if (channel) {
-      supabase.removeChannel(channel);
+    if (channel && !organizationId.startsWith('periodic-')) {
+      supabase.removeChannel(channel as RealtimeChannel);
       this.subscriptions.delete(organizationId);
     }
   }
 
-  private handleEquipmentChange(organizationId: string, payload: any) {
+  private handleEquipmentChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Equipment change detected', payload);
     
-    const equipmentId = payload.new?.id || payload.old?.id;
+    const equipmentId = (payload.new as any)?.id || (payload.old as any)?.id;
     
     if (payload.eventType === 'DELETE') {
       cacheManager.invalidateOrganizationData(organizationId);
@@ -154,11 +155,11 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleWorkOrderChange(organizationId: string, payload: any) {
+  private handleWorkOrderChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Work order change detected', payload);
     
-    const workOrderId = payload.new?.id || payload.old?.id;
-    const equipmentId = payload.new?.equipment_id || payload.old?.equipment_id;
+    const workOrderId = (payload.new as any)?.id || (payload.old as any)?.id;
+    const equipmentId = (payload.new as any)?.equipment_id || (payload.old as any)?.equipment_id;
     
     cacheManager.invalidateWorkOrderRelated(organizationId, workOrderId, equipmentId);
 
@@ -167,10 +168,10 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleTeamChange(organizationId: string, payload: any) {
+  private handleTeamChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Team change detected', payload);
     
-    const teamId = payload.new?.id || payload.old?.id;
+    const teamId = (payload.new as any)?.id || (payload.old as any)?.id;
     cacheManager.invalidateTeamRelated(organizationId, teamId);
 
     if (!this.isOnline) {
@@ -178,10 +179,10 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleNoteChange(organizationId: string, payload: any) {
+  private handleNoteChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Note change detected', payload);
     
-    const equipmentId = payload.new?.equipment_id || payload.old?.equipment_id;
+    const equipmentId = (payload.new as any)?.equipment_id || (payload.old as any)?.equipment_id;
     if (equipmentId) {
       cacheManager.invalidateEquipmentRelated(organizationId, equipmentId);
     }
@@ -191,7 +192,7 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleOrganizationMemberChange(organizationId: string, payload: any) {
+  private handleOrganizationMemberChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Organization member change detected', payload);
     
     cacheManager.invalidateOrganizationMemberRelated(organizationId);
@@ -201,7 +202,7 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleOrganizationSlotChange(organizationId: string, payload: any) {
+  private handleOrganizationSlotChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Organization slot change detected', payload);
     
     cacheManager.invalidateOrganizationSlotRelated(organizationId);
@@ -211,7 +212,7 @@ export class BackgroundSyncService {
     }
   }
 
-  private handleOrganizationInvitationChange(organizationId: string, payload: any) {
+  private handleOrganizationInvitationChange(organizationId: string, payload: Record<string, unknown>) {
     logger.debug('Organization invitation change detected', payload);
     
     cacheManager.invalidateOrganizationInvitationRelated(organizationId);
@@ -237,7 +238,7 @@ export class BackgroundSyncService {
     }, delay);
   }
 
-  private queueForSync(type: string, data: any) {
+  private queueForSync(type: string, data: unknown) {
     this.syncQueue.push({
       type,
       data,
@@ -273,7 +274,7 @@ export class BackgroundSyncService {
     }
   }
 
-  private async processSyncItem(item: { type: string; data: any; timestamp: number }) {
+  private async processSyncItem(item: { type: string; data: unknown; timestamp: number }) {
     // Process the queued sync item
     // This could involve re-fetching data, showing notifications, etc.
     logger.debug('Processing sync item:', item);
@@ -330,9 +331,9 @@ export class BackgroundSyncService {
   cleanup() {
     for (const [key, subscription] of this.subscriptions) {
       if (key.startsWith('periodic-')) {
-        clearInterval(subscription);
+        clearInterval(subscription as NodeJS.Timeout);
       } else {
-        supabase.removeChannel(subscription);
+        supabase.removeChannel(subscription as RealtimeChannel);
       }
     }
     this.subscriptions.clear();

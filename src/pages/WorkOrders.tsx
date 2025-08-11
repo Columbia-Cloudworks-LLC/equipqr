@@ -32,7 +32,7 @@ const WorkOrders = () => {
   const isMobile = useIsMobile();
 
   // Use team-based access control
-  const { userTeamIds, hasTeamAccess, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
+  const { userTeamIds, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
   
   // Use team-based work orders hook with proper admin flag
   const { data: allWorkOrders = [], isLoading: workOrdersLoading } = useTeamBasedWorkOrders();
@@ -94,14 +94,6 @@ const WorkOrders = () => {
     setShowMobileFilters(false);
   };
 
-  const handleReopen = async (workOrderId: string) => {
-    if (!currentOrganization) return;
-    
-    await reopenMutation.mutateAsync({
-      workOrderId,
-      organizationId: currentOrganization.id
-    });
-  };
 
   const handleAssignClick = () => {
     // For now, we'll focus on the assignment hover functionality

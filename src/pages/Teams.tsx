@@ -13,7 +13,7 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import TeamForm from '@/components/teams/TeamForm';
 
 const Teams = () => {
-  const { getCurrentOrganization, isLoading, getUserTeamIds, sessionData } = useSession();
+  const { getCurrentOrganization, isLoading, getUserTeamIds } = useSession();
   const currentOrganization = getCurrentOrganization();
   const [showForm, setShowForm] = useState(false);
   const [deleteTeamId, setDeleteTeamId] = useState<string | null>(null);
