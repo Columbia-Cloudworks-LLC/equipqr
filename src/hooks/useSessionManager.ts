@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { SessionData, SessionTeamMembership, SessionOrganization } from '@/contexts/SessionContext';
 import { SessionDataService } from '@/services/sessionDataService';
 import { SessionStorageService } from '@/services/sessionStorageService';
 import { getOrganizationPreference, saveOrganizationPreference, shouldRefreshSession, getSessionVersion } from '@/utils/sessionPersistence';
+import { OrganizationSyncService } from '@/services/organizationSyncService';
 
 interface UseSessionManagerProps {
   user: User | null;
@@ -14,7 +15,7 @@ interface UseSessionManagerProps {
 export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSessionManagerProps) => {
   const [lastRefreshTime, setLastRefreshTime] = useState<string | null>(null);
 
-  const createSessionData = useCallback((
+  const createSessionData = useMemo(() => (
     organizations: SessionOrganization[],
     currentOrganizationId: string | null,
     teamMemberships: SessionTeamMembership[]
@@ -30,13 +31,9 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
 
   const refreshSession = useCallback(async (force: boolean = false, preserveOrgSelection: boolean = false) => {
     if (!user) {
-      onSessionUpdate({
-        organizations: [],
-        currentOrganizationId: null,
-        teamMemberships: [],
-        lastUpdated: new Date().toISOString(),
-        version: getSessionVersion()
-      });
+      const emptySession = createSessionData([], null, []);
+      onSessionUpdate(emptySession);
+      OrganizationSyncService.setSessionReady(true);
       return;
     }
 
@@ -46,7 +43,6 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       
       if (lastRefresh > fiveMinutesAgo) {
-        console.log('⏭️ Skipping session refresh - refreshed within last 5 minutes');
         return;
       }
     }
@@ -74,6 +70,12 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       onSessionUpdate(newSessionData);
       SessionStorageService.saveSessionToStorage(newSessionData);
       setLastRefreshTime(new Date().toISOString());
+      
+      // Notify sync service that session is ready
+      OrganizationSyncService.setSessionReady(true);
+      if (currentOrganizationId) {
+        OrganizationSyncService.switchOrganization(currentOrganizationId, 'session');
+      }
     } catch (err) {
       console.error('💥 Error refreshing session:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh session';
@@ -83,8 +85,8 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       if (!force) {
         const cachedData = SessionStorageService.loadSessionFromStorage();
         if (cachedData && SessionStorageService.isSessionVersionValid(cachedData)) {
-          console.log('📦 Using cached session data due to error');
           onSessionUpdate(cachedData);
+          OrganizationSyncService.setSessionReady(true);
         }
       }
     }
@@ -101,8 +103,6 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       console.warn('❌ Organization not found:', organizationId);
       throw new Error(`Organization ${organizationId} not found in user's organizations`);
     }
-
-    console.log('🔄 Switching to organization:', organizationId, organization.name);
     
     // Save user preference immediately
     saveOrganizationPreference(organizationId);
@@ -119,6 +119,9 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
 
       onSessionUpdate(updatedSessionData);
       SessionStorageService.saveSessionToStorage(updatedSessionData);
+      
+      // Notify sync service
+      OrganizationSyncService.switchOrganization(organizationId, 'session');
     } catch (error) {
       console.error('💥 Error switching organization:', error);
     }
