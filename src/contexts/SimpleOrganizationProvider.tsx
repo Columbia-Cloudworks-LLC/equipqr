@@ -239,7 +239,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
 
   // Log current state for debugging
   useEffect(() => {
-    console.log('🏢 SimpleOrganizationProvider: Current state', {
+    //console.log('🏢 SimpleOrganizationProvider: Current state', {
       currentOrganizationId,
       currentOrganization: currentOrganization?.name,
       organizationsCount: organizations.length,
