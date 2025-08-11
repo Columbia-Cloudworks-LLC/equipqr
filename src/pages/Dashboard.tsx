@@ -136,10 +136,10 @@ const Dashboard = () => {
           </Card>
         </Link>
 
-        <Link to="/organization">
+        <Link to="/dashboard/organization">
           <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+              <CardTitle className="text-sm font-medium">Org Members</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
