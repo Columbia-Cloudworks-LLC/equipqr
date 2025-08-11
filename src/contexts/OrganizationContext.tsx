@@ -5,5 +5,5 @@ export {
   type SimpleOrganization
 } from './SimpleOrganizationContext';
 
-export { SimpleOrganizationProvider as OrganizationProvider } from './SimplifiedOrganizationProvider';
+export { SimpleOrganizationProvider as OrganizationProvider } from './SimpleOrganizationProvider';
 export { useSimpleOrganization as useOrganization } from '@/hooks/useSimpleOrganization';

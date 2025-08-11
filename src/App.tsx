@@ -2,10 +2,12 @@
 import { Routes, Route } from 'react-router-dom';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { TeamProvider } from '@/contexts/TeamContext';
+import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvider'; // Fixed import path
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppSidebar from '@/components/layout/AppSidebar';
 import TopBar from '@/components/layout/TopBar';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { Navigate, useParams } from 'react-router-dom';
 import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
@@ -61,19 +63,24 @@ function App() {
                 {/* Redirect routes for backward compatibility */}
                 <Route path="/equipment/:equipmentId" element={
                   <ProtectedRoute>
-                    <RedirectToEquipment />
+                    <SimpleOrganizationProvider>
+                      <RedirectToEquipment />
+                    </SimpleOrganizationProvider>
                   </ProtectedRoute>
                 } />
                 <Route path="/work-orders/:workOrderId" element={
                   <ProtectedRoute>
-                    <RedirectToWorkOrder />
+                    <SimpleOrganizationProvider>
+                      <RedirectToWorkOrder />
+                    </SimpleOrganizationProvider>
                   </ProtectedRoute>
                 } />
                 
                 {/* Protected routes */}
                 <Route path="/dashboard/*" element={
                   <ProtectedRoute>
-                    <TeamProvider>
+                    <SimpleOrganizationProvider>
+                      <TeamProvider>
                       <SidebarProvider>
                         <div className="flex min-h-screen w-full">
                           <AppSidebar />
@@ -99,8 +106,9 @@ function App() {
                             <LegalFooter />
                           </SidebarInset>
                         </div>
-                      </SidebarProvider>
-                    </TeamProvider>
+                        </SidebarProvider>
+                      </TeamProvider>
+                    </SimpleOrganizationProvider>
                   </ProtectedRoute>
                 } />
               </Routes>

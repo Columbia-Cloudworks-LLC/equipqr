@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageVisibility } from '@/hooks/usePageVisibility';
 import { useSessionManager } from '@/hooks/useSessionManager';
@@ -59,19 +59,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const onSessionUpdate = useCallback((data: SessionData) => {
-    setSessionData(data);
-  }, []);
-
-  const onError = useCallback((error: string) => {
-    setError(error);
-  }, []);
-
-  const sessionManager = useMemo(() => useSessionManager({
+  const sessionManager = useSessionManager({
     user,
-    onSessionUpdate,
-    onError
-  }), [user, onSessionUpdate, onError]);
+    onSessionUpdate: setSessionData,
+    onError: setError
+  });
 
   const clearSession = useCallback(() => {
     setSessionData(null);
@@ -125,46 +117,35 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const { shouldLoadFromCache, cachedData, needsRefresh } = sessionManager.initializeSession();
     
     if (shouldLoadFromCache && cachedData) {
+      console.log('📦 Loading session from cache');
       setSessionData(cachedData);
       setIsLoading(false);
       
       // Refresh in background if needed
       if (needsRefresh) {
+        console.log('🔄 Background refresh needed');
         refreshSession(false);
       }
     } else {
+      console.log('🔄 No valid cache, fetching fresh session data');
       refreshSession(true);
     }
-  }, [user?.id, sessionManager, refreshSession]);
-
-  const contextValue = useMemo(() => ({
-    sessionData,
-    isLoading,
-    error,
-    getCurrentOrganization,
-    switchOrganization,
-    hasTeamRole,
-    hasTeamAccess,
-    canManageTeam,
-    getUserTeamIds,
-    refreshSession,
-    clearSession
-  }), [
-    sessionData,
-    isLoading,
-    error,
-    getCurrentOrganization,
-    switchOrganization,
-    hasTeamRole,
-    hasTeamAccess,
-    canManageTeam,
-    getUserTeamIds,
-    refreshSession,
-    clearSession
-  ]);
+  }, [user, sessionManager, refreshSession]);
 
   return (
-    <SessionContext.Provider value={contextValue}>
+    <SessionContext.Provider value={{
+      sessionData,
+      isLoading,
+      error,
+      getCurrentOrganization,
+      switchOrganization,
+      hasTeamRole,
+      hasTeamAccess,
+      canManageTeam,
+      getUserTeamIds,
+      refreshSession,
+      clearSession
+    }}>
       {children}
     </SessionContext.Provider>
   );

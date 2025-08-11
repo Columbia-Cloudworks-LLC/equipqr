@@ -5,7 +5,6 @@ import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
-import { SimpleOrganizationProvider } from '@/contexts/SimplifiedOrganizationProvider';
 import { Toaster } from '@/components/ui/toaster';
 
 const queryClient = new QueryClient({
@@ -28,11 +27,9 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
         <AuthProvider>
           <UserProvider>
             <SessionProvider>
-              <SimpleOrganizationProvider>
-                <Router>
-                  {children}
-                </Router>
-              </SimpleOrganizationProvider>
+              <Router>
+                {children}
+              </Router>
             </SessionProvider>
           </UserProvider>
         </AuthProvider>
