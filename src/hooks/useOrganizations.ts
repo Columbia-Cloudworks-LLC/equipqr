@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { showErrorToast } from '@/utils/errorHandling';
+import { logger } from '@/utils/logger';
 
 export interface Organization {
   id: string;
@@ -25,8 +26,6 @@ export const useUserOrganizations = () => {
     queryFn: async (): Promise<Organization[]> => {
       if (!user) return [];
 
-      console.log('🔍 Fetching user organizations for:', user.id);
-
       // Get user's organization memberships
       const { data: membershipData, error: membershipError } = await supabase
         .from('organization_members')
@@ -35,13 +34,12 @@ export const useUserOrganizations = () => {
         .eq('status', 'active');
 
       if (membershipError) {
-        console.error('❌ Error fetching memberships:', membershipError);
+        logger.error('Error fetching memberships:', membershipError);
         showErrorToast(membershipError, 'Loading Organization Memberships');
         throw membershipError;
       }
 
       if (!membershipData || membershipData.length === 0) {
-        console.log('⚠️ No organization memberships found');
         return [];
       }
 
@@ -53,7 +51,7 @@ export const useUserOrganizations = () => {
         .in('id', orgIds);
 
       if (orgError) {
-        console.error('❌ Error fetching organizations:', orgError);
+        logger.error('Error fetching organizations:', orgError);
         showErrorToast(orgError, 'Loading Organizations');
         throw orgError;
       }
@@ -75,7 +73,6 @@ export const useUserOrganizations = () => {
         };
       });
 
-      console.log('✅ Organizations fetched:', organizations);
       return organizations;
     },
     enabled: !!user,

@@ -126,14 +126,6 @@ const WorkOrders = () => {
     );
   }
 
-  // Show access control information
-  console.log('🔍 Team-based access debug:', {
-    userTeamIds,
-    hasTeamAccess,
-    isManager,
-    workOrdersCount: allWorkOrders.length,
-    organizationId: currentOrganization?.id
-  });
 
   const hasActiveFilters = getActiveFilterCount() > 0 || filters.searchQuery.length > 0;
 

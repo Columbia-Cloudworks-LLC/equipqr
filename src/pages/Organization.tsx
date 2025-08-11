@@ -65,7 +65,6 @@ const Organization = () => {
 
   const handleInviteMember = () => {
     // This is now handled by the unified dialog in OrganizationTabs
-    console.log('Invite member action triggered');
   };
 
   return (

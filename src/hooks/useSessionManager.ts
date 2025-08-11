@@ -46,7 +46,6 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       
       if (lastRefresh > fiveMinutesAgo) {
-        console.log('⏭️ Skipping session refresh - refreshed within last 5 minutes');
         return;
       }
     }
@@ -75,7 +74,7 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       SessionStorageService.saveSessionToStorage(newSessionData);
       setLastRefreshTime(new Date().toISOString());
     } catch (err) {
-      console.error('💥 Error refreshing session:', err);
+      console.error('Error refreshing session:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh session';
       onError(errorMessage);
       
@@ -83,7 +82,6 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       if (!force) {
         const cachedData = SessionStorageService.loadSessionFromStorage();
         if (cachedData && SessionStorageService.isSessionVersionValid(cachedData)) {
-          //console.log('📦 Using cached session data due to error');
           onSessionUpdate(cachedData);
         }
       }
@@ -98,11 +96,9 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
     
     const organization = sessionData.organizations.find(org => org.id === organizationId);
     if (!organization) {
-      console.warn('❌ Organization not found:', organizationId);
+      console.warn('Organization not found:', organizationId);
       throw new Error(`Organization ${organizationId} not found in user's organizations`);
     }
-
-    console.log('🔄 Switching to organization:', organizationId, organization.name);
     
     // Save user preference immediately
     saveOrganizationPreference(organizationId);
@@ -120,7 +116,7 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       onSessionUpdate(updatedSessionData);
       SessionStorageService.saveSessionToStorage(updatedSessionData);
     } catch (error) {
-      console.error('💥 Error switching organization:', error);
+      console.error('Error switching organization:', error);
     }
   }, [user, onSessionUpdate, createSessionData]);
 
@@ -142,13 +138,10 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
     // Try to load from cache first
     const cachedData = SessionStorageService.loadSessionFromStorage();
     if (cachedData && SessionStorageService.isSessionVersionValid(cachedData)) {
-      //console.log('📦 Loading session from cache');
-      
       const needsRefresh = shouldRefreshSession(cachedData.lastUpdated);
       return { shouldLoadFromCache: true, cachedData, needsRefresh };
     }
     
-    //console.log('🔄 No valid cache, fetching fresh session data');
     return { shouldLoadFromCache: false, cachedData: null };
   }, [user]);
 

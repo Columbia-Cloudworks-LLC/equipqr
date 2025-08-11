@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SessionOrganization, SessionTeamMembership } from '@/contexts/SessionContext';
 import { getSessionVersion } from '@/utils/sessionPersistence';
+import { logger } from '@/utils/logger';
 
 export interface FetchSessionDataResult {
   organizations: SessionOrganization[];
@@ -10,8 +11,6 @@ export interface FetchSessionDataResult {
 
 export class SessionDataService {
   static async fetchUserOrganizations(userId: string): Promise<SessionOrganization[]> {
-    console.log('🔍 Fetching organization memberships for user:', userId);
-
     // Fetch user's organization memberships
     const { data: orgMemberData, error: orgMemberError } = await supabase
       .from('organization_members')
@@ -20,18 +19,16 @@ export class SessionDataService {
       .eq('status', 'active');
 
     if (orgMemberError) {
-      console.error('❌ Error fetching organization memberships:', orgMemberError);
+      logger.error('Error fetching organization memberships:', orgMemberError);
       throw new Error(`Failed to fetch memberships: ${orgMemberError.message}`);
     }
 
     if (!orgMemberData || orgMemberData.length === 0) {
-      console.log('⚠️ No organization memberships found for user');
       return [];
     }
 
     // Get organization IDs and fetch details
     const orgIds = orgMemberData.map(om => om.organization_id);
-    console.log('🏢 Fetching organization details for IDs:', orgIds);
 
     const { data: orgData, error: orgError } = await supabase
       .from('organizations')
@@ -39,7 +36,7 @@ export class SessionDataService {
       .in('id', orgIds);
 
     if (orgError) {
-      console.error('❌ Error fetching organizations:', orgError);
+      logger.error('Error fetching organizations:', orgError);
       throw new Error(`Failed to fetch organizations: ${orgError.message}`);
     }
 
@@ -67,8 +64,6 @@ export class SessionDataService {
     userId: string, 
     organizationId: string
   ): Promise<SessionTeamMembership[]> {
-    console.log('👥 Fetching team memberships for organization:', organizationId);
-    
     try {
       const { data: teamData, error: teamError } = await supabase
         .rpc('get_user_team_memberships', {
@@ -77,7 +72,7 @@ export class SessionDataService {
         });
 
       if (teamError) {
-        console.error('⚠️ Error fetching team memberships:', teamError);
+        logger.warn('Error fetching team memberships:', teamError);
         return [];
       }
 
@@ -88,7 +83,7 @@ export class SessionDataService {
         joinedDate: item.joined_date
       }));
     } catch (teamFetchError) {
-      console.error('❌ Failed to fetch team memberships:', teamFetchError);
+      logger.error('Failed to fetch team memberships:', teamFetchError);
       return [];
     }
   }
@@ -98,8 +93,6 @@ export class SessionDataService {
     preferredOrgId?: string,
     storedOrgId?: string
   ): Promise<FetchSessionDataResult> {
-    console.log('🔍 Fetching session data for user:', userId);
-
     const organizations = await this.fetchUserOrganizations(userId);
     
     if (organizations.length === 0) {
@@ -128,24 +121,14 @@ export class SessionDataService {
     
     // Check user preference first
     if (preferredOrgId && organizations.find(org => org.id === preferredOrgId)) {
-      console.log('🎯 Using user preference for organization:', preferredOrgId);
       currentOrganizationId = preferredOrgId;
     } else if (storedOrgId && organizations.find(org => org.id === storedOrgId)) {
-      console.log('📦 Using stored session organization:', storedOrgId);
       currentOrganizationId = storedOrgId;
-    } else {
-      const prioritizedOrg = organizations.find(org => org.id === currentOrganizationId);
-      console.log('🎯 Using role-prioritized organization:', {
-        orgId: currentOrganizationId,
-        orgName: prioritizedOrg?.name,
-        userRole: prioritizedOrg?.userRole
-      });
     }
 
     // Fetch team memberships for the current organization
     const teamMemberships = await this.fetchTeamMemberships(userId, currentOrganizationId);
 
-    console.log('🎉 Session data fetched successfully!');
     return {
       organizations,
       currentOrganizationId,

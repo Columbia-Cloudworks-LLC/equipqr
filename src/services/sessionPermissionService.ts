@@ -1,4 +1,5 @@
 import { SessionData, SessionOrganization, SessionTeamMembership } from '@/contexts/SessionContext';
+import { logger } from '@/utils/logger';
 
 export class SessionPermissionService {
   static hasTeamRole(
@@ -22,21 +23,11 @@ export class SessionPermissionService {
     teamId: string
   ): boolean {
     if (!currentOrg) {
-      console.log('🐛 canManageTeam: No current organization');
       return false;
     }
     
     const isOrgAdmin = ['owner', 'admin'].includes(currentOrg.userRole);
     const isTeamManager = sessionData?.teamMemberships.find(tm => tm.teamId === teamId)?.role === 'manager';
-    
-    console.log('🐛 canManageTeam debug:', {
-      teamId,
-      userRole: currentOrg.userRole,
-      isOrgAdmin,
-      teamMemberships: sessionData?.teamMemberships,
-      isTeamManager,
-      result: isOrgAdmin || !!isTeamManager
-    });
     
     return isOrgAdmin || !!isTeamManager;
   }

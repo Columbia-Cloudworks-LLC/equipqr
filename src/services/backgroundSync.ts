@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { cacheManager } from './cacheManager';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
+import { logger } from '@/utils/logger';
 
 // PHASE 3: Background sync service for real-time updates
 export class BackgroundSyncService {
@@ -115,7 +116,7 @@ export class BackgroundSyncService {
       )
       .subscribe((status) => {
         timer();
-        console.log(`Real-time subscription status for org ${organizationId}:`, status);
+        logger.debug(`Real-time subscription status for org ${organizationId}: ${status}`);
         
         if (status === 'SUBSCRIBED') {
           this.reconnectAttempts = 0;
@@ -137,7 +138,7 @@ export class BackgroundSyncService {
   }
 
   private handleEquipmentChange(organizationId: string, payload: any) {
-    console.log('Equipment change detected:', payload);
+    logger.debug('Equipment change detected', payload);
     
     const equipmentId = payload.new?.id || payload.old?.id;
     
@@ -154,7 +155,7 @@ export class BackgroundSyncService {
   }
 
   private handleWorkOrderChange(organizationId: string, payload: any) {
-    console.log('Work order change detected:', payload);
+    logger.debug('Work order change detected', payload);
     
     const workOrderId = payload.new?.id || payload.old?.id;
     const equipmentId = payload.new?.equipment_id || payload.old?.equipment_id;
@@ -167,7 +168,7 @@ export class BackgroundSyncService {
   }
 
   private handleTeamChange(organizationId: string, payload: any) {
-    console.log('Team change detected:', payload);
+    logger.debug('Team change detected', payload);
     
     const teamId = payload.new?.id || payload.old?.id;
     cacheManager.invalidateTeamRelated(organizationId, teamId);
@@ -178,7 +179,7 @@ export class BackgroundSyncService {
   }
 
   private handleNoteChange(organizationId: string, payload: any) {
-    console.log('Note change detected:', payload);
+    logger.debug('Note change detected', payload);
     
     const equipmentId = payload.new?.equipment_id || payload.old?.equipment_id;
     if (equipmentId) {
@@ -191,7 +192,7 @@ export class BackgroundSyncService {
   }
 
   private handleOrganizationMemberChange(organizationId: string, payload: any) {
-    console.log('Organization member change detected:', payload);
+    logger.debug('Organization member change detected', payload);
     
     cacheManager.invalidateOrganizationMemberRelated(organizationId);
 
@@ -201,7 +202,7 @@ export class BackgroundSyncService {
   }
 
   private handleOrganizationSlotChange(organizationId: string, payload: any) {
-    console.log('Organization slot change detected:', payload);
+    logger.debug('Organization slot change detected', payload);
     
     cacheManager.invalidateOrganizationSlotRelated(organizationId);
 
@@ -211,7 +212,7 @@ export class BackgroundSyncService {
   }
 
   private handleOrganizationInvitationChange(organizationId: string, payload: any) {
-    console.log('Organization invitation change detected:', payload);
+    logger.debug('Organization invitation change detected', payload);
     
     cacheManager.invalidateOrganizationInvitationRelated(organizationId);
 
@@ -230,7 +231,7 @@ export class BackgroundSyncService {
     const delay = Math.pow(2, this.reconnectAttempts) * 1000; // Exponential backoff
 
     setTimeout(() => {
-      console.log(`Attempting to reconnect to org ${organizationId} (attempt ${this.reconnectAttempts})`);
+      logger.info(`Attempting to reconnect to org ${organizationId} (attempt ${this.reconnectAttempts})`);
       this.unsubscribeFromOrganization(organizationId);
       this.subscribeToOrganization(organizationId);
     }, delay);
@@ -254,7 +255,7 @@ export class BackgroundSyncService {
       return;
     }
 
-    console.log(`Processing ${this.syncQueue.length} queued sync items`);
+    logger.debug(`Processing ${this.syncQueue.length} queued sync items`);
     
     // Process items in batches
     const batchSize = 10;
@@ -275,7 +276,7 @@ export class BackgroundSyncService {
   private async processSyncItem(item: { type: string; data: any; timestamp: number }) {
     // Process the queued sync item
     // This could involve re-fetching data, showing notifications, etc.
-    console.log(`Processing sync item:`, item);
+    logger.debug('Processing sync item:', item);
     
     // For now, just invalidate relevant caches
     // In a real implementation, you might want to show notifications
@@ -283,7 +284,7 @@ export class BackgroundSyncService {
   }
 
   private reconnectSubscriptions() {
-    console.log('Reconnecting all subscriptions after coming online');
+    logger.info('Reconnecting all subscriptions after coming online');
     
     for (const [organizationId] of this.subscriptions) {
       this.unsubscribeFromOrganization(organizationId);
