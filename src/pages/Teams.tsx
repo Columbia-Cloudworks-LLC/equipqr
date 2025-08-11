@@ -227,7 +227,7 @@ const Teams = () => {
                   variant="outline" 
                   size="sm" 
                   className="flex-1"
-                  onClick={() => navigate(`/teams/${team.id}`)}
+                  onClick={() => navigate(`/dashboard/teams/${team.id}`)}
                 >
                   View Details
                 </Button>
