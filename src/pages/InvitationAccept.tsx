@@ -47,53 +47,31 @@ const InvitationAccept = () => {
       }
 
       try {
-        // First, fetch the invitation data without joins
+        // Use the secure function to fetch invitation details
         const { data: invitationData, error: invitationError } = await supabase
-          .from('organization_invitations')
-          .select(`
-            id,
-            email,
-            role,
-            status,
-            message,
-            expires_at,
-            organization_id,
-            invited_by
-          `)
-          .eq('invitation_token', token)
-          .single();
+          .rpc('get_invitation_by_token_secure', {
+            p_token: token
+          });
 
         if (invitationError) throw invitationError;
 
-        if (!invitationData) {
-          setError('Invitation not found');
+        if (!invitationData || invitationData.length === 0) {
+          setError('Invitation not found or you do not have permission to access it');
           setLoading(false);
           return;
         }
 
-        // Then fetch organization and inviter names separately
-        const [organizationResult, inviterResult] = await Promise.all([
-          supabase
-            .from('organizations')
-            .select('name')
-            .eq('id', invitationData.organization_id)
-            .single(),
-          supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', invitationData.invited_by)
-            .single()
-        ]);
-
+        const invitation = invitationData[0];
+        
         setInvitation({
-          id: invitationData.id,
-          email: invitationData.email,
-          role: invitationData.role as 'admin' | 'member',
-          status: invitationData.status,
-          organization_name: organizationResult.data?.name || 'Unknown Organization',
-          inviter_name: inviterResult.data?.name || 'Unknown User',
-          message: invitationData.message,
-          expires_at: invitationData.expires_at
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role as 'admin' | 'member',
+          status: invitation.status,
+          organization_name: invitation.organization_name || 'Unknown Organization',
+          inviter_name: invitation.invited_by_name || 'Unknown User',
+          message: invitation.message,
+          expires_at: invitation.expires_at
         });
 
       } catch (err: unknown) {

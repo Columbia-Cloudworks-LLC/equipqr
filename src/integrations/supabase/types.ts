@@ -1759,6 +1759,20 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_invitation_by_token_secure: {
+        Args: { p_token: string }
+        Returns: {
+          id: string
+          organization_id: string
+          organization_name: string
+          email: string
+          role: string
+          status: string
+          expires_at: string
+          message: string
+          invited_by_name: string
+        }[]
+      }
       get_invitations_atomic: {
         Args: { user_uuid: string; org_id: string }
         Returns: {
