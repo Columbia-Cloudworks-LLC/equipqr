@@ -1,6 +1,5 @@
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { SlotAvailability } from '@/hooks/useOrganizationSlots';
-import { isFreeOrganization } from './simplifiedBillingUtils';
 
 export interface SimplifiedOrganizationRestrictions {
   canManageTeams: boolean;

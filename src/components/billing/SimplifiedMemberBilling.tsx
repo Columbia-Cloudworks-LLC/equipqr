@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Users, AlertCircle } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
+import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import MemberTable from '@/components/billing/MemberTable';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -13,7 +13,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 const SimplifiedMemberBilling = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
-  const isMobile = useIsMobile();
+  const _isMobile = useIsMobile();
 
   const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
@@ -28,7 +28,7 @@ const SimplifiedMemberBilling = () => {
     );
   }
 
-  const billing = calculateSimplifiedBilling(members);
+  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
   const isFree = isFreeOrganization(members);
 
   return (
@@ -38,13 +38,13 @@ const SimplifiedMemberBilling = () => {
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 sm:h-5 sm:w-5" />
             <span className="text-lg sm:text-xl">
-              User Licenses ({billing.userLicenses.totalUsers} total)
+              User Licenses ({billing.userSlots.totalUsers} total)
             </span>
             {isFree && <Badge variant="secondary">Free Plan</Badge>}
           </div>
           <div className="text-left sm:text-right">
             <div className="text-sm text-muted-foreground">Monthly Cost</div>
-            <div className="text-lg font-bold">${billing.userLicenses.totalCost.toFixed(2)}</div>
+            <div className="text-lg font-bold">${billing.userSlots.totalCost.toFixed(2)}</div>
           </div>
         </CardTitle>
       </CardHeader>
@@ -63,11 +63,11 @@ const SimplifiedMemberBilling = () => {
             <div className="text-sm text-muted-foreground">
               {isFree 
                 ? 'Free single-user plan'
-                : `${billing.userLicenses.billableUsers} billable users × $${billing.userLicenses.costPerUser}/month (first user free)`
+                : `${billing.userSlots.billableUsers} billable users × $${billing.userSlots.costPerUser}/month (first user free)`
               }
             </div>
             <div className="text-lg font-bold">
-              Monthly Total: ${billing.userLicenses.totalCost.toFixed(2)}
+              Monthly Total: ${billing.userSlots.totalCost.toFixed(2)}
             </div>
           </div>
 

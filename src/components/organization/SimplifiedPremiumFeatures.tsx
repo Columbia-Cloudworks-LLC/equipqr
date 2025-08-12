@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, DollarSign } from 'lucide-react';
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
-import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
+import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 
 interface SimplifiedPremiumFeaturesProps {
   organization: SessionOrganization;
@@ -17,7 +17,7 @@ const SimplifiedPremiumFeatures: React.FC<SimplifiedPremiumFeaturesProps> = ({
   onUpgrade,
 }) => {
   const { data: members = [] } = useOrganizationMembers(organization.id);
-  const billing = calculateSimplifiedBilling(members, 0, false);
+  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
   const isFree = isFreeOrganization(members);
 
   return (
@@ -38,11 +38,11 @@ const SimplifiedPremiumFeatures: React.FC<SimplifiedPremiumFeaturesProps> = ({
                 {isFree ? 'Free' : 'Active'}
               </Badge>
             </div>
-            <div className="text-2xl font-bold">${billing.monthlyTotal.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${billing.totals.monthlyTotal.toFixed(2)}</div>
             <div className="text-xs text-muted-foreground mt-1">
               {isFree 
                 ? 'Single-user plan is free forever'
-                : `${billing.userLicenses.billableUsers} users × $10 + storage + add-ons`
+                : `${billing.userSlots.billableUsers} users × $10 + storage + add-ons`
               }
             </div>
           </div>
@@ -57,7 +57,7 @@ const SimplifiedPremiumFeatures: React.FC<SimplifiedPremiumFeaturesProps> = ({
                   Invite unlimited team members at $10/month each
                 </div>
                 <div className="text-xs text-primary mt-1">
-                  {isFree ? 'Invite your first team member to unlock' : `${billing.userLicenses.totalUsers} team members`}
+                  {isFree ? 'Invite your first team member to unlock' : `${billing.userSlots.totalUsers} team members`}
                 </div>
               </div>
             </div>

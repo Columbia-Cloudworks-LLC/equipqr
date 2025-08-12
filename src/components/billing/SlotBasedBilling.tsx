@@ -1,14 +1,13 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, AlertTriangle, TrendingUp } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
-import { calculateEnhancedBilling, getSlotStatus } from '@/utils/enhancedBillingUtils';
+import { calculateBilling, getSlotStatus } from '@/utils/billing';
 import PurchaseLicensesButton from './PurchaseLicensesButton';
 
 interface SlotBasedBillingProps {
@@ -21,12 +20,12 @@ interface SlotBasedBillingProps {
 const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
   storageUsedGB,
   fleetMapEnabled,
-  onPurchaseSlots,
-  onUpgradeToMultiUser
+  onPurchaseSlots: _onPurchaseSlots,
+  onUpgradeToMultiUser: _onUpgradeToMultiUser
 }) => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
-  const { data: slotAvailability, isLoading, refetch } = useSlotAvailability(currentOrganization?.id || '');
+  const { data: slotAvailability, isLoading } = useSlotAvailability(currentOrganization?.id || '');
 
   const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
@@ -51,12 +50,12 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
     );
   }
 
-  const billing = calculateEnhancedBilling(members, safeSlotAvailability, storageUsedGB, fleetMapEnabled);
+  const billing = calculateBilling({ members, slotAvailability: safeSlotAvailability, storageGB: storageUsedGB, fleetMapEnabled });
   const slotStatus = getSlotStatus(safeSlotAvailability, billing.currentUsage.totalSlotsNeeded);
   const isFreeOrg = members.filter(m => m.status === 'active').length === 1 && safeSlotAvailability.total_purchased === 0;
 
-  const slotUsagePercentage = billing.userSlots.totalPurchased > 0 
-    ? (billing.userSlots.slotsUsed / billing.userSlots.totalPurchased) * 100 
+  const slotUsagePercentage = (billing.userSlots.totalPurchased || 0) > 0 
+    ? ((billing.userSlots.slotsUsed || 0) / (billing.userSlots.totalPurchased || 1)) * 100 
     : 0;
 
   return (
@@ -71,7 +70,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
             </div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Monthly Value</div>
-              <div className="text-lg font-bold">${(billing.userSlots.totalPurchased * 10).toFixed(2)}</div>
+              <div className="text-lg font-bold">${billing.userSlots.totalCost.toFixed(2)}</div>
             </div>
           </CardTitle>
         </CardHeader>
@@ -79,11 +78,11 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
           <div className="space-y-4">
             {!isFreeOrg && (
               <>
-                {billing.userSlots.totalPurchased > 0 && (
+                {(billing.userSlots.totalPurchased || 0) > 0 && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Slot Usage</span>
-                      <span>{billing.userSlots.slotsUsed} / {billing.userSlots.totalPurchased}</span>
+                      <span>{billing.userSlots.slotsUsed || 0} / {billing.userSlots.totalPurchased || 0}</span>
                     </div>
                     <Progress value={slotUsagePercentage} className="h-2" />
                   </div>
@@ -91,19 +90,19 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div className="p-3 bg-muted rounded-lg">
-                    <div className="text-lg font-bold">{billing.userSlots.totalPurchased}</div>
+                    <div className="text-lg font-bold">{billing.userSlots.totalPurchased || 0}</div>
                     <div className="text-sm text-muted-foreground">Licenses Owned</div>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <div className="text-lg font-bold">{billing.userSlots.slotsUsed}</div>
+                    <div className="text-lg font-bold">{billing.userSlots.slotsUsed || 0}</div>
                     <div className="text-sm text-muted-foreground">Licenses Used</div>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <div className="text-lg font-bold">{billing.userSlots.availableSlots}</div>
+                    <div className="text-lg font-bold">{billing.userSlots.availableSlots || 0}</div>
                     <div className="text-sm text-muted-foreground">Available</div>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <div className="text-lg font-bold">$10</div>
+                    <div className="text-lg font-bold">${billing.userSlots.costPerUser}</div>
                     <div className="text-sm text-muted-foreground">Per License</div>
                   </div>
                 </div>
@@ -206,15 +205,15 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="text-2xl font-bold">${billing.estimatedNextBilling.toFixed(2)}</div>
+              <div className="text-2xl font-bold">${billing.totals.monthlyTotal.toFixed(2)}</div>
               <div className="text-sm text-muted-foreground">
                 Monthly recurring charges for user licenses and add-ons
               </div>
               
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>User licenses ({billing.userSlots.totalPurchased})</span>
-                  <span>${(billing.userSlots.totalPurchased * 10).toFixed(2)}</span>
+                  <span>User licenses ({billing.userSlots.totalPurchased || 0})</span>
+                  <span>${billing.userSlots.totalCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Storage overage</span>
@@ -222,11 +221,11 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span>Fleet Map add-on</span>
-                  <span>${billing.fleetMap.cost.toFixed(2)}</span>
+                  <span>${billing.features.fleetMap.cost.toFixed(2)}</span>
                 </div>
                 <div className="border-t pt-2 flex justify-between font-medium">
                   <span>Total estimated</span>
-                  <span>${billing.estimatedNextBilling.toFixed(2)}</span>
+                  <span>${billing.totals.monthlyTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>

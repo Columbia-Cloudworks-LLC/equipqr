@@ -10,7 +10,7 @@ import { MoreHorizontal, Mail, Clock, CheckCircle, XCircle, AlertTriangle, Shopp
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
 import { useSlotAvailability, useReleaseSlot } from '@/hooks/useOrganizationSlots';
-import { shouldBlockInvitation } from '@/utils/enhancedBillingUtils';
+import { shouldBlockInvitation } from '@/utils/billing';
 import { formatDistanceToNow } from 'date-fns';
 
 interface EnhancedInvitationManagementProps {

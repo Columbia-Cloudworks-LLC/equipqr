@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Crown } from 'lucide-react';
 import { useOrganizationMembers, RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { calculateUserLicenseCost, isFreeOrganization } from '@/utils/billingUtils';
+import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 import {
   Table,
   TableBody,
@@ -30,7 +30,8 @@ const RealMemberBilling = () => {
     );
   }
 
-  const { totalUsers, billableUsers, cost: totalMembersCost } = calculateUserLicenseCost(members);
+  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
+  const { totalUsers, billableUsers, cost: totalMembersCost } = { totalUsers: billing.userSlots.totalUsers, billableUsers: billing.userSlots.billableUsers, cost: billing.userSlots.totalCost };
   const isFree = isFreeOrganization(members);
 
   const getStatusBadgeVariant = (status: string) => {

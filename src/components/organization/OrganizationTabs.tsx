@@ -11,8 +11,11 @@ import { PagePermissions } from '@/hooks/usePagePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
+import { calculateBilling } from '@/utils/billing';
 import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
+import { SessionOrganization } from '@/contexts/SessionContext';
+import { OrganizationStats } from '@/hooks/useOrganizationStats';
+import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import OptimizedMembersList from './OptimizedMembersList';
 import AdminsTabContent from './AdminsTabContent';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
@@ -35,9 +38,9 @@ interface OrganizationTabsProps {
   adminsLoading: boolean;
   onInviteMember: () => void;
   onUpgrade: () => void;
-  organization: any;
-  organizationStats: any;
-  fleetMapSubscription: any;
+  organization: SessionOrganization | null;
+  organizationStats: OrganizationStats;
+  fleetMapSubscription: FleetMapSubscription;
 }
 
 const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
@@ -48,8 +51,9 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   permissions,
   membersLoading,
   adminsLoading,
+  onInviteMember: _onInviteMember,
   onUpgrade,
-  organization,
+  organization: _organization,
   organizationStats,
   fleetMapSubscription
 }) => {
@@ -58,7 +62,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   const isMobile = useIsMobile();
   const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
   const { data: storageUsage, isLoading: storageLoading } = useOrganizationStorageUsage();
-  const billing = calculateSimplifiedBilling(members);
+  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
 
   // Combine role-based permissions with organizational restrictions
   const canInviteMembers = permissions.canInviteMembers && restrictions.canInviteMembers && restrictions.hasAvailableSlots;
@@ -223,7 +227,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           <div className="flex items-center gap-3">
             <h2 className="text-lg sm:text-xl font-semibold">Team Members</h2>
             <Badge variant="outline">
-              {billing.userLicenses.totalUsers} total • ${billing.userLicenses.totalCost}/month
+              {billing.userSlots.totalUsers} total • ${billing.userSlots.totalCost}/month
             </Badge>
           </div>
           {canInviteMembers && (
@@ -241,7 +245,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
               )}
             </div>
           )}
-          {canShowPurchaseLicenses && billing.userLicenses.totalUsers !== 1 && (
+          {canShowPurchaseLicenses && billing.userSlots.totalUsers !== 1 && (
             <div className="flex gap-2">
               <PurchaseLicensesButton
                 size="sm"
@@ -255,7 +259,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           )}
         </div>
         
-        {billing.userLicenses.totalUsers === 1 && !restrictions.hasAvailableSlots && (
+        {billing.userSlots.totalUsers === 1 && !restrictions.hasAvailableSlots && (
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="text-sm text-blue-800">
               <strong>License-based collaboration:</strong> <PurchaseLicensesLink>Purchase user license subscriptions</PurchaseLicensesLink> to invite team members and unlock collaboration features. 
@@ -264,7 +268,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           </div>
         )}
 
-        {!restrictions.hasAvailableSlots && billing.userLicenses.totalUsers > 1 && (
+        {!restrictions.hasAvailableSlots && billing.userSlots.totalUsers > 1 && (
           <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
             <div className="text-sm text-orange-800">
               <strong>No available licenses:</strong> You've used all your purchased user licenses. 
@@ -303,7 +307,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           <SlotBasedBilling
             storageUsedGB={storageLoading ? 0 : (storageUsage?.totalSizeGB || 0)}
             fleetMapEnabled={fleetMapSubscription?.enabled || false}
-            onPurchaseSlots={(quantity) => onUpgrade()}
+            onPurchaseSlots={(_quantity) => onUpgrade()}
             onUpgradeToMultiUser={onUpgrade}
           />
         </div>
