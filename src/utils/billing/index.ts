@@ -1,6 +1,11 @@
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { SlotAvailability } from '@/hooks/useOrganizationSlots';
 
+// Utility function to handle floating-point precision for monetary calculations
+function roundToTwoDecimals(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 // Input state interface (discriminated union)
 export interface BillingState {
   members: RealOrganizationMember[];
@@ -140,7 +145,7 @@ export function calculateBilling(state: BillingState): BillingCalculation {
   // Calculate storage costs (consistent across all models)
   const freeGB = 5;
   const overageGB = Math.max(0, storageGB - freeGB);
-  const storageCost = overageGB * 0.10;
+  const storageCost = roundToTwoDecimals(overageGB * 0.10);
   
   const storage = {
     usedGB: storageGB,
@@ -164,7 +169,7 @@ export function calculateBilling(state: BillingState): BillingCalculation {
     userLicenses: totalCost,
     storage: storageCost,
     features: fleetMapCost,
-    monthlyTotal: totalCost + storageCost + fleetMapCost
+    monthlyTotal: roundToTwoDecimals(totalCost + storageCost + fleetMapCost)
   };
   
   return {
