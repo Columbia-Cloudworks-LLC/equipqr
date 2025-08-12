@@ -13,6 +13,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 import { calculateBilling } from '@/utils/billing';
 import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
+import { SessionOrganization } from '@/contexts/SessionContext';
+import { OrganizationStats } from '@/hooks/useOrganizationStats';
+import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import OptimizedMembersList from './OptimizedMembersList';
 import AdminsTabContent from './AdminsTabContent';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
@@ -35,9 +38,9 @@ interface OrganizationTabsProps {
   adminsLoading: boolean;
   onInviteMember: () => void;
   onUpgrade: () => void;
-  organization: any;
-  organizationStats: any;
-  fleetMapSubscription: any;
+  organization: SessionOrganization | null;
+  organizationStats: OrganizationStats;
+  fleetMapSubscription: FleetMapSubscription;
 }
 
 const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
