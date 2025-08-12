@@ -50,8 +50,8 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
 
     try {
       await addMember.mutateAsync({
-        team_id: team.id,
-        user_id: selectedUser,
+        teamId: team.id,
+        userId: selectedUser,
         role: selectedRole,
       });
       

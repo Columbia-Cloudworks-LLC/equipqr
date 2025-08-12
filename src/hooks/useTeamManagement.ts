@@ -1,17 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import TeamRepository from '@/services/repositories/TeamRepository';
 import { 
-  getTeamsByOrganization, 
-  getTeamById, 
-  createTeam, 
-  createTeamWithCreator,
-  updateTeam, 
-  deleteTeam,
-  addTeamMember,
   removeTeamMember,
-  updateTeamMemberRole,
   getAvailableUsersForTeam,
-  isTeamManager,
   TeamWithMembers
 } from '@/services/teamService';
 
@@ -19,7 +11,7 @@ import {
 export const useTeams = (organizationId: string | undefined) => {
   return useQuery({
     queryKey: ['teams', organizationId],
-    queryFn: () => getTeamsByOrganization(organizationId!),
+    queryFn: () => TeamRepository.getTeamsByOrg(organizationId!),
     enabled: !!organizationId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -29,7 +21,7 @@ export const useTeams = (organizationId: string | undefined) => {
 export const useTeam = (teamId: string | undefined) => {
   return useQuery({
     queryKey: ['team', teamId],
-    queryFn: () => getTeamById(teamId!),
+    queryFn: () => TeamRepository.getTeamById(teamId!),
     enabled: !!teamId,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
@@ -41,8 +33,8 @@ export const useTeamMutations = () => {
   const { toast } = useToast();
 
   const createTeamWithCreatorMutation = useMutation({
-    mutationFn: ({ teamData, creatorId }: { teamData: Parameters<typeof createTeamWithCreator>[0]; creatorId: string }) =>
-      createTeamWithCreator(teamData, creatorId),
+    mutationFn: ({ teamData, creatorId }: { teamData: Parameters<typeof TeamRepository.createTeamWithCreator>[0]; creatorId: string }) =>
+      TeamRepository.createTeamWithCreator(teamData, creatorId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['teams', variables.teamData.organization_id] });
     },
@@ -56,7 +48,7 @@ export const useTeamMutations = () => {
   });
 
   const deleteTeamMutation = useMutation({
-    mutationFn: deleteTeam,
+    mutationFn: TeamRepository.deleteTeam,
     onSuccess: (_, teamId) => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       queryClient.removeQueries({ queryKey: ['team', teamId] });
@@ -94,7 +86,8 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
 
   // Add member mutation
   const addMemberMutation = useMutation({
-    mutationFn: addTeamMember,
+    mutationFn: ({ teamId, userId, role }: { teamId: string; userId: string; role: 'manager' | 'technician' | 'requestor' | 'viewer' }) =>
+      TeamRepository.addMember(teamId, userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team', teamId] });
       queryClient.invalidateQueries({ queryKey: ['teams', organizationId] });
@@ -140,8 +133,8 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
     mutationFn: ({ teamId, userId, role }: { 
       teamId: string; 
       userId: string; 
-      role: 'manager' | 'technician' 
-    }) => updateTeamMemberRole(teamId, userId, role),
+      role: 'manager' | 'technician' | 'requestor' | 'viewer'
+    }) => TeamRepository.updateMemberRole(teamId, userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team', teamId] });
       queryClient.invalidateQueries({ queryKey: ['teams', organizationId] });
@@ -171,7 +164,7 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
 export const useTeamManagerCheck = (userId: string | undefined, teamId: string | undefined) => {
   return useQuery({
     queryKey: ['teamManager', userId, teamId],
-    queryFn: () => isTeamManager(userId!, teamId!),
+    queryFn: () => TeamRepository.isTeamManager(userId!, teamId!),
     enabled: !!userId && !!teamId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

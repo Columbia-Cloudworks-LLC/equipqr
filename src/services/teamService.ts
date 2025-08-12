@@ -104,6 +104,7 @@ export const deleteTeam = async (id: string): Promise<void> => {
 };
 
 // Get teams by organization with member details
+// @deprecated Use TeamRepository.getTeamsByOrg() for better performance with optimized queries
 export const getTeamsByOrganization = async (organizationId: string): Promise<TeamWithMembers[]> => {
   // First get all teams for the organization
   const { data: teams, error: teamsError } = await supabase
@@ -185,6 +186,7 @@ export const getTeamById = async (id: string): Promise<TeamWithMembers | null> =
 };
 
 // Add member to team
+// @deprecated Use TeamRepository.addMember() for consistency
 export const addTeamMember = async (teamMemberData: TeamMemberInsert): Promise<TeamMember> => {
   const { data, error } = await supabase
     .from('team_members')
@@ -208,6 +210,7 @@ export const removeTeamMember = async (teamId: string, userId: string): Promise<
 };
 
 // Update team member role
+// @deprecated Use TeamRepository.updateMemberRole() for consistency
 export const updateTeamMemberRole = async (
   teamId: string, 
   userId: string, 
@@ -263,6 +266,7 @@ export const getAvailableUsersForTeam = async (organizationId: string, teamId: s
 };
 
 // Check if user is team manager
+// @deprecated Use TeamRepository.isTeamManager() for better performance with optimized queries
 export const isTeamManager = async (userId: string, teamId: string): Promise<boolean> => {
   const { data, error } = await supabase
     .from('team_members')

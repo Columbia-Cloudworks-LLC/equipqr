@@ -127,6 +127,38 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
   }
 };
 
+// Get a single team by ID with member count
+export const getTeamByIdOptimized = async (teamId: string): Promise<OptimizedTeam | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('teams')
+      .select(`
+        *,
+        team_members(count)
+      `)
+      .eq('id', teamId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // No rows returned
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      organization_id: data.organization_id,
+      member_count: data.team_members?.[0]?.count || 0,
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    };
+  } catch (error) {
+    console.error('Error fetching team by ID:', error);
+    return null;
+  }
+};
+
 // Check if user is team manager (uses idx_team_members_user_team)
 export const isTeamManager = async (userId: string, teamId: string): Promise<boolean> => {
   try {
