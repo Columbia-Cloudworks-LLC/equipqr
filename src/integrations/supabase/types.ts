@@ -276,6 +276,13 @@ export type Database = {
             foreignKeyName: "equipment_note_images_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
+            referencedRelation: "member_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_note_images_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -326,6 +333,13 @@ export type Database = {
             foreignKeyName: "equipment_notes_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "member_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -334,6 +348,13 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_notes_last_modified_by_fkey"
+            columns: ["last_modified_by"]
+            isOneToOne: false
+            referencedRelation: "member_profiles_view"
             referencedColumns: ["id"]
           },
           {
@@ -485,6 +506,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "member_profiles_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notes_author_id_fkey"
             columns: ["author_id"]
@@ -642,7 +670,21 @@ export type Database = {
             foreignKeyName: "organization_invitations_accepted_by_fkey"
             columns: ["accepted_by"]
             isOneToOne: false
+            referencedRelation: "member_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invitations_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "member_profiles_view"
             referencedColumns: ["id"]
           },
           {
@@ -712,6 +754,13 @@ export type Database = {
             columns: ["slot_purchase_id"]
             isOneToOne: false
             referencedRelation: "slot_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "member_profiles_view"
             referencedColumns: ["id"]
           },
           {
@@ -934,6 +983,13 @@ export type Database = {
             foreignKeyName: "pm_status_history_changed_by_fkey"
             columns: ["changed_by"]
             isOneToOne: false
+            referencedRelation: "member_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1026,6 +1082,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          email_private: boolean | null
           id: string
           name: string
           updated_at: string
@@ -1033,6 +1090,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          email_private?: boolean | null
           id: string
           name: string
           updated_at?: string
@@ -1040,6 +1098,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          email_private?: boolean | null
           id?: string
           name?: string
           updated_at?: string
@@ -1077,6 +1136,13 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scans_scanned_by_fkey"
+            columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "member_profiles_view"
             referencedColumns: ["id"]
           },
           {
@@ -1143,6 +1209,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slot_purchases_purchased_by_fkey"
+            columns: ["purchased_by"]
+            isOneToOne: false
+            referencedRelation: "member_profiles_view"
             referencedColumns: ["id"]
           },
           {
@@ -1218,6 +1291,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "member_profiles_view"
             referencedColumns: ["id"]
           },
           {
@@ -1447,6 +1527,13 @@ export type Database = {
             foreignKeyName: "fk_work_order_notes_author"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "member_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_work_order_notes_author"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1490,6 +1577,13 @@ export type Database = {
           work_order_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "work_order_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "member_profiles_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "work_order_status_history_changed_by_fkey"
             columns: ["changed_by"]
@@ -1587,7 +1681,21 @@ export type Database = {
             foreignKeyName: "work_orders_assignee_id_fkey"
             columns: ["assignee_id"]
             isOneToOne: false
+            referencedRelation: "member_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "member_profiles_view"
             referencedColumns: ["id"]
           },
           {
@@ -1615,7 +1723,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      member_profiles_view: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          email_private: boolean | null
+          id: string | null
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: never
+          email_private?: boolean | null
+          id?: string | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: never
+          email_private?: boolean | null
+          id?: string | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_invitation_atomic: {
