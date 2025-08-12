@@ -140,21 +140,3 @@ export const getTeamBasedWorkOrders = async (
   }
 };
 
-// Get work orders assigned to user's teams
-export const getMyTeamWorkOrders = async (
-  organizationId: string,
-  userTeamIds: string[],
-  userId: string,
-  isOrgAdmin: boolean = false
-): Promise<EnhancedWorkOrder[]> => {
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, { assigneeId: userId });
-};
-
-// Get overdue work orders for user's accessible equipment
-export const getTeamOverdueWorkOrders = async (
-  organizationId: string,
-  userTeamIds: string[],
-  isOrgAdmin: boolean = false
-): Promise<EnhancedWorkOrder[]> => {
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, { dueDateFilter: 'overdue' });
-};

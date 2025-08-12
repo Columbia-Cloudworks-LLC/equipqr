@@ -148,16 +148,6 @@ export const getFilteredWorkOrdersByOrganization = async (
   }
 };
 
-// Team-based alternative that respects equipment team assignments
-export const getTeamBasedFilteredWorkOrders = async (
-  organizationId: string,
-  userTeamIds: string[],
-  isOrgAdmin: boolean = false,
-  filters: TeamBasedWorkOrderFilters = {}
-): Promise<EnhancedWorkOrder[]> => {
-  console.log('🔄 Using team-based work order filtering');
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, filters);
-};
 
 // Get work orders by assignee (uses idx_work_orders_assignee_id)
 export const getMyWorkOrders = async (organizationId: string, userId: string): Promise<EnhancedWorkOrder[]> => {
@@ -195,25 +185,9 @@ export const getOverdueWorkOrders = async (organizationId: string): Promise<Enha
   return getFilteredWorkOrdersByOrganization(organizationId, { dueDateFilter: 'overdue' });
 };
 
-// Team-based overdue work orders
-export const getTeamBasedOverdueWorkOrders = async (
-  organizationId: string, 
-  userTeamIds: string[],
-  isOrgAdmin: boolean = false
-): Promise<EnhancedWorkOrder[]> => {
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, { dueDateFilter: 'overdue' });
-};
 
 // Dashboard query for work orders due today (uses idx_work_orders_org_due_date)
 export const getWorkOrdersDueToday = async (organizationId: string): Promise<EnhancedWorkOrder[]> => {
   return getFilteredWorkOrdersByOrganization(organizationId, { dueDateFilter: 'today' });
 };
 
-// Team-based work orders due today
-export const getTeamBasedWorkOrdersDueToday = async (
-  organizationId: string, 
-  userTeamIds: string[],
-  isOrgAdmin: boolean = false
-): Promise<EnhancedWorkOrder[]> => {
-  return getTeamBasedWorkOrders(organizationId, userTeamIds, isOrgAdmin, { dueDateFilter: 'today' });
-};
