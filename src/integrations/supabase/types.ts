@@ -1026,6 +1026,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          email_private: boolean | null
           id: string
           name: string
           updated_at: string
@@ -1033,6 +1034,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          email_private?: boolean | null
           id: string
           name: string
           updated_at?: string
@@ -1040,6 +1042,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          email_private?: boolean | null
           id?: string
           name?: string
           updated_at?: string
@@ -1824,6 +1827,17 @@ export type Database = {
           exemption_value: number
           reason: string
           expires_at: string
+        }[]
+      }
+      get_organization_member_profile: {
+        Args: { member_user_id: string }
+        Returns: {
+          id: string
+          name: string
+          email: string
+          email_private: boolean
+          created_at: string
+          updated_at: string
         }[]
       }
       get_organization_premium_features: {
