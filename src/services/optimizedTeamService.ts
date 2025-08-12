@@ -20,51 +20,6 @@ export interface OptimizedTeamMember {
   user_email?: string;
 }
 
-// Get user's teams using idx_team_members_user_team
-export const getUserTeamsOptimized = async (userId: string): Promise<OptimizedTeam[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('team_members')
-      .select(`
-        teams!inner (
-          id,
-          name,
-          description,
-          organization_id,
-          created_at,
-          updated_at
-        )
-      `)
-      .eq('user_id', userId);
-
-    if (error) throw error;
-
-    // Get member counts for each team
-    const teamIds = data?.map(tm => tm.teams.id) || [];
-    const { data: memberCounts } = await supabase
-      .from('team_members')
-      .select('team_id')
-      .in('team_id', teamIds);
-
-    const countsByTeam = (memberCounts || []).reduce((acc, member) => {
-      acc[member.team_id] = (acc[member.team_id] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return (data || []).map(tm => ({
-      id: tm.teams.id,
-      name: tm.teams.name,
-      description: tm.teams.description,
-      organization_id: tm.teams.organization_id,
-      member_count: countsByTeam[tm.teams.id] || 0,
-      created_at: tm.teams.created_at,
-      updated_at: tm.teams.updated_at
-    }));
-  } catch (error) {
-    console.error('Error fetching user teams:', error);
-    return [];
-  }
-};
 
 // Get team members using idx_team_members_team_id
 export const getTeamMembersOptimized = async (teamId: string): Promise<OptimizedTeamMember[]> => {
