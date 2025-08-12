@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, HardDrive, Map, CreditCard, Crown, Info } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { calculateTotalBilling, isFreeOrganization } from '@/utils/billingUtils';
+import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 import { getOrganizationRestrictions, getRestrictionMessage } from '@/utils/organizationRestrictions';
 
 interface UpdatedOrganizationBillingProps {
@@ -26,7 +26,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
 
-  const billing = calculateTotalBilling(members, storageUsedGB, fleetMapEnabled);
+  const billing = calculateBilling({ members, storageGB: storageUsedGB, fleetMapEnabled });
   const isFree = isFreeOrganization(members);
   const restrictions = getOrganizationRestrictions(members, fleetMapEnabled);
 

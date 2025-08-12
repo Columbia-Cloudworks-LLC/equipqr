@@ -13,7 +13,7 @@ import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from '@/hooks/use-toast';
-import { calculateLicenseBilling, hasLicenses } from '@/utils/licenseBillingUtils';
+import { calculateBilling, hasLicenses } from '@/utils/billing';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const Billing = () => {
@@ -42,7 +42,7 @@ const Billing = () => {
   const canPurchaseLicenses = userRole === 'owner';
 
   // Calculate billing based on licenses
-  const billing = slotAvailability ? calculateLicenseBilling(members, slotAvailability, storageUsedGB, fleetMapEnabled) : null;
+  const billing = slotAvailability ? calculateBilling({ members, slotAvailability, storageGB: storageUsedGB, fleetMapEnabled }) : null;
   const hasActiveLicenses = slotAvailability ? hasLicenses(slotAvailability) : false;
 
   // Handle success/cancel URL parameters

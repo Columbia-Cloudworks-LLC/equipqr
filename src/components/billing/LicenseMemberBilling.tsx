@@ -6,7 +6,7 @@ import { Users, AlertCircle, Calendar } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { calculateLicenseBilling, hasLicenses, getLicenseStatus } from '@/utils/licenseBillingUtils';
+import { calculateBilling, hasLicenses, getLicenseStatus } from '@/utils/billing';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import MemberTable from '@/components/billing/MemberTable';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -42,7 +42,7 @@ const LicenseMemberBilling = () => {
     );
   }
 
-  const billing = calculateLicenseBilling(members, slotAvailability);
+  const billing = calculateBilling({ members, slotAvailability, storageGB: 0, fleetMapEnabled: false });
   const hasActiveLicenses = hasLicenses(slotAvailability);
   const licenseStatus = getLicenseStatus(slotAvailability, members.filter(m => m.status === 'active').length);
 
@@ -55,13 +55,13 @@ const LicenseMemberBilling = () => {
             <div>
               <h3 className="text-xl font-semibold">User Licenses</h3>
               <p className="text-sm text-muted-foreground font-normal">
-                {billing.userLicenses.totalPurchased} purchased
+                {billing.userSlots.totalPurchased || 0} purchased
               </p>
             </div>
           </div>
           <div className="text-left sm:text-right">
             <div className="text-sm text-muted-foreground">Monthly Cost</div>
-            <div className="text-2xl font-bold">${billing.userLicenses.monthlyLicenseCost.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${billing.userSlots.totalCost.toFixed(2)}</div>
           </div>
         </CardTitle>
       </CardHeader>
@@ -76,7 +76,7 @@ const LicenseMemberBilling = () => {
         {/* Description */}
         <div className="text-sm text-muted-foreground leading-relaxed">
           {hasActiveLicenses 
-            ? `License-based subscription: You pay $${billing.userLicenses.costPerLicense}/month per purchased license, regardless of usage. This ensures predictable billing and allows you to manage team capacity effectively.`
+            ? `License-based subscription: You pay $${billing.userSlots.costPerUser}/month per purchased license, regardless of usage. This ensures predictable billing and allows you to manage team capacity effectively.`
             : 'Purchase user licenses to enable team collaboration. Each license costs $10/month and allows one team member to access the platform.'
           }
         </div>
@@ -86,21 +86,21 @@ const LicenseMemberBilling = () => {
           <div className="bg-muted/30 rounded-lg p-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 sm:gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-foreground">{billing.userLicenses.totalPurchased}</div>
+                <div className="text-3xl font-bold text-foreground">{billing.userSlots.totalPurchased || 0}</div>
                 <div className="text-sm text-muted-foreground mt-1">Purchased</div>
               </div>
-              {billing.userLicenses.exemptedSlots > 0 && (
+              {(billing.userSlots.exemptedSlots || 0) > 0 && (
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{billing.userLicenses.exemptedSlots}</div>
+                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{billing.userSlots.exemptedSlots || 0}</div>
                   <div className="text-sm text-muted-foreground mt-1">Exempted</div>
                 </div>
               )}
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400">{billing.userLicenses.slotsUsed}</div>
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">{billing.userSlots.slotsUsed || 0}</div>
                 <div className="text-sm text-muted-foreground mt-1">In Use</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{billing.userLicenses.availableSlots}</div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{billing.userSlots.availableSlots || 0}</div>
                 <div className="text-sm text-muted-foreground mt-1">Available</div>
               </div>
             </div>
@@ -108,13 +108,13 @@ const LicenseMemberBilling = () => {
         )}
 
         {/* Next Billing Date - Dark Mode Optimized */}
-        {billing.userLicenses.nextBillingDate && (
+        {billing.userSlots.nextBillingDate && (
           <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg">
             <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
             <div className="text-sm">
               <span className="font-medium text-blue-900 dark:text-blue-100">Next Billing:</span>{' '}
               <span className="text-blue-800 dark:text-blue-200">
-                {new Date(billing.userLicenses.nextBillingDate).toLocaleDateString()}
+                {new Date(billing.userSlots.nextBillingDate).toLocaleDateString()}
               </span>
             </div>
           </div>
@@ -127,12 +127,12 @@ const LicenseMemberBilling = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
           <div className="text-sm text-muted-foreground">
             {hasActiveLicenses 
-              ? `${billing.userLicenses.totalPurchased} licenses × $${billing.userLicenses.costPerLicense}/month`
+              ? `${billing.userSlots.totalPurchased || 0} licenses × $${billing.userSlots.costPerUser}/month`
               : 'No licenses purchased'
             }
           </div>
           <div className="text-lg font-bold">
-            Monthly Total: ${billing.userLicenses.monthlyLicenseCost.toFixed(2)}
+            Monthly Total: ${billing.userSlots.totalCost.toFixed(2)}
           </div>
         </div>
 

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, DollarSign } from 'lucide-react';
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
-import { calculateSimplifiedBilling, isFreeOrganization } from '@/utils/simplifiedBillingUtils';
+import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 
 interface SimplifiedPremiumFeaturesProps {
   organization: SessionOrganization;
@@ -17,7 +17,7 @@ const SimplifiedPremiumFeatures: React.FC<SimplifiedPremiumFeaturesProps> = ({
   onUpgrade,
 }) => {
   const { data: members = [] } = useOrganizationMembers(organization.id);
-  const billing = calculateSimplifiedBilling(members, 0, false);
+  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
   const isFree = isFreeOrganization(members);
 
   return (

@@ -11,7 +11,7 @@ import { PagePermissions } from '@/hooks/usePagePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
+import { calculateBilling } from '@/utils/billing';
 import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
 import OptimizedMembersList from './OptimizedMembersList';
 import AdminsTabContent from './AdminsTabContent';
@@ -58,7 +58,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   const isMobile = useIsMobile();
   const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
   const { data: storageUsage, isLoading: storageLoading } = useOrganizationStorageUsage();
-  const billing = calculateSimplifiedBilling(members);
+  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
 
   // Combine role-based permissions with organizational restrictions
   const canInviteMembers = permissions.canInviteMembers && restrictions.canInviteMembers && restrictions.hasAvailableSlots;

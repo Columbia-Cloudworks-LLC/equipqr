@@ -1,6 +1,6 @@
 
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { isFreeOrganization } from './billingUtils';
+import { isFreeOrganization } from './billing';
 
 export interface OrganizationRestrictions {
   canManageTeams: boolean;

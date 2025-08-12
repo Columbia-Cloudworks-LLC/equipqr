@@ -11,7 +11,7 @@ import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
 import { OrganizationSettingsDialog } from '@/components/organization/OrganizationSettingsDialog';
 import RestrictedOrganizationAccess from '@/components/organization/RestrictedOrganizationAccess';
-import { calculateSimplifiedBilling } from '@/utils/simplifiedBillingUtils';
+import { calculateBilling } from '@/utils/billing';
 import { toast } from 'sonner';
 
 const Organization = () => {
@@ -55,7 +55,7 @@ const Organization = () => {
   };
 
   const handleUpgradeToPremium = () => {
-    const billing = calculateSimplifiedBilling(members);
+    const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
     if (billing.userLicenses.totalUsers === 1) {
       toast.info('Invite team members to unlock collaboration features at $10/month per additional user.');
     } else {
