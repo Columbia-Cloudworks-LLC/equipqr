@@ -1,6 +1,7 @@
 import { 
   getOrganizationTeamsOptimized, 
   getTeamMembersOptimized, 
+  getTeamByIdOptimized,
   isTeamManager as isTeamManagerOptimized,
   OptimizedTeam,
   OptimizedTeamMember 
@@ -31,12 +32,60 @@ export class TeamRepository {
    */
   static async getTeamsByOrg(orgId: string): Promise<TeamWithMembers[]> {
     const optimizedTeams = await getOrganizationTeamsOptimized(orgId);
-    // Convert OptimizedTeam to TeamWithMembers format for compatibility
-    return optimizedTeams.map(team => ({
-      ...team,
-      members: [], // Members will be loaded separately when needed
-      member_count: team.member_count
+    
+    // For each team, get basic member data for previews
+    const teamsWithMembers = await Promise.all(
+      optimizedTeams.map(async (team) => {
+        const members = await getTeamMembersOptimized(team.id);
+        // Convert OptimizedTeamMember to expected format
+        const formattedMembers = members.map(member => ({
+          id: member.id,
+          team_id: member.team_id,
+          user_id: member.user_id,
+          role: member.role as TeamMemberRole,
+          joined_date: member.joined_date,
+          profiles: {
+            name: member.user_name || 'Unknown User',
+            email: member.user_email || 'No email'
+          }
+        }));
+        
+        return {
+          ...team,
+          members: formattedMembers,
+          member_count: team.member_count
+        };
+      })
+    );
+    
+    return teamsWithMembers;
+  }
+
+  /**
+   * Get team by ID with members
+   */
+  static async getTeamById(teamId: string): Promise<TeamWithMembers | null> {
+    const team = await getTeamByIdOptimized(teamId);
+    if (!team) return null;
+
+    const members = await getTeamMembersOptimized(teamId);
+    const formattedMembers = members.map(member => ({
+      id: member.id,
+      team_id: member.team_id,
+      user_id: member.user_id,
+      role: member.role as TeamMemberRole,
+      joined_date: member.joined_date,
+      profiles: {
+        name: member.user_name || 'Unknown User',
+        email: member.user_email || 'No email'
+      }
     }));
+
+    return {
+      ...team,
+      members: formattedMembers,
+      member_count: team.member_count
+    };
   }
 
   /**
