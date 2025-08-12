@@ -4,6 +4,7 @@ import { getTeamBasedWorkOrders, type TeamBasedWorkOrderFilters } from '@/servic
 import { useTeamMembership } from '@/hooks/useTeamMembership';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
+import { queryKeys } from '@/lib/queryKeys';
 
 export const useTeamBasedWorkOrders = (filters: TeamBasedWorkOrderFilters = {}) => {
   const { currentOrganization } = useOrganization();
@@ -13,7 +14,7 @@ export const useTeamBasedWorkOrders = (filters: TeamBasedWorkOrderFilters = {}) 
   const userTeamIds = getUserTeamIds();
 
   return useQuery({
-    queryKey: ['team-based-work-orders', currentOrganization?.id, userTeamIds, isManager, filters],
+    queryKey: currentOrganization?.id ? queryKeys.workOrders.teamBased(currentOrganization.id, userTeamIds, isManager, filters) : ['team-based-work-orders'],
     queryFn: () => {
       if (!currentOrganization?.id) {
         return [];

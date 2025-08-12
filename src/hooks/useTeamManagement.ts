@@ -6,11 +6,12 @@ import {
   getAvailableUsersForTeam,
   TeamWithMembers
 } from '@/services/teamService';
+import { queryKeys } from '@/lib/queryKeys';
 
 // Hook for managing teams in an organization
 export const useTeams = (organizationId: string | undefined) => {
   return useQuery({
-    queryKey: ['teams', organizationId],
+    queryKey: queryKeys.teams(organizationId!).root,
     queryFn: () => TeamRepository.getTeamsByOrg(organizationId!),
     enabled: !!organizationId,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -20,7 +21,7 @@ export const useTeams = (organizationId: string | undefined) => {
 // Hook for managing a single team
 export const useTeam = (teamId: string | undefined) => {
   return useQuery({
-    queryKey: ['team', teamId],
+    queryKey: queryKeys.team(teamId!).root,
     queryFn: () => TeamRepository.getTeamById(teamId!),
     enabled: !!teamId,
     staleTime: 1000 * 60 * 2, // 2 minutes
@@ -36,7 +37,7 @@ export const useTeamMutations = () => {
     mutationFn: ({ teamData, creatorId }: { teamData: Parameters<typeof TeamRepository.createTeamWithCreator>[0]; creatorId: string }) =>
       TeamRepository.createTeamWithCreator(teamData, creatorId),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['teams', variables.teamData.organization_id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams(variables.teamData.organization_id).root });
     },
     onError: (error: unknown) => {
       toast({
@@ -50,8 +51,8 @@ export const useTeamMutations = () => {
   const deleteTeamMutation = useMutation({
     mutationFn: TeamRepository.deleteTeam,
     onSuccess: (_, teamId) => {
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
-      queryClient.removeQueries({ queryKey: ['team', teamId] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] }); // Keep broad invalidation for teams
+      queryClient.removeQueries({ queryKey: queryKeys.team(teamId).root });
       toast({
         title: "Success",
         description: "Team deleted successfully",
@@ -79,7 +80,7 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
 
   // Query for available users
   const availableUsers = useQuery({
-    queryKey: ['availableUsers', organizationId, teamId],
+    queryKey: organizationId && teamId ? queryKeys.teams(organizationId).availableUsers(teamId) : ['availableUsers'],
     queryFn: () => getAvailableUsersForTeam(organizationId!, teamId!),
     enabled: !!organizationId && !!teamId,
   });
@@ -89,9 +90,9 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
     mutationFn: ({ teamId, userId, role }: { teamId: string; userId: string; role: 'manager' | 'technician' | 'requestor' | 'viewer' }) =>
       TeamRepository.addMember(teamId, userId, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team', teamId] });
-      queryClient.invalidateQueries({ queryKey: ['teams', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['availableUsers', organizationId, teamId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.team(teamId).root });
+      queryClient.invalidateQueries({ queryKey: organizationId ? queryKeys.teams(organizationId).root : ['teams'] });
+      queryClient.invalidateQueries({ queryKey: organizationId ? queryKeys.teams(organizationId).availableUsers(teamId) : ['availableUsers'] });
       toast({
         title: "Success",
         description: "Team member added successfully",
@@ -111,9 +112,9 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
     mutationFn: ({ teamId, userId }: { teamId: string; userId: string }) => 
       removeTeamMember(teamId, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team', teamId] });
-      queryClient.invalidateQueries({ queryKey: ['teams', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['availableUsers', organizationId, teamId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.team(teamId).root });
+      queryClient.invalidateQueries({ queryKey: organizationId ? queryKeys.teams(organizationId).root : ['teams'] });
+      queryClient.invalidateQueries({ queryKey: organizationId ? queryKeys.teams(organizationId).availableUsers(teamId) : ['availableUsers'] });
       toast({
         title: "Success",
         description: "Team member removed successfully",
@@ -136,8 +137,8 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
       role: 'manager' | 'technician' | 'requestor' | 'viewer'
     }) => TeamRepository.updateMemberRole(teamId, userId, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team', teamId] });
-      queryClient.invalidateQueries({ queryKey: ['teams', organizationId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.team(teamId).root });
+      queryClient.invalidateQueries({ queryKey: organizationId ? queryKeys.teams(organizationId).root : ['teams'] });
       toast({
         title: "Success",
         description: "Team member role updated successfully",
@@ -163,7 +164,7 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
 // Hook to check if user can manage team
 export const useTeamManagerCheck = (userId: string | undefined, teamId: string | undefined) => {
   return useQuery({
-    queryKey: ['teamManager', userId, teamId],
+    queryKey: userId && teamId ? queryKeys.team(teamId).managerCheck(userId) : ['teamManager'],
     queryFn: () => TeamRepository.isTeamManager(userId!, teamId!),
     enabled: !!userId && !!teamId,
     staleTime: 1000 * 60 * 5, // 5 minutes

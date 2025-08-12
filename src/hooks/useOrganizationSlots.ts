@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { queryKeys } from '@/lib/queryKeys';
 
 export interface OrganizationSlot {
   id: string;
@@ -44,7 +45,7 @@ export interface SlotAvailability {
 
 export const useOrganizationSlots = (organizationId: string) => {
   return useQuery({
-    queryKey: ['organization-slots', organizationId],
+    queryKey: queryKeys.organization(organizationId).slots(),
     queryFn: async (): Promise<OrganizationSlot[]> => {
       if (!organizationId) return [];
 
@@ -70,7 +71,7 @@ export const useSlotAvailability = (organizationId: string) => {
   // Note: For real-time updates, use useEnhancedSlotAvailability instead
   
   return useQuery({
-    queryKey: ['slot-availability', organizationId],
+    queryKey: queryKeys.organization(organizationId).slotAvailability(),
     queryFn: async (): Promise<SlotAvailability> => {
       if (!organizationId) {
         return {
@@ -108,7 +109,7 @@ export const useSlotAvailability = (organizationId: string) => {
 
 export const useSlotPurchases = (organizationId: string) => {
   return useQuery({
-    queryKey: ['slot-purchases', organizationId],
+    queryKey: queryKeys.organization(organizationId).slotPurchases(),
     queryFn: async (): Promise<SlotPurchase[]> => {
       if (!organizationId) return [];
 
@@ -148,9 +149,9 @@ export const useReserveSlot = (organizationId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['organization-slots', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization(organizationId).slotAvailability() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization(organizationId).slots() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization(organizationId).invitations() });
     },
     onError: (error) => {
       console.error('Error reserving slot:', error);
@@ -173,9 +174,9 @@ export const useReleaseSlot = (organizationId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['organization-slots', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization(organizationId).slotAvailability() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization(organizationId).slots() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization(organizationId).invitations() });
     },
     onError: (error) => {
       console.error('Error releasing slot:', error);

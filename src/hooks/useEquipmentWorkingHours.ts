@@ -6,6 +6,7 @@ import {
   UpdateWorkingHoursData
 } from '@/services/equipmentWorkingHoursService';
 import { toast } from 'sonner';
+import { queryKeys } from '@/lib/queryKeys';
 
 export const useEquipmentWorkingHoursHistory = (
   equipmentId: string, 
@@ -13,7 +14,7 @@ export const useEquipmentWorkingHoursHistory = (
   pageSize: number = 10
 ) => {
   return useQuery({
-    queryKey: ['equipment-working-hours-history', equipmentId, page, pageSize],
+    queryKey: queryKeys.equipment.workingHoursHistory(equipmentId, page, pageSize),
     queryFn: () => getEquipmentWorkingHoursHistory(equipmentId, page, pageSize),
     enabled: !!equipmentId,
   });
@@ -21,7 +22,7 @@ export const useEquipmentWorkingHoursHistory = (
 
 export const useEquipmentCurrentWorkingHours = (equipmentId: string) => {
   return useQuery({
-    queryKey: ['equipment-current-working-hours', equipmentId],
+    queryKey: queryKeys.equipment.currentWorkingHours(equipmentId),
     queryFn: () => getEquipmentCurrentWorkingHours(equipmentId),
     enabled: !!equipmentId,
   });
@@ -40,10 +41,10 @@ export const useUpdateEquipmentWorkingHours = () => {
         queryKey: ['equipment-working-hours-history', variables.equipmentId] 
       });
       queryClient.invalidateQueries({ 
-        queryKey: ['equipment-current-working-hours', variables.equipmentId] 
+        queryKey: queryKeys.equipment.currentWorkingHours(variables.equipmentId)
       });
       queryClient.invalidateQueries({ 
-        queryKey: ['equipment', variables.equipmentId] 
+        queryKey: queryKeys.equipment.root
       });
     },
     onError: (error) => {

@@ -10,10 +10,11 @@ import {
   updateEquipmentDisplayImage
 } from '@/services/equipmentNotesService';
 import { toast } from 'sonner';
+import { queryKeys } from '@/lib/queryKeys';
 
 export const useEquipmentNotes = (equipmentId: string, organizationId: string) => {
   return useQuery({
-    queryKey: ['equipment-notes', equipmentId, organizationId],
+    queryKey: queryKeys.equipment.notes(equipmentId, organizationId),
     queryFn: () => getEquipmentNotesWithImages(equipmentId),
     enabled: !!equipmentId && !!organizationId,
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -40,7 +41,7 @@ export const useCreateEquipmentNote = () => {
     onSuccess: (data, variables) => {
       if (data) {
         queryClient.invalidateQueries({
-          queryKey: ['equipment-notes', variables.equipmentId]
+          queryKey: queryKeys.equipment.notes(variables.equipmentId)
         });
         toast.success('Note added successfully');
       }
@@ -63,7 +64,7 @@ export const useUpdateEquipmentNote = () => {
     onSuccess: (data) => {
       if (data) {
         queryClient.invalidateQueries({
-          queryKey: ['equipment-notes']
+          queryKey: ['equipment']
         });
         toast.success('Note updated successfully');
       }
@@ -82,7 +83,7 @@ export const useDeleteEquipmentNote = () => {
     mutationFn: deleteEquipmentNote,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['equipment-notes']
+        queryKey: ['equipment']
       });
       toast.success('Note deleted successfully');
     },
@@ -101,7 +102,7 @@ export const useUploadEquipmentNoteImage = () => {
       uploadEquipmentNoteImage(noteId, file, description),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['equipment-notes']
+        queryKey: ['equipment']
       });
       toast.success('Image uploaded successfully');
     },
@@ -119,7 +120,7 @@ export const useDeleteEquipmentNoteImage = () => {
     mutationFn: deleteEquipmentNoteImage,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['equipment-notes']
+        queryKey: ['equipment']
       });
       toast.success('Image deleted successfully');
     },
@@ -138,7 +139,7 @@ export const useSetEquipmentDisplayImage = () => {
       updateEquipmentDisplayImage(equipmentId, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['equipment']
+        queryKey: queryKeys.equipment.root
       });
       toast.success('Display image updated successfully');
     },

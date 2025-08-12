@@ -2,11 +2,12 @@
 import { useQuery,useMutation, useQueryClient } from '@tanstack/react-query';
 import * as supabaseService from '@/services/supabaseDataService';
 import { toast } from '@/hooks/use-toast';
+import { queryKeys } from '@/lib/queryKeys';
 
 // Equipment hooks
 export const useEquipmentByOrganization = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['equipment', organizationId],
+    queryKey: queryKeys.equipment.list(organizationId!),
     queryFn: () => organizationId ? supabaseService.getEquipmentByOrganization(organizationId) : Promise.resolve([]),
     enabled: !!organizationId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -15,7 +16,7 @@ export const useEquipmentByOrganization = (organizationId?: string) => {
 
 export const useEquipmentById = (organizationId: string, equipmentId?: string) => {
   return useQuery({
-    queryKey: ['equipment', organizationId, equipmentId],
+    queryKey: organizationId && equipmentId ? queryKeys.equipment.byId(organizationId, equipmentId) : ['equipment'],
     queryFn: () => organizationId && equipmentId ? 
       supabaseService.getEquipmentById(organizationId, equipmentId) : 
       Promise.resolve(undefined),
@@ -27,7 +28,7 @@ export const useEquipmentById = (organizationId: string, equipmentId?: string) =
 // Teams hooks
 export const useTeamsByOrganization = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['teams', organizationId],
+    queryKey: queryKeys.teams(organizationId!).root,
     queryFn: () => organizationId ? supabaseService.getTeamsByOrganization(organizationId) : Promise.resolve([]),
     enabled: !!organizationId,
     staleTime: 5 * 60 * 1000,
@@ -37,7 +38,7 @@ export const useTeamsByOrganization = (organizationId?: string) => {
 // Dashboard stats hook
 export const useDashboardStats = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['dashboard-stats', organizationId],
+    queryKey: queryKeys.dashboard.stats(organizationId!),
     queryFn: () => organizationId ? supabaseService.getDashboardStatsByOrganization(organizationId) : Promise.resolve({
       totalEquipment: 0,
       activeEquipment: 0,
@@ -52,7 +53,7 @@ export const useDashboardStats = (organizationId?: string) => {
 // Work orders hooks
 export const useWorkOrdersByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
-    queryKey: ['work-orders', 'equipment', organizationId, equipmentId],
+    queryKey: organizationId && equipmentId ? queryKeys.workOrders.equipmentWorkOrders(organizationId, equipmentId) : ['work-orders'],
     queryFn: () => organizationId && equipmentId ? 
       supabaseService.getWorkOrdersByEquipmentId(organizationId, equipmentId) : 
       Promise.resolve([]),
@@ -63,7 +64,7 @@ export const useWorkOrdersByEquipment = (organizationId: string, equipmentId?: s
 
 export const useAllWorkOrders = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['work-orders', organizationId],
+    queryKey: queryKeys.workOrders.list(organizationId!),
     queryFn: () => organizationId ? supabaseService.getAllWorkOrdersByOrganization(organizationId) : Promise.resolve([]),
     enabled: !!organizationId,
     staleTime: 3 * 60 * 1000,
@@ -72,7 +73,7 @@ export const useAllWorkOrders = (organizationId?: string) => {
 
 export const useWorkOrderById = (organizationId: string, workOrderId?: string) => {
   return useQuery({
-    queryKey: ['work-orders', organizationId, workOrderId],
+    queryKey: organizationId && workOrderId ? queryKeys.workOrders.byId(organizationId, workOrderId) : ['work-orders'],
     queryFn: () => organizationId && workOrderId ? 
       supabaseService.getWorkOrderById(organizationId, workOrderId) : 
       Promise.resolve(undefined),
@@ -84,7 +85,7 @@ export const useWorkOrderById = (organizationId: string, workOrderId?: string) =
 // Notes hooks
 export const useNotesByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
-    queryKey: ['notes', 'equipment', organizationId, equipmentId],
+    queryKey: organizationId && equipmentId ? queryKeys.notes.equipment(organizationId, equipmentId) : ['notes'],
     queryFn: () => organizationId && equipmentId ? 
       supabaseService.getNotesByEquipmentId(organizationId, equipmentId) : 
       Promise.resolve([]),
@@ -96,7 +97,7 @@ export const useNotesByEquipment = (organizationId: string, equipmentId?: string
 // Scans hooks
 export const useScansByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
-    queryKey: ['scans', 'equipment', organizationId, equipmentId],
+    queryKey: organizationId && equipmentId ? queryKeys.scans.equipment(organizationId, equipmentId) : ['scans'],
     queryFn: () => organizationId && equipmentId ? 
       supabaseService.getScansByEquipmentId(organizationId, equipmentId) : 
       Promise.resolve([]),
@@ -122,7 +123,7 @@ export const useCreateScan = (organizationId: string) => {
       if (result) {
         // Invalidate scans queries for this equipment
         queryClient.invalidateQueries({ 
-          queryKey: ['scans', 'equipment', organizationId, variables.equipmentId] 
+          queryKey: queryKeys.scans.equipment(organizationId, variables.equipmentId)
         });
         
         console.log('Scan logged successfully');
@@ -267,7 +268,7 @@ export const useCreateNote = (organizationId: string) => {
       if (result) {
         // Invalidate notes queries for this equipment
         queryClient.invalidateQueries({ 
-          queryKey: ['notes', 'equipment', organizationId, variables.equipmentId] 
+          queryKey: queryKeys.notes.equipment(organizationId, variables.equipmentId)
         });
         
         toast({
@@ -307,8 +308,8 @@ export const useUpdateEquipment = (organizationId: string) => {
     onSuccess: (result, variables) => {
       if (result) {
         // Invalidate relevant queries
-        queryClient.invalidateQueries({ queryKey: ['equipment'] });
-        queryClient.invalidateQueries({ queryKey: ['equipment', organizationId, variables.equipmentId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.equipment.root });
+        queryClient.invalidateQueries({ queryKey: queryKeys.equipment.byId(organizationId, variables.equipmentId) });
         
         toast({
           title: 'Equipment Updated',

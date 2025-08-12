@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { queryKeys } from '@/lib/queryKeys';
 
 export interface RealOrganizationMember {
   id: string;
@@ -17,7 +18,7 @@ export const useOrganizationMembers = (organizationId: string) => {
   // Note: For real-time updates, use useEnhancedOrganizationMembers instead
   
   return useQuery({
-    queryKey: ['organization-members', organizationId],
+    queryKey: queryKeys.organization(organizationId).members(),
     queryFn: async (): Promise<RealOrganizationMember[]> => {
       if (!organizationId) return [];
 
@@ -75,7 +76,7 @@ export const useUpdateMemberRole = (organizationId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization(organizationId).members() });
       toast.success('Member role updated successfully');
     },
     onError: (error) => {
@@ -120,7 +121,7 @@ export const useRemoveMember = (organizationId: string) => {
       return result;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization(organizationId).members() });
       
       // Show detailed success message based on what happened
       let message = `${data.removed_user_name} was removed successfully`;

@@ -10,11 +10,12 @@ import {
   type Equipment
 } from '@/services/optimizedSupabaseDataService';
 import { useMemo } from 'react';
+import { queryKeys } from '@/lib/queryKeys';
 
 // Optimized hook with better caching and stale times
 export const useOptimizedTeams = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['teams-optimized', organizationId],
+    queryKey: queryKeys.teams(organizationId!).optimized(),
     queryFn: () => organizationId ? getOptimizedTeamsByOrganization(organizationId) : [],
     enabled: !!organizationId,
     staleTime: 10 * 60 * 1000, // 10 minutes - teams don't change often
@@ -25,7 +26,7 @@ export const useOptimizedTeams = (organizationId?: string) => {
 // Optimized work orders with better caching strategy
 export const useOptimizedWorkOrders = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['work-orders-optimized', organizationId],
+    queryKey: queryKeys.workOrders.optimized(organizationId!),
     queryFn: () => organizationId ? getOptimizedWorkOrdersByOrganization(organizationId) : [],
     enabled: !!organizationId,
     staleTime: 2 * 60 * 1000, // 2 minutes - work orders change more frequently
@@ -37,7 +38,7 @@ export const useOptimizedWorkOrders = (organizationId?: string) => {
 // Dashboard with optimized parallel queries
 export const useOptimizedDashboard = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['dashboard-optimized', organizationId],
+    queryKey: ['dashboard-optimized', organizationId], // Keep legacy key for dashboard
     queryFn: () => organizationId ? getOptimizedDashboardStats(organizationId) : null,
     enabled: !!organizationId,
     staleTime: 5 * 60 * 1000, // 5 minutes for dashboard stats
@@ -48,7 +49,7 @@ export const useOptimizedDashboard = (organizationId?: string) => {
 // Equipment with smart caching
 export const useOptimizedEquipment = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['equipment-optimized', organizationId],
+    queryKey: queryKeys.equipment.listOptimized(organizationId!),
     queryFn: () => organizationId ? getOptimizedEquipmentByOrganization(organizationId) : [],
     enabled: !!organizationId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -61,25 +62,25 @@ export const useOptimizedMultiQuery = (organizationId?: string) => {
   const queries = useQueries({
     queries: [
       {
-        queryKey: ['teams-optimized', organizationId],
+        queryKey: organizationId ? queryKeys.teams(organizationId).optimized() : ['teams-optimized'],
         queryFn: () => organizationId ? getOptimizedTeamsByOrganization(organizationId) : [],
         enabled: !!organizationId,
         staleTime: 10 * 60 * 1000,
       },
       {
-        queryKey: ['work-orders-optimized', organizationId],
+        queryKey: organizationId ? queryKeys.workOrders.optimized(organizationId) : ['work-orders-optimized'],
         queryFn: () => organizationId ? getOptimizedWorkOrdersByOrganization(organizationId) : [],
         enabled: !!organizationId,
         staleTime: 2 * 60 * 1000,
       },
       {
-        queryKey: ['equipment-optimized', organizationId],
+        queryKey: organizationId ? queryKeys.equipment.listOptimized(organizationId) : ['equipment-optimized'],
         queryFn: () => organizationId ? getOptimizedEquipmentByOrganization(organizationId) : [],
         enabled: !!organizationId,
         staleTime: 5 * 60 * 1000,
       },
       {
-        queryKey: ['dashboard-optimized', organizationId],
+        queryKey: ['dashboard-optimized', organizationId], // Keep legacy key for dashboard
         queryFn: () => organizationId ? getOptimizedDashboardStats(organizationId) : null,
         enabled: !!organizationId,
         staleTime: 5 * 60 * 1000,

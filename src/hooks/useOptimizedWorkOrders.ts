@@ -8,10 +8,11 @@ import {
   getWorkOrdersDueToday,
   type WorkOrderFilters 
 } from '@/services/optimizedWorkOrderService';
+import { queryKeys } from '@/lib/queryKeys';
 
 export const useOptimizedFilteredWorkOrders = (organizationId: string, filters?: WorkOrderFilters) => {
   return useQuery({
-    queryKey: ['work-orders-filtered-optimized', organizationId, filters],
+    queryKey: queryKeys.workOrders.filteredOptimized(organizationId, filters),
     queryFn: () => getFilteredWorkOrdersByOrganization(organizationId, filters),
     enabled: !!organizationId,
     staleTime: 30 * 1000, // 30 seconds
@@ -20,7 +21,7 @@ export const useOptimizedFilteredWorkOrders = (organizationId: string, filters?:
 
 export const useOptimizedMyWorkOrders = (organizationId: string, userId: string) => {
   return useQuery({
-    queryKey: ['my-work-orders-optimized', organizationId, userId],
+    queryKey: queryKeys.workOrders.myWorkOrders(organizationId, userId),
     queryFn: () => getMyWorkOrders(organizationId, userId),
     enabled: !!organizationId && !!userId,
     staleTime: 30 * 1000,

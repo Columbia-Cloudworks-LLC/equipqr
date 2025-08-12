@@ -1,6 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/lib/queryKeys';
 
 export interface OrganizationAdmin {
   id: string;
@@ -13,7 +14,7 @@ export const useOrganizationAdmins = (organizationId: string) => {
   // Note: For real-time updates, use useEnhancedOrganizationAdmins instead
   
   return useQuery({
-    queryKey: ['organization-admins', organizationId],
+    queryKey: queryKeys.organization(organizationId).admins(),
     queryFn: async (): Promise<OrganizationAdmin[]> => {
       if (!organizationId) return [];
 
