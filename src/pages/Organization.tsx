@@ -56,7 +56,7 @@ const Organization = () => {
 
   const handleUpgradeToPremium = () => {
     const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
-    if (billing.userLicenses.totalUsers === 1) {
+    if (billing.userSlots.totalUsers === 1) {
       toast.info('Invite team members to unlock collaboration features at $10/month per additional user.');
     } else {
       toast.success('Redirecting to billing page...');

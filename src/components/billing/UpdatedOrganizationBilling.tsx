@@ -64,10 +64,10 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold">${billing.userLicenses.cost.toFixed(2)}</div>
+              <div className="text-2xl font-bold">${billing.userSlots.totalCost.toFixed(2)}</div>
               <div className="text-sm text-muted-foreground">User Licenses</div>
               <div className="text-xs text-muted-foreground mt-1">
-                {billing.userLicenses.billableUsers} billable × $10
+                {billing.userSlots.billableUsers} billable × $10
               </div>
             </div>
             
@@ -80,15 +80,15 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
             </div>
             
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold">${billing.fleetMap.cost.toFixed(2)}</div>
+              <div className="text-2xl font-bold">${billing.features.fleetMap.cost.toFixed(2)}</div>
               <div className="text-sm text-muted-foreground">Fleet Map</div>
               <div className="text-xs text-muted-foreground mt-1">
-                {billing.fleetMap.enabled ? 'Active' : 'Inactive'}
+                {billing.features.fleetMap.enabled ? 'Active' : 'Inactive'}
               </div>
             </div>
             
             <div className="text-center p-4 border-2 border-primary rounded-lg">
-              <div className="text-2xl font-bold text-primary">${billing.total.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-primary">${billing.totals.monthlyTotal.toFixed(2)}</div>
               <div className="text-sm text-muted-foreground">Total Monthly</div>
               <div className="text-xs text-muted-foreground mt-1">
                 {isFree ? 'Free forever' : `Next billing: ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}`}
@@ -116,7 +116,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
                   First user is always free, additional users are $10/month each
                 </div>
               </div>
-              <Badge variant="outline">{billing.userLicenses.totalUsers} total</Badge>
+              <Badge variant="outline">{billing.userSlots.totalUsers} total</Badge>
             </div>
             
             <div className="bg-muted p-4 rounded-lg">
@@ -124,15 +124,15 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
                 <span>Free user (owner)</span>
                 <span className="font-mono">$0.00</span>
               </div>
-              {billing.userLicenses.billableUsers > 0 && (
+              {billing.userSlots.billableUsers > 0 && (
                 <div className="flex justify-between items-center">
-                  <span>Additional users ({billing.userLicenses.billableUsers})</span>
-                  <span className="font-mono">${billing.userLicenses.cost.toFixed(2)}</span>
+                  <span>Additional users ({billing.userSlots.billableUsers})</span>
+                  <span className="font-mono">${billing.userSlots.totalCost.toFixed(2)}</span>
                 </div>
               )}
               <div className="border-t pt-2 mt-2 flex justify-between items-center font-semibold">
                 <span>Total User Licenses</span>
-                <span className="font-mono">${billing.userLicenses.cost.toFixed(2)}</span>
+                <span className="font-mono">${billing.userSlots.totalCost.toFixed(2)}</span>
               </div>
             </div>
 
@@ -221,7 +221,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
           <CardTitle className="flex items-center gap-2">
             <Map className="h-5 w-5" />
             Fleet Map Add-on
-            {billing.fleetMap.enabled && <Crown className="h-4 w-4 text-yellow-500" />}
+            {billing.features.fleetMap.enabled && <Crown className="h-4 w-4 text-yellow-500" />}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -234,16 +234,16 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={billing.fleetMap.enabled ? 'default' : 'secondary'}>
-                  {billing.fleetMap.enabled ? 'Active' : 'Inactive'}
+                <Badge variant={billing.features.fleetMap.enabled ? 'default' : 'secondary'}>
+                  {billing.features.fleetMap.enabled ? 'Active' : 'Inactive'}
                 </Badge>
                 {!isFree && (
                   <Button
-                    variant={billing.fleetMap.enabled ? 'destructive' : 'default'}
+                    variant={billing.features.fleetMap.enabled ? 'destructive' : 'default'}
                     size="sm"
-                    onClick={() => onToggleFleetMap(!billing.fleetMap.enabled)}
+                    onClick={() => onToggleFleetMap(!billing.features.fleetMap.enabled)}
                   >
-                    {billing.fleetMap.enabled ? 'Disable' : 'Enable'}
+                    {billing.features.fleetMap.enabled ? 'Disable' : 'Enable'}
                   </Button>
                 )}
               </div>
@@ -252,7 +252,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
             <div className="bg-muted p-4 rounded-lg">
               <div className="flex justify-between items-center font-semibold">
                 <span>Fleet Map Add-on</span>
-                <span className="font-mono">${billing.fleetMap.cost.toFixed(2)}</span>
+                <span className="font-mono">${billing.features.fleetMap.cost.toFixed(2)}</span>
               </div>
             </div>
 

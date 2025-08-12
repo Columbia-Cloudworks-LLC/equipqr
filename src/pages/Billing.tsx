@@ -183,8 +183,8 @@ const Billing = () => {
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">User Licenses ({billing.userLicenses.totalPurchased})</span>
-                <span className="font-medium">${billing.userLicenses.monthlyLicenseCost.toFixed(2)}</span>
+                <span className="text-muted-foreground">User Licenses ({billing.userSlots.totalPurchased || 0})</span>
+                <span className="font-medium">${billing.userSlots.totalCost.toFixed(2)}</span>
               </div>
               {billing.storage.cost > 0 && (
                 <div className="flex justify-between items-center">
@@ -192,16 +192,16 @@ const Billing = () => {
                   <span className="font-medium">${billing.storage.cost.toFixed(2)}</span>
                 </div>
               )}
-              {billing.fleetMap.enabled && (
+              {billing.features.fleetMap.enabled && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Fleet Map Add-on</span>
-                  <span className="font-medium">${billing.fleetMap.cost.toFixed(2)}</span>
+                  <span className="font-medium">${billing.features.fleetMap.cost.toFixed(2)}</span>
                 </div>
               )}
               <div className="border-t pt-3">
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span>Monthly Total</span>
-                  <span>${billing.monthlyTotal.toFixed(2)}</span>
+                  <span>${billing.totals.monthlyTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
