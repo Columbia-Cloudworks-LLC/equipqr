@@ -48,8 +48,9 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   permissions,
   membersLoading,
   adminsLoading,
+  onInviteMember: _onInviteMember,
   onUpgrade,
-  organization,
+  organization: _organization,
   organizationStats,
   fleetMapSubscription
 }) => {
@@ -303,7 +304,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           <SlotBasedBilling
             storageUsedGB={storageLoading ? 0 : (storageUsage?.totalSizeGB || 0)}
             fleetMapEnabled={fleetMapSubscription?.enabled || false}
-            onPurchaseSlots={(quantity) => onUpgrade()}
+            onPurchaseSlots={(_quantity) => onUpgrade()}
             onUpgradeToMultiUser={onUpgrade}
           />
         </div>

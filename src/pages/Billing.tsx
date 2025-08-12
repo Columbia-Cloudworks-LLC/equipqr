@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, RefreshCw, Settings, ExternalLink } from 'lucide-react';
+import { AlertCircle, Settings } from 'lucide-react';
 import LicenseMemberBilling from '@/components/billing/LicenseMemberBilling';
 import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import BillingHeader from '@/components/billing/BillingHeader';
@@ -22,10 +22,7 @@ const Billing = () => {
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability } = useSlotAvailability(currentOrganization?.id || '');
   const { 
-    subscriptionData, 
     isSubscribed, 
-    subscriptionTier, 
-    subscriptionEnd, 
     openCustomerPortal,
     checkSubscription 
   } = useSubscription();
@@ -34,12 +31,11 @@ const Billing = () => {
   
   // Mock data for storage - in a real app, this would come from your backend
   const [storageUsedGB] = useState(3.2);
-  const [fleetMapEnabled, setFleetMapEnabled] = useState(false);
+  const [fleetMapEnabled] = useState(false);
 
   // Get user role for permission checks
   const userRole = currentOrganization?.userRole;
   const canManageBilling = userRole === 'owner';
-  const canPurchaseLicenses = userRole === 'owner';
 
   // Calculate billing based on licenses
   const billing = slotAvailability ? calculateBilling({ members, slotAvailability, storageGB: storageUsedGB, fleetMapEnabled }) : null;
@@ -87,7 +83,7 @@ const Billing = () => {
         title: 'Opening Subscription Management...',
         description: 'Redirecting to Stripe Customer Portal',
       });
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Failed to open subscription management. Please try again.',

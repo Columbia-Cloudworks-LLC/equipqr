@@ -15,7 +15,7 @@ const LicenseMemberBilling = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [], isLoading: membersLoading } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading: slotsLoading } = useSlotAvailability(currentOrganization?.id || '');
-  const isMobile = useIsMobile();
+  const _isMobile = useIsMobile();
 
   const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');

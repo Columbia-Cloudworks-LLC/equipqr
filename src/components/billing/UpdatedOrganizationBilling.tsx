@@ -28,7 +28,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
 
   const billing = calculateBilling({ members, storageGB: storageUsedGB, fleetMapEnabled });
   const isFree = isFreeOrganization(members);
-  const restrictions = getOrganizationRestrictions(members, fleetMapEnabled);
+  const _restrictions = getOrganizationRestrictions(members, fleetMapEnabled);
 
   return (
     <div className="space-y-6">

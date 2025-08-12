@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, AlertTriangle, TrendingUp } from 'lucide-react';
@@ -21,12 +20,12 @@ interface SlotBasedBillingProps {
 const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
   storageUsedGB,
   fleetMapEnabled,
-  onPurchaseSlots,
-  onUpgradeToMultiUser
+  onPurchaseSlots: _onPurchaseSlots,
+  onUpgradeToMultiUser: _onUpgradeToMultiUser
 }) => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
-  const { data: slotAvailability, isLoading, refetch } = useSlotAvailability(currentOrganization?.id || '');
+  const { data: slotAvailability, isLoading } = useSlotAvailability(currentOrganization?.id || '');
 
   const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
