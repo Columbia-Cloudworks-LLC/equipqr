@@ -4,11 +4,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
+import { EmailPrivacySettings } from '@/components/settings/EmailPrivacySettings';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 
 const SettingsContent = () => {
   const { resetSettings } = useSettings();
+  const { user } = useAuth();
+
+  // Fetch current email privacy setting
+  const { data: profile, refetch: refetchProfile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('email_private')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const handleResetSettings = () => {
     resetSettings();
@@ -25,6 +47,11 @@ const SettingsContent = () => {
       </div>
 
       <PersonalizationSettings />
+
+      <EmailPrivacySettings 
+        currentEmailPrivate={profile?.email_private || false}
+        onUpdate={() => refetchProfile()}
+      />
 
       <Card>
         <CardHeader>
