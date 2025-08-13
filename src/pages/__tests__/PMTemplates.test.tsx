@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 import PMTemplates from '../PMTemplates';
 import { TestProviders } from '@/test/utils/TestProviders';
@@ -40,14 +40,24 @@ vi.mock('@/hooks/useSimplifiedOrganizationRestrictions', () => ({
 
 // Mock components
 vi.mock('@/components/organization/ChecklistTemplateEditor', () => ({
-  ChecklistTemplateEditor: vi.fn(({ isOpen }) => 
-    isOpen ? <div data-testid="template-editor">Template Editor</div> : null
-  ),
+  ChecklistTemplateEditor: vi.fn(({ template, onSave, onCancel }) => (
+    <div data-testid="template-editor">
+      <div>Template Editor</div>
+      <div>{template ? `Editing: ${template.name}` : 'Creating New Template'}</div>
+      <button onClick={onSave}>Save</button>
+      <button onClick={onCancel}>Cancel</button>
+    </div>
+  )),
 }));
 
 vi.mock('@/components/pm-templates/TemplateApplicationDialog', () => ({
-  TemplateApplicationDialog: vi.fn(({ open }) => 
-    open ? <div data-testid="application-dialog">Application Dialog</div> : null
+  TemplateApplicationDialog: vi.fn(({ templateId, open, onClose }) => 
+    open ? (
+      <div data-testid="application-dialog">
+        <div>Application Dialog for {templateId}</div>
+        <button onClick={onClose}>Close</button>
+      </div>
+    ) : null
   ),
 }));
 
@@ -547,17 +557,19 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      const cloneButton = screen.getAllByRole('button', { name: 'Clone' })[0];
-      fireEvent.click(cloneButton);
+      const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
+      fireEvent.click(cloneButtons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText('Clone Template')).toBeInTheDocument();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
       const nameInput = screen.getByPlaceholderText('Enter name for cloned template');
       fireEvent.change(nameInput, { target: { value: 'New Template Name' } });
 
-      const submitButton = screen.getByRole('button', { name: 'Clone Template' });
+      // Target the submit button specifically within the dialog
+      const dialog = screen.getByRole('dialog');
+      const submitButton = within(dialog).getByRole('button', { name: /clone template/i });
       fireEvent.click(submitButton);
 
       expect(mockHooks.useClonePMTemplate.mutate).toHaveBeenCalledWith({

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -231,7 +231,7 @@ describe('usePMTemplates', () => {
           template_data: []
         });
         expect.fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         // Mutation should reject and set error state
         await waitFor(() => {
           expect(result.current.isError).toBe(true);
@@ -253,7 +253,7 @@ describe('usePMTemplates', () => {
           template_data: []
         });
         expect.fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         // Mutation should reject and set error state
         await waitFor(() => {
           expect(result.current.isError).toBe(true);
@@ -289,23 +289,25 @@ describe('usePMTemplates', () => {
     it('updates template successfully', async () => {
       const { result } = renderHook(() => useUpdatePMTemplate(), { wrapper });
 
-      const updates = {
-        name: 'Updated Template',
-        description: 'Updated description'
-      };
-
-      await result.current.mutateAsync({
-        templateId: 'template-1',
-        updates
+      await act(async () => {
+        await result.current.mutateAsync({
+          templateId: 'template-1',
+          updates: {
+            name: 'Updated Template',
+            description: 'Updated description'
+          }
+        });
       });
 
-      expect(result.current.isSuccess).toBe(true);
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
     });
 
     it('handles update permission error', async () => {
       const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
       vi.mocked(pmChecklistTemplatesService.updateTemplate).mockRejectedValue(
-        new Error('permission denied')
+        new Error('insufficient privileges')
       );
 
       const { result } = renderHook(() => useUpdatePMTemplate(), { wrapper });
@@ -315,11 +317,13 @@ describe('usePMTemplates', () => {
           templateId: 'template-1',
           updates: { name: 'Test' }
         });
-      } catch {
-        // Expected to throw
+        expect.fail('Should have thrown an error');
+      } catch (_error) {
+        // Mutation should reject and set error state
+        await waitFor(() => {
+          expect(result.current.isError).toBe(true);
+        });
       }
-
-      expect(result.current.isError).toBe(true);
     });
   });
 
@@ -327,9 +331,13 @@ describe('usePMTemplates', () => {
     it('deletes template successfully', async () => {
       const { result } = renderHook(() => useDeletePMTemplate(), { wrapper });
 
-      await result.current.mutateAsync('template-1');
+      await act(async () => {
+        await result.current.mutateAsync('template-1');
+      });
 
-      expect(result.current.isSuccess).toBe(true);
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
     });
 
     it('handles protected template deletion error', async () => {
@@ -342,11 +350,13 @@ describe('usePMTemplates', () => {
 
       try {
         await result.current.mutateAsync('template-1');
-      } catch {
-        // Expected to throw
+        expect.fail('Should have thrown an error');
+      } catch (_error) {
+        // Mutation should reject and set error state
+        await waitFor(() => {
+          expect(result.current.isError).toBe(true);
+        });
       }
-
-      expect(result.current.isError).toBe(true);
     });
   });
 
@@ -354,12 +364,16 @@ describe('usePMTemplates', () => {
     it('clones template successfully', async () => {
       const { result } = renderHook(() => useClonePMTemplate(), { wrapper });
 
-      await result.current.mutateAsync({
-        sourceId: 'template-1',
-        newName: 'Cloned Template'
+      await act(async () => {
+        await result.current.mutateAsync({
+          sourceId: 'template-1',
+          newName: 'Cloned Template'
+        });
       });
 
-      expect(result.current.isSuccess).toBe(true);
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
     });
 
     it('handles clone permission error', async () => {
@@ -374,11 +388,13 @@ describe('usePMTemplates', () => {
         await result.current.mutateAsync({
           sourceId: 'template-1'
         });
-      } catch {
-        // Expected to throw
+        expect.fail('Should have thrown an error');
+      } catch (_error) {
+        // Mutation should reject and set error state
+        await waitFor(() => {
+          expect(result.current.isError).toBe(true);
+        });
       }
-
-      expect(result.current.isError).toBe(true);
     });
 
     it('throws error when organization not found', async () => {
