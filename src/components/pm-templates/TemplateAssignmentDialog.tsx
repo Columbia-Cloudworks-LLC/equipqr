@@ -40,7 +40,7 @@ export const TemplateAssignmentDialog: React.FC<TemplateAssignmentDialogProps> =
   );
 
   const equipmentWithExistingTemplates = filteredEquipment.filter(eq => eq.default_pm_template_id);
-  const equipmentWithoutTemplates = filteredEquipment.filter(eq => !eq.default_pm_template_id);
+  const availableEquipment = filteredEquipment.filter(eq => !eq.default_pm_template_id);
 
   const handleSelectEquipment = (equipmentId: string, checked: boolean) => {
     if (checked) {

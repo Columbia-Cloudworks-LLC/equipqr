@@ -181,8 +181,8 @@ describe('ChecklistTemplateEditor', () => {
       global.prompt = vi.fn().mockReturnValue('Engine');
       
       // Add section 
-      const addSectionButton = screen.getByText('Add Section');
-      fireEvent.click(addSectionButton);
+      const addSectionButtons = screen.getAllByText('Add Section');
+      fireEvent.click(addSectionButtons[0]);
 
       // Get the item title input after section is added
       const itemTitleInput = screen.getByPlaceholderText('Item title');
@@ -261,8 +261,8 @@ describe('ChecklistTemplateEditor', () => {
       // Mock prompt for section name
       global.prompt = vi.fn().mockReturnValue('Test Section');
       
-      const addSectionButton = screen.getByText('Add Section');
-      fireEvent.click(addSectionButton);
+      const addSectionButtons = screen.getAllByText('Add Section');
+      fireEvent.click(addSectionButtons[0]);
 
       const itemInput = screen.getByPlaceholderText('Item title');
       fireEvent.change(itemInput, { target: { value: 'Test Item' } });

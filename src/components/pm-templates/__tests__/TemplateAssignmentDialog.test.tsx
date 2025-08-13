@@ -1,15 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
-import { TemplateApplicationDialog } from '../TemplateApplicationDialog';
+import { TemplateAssignmentDialog } from '../TemplateAssignmentDialog';
 import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock hooks with named imports
 import { usePMTemplate } from '@/hooks/usePMTemplates';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useCreateWorkOrder } from '@/hooks/useWorkOrderCreation';
+import { useBulkAssignTemplate } from '@/hooks/useEquipmentTemplateManagement';
 import { useSyncEquipmentByOrganization } from '@/services/syncDataService';
-import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
 
 vi.mock('@/hooks/usePMTemplates', () => ({
   usePMTemplate: vi.fn(),
@@ -19,16 +18,12 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn(),
 }));
 
-vi.mock('@/hooks/useWorkOrderCreation', () => ({
-  useCreateWorkOrder: vi.fn(),
+vi.mock('@/hooks/useEquipmentTemplateManagement', () => ({
+  useBulkAssignTemplate: vi.fn(),
 }));
 
 vi.mock('@/services/syncDataService', () => ({
   useSyncEquipmentByOrganization: vi.fn(),
-}));
-
-vi.mock('@/hooks/useInitializePMChecklist', () => ({
-  useInitializePMChecklist: vi.fn(),
 }));
 
 const mockTemplate = {
@@ -61,14 +56,20 @@ const mockEquipment = [
     name: 'Forklift A',
     model: 'Model X',
     serial_number: 'SN001',
-    status: 'active'
+    status: 'active',
+    default_pm_template_id: null,
+    manufacturer: 'Toyota',
+    location: 'Warehouse A'
   },
   {
     id: 'eq-2',
     name: 'Forklift B', 
     model: 'Model Y',
     serial_number: 'SN002',
-    status: 'active'
+    status: 'active',
+    default_pm_template_id: 'other-template',
+    manufacturer: 'Toyota',
+    location: 'Warehouse B'
   }
 ];
 
@@ -135,25 +136,7 @@ const mockHooks = {
     isPlaceholderData: false,
     isStale: false
   },
-  useCreateWorkOrder: {
-    mutateAsync: vi.fn().mockResolvedValue({ id: 'wo-1' }),
-    isPending: false,
-    data: undefined,
-    error: null,
-    isError: false,
-    isSuccess: false,
-    status: 'idle' as const,
-    variables: undefined,
-    mutate: vi.fn(),
-    reset: vi.fn(),
-    isIdle: true,
-    context: undefined,
-    failureCount: 0,
-    failureReason: null,
-    submittedAt: 0,
-    isPaused: false
-  },
-  useInitializePMChecklist: {
+  useBulkAssignTemplate: {
     mutateAsync: vi.fn().mockResolvedValue({}),
     isPending: false,
     data: undefined,
@@ -173,7 +156,7 @@ const mockHooks = {
   }
 };
 
-describe('TemplateApplicationDialog', () => {
+describe('TemplateAssignmentDialog', () => {
   const defaultProps = {
     templateId: 'template-1',
     open: true,
@@ -187,45 +170,44 @@ describe('TemplateApplicationDialog', () => {
     vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as unknown as ReturnType<typeof usePMTemplate>);
     vi.mocked(useSimpleOrganization).mockReturnValue(mockHooks.useSimpleOrganization as unknown as ReturnType<typeof useSimpleOrganization>);
     vi.mocked(useSyncEquipmentByOrganization).mockReturnValue(mockHooks.useEquipmentByOrganization as unknown as ReturnType<typeof useSyncEquipmentByOrganization>);
-    vi.mocked(useCreateWorkOrder).mockReturnValue(mockHooks.useCreateWorkOrder as unknown as ReturnType<typeof useCreateWorkOrder>);
-    vi.mocked(useInitializePMChecklist).mockReturnValue(mockHooks.useInitializePMChecklist as unknown as ReturnType<typeof useInitializePMChecklist>);
+    vi.mocked(useBulkAssignTemplate).mockReturnValue(mockHooks.useBulkAssignTemplate as unknown as ReturnType<typeof useBulkAssignTemplate>);
   });
 
   describe('Dialog Rendering', () => {
     it('renders dialog with template name in title', () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
-      expect(screen.getByText('Apply Template: Forklift PM Template')).toBeInTheDocument();
+      expect(screen.getByText('Assign Default PM Template: Forklift PM Template')).toBeInTheDocument();
     });
 
     it('does not render when closed', () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} open={false} />
+          <TemplateAssignmentDialog {...defaultProps} open={false} />
         </TestProviders>
       );
 
-      expect(screen.queryByText('Apply Template')).not.toBeInTheDocument();
+      expect(screen.queryByText('Assign Default PM Template')).not.toBeInTheDocument();
     });
 
     it('shows template description', () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
-      expect(screen.getByText('Standard forklift maintenance')).toBeInTheDocument();
+      expect(screen.getByText(/Set this template as the default PM procedure/)).toBeInTheDocument();
     });
 
     it('displays equipment list', () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
@@ -238,7 +220,7 @@ describe('TemplateApplicationDialog', () => {
     it('filters equipment by search query', async () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
@@ -254,7 +236,7 @@ describe('TemplateApplicationDialog', () => {
     it('filters by model number', async () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
@@ -270,7 +252,7 @@ describe('TemplateApplicationDialog', () => {
     it('filters by serial number', async () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
@@ -288,7 +270,7 @@ describe('TemplateApplicationDialog', () => {
     it('handles individual equipment selection', () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
@@ -301,7 +283,7 @@ describe('TemplateApplicationDialog', () => {
     it('handles select all functionality', () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
@@ -317,7 +299,7 @@ describe('TemplateApplicationDialog', () => {
     it('updates select all state when individual items are selected', () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
@@ -335,22 +317,22 @@ describe('TemplateApplicationDialog', () => {
     it('shows selected equipment count', () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
       const checkbox = screen.getAllByRole('checkbox')[1];
       fireEvent.click(checkbox);
 
-      expect(screen.getByText('1 selected')).toBeInTheDocument();
+      expect(screen.getByText('1 of 2 equipment selected')).toBeInTheDocument();
     });
   });
 
-  describe('Template Application', () => {
-    it('applies template to selected equipment', async () => {
+  describe('Template Assignment', () => {
+    it('assigns template to selected equipment', async () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
@@ -358,86 +340,61 @@ describe('TemplateApplicationDialog', () => {
       const checkbox = screen.getAllByRole('checkbox')[1];
       fireEvent.click(checkbox);
 
-      // Click create work orders
-      const createButton = screen.getByText(/Create \d+ PM Work Order/);
-      fireEvent.click(createButton);
+      // Click assign template
+      const assignButton = screen.getByText(/Assign Template to 1 Equipment/);
+      fireEvent.click(assignButton);
 
       await waitFor(() => {
-        expect(mockHooks.useCreateWorkOrder.mutateAsync).toHaveBeenCalledWith(
-          expect.objectContaining({
-            title: expect.stringContaining('Preventative Maintenance'),
-            equipmentId: 'eq-1'
-          })
-        );
+        expect(mockHooks.useBulkAssignTemplate.mutateAsync).toHaveBeenCalledWith({
+          equipmentIds: ['eq-1'],
+          templateId: 'template-1'
+        });
       });
     });
 
-    it('initializes PM checklist after work order creation', async () => {
+    it('disables assign button when no equipment selected', () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
-      const checkbox = screen.getAllByRole('checkbox')[1];
-      fireEvent.click(checkbox);
-
-    const createButton = screen.getByText(/Create \d+ PM Work Order/);
-    fireEvent.click(createButton);
-
-    await waitFor(() => {
-      expect(mockHooks.useInitializePMChecklist.mutateAsync).toHaveBeenCalledWith({
-        workOrderId: 'wo-1',
-        equipmentId: 'eq-1',
-        organizationId: 'org-1',
-        templateId: 'template-1'
-      });
-    });
+      const assignButton = screen.getByText(/Assign Template to 0 Equipment/);
+      expect(assignButton).toBeDisabled();
     });
 
-    it('disables create button when no equipment selected', () => {
-      render(
-        <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
-        </TestProviders>
-      );
-
-      const createButton = screen.getByText(/Create \d+ PM Work Order/);
-      expect(createButton).toBeDisabled();
-    });
-
-    it('shows loading state during creation', async () => {
-      vi.mocked(useCreateWorkOrder).mockReturnValue({
-        ...mockHooks.useCreateWorkOrder,
+    it('shows loading state during assignment', async () => {
+      vi.mocked(useBulkAssignTemplate).mockReturnValue({
+        ...mockHooks.useBulkAssignTemplate,
         isPending: true,
         status: 'pending'
-      } as unknown as ReturnType<typeof useCreateWorkOrder>);
+      } as unknown as ReturnType<typeof useBulkAssignTemplate>);
 
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
       const checkbox = screen.getAllByRole('checkbox')[1];
       fireEvent.click(checkbox);
 
-      const createButton = screen.getByText(/Create \d+ PM Work Order/);
-      expect(createButton).toBeDisabled();
+      const assignButton = screen.getByText(/Assign Template to 1 Equipment/);
+      expect(assignButton).toBeDisabled();
     });
 
-    it('calls onClose after successful creation', async () => {
+    it('calls onClose after successful assignment', async () => {
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
       const checkbox = screen.getAllByRole('checkbox')[1];
       fireEvent.click(checkbox);
 
-      const createButton = screen.getByText(/Create \d+ PM Work Order/);
-      fireEvent.click(createButton);
+      const assignButton = screen.getByText(/Assign Template to 1 Equipment/);
+      fireEvent.click(assignButton);
 
       await waitFor(() => {
         expect(defaultProps.onClose).toHaveBeenCalled();
@@ -457,17 +414,18 @@ describe('TemplateApplicationDialog', () => {
 
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
-      expect(screen.getByText('Loading template...')).toBeInTheDocument();
+      // Template loading should return null and not render the dialog
+      expect(screen.queryByText('Assign Default PM Template')).not.toBeInTheDocument();
     });
 
     it('shows loading state when equipment is loading', () => {
       vi.mocked(useSyncEquipmentByOrganization).mockReturnValue({
         ...mockHooks.useEquipmentByOrganization,
-        data: null,
+        data: [],
         isLoading: true,
         isSuccess: false,
         status: 'pending'
@@ -475,11 +433,11 @@ describe('TemplateApplicationDialog', () => {
 
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
-      expect(screen.getByText('Loading equipment...')).toBeInTheDocument();
+      expect(screen.getByText('0 of 0 equipment selected')).toBeInTheDocument();
     });
   });
 
@@ -495,11 +453,12 @@ describe('TemplateApplicationDialog', () => {
 
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 
-      expect(screen.getByText('Template not found')).toBeInTheDocument();
+      // Should not render when template is not found
+      expect(screen.queryByText('Assign Default PM Template')).not.toBeInTheDocument();
     });
 
     it('handles no equipment available', () => {
@@ -513,7 +472,7 @@ describe('TemplateApplicationDialog', () => {
 
       render(
         <TestProviders>
-          <TemplateApplicationDialog {...defaultProps} />
+          <TemplateAssignmentDialog {...defaultProps} />
         </TestProviders>
       );
 

@@ -6,7 +6,6 @@ import {
   useUpdateEquipment, 
   useCreateWorkOrder
 } from '../useSupabaseData';
-import { toast } from '../use-toast';
 
 // Mock dependencies
 vi.mock('../use-toast', () => ({

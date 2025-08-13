@@ -50,11 +50,11 @@ vi.mock('@/components/organization/ChecklistTemplateEditor', () => ({
   )),
 }));
 
-vi.mock('@/components/pm-templates/TemplateApplicationDialog', () => ({
-  TemplateApplicationDialog: vi.fn(({ templateId, open, onClose }) => 
+vi.mock('@/components/pm-templates/TemplateAssignmentDialog', () => ({
+  TemplateAssignmentDialog: vi.fn(({ templateId, open, onClose }) => 
     open ? (
-      <div data-testid="application-dialog">
-        <div>Application Dialog for {templateId}</div>
+      <div data-testid="assignment-dialog">
+        <div>Assignment Dialog for {templateId}</div>
         <button onClick={onClose}>Close</button>
       </div>
     ) : null
@@ -442,11 +442,11 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      const applyButton = screen.getAllByText('Apply to Equipment')[0];
-      fireEvent.click(applyButton);
+      const assignButton = screen.getAllByText('Assign to Equipment')[0];
+      fireEvent.click(assignButton);
 
       await waitFor(() => {
-        expect(screen.getByTestId('application-dialog')).toBeInTheDocument();
+        expect(screen.getByTestId('assignment-dialog')).toBeInTheDocument();
       });
     });
 

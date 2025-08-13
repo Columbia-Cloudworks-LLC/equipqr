@@ -9,9 +9,8 @@ import { PMChecklistItem } from '../preventativeMaintenanceService';
 import { createMockSupabaseClient } from '@/test/utils/mock-supabase';
 
 // Mock Supabase with the standard mock
-const mockSupabase = createMockSupabaseClient();
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabase
+  supabase: createMockSupabaseClient()
 }));
 
 vi.mock('nanoid', () => ({
@@ -62,7 +61,7 @@ const mockTemplate: PMTemplate = {
 };
 
 const getMockSupabase = () => {
-  return mockSupabase;
+  return createMockSupabaseClient();
 };
 
 describe('pmChecklistTemplatesService', () => {
