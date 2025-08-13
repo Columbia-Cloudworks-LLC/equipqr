@@ -200,15 +200,16 @@ describe('pmChecklistTemplatesService', () => {
           section: 'Engine',
           title: 'Check oil',
           description: 'Check oil level',
-          condition: 'good',
-          notes: 'Previous notes'
+          condition: 1 as const,
+          notes: 'Previous notes',
+          required: true
         }
-      ];
+      ] as PMChecklistItem[];
 
       await pmChecklistTemplatesService.createTemplate({
         organizationId: 'org-1',
         name: 'Test',
-        template_data: dirtyTemplateData as PMChecklistItem[],
+        template_data: dirtyTemplateData,
         created_by: 'user-1'
       });
 
@@ -265,13 +266,14 @@ describe('pmChecklistTemplatesService', () => {
           section: 'Engine',
           title: 'Check oil',
           description: 'Check oil level',
-          condition: 'good',
-          notes: 'Some notes'
+          condition: 2 as const,
+          notes: 'Some notes',
+          required: true
         }
-      ];
+      ] as PMChecklistItem[];
 
       await pmChecklistTemplatesService.updateTemplate('template-1', {
-        template_data: dirtyData as PMChecklistItem[],
+        template_data: dirtyData,
         updated_by: 'user-1'
       });
 

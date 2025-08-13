@@ -14,7 +14,7 @@ vi.mock('@/hooks/usePMTemplates', () => ({
   useClonePMTemplate: vi.fn(),
 }));
 
-vi.mock('@/contexts/SimpleOrganizationProvider', () => ({
+vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn(),
 }));
 
@@ -94,14 +94,14 @@ const mockHooks = {
 };
 
 describe('PMTemplates Page', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     
     // Setup default mocks
-    const { usePMTemplates, usePMTemplate, useCreatePMTemplate, useUpdatePMTemplate, useDeletePMTemplate, useClonePMTemplate } = await import('@/hooks/usePMTemplates');
-    const { useSimpleOrganization } = await import('@/contexts/SimpleOrganizationProvider');
-    const { usePermissions } = await import('@/hooks/usePermissions');
-    const { useSimplifiedOrganizationRestrictions } = await import('@/utils/simplifiedOrganizationRestrictions');
+    const { usePMTemplates, usePMTemplate, useCreatePMTemplate, useUpdatePMTemplate, useDeletePMTemplate, useClonePMTemplate } = require('@/hooks/usePMTemplates');
+    const { useSimpleOrganization } = require('@/hooks/useSimpleOrganization');
+    const { usePermissions } = require('@/hooks/usePermissions');
+    const { useSimplifiedOrganizationRestrictions } = require('@/utils/simplifiedOrganizationRestrictions');
 
     (usePMTemplates as any).mockReturnValue(mockHooks.usePMTemplates);
     (usePMTemplate as any).mockReturnValue(mockHooks.usePMTemplate);
