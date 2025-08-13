@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Mail, Crown, UserPlus, BarChart3, CreditCard, Shield } from 'lucide-react';
+import { Users, Mail, Crown, UserPlus, BarChart3, CreditCard, Shield, CheckCircle } from 'lucide-react';
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { OrganizationAdmin } from '@/hooks/useOrganizationAdmins';
 import { PagePermissions } from '@/hooks/usePagePermissions';
@@ -27,6 +27,7 @@ import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { OrganizationChecklistsTab } from './OrganizationChecklistsTab';
 
 interface OrganizationTabsProps {
   members: RealOrganizationMember[];
@@ -82,7 +83,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <div className={isMobile ? "px-4" : ""}>
         <ScrollArea className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-6'} ${isMobile ? 'h-auto' : ''}`}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-4' : 'grid-cols-7'} ${isMobile ? 'h-auto' : ''}`}>
             <TabsTrigger value="overview" className={isMobile ? 'text-xs py-2' : ''}>
               <BarChart3 className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
               {isMobile ? 'Overview' : 'Overview'}
@@ -94,6 +95,10 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
             <TabsTrigger value="invitations" className={isMobile ? 'text-xs py-2' : ''}>
               <Mail className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
               {isMobile ? 'Invites' : 'Invitations'}
+            </TabsTrigger>
+            <TabsTrigger value="checklists" className={isMobile ? 'text-xs py-2' : ''}>
+              <CheckCircle className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
+              {isMobile ? 'Templates' : 'Checklists'}
             </TabsTrigger>
             {!isMobile && (
               <>
@@ -296,6 +301,10 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
 
       <TabsContent value="invitations">
         <InvitationManagement />
+      </TabsContent>
+
+      <TabsContent value="checklists">
+        <OrganizationChecklistsTab />
       </TabsContent>
 
       <TabsContent value="billing" className="space-y-4">

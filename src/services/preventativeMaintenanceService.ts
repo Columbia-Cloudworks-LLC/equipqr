@@ -20,6 +20,7 @@ export interface CreatePMData {
   organizationId: string;
   checklistData: PMChecklistItem[];
   notes?: string;
+  templateId?: string;
 }
 
 export interface UpdatePMData {
@@ -897,6 +898,7 @@ export const createPM = async (data: CreatePMData): Promise<PreventativeMaintena
         created_by: userData.user.id,
         checklist_data: data.checklistData as any, // Cast to any to satisfy Json type
         notes: data.notes,
+        template_id: data.templateId,
         status: 'pending'
       })
       .select()
