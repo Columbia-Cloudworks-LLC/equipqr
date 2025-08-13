@@ -23,7 +23,7 @@ const RestrictedBillingAccess: React.FC<RestrictedBillingAccessProps> = ({
       const firstOwnedOrg = ownedOrganizations[0];
       switchOrganization(firstOwnedOrg.id);
       // Navigate to billing page for the organization they own
-      navigate('/billing');
+      navigate('/dashboard/billing');
     }
   };
 

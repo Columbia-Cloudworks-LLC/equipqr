@@ -23,7 +23,7 @@ const RestrictedOrganizationAccess: React.FC<RestrictedOrganizationAccessProps> 
       const firstOwnedOrg = ownedOrganizations[0];
       switchOrganization(firstOwnedOrg.id);
       // Navigate to organization page for the organization they own
-      navigate('/organization');
+      navigate('/dashboard/organization');
     }
   };
 

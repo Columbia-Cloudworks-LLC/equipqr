@@ -111,7 +111,7 @@ const InvitationAccept = () => {
       await refreshSession();
       
       // Navigate to the organization page
-      navigate('/organization');
+      navigate('/dashboard/organization');
 
     } catch (err: unknown) {
       console.error('Error accepting invitation:', err);
