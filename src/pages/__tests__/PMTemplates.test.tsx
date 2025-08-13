@@ -222,7 +222,8 @@ describe('PMTemplates Page', () => {
 
     vi.mocked(usePermissions).mockReturnValue({
       isAdmin: true,
-      canManageOrganization: true
+      canManageOrganization: true,
+      hasRole: vi.fn().mockReturnValue(true)
     } as any);
 
     vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
@@ -258,7 +259,8 @@ describe('PMTemplates Page', () => {
     it('shows permission denied for non-admin users', () => {
       vi.mocked(usePermissions).mockReturnValue({
         isAdmin: false,
-        canManageOrganization: false
+        canManageOrganization: false,
+        hasRole: vi.fn().mockReturnValue(false)
       } as any);
 
       render(
