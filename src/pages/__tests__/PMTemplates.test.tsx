@@ -15,7 +15,7 @@ import {
 } from '@/hooks/usePMTemplates';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useSimplifiedOrganizationRestrictions } from '@/utils/simplifiedOrganizationRestrictions';
+import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 
 vi.mock('@/hooks/usePMTemplates', () => ({
   usePMTemplates: vi.fn(),
@@ -34,7 +34,7 @@ vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: vi.fn(),
 }));
 
-vi.mock('@/utils/simplifiedOrganizationRestrictions', () => ({
+vi.mock('@/hooks/useSimplifiedOrganizationRestrictions', () => ({
   useSimplifiedOrganizationRestrictions: vi.fn(),
 }));
 
@@ -81,27 +81,126 @@ const mockHooks = {
   usePMTemplates: {
     data: mockTemplates,
     isLoading: false,
-    error: null
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    status: 'success' as const,
+    fetchStatus: 'idle' as const,
+    refetch: vi.fn(),
+    isRefetching: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: true,
+    isFetchedAfterMount: true,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isPlaceholderData: false,
+    isStale: false
   },
   usePMTemplate: {
     data: null,
-    isLoading: false
+    isLoading: false,
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    status: 'success' as const,
+    fetchStatus: 'idle' as const,
+    refetch: vi.fn(),
+    isRefetching: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: true,
+    isFetchedAfterMount: true,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isPlaceholderData: false,
+    isStale: false
   },
   useCreatePMTemplate: {
     mutate: vi.fn(),
-    isPending: false
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false
   },
   useUpdatePMTemplate: {
     mutate: vi.fn(),
-    isPending: false
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false
   },
   useDeletePMTemplate: {
     mutate: vi.fn(),
-    isPending: false
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false
   },
   useClonePMTemplate: {
     mutate: vi.fn(),
-    isPending: false
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false
   }
 };
 
@@ -109,27 +208,27 @@ describe('PMTemplates Page', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     
-    // Setup default mocks using vi.mocked
-    vi.mocked(usePMTemplates).mockReturnValue(mockHooks.usePMTemplates);
-    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate);
-    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate);
-    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate);
-    vi.mocked(useDeletePMTemplate).mockReturnValue(mockHooks.useDeletePMTemplate);
-    vi.mocked(useClonePMTemplate).mockReturnValue(mockHooks.useClonePMTemplate);
+    // Setup default mocks using vi.mocked with type casting
+    vi.mocked(usePMTemplates).mockReturnValue(mockHooks.usePMTemplates as any);
+    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as any);
+    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate as any);
+    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate as any);
+    vi.mocked(useDeletePMTemplate).mockReturnValue(mockHooks.useDeletePMTemplate as any);
+    vi.mocked(useClonePMTemplate).mockReturnValue(mockHooks.useClonePMTemplate as any);
 
     vi.mocked(useSimpleOrganization).mockReturnValue({
       organization: { id: 'org-1', name: 'Test Org' }
-    });
+    } as any);
 
     vi.mocked(usePermissions).mockReturnValue({
       isAdmin: true,
       canManageOrganization: true
-    });
+    } as any);
 
     vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
       canCreateCustomTemplates: true,
       hasLicensedUsers: true
-    });
+    } as any);
   });
 
   describe('Core Rendering', () => {
@@ -145,7 +244,7 @@ describe('PMTemplates Page', () => {
     });
 
     it('shows no organization message when no organization selected', () => {
-      vi.mocked(useSimpleOrganization).mockReturnValue({ organization: null });
+      vi.mocked(useSimpleOrganization).mockReturnValue({ organization: null } as any);
 
       render(
         <TestProviders>
@@ -160,7 +259,7 @@ describe('PMTemplates Page', () => {
       vi.mocked(usePermissions).mockReturnValue({
         isAdmin: false,
         canManageOrganization: false
-      });
+      } as any);
 
       render(
         <TestProviders>
@@ -175,8 +274,10 @@ describe('PMTemplates Page', () => {
       vi.mocked(usePMTemplates).mockReturnValue({
         ...mockHooks.usePMTemplates,
         isLoading: true,
-        data: undefined
-      });
+        data: undefined,
+        isSuccess: false,
+        status: 'pending'
+      } as any);
 
       render(
         <TestProviders>
@@ -216,7 +317,7 @@ describe('PMTemplates Page', () => {
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         canCreateCustomTemplates: false,
         hasLicensedUsers: false
-      });
+      } as any);
 
       render(
         <TestProviders>
@@ -283,7 +384,7 @@ describe('PMTemplates Page', () => {
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         canCreateCustomTemplates: false,
         hasLicensedUsers: false
-      });
+      } as any);
 
       render(
         <TestProviders>
@@ -383,7 +484,7 @@ describe('PMTemplates Page', () => {
       vi.mocked(usePMTemplates).mockReturnValue({
         ...mockHooks.usePMTemplates,
         data: []
-      });
+      } as any);
 
       render(
         <TestProviders>

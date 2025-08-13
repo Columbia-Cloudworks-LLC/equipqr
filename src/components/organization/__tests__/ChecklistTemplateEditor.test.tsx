@@ -48,11 +48,39 @@ const mockTemplate = {
 const mockHooks = {
   useCreatePMTemplate: {
     mutate: vi.fn(),
-    isPending: false
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false
   },
   useUpdatePMTemplate: {
     mutate: vi.fn(),
-    isPending: false
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false
   }
 };
 
@@ -66,9 +94,9 @@ describe('ChecklistTemplateEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Setup mocks using vi.mocked
-    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate);
-    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate);
+    // Setup mocks using vi.mocked with type casting
+    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate as any);
+    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate as any);
   });
 
   describe('Component Rendering', () => {
@@ -222,9 +250,9 @@ describe('ChecklistTemplateEditor', () => {
       });
 
       vi.mocked(useCreatePMTemplate).mockReturnValue({
-        mutate: mockMutate,
-        isPending: false
-      });
+        ...mockHooks.useCreatePMTemplate,
+        mutate: mockMutate
+      } as any);
 
       render(
         <TestProviders>
@@ -260,7 +288,7 @@ describe('ChecklistTemplateEditor', () => {
       vi.mocked(useCreatePMTemplate).mockReturnValue({
         ...mockHooks.useCreatePMTemplate,
         isPending: true
-      });
+      } as any);
 
       render(
         <TestProviders>

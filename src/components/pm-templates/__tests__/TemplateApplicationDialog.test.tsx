@@ -6,20 +6,20 @@ import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock hooks with named imports
 import { usePMTemplate } from '@/hooks/usePMTemplates';
-import { useSimpleOrganization } from '@/contexts/SimpleOrganizationProvider';
-import { useSyncEquipmentByOrganization, useCreateWorkOrder } from '@/hooks/useSupabaseData';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useEquipmentByOrganization, useCreateWorkOrder } from '@/hooks/useSupabaseData';
 import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
 
 vi.mock('@/hooks/usePMTemplates', () => ({
   usePMTemplate: vi.fn(),
 }));
 
-vi.mock('@/contexts/SimpleOrganizationProvider', () => ({
+vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn(),
 }));
 
 vi.mock('@/hooks/useSupabaseData', () => ({
-  useSyncEquipmentByOrganization: vi.fn(),
+  useEquipmentByOrganization: vi.fn(),
   useCreateWorkOrder: vi.fn(),
 }));
 
@@ -71,22 +71,94 @@ const mockEquipment = [
 const mockHooks = {
   usePMTemplate: {
     data: mockTemplate,
-    isLoading: false
+    isLoading: false,
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    status: 'success' as const,
+    fetchStatus: 'idle' as const,
+    refetch: vi.fn(),
+    isRefetching: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: true,
+    isFetchedAfterMount: true,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isPlaceholderData: false,
+    isStale: false
   },
   useSimpleOrganization: {
     organization: { id: 'org-1', name: 'Test Org' }
   },
-  useSyncEquipmentByOrganization: {
+  useEquipmentByOrganization: {
     data: mockEquipment,
-    isLoading: false
+    isLoading: false,
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    status: 'success' as const,
+    fetchStatus: 'idle' as const,
+    refetch: vi.fn(),
+    isRefetching: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: true,
+    isFetchedAfterMount: true,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isPlaceholderData: false,
+    isStale: false
   },
   useCreateWorkOrder: {
     mutateAsync: vi.fn().mockResolvedValue({ id: 'wo-1' }),
-    isPending: false
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutate: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false
   },
   useInitializePMChecklist: {
     mutateAsync: vi.fn().mockResolvedValue({}),
-    isPending: false
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutate: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false
   }
 };
 
@@ -100,12 +172,12 @@ describe('TemplateApplicationDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Setup mocks using vi.mocked
-    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate);
-    vi.mocked(useSimpleOrganization).mockReturnValue(mockHooks.useSimpleOrganization);
-    vi.mocked(useSyncEquipmentByOrganization).mockReturnValue(mockHooks.useSyncEquipmentByOrganization);
-    vi.mocked(useCreateWorkOrder).mockReturnValue(mockHooks.useCreateWorkOrder);
-    vi.mocked(useInitializePMChecklist).mockReturnValue(mockHooks.useInitializePMChecklist);
+    // Setup mocks using vi.mocked with type casting
+    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as any);
+    vi.mocked(useSimpleOrganization).mockReturnValue(mockHooks.useSimpleOrganization as any);
+    vi.mocked(useEquipmentByOrganization).mockReturnValue(mockHooks.useEquipmentByOrganization as any);
+    vi.mocked(useCreateWorkOrder).mockReturnValue(mockHooks.useCreateWorkOrder as any);
+    vi.mocked(useInitializePMChecklist).mockReturnValue(mockHooks.useInitializePMChecklist as any);
   });
 
   describe('Dialog Rendering', () => {
@@ -326,7 +398,7 @@ describe('TemplateApplicationDialog', () => {
       vi.mocked(useCreateWorkOrder).mockReturnValue({
         ...mockHooks.useCreateWorkOrder,
         isPending: true
-      });
+      } as any);
 
       render(
         <TestProviders>
@@ -363,9 +435,12 @@ describe('TemplateApplicationDialog', () => {
   describe('Loading States', () => {
     it('shows loading state when template is loading', () => {
       vi.mocked(usePMTemplate).mockReturnValue({
+        ...mockHooks.usePMTemplate,
         data: null,
-        isLoading: true
-      });
+        isLoading: true,
+        isSuccess: false,
+        status: 'pending'
+      } as any);
 
       render(
         <TestProviders>
@@ -377,10 +452,13 @@ describe('TemplateApplicationDialog', () => {
     });
 
     it('shows loading state when equipment is loading', () => {
-      vi.mocked(useSyncEquipmentByOrganization).mockReturnValue({
+      vi.mocked(useEquipmentByOrganization).mockReturnValue({
+        ...mockHooks.useEquipmentByOrganization,
         data: null,
-        isLoading: true
-      });
+        isLoading: true,
+        isSuccess: false,
+        status: 'pending'
+      } as any);
 
       render(
         <TestProviders>
@@ -395,9 +473,12 @@ describe('TemplateApplicationDialog', () => {
   describe('Error Handling', () => {
     it('handles template not found', () => {
       vi.mocked(usePMTemplate).mockReturnValue({
+        ...mockHooks.usePMTemplate,
         data: null,
-        isLoading: false
-      });
+        isLoading: false,
+        isSuccess: false,
+        status: 'success'
+      } as any);
 
       render(
         <TestProviders>
@@ -409,10 +490,13 @@ describe('TemplateApplicationDialog', () => {
     });
 
     it('handles no equipment available', () => {
-      vi.mocked(useSyncEquipmentByOrganization).mockReturnValue({
+      vi.mocked(useEquipmentByOrganization).mockReturnValue({
+        ...mockHooks.useEquipmentByOrganization,
         data: [],
-        isLoading: false
-      });
+        isLoading: false,
+        isSuccess: true,
+        status: 'success'
+      } as any);
 
       render(
         <TestProviders>
