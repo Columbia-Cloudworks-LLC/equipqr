@@ -43,8 +43,24 @@ export const generateSectionsSummary = (templateData: PMChecklistItem[]): { name
 export const templateToSummary = (template: PMTemplate): PMTemplateSummary => {
   // Safely handle JSON type conversion with proper type checking
   let templateData: PMChecklistItem[] = [];
-  if (Array.isArray(template.template_data)) {
-    templateData = template.template_data as unknown as PMChecklistItem[];
+  
+  try {
+    // Handle different possible formats of template_data from Supabase
+    if (Array.isArray(template.template_data)) {
+      templateData = template.template_data as PMChecklistItem[];
+    } else if (typeof template.template_data === 'string') {
+      // If it's a JSON string, parse it
+      const parsed = JSON.parse(template.template_data);
+      if (Array.isArray(parsed)) {
+        templateData = parsed as PMChecklistItem[];
+      }
+    } else if (template.template_data && typeof template.template_data === 'object') {
+      // If it's already an object but not an array, it might be a single item or malformed
+      templateData = [];
+    }
+  } catch (error) {
+    console.warn('Failed to parse template data for template:', template.id, error);
+    templateData = [];
   }
   
   return {
