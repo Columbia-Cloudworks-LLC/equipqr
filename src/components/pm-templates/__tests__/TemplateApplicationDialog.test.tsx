@@ -4,7 +4,12 @@ import { vi, beforeEach, describe, it, expect } from 'vitest';
 import { TemplateApplicationDialog } from '../TemplateApplicationDialog';
 import { TestProviders } from '@/test/utils/TestProviders';
 
-// Mock hooks
+// Mock hooks with named imports
+import { usePMTemplate } from '@/hooks/usePMTemplates';
+import { useSimpleOrganization } from '@/contexts/SimpleOrganizationProvider';
+import { useSyncEquipmentByOrganization, useCreateWorkOrder } from '@/hooks/useSupabaseData';
+import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
+
 vi.mock('@/hooks/usePMTemplates', () => ({
   usePMTemplate: vi.fn(),
 }));
@@ -95,17 +100,12 @@ describe('TemplateApplicationDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Setup mocks
-    const { usePMTemplate } = require('@/hooks/usePMTemplates');
-    const { useSimpleOrganization } = require('@/contexts/SimpleOrganizationProvider');
-    const { useSyncEquipmentByOrganization, useCreateWorkOrder } = require('@/hooks/useSupabaseData');
-    const { useInitializePMChecklist } = require('@/hooks/useInitializePMChecklist');
-
-    usePMTemplate.mockReturnValue(mockHooks.usePMTemplate);
-    useSimpleOrganization.mockReturnValue(mockHooks.useSimpleOrganization);
-    useSyncEquipmentByOrganization.mockReturnValue(mockHooks.useSyncEquipmentByOrganization);
-    useCreateWorkOrder.mockReturnValue(mockHooks.useCreateWorkOrder);
-    useInitializePMChecklist.mockReturnValue(mockHooks.useInitializePMChecklist);
+    // Setup mocks using vi.mocked
+    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate);
+    vi.mocked(useSimpleOrganization).mockReturnValue(mockHooks.useSimpleOrganization);
+    vi.mocked(useSyncEquipmentByOrganization).mockReturnValue(mockHooks.useSyncEquipmentByOrganization);
+    vi.mocked(useCreateWorkOrder).mockReturnValue(mockHooks.useCreateWorkOrder);
+    vi.mocked(useInitializePMChecklist).mockReturnValue(mockHooks.useInitializePMChecklist);
   });
 
   describe('Dialog Rendering', () => {
@@ -323,8 +323,7 @@ describe('TemplateApplicationDialog', () => {
     });
 
     it('shows loading state during creation', async () => {
-      const { useCreateWorkOrder } = require('@/hooks/useSupabaseData');
-      useCreateWorkOrder.mockReturnValue({
+      vi.mocked(useCreateWorkOrder).mockReturnValue({
         ...mockHooks.useCreateWorkOrder,
         isPending: true
       });
@@ -363,8 +362,7 @@ describe('TemplateApplicationDialog', () => {
 
   describe('Loading States', () => {
     it('shows loading state when template is loading', () => {
-      const { usePMTemplate } = require('@/hooks/usePMTemplates');
-      usePMTemplate.mockReturnValue({
+      vi.mocked(usePMTemplate).mockReturnValue({
         data: null,
         isLoading: true
       });
@@ -379,8 +377,7 @@ describe('TemplateApplicationDialog', () => {
     });
 
     it('shows loading state when equipment is loading', () => {
-      const { useSyncEquipmentByOrganization } = require('@/hooks/useSupabaseData');
-      useSyncEquipmentByOrganization.mockReturnValue({
+      vi.mocked(useSyncEquipmentByOrganization).mockReturnValue({
         data: null,
         isLoading: true
       });
@@ -397,8 +394,7 @@ describe('TemplateApplicationDialog', () => {
 
   describe('Error Handling', () => {
     it('handles template not found', () => {
-      const { usePMTemplate } = require('@/hooks/usePMTemplates');
-      usePMTemplate.mockReturnValue({
+      vi.mocked(usePMTemplate).mockReturnValue({
         data: null,
         isLoading: false
       });
@@ -413,8 +409,7 @@ describe('TemplateApplicationDialog', () => {
     });
 
     it('handles no equipment available', () => {
-      const { useSyncEquipmentByOrganization } = require('@/hooks/useSupabaseData');
-      useSyncEquipmentByOrganization.mockReturnValue({
+      vi.mocked(useSyncEquipmentByOrganization).mockReturnValue({
         data: [],
         isLoading: false
       });

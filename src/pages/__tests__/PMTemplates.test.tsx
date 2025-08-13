@@ -4,7 +4,19 @@ import { vi, beforeEach, describe, it, expect } from 'vitest';
 import PMTemplates from '../PMTemplates';
 import { TestProviders } from '@/test/utils/TestProviders';
 
-// Mock hooks
+// Mock hooks with named imports
+import { 
+  usePMTemplates, 
+  usePMTemplate, 
+  useCreatePMTemplate, 
+  useUpdatePMTemplate, 
+  useDeletePMTemplate, 
+  useClonePMTemplate 
+} from '@/hooks/usePMTemplates';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useSimplifiedOrganizationRestrictions } from '@/utils/simplifiedOrganizationRestrictions';
+
 vi.mock('@/hooks/usePMTemplates', () => ({
   usePMTemplates: vi.fn(),
   usePMTemplate: vi.fn(),
@@ -97,29 +109,24 @@ describe('PMTemplates Page', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     
-    // Setup default mocks
-    const { usePMTemplates, usePMTemplate, useCreatePMTemplate, useUpdatePMTemplate, useDeletePMTemplate, useClonePMTemplate } = require('@/hooks/usePMTemplates');
-    const { useSimpleOrganization } = require('@/hooks/useSimpleOrganization');
-    const { usePermissions } = require('@/hooks/usePermissions');
-    const { useSimplifiedOrganizationRestrictions } = require('@/utils/simplifiedOrganizationRestrictions');
+    // Setup default mocks using vi.mocked
+    vi.mocked(usePMTemplates).mockReturnValue(mockHooks.usePMTemplates);
+    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate);
+    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate);
+    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate);
+    vi.mocked(useDeletePMTemplate).mockReturnValue(mockHooks.useDeletePMTemplate);
+    vi.mocked(useClonePMTemplate).mockReturnValue(mockHooks.useClonePMTemplate);
 
-    (usePMTemplates as any).mockReturnValue(mockHooks.usePMTemplates);
-    (usePMTemplate as any).mockReturnValue(mockHooks.usePMTemplate);
-    (useCreatePMTemplate as any).mockReturnValue(mockHooks.useCreatePMTemplate);
-    (useUpdatePMTemplate as any).mockReturnValue(mockHooks.useUpdatePMTemplate);
-    (useDeletePMTemplate as any).mockReturnValue(mockHooks.useDeletePMTemplate);
-    (useClonePMTemplate as any).mockReturnValue(mockHooks.useClonePMTemplate);
-
-    (useSimpleOrganization as any).mockReturnValue({
+    vi.mocked(useSimpleOrganization).mockReturnValue({
       organization: { id: 'org-1', name: 'Test Org' }
     });
 
-    (usePermissions as any).mockReturnValue({
+    vi.mocked(usePermissions).mockReturnValue({
       isAdmin: true,
       canManageOrganization: true
     });
 
-    (useSimplifiedOrganizationRestrictions as any).mockReturnValue({
+    vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
       canCreateCustomTemplates: true,
       hasLicensedUsers: true
     });
@@ -138,8 +145,7 @@ describe('PMTemplates Page', () => {
     });
 
     it('shows no organization message when no organization selected', () => {
-      const { useSimpleOrganization } = require('@/contexts/SimpleOrganizationProvider');
-      useSimpleOrganization.mockReturnValue({ organization: null });
+      vi.mocked(useSimpleOrganization).mockReturnValue({ organization: null });
 
       render(
         <TestProviders>
@@ -151,8 +157,7 @@ describe('PMTemplates Page', () => {
     });
 
     it('shows permission denied for non-admin users', () => {
-      const { usePermissions } = require('@/hooks/usePermissions');
-      usePermissions.mockReturnValue({
+      vi.mocked(usePermissions).mockReturnValue({
         isAdmin: false,
         canManageOrganization: false
       });
@@ -167,8 +172,7 @@ describe('PMTemplates Page', () => {
     });
 
     it('displays loading skeleton during data fetch', () => {
-      const { usePMTemplates } = require('@/hooks/usePMTemplates');
-      usePMTemplates.mockReturnValue({
+      vi.mocked(usePMTemplates).mockReturnValue({
         ...mockHooks.usePMTemplates,
         isLoading: true,
         data: undefined
@@ -209,8 +213,7 @@ describe('PMTemplates Page', () => {
     });
 
     it('shows upgrade message for unlicensed users', () => {
-      const { useSimplifiedOrganizationRestrictions } = require('@/utils/simplifiedOrganizationRestrictions');
-      useSimplifiedOrganizationRestrictions.mockReturnValue({
+      vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         canCreateCustomTemplates: false,
         hasLicensedUsers: false
       });
@@ -277,8 +280,7 @@ describe('PMTemplates Page', () => {
     });
 
     it('disables Clone for unlicensed users', () => {
-      const { useSimplifiedOrganizationRestrictions } = require('@/utils/simplifiedOrganizationRestrictions');
-      useSimplifiedOrganizationRestrictions.mockReturnValue({
+      vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         canCreateCustomTemplates: false,
         hasLicensedUsers: false
       });
@@ -378,8 +380,7 @@ describe('PMTemplates Page', () => {
 
   describe('Empty States', () => {
     it('shows empty state when no templates available', () => {
-      const { usePMTemplates } = require('@/hooks/usePMTemplates');
-      usePMTemplates.mockReturnValue({
+      vi.mocked(usePMTemplates).mockReturnValue({
         ...mockHooks.usePMTemplates,
         data: []
       });

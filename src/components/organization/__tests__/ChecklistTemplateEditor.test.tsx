@@ -4,7 +4,10 @@ import { vi, beforeEach, describe, it, expect } from 'vitest';
 import { ChecklistTemplateEditor } from '../ChecklistTemplateEditor';
 import { TestProviders } from '@/test/utils/TestProviders';
 
-// Mock hooks
+// Mock hooks with named imports
+import { useCreatePMTemplate, useUpdatePMTemplate } from '@/hooks/usePMTemplates';
+import { toast } from 'sonner';
+
 vi.mock('@/hooks/usePMTemplates', () => ({
   useCreatePMTemplate: vi.fn(),
   useUpdatePMTemplate: vi.fn(),
@@ -63,11 +66,9 @@ describe('ChecklistTemplateEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Setup mocks
-    const { useCreatePMTemplate, useUpdatePMTemplate } = require('@/hooks/usePMTemplates');
-    
-    useCreatePMTemplate.mockReturnValue(mockHooks.useCreatePMTemplate);
-    useUpdatePMTemplate.mockReturnValue(mockHooks.useUpdatePMTemplate);
+    // Setup mocks using vi.mocked
+    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate);
+    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate);
   });
 
   describe('Component Rendering', () => {
@@ -107,8 +108,6 @@ describe('ChecklistTemplateEditor', () => {
 
   describe('Form Validation', () => {
     it('requires template name', async () => {
-      const { toast } = require('sonner');
-      
       render(
         <TestProviders>
           <ChecklistTemplateEditor {...defaultProps} />
@@ -118,12 +117,10 @@ describe('ChecklistTemplateEditor', () => {
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
 
-      expect(toast.error).toHaveBeenCalledWith('Template name is required');
+      expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Template name is required');
     });
 
     it('requires at least one section', async () => {
-      const { toast } = require('sonner');
-      
       render(
         <TestProviders>
           <ChecklistTemplateEditor {...defaultProps} />
@@ -136,7 +133,7 @@ describe('ChecklistTemplateEditor', () => {
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
 
-      expect(toast.error).toHaveBeenCalledWith('At least one section is required');
+      expect(vi.mocked(toast.error)).toHaveBeenCalledWith('At least one section is required');
     });
 
     it('validates form submission successfully', async () => {
@@ -219,14 +216,12 @@ describe('ChecklistTemplateEditor', () => {
     });
 
     it('calls onSave after successful submission', async () => {
-      const { useCreatePMTemplate } = require('@/hooks/usePMTemplates');
-      
       // Mock successful creation
       const mockMutate = vi.fn((data, options) => {
         options?.onSuccess?.();
       });
 
-      useCreatePMTemplate.mockReturnValue({
+      vi.mocked(useCreatePMTemplate).mockReturnValue({
         mutate: mockMutate,
         isPending: false
       });
@@ -262,8 +257,7 @@ describe('ChecklistTemplateEditor', () => {
 
   describe('Loading States', () => {
     it('shows loading state during submission', () => {
-      const { useCreatePMTemplate } = require('@/hooks/usePMTemplates');
-      useCreatePMTemplate.mockReturnValue({
+      vi.mocked(useCreatePMTemplate).mockReturnValue({
         ...mockHooks.useCreatePMTemplate,
         isPending: true
       });
