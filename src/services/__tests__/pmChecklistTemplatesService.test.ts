@@ -7,27 +7,29 @@ import {
 } from '../pmChecklistTemplatesService';
 import { PMChecklistItem } from '../preventativeMaintenanceService';
 
-// Mock Supabase client
-const mockSupabase = {
-  from: vi.fn(() => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    or: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    single: vi.fn(),
-    nullsFirst: vi.fn().mockReturnThis(),
-  })),
-  auth: {
-    getUser: vi.fn()
-  }
-};
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabase
-}));
+vi.mock('@/integrations/supabase/client', () => {
+  // Mock Supabase client
+  const mockSupabase = {
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      or: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      single: vi.fn(),
+      nullsFirst: vi.fn().mockReturnThis(),
+    })),
+    auth: {
+      getUser: vi.fn()
+    }
+  };
+  
+  return {
+    supabase: mockSupabase
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn(() => 'mock-id')
@@ -76,6 +78,12 @@ const mockTemplate: PMTemplate = {
   updated_at: '2024-01-01T00:00:00Z'
 };
 
+// Get the mocked supabase instance
+const getMockSupabase = () => {
+  const { supabase } = require('@/integrations/supabase/client');
+  return supabase;
+};
+
 describe('pmChecklistTemplatesService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -83,6 +91,7 @@ describe('pmChecklistTemplatesService', () => {
 
   describe('listTemplates', () => {
     it('fetches templates for organization', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: [mockTemplate], 
@@ -100,6 +109,7 @@ describe('pmChecklistTemplatesService', () => {
     });
 
     it('handles database error', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: null, 
@@ -113,6 +123,7 @@ describe('pmChecklistTemplatesService', () => {
 
   describe('getTemplate', () => {
     it('fetches single template by ID', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: mockTemplate, 
@@ -129,6 +140,7 @@ describe('pmChecklistTemplatesService', () => {
     });
 
     it('returns null when template not found', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: null, 
@@ -140,6 +152,7 @@ describe('pmChecklistTemplatesService', () => {
     });
 
     it('throws error for other database errors', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: null, 
@@ -153,6 +166,7 @@ describe('pmChecklistTemplatesService', () => {
 
   describe('createTemplate', () => {
     it('creates new template with sanitized data', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: mockTemplate, 
@@ -188,6 +202,7 @@ describe('pmChecklistTemplatesService', () => {
     });
 
     it('sanitizes template data by clearing condition and notes', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: mockTemplate, 
@@ -229,6 +244,7 @@ describe('pmChecklistTemplatesService', () => {
 
   describe('updateTemplate', () => {
     it('updates template with provided fields', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: mockTemplate, 
@@ -254,6 +270,7 @@ describe('pmChecklistTemplatesService', () => {
     });
 
     it('sanitizes template_data when updating', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: mockTemplate, 
@@ -291,6 +308,7 @@ describe('pmChecklistTemplatesService', () => {
 
   describe('deleteTemplate', () => {
     it('deletes template by ID', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: null, 
@@ -305,6 +323,7 @@ describe('pmChecklistTemplatesService', () => {
     });
 
     it('throws error on deletion failure', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: null, 
@@ -318,6 +337,7 @@ describe('pmChecklistTemplatesService', () => {
 
   describe('cloneTemplate', () => {
     it('clones template to target organization', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       
       // Mock getTemplate call
@@ -362,6 +382,7 @@ describe('pmChecklistTemplatesService', () => {
     });
 
     it('uses default name when newName not provided', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       
       mockFromChain.single
@@ -382,6 +403,7 @@ describe('pmChecklistTemplatesService', () => {
     });
 
     it('throws error when source template not found', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       mockFromChain.single.mockResolvedValue({ 
         data: null, 
@@ -393,6 +415,7 @@ describe('pmChecklistTemplatesService', () => {
     });
 
     it('generates fresh IDs for cloned template data', async () => {
+      const mockSupabase = getMockSupabase();
       const mockFromChain = mockSupabase.from();
       
       mockFromChain.single

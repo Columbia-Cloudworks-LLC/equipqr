@@ -7,7 +7,8 @@ import { TestProviders } from '@/test/utils/TestProviders';
 // Mock hooks with named imports
 import { usePMTemplate } from '@/hooks/usePMTemplates';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useEquipmentByOrganization, useCreateWorkOrder } from '@/hooks/useSupabaseData';
+import { useCreateWorkOrder } from '@/hooks/useWorkOrderCreation';
+import { useSyncEquipmentByOrganization } from '@/services/syncDataService';
 import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
 
 vi.mock('@/hooks/usePMTemplates', () => ({
@@ -18,9 +19,12 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn(),
 }));
 
-vi.mock('@/hooks/useSupabaseData', () => ({
-  useEquipmentByOrganization: vi.fn(),
+vi.mock('@/hooks/useWorkOrderCreation', () => ({
   useCreateWorkOrder: vi.fn(),
+}));
+
+vi.mock('@/services/syncDataService', () => ({
+  useSyncEquipmentByOrganization: vi.fn(),
 }));
 
 vi.mock('@/hooks/useInitializePMChecklist', () => ({
@@ -182,7 +186,7 @@ describe('TemplateApplicationDialog', () => {
     // Setup mocks using vi.mocked with proper type casting
     vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as unknown as ReturnType<typeof usePMTemplate>);
     vi.mocked(useSimpleOrganization).mockReturnValue(mockHooks.useSimpleOrganization as unknown as ReturnType<typeof useSimpleOrganization>);
-    vi.mocked(useEquipmentByOrganization).mockReturnValue(mockHooks.useEquipmentByOrganization as unknown as ReturnType<typeof useEquipmentByOrganization>);
+    vi.mocked(useSyncEquipmentByOrganization).mockReturnValue(mockHooks.useEquipmentByOrganization as unknown as ReturnType<typeof useSyncEquipmentByOrganization>);
     vi.mocked(useCreateWorkOrder).mockReturnValue(mockHooks.useCreateWorkOrder as unknown as ReturnType<typeof useCreateWorkOrder>);
     vi.mocked(useInitializePMChecklist).mockReturnValue(mockHooks.useInitializePMChecklist as unknown as ReturnType<typeof useInitializePMChecklist>);
   });
@@ -195,7 +199,7 @@ describe('TemplateApplicationDialog', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('Apply PM Template: Forklift PM Template')).toBeInTheDocument();
+      expect(screen.getByText('Apply Template: Forklift PM Template')).toBeInTheDocument();
     });
 
     it('does not render when closed', () => {
@@ -205,7 +209,7 @@ describe('TemplateApplicationDialog', () => {
         </TestProviders>
       );
 
-      expect(screen.queryByText('Apply PM Template')).not.toBeInTheDocument();
+      expect(screen.queryByText('Apply Template')).not.toBeInTheDocument();
     });
 
     it('shows template description', () => {
@@ -238,7 +242,7 @@ describe('TemplateApplicationDialog', () => {
         </TestProviders>
       );
 
-      const searchInput = screen.getByPlaceholderText('Search equipment...');
+      const searchInput = screen.getByPlaceholderText('Search by name, model, or serial number...');
       fireEvent.change(searchInput, { target: { value: 'Forklift A' } });
 
       await waitFor(() => {
@@ -254,7 +258,7 @@ describe('TemplateApplicationDialog', () => {
         </TestProviders>
       );
 
-      const searchInput = screen.getByPlaceholderText('Search equipment...');
+      const searchInput = screen.getByPlaceholderText('Search by name, model, or serial number...');
       fireEvent.change(searchInput, { target: { value: 'Model X' } });
 
       await waitFor(() => {
@@ -270,7 +274,7 @@ describe('TemplateApplicationDialog', () => {
         </TestProviders>
       );
 
-      const searchInput = screen.getByPlaceholderText('Search equipment...');
+      const searchInput = screen.getByPlaceholderText('Search by name, model, or serial number...');
       fireEvent.change(searchInput, { target: { value: 'SN002' } });
 
       await waitFor(() => {
@@ -355,15 +359,14 @@ describe('TemplateApplicationDialog', () => {
       fireEvent.click(checkbox);
 
       // Click create work orders
-      const createButton = screen.getByText('Create Work Orders');
+      const createButton = screen.getByText(/Create \d+ PM Work Order/);
       fireEvent.click(createButton);
 
       await waitFor(() => {
         expect(mockHooks.useCreateWorkOrder.mutateAsync).toHaveBeenCalledWith(
           expect.objectContaining({
-            title: expect.stringContaining('PM'),
-            equipment_id: 'eq-1',
-            requires_pm: true
+            title: expect.stringContaining('Preventative Maintenance'),
+            equipmentId: 'eq-1'
           })
         );
       });
@@ -379,15 +382,17 @@ describe('TemplateApplicationDialog', () => {
       const checkbox = screen.getAllByRole('checkbox')[1];
       fireEvent.click(checkbox);
 
-      const createButton = screen.getByText('Create Work Orders');
-      fireEvent.click(createButton);
+    const createButton = screen.getByText(/Create \d+ PM Work Order/);
+    fireEvent.click(createButton);
 
-      await waitFor(() => {
-        expect(mockHooks.useInitializePMChecklist.mutateAsync).toHaveBeenCalledWith({
-          workOrderId: 'wo-1',
-          checklistData: mockTemplate.template_data
-        });
+    await waitFor(() => {
+      expect(mockHooks.useInitializePMChecklist.mutateAsync).toHaveBeenCalledWith({
+        workOrderId: 'wo-1',
+        equipmentId: 'eq-1',
+        organizationId: 'org-1',
+        templateId: 'template-1'
       });
+    });
     });
 
     it('disables create button when no equipment selected', () => {
@@ -397,7 +402,7 @@ describe('TemplateApplicationDialog', () => {
         </TestProviders>
       );
 
-      const createButton = screen.getByText('Create Work Orders');
+      const createButton = screen.getByText(/Create \d+ PM Work Order/);
       expect(createButton).toBeDisabled();
     });
 
@@ -417,7 +422,7 @@ describe('TemplateApplicationDialog', () => {
       const checkbox = screen.getAllByRole('checkbox')[1];
       fireEvent.click(checkbox);
 
-      const createButton = screen.getByText('Creating...');
+      const createButton = screen.getByText(/Create \d+ PM Work Order/);
       expect(createButton).toBeDisabled();
     });
 
@@ -431,7 +436,7 @@ describe('TemplateApplicationDialog', () => {
       const checkbox = screen.getAllByRole('checkbox')[1];
       fireEvent.click(checkbox);
 
-      const createButton = screen.getByText('Create Work Orders');
+      const createButton = screen.getByText(/Create \d+ PM Work Order/);
       fireEvent.click(createButton);
 
       await waitFor(() => {
@@ -460,13 +465,13 @@ describe('TemplateApplicationDialog', () => {
     });
 
     it('shows loading state when equipment is loading', () => {
-      vi.mocked(useEquipmentByOrganization).mockReturnValue({
+      vi.mocked(useSyncEquipmentByOrganization).mockReturnValue({
         ...mockHooks.useEquipmentByOrganization,
         data: null,
         isLoading: true,
         isSuccess: false,
         status: 'pending'
-      } as unknown as ReturnType<typeof useEquipmentByOrganization>);
+      } as unknown as ReturnType<typeof useSyncEquipmentByOrganization>);
 
       render(
         <TestProviders>
@@ -482,9 +487,9 @@ describe('TemplateApplicationDialog', () => {
     it('handles template not found', () => {
       vi.mocked(usePMTemplate).mockReturnValue({
         ...mockHooks.usePMTemplate,
-        data: null,
+        data: undefined,
         isLoading: false,
-        isSuccess: false,
+        isSuccess: true,
         status: 'success'
       } as unknown as ReturnType<typeof usePMTemplate>);
 
@@ -498,13 +503,13 @@ describe('TemplateApplicationDialog', () => {
     });
 
     it('handles no equipment available', () => {
-      vi.mocked(useEquipmentByOrganization).mockReturnValue({
+      vi.mocked(useSyncEquipmentByOrganization).mockReturnValue({
         ...mockHooks.useEquipmentByOrganization,
         data: [],
         isLoading: false,
         isSuccess: true,
         status: 'success'
-      } as unknown as ReturnType<typeof useEquipmentByOrganization>);
+      } as unknown as ReturnType<typeof useSyncEquipmentByOrganization>);
 
       render(
         <TestProviders>
@@ -512,7 +517,7 @@ describe('TemplateApplicationDialog', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('No equipment available')).toBeInTheDocument();
+      expect(screen.getByText('0 of 0 equipment selected')).toBeInTheDocument();
     });
   });
 });

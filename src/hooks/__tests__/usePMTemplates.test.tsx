@@ -231,8 +231,9 @@ describe('usePMTemplates', () => {
           template_data: []
         });
         expect.fail('Should have thrown an error');
-      } catch (_error) {
+      } catch (error) {
         // Mutation should reject and set error state
+        expect(error).toBeDefined();
         await waitFor(() => {
           expect(result.current.isError).toBe(true);
         });
@@ -253,8 +254,9 @@ describe('usePMTemplates', () => {
           template_data: []
         });
         expect.fail('Should have thrown an error');
-      } catch (_error) {
+      } catch (error) {
         // Mutation should reject and set error state
+        expect(error).toBeDefined();
         await waitFor(() => {
           expect(result.current.isError).toBe(true);
         });
@@ -318,8 +320,9 @@ describe('usePMTemplates', () => {
           updates: { name: 'Test' }
         });
         expect.fail('Should have thrown an error');
-      } catch (_error) {
+      } catch (error) {
         // Mutation should reject and set error state
+        expect(error).toBeDefined();
         await waitFor(() => {
           expect(result.current.isError).toBe(true);
         });
@@ -351,8 +354,9 @@ describe('usePMTemplates', () => {
       try {
         await result.current.mutateAsync('template-1');
         expect.fail('Should have thrown an error');
-      } catch (_error) {
+      } catch (error) {
         // Mutation should reject and set error state
+        expect(error).toBeDefined();
         await waitFor(() => {
           expect(result.current.isError).toBe(true);
         });
@@ -389,8 +393,9 @@ describe('usePMTemplates', () => {
           sourceId: 'template-1'
         });
         expect.fail('Should have thrown an error');
-      } catch (_error) {
+      } catch (error) {
         // Mutation should reject and set error state
+        expect(error).toBeDefined();
         await waitFor(() => {
           expect(result.current.isError).toBe(true);
         });

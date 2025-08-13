@@ -457,8 +457,8 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      const cloneButton = screen.getAllByText('Clone')[0];
-      fireEvent.click(cloneButton);
+      const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
+      fireEvent.click(cloneButtons[0]);
 
       await waitFor(() => {
         expect(screen.getByText('Clone Template')).toBeInTheDocument();
