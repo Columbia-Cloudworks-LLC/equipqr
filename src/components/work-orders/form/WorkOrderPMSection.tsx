@@ -9,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Wrench, Info, CheckCircle2 } from "lucide-react";
+import { Wrench, Info, CheckCircle2, Globe } from "lucide-react";
 import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 import { usePMTemplates } from '@/hooks/usePMTemplates';
+import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { generateSectionsSummary } from '@/services/pmChecklistTemplatesService';
 
 interface WorkOrderPMSectionProps {
@@ -23,7 +24,13 @@ export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
   values,
   setValue
 }) => {
-  const { data: templates = [], isLoading } = usePMTemplates();
+  const { data: allTemplates = [], isLoading } = usePMTemplates();
+  const { restrictions } = useSimplifiedOrganizationRestrictions();
+  
+  // Filter templates based on user restrictions
+  const templates = restrictions.canCreateCustomPMTemplates 
+    ? allTemplates 
+    : allTemplates.filter(t => !t.organization_id); // Only global templates for free users
   
   // Find the selected template or default to global forklift template
   const selectedTemplate = templates.find(t => t.id === values.pmTemplateId) || 
@@ -76,11 +83,19 @@ export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
                     <div className="flex items-center gap-2">
                       <span>{template.name}</span>
                       {template.organization_id === null && (
-                        <span className="text-xs text-muted-foreground">(Global)</span>
+                        <div className="flex items-center gap-1">
+                          <Globe className="w-3 h-3" />
+                          <span className="text-xs text-muted-foreground">(Global)</span>
+                        </div>
                       )}
                     </div>
                   </SelectItem>
                 ))}
+                {!restrictions.canCreateCustomPMTemplates && allTemplates.some(t => t.organization_id) && (
+                  <div className="px-2 py-1 text-xs text-muted-foreground border-t">
+                    Custom templates require user licenses
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </div>

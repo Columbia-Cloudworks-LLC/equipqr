@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { usePMTemplates, usePMTemplate, useClonePMTemplate, useDeletePMTemplate } from '@/hooks/usePMTemplates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Copy, Edit, Trash2, Wrench, Users, X, Shield, Globe } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Plus, Copy, Edit, Trash2, Wrench, Users, X, Shield, Globe, Lock } from 'lucide-react';
 import { TemplateApplicationDialog } from '@/components/pm-templates/TemplateApplicationDialog';
 import { ChecklistTemplateEditor } from '@/components/organization/ChecklistTemplateEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -20,6 +22,7 @@ interface TemplateCardProps {
   template: any;
   isOrgTemplate: boolean;
   isAdmin: boolean;
+  canCreateCustomTemplates: boolean;
   onEdit: (templateId: string) => void;
   onApply: (templateId: string) => void;
   onClone: (templateId: string) => void;
@@ -29,7 +32,8 @@ interface TemplateCardProps {
 const TemplateCard: React.FC<TemplateCardProps> = ({ 
   template, 
   isOrgTemplate, 
-  isAdmin, 
+  isAdmin,
+  canCreateCustomTemplates,
   onEdit, 
   onApply, 
   onClone, 
@@ -39,8 +43,9 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   const sections = template.sections || [];
   const totalItems = template.itemCount || 0;
 
-  const canEdit = isAdmin && isOrgTemplate && !template.is_protected;
-  const canDelete = isAdmin && isOrgTemplate && !template.is_protected;
+  const canEdit = isAdmin && isOrgTemplate && !template.is_protected && canCreateCustomTemplates;
+  const canDelete = isAdmin && isOrgTemplate && !template.is_protected && canCreateCustomTemplates;
+  const canClone = canCreateCustomTemplates;
 
   return (
     <Card className="h-full flex flex-col">
@@ -113,7 +118,10 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
               size="sm"
               onClick={() => onClone(template.id)}
               className="flex-1"
+              disabled={!canClone}
+              title={!canClone ? 'Custom PM templates require user licenses' : ''}
             >
+              {!canClone && <Lock className="mr-1 h-3 w-3" />}
               <Copy className="mr-1 h-3 w-3" />
               Clone
             </Button>
@@ -168,6 +176,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 const PMTemplates = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { hasRole } = usePermissions();
+  const { restrictions } = useSimplifiedOrganizationRestrictions();
   const { data: templates, isLoading } = usePMTemplates();
   
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
@@ -184,6 +193,7 @@ const PMTemplates = () => {
 
   // Only org admins can access this page
   const isAdmin = hasRole(['owner', 'admin']);
+  const canCreateCustomTemplates = restrictions.canCreateCustomPMTemplates;
 
   if (!currentOrganization) {
     return (
@@ -258,6 +268,9 @@ const PMTemplates = () => {
   // Separate templates into global and organization-specific
   const globalTemplates = templates?.filter(t => !t.organization_id) || [];
   const orgTemplates = templates?.filter(t => t.organization_id === currentOrganization?.id) || [];
+  
+  // For free users, show upgrade message if they try to access org templates
+  const showUpgradeMessage = !canCreateCustomTemplates && isAdmin;
 
   return (
     <div className="space-y-6">
@@ -269,12 +282,27 @@ const PMTemplates = () => {
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={handleCreateTemplate}>
+          <Button 
+            onClick={handleCreateTemplate}
+            disabled={!canCreateCustomTemplates}
+            title={!canCreateCustomTemplates ? 'Custom PM templates require user licenses' : ''}
+          >
+            {!canCreateCustomTemplates && <Lock className="mr-2 h-4 w-4" />}
             <Plus className="mr-2 h-4 w-4" />
             New Template
           </Button>
         )}
       </div>
+
+      {showUpgradeMessage && (
+        <Alert>
+          <Lock className="h-4 w-4" />
+          <AlertDescription>
+            Custom PM templates require user licenses. You can still use global templates like the Forklift PM checklist. 
+            <strong> Purchase user licenses to create, edit, and clone custom PM templates.</strong>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -308,6 +336,7 @@ const PMTemplates = () => {
                     template={template}
                     isOrgTemplate={false}
                     isAdmin={isAdmin}
+                    canCreateCustomTemplates={canCreateCustomTemplates}
                     onEdit={handleEditTemplate}
                     onApply={handleApplyTemplate}
                     onClone={handleCloneTemplate}
@@ -319,7 +348,7 @@ const PMTemplates = () => {
           )}
 
           {/* Organization Templates */}
-          {orgTemplates.length > 0 && (
+          {orgTemplates.length > 0 && canCreateCustomTemplates && (
             <div>
               <h2 className="text-xl font-semibold mb-4 flex items-center">
                 <Users className="mr-2 h-5 w-5" />
@@ -332,6 +361,7 @@ const PMTemplates = () => {
                     template={template}
                     isOrgTemplate={true}
                     isAdmin={isAdmin}
+                    canCreateCustomTemplates={canCreateCustomTemplates}
                     onEdit={handleEditTemplate}
                     onApply={handleApplyTemplate}
                     onClone={handleCloneTemplate}
@@ -348,9 +378,11 @@ const PMTemplates = () => {
             <Wrench className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Templates Available</h3>
             <p className="text-muted-foreground mb-6">
-              Create your first PM checklist template to get started.
+              {canCreateCustomTemplates 
+                ? 'Create your first PM checklist template to get started.'
+                : 'Purchase user licenses to create custom PM templates, or use the available global templates.'}
             </p>
-            {isAdmin && (
+            {isAdmin && canCreateCustomTemplates && (
               <Button onClick={handleCreateTemplate}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Template

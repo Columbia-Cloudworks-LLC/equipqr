@@ -45,6 +45,7 @@ export const useCreatePMTemplate = () => {
         throw new Error('Organization or user not found');
       }
 
+      // Note: Authorization check is handled by RLS policies in the database
       return pmChecklistTemplatesService.createTemplate({
         organizationId: currentOrganization.id,
         name: templateData.name,
@@ -63,7 +64,11 @@ export const useCreatePMTemplate = () => {
     },
     onError: (error) => {
       console.error('Error creating template:', error);
-      toast.error('Failed to create template');
+      if (error.message?.includes('insufficient privileges') || error.message?.includes('permission')) {
+        toast.error('Custom PM templates require user licenses. Please upgrade your plan.');
+      } else {
+        toast.error('Failed to create template');
+      }
     }
   });
 };
@@ -108,7 +113,11 @@ export const useUpdatePMTemplate = () => {
     },
     onError: (error) => {
       console.error('Error updating template:', error);
-      toast.error('Failed to update template');
+      if (error.message?.includes('insufficient privileges') || error.message?.includes('permission')) {
+        toast.error('Custom PM templates require user licenses. Please upgrade your plan.');
+      } else {
+        toast.error('Failed to update template');
+      }
     }
   });
 };
@@ -172,7 +181,11 @@ export const useClonePMTemplate = () => {
     },
     onError: (error) => {
       console.error('Error cloning template:', error);
-      toast.error('Failed to clone template');
+      if (error.message?.includes('insufficient privileges') || error.message?.includes('permission')) {
+        toast.error('Custom PM templates require user licenses. Please upgrade your plan.');
+      } else {
+        toast.error('Failed to clone template');
+      }
     }
   });
 };
