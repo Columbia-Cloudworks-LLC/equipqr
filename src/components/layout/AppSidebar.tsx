@@ -33,7 +33,8 @@ import {
   ChevronUp,
   LogOut,
   User,
-  HelpCircle
+  HelpCircle,
+  ClipboardCheck
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ const mainNavigation = [
 
 const managementNavigation = [
   { title: "Organization", url: "/dashboard/organization", icon: Building },
+  { title: "PM Templates", url: "/dashboard/pm-templates", icon: ClipboardCheck, adminOnly: true },
   { title: "QR Scanner", url: "/dashboard/scanner", icon: QrCode },
   { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
@@ -163,6 +165,13 @@ const AppSidebar = () => {
               <SidebarMenu>
                 {managementNavigation.map((item) => {
                   const isActive = location.pathname === item.url;
+                  const isAdmin = currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
+                  
+                  // Hide admin-only items for non-admins
+                  if (item.adminOnly && !isAdmin) {
+                    return null;
+                  }
+                  
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
