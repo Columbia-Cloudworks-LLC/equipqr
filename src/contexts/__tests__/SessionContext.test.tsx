@@ -9,21 +9,17 @@ interface MockVisibilityHook {
   mockVisibilityCallback?: (visible: boolean) => void;
 }
 
-// Mock dependencies
-const mockUseAuth = vi.fn();
-const mockUsePageVisibility = vi.fn();
-const mockUseSessionManager = vi.fn();
-
+// Mock dependencies - moved before vi.mock to avoid hoisting issues
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: mockUseAuth,
+  useAuth: vi.fn(),
 }));
 
 vi.mock('@/hooks/usePageVisibility', () => ({
-  usePageVisibility: mockUsePageVisibility,
+  usePageVisibility: vi.fn(),
 }));
 
 vi.mock('@/hooks/useSessionManager', () => ({
-  useSessionManager: mockUseSessionManager,
+  useSessionManager: vi.fn(),
 }));
 
 vi.mock('@/services/sessionStorageService', () => ({
@@ -81,8 +77,19 @@ describe('SessionContext', () => {
     initializeSession: ReturnType<typeof vi.fn>;
     shouldRefreshOnVisibility: ReturnType<typeof vi.fn>;
   };
+  let mockUseAuth: ReturnType<typeof vi.fn>;
+  let mockUsePageVisibility: ReturnType<typeof vi.fn> & MockVisibilityHook;
+  let mockUseSessionManager: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const { useAuth } = await import('@/hooks/useAuth');
+    const { usePageVisibility } = await import('@/hooks/usePageVisibility');
+    const { useSessionManager } = await import('@/hooks/useSessionManager');
+    
+    mockUseAuth = vi.mocked(useAuth);
+    mockUsePageVisibility = vi.mocked(usePageVisibility) as typeof mockUsePageVisibility;
+    mockUseSessionManager = vi.mocked(useSessionManager);
+    
     mockSessionManager = {
       switchOrganization: vi.fn(),
       refreshSession: vi.fn(),
@@ -97,7 +104,7 @@ describe('SessionContext', () => {
     mockUseAuth.mockReturnValue({ user: mockUser });
     mockUsePageVisibility.mockImplementation(({ onVisibilityChange }) => {
       // Store the callback for testing
-      (mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback = onVisibilityChange;
+      mockUsePageVisibility.mockVisibilityCallback = onVisibilityChange;
     });
     mockUseSessionManager.mockReturnValue(mockSessionManager);
   });

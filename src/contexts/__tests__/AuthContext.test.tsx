@@ -4,20 +4,18 @@ import React from 'react';
 import { AuthProvider, AuthContext } from '../AuthContext';
 import type { User, Session } from '@supabase/supabase-js';
 
-// Mock Supabase
-const mockSupabase = {
-  auth: {
-    onAuthStateChange: vi.fn(),
-    getSession: vi.fn(),
-    signUp: vi.fn(),
-    signInWithPassword: vi.fn(),
-    signInWithOAuth: vi.fn(),
-    signOut: vi.fn(),
-  },
-};
-
+// Mock Supabase - moved before vi.mock to avoid hoisting issues
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabase,
+  supabase: {
+    auth: {
+      onAuthStateChange: vi.fn(),
+      getSession: vi.fn(),
+      signUp: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signInWithOAuth: vi.fn(),
+      signOut: vi.fn(),
+    },
+  },
 }));
 
 // Mock data
@@ -41,8 +39,21 @@ const mockSession: Session = {
 describe('AuthContext', () => {
   let mockSubscription: { unsubscribe: () => void };
   let authStateChangeCallback: (event: string, session: Session | null) => void;
+  let mockSupabase: {
+    auth: {
+      onAuthStateChange: ReturnType<typeof vi.fn>;
+      getSession: ReturnType<typeof vi.fn>;
+      signUp: ReturnType<typeof vi.fn>;
+      signInWithPassword: ReturnType<typeof vi.fn>;
+      signInWithOAuth: ReturnType<typeof vi.fn>;
+      signOut: ReturnType<typeof vi.fn>;
+    };
+  };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    mockSupabase = supabase as unknown as typeof mockSupabase;
+    
     mockSubscription = { unsubscribe: vi.fn() };
     
     mockSupabase.auth.onAuthStateChange.mockImplementation((callback) => {

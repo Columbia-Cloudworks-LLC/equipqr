@@ -3,14 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import SignInForm from '../SignInForm';
 
-// Mock useAuth hook
+// Mock useAuth hook - moved before vi.mock to avoid hoisting issues
 const mockSignIn = vi.fn();
-const mockUseAuth = vi.fn(() => ({
-  signIn: mockSignIn,
-}));
 
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: mockUseAuth,
+  useAuth: () => ({
+    signIn: mockSignIn,
+  }),
 }));
 
 describe('SignInForm', () => {

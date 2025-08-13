@@ -6,47 +6,39 @@ interface TestableBackgroundSyncService {
   instance?: BackgroundSyncService;
 }
 
-// Mock dependencies
-const mockSupabase = {
-  channel: vi.fn(),
-  removeChannel: vi.fn(),
-};
-
-const mockCacheManager = {
-  invalidateOrganizationData: vi.fn(),
-  invalidateEquipmentRelated: vi.fn(),
-  invalidateWorkOrderRelated: vi.fn(),
-  invalidateTeamRelated: vi.fn(),
-  invalidateOrganizationMemberRelated: vi.fn(),
-  invalidateOrganizationSlotRelated: vi.fn(),
-  invalidateOrganizationInvitationRelated: vi.fn(),
-};
-
-const mockPerformanceMonitor = {
-  startTimer: vi.fn(() => vi.fn()),
-  recordMetric: vi.fn(),
-};
-
-const mockLogger = {
-  debug: vi.fn(),
-  info: vi.fn(),
-  error: vi.fn(),
-};
-
+// Mock dependencies - moved before vi.mock to avoid hoisting issues
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabase,
+  supabase: {
+    channel: vi.fn(),
+    removeChannel: vi.fn(),
+  },
 }));
 
 vi.mock('../cacheManager', () => ({
-  cacheManager: mockCacheManager,
+  cacheManager: {
+    invalidateOrganizationData: vi.fn(),
+    invalidateEquipmentRelated: vi.fn(),
+    invalidateWorkOrderRelated: vi.fn(),
+    invalidateTeamRelated: vi.fn(),
+    invalidateOrganizationMemberRelated: vi.fn(),
+    invalidateOrganizationSlotRelated: vi.fn(),
+    invalidateOrganizationInvitationRelated: vi.fn(),
+  },
 }));
 
 vi.mock('@/utils/performanceMonitoring', () => ({
-  performanceMonitor: mockPerformanceMonitor,
+  performanceMonitor: {
+    startTimer: vi.fn(() => vi.fn()),
+    recordMetric: vi.fn(),
+  },
 }));
 
 vi.mock('@/utils/logger', () => ({
-  logger: mockLogger,
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 describe('BackgroundSyncService', () => {
@@ -55,9 +47,35 @@ describe('BackgroundSyncService', () => {
     on: ReturnType<typeof vi.fn>;
     subscribe: ReturnType<typeof vi.fn>;
   };
+  let mockSupabase: {
+    channel: ReturnType<typeof vi.fn>;
+    removeChannel: ReturnType<typeof vi.fn>;
+  };
+  let mockCacheManager: {
+    invalidateOrganizationData: ReturnType<typeof vi.fn>;
+    invalidateEquipmentRelated: ReturnType<typeof vi.fn>;
+    invalidateWorkOrderRelated: ReturnType<typeof vi.fn>;
+    invalidateTeamRelated: ReturnType<typeof vi.fn>;
+    invalidateOrganizationMemberRelated: ReturnType<typeof vi.fn>;
+    invalidateOrganizationSlotRelated: ReturnType<typeof vi.fn>;
+    invalidateOrganizationInvitationRelated: ReturnType<typeof vi.fn>;
+  };
+  let mockLogger: {
+    debug: ReturnType<typeof vi.fn>;
+    info: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+  };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    
+    // Get mocked modules
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { cacheManager } = await import('../cacheManager');
+    const { logger } = await import('@/utils/logger');
+    mockSupabase = supabase as unknown as typeof mockSupabase;
+    mockCacheManager = cacheManager as unknown as typeof mockCacheManager;
+    mockLogger = logger as unknown as typeof mockLogger;
     
     // Reset singleton instance
     (BackgroundSyncService as unknown as TestableBackgroundSyncService).instance = undefined;

@@ -3,16 +3,6 @@ import { QueryClient } from '@tanstack/react-query';
 import { CacheManager } from '../cacheManager';
 
 // Type definitions for mocks
-interface MockQueryClient {
-  invalidateQueries: ReturnType<typeof vi.fn>;
-  cancelQueries: ReturnType<typeof vi.fn>;
-  getQueryData: ReturnType<typeof vi.fn>;
-  setQueryData: ReturnType<typeof vi.fn>;
-  prefetchQuery: ReturnType<typeof vi.fn>;
-  getQueryCache: ReturnType<typeof vi.fn>;
-  removeQueries: ReturnType<typeof vi.fn>;
-  clear: ReturnType<typeof vi.fn>;
-}
 
 interface TestableCacheManager {
   instance?: CacheManager;
