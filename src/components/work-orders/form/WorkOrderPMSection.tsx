@@ -17,24 +17,46 @@ import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrga
 interface WorkOrderPMSectionProps {
   values: WorkOrderFormData & { pmTemplateId?: string };
   setValue: (field: keyof (WorkOrderFormData & { pmTemplateId?: string }), value: string | boolean | null) => void;
+  selectedEquipment?: { 
+    id: string; 
+    name: string; 
+    default_pm_template_id?: string | null;
+  } | null;
 }
 
 export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
   values,
-  setValue
+  setValue,
+  selectedEquipment
 }) => {
   const { data: allTemplates = [], isLoading } = usePMTemplates();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
   
-  // Filter templates based on user restrictions
-  const templates = restrictions.canCreateCustomPMTemplates 
-    ? allTemplates 
-    : allTemplates.filter(t => !t.organization_id); // Only global templates for free users
+  // Check if equipment has an assigned template
+  const hasAssignedTemplate = selectedEquipment?.default_pm_template_id;
+  const assignedTemplate = hasAssignedTemplate 
+    ? allTemplates.find(t => t.id === selectedEquipment.default_pm_template_id)
+    : null;
   
-  // Find the selected template or default to global forklift template
-  const selectedTemplate = templates.find(t => t.id === values.pmTemplateId) || 
+  // Filter templates based on user restrictions (only if no assigned template)
+  const templates = !hasAssignedTemplate 
+    ? (restrictions.canCreateCustomPMTemplates 
+        ? allTemplates 
+        : allTemplates.filter(t => !t.organization_id)) // Only global templates for free users
+    : [];
+  
+  // Find the selected template
+  const selectedTemplate = assignedTemplate || 
+                          templates.find(t => t.id === values.pmTemplateId) || 
                           templates.find(t => t.name === 'Forklift PM (Default)') || 
                           templates[0];
+  
+  // Auto-set assigned template when equipment is selected
+  React.useEffect(() => {
+    if (hasAssignedTemplate && assignedTemplate && values.hasPM) {
+      setValue('pmTemplateId', assignedTemplate.id);
+    }
+  }, [hasAssignedTemplate, assignedTemplate, values.hasPM, setValue]);
 
   const handleTemplateChange = (templateId: string) => {
     setValue('pmTemplateId', templateId);
@@ -68,35 +90,48 @@ export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
           {/* Template Selector */}
           <div className="space-y-2">
             <Label htmlFor="pmTemplate">Checklist Template</Label>
-            <Select
-              value={values.pmTemplateId || selectedTemplate?.id || ''}
-              onValueChange={handleTemplateChange}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a checklist template..." />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{template.name}</span>
-                      {template.organization_id === null && (
-                        <div className="flex items-center gap-1">
-                          <Globe className="w-3 h-3" />
-                          <span className="text-xs text-muted-foreground">(Global)</span>
-                        </div>
-                      )}
+            {hasAssignedTemplate && assignedTemplate ? (
+              <div className="p-3 border rounded-lg bg-primary/5">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-primary" />
+                  <span className="font-medium">{assignedTemplate.name}</span>
+                  <span className="text-xs text-muted-foreground">(Assigned to {selectedEquipment?.name})</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This equipment uses the assigned PM template. Template selection is not available.
+                </p>
+              </div>
+            ) : (
+              <Select
+                value={values.pmTemplateId || selectedTemplate?.id || ''}
+                onValueChange={handleTemplateChange}
+                disabled={isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a checklist template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{template.name}</span>
+                        {template.organization_id === null && (
+                          <div className="flex items-center gap-1">
+                            <Globe className="w-3 h-3" />
+                            <span className="text-xs text-muted-foreground">(Global)</span>
+                          </div>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                  {!restrictions.canCreateCustomPMTemplates && allTemplates.some(t => t.organization_id) && (
+                    <div className="px-2 py-1 text-xs text-muted-foreground border-t">
+                      Custom templates require user licenses
                     </div>
-                  </SelectItem>
-                ))}
-                {!restrictions.canCreateCustomPMTemplates && allTemplates.some(t => t.organization_id) && (
-                  <div className="px-2 py-1 text-xs text-muted-foreground border-t">
-                    Custom templates require user licenses
-                  </div>
-                )}
-              </SelectContent>
-            </Select>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           
           {/* Template Preview */}

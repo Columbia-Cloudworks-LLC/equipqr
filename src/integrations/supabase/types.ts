@@ -150,6 +150,7 @@ export type Database = {
         Row: {
           created_at: string
           custom_attributes: Json | null
+          default_pm_template_id: string | null
           id: string
           image_url: string | null
           installation_date: string
@@ -171,6 +172,7 @@ export type Database = {
         Insert: {
           created_at?: string
           custom_attributes?: Json | null
+          default_pm_template_id?: string | null
           id?: string
           image_url?: string | null
           installation_date: string
@@ -192,6 +194,7 @@ export type Database = {
         Update: {
           created_at?: string
           custom_attributes?: Json | null
+          default_pm_template_id?: string | null
           id?: string
           image_url?: string | null
           installation_date?: string
@@ -211,6 +214,13 @@ export type Database = {
           working_hours?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "equipment_default_pm_template_id_fkey"
+            columns: ["default_pm_template_id"]
+            isOneToOne: false
+            referencedRelation: "pm_checklist_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "equipment_organization_id_fkey"
             columns: ["organization_id"]

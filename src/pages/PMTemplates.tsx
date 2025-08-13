@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock } from 'lucide-react';
-import { TemplateApplicationDialog } from '@/components/pm-templates/TemplateApplicationDialog';
+import { TemplateAssignmentDialog } from '@/components/pm-templates/TemplateAssignmentDialog';
 import { ChecklistTemplateEditor } from '@/components/organization/ChecklistTemplateEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -411,7 +411,7 @@ const PMTemplates = () => {
       )}
 
       {templateToApply && (
-        <TemplateApplicationDialog
+        <TemplateAssignmentDialog
           templateId={templateToApply}
           open={!!templateToApply}
           onClose={handleCloseApplication}

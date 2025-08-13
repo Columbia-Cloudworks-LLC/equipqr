@@ -37,7 +37,8 @@ export const equipmentFormSchema = z.object({
   custom_attributes: customAttributesSchema,
   image_url: z.string().optional(),
   last_known_location: locationSchema,
-  team_id: z.string().optional()
+  team_id: z.string().optional(),
+  default_pm_template_id: z.string().optional()
 });
 
 // Function to create context-aware validation
@@ -98,4 +99,5 @@ export interface EquipmentRecord {
   updated_at?: string;
   // Optional app-specific fields
   working_hours?: number;
+  default_pm_template_id?: string | null;
 }
