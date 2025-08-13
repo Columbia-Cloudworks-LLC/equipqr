@@ -1,9 +1,19 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest';
-import { createMockSupabaseClient } from '@/test/utils/mock-supabase';
 
 // Mock Supabase with factory function to avoid hoisting issues
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: createMockSupabaseClient()
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      single: vi.fn(),
+      then: vi.fn()
+    }))
+  }
 }));
 
 // Import after mock is established
@@ -14,6 +24,7 @@ import {
   PMTemplate 
 } from '../pmChecklistTemplatesService';
 import { PMChecklistItem } from '../preventativeMaintenanceService';
+import { supabase } from '@/integrations/supabase/client';
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn(() => 'mock-id')
@@ -43,14 +54,23 @@ const mockTemplate: PMTemplate = {
 };
 
 describe('pmChecklistTemplatesService', () => {
-  let mockFromChain: any;
-  let mockSupabaseClient: ReturnType<typeof createMockSupabaseClient>;
+  let mockFromChain: ReturnType<typeof supabase.from>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Create fresh mock client for each test
-    mockSupabaseClient = createMockSupabaseClient();
-    mockFromChain = mockSupabaseClient.from();
+    // Create fresh mock chain for each test
+    mockFromChain = {
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      single: vi.fn(),
+      then: vi.fn()
+    };
+    
+    vi.mocked(supabase.from).mockReturnValue(mockFromChain);
   });
 
   describe('listTemplates', () => {
@@ -66,7 +86,7 @@ describe('pmChecklistTemplatesService', () => {
 
       const result = await pmChecklistTemplatesService.listTemplates('org-1');
       
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('pm_checklist_templates');
+      expect(supabase.from).toHaveBeenCalledWith('pm_checklist_templates');
       expect(result).toEqual([mockTemplate]);
     });
 
@@ -93,7 +113,7 @@ describe('pmChecklistTemplatesService', () => {
 
       const result = await pmChecklistTemplatesService.getTemplate('template-1');
       
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('pm_checklist_templates');
+      expect(supabase.from).toHaveBeenCalledWith('pm_checklist_templates');
       expect(mockFromChain.eq).toHaveBeenCalledWith('id', 'template-1');
       expect(result).toEqual(mockTemplate);
     });
@@ -137,7 +157,7 @@ describe('pmChecklistTemplatesService', () => {
 
       const result = await pmChecklistTemplatesService.createTemplate(templateData);
       
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('pm_checklist_templates');
+      expect(supabase.from).toHaveBeenCalledWith('pm_checklist_templates');
       expect(mockFromChain.insert).toHaveBeenCalled();
       expect(result.id).toBe('new-template-id');
     });
@@ -164,7 +184,7 @@ describe('pmChecklistTemplatesService', () => {
       await pmChecklistTemplatesService.createTemplate(templateData);
       
       // Verify the insert call sanitized the data
-      const insertCall = mockFromChain.insert.mock.calls[0][0];
+      const insertCall = vi.mocked(mockFromChain.insert).mock.calls[0][0];
       expect(insertCall.template_data[0].condition).toBeNull();
       expect(insertCall.template_data[0].notes).toBe('');
     });
@@ -184,7 +204,7 @@ describe('pmChecklistTemplatesService', () => {
 
       const result = await pmChecklistTemplatesService.updateTemplate('template-1', updates);
       
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('pm_checklist_templates');
+      expect(supabase.from).toHaveBeenCalledWith('pm_checklist_templates');
       expect(mockFromChain.update).toHaveBeenCalled();
       expect(mockFromChain.eq).toHaveBeenCalledWith('id', 'template-1');
       expect(result.name).toBe('Updated Template');
@@ -210,7 +230,7 @@ describe('pmChecklistTemplatesService', () => {
       await pmChecklistTemplatesService.updateTemplate('template-1', updates);
       
       // Verify the update call sanitized the data
-      const updateCall = mockFromChain.update.mock.calls[0][0];
+      const updateCall = vi.mocked(mockFromChain.update).mock.calls[0][0];
       expect(updateCall.template_data[0].condition).toBeNull();
       expect(updateCall.template_data[0].notes).toBe('');
     });
@@ -228,7 +248,7 @@ describe('pmChecklistTemplatesService', () => {
 
       await pmChecklistTemplatesService.deleteTemplate('template-1');
       
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('pm_checklist_templates');
+      expect(supabase.from).toHaveBeenCalledWith('pm_checklist_templates');
       expect(mockFromChain.delete).toHaveBeenCalled();
       expect(mockFromChain.eq).toHaveBeenCalledWith('id', 'template-1');
     });

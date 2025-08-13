@@ -3,11 +3,11 @@ import { render, screen } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 import PMProgressIndicator from '../PMProgressIndicator';
 import { TestProviders } from '@/test/utils/TestProviders';
+import { usePMByWorkOrderId } from '@/hooks/usePMData';
 
-// Mock hooks
-const mockUsePMByWorkOrderId = vi.fn();
+// Mock hooks - using factory function to avoid hoisting issues
 vi.mock('@/hooks/usePMData', () => ({
-  usePMByWorkOrderId: mockUsePMByWorkOrderId,
+  usePMByWorkOrderId: vi.fn(),
 }));
 
 const mockPMData = {
@@ -40,6 +40,31 @@ const mockPMData = {
   ]
 };
 
+const createMockQueryResult = (data: any) => ({
+  data,
+  isLoading: false,
+  isError: false,
+  isPending: false,
+  error: null,
+  status: 'success' as const,
+  isSuccess: true,
+  isFetching: false,
+  isRefetching: false,
+  refetch: vi.fn(),
+  fetchStatus: 'idle' as const,
+  isLoadingError: false,
+  isRefetchError: false,
+  dataUpdatedAt: Date.now(),
+  errorUpdatedAt: 0,
+  failureCount: 0,
+  failureReason: null,
+  isStale: false,
+  isPlaceholderData: false,
+  isPreviousData: false,
+  isInitialLoading: false,
+  remove: vi.fn()
+} as any);
+
 describe('PMProgressIndicator', () => {
   const defaultProps = {
     workOrderId: 'wo-1',
@@ -48,6 +73,9 @@ describe('PMProgressIndicator', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Get the mocked function
+    const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+    mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(null));
   });
 
   describe('No PM Required', () => {
@@ -62,10 +90,8 @@ describe('PMProgressIndicator', () => {
     });
 
     it('shows nothing when PM data is null', () => {
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: null,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(null));
 
       const { container } = render(
         <TestProviders>
@@ -79,10 +105,8 @@ describe('PMProgressIndicator', () => {
 
   describe('PM Required Badge', () => {
     it('shows PM Required badge with progress bar', () => {
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: mockPMData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(mockPMData));
 
       render(
         <TestProviders>
@@ -95,10 +119,8 @@ describe('PMProgressIndicator', () => {
     });
 
     it('calculates completion percentage correctly', () => {
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: mockPMData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(mockPMData));
 
       render(
         <TestProviders>
@@ -135,10 +157,8 @@ describe('PMProgressIndicator', () => {
         ]
       };
 
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: incompletePMData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(incompletePMData));
 
       render(
         <TestProviders>
@@ -157,10 +177,8 @@ describe('PMProgressIndicator', () => {
         checklist_data: []
       };
 
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: emptyPMData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(emptyPMData));
 
       render(
         <TestProviders>
@@ -198,10 +216,8 @@ describe('PMProgressIndicator', () => {
         ]
       };
 
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: completePMData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(completePMData));
 
       render(
         <TestProviders>
@@ -228,10 +244,8 @@ describe('PMProgressIndicator', () => {
         ]
       };
 
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: completePMData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(completePMData));
 
       render(
         <TestProviders>
@@ -252,10 +266,8 @@ describe('PMProgressIndicator', () => {
         checklist_data: null
       };
 
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: nullChecklistData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(nullChecklistData));
 
       render(
         <TestProviders>
@@ -272,10 +284,8 @@ describe('PMProgressIndicator', () => {
         checklist_data: undefined
       };
 
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: undefinedChecklistData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(undefinedChecklistData));
 
       render(
         <TestProviders>
@@ -297,10 +307,8 @@ describe('PMProgressIndicator', () => {
         ]
       };
 
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: mixedData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(mixedData));
 
       render(
         <TestProviders>
@@ -317,10 +325,8 @@ describe('PMProgressIndicator', () => {
 
   describe('Progress Bar Styling', () => {
     it('applies correct progress bar width', () => {
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: mockPMData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(mockPMData));
 
       render(
         <TestProviders>
@@ -335,10 +341,8 @@ describe('PMProgressIndicator', () => {
 
   describe('Accessibility', () => {
     it('provides proper ARIA attributes for progress bar', () => {
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: mockPMData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(mockPMData));
 
       render(
         <TestProviders>
@@ -353,10 +357,8 @@ describe('PMProgressIndicator', () => {
     });
 
     it('provides descriptive text for screen readers', () => {
-      mockUsePMByWorkOrderId.mockReturnValue({
-        data: mockPMData,
-        isLoading: false
-      });
+      const mockUsePMByWorkOrderId = vi.mocked(usePMByWorkOrderId);
+      mockUsePMByWorkOrderId.mockReturnValue(createMockQueryResult(mockPMData));
 
       render(
         <TestProviders>
