@@ -135,7 +135,7 @@ describe('AuthContext', () => {
   it('should handle pending redirect after sign-in', async () => {
     const mockRedirectUrl = 'http://localhost:3000/equipment/123';
     const mockSetTimeout = vi.fn();
-    global.setTimeout = mockSetTimeout as any;
+    global.setTimeout = mockSetTimeout as unknown as typeof setTimeout;
 
     window.sessionStorage.getItem = vi.fn().mockReturnValue(mockRedirectUrl);
     window.sessionStorage.removeItem = vi.fn();

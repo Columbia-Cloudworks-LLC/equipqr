@@ -4,6 +4,11 @@ import React from 'react';
 import { SessionProvider, SessionContext } from '../SessionContext';
 import type { SessionData, SessionOrganization } from '../SessionContext';
 
+// Type definitions for mocks
+interface MockVisibilityHook {
+  mockVisibilityCallback?: (visible: boolean) => void;
+}
+
 // Mock dependencies
 const mockUseAuth = vi.fn();
 const mockUsePageVisibility = vi.fn();
@@ -92,7 +97,7 @@ describe('SessionContext', () => {
     mockUseAuth.mockReturnValue({ user: mockUser });
     mockUsePageVisibility.mockImplementation(({ onVisibilityChange }) => {
       // Store the callback for testing
-      (mockUsePageVisibility as any).mockVisibilityCallback = onVisibilityChange;
+      (mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback = onVisibilityChange;
     });
     mockUseSessionManager.mockReturnValue(mockSessionManager);
   });
@@ -202,8 +207,8 @@ describe('SessionContext', () => {
     );
 
     // Simulate visibility change
-    if ((mockUsePageVisibility as any).mockVisibilityCallback) {
-      (mockUsePageVisibility as any).mockVisibilityCallback(true);
+    if ((mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback) {
+      (mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback(true);
     }
 
     expect(mockSessionManager.shouldRefreshOnVisibility).toHaveBeenCalledWith(true);
@@ -222,8 +227,8 @@ describe('SessionContext', () => {
     mockSessionManager.refreshSession.mockClear();
 
     // Simulate visibility change
-    if ((mockUsePageVisibility as any).mockVisibilityCallback) {
-      (mockUsePageVisibility as any).mockVisibilityCallback(true);
+    if ((mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback) {
+      (mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback(true);
     }
 
     expect(mockSessionManager.shouldRefreshOnVisibility).toHaveBeenCalledWith(true);

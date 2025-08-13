@@ -8,7 +8,7 @@ class TestService extends BaseService {
   }
 
   // Public methods to test protected methods
-  public testHandleError(error: any): ApiResponse<null> {
+  public testHandleError(error: unknown): ApiResponse<null> {
     return this.handleError(error);
   }
 

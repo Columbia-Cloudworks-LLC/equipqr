@@ -2,6 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { CacheManager } from '../cacheManager';
 
+// Type definitions for mocks
+interface MockQueryClient {
+  invalidateQueries: ReturnType<typeof vi.fn>;
+  cancelQueries: ReturnType<typeof vi.fn>;
+  getQueryData: ReturnType<typeof vi.fn>;
+  setQueryData: ReturnType<typeof vi.fn>;
+  prefetchQuery: ReturnType<typeof vi.fn>;
+  getQueryCache: ReturnType<typeof vi.fn>;
+  removeQueries: ReturnType<typeof vi.fn>;
+  clear: ReturnType<typeof vi.fn>;
+}
+
+interface TestableCacheManager {
+  instance?: CacheManager;
+}
+
 describe('CacheManager', () => {
   let cacheManager: CacheManager;
   let mockQueryClient: QueryClient;
@@ -10,7 +26,7 @@ describe('CacheManager', () => {
     vi.clearAllMocks();
     
     // Reset singleton instance
-    (CacheManager as any).instance = undefined;
+    (CacheManager as unknown as TestableCacheManager).instance = undefined;
     
     // Create mock query client
     mockQueryClient = {
@@ -24,7 +40,7 @@ describe('CacheManager', () => {
       })),
       removeQueries: vi.fn(),
       clear: vi.fn(),
-    } as any;
+    } as unknown as QueryClient;
 
     cacheManager = CacheManager.getInstance();
     cacheManager.setQueryClient(mockQueryClient);
@@ -69,7 +85,7 @@ describe('CacheManager', () => {
 
     it('should handle missing query client gracefully', () => {
       const newCacheManager = CacheManager.getInstance();
-      newCacheManager.setQueryClient(null as any);
+      newCacheManager.setQueryClient(null as unknown as QueryClient);
 
       expect(() => {
         newCacheManager.invalidateOrganizationData(organizationId);
@@ -190,7 +206,7 @@ describe('CacheManager', () => {
       const mutationFn = vi.fn().mockResolvedValue(undefined);
       const updater = vi.fn().mockReturnValue(newData);
 
-      (mockQueryClient.getQueryData as any).mockReturnValue(oldData);
+      (mockQueryClient.getQueryData as ReturnType<typeof vi.fn>).mockReturnValue(oldData);
 
       await cacheManager.optimisticUpdate(queryKey, updater, mutationFn);
 
@@ -207,7 +223,7 @@ describe('CacheManager', () => {
       const mutationFn = vi.fn().mockRejectedValue(mutationError);
       const updater = vi.fn().mockReturnValue(newData);
 
-      (mockQueryClient.getQueryData as any).mockReturnValue(oldData);
+      (mockQueryClient.getQueryData as ReturnType<typeof vi.fn>).mockReturnValue(oldData);
 
       await expect(
         cacheManager.optimisticUpdate(queryKey, updater, mutationFn)
@@ -255,7 +271,7 @@ describe('CacheManager', () => {
 
       mockQueryClient.getQueryCache = vi.fn(() => ({
         getAll: () => mockQueries,
-      })) as any;
+      })) as ReturnType<typeof vi.fn>;
 
       const stats = cacheManager.getCacheStats();
 
@@ -270,7 +286,7 @@ describe('CacheManager', () => {
 
     it('should return null when no query client', () => {
       const newCacheManager = CacheManager.getInstance();
-      newCacheManager.setQueryClient(null as any);
+      newCacheManager.setQueryClient(null as unknown as QueryClient);
 
       const stats = newCacheManager.getCacheStats();
       expect(stats).toBe(null);
@@ -295,7 +311,7 @@ describe('CacheManager', () => {
     it('should handle pattern matching correctly', () => {
       cacheManager.clearCache('equipment');
 
-      const predicateFunction = (mockQueryClient.removeQueries as any).mock.calls[0][0].predicate;
+      const predicateFunction = (mockQueryClient.removeQueries as ReturnType<typeof vi.fn>).mock.calls[0][0].predicate;
       
       // Test the predicate function
       const equipmentQuery = { queryKey: ['equipment-optimized', 'org-1'] };

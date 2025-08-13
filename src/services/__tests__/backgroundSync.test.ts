@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BackgroundSyncService } from '../backgroundSync';
 
+// Type definitions for testable singleton
+interface TestableBackgroundSyncService {
+  instance?: BackgroundSyncService;
+}
+
 // Mock dependencies
 const mockSupabase = {
   channel: vi.fn(),
@@ -55,7 +60,7 @@ describe('BackgroundSyncService', () => {
     vi.clearAllMocks();
     
     // Reset singleton instance
-    (BackgroundSyncService as any).instance = undefined;
+    (BackgroundSyncService as unknown as TestableBackgroundSyncService).instance = undefined;
     
     mockChannel = {
       on: vi.fn().mockReturnThis(),
@@ -73,7 +78,7 @@ describe('BackgroundSyncService', () => {
     // Mock window event listeners
     global.addEventListener = vi.fn();
     global.removeEventListener = vi.fn();
-    global.setInterval = vi.fn() as any;
+    global.setInterval = vi.fn() as unknown as typeof setInterval;
     global.clearInterval = vi.fn();
 
     service = BackgroundSyncService.getInstance();
