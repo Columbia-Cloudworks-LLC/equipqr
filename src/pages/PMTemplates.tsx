@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
-import { usePMTemplates } from '@/hooks/usePMTemplates';
+import { usePMTemplates, usePMTemplate } from '@/hooks/usePMTemplates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Copy, Edit, Trash2, Wrench, Users } from 'lucide-react';
-import { ChecklistTemplateEditor } from '@/components/organization/ChecklistTemplateEditor';
+import { Plus, Copy, Edit, Trash2, Wrench, Users, X } from 'lucide-react';
 import { TemplateApplicationDialog } from '@/components/pm-templates/TemplateApplicationDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
@@ -16,9 +15,11 @@ const PMTemplates = () => {
   const { hasRole } = usePermissions();
   const { data: templates, isLoading } = usePMTemplates();
   
-  const [showEditor, setShowEditor] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [templateToApply, setTemplateToApply] = useState<string | null>(null);
+
+  // Fetch the template being edited
+  const { data: templateToEdit } = usePMTemplate(editingTemplate || '');
 
   // Only org admins can access this page
   const isAdmin = hasRole(['owner', 'admin']);
@@ -50,17 +51,14 @@ const PMTemplates = () => {
   }
 
   const handleCreateTemplate = () => {
-    setEditingTemplate(null);
-    setShowEditor(true);
+    setEditingTemplate('new');
   };
 
   const handleEditTemplate = (templateId: string) => {
     setEditingTemplate(templateId);
-    setShowEditor(true);
   };
 
   const handleCloseEditor = () => {
-    setShowEditor(false);
     setEditingTemplate(null);
   };
 
@@ -174,9 +172,13 @@ const PMTemplates = () => {
         </Card>
       )}
 
-      <ChecklistTemplateEditor
-        templateId={editingTemplate}
-      />
+      {editingTemplate && (
+        <TemplateEditor
+          template={editingTemplate === 'new' ? null : templateToEdit}
+          onSave={handleCloseEditor}
+          onCancel={handleCloseEditor}
+        />
+      )}
 
       {templateToApply && (
         <TemplateApplicationDialog
@@ -185,6 +187,43 @@ const PMTemplates = () => {
           onClose={handleCloseApplication}
         />
       )}
+    </div>
+  );
+};
+
+// Template editor wrapper component
+interface TemplateEditorProps {
+  template?: any;
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onSave, onCancel }) => {
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-auto bg-background border rounded-lg shadow-lg p-6">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">
+              {template ? 'Edit Template' : 'Create New Template'}
+            </h2>
+            <Button variant="outline" size="icon" onClick={onCancel}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* For now, show a simple placeholder */}
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">
+              Template editor will be implemented here.
+            </p>
+            <div className="flex gap-2 justify-center mt-4">
+              <Button onClick={onSave}>Save Template</Button>
+              <Button variant="outline" onClick={onCancel}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
