@@ -192,7 +192,7 @@ describe('ChecklistTemplateEditor', () => {
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
 
-      expect(mockHooks.useCreatePMTemplate.mutate).toHaveBeenCalledWith({
+      expect(mockHooks.useCreatePMTemplate.mutateAsync).toHaveBeenCalledWith({
         name: 'New Template',
         description: 'New description',
         template_data: expect.arrayContaining([
@@ -227,7 +227,7 @@ describe('ChecklistTemplateEditor', () => {
       const saveButton = screen.getByText('Update Template');
       fireEvent.click(saveButton);
 
-      expect(mockHooks.useUpdatePMTemplate.mutate).toHaveBeenCalledWith({
+      expect(mockHooks.useUpdatePMTemplate.mutateAsync).toHaveBeenCalledWith({
         templateId: 'template-1',
         updates: {
           name: 'Updated Template',
@@ -238,14 +238,12 @@ describe('ChecklistTemplateEditor', () => {
     });
 
     it('calls onSave after successful submission', async () => {
-      // Mock successful creation
-      const mockMutate = vi.fn((data, options) => {
-        options?.onSuccess?.();
-      });
+      // Mock successful creation with mutateAsync
+      const mockMutateAsync = vi.fn().mockResolvedValue(mockTemplate);
 
       vi.mocked(useCreatePMTemplate).mockReturnValue({
         ...mockHooks.useCreatePMTemplate,
-        mutate: mockMutate
+        mutateAsync: mockMutateAsync
       } as unknown as ReturnType<typeof useCreatePMTemplate>);
 
       render(
@@ -270,7 +268,10 @@ describe('ChecklistTemplateEditor', () => {
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
 
-      expect(defaultProps.onSave).toHaveBeenCalled();
+      // Wait for async operation
+      await vi.waitFor(() => {
+        expect(defaultProps.onSave).toHaveBeenCalled();
+      });
     });
   });
 

@@ -1,12 +1,9 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 import { createMockSupabaseClient } from '@/test/utils/mock-supabase';
 
-// Create mock client instance
-const mockSupabaseClient = createMockSupabaseClient();
-
-// Mock Supabase first, before importing anything that depends on it
+// Mock Supabase with factory function to avoid hoisting issues
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabaseClient
+  supabase: createMockSupabaseClient()
 }));
 
 // Import after mock is established
@@ -47,10 +44,12 @@ const mockTemplate: PMTemplate = {
 
 describe('pmChecklistTemplatesService', () => {
   let mockFromChain: any;
+  let mockSupabaseClient: ReturnType<typeof createMockSupabaseClient>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Get fresh mock chain for each test
+    // Create fresh mock client for each test
+    mockSupabaseClient = createMockSupabaseClient();
     mockFromChain = mockSupabaseClient.from();
   });
 

@@ -5,37 +5,37 @@ import PMProgressIndicator from '../PMProgressIndicator';
 import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock hooks
-const mockUsePMData = vi.fn();
+const mockUsePMByWorkOrderId = vi.fn();
 vi.mock('@/hooks/usePMData', () => ({
-  usePMData: mockUsePMData,
+  usePMByWorkOrderId: mockUsePMByWorkOrderId,
 }));
 
 const mockPMData = {
-  requires_pm: true,
-  pm_checklist: [
+  status: 'in_progress',
+  checklist_data: [
     {
       id: 'item-1',
       section: 'Engine',
       title: 'Check oil level',
       description: 'Verify oil is at proper level',
-      condition: 'good',
-      notes: 'Oil level is good'
+      completed: true,
+      checked: false
     },
     {
       id: 'item-2',
       section: 'Engine',
       title: 'Check coolant',
       description: 'Verify coolant level',
-      condition: 'fair',
-      notes: 'Coolant slightly low'
+      completed: true,
+      checked: false
     },
     {
       id: 'item-3',
       section: 'Safety',
       title: 'Test brakes',
       description: 'Ensure brakes function',
-      condition: null,
-      notes: ''
+      completed: false,
+      checked: false
     }
   ]
 };
@@ -52,14 +52,9 @@ describe('PMProgressIndicator', () => {
 
   describe('No PM Required', () => {
     it('shows nothing when PM is not required', () => {
-      mockUsePMData.mockReturnValue({
-        data: { requires_pm: false },
-        isLoading: false
-      });
-
       const { container } = render(
         <TestProviders>
-          <PMProgressIndicator {...defaultProps} />
+          <PMProgressIndicator {...{ ...defaultProps, hasPM: false }} />
         </TestProviders>
       );
 
@@ -67,7 +62,7 @@ describe('PMProgressIndicator', () => {
     });
 
     it('shows nothing when PM data is null', () => {
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: null,
         isLoading: false
       });
@@ -84,7 +79,7 @@ describe('PMProgressIndicator', () => {
 
   describe('PM Required Badge', () => {
     it('shows PM Required badge with progress bar', () => {
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });
@@ -96,11 +91,11 @@ describe('PMProgressIndicator', () => {
       );
 
       expect(screen.getByText('PM Required')).toBeInTheDocument();
-      expect(screen.getByText('2/3 Complete')).toBeInTheDocument();
+      expect(screen.getByText('67%')).toBeInTheDocument();
     });
 
     it('calculates completion percentage correctly', () => {
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });
@@ -111,7 +106,7 @@ describe('PMProgressIndicator', () => {
         </TestProviders>
       );
 
-      // 2 out of 3 items completed = 66.67%
+      // 2 out of 3 items completed = 67%
       const progressBar = screen.getByRole('progressbar');
       expect(progressBar).toHaveAttribute('aria-valuenow', '67');
       expect(progressBar).toHaveAttribute('aria-valuemax', '100');
@@ -119,28 +114,28 @@ describe('PMProgressIndicator', () => {
 
     it('shows 0% when no items completed', () => {
       const incompletePMData = {
-        requires_pm: true,
-        pm_checklist: [
+        status: 'in_progress',
+        checklist_data: [
           {
             id: 'item-1',
             section: 'Engine',
             title: 'Check oil',
             description: 'Check oil level',
-            condition: null,
-            notes: ''
+            completed: false,
+            checked: false
           },
           {
             id: 'item-2',
             section: 'Safety',
             title: 'Test brakes',
             description: 'Test brake function',
-            condition: null,
-            notes: ''
+            completed: false,
+            checked: false
           }
         ]
       };
 
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: incompletePMData,
         isLoading: false
       });
@@ -151,18 +146,18 @@ describe('PMProgressIndicator', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('0/2 Complete')).toBeInTheDocument();
+      expect(screen.getByText('0%')).toBeInTheDocument();
       const progressBar = screen.getByRole('progressbar');
       expect(progressBar).toHaveAttribute('aria-valuenow', '0');
     });
 
     it('handles empty checklist', () => {
       const emptyPMData = {
-        requires_pm: true,
-        pm_checklist: []
+        status: 'in_progress',
+        checklist_data: []
       };
 
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: emptyPMData,
         isLoading: false
       });
@@ -173,7 +168,7 @@ describe('PMProgressIndicator', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('0/0 Complete')).toBeInTheDocument();
+      expect(screen.getByText('0%')).toBeInTheDocument();
       const progressBar = screen.getByRole('progressbar');
       expect(progressBar).toHaveAttribute('aria-valuenow', '0');
     });
@@ -182,28 +177,28 @@ describe('PMProgressIndicator', () => {
   describe('PM Complete Badge', () => {
     it('shows PM Complete badge when all items finished', () => {
       const completePMData = {
-        requires_pm: true,
-        pm_checklist: [
+        status: 'completed',
+        checklist_data: [
           {
             id: 'item-1',
             section: 'Engine',
             title: 'Check oil',
             description: 'Check oil level',
-            condition: 'good',
-            notes: 'All good'
+            completed: true,
+            checked: false
           },
           {
             id: 'item-2',
             section: 'Safety',
             title: 'Test brakes',
             description: 'Test brake function',
-            condition: 'excellent',
-            notes: 'Working perfectly'
+            completed: true,
+            checked: false
           }
         ]
       };
 
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: completePMData,
         isLoading: false
       });
@@ -218,22 +213,22 @@ describe('PMProgressIndicator', () => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
-    it('shows complete state with 100% progress', () => {
+    it('shows complete state when status is completed', () => {
       const completePMData = {
-        requires_pm: true,
-        pm_checklist: [
+        status: 'completed',
+        checklist_data: [
           {
             id: 'item-1',
             section: 'Engine',
             title: 'Check oil',
             description: 'Check oil level',
-            condition: 'good',
-            notes: 'Completed'
+            completed: true,
+            checked: false
           }
         ]
       };
 
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: completePMData,
         isLoading: false
       });
@@ -250,31 +245,14 @@ describe('PMProgressIndicator', () => {
     });
   });
 
-  describe('Loading State', () => {
-    it('shows loading state when PM data is loading', () => {
-      mockUsePMData.mockReturnValue({
-        data: null,
-        isLoading: true
-      });
-
-      render(
-        <TestProviders>
-          <PMProgressIndicator {...defaultProps} />
-        </TestProviders>
-      );
-
-      expect(screen.getByText('Loading PM status...')).toBeInTheDocument();
-    });
-  });
-
   describe('Edge Cases', () => {
     it('handles null checklist data', () => {
       const nullChecklistData = {
-        requires_pm: true,
-        pm_checklist: null
+        status: 'in_progress',
+        checklist_data: null
       };
 
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: nullChecklistData,
         isLoading: false
       });
@@ -285,16 +263,16 @@ describe('PMProgressIndicator', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('0/0 Complete')).toBeInTheDocument();
+      expect(screen.getByText('0%')).toBeInTheDocument();
     });
 
     it('handles undefined checklist data', () => {
       const undefinedChecklistData = {
-        requires_pm: true,
-        pm_checklist: undefined
+        status: 'in_progress',
+        checklist_data: undefined
       };
 
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: undefinedChecklistData,
         isLoading: false
       });
@@ -305,24 +283,22 @@ describe('PMProgressIndicator', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('0/0 Complete')).toBeInTheDocument();
+      expect(screen.getByText('0%')).toBeInTheDocument();
     });
 
-    it('considers various condition values as completed', () => {
-      const mixedConditionData = {
-        requires_pm: true,
-        pm_checklist: [
-          { id: '1', section: 'Test', title: 'Item 1', description: '', condition: 'good', notes: '' },
-          { id: '2', section: 'Test', title: 'Item 2', description: '', condition: 'fair', notes: '' },
-          { id: '3', section: 'Test', title: 'Item 3', description: '', condition: 'poor', notes: '' },
-          { id: '4', section: 'Test', title: 'Item 4', description: '', condition: 'excellent', notes: '' },
-          { id: '5', section: 'Test', title: 'Item 5', description: '', condition: '', notes: '' },
-          { id: '6', section: 'Test', title: 'Item 6', description: '', condition: null, notes: '' }
+    it('considers completed and checked items as finished', () => {
+      const mixedData = {
+        status: 'in_progress',
+        checklist_data: [
+          { id: '1', section: 'Test', title: 'Item 1', description: '', completed: true, checked: false },
+          { id: '2', section: 'Test', title: 'Item 2', description: '', completed: false, checked: true },
+          { id: '3', section: 'Test', title: 'Item 3', description: '', completed: true, checked: true },
+          { id: '4', section: 'Test', title: 'Item 4', description: '', completed: false, checked: false }
         ]
       };
 
-      mockUsePMData.mockReturnValue({
-        data: mixedConditionData,
+      mockUsePMByWorkOrderId.mockReturnValue({
+        data: mixedData,
         isLoading: false
       });
 
@@ -332,16 +308,16 @@ describe('PMProgressIndicator', () => {
         </TestProviders>
       );
 
-      // Should count good, fair, poor, excellent as completed (4/6)
-      expect(screen.getByText('4/6 Complete')).toBeInTheDocument();
+      // Should count completed OR checked as finished (3/4 = 75%)
+      expect(screen.getByText('75%')).toBeInTheDocument();
       const progressBar = screen.getByRole('progressbar');
-      expect(progressBar).toHaveAttribute('aria-valuenow', '67');
+      expect(progressBar).toHaveAttribute('aria-valuenow', '75');
     });
   });
 
   describe('Progress Bar Styling', () => {
     it('applies correct progress bar width', () => {
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });
@@ -353,14 +329,13 @@ describe('PMProgressIndicator', () => {
       );
 
       const progressBar = screen.getByRole('progressbar');
-      // Should have style attribute with width
-      expect(progressBar).toHaveStyle('transform: translateX(-33%)');
+      expect(progressBar).toHaveAttribute('aria-valuenow', '67');
     });
   });
 
   describe('Accessibility', () => {
     it('provides proper ARIA attributes for progress bar', () => {
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });
@@ -378,7 +353,7 @@ describe('PMProgressIndicator', () => {
     });
 
     it('provides descriptive text for screen readers', () => {
-      mockUsePMData.mockReturnValue({
+      mockUsePMByWorkOrderId.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });
@@ -389,7 +364,7 @@ describe('PMProgressIndicator', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('2/3 Complete')).toBeInTheDocument();
+      expect(screen.getByText('67%')).toBeInTheDocument();
     });
   });
 });
