@@ -1,0 +1,294 @@
+import { renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React from 'react';
+import { SessionProvider, SessionContext } from '../SessionContext';
+import type { SessionData, SessionOrganization } from '../SessionContext';
+
+// Mock dependencies
+const mockUseAuth = vi.fn();
+const mockUsePageVisibility = vi.fn();
+const mockUseSessionManager = vi.fn();
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: mockUseAuth,
+}));
+
+vi.mock('@/hooks/usePageVisibility', () => ({
+  usePageVisibility: mockUsePageVisibility,
+}));
+
+vi.mock('@/hooks/useSessionManager', () => ({
+  useSessionManager: mockUseSessionManager,
+}));
+
+vi.mock('@/services/sessionStorageService', () => ({
+  SessionStorageService: {
+    clearSessionStorage: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/sessionPermissionService', () => ({
+  SessionPermissionService: {
+    getCurrentOrganization: vi.fn(),
+    hasTeamRole: vi.fn(),
+    hasTeamAccess: vi.fn(),
+    canManageTeam: vi.fn(),
+    getUserTeamIds: vi.fn(),
+  },
+}));
+
+// Mock data
+const mockUser = {
+  id: 'user-1',
+  email: 'test@example.com',
+};
+
+const mockOrganization: SessionOrganization = {
+  id: 'org-1',
+  name: 'Test Organization',
+  plan: 'premium' as const,
+  memberCount: 5,
+  maxMembers: 10,
+  features: ['feature1', 'feature2'],
+  userRole: 'admin' as const,
+  userStatus: 'active' as const,
+};
+
+const mockSessionData: SessionData = {
+  organizations: [mockOrganization],
+  currentOrganizationId: 'org-1',
+  teamMemberships: [
+    {
+      teamId: 'team-1',
+      teamName: 'Test Team',
+      role: 'manager' as const,
+      joinedDate: '2024-01-01',
+    },
+  ],
+  lastUpdated: '2024-01-01T00:00:00Z',
+  version: 1,
+};
+
+describe('SessionContext', () => {
+  let mockSessionManager: {
+    switchOrganization: ReturnType<typeof vi.fn>;
+    refreshSession: ReturnType<typeof vi.fn>;
+    initializeSession: ReturnType<typeof vi.fn>;
+    shouldRefreshOnVisibility: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    mockSessionManager = {
+      switchOrganization: vi.fn(),
+      refreshSession: vi.fn(),
+      initializeSession: vi.fn().mockReturnValue({
+        shouldLoadFromCache: false,
+        cachedData: null,
+        needsRefresh: false,
+      }),
+      shouldRefreshOnVisibility: vi.fn().mockReturnValue(false),
+    };
+
+    mockUseAuth.mockReturnValue({ user: mockUser });
+    mockUsePageVisibility.mockImplementation(({ onVisibilityChange }) => {
+      // Store the callback for testing
+      (mockUsePageVisibility as any).mockVisibilityCallback = onVisibilityChange;
+    });
+    mockUseSessionManager.mockReturnValue(mockSessionManager);
+  });
+
+  const createWrapper = () => ({ children }: { children: React.ReactNode }) => (
+    <SessionProvider>{children}</SessionProvider>
+  );
+
+  it('should initialize with loading state', () => {
+    const { result } = renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    expect(result.current?.isLoading).toBe(true);
+    expect(result.current?.sessionData).toBe(null);
+    expect(result.current?.error).toBe(null);
+  });
+
+  it('should load from cache when available', async () => {
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: true,
+      cachedData: mockSessionData,
+      needsRefresh: false,
+    });
+
+    const { result } = renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(result.current?.isLoading).toBe(false);
+    });
+
+    expect(result.current?.sessionData).toEqual(mockSessionData);
+    expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
+  });
+
+  it('should refresh in background when cache needs update', async () => {
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: true,
+      cachedData: mockSessionData,
+      needsRefresh: true,
+    });
+
+    const { result } = renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(result.current?.isLoading).toBe(false);
+    });
+
+    expect(result.current?.sessionData).toEqual(mockSessionData);
+    expect(mockSessionManager.refreshSession).toHaveBeenCalledWith(false);
+  });
+
+  it('should fetch fresh data when no cache available', async () => {
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: false,
+      cachedData: null,
+      needsRefresh: false,
+    });
+
+    renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    expect(mockSessionManager.refreshSession).toHaveBeenCalledWith(true);
+  });
+
+  it('should provide session management functions', async () => {
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: true,
+      cachedData: mockSessionData,
+      needsRefresh: false,
+    });
+
+    const { result } = renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(result.current?.isLoading).toBe(false);
+    });
+
+    expect(typeof result.current?.getCurrentOrganization).toBe('function');
+    expect(typeof result.current?.switchOrganization).toBe('function');
+    expect(typeof result.current?.hasTeamRole).toBe('function');
+    expect(typeof result.current?.hasTeamAccess).toBe('function');
+    expect(typeof result.current?.canManageTeam).toBe('function');
+    expect(typeof result.current?.getUserTeamIds).toBe('function');
+    expect(typeof result.current?.refreshSession).toBe('function');
+    expect(typeof result.current?.clearSession).toBe('function');
+  });
+
+  it('should handle page visibility changes', async () => {
+    mockSessionManager.shouldRefreshOnVisibility.mockReturnValue(true);
+
+    renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    // Simulate visibility change
+    if ((mockUsePageVisibility as any).mockVisibilityCallback) {
+      (mockUsePageVisibility as any).mockVisibilityCallback(true);
+    }
+
+    expect(mockSessionManager.shouldRefreshOnVisibility).toHaveBeenCalledWith(true);
+    expect(mockSessionManager.refreshSession).toHaveBeenCalledWith(false);
+  });
+
+  it('should not refresh on visibility change when not needed', async () => {
+    mockSessionManager.shouldRefreshOnVisibility.mockReturnValue(false);
+
+    renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    // Clear previous calls
+    mockSessionManager.refreshSession.mockClear();
+
+    // Simulate visibility change
+    if ((mockUsePageVisibility as any).mockVisibilityCallback) {
+      (mockUsePageVisibility as any).mockVisibilityCallback(true);
+    }
+
+    expect(mockSessionManager.shouldRefreshOnVisibility).toHaveBeenCalledWith(true);
+    expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
+  });
+
+  it('should switch organization', async () => {
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: true,
+      cachedData: mockSessionData,
+      needsRefresh: false,
+    });
+
+    const { result } = renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(result.current?.isLoading).toBe(false);
+    });
+
+    await result.current!.switchOrganization('org-2');
+
+    expect(mockSessionManager.switchOrganization).toHaveBeenCalledWith('org-2', mockSessionData);
+  });
+
+  it('should clear session', async () => {
+    const { SessionStorageService } = await import('@/services/sessionStorageService');
+    
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: true,
+      cachedData: mockSessionData,
+      needsRefresh: false,
+    });
+
+    const { result } = renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(result.current?.isLoading).toBe(false);
+    });
+
+    result.current!.clearSession();
+
+    expect(SessionStorageService.clearSessionStorage).toHaveBeenCalled();
+    expect(result.current?.sessionData).toBe(null);
+  });
+
+  it('should handle user changes', async () => {
+    const { rerender } = renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    // Clear previous calls
+    mockSessionManager.refreshSession.mockClear();
+
+    // Change user
+    mockUseAuth.mockReturnValue({ user: { id: 'user-2', email: 'user2@example.com' } });
+
+    rerender();
+
+    expect(mockSessionManager.initializeSession).toHaveBeenCalledTimes(2);
+  });
+});
