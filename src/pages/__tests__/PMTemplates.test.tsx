@@ -228,6 +228,7 @@ describe('PMTemplates Page', () => {
 
     vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
       canCreateCustomTemplates: true,
+      canCreateCustomPMTemplates: true,
       hasLicensedUsers: true
     } as any);
   });
@@ -318,6 +319,7 @@ describe('PMTemplates Page', () => {
     it('shows upgrade message for unlicensed users', () => {
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         canCreateCustomTemplates: false,
+        canCreateCustomPMTemplates: false,
         hasLicensedUsers: false
       } as any);
 
@@ -385,6 +387,7 @@ describe('PMTemplates Page', () => {
     it('disables Clone for unlicensed users', () => {
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         canCreateCustomTemplates: false,
+        canCreateCustomPMTemplates: false,
         hasLicensedUsers: false
       } as any);
 
