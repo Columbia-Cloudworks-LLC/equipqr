@@ -324,7 +324,7 @@ describe('TemplateAssignmentDialog', () => {
       const checkbox = screen.getAllByRole('checkbox')[1];
       fireEvent.click(checkbox);
 
-      expect(screen.getByText('1 of 2 equipment selected')).toBeInTheDocument();
+      expect(screen.getByText('1 of 2 visible equipment selected')).toBeInTheDocument();
     });
   });
 
@@ -437,7 +437,7 @@ describe('TemplateAssignmentDialog', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('0 of 0 equipment selected')).toBeInTheDocument();
+      expect(screen.getByText('0 of 0 visible equipment selected')).toBeInTheDocument();
     });
   });
 
@@ -476,7 +476,7 @@ describe('TemplateAssignmentDialog', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('0 of 0 equipment selected')).toBeInTheDocument();
+      expect(screen.getByText('0 of 0 visible equipment selected')).toBeInTheDocument();
     });
   });
 });

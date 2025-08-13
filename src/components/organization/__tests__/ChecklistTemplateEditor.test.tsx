@@ -185,8 +185,8 @@ describe('ChecklistTemplateEditor', () => {
       fireEvent.click(addSectionButtons[0]);
 
       // Get the item title input after section is added
-      const itemTitleInput = screen.getByPlaceholderText('Item title');
-      fireEvent.change(itemTitleInput, { target: { value: 'Check oil' } });
+      const itemTitleInputs = screen.getAllByPlaceholderText('Item title');
+      fireEvent.change(itemTitleInputs[0], { target: { value: 'Check oil' } });
 
       // Submit
       const saveButton = screen.getByText('Create Template');
@@ -264,8 +264,8 @@ describe('ChecklistTemplateEditor', () => {
       const addSectionButtons = screen.getAllByText('Add Section');
       fireEvent.click(addSectionButtons[0]);
 
-      const itemInput = screen.getByPlaceholderText('Item title');
-      fireEvent.change(itemInput, { target: { value: 'Test Item' } });
+      const itemInputs = screen.getAllByPlaceholderText('Item title');
+      fireEvent.change(itemInputs[0], { target: { value: 'Test Item' } });
 
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);

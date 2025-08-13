@@ -1,4 +1,12 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest';
+import { createMockSupabaseClient } from '@/test/utils/mock-supabase';
+
+// Mock Supabase first, before importing anything that depends on it
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: createMockSupabaseClient()
+}));
+
+// Import after mock is established
 import { 
   pmChecklistTemplatesService, 
   generateSectionsSummary, 
@@ -6,12 +14,6 @@ import {
   PMTemplate 
 } from '../pmChecklistTemplatesService';
 import { PMChecklistItem } from '../preventativeMaintenanceService';
-import { createMockSupabaseClient } from '@/test/utils/mock-supabase';
-
-// Mock Supabase with the standard mock
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: createMockSupabaseClient()
-}));
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn(() => 'mock-id')

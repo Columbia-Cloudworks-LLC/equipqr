@@ -30,7 +30,7 @@ export const BulkTemplateManagementDialog: React.FC<BulkTemplateManagementDialog
 }) => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: templates = [] } = usePMTemplates();
-  const { restrictions: _ } = useSimplifiedOrganizationRestrictions();
+  const { restrictions } = useSimplifiedOrganizationRestrictions();
   
   const bulkAssignTemplate = useBulkAssignTemplate();
   const bulkRemoveTemplates = useBulkRemoveTemplates();

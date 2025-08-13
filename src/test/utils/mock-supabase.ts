@@ -43,6 +43,7 @@ export const mockEquipment = {
   status: 'active',
   location: 'Test Location',
   organization_id: 'org-1',
+  default_pm_template_id: null,
 };
 
 export const mockWorkOrder = {

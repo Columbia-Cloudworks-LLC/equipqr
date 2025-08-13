@@ -442,7 +442,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      const assignButton = screen.getAllByText('Assign to Equipment')[0];
+      const assignButton = screen.getAllByText('Apply to Equipment')[0];
       fireEvent.click(assignButton);
 
       await waitFor(() => {

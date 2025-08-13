@@ -16,7 +16,6 @@ interface EquipmentPMTemplateIndicatorProps {
 
 export const EquipmentPMTemplateIndicator: React.FC<EquipmentPMTemplateIndicatorProps> = ({
   equipmentId,
-  equipmentName,
   templateId,
   compact = false
 }) => {
