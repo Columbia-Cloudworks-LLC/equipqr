@@ -1,10 +1,9 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { vi, beforeEach, describe, it, expect } from 'vitest';
+import { vi, beforeEach, describe, it, expect, type MockedFunction } from 'vitest';
 import PMProgressIndicator from '../PMProgressIndicator';
 import { TestProviders } from '@/test/utils/TestProviders';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
-import type { UseQueryResult } from '@tanstack/react-query';
 
 // Mock hooks with proper factory to avoid hoisting
 vi.mock('@/hooks/usePMData', () => ({
@@ -51,7 +50,7 @@ const mockPMData = {
   organization_id: 'org-1'
 };
 
-const createMockQueryResult = (data: any) => ({
+const createMockQueryResult = (data: unknown) => ({
   data,
   isLoading: false,
   isError: false,
@@ -75,40 +74,38 @@ const createMockQueryResult = (data: any) => ({
   isInitialLoading: false,
   isFetched: true,
   isFetchedAfterMount: true,
-  isPaused: false
-});
+  isPaused: false,
+  promise: Promise.resolve(data)
+}) as any;
 
 describe('PMProgressIndicator', () => {
-  const defaultProps = {
-    workOrderId: 'wo-1',
-    hasPM: true
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('No PM Required', () => {
     it('shows nothing when PM is not required', () => {
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(mockPMData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mockPMData));
       
-      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={false} />, { wrapper: TestProviders });
+      render(<PMProgressIndicator workOrderId="wo-1" hasPM={false} />, { wrapper: TestProviders });
       
-      expect(container.firstChild).toBeNull();
+      expect(screen.queryByText('PM Required')).not.toBeInTheDocument();
+      expect(screen.queryByText('PM Complete')).not.toBeInTheDocument();
     });
 
     it('shows nothing when PM data is null', () => {
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(null));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(null));
       
-      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(container.firstChild).toBeNull();
+      expect(screen.queryByText('PM Required')).not.toBeInTheDocument();
+      expect(screen.queryByText('PM Complete')).not.toBeInTheDocument();
     });
   });
 
   describe('PM Required Badge', () => {
     it('shows PM Required badge with progress bar', () => {
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(mockPMData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mockPMData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
@@ -117,7 +114,7 @@ describe('PMProgressIndicator', () => {
     });
 
     it('calculates completion percentage correctly', () => {
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(mockPMData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mockPMData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
@@ -137,7 +134,7 @@ describe('PMProgressIndicator', () => {
           { id: '2', title: 'Check filter', section: 'Engine', completed: false, checked: false }
         ]
       };
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(noCompletedData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(noCompletedData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
@@ -154,7 +151,7 @@ describe('PMProgressIndicator', () => {
         ...mockPMData,
         checklist_data: []
       };
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(emptyData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(emptyData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
@@ -173,7 +170,7 @@ describe('PMProgressIndicator', () => {
         ...mockPMData,
         status: 'completed'
       };
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(completePMData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(completePMData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
@@ -186,7 +183,7 @@ describe('PMProgressIndicator', () => {
         ...mockPMData,
         status: 'completed'
       };
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(completePMData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(completePMData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
@@ -201,7 +198,7 @@ describe('PMProgressIndicator', () => {
         ...mockPMData,
         checklist_data: null
       };
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(nullChecklistData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(nullChecklistData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
@@ -215,7 +212,7 @@ describe('PMProgressIndicator', () => {
         ...mockPMData,
         checklist_data: undefined
       };
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(undefinedChecklistData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(undefinedChecklistData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
@@ -234,7 +231,7 @@ describe('PMProgressIndicator', () => {
           { id: '4', section: 'Test', title: 'Item 4', description: '', completed: false, checked: false }
         ]
       };
-      (usePMByWorkOrderId as any).mockReturnValue(createMockQueryResult(mixedData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mixedData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       

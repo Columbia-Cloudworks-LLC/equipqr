@@ -16,14 +16,14 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
     return null;
   }
 
-  const calculateCompletionPercentage = (checklistData: any): number => {
+const calculateCompletionPercentage = (checklistData: unknown): number => {
     if (!Array.isArray(checklistData) || checklistData.length === 0) return 0;
     
-    const completedItems = checklistData.filter(item => item.completed || item.checked).length;
+    const completedItems = checklistData.filter((item: any) => item?.completed || item?.checked).length;
     return Math.round((completedItems / checklistData.length) * 100);
   };
 
-  const completionPercentage = pmData?.checklist_data 
+  const completionPercentage = pmData?.checklist_data && Array.isArray(pmData.checklist_data)
     ? calculateCompletionPercentage(pmData.checklist_data)
     : 0;
 

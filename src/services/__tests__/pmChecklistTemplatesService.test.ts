@@ -80,10 +80,11 @@ const mockTemplate: PMTemplate = {
 describe('pmChecklistTemplatesService', () => {
   let mockSupabase: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    // Get the mocked supabase client
-    mockSupabase = require('@/integrations/supabase/client').supabase;
+    // Get the mocked supabase client from the default export
+    const { supabase } = await import('@/integrations/supabase/client');
+    mockSupabase = supabase;
   });
 
   describe('listTemplates', () => {
@@ -251,8 +252,8 @@ describe('Helper Functions', () => {
     it('handles string JSON template_data', () => {
       const templateWithStringData = {
         ...mockTemplate,
-        template_data: JSON.stringify([mockChecklistItem]) as any
-      };
+        template_data: JSON.stringify([mockChecklistItem])
+      } as unknown as PMTemplate;
 
       const result = templateToSummary(templateWithStringData);
 
@@ -263,8 +264,8 @@ describe('Helper Functions', () => {
     it('handles malformed template_data', () => {
       const templateWithMalformedData = {
         ...mockTemplate,
-        template_data: 'invalid json' as any
-      };
+        template_data: 'invalid json'
+      } as unknown as PMTemplate;
 
       const result = templateToSummary(templateWithMalformedData);
 
