@@ -32,7 +32,7 @@ const mockSessionContextValue = {
       userStatus: 'active' as const
     },
     currentOrganizationId: 'org-1',
-    lastUpdated: Date.now(),
+    lastUpdated: new Date().toISOString(),
     version: 1
   },
   isLoading: false,
