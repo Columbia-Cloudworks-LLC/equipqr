@@ -14,7 +14,7 @@ import EnhancedEquipmentNotesTab from '@/components/equipment/EnhancedEquipmentN
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
 import EquipmentImagesTab from '@/components/equipment/EquipmentImagesTab';
 import EquipmentScansTab from '@/components/equipment/EquipmentScansTab';
-import { EquipmentHistoricalWorkOrdersTab } from '@/components/equipment/EquipmentHistoricalWorkOrdersTab';
+
 import MobileEquipmentHeader from '@/components/equipment/MobileEquipmentHeader';
 import ResponsiveEquipmentTabs from '@/components/equipment/ResponsiveEquipmentTabs';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
@@ -345,12 +345,6 @@ const EquipmentDetails = () => {
           />
         </TabsContent>
 
-        <TabsContent value="historical">
-          <EquipmentHistoricalWorkOrdersTab 
-            equipmentId={equipment.id} 
-            organizationId={currentOrganization.id}
-          />
-        </TabsContent>
 
         <TabsContent value="scans">
           <EquipmentScansTab 

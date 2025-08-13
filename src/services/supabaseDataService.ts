@@ -280,7 +280,16 @@ export const getWorkOrdersByEquipmentId = async (organizationId: string, equipme
       await supabase.from('profiles').select('id, name').in('id', assigneeIds) : 
       { data: [], error: null };
 
-    return (data || []).map(wo => ({
+    // Sort work orders by appropriate date field (historical_start_date for historical, created_date for regular)
+    const sortedData = (data || []).sort((a, b) => {
+      const dateA = a.is_historical && a.historical_start_date ? 
+        new Date(a.historical_start_date) : new Date(a.created_date);
+      const dateB = b.is_historical && b.historical_start_date ? 
+        new Date(b.historical_start_date) : new Date(b.created_date);
+      return dateB.getTime() - dateA.getTime(); // Most recent first
+    });
+
+    return sortedData.map(wo => ({
       ...wo,
       assigneeName: profilesResult.data?.find(p => p.id === wo.assignee_id)?.name,
       teamName: undefined // Team info now comes from equipment assignment

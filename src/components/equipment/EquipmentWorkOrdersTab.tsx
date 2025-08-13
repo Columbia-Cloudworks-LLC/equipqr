@@ -10,6 +10,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import MobileWorkOrderCard from './MobileWorkOrderCard';
 import DesktopWorkOrderCard from '@/components/work-orders/DesktopWorkOrderCard';
+import { HistoricalWorkOrderBadge } from '@/components/work-orders/HistoricalWorkOrderBadge';
 
 interface EquipmentWorkOrdersTabProps {
   equipmentId: string;
@@ -95,17 +96,22 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
               teamId: undefined // Team info comes from equipment assignment
             };
 
-            return isMobile ? (
-              <MobileWorkOrderCard 
-                key={workOrder.id} 
-                workOrder={adaptedWorkOrder} 
-              />
-            ) : (
-              <DesktopWorkOrderCard 
-                key={workOrder.id} 
-                workOrder={adaptedWorkOrder}
-                onNavigate={(id) => navigate(`/dashboard/work-orders/${id}`)}
-              />
+            return (
+              <div key={workOrder.id} className="space-y-2">
+                {workOrder.is_historical && (
+                  <HistoricalWorkOrderBadge workOrder={workOrder} />
+                )}
+                {isMobile ? (
+                  <MobileWorkOrderCard 
+                    workOrder={adaptedWorkOrder} 
+                  />
+                ) : (
+                  <DesktopWorkOrderCard 
+                    workOrder={adaptedWorkOrder}
+                    onNavigate={(id) => navigate(`/dashboard/work-orders/${id}`)}
+                  />
+                )}
+              </div>
             );
           })
         )}
