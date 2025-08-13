@@ -1,17 +1,19 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { vi, beforeEach, describe, it, expect } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { ChecklistTemplateEditor } from '../ChecklistTemplateEditor';
 import { TestProviders } from '@/test/utils/TestProviders';
 
-// Mock hooks with named imports
-import { useCreatePMTemplate, useUpdatePMTemplate } from '@/hooks/usePMTemplates';
+// Mock the PM Templates hooks
+const mockCreatePMTemplate = vi.fn();
+const mockUpdatePMTemplate = vi.fn();
 
 vi.mock('@/hooks/usePMTemplates', () => ({
-  useCreatePMTemplate: vi.fn(),
-  useUpdatePMTemplate: vi.fn(),
+  useCreatePMTemplate: () => mockCreatePMTemplate(),
+  useUpdatePMTemplate: () => mockUpdatePMTemplate(),
 }));
 
+// Mock toast
 vi.mock('sonner', () => ({
   toast: {
     error: vi.fn(),
@@ -25,190 +27,174 @@ const mockTemplate = {
   template_data: [
     {
       id: 'item-1',
+      title: 'Check oil',
+      description: 'Check oil level',
       section: 'Engine',
-      title: 'Check oil level',
-      description: 'Verify oil is at proper level',
       condition: null,
-      notes: '',
-      required: true
+      required: true,
+      notes: ''
     },
     {
       id: 'item-2',
-      section: 'Safety',
-      title: 'Test brakes',
-      description: 'Ensure brakes function properly',
+      title: 'Check coolant',
+      description: 'Check coolant level',
+      section: 'Engine',
       condition: null,
-      notes: '',
-      required: true
+      required: false,
+      notes: ''
     }
   ]
 };
 
-const mockHooks = {
-  useCreatePMTemplate: {
-    mutate: vi.fn(),
-    isPending: false,
-    data: undefined,
-    error: null,
-    isError: false,
-    isSuccess: false,
-    status: 'idle' as const,
-    variables: undefined,
-    mutateAsync: vi.fn(),
-    reset: vi.fn(),
-    isIdle: true,
-    context: undefined,
-    failureCount: 0,
-    failureReason: null,
-    submittedAt: 0,
-    isPaused: false
-  },
-  useUpdatePMTemplate: {
-    mutate: vi.fn(),
-    isPending: false,
-    data: undefined,
-    error: null,
-    isError: false,
-    isSuccess: false,
-    status: 'idle' as const,
-    variables: undefined,
-    mutateAsync: vi.fn(),
-    reset: vi.fn(),
-    isIdle: true,
-    context: undefined,
-    failureCount: 0,
-    failureReason: null,
-    submittedAt: 0,
-    isPaused: false
-  }
-};
+// Mock return values for hooks
+const createMockCreateHook = () => ({
+  mutateAsync: vi.fn(),
+  isPending: false,
+  isError: false,
+  error: null,
+});
+
+const createMockUpdateHook = () => ({
+  mutateAsync: vi.fn(),
+  isPending: false,
+  isError: false,
+  error: null,
+});
 
 describe('ChecklistTemplateEditor', () => {
   const defaultProps = {
-    template: null as typeof mockTemplate | null,
     onSave: vi.fn(),
-    onCancel: vi.fn()
+    onCancel: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Setup mocks using vi.mocked with proper type casting
-    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate as unknown as ReturnType<typeof useCreatePMTemplate>);
-    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate as unknown as ReturnType<typeof useUpdatePMTemplate>);
+    mockCreatePMTemplate.mockReturnValue(createMockCreateHook());
+    mockUpdatePMTemplate.mockReturnValue(createMockUpdateHook());
   });
 
   describe('Component Rendering', () => {
-    it('renders create mode interface', () => {
+    it('renders create mode correctly', () => {
       render(
-        <TestProviders>
-          <ChecklistTemplateEditor {...defaultProps} />
-        </TestProviders>
+        <ChecklistTemplateEditor {...defaultProps} />, 
+        { wrapper: TestProviders }
       );
 
-      expect(screen.getByPlaceholderText('Enter template name')).toBeInTheDocument();
+      expect(screen.getByLabelText('Template Name')).toBeInTheDocument();
+      expect(screen.getByLabelText('Description (Optional)')).toBeInTheDocument();
       expect(screen.getByText('Create Template')).toBeInTheDocument();
     });
 
-    it('renders edit mode interface', () => {
+    it('renders edit mode with template data', () => {
       render(
-        <TestProviders>
-          <ChecklistTemplateEditor {...defaultProps} template={mockTemplate} />
-        </TestProviders>
-      );
-
-      expect(screen.getByDisplayValue('Test Template')).toBeInTheDocument();
-      expect(screen.getByText('Update Template')).toBeInTheDocument();
-    });
-
-    it('populates form with template data in edit mode', () => {
-      render(
-        <TestProviders>
-          <ChecklistTemplateEditor {...defaultProps} template={mockTemplate} />
-        </TestProviders>
+        <ChecklistTemplateEditor 
+          template={mockTemplate} 
+          {...defaultProps} 
+        />, 
+        { wrapper: TestProviders }
       );
 
       expect(screen.getByDisplayValue('Test Template')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Test description')).toBeInTheDocument();
+      expect(screen.getByText('Update Template')).toBeInTheDocument();
+      expect(screen.getByText('Engine')).toBeInTheDocument();
+    });
+
+    it('populates form fields with existing template data', () => {
+      render(
+        <ChecklistTemplateEditor 
+          template={mockTemplate} 
+          {...defaultProps} 
+        />, 
+        { wrapper: TestProviders }
+      );
+
+      const nameInput = screen.getByDisplayValue('Test Template');
+      const descriptionInput = screen.getByDisplayValue('Test description');
+      
+      expect(nameInput).toBeInTheDocument();
+      expect(descriptionInput).toBeInTheDocument();
     });
   });
 
   describe('Form Validation', () => {
-    it('requires template name', async () => {
+    it('requires template name', () => {
+      // Mock window.alert
+      window.alert = vi.fn();
+      
       render(
-        <TestProviders>
-          <ChecklistTemplateEditor {...defaultProps} />
-        </TestProviders>
+        <ChecklistTemplateEditor {...defaultProps} />, 
+        { wrapper: TestProviders }
       );
 
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
 
-      // Template uses alert() instead of toast for validation
+      expect(window.alert).toHaveBeenCalledWith('Template name is required');
     });
 
-    it('requires at least one section', async () => {
+    it('requires at least one section', () => {
+      // Mock window.alert
+      window.alert = vi.fn();
+      
       render(
-        <TestProviders>
-          <ChecklistTemplateEditor {...defaultProps} />
-        </TestProviders>
+        <ChecklistTemplateEditor {...defaultProps} />, 
+        { wrapper: TestProviders }
       );
 
-      const nameInput = screen.getByPlaceholderText('Enter template name');
-      fireEvent.change(nameInput, { target: { value: 'Test Template' } });
+      // Fill template name
+      fireEvent.change(screen.getByLabelText('Template Name'), {
+        target: { value: 'Test Template' }
+      });
 
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
 
-      // Template uses alert() instead of toast for validation
+      expect(window.alert).toHaveBeenCalledWith('Template must have at least one item');
     });
 
     it('validates form submission successfully', async () => {
-      // Mock successful creation with mutateAsync
-      const mockMutateAsync = vi.fn().mockResolvedValue(mockTemplate);
-      
-      vi.mocked(useCreatePMTemplate).mockReturnValue({
-        ...mockHooks.useCreatePMTemplate,
-        mutateAsync: mockMutateAsync
-      } as unknown as ReturnType<typeof useCreatePMTemplate>);
+      const mockMutateAsync = vi.fn().mockResolvedValue({ id: 'new-template' });
+      mockCreatePMTemplate.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+        isError: false,
+        error: null,
+      });
 
+      // Mock window.prompt to add a section
+      window.prompt = vi.fn().mockReturnValue('Engine');
+      
       render(
-        <TestProviders>
-          <ChecklistTemplateEditor {...defaultProps} />
-        </TestProviders>
+        <ChecklistTemplateEditor {...defaultProps} />, 
+        { wrapper: TestProviders }
       );
 
-      // Fill form
-      const nameInput = screen.getByPlaceholderText('Enter template name');
-      fireEvent.change(nameInput, { target: { value: 'New Template' } });
-
-      const descInput = screen.getByPlaceholderText('Enter template description');
-      fireEvent.change(descInput, { target: { value: 'New description' } });
-
-      // Mock prompt for section name
-      global.prompt = vi.fn().mockReturnValue('Engine');
+      // Fill in the form
+      fireEvent.change(screen.getByLabelText('Template Name'), {
+        target: { value: 'New Template' }
+      });
       
-      // Add section 
-      const addSectionButtons = screen.getAllByText('Add Section');
-      fireEvent.click(addSectionButtons[0]);
+      fireEvent.change(screen.getByLabelText('Description (Optional)'), {
+        target: { value: 'New description' }
+      });
 
-      // Get the item title input after section is added
-      const itemTitleInputs = screen.getAllByPlaceholderText('Item title');
-      fireEvent.change(itemTitleInputs[0], { target: { value: 'Check oil' } });
+      // Add a section
+      const addSectionButton = screen.getByText('Add Section');
+      fireEvent.click(addSectionButton);
 
-      // Submit
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
 
       // Wait for async mutation to complete
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith({
           name: 'New Template',
           description: 'New description',
           template_data: expect.arrayContaining([
             expect.objectContaining({
               section: 'Engine',
-              title: 'Check oil'
+              title: 'New item'
             })
           ])
         });
@@ -217,37 +203,47 @@ describe('ChecklistTemplateEditor', () => {
   });
 
   describe('Template Management', () => {
-    beforeEach(() => {
-      render(
-        <TestProviders>
-          <ChecklistTemplateEditor {...defaultProps} template={mockTemplate} />
-        </TestProviders>
-      );
-    });
-
     it('displays existing template data', () => {
+      render(
+        <ChecklistTemplateEditor 
+          template={mockTemplate} 
+          {...defaultProps} 
+        />, 
+        { wrapper: TestProviders }
+      );
+
       expect(screen.getByDisplayValue('Test Template')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('Check oil level')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('Test brakes')).toBeInTheDocument();
+      expect(screen.getByText('Engine')).toBeInTheDocument();
+      expect(screen.getByText('2 items')).toBeInTheDocument();
     });
 
     it('handles template updates', async () => {
-      // Mock successful update with mutateAsync
       const mockMutateAsync = vi.fn().mockResolvedValue(mockTemplate);
-      
-      vi.mocked(useUpdatePMTemplate).mockReturnValue({
-        ...mockHooks.useUpdatePMTemplate,
-        mutateAsync: mockMutateAsync
-      } as unknown as ReturnType<typeof useUpdatePMTemplate>);
+      mockUpdatePMTemplate.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+        isError: false,
+        error: null,
+      });
 
-      const nameInput = screen.getByDisplayValue('Test Template');
-      fireEvent.change(nameInput, { target: { value: 'Updated Template' } });
+      render(
+        <ChecklistTemplateEditor 
+          template={mockTemplate} 
+          {...defaultProps} 
+        />, 
+        { wrapper: TestProviders }
+      );
+
+      // Update the template name
+      fireEvent.change(screen.getByDisplayValue('Test Template'), {
+        target: { value: 'Updated Template' }
+      });
 
       const saveButton = screen.getByText('Update Template');
       fireEvent.click(saveButton);
 
       // Wait for async mutation to complete
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith({
           templateId: 'template-1',
           updates: {
@@ -260,59 +256,87 @@ describe('ChecklistTemplateEditor', () => {
     });
 
     it('calls onSave after successful submission', async () => {
-      // Mock successful creation with mutateAsync
-      const mockMutateAsync = vi.fn().mockResolvedValue(mockTemplate);
-
-      vi.mocked(useCreatePMTemplate).mockReturnValue({
-        ...mockHooks.useCreatePMTemplate,
-        mutateAsync: mockMutateAsync
-      } as unknown as ReturnType<typeof useCreatePMTemplate>);
-
-      render(
-        <TestProviders>
-          <ChecklistTemplateEditor {...defaultProps} />
-        </TestProviders>
-      );
-
-      // Fill minimal form
-      const nameInput = screen.getByLabelText('Template Name');
-      fireEvent.change(nameInput, { target: { value: 'Test' } });
-
-      // Mock prompt for section name
-      global.prompt = vi.fn().mockReturnValue('Test Section');
+      const onSave = vi.fn();
+      const onCancel = vi.fn();
       
-      const addSectionButtons = screen.getAllByText('Add Section');
-      fireEvent.click(addSectionButtons[0]);
+      // Mock successful mutation
+      const mockMutateAsync = vi.fn().mockResolvedValue({ id: 'new-template-1' });
+      mockCreatePMTemplate.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+        isError: false,
+        error: null,
+      });
 
-      const itemInputs = screen.getAllByPlaceholderText('Item title');
-      fireEvent.change(itemInputs[0], { target: { value: 'Test Item' } });
+      // Mock window.prompt to add a section
+      window.prompt = vi.fn().mockReturnValue('Engine');
+      
+      render(
+        <ChecklistTemplateEditor 
+          onSave={onSave} 
+          onCancel={onCancel} 
+        />, 
+        { wrapper: TestProviders }
+      );
+      
+      // Fill in the form
+      fireEvent.change(screen.getByLabelText('Template Name'), {
+        target: { value: 'Test Template' }
+      });
 
+      // Add a section
+      const addSectionButton = screen.getByText('Add Section');
+      fireEvent.click(addSectionButton);
+      
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
-
-      // Wait for async operation
-      await vi.waitFor(() => {
-        expect(defaultProps.onSave).toHaveBeenCalled();
+      
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalled();
+      });
+      
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledTimes(1);
       });
     });
   });
 
   describe('Loading States', () => {
-    it('shows loading state during submission', () => {
-      vi.mocked(useCreatePMTemplate).mockReturnValue({
-        ...mockHooks.useCreatePMTemplate,
+    it('disables save button when loading', () => {
+      mockCreatePMTemplate.mockReturnValue({
+        mutateAsync: vi.fn(),
         isPending: true,
-        status: 'pending'
-      } as unknown as ReturnType<typeof useCreatePMTemplate>);
+        isError: false,
+        error: null,
+      });
 
       render(
-        <TestProviders>
-          <ChecklistTemplateEditor {...defaultProps} />
-        </TestProviders>
+        <ChecklistTemplateEditor {...defaultProps} />, 
+        { wrapper: TestProviders }
       );
 
       const saveButton = screen.getByText('Create Template');
       expect(saveButton).toBeDisabled();
+    });
+
+    it('disables cancel button when loading', () => {
+      mockUpdatePMTemplate.mockReturnValue({
+        mutateAsync: vi.fn(),
+        isPending: true,
+        isError: false,
+        error: null,
+      });
+
+      render(
+        <ChecklistTemplateEditor 
+          template={mockTemplate} 
+          {...defaultProps} 
+        />, 
+        { wrapper: TestProviders }
+      );
+
+      const cancelButton = screen.getByText('Cancel');
+      expect(cancelButton).toBeDisabled();
     });
   });
 });

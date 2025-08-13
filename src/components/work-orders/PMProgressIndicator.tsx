@@ -12,7 +12,7 @@ interface PMProgressIndicatorProps {
 const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, hasPM }) => {
   const { data: pmData } = usePMByWorkOrderId(workOrderId);
 
-  if (!hasPM) {
+  if (!hasPM || !pmData) {
     return null;
   }
 
