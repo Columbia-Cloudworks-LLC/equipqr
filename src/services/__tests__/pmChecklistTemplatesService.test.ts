@@ -7,9 +7,13 @@ import {
 } from '../pmChecklistTemplatesService';
 
 // Create configurable mock return values
-let mockListResult: any;
-let mockSingleResult: any;
-let mockEqResult: any;
+interface SupabaseResponse<T> {
+  data: T | null;
+  error: Error | { code: string } | null;
+}
+
+let mockListResult: SupabaseResponse<PMTemplate[]>;
+let mockSingleResult: Promise<SupabaseResponse<PMTemplate>>;
 
 // Mock Supabase client with proper fluent interface
 vi.mock('@/integrations/supabase/client', () => {
@@ -77,7 +81,6 @@ describe('pmChecklistTemplatesService', () => {
     // Reset mock return values
     mockListResult = { data: [], error: null };
     mockSingleResult = Promise.resolve({ data: null, error: null });
-    mockEqResult = { data: null, error: null };
   });
 
   describe('listTemplates', () => {
