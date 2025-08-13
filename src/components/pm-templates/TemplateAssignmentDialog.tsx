@@ -52,9 +52,13 @@ export const TemplateAssignmentDialog: React.FC<TemplateAssignmentDialogProps> =
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedEquipment(filteredEquipment.map(eq => eq.id));
+      // Only select visible equipment
+      const visibleIds = filteredEquipment.map(eq => eq.id);
+      setSelectedEquipment(prev => [...new Set([...prev, ...visibleIds])]);
     } else {
-      setSelectedEquipment([]);
+      // Remove all visible equipment from selection
+      const visibleIds = filteredEquipment.map(eq => eq.id);
+      setSelectedEquipment(prev => prev.filter(id => !visibleIds.includes(id)));
     }
   };
 
@@ -122,7 +126,7 @@ export const TemplateAssignmentDialog: React.FC<TemplateAssignmentDialogProps> =
             </div>
             <div className="flex items-center space-x-2 ml-4">
               <Checkbox
-                checked={selectedEquipment.length === filteredEquipment.length && filteredEquipment.length > 0}
+                checked={filteredEquipment.length > 0 && filteredEquipment.every(eq => selectedEquipment.includes(eq.id))}
                 onCheckedChange={handleSelectAll}
               />
               <Label>Select All ({filteredEquipment.length})</Label>
@@ -130,17 +134,21 @@ export const TemplateAssignmentDialog: React.FC<TemplateAssignmentDialogProps> =
           </div>
 
           <div className="text-sm text-muted-foreground">
-            {selectedEquipment.length} of {filteredEquipment.length} equipment selected
+            {selectedEquipment.filter(id => filteredEquipment.some(eq => eq.id === id)).length} of {filteredEquipment.length} visible equipment selected
+            {selectedEquipment.length > selectedEquipment.filter(id => filteredEquipment.some(eq => eq.id === id)).length && (
+              <span className="ml-2 text-xs">
+                ({selectedEquipment.length - selectedEquipment.filter(id => filteredEquipment.some(eq => eq.id === id)).length} hidden)
+              </span>
+            )}
           </div>
 
           <div className="max-h-96 overflow-y-auto space-y-2">
             {filteredEquipment.map((eq) => (
-              <Card key={eq.id} className="p-3 hover:bg-muted/50 cursor-pointer"
-                    onClick={() => handleSelectEquipment(eq.id, !selectedEquipment.includes(eq.id))}>
+              <Card key={eq.id} className="p-3 hover:bg-muted/50">
                 <div className="flex items-center space-x-3">
                   <Checkbox
                     checked={selectedEquipment.includes(eq.id)}
-                    onCheckedChange={(checked) => handleSelectEquipment(eq.id, checked as boolean)}
+                    onCheckedChange={(checked) => handleSelectEquipment(eq.id, checked === true)}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
