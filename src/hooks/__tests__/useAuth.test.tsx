@@ -1,7 +1,9 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '../useAuth';
+import { AuthContext } from '@/contexts/AuthContext';
+import React from 'react';
 
 // Mock Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -19,22 +21,40 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
-// Mock context
-vi.mock('@/contexts/AuthContext', () => ({
-  useAuthContext: vi.fn(() => ({
-    user: { id: 'user-1', email: 'test@example.com' },
-    session: { access_token: 'token', user: { id: 'user-1' } },
-    isLoading: false,
-    signIn: vi.fn(),
-    signUp: vi.fn(),
-    signOut: vi.fn()
-  }))
-}));
+// Create mock context value
+const createMockAuthContextValue = (overrides: any = {}) => ({
+  user: 'user' in overrides ? overrides.user : {
+    id: 'user-1',
+    email: 'test@example.com',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    created_at: '2024-01-01T00:00:00Z'
+  },
+  session: 'session' in overrides ? overrides.session : {
+    access_token: 'token',
+    user: {
+      id: 'user-1',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: '2024-01-01T00:00:00Z'
+    }
+  },
+  isLoading: false,
+  signIn: vi.fn(),
+  signUp: vi.fn(),
+  signOut: vi.fn(),
+  signInWithGoogle: vi.fn(),
+  ...overrides
+});
 
 describe('useAuth', () => {
   let queryClient: QueryClient;
+  let mockContextValue = createMockAuthContextValue();
 
-  const createWrapper = () => {
+  const createWrapper = (contextValue = mockContextValue) => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -44,13 +64,16 @@ describe('useAuth', () => {
 
     return ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>
-        {children}
+        <AuthContext.Provider value={contextValue}>
+          {children}
+        </AuthContext.Provider>
       </QueryClientProvider>
     );
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockContextValue = createMockAuthContextValue();
   });
 
   it('should return user and session data', () => {
@@ -77,18 +100,14 @@ describe('useAuth', () => {
   });
 
   it('should handle loading state', () => {
-    // Mock loading state
-    vi.mocked(require('@/contexts/AuthContext').useAuthContext).mockReturnValue({
+    const loadingContextValue = createMockAuthContextValue({
       user: null,
       session: null,
       isLoading: true,
-      signIn: vi.fn(),
-      signUp: vi.fn(),
-      signOut: vi.fn()
     });
 
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper(loadingContextValue),
     });
 
     expect(result.current.isLoading).toBe(true);
@@ -97,18 +116,14 @@ describe('useAuth', () => {
   });
 
   it('should handle unauthenticated state', () => {
-    // Mock unauthenticated state
-    vi.mocked(require('@/contexts/AuthContext').useAuthContext).mockReturnValue({
+    const unauthenticatedContextValue = createMockAuthContextValue({
       user: null,
       session: null,
       isLoading: false,
-      signIn: vi.fn(),
-      signUp: vi.fn(),
-      signOut: vi.fn()
     });
 
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper(unauthenticatedContextValue),
     });
 
     expect(result.current.isLoading).toBe(false);

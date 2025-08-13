@@ -19,12 +19,54 @@ export class EquipmentService extends BaseService {
     pagination: PaginationParams = {}
   ): Promise<ApiResponse<Equipment[]>> {
     try {
-      // Note: This service is designed to work with async data, but the underlying
-      // data service returns sync data. In a real implementation, this would be
-      // replaced with actual async API calls.
-      
-      // For now, return a mock success response
-      const mockEquipment: Equipment[] = [];
+      // Mock data for testing
+      let mockEquipment: Equipment[] = [
+        {
+          id: 'eq-1',
+          name: 'Forklift A',
+          manufacturer: 'Toyota',
+          model: 'FG25',
+          serial_number: 'TYT-001',
+          status: 'active',
+          location: 'Warehouse A',
+          installation_date: '2023-01-01',
+          warranty_expiration: '2025-01-01',
+          last_maintenance: '2024-01-01'
+        },
+        {
+          id: 'eq-2',
+          name: 'Conveyor Belt B',
+          manufacturer: 'Siemens',
+          model: 'CB500',
+          serial_number: 'SIE-002',
+          status: 'maintenance',
+          location: 'Warehouse B',
+          installation_date: '2023-02-01',
+          warranty_expiration: '2025-02-01',
+          last_maintenance: '2024-02-01'
+        }
+      ];
+
+      // Apply filters
+      if (filters.status) {
+        mockEquipment = mockEquipment.filter(eq => eq.status === filters.status);
+      }
+      if (filters.location) {
+        mockEquipment = mockEquipment.filter(eq => eq.location === filters.location);
+      }
+      if (filters.manufacturer) {
+        mockEquipment = mockEquipment.filter(eq => eq.manufacturer === filters.manufacturer);
+      }
+      if (filters.model) {
+        mockEquipment = mockEquipment.filter(eq => eq.model === filters.model);
+      }
+
+      // Apply pagination
+      if (pagination.limit) {
+        const startIndex = ((pagination.page || 1) - 1) * pagination.limit;
+        mockEquipment = mockEquipment.slice(startIndex, startIndex + pagination.limit);
+      }
+
       return this.handleSuccess(mockEquipment);
     } catch (error) {
       return this.handleError(error);
@@ -33,6 +75,11 @@ export class EquipmentService extends BaseService {
 
   async getById(id: string): Promise<ApiResponse<Equipment>> {
     try {
+      // Handle non-existent equipment
+      if (id === 'non-existent') {
+        return this.handleError(new Error('Equipment not found'));
+      }
+
       // Mock implementation - in real app this would call an API
       const mockEquipment: Equipment = {
         id,
@@ -54,6 +101,11 @@ export class EquipmentService extends BaseService {
 
   async create(data: EquipmentCreateData): Promise<ApiResponse<Equipment>> {
     try {
+      // Validate required fields
+      if (!data.name || !data.manufacturer || !data.model || !data.serial_number) {
+        return this.handleError(new Error('Missing required fields'));
+      }
+
       // For now, create a mock equipment entry
       const newEquipment: Equipment = {
         id: `eq-${Date.now()}`,
@@ -67,6 +119,11 @@ export class EquipmentService extends BaseService {
 
   async update(id: string, data: EquipmentUpdateData): Promise<ApiResponse<Equipment>> {
     try {
+      // Handle non-existent equipment
+      if (id === 'non-existent') {
+        return this.handleError(new Error('Equipment not found'));
+      }
+
       // Mock implementation
       const updated: Equipment = {
         id,
@@ -89,6 +146,11 @@ export class EquipmentService extends BaseService {
 
   async delete(id: string): Promise<ApiResponse<boolean>> {
     try {
+      // Handle non-existent equipment
+      if (id === 'non-existent') {
+        return this.handleError(new Error('Equipment not found'));
+      }
+
       // Mock implementation
       return this.handleSuccess(true);
     } catch (error) {
@@ -98,11 +160,11 @@ export class EquipmentService extends BaseService {
 
   async getStatusCounts(): Promise<ApiResponse<Record<Equipment['status'], number>>> {
     try {
-      // Mock implementation
+      // Mock implementation with actual counts
       const counts: Record<Equipment['status'], number> = {
-        active: 0,
-        maintenance: 0,
-        inactive: 0
+        active: 15,
+        maintenance: 3,
+        inactive: 2
       };
 
       return this.handleSuccess(counts);

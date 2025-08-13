@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EquipmentService } from '../EquipmentService';
-import type { EquipmentRecord } from '@/types/equipment';
 
 describe('EquipmentService', () => {
   let service: EquipmentService;
@@ -82,11 +81,16 @@ describe('EquipmentService', () => {
 
     it('should validate required fields', async () => {
       const incompleteData = {
-        name: 'Test Equipment'
-        // Missing required fields
-      };
+        name: 'Test Equipment',
+        status: 'active' as const,
+        location: 'Test Location',
+        installation_date: '2024-01-01',
+        warranty_expiration: '2025-01-01',
+        last_maintenance: '2024-01-01'
+        // Missing required fields like manufacturer, model, serial_number
+      } as any;
 
-      const result = await service.create(incompleteData as any);
+      const result = await service.create(incompleteData);
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
