@@ -10,9 +10,20 @@ export interface WorkOrderFilters extends FilterParams {
   equipmentId?: string;
 }
 
-export interface WorkOrderCreateData extends Omit<WorkOrder, 'id' | 'createdDate' | 'assigneeName' | 'teamName' | 'completedDate'> {}
+export interface WorkOrderCreateData extends Omit<WorkOrder, 'id' | 'createdDate' | 'assigneeName' | 'teamName' | 'completedDate'> {
+  title: string;
+  description: string;
+  equipmentId: string;
+  priority: WorkOrder['priority'];
+  status: WorkOrder['status'];
+}
 
-export interface WorkOrderUpdateData extends Partial<Omit<WorkOrder, 'id' | 'createdDate'>> {}
+export interface WorkOrderUpdateData extends Partial<Omit<WorkOrder, 'id' | 'createdDate'>> {
+  title?: string;
+  description?: string;
+  priority?: WorkOrder['priority'];
+  status?: WorkOrder['status'];
+}
 
 export class WorkOrderService extends BaseService {
   async getAll(

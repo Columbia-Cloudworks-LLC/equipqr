@@ -80,17 +80,26 @@ describe('EquipmentService', () => {
     });
 
     it('should validate required fields', async () => {
-      const incompleteData = {
+      interface IncompleteEquipmentData {
+        name: string;
+        status: 'active';
+        location: string;
+        installation_date: string;
+        warranty_expiration: string;
+        last_maintenance: string;
+        // Missing required fields like manufacturer, model, serial_number
+      }
+      
+      const incompleteData: IncompleteEquipmentData = {
         name: 'Test Equipment',
         status: 'active' as const,
         location: 'Test Location',
         installation_date: '2024-01-01',
         warranty_expiration: '2025-01-01',
         last_maintenance: '2024-01-01'
-        // Missing required fields like manufacturer, model, serial_number
-      } as any;
+      };
 
-      const result = await service.create(incompleteData);
+      const result = await service.create(incompleteData as any);
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();

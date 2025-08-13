@@ -22,7 +22,14 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Create mock context value
-const createMockAuthContextValue = (overrides: any = {}) => ({
+interface MockAuthContextOverrides {
+  user?: any;
+  session?: any;
+  isLoading?: boolean;
+  [key: string]: any;
+}
+
+const createMockAuthContextValue = (overrides: MockAuthContextOverrides = {}) => ({
   user: 'user' in overrides ? overrides.user : {
     id: 'user-1',
     email: 'test@example.com',
@@ -83,7 +90,11 @@ describe('useAuth', () => {
 
     expect(result.current.user).toEqual({
       id: 'user-1',
-      email: 'test@example.com'
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: '2024-01-01T00:00:00Z'
     });
     expect(result.current.session).toBeDefined();
     expect(result.current.isLoading).toBe(false);

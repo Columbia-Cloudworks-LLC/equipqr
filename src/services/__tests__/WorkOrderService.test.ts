@@ -84,14 +84,20 @@ describe('WorkOrderService', () => {
     });
 
     it('should validate required fields', async () => {
-      const incompleteData = {
+      interface IncompleteWorkOrderData {
+        title: string;
+        status: 'submitted';
+        priority: 'medium';
+        // Missing required fields like description, equipmentId
+      }
+      
+      const incompleteData: IncompleteWorkOrderData = {
         title: 'Test Work Order',
         status: 'submitted' as const,
         priority: 'medium' as const
-        // Missing required fields like description, equipmentId
-      } as any;
+      };
 
-      const result = await service.create(incompleteData);
+      const result = await service.create(incompleteData as any);
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
