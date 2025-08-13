@@ -29,7 +29,7 @@ export const teams = (orgId: string) => ({
 // Equipment keys
 export const equipment = {
   root: ['equipment'] as const,
-  list: (orgId: string, filters?: any) => 
+  list: (orgId: string, filters?: Record<string, unknown>) => 
     filters ? ['equipment', orgId, 'filtered', filters] as const 
             : ['equipment', orgId] as const,
   listOptimized: (orgId: string) => ['equipment', orgId, 'optimized'] as const,
@@ -48,13 +48,13 @@ export const equipment = {
 // Work Order keys  
 export const workOrders = {
   root: ['work-orders'] as const,
-  list: (orgId: string, filters?: any) =>
+  list: (orgId: string, filters?: Record<string, unknown>) =>
     filters ? ['work-orders', orgId, 'filtered', filters] as const
             : ['work-orders', orgId] as const,
   enhanced: (orgId: string) => ['work-orders', orgId, 'enhanced'] as const,
   optimized: (orgId: string) => ['work-orders', orgId, 'optimized'] as const,
   byId: (orgId: string, workOrderId: string) => ['work-orders', orgId, workOrderId] as const,
-  teamBased: (orgId: string, userTeamIds: string[], isManager: boolean, filters?: any) =>
+  teamBased: (orgId: string, userTeamIds: string[], isManager: boolean, filters?: Record<string, unknown>) =>
     ['work-orders', orgId, 'team-based', userTeamIds, isManager, filters] as const,
   myWorkOrders: (orgId: string, userId: string) => ['work-orders', orgId, 'my', userId] as const,
   equipmentWorkOrders: (orgId: string, equipmentId: string, status?: string) =>

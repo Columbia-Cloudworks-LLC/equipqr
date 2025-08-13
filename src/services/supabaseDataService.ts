@@ -149,8 +149,8 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
         .filter(member => member.team_id === team.id)
         .map(member => ({
           id: member.user_id,
-          name: (member.profiles as any)?.name || 'Unknown',
-          email: (member.profiles as any)?.email || '',
+          name: (member.profiles as { name?: string })?.name || 'Unknown',
+          email: (member.profiles as { email?: string })?.email || '',
           role: member.role,
         }));
 
@@ -467,7 +467,7 @@ export const updateWorkOrderStatus = async (
   newStatus: WorkOrder['status']
 ): Promise<boolean> => {
   try {
-    const updateData: any = { status: newStatus };
+    const updateData: { status: WorkOrder['status']; completed_date?: string } = { status: newStatus };
     
     // Set completion date if marking as completed
     if (newStatus === 'completed') {

@@ -20,7 +20,7 @@ export interface EnhancedCreateWorkOrderData {
   assignmentId?: string;
 }
 
-export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: any) => void }) => {
+export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
 
       // Auto-assign logic for single-user organizations
       let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
-      let teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
+      const teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
       let status: 'submitted' | 'assigned' = 'submitted';
 
       // If no explicit assignment and it's a single-user org, auto-assign to creator
@@ -77,7 +77,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
       // If equipment working hours are provided, update equipment
       if (data.equipmentWorkingHours && data.equipmentWorkingHours > 0) {
         try {
-          const { data: updateResult, error } = await supabase.rpc('update_equipment_working_hours', {
+          const { error } = await supabase.rpc('update_equipment_working_hours', {
             p_equipment_id: data.equipmentId,
             p_new_hours: data.equipmentWorkingHours,
             p_update_source: 'work_order',
