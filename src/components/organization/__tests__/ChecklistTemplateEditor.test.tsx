@@ -200,15 +200,18 @@ describe('ChecklistTemplateEditor', () => {
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
 
-      expect(mockMutateAsync).toHaveBeenCalledWith({
-        name: 'New Template',
-        description: 'New description',
-        template_data: expect.arrayContaining([
-          expect.objectContaining({
-            section: 'Engine',
-            title: 'Check oil'
-          })
-        ])
+      // Wait for async mutation to complete
+      await vi.waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledWith({
+          name: 'New Template',
+          description: 'New description',
+          template_data: expect.arrayContaining([
+            expect.objectContaining({
+              section: 'Engine',
+              title: 'Check oil'
+            })
+          ])
+        });
       });
     });
   });
@@ -243,13 +246,16 @@ describe('ChecklistTemplateEditor', () => {
       const saveButton = screen.getByText('Update Template');
       fireEvent.click(saveButton);
 
-      expect(mockMutateAsync).toHaveBeenCalledWith({
-        templateId: 'template-1',
-        updates: {
-          name: 'Updated Template',
-          description: 'Test description',
-          template_data: expect.any(Array)
-        }
+      // Wait for async mutation to complete
+      await vi.waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledWith({
+          templateId: 'template-1',
+          updates: {
+            name: 'Updated Template',
+            description: 'Test description',
+            template_data: expect.any(Array)
+          }
+        });
       });
     });
 

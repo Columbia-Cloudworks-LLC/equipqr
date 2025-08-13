@@ -5,9 +5,9 @@ import PMProgressIndicator from '../PMProgressIndicator';
 import { TestProviders } from '@/test/utils/TestProviders';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 
-// Mock hooks - using factory function to avoid hoisting issues
+// Mock hooks with proper factory to avoid hoisting
 vi.mock('@/hooks/usePMData', () => ({
-  usePMByWorkOrderId: vi.fn(),
+  usePMByWorkOrderId: vi.fn()
 }));
 
 const mockPMData = {
@@ -40,7 +40,7 @@ const mockPMData = {
   ]
 };
 
-const createMockQueryResult = (data: any) => ({
+const createMockQueryResult = (data: unknown) => ({
   data,
   isLoading: false,
   isError: false,
@@ -56,12 +56,17 @@ const createMockQueryResult = (data: any) => ({
   isRefetchError: false,
   dataUpdatedAt: Date.now(),
   errorUpdatedAt: 0,
+  errorUpdateCount: 0,
   failureCount: 0,
   failureReason: null,
   isStale: false,
   isPlaceholderData: false,
   isPreviousData: false,
   isInitialLoading: false,
+  isFetched: true,
+  isFetchedAfterMount: true,
+  isPaused: false,
+  promise: Promise.resolve(data),
   remove: vi.fn()
 } as any);
 

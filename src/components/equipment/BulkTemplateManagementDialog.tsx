@@ -11,7 +11,6 @@ import { Package, Loader2, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
 import { usePMTemplates } from '@/hooks/usePMTemplates';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useBulkAssignTemplate, useBulkRemoveTemplates, useBulkChangeTemplate } from '@/hooks/useEquipmentTemplateManagement';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EquipmentRecord } from '@/types/equipment';
 

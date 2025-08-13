@@ -46,7 +46,7 @@ const mockTemplate: PMTemplate = {
   name: 'Test Template',
   description: 'Test description',
   is_protected: false,
-  template_data: [mockChecklistItem],
+  template_data: [mockChecklistItem] as PMChecklistItem[],
   created_by: 'user-1',
   updated_by: null,
   created_at: '2024-01-01T00:00:00Z',
