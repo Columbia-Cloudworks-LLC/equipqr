@@ -3,8 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import ProtectedRoute from '../ProtectedRoute';
 
-// Mock useAuth hook
-const mockUseAuth = vi.fn();
+// Mock useAuth hook with default return value
+const mockUseAuth = vi.fn(() => ({
+  user: null,
+  isLoading: false,
+}));
+
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: mockUseAuth,
 }));

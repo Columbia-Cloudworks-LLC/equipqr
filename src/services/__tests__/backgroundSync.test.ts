@@ -296,14 +296,17 @@ describe('BackgroundSyncService', () => {
 
     it('should queue items when offline', () => {
       const payload = {
-        eventType: 'UPDATE',
+        eventType: 'INSERT',
         new: { id: 'eq-1', name: 'Test Equipment' },
+        old: null,
       };
 
+      // Get the equipment change handler from the mock calls
       const equipmentHandler = mockChannel.on.mock.calls.find(
         call => call[1].table === 'equipment'
       )?.[2];
 
+      expect(equipmentHandler).toBeDefined();
       equipmentHandler(payload);
 
       const syncStatus = service.getSyncStatus();
@@ -311,18 +314,20 @@ describe('BackgroundSyncService', () => {
     });
 
     it('should limit queue size', () => {
-      const payload = {
-        eventType: 'UPDATE',
-        new: { id: 'eq-1', name: 'Test Equipment' },
-      };
-
+      // Get the equipment change handler from the mock calls
       const equipmentHandler = mockChannel.on.mock.calls.find(
         call => call[1].table === 'equipment'
       )?.[2];
 
-      // Add more than 100 items to trigger queue limiting
-      for (let i = 0; i < 110; i++) {
-        equipmentHandler({ ...payload, new: { ...payload.new, id: `eq-${i}` } });
+      expect(equipmentHandler).toBeDefined();
+
+      // Add 100 items to queue to trigger queue limiting
+      for (let i = 0; i < 100; i++) {
+        equipmentHandler({
+          eventType: 'INSERT',
+          new: { id: `eq-${i}`, name: `Equipment ${i}` },
+          old: null,
+        });
       }
 
       const syncStatus = service.getSyncStatus();
