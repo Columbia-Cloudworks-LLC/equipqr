@@ -281,25 +281,20 @@ describe('BackgroundSyncService', () => {
     const organizationId = 'org-1';
 
     beforeEach(() => {
-      service.subscribeToOrganization(organizationId);
-      // Simulate offline
+      // Set offline BEFORE subscribing to organization
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         value: false,
       });
+      
+      // Reset singleton and create new service instance in offline state
+      (BackgroundSyncService as unknown as TestableBackgroundSyncService).instance = undefined;
+      service = BackgroundSyncService.getInstance();
+      
+      service.subscribeToOrganization(organizationId);
     });
 
     it('should queue items when offline', () => {
-      // Set service to offline
-      Object.defineProperty(navigator, 'onLine', {
-        writable: true,
-        value: false,
-      });
-      
-      // Trigger offline event
-      const offlineEvent = new Event('offline');
-      window.dispatchEvent(offlineEvent);
-      
       const payload = {
         eventType: 'UPDATE',
         new: { id: 'eq-1', name: 'Test Equipment' },
@@ -316,16 +311,6 @@ describe('BackgroundSyncService', () => {
     });
 
     it('should limit queue size', () => {
-      // Set service to offline first
-      Object.defineProperty(navigator, 'onLine', {
-        writable: true,
-        value: false,
-      });
-      
-      // Trigger offline event
-      const offlineEvent = new Event('offline');
-      window.dispatchEvent(offlineEvent);
-      
       const payload = {
         eventType: 'UPDATE',
         new: { id: 'eq-1', name: 'Test Equipment' },

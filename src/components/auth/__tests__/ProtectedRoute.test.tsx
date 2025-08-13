@@ -3,9 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import ProtectedRoute from '../ProtectedRoute';
 
-// Mock useAuth hook - moved before vi.mock to avoid hoisting issues
+// Mock useAuth hook
+const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: vi.fn(),
+  useAuth: mockUseAuth,
 }));
 
 // Mock Navigate component
@@ -22,12 +23,8 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('ProtectedRoute', () => {
-  const mockUseAuth = vi.mocked(vi.fn());
-  
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    const { useAuth } = await import('@/hooks/useAuth');
-    mockUseAuth.mockImplementation(useAuth as typeof mockUseAuth);
   });
 
   const renderProtectedRoute = (children: React.ReactNode = <div>Protected Content</div>) => {

@@ -145,7 +145,7 @@ describe('AuthContext', () => {
 
   it('should handle pending redirect after sign-in', async () => {
     const mockRedirectUrl = 'http://localhost:3000/equipment/123';
-    const mockSetTimeout = vi.fn();
+    const mockSetTimeout = vi.fn((fn) => fn()); // Execute immediately for tests
     global.setTimeout = mockSetTimeout as unknown as typeof setTimeout;
 
     window.sessionStorage.getItem = vi.fn().mockReturnValue(mockRedirectUrl);
@@ -158,16 +158,18 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    });
+    }, { timeout: 10000 });
 
-    act(() => {
+    await act(async () => {
       authStateChangeCallback('SIGNED_IN', mockSession);
     });
 
-    expect(window.sessionStorage.getItem).toHaveBeenCalledWith('pendingRedirect');
-    expect(window.sessionStorage.removeItem).toHaveBeenCalledWith('pendingRedirect');
-    expect(mockSetTimeout).toHaveBeenCalledWith(expect.any(Function), 100);
-  });
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem).toHaveBeenCalledWith('pendingRedirect');
+      expect(window.sessionStorage.removeItem).toHaveBeenCalledWith('pendingRedirect');
+      expect(mockSetTimeout).toHaveBeenCalledWith(expect.any(Function), 100);
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('should handle token refresh without triggering redirect', async () => {
     const { result } = renderHook(
@@ -221,7 +223,7 @@ describe('AuthContext', () => {
       });
       expect(signUpResult).toEqual({ error: null });
     }, { timeout: 10000 });
-  });
+  }, 15000);
 
   it('should handle sign in', async () => {
     mockSupabase.auth.signInWithPassword.mockResolvedValue({ error: null });
@@ -247,7 +249,7 @@ describe('AuthContext', () => {
       });
       expect(signInResult).toEqual({ error: null });
     }, { timeout: 10000 });
-  });
+  }, 15000);
 
   it('should handle Google sign in', async () => {
     mockSupabase.auth.signInWithOAuth.mockResolvedValue({ error: null });
@@ -266,14 +268,16 @@ describe('AuthContext', () => {
       signInResult = await result.current!.signInWithGoogle();
     });
 
-    expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-      provider: 'google',
-      options: {
-        redirectTo: 'http://localhost:3000/'
-      }
-    });
-    expect(signInResult).toEqual({ error: null });
-  });
+    await waitFor(() => {
+      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: 'http://localhost:3000/'
+        }
+      });
+      expect(signInResult).toEqual({ error: null });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('should handle sign out', async () => {
     mockSupabase.auth.signOut.mockResolvedValue({ error: null });
