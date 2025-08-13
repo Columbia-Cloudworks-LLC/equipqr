@@ -28,7 +28,7 @@ export const EmailPrivacySettings: React.FC<EmailPrivacySettingsProps> = ({
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ email_private: newEmailPrivate })
+        .update({ email_private: newEmailPrivate } as any)
         .eq('id', user.id);
 
       if (error) throw error;

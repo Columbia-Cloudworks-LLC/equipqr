@@ -62,20 +62,20 @@ export const pmChecklistTemplatesService = {
   // List all templates accessible to an organization (global + org-specific)
   async listTemplates(orgId: string): Promise<PMTemplate[]> {
     const { data, error } = await supabase
-      .from('pm_checklist_templates')
+      .from('pm_checklist_templates' as any)
       .select('*')
       .or(`organization_id.is.null,organization_id.eq.${orgId}`)
       .order('organization_id', { nullsFirst: true })
       .order('name');
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as unknown as PMTemplate[];
   },
 
   // Get a specific template by ID
   async getTemplate(id: string): Promise<PMTemplate | null> {
     const { data, error } = await supabase
-      .from('pm_checklist_templates')
+      .from('pm_checklist_templates' as any)
       .select('*')
       .eq('id', id)
       .single();
@@ -84,7 +84,7 @@ export const pmChecklistTemplatesService = {
       if (error.code === 'PGRST116') return null; // No rows returned
       throw error;
     }
-    return data;
+    return data as unknown as PMTemplate;
   },
 
   // Create a new template
@@ -104,7 +104,7 @@ export const pmChecklistTemplatesService = {
     }));
 
     const { data, error } = await supabase
-      .from('pm_checklist_templates')
+      .from('pm_checklist_templates' as any)
       .insert({
         organization_id: templateData.organizationId,
         name: templateData.name,
@@ -117,7 +117,7 @@ export const pmChecklistTemplatesService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as unknown as PMTemplate;
   },
 
   // Update an existing template
@@ -143,20 +143,20 @@ export const pmChecklistTemplatesService = {
     }
 
     const { data, error } = await supabase
-      .from('pm_checklist_templates')
+      .from('pm_checklist_templates' as any)
       .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return data as unknown as PMTemplate;
   },
 
   // Delete a template (will fail for protected templates via RLS)
   async deleteTemplate(id: string): Promise<void> {
     const { error } = await supabase
-      .from('pm_checklist_templates')
+      .from('pm_checklist_templates' as any)
       .delete()
       .eq('id', id);
 
@@ -173,7 +173,7 @@ export const pmChecklistTemplatesService = {
 
     // Clone and sanitize the template data with fresh IDs
     const templateData = Array.isArray(sourceTemplate.template_data) 
-      ? sourceTemplate.template_data as PMChecklistItem[] 
+      ? sourceTemplate.template_data as unknown as PMChecklistItem[] 
       : [];
     
     const clonedData = templateData.map(item => ({
@@ -186,7 +186,7 @@ export const pmChecklistTemplatesService = {
     const cloneName = newName || `${sourceTemplate.name} (Copy)`;
 
     const { data, error } = await supabase
-      .from('pm_checklist_templates')
+      .from('pm_checklist_templates' as any)
       .insert({
         organization_id: targetOrgId,
         name: cloneName,
@@ -200,6 +200,6 @@ export const pmChecklistTemplatesService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as unknown as PMTemplate;
   }
 };
