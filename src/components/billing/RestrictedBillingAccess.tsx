@@ -9,9 +9,7 @@ interface RestrictedBillingAccessProps {
   currentOrganizationName: string;
 }
 
-const RestrictedBillingAccess: React.FC<RestrictedBillingAccessProps> = ({
-  currentOrganizationName
-}) => {
+const RestrictedBillingAccess: React.FC<RestrictedBillingAccessProps> = () => {
   const { organizations, switchOrganization } = useSimpleOrganization();
   const navigate = useNavigate();
 
@@ -23,7 +21,7 @@ const RestrictedBillingAccess: React.FC<RestrictedBillingAccessProps> = ({
       const firstOwnedOrg = ownedOrganizations[0];
       switchOrganization(firstOwnedOrg.id);
       // Navigate to billing page for the organization they own
-      navigate('/billing');
+      navigate('/dashboard/billing');
     }
   };
 

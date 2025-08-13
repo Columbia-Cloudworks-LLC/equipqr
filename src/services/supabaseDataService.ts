@@ -149,8 +149,8 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
         .filter(member => member.team_id === team.id)
         .map(member => ({
           id: member.user_id,
-          name: (member.profiles as any)?.name || 'Unknown',
-          email: (member.profiles as any)?.email || '',
+          name: (member.profiles as { name?: string })?.name || 'Unknown',
+          email: (member.profiles as { email?: string })?.email || '',
           role: member.role,
         }));
 
@@ -280,7 +280,16 @@ export const getWorkOrdersByEquipmentId = async (organizationId: string, equipme
       await supabase.from('profiles').select('id, name').in('id', assigneeIds) : 
       { data: [], error: null };
 
-    return (data || []).map(wo => ({
+    // Sort work orders by appropriate date field (historical_start_date for historical, created_date for regular)
+    const sortedData = (data || []).sort((a, b) => {
+      const dateA = a.is_historical && a.historical_start_date ? 
+        new Date(a.historical_start_date) : new Date(a.created_date);
+      const dateB = b.is_historical && b.historical_start_date ? 
+        new Date(b.historical_start_date) : new Date(b.created_date);
+      return dateB.getTime() - dateA.getTime(); // Most recent first
+    });
+
+    return sortedData.map(wo => ({
       ...wo,
       assigneeName: profilesResult.data?.find(p => p.id === wo.assignee_id)?.name,
       teamName: undefined // Team info now comes from equipment assignment
@@ -458,7 +467,7 @@ export const updateWorkOrderStatus = async (
   newStatus: WorkOrder['status']
 ): Promise<boolean> => {
   try {
-    const updateData: any = { status: newStatus };
+    const updateData: { status: WorkOrder['status']; completed_date?: string } = { status: newStatus };
     
     // Set completion date if marking as completed
     if (newStatus === 'completed') {

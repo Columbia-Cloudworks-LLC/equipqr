@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
 import { EmailPrivacySettings } from '@/components/settings/EmailPrivacySettings';
+import { SecurityStatus } from '@/components/security/SecurityStatus';
+import { SessionStatus } from '@/components/session/SessionStatus';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +54,18 @@ const SettingsContent = () => {
         currentEmailPrivate={profile?.email_private || false}
         onUpdate={() => refetchProfile()}
       />
+
+      {/* Security & Status */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg sm:text-xl font-semibold">Security & Status</h2>
+          <p className="text-sm text-muted-foreground">Monitor your account security and session status</p>
+        </div>
+        <div className="space-y-4">
+          <SessionStatus />
+          <SecurityStatus />
+        </div>
+      </div>
 
       <Card>
         <CardHeader>

@@ -6,7 +6,6 @@ import {
   useUpdateEquipment, 
   useCreateWorkOrder
 } from '../useSupabaseData';
-import { toast } from '../use-toast';
 
 // Mock dependencies
 vi.mock('../use-toast', () => ({
@@ -84,7 +83,8 @@ describe('useSupabaseData hooks', () => {
         last_known_location: null,
         warranty_expiration: null,
         last_maintenance: null,
-        team_id: null
+        team_id: null,
+        default_pm_template_id: null
       };
 
       result.current.mutate(equipmentData);

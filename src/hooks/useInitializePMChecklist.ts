@@ -1,6 +1,6 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
+import { createPM, defaultForkliftChecklist, PMChecklistItem } from '@/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 
 export const useInitializePMChecklist = () => {
@@ -10,20 +10,48 @@ export const useInitializePMChecklist = () => {
     mutationFn: async ({
       workOrderId,
       equipmentId,
-      organizationId
+      organizationId,
+      templateId
     }: {
       workOrderId: string;
       equipmentId: string;
       organizationId: string;
+      templateId?: string;
     }) => {
       console.log('🔧 Initializing PM checklist for work order:', workOrderId);
+      
+      let checklistData = defaultForkliftChecklist;
+      let notes = 'PM checklist initialized with default forklift maintenance items.';
+      
+      // If templateId provided, try to fetch template data
+      if (templateId) {
+        try {
+          const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
+          const template = await pmChecklistTemplatesService.getTemplate(templateId);
+          
+          if (template && Array.isArray(template.template_data)) {
+            // Safely convert JSON to PMChecklistItem[] and sanitize
+            const templateItems = template.template_data as unknown as PMChecklistItem[];
+            checklistData = templateItems.map(item => ({
+              ...item,
+              condition: null,
+              notes: ''
+            }));
+            notes = `PM checklist initialized from template: ${template.name}`;
+          }
+        } catch (error) {
+          console.warn('Failed to fetch PM template, using default:', error);
+          // Fall back to default checklist
+        }
+      }
       
       const pmRecord = await createPM({
         workOrderId,
         equipmentId,
         organizationId,
-        checklistData: defaultForkliftChecklist,
-        notes: 'PM checklist initialized with default forklift maintenance items.'
+        checklistData,
+        notes,
+        templateId
       });
 
       if (!pmRecord) {

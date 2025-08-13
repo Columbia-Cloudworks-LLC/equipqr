@@ -7,6 +7,7 @@ export interface SimplifiedOrganizationRestrictions {
   canUploadImages: boolean;
   canAccessFleetMap: boolean;
   canInviteMembers: boolean;
+  canCreateCustomPMTemplates: boolean;
   hasAvailableSlots: boolean;
   upgradeMessage: string;
 }
@@ -28,6 +29,7 @@ export const getSimplifiedOrganizationRestrictions = (
       canUploadImages: false,
       canAccessFleetMap: false,
       canInviteMembers: false, // Can't invite until they purchase slots
+      canCreateCustomPMTemplates: false, // Can't create custom PM templates
       hasAvailableSlots: false, // No slots purchased yet
       upgradeMessage: 'Purchase user licenses to invite team members and unlock collaboration features. Only $10/month per additional user.'
     };
@@ -42,6 +44,7 @@ export const getSimplifiedOrganizationRestrictions = (
     canUploadImages: true,
     canAccessFleetMap: fleetMapEnabled,
     canInviteMembers: hasAvailableSlots,
+    canCreateCustomPMTemplates: true, // Paying customers can create custom PM templates
     hasAvailableSlots,
     upgradeMessage: hasAvailableSlots ? '' : 'Purchase more user licenses to invite additional team members.'
   };
@@ -54,6 +57,7 @@ export const getRestrictionMessage = (restriction: keyof SimplifiedOrganizationR
     canUploadImages: 'Image uploads require user licenses. Purchase licenses to unlock this feature.',
     canAccessFleetMap: 'Fleet Map is a premium add-on. Enable it from your billing settings.',
     canInviteMembers: 'Purchase licenses to invite team members.',
+    canCreateCustomPMTemplates: 'Custom PM templates require user licenses. Purchase licenses to create and manage custom preventative maintenance checklists.',
     hasAvailableSlots: 'No available user licenses. Purchase more licenses to invite team members.',
     upgradeMessage: 'Purchase licenses to unlock collaboration features.'
   };

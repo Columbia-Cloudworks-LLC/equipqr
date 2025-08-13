@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { z } from 'zod';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
@@ -11,6 +11,7 @@ const workOrderFormSchema = z.object({
   priority: z.enum(['low', 'medium', 'high']),
   dueDate: z.string().optional().nullable(),
   hasPM: z.boolean().default(false),
+  pmTemplateId: z.string().optional().nullable(),
   assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),
   assignmentId: z.string().optional().nullable().transform(val => val === '' ? null : val),
   isHistorical: z.boolean().default(false),
@@ -50,13 +51,14 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     hasInitialized: boolean;
   }>({ hasInitialized: false });
 
-  const initialValues: Partial<WorkOrderFormData> = {
+  const initialValues: Partial<WorkOrderFormData> = useMemo(() => ({
     title: workOrder?.title || '',
     description: workOrder?.description || '',
     equipmentId: workOrder?.equipment_id || equipmentId || '',
     priority: workOrder?.priority || 'medium',
     dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : undefined,
     hasPM: workOrder?.has_pm || false,
+    pmTemplateId: null,
     assignmentType: 'unassigned',
     assignmentId: null,
     isHistorical: initialIsHistorical,
@@ -65,7 +67,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     historicalStartDate: undefined,
     historicalNotes: '',
     completedDate: undefined,
-  };
+  }), [workOrder, equipmentId, initialIsHistorical]);
 
   const form = useFormValidation(workOrderFormSchema, initialValues);
 
@@ -88,6 +90,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
           priority: initialValues.priority || 'medium',
           dueDate: initialValues.dueDate || undefined,
           hasPM: initialValues.hasPM || false,
+          pmTemplateId: initialValues.pmTemplateId || null,
           assignmentType: initialValues.assignmentType || 'unassigned',
           assignmentId: null,
           isHistorical: initialValues.isHistorical || false,

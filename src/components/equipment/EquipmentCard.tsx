@@ -17,6 +17,7 @@ interface Equipment {
   location: string;
   last_maintenance?: string;
   image_url?: string;
+  default_pm_template_id?: string | null;
 }
 
 interface EquipmentCardProps {

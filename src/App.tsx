@@ -26,6 +26,7 @@ import Billing from '@/pages/Billing';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
 import Support from '@/pages/Support';
+import PMTemplates from '@/pages/PMTemplates';
 import InvitationAccept from '@/pages/InvitationAccept';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
@@ -99,6 +100,7 @@ function App() {
                                 <Route path="/organization" element={<Organization />} />
                                 <Route path="/scanner" element={<QRScanner />} />
                                 <Route path="/billing" element={<Billing />} />
+                                <Route path="/pm-templates" element={<PMTemplates />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
                               </Routes>

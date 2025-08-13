@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { createWorkOrder } from '@/services/supabaseDataService';
-import { createPM } from '@/services/preventativeMaintenanceService';
+import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -15,14 +15,16 @@ export interface EnhancedCreateWorkOrderData {
   dueDate?: string;
   equipmentWorkingHours?: number;
   hasPM?: boolean;
+  pmTemplateId?: string;
   assignmentType?: 'user' | 'team';
   assignmentId?: string;
 }
 
-export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: any) => void }) => {
+export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const initializePMChecklist = useInitializePMChecklist();
 
   return useMutation({
     mutationFn: async (data: EnhancedCreateWorkOrderData) => {
@@ -32,7 +34,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
 
       // Auto-assign logic for single-user organizations
       let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
-      let teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
+      const teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
       let status: 'submitted' | 'assigned' = 'submitted';
 
       // If no explicit assignment and it's a single-user org, auto-assign to creator
@@ -75,7 +77,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
       // If equipment working hours are provided, update equipment
       if (data.equipmentWorkingHours && data.equipmentWorkingHours > 0) {
         try {
-          const { data: updateResult, error } = await supabase.rpc('update_equipment_working_hours', {
+          const { error } = await supabase.rpc('update_equipment_working_hours', {
             p_equipment_id: data.equipmentId,
             p_new_hours: data.equipmentWorkingHours,
             p_update_source: 'work_order',
@@ -92,20 +94,19 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
         }
       }
 
-      // If PM is required, create the PM record
+      // If PM is required, initialize the PM checklist with template
       if (data.hasPM) {
-        const pmData = {
-          workOrderId: workOrder.id,
-          equipmentId: data.equipmentId,
-          organizationId: currentOrganization.id,
-          checklistData: [], // Will be initialized with default checklist
-        };
-
-        const pm = await createPM(pmData);
-        if (!pm) {
-          console.error('Failed to create PM record');
+        try {
+          await initializePMChecklist.mutateAsync({
+            workOrderId: workOrder.id,
+            equipmentId: data.equipmentId,
+            organizationId: currentOrganization.id,
+            templateId: data.pmTemplateId,
+          });
+        } catch (error) {
+          console.error('Failed to initialize PM checklist:', error);
           // Don't throw error here - work order was created successfully
-          toast.error('Work order created but failed to create PM checklist');
+          toast.error('Work order created but failed to initialize PM checklist');
         }
       }
 

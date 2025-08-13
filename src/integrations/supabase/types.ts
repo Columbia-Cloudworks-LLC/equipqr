@@ -150,6 +150,7 @@ export type Database = {
         Row: {
           created_at: string
           custom_attributes: Json | null
+          default_pm_template_id: string | null
           id: string
           image_url: string | null
           installation_date: string
@@ -171,6 +172,7 @@ export type Database = {
         Insert: {
           created_at?: string
           custom_attributes?: Json | null
+          default_pm_template_id?: string | null
           id?: string
           image_url?: string | null
           installation_date: string
@@ -192,6 +194,7 @@ export type Database = {
         Update: {
           created_at?: string
           custom_attributes?: Json | null
+          default_pm_template_id?: string | null
           id?: string
           image_url?: string | null
           installation_date?: string
@@ -211,6 +214,13 @@ export type Database = {
           working_hours?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "equipment_default_pm_template_id_fkey"
+            columns: ["default_pm_template_id"]
+            isOneToOne: false
+            referencedRelation: "pm_checklist_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "equipment_organization_id_fkey"
             columns: ["organization_id"]
@@ -895,6 +905,67 @@ export type Database = {
         }
         Relationships: []
       }
+      pm_checklist_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_protected: boolean
+          name: string
+          organization_id: string | null
+          template_data: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_protected?: boolean
+          name: string
+          organization_id?: string | null
+          template_data?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_protected?: boolean
+          name?: string
+          organization_id?: string | null
+          template_data?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pm_checklist_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_checklist_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_checklist_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pm_status_history: {
         Row: {
           changed_at: string
@@ -961,6 +1032,7 @@ export type Database = {
           notes: string | null
           organization_id: string
           status: string
+          template_id: string | null
           updated_at: string
           work_order_id: string
         }
@@ -978,6 +1050,7 @@ export type Database = {
           notes?: string | null
           organization_id: string
           status?: string
+          template_id?: string | null
           updated_at?: string
           work_order_id: string
         }
@@ -995,6 +1068,7 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           status?: string
+          template_id?: string | null
           updated_at?: string
           work_order_id?: string
         }
@@ -1018,6 +1092,13 @@ export type Database = {
             columns: ["work_order_id"]
             isOneToOne: false
             referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventative_maintenance_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "pm_checklist_templates"
             referencedColumns: ["id"]
           },
         ]

@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+import { Tables, Database, Json } from '@/integrations/supabase/types';
 
 export type PreventativeMaintenance = Tables<'preventative_maintenance'>;
 
@@ -20,6 +20,7 @@ export interface CreatePMData {
   organizationId: string;
   checklistData: PMChecklistItem[];
   notes?: string;
+  templateId?: string;
 }
 
 export interface UpdatePMData {
@@ -895,8 +896,9 @@ export const createPM = async (data: CreatePMData): Promise<PreventativeMaintena
         equipment_id: data.equipmentId,
         organization_id: data.organizationId,
         created_by: userData.user.id,
-        checklist_data: data.checklistData as any, // Cast to any to satisfy Json type
+        checklist_data: data.checklistData as unknown as Json,
         notes: data.notes,
+        template_id: data.templateId,
         status: 'pending'
       })
       .select()
@@ -944,8 +946,8 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       return null;
     }
 
-    const updateData: any = {
-      checklist_data: data.checklistData as any, // Cast to any to satisfy Json type
+    const updateData: Database['public']['Tables']['preventative_maintenance']['Update'] = {
+      checklist_data: data.checklistData as unknown as Json,
       notes: data.notes,
     };
 
