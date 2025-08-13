@@ -212,7 +212,9 @@ describe('usePMTemplates', () => {
 
       await result.current.mutateAsync(templateData);
 
-      expect(result.current.isSuccess).toBe(true);
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
     });
 
     it('handles creation error with permission message', async () => {
@@ -228,11 +230,13 @@ describe('usePMTemplates', () => {
           name: 'Test',
           template_data: []
         });
-      } catch {
-        // Expected to throw
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        // Mutation should reject and set error state
+        await waitFor(() => {
+          expect(result.current.isError).toBe(true);
+        });
       }
-
-      expect(result.current.isError).toBe(true);
     });
 
     it('handles general creation error', async () => {
@@ -248,11 +252,13 @@ describe('usePMTemplates', () => {
           name: 'Test',
           template_data: []
         });
-      } catch {
-        // Expected to throw
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        // Mutation should reject and set error state
+        await waitFor(() => {
+          expect(result.current.isError).toBe(true);
+        });
       }
-
-      expect(result.current.isError).toBe(true);
     });
 
     it('throws error when organization or user not found', async () => {
