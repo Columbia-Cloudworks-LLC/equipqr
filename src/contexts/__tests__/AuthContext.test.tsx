@@ -2,9 +2,9 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { AuthProvider, AuthContext } from '../AuthContext';
-import type { User, Session } from '@supabase/supabase-js';
+import type { User, Session, AuthError } from '@supabase/supabase-js';
 
-// Mock Supabase - moved before vi.mock to avoid hoisting issues
+// Mock Supabase
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
@@ -17,6 +17,9 @@ vi.mock('@/integrations/supabase/client', () => ({
     },
   },
 }));
+
+// Import the mocked module
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock data
 const mockUser: User = {
@@ -37,40 +40,39 @@ const mockSession: Session = {
 };
 
 describe('AuthContext', () => {
-  let mockSubscription: { unsubscribe: () => void };
+  let mockSubscription: { unsubscribe: () => void; id: string; callback: () => void };
   let authStateChangeCallback: (event: string, session: Session | null) => void;
-  let mockSupabase: {
-    auth: {
-      onAuthStateChange: ReturnType<typeof vi.fn>;
-      getSession: ReturnType<typeof vi.fn>;
-      signUp: ReturnType<typeof vi.fn>;
-      signInWithPassword: ReturnType<typeof vi.fn>;
-      signInWithOAuth: ReturnType<typeof vi.fn>;
-      signOut: ReturnType<typeof vi.fn>;
-    };
-  };
 
   beforeEach(() => {
-    // Use direct import to avoid async issues
-    const { supabase } = require('@/integrations/supabase/client');
-    mockSupabase = supabase as unknown as typeof mockSupabase;
+    mockSubscription = { 
+      unsubscribe: vi.fn(),
+      id: 'mock-subscription',
+      callback: vi.fn()
+    };
     
-    mockSubscription = { unsubscribe: vi.fn() };
-    
-    mockSupabase.auth.onAuthStateChange.mockImplementation((callback) => {
+    vi.mocked(supabase.auth.onAuthStateChange).mockImplementation((callback) => {
       authStateChangeCallback = callback;
       return { data: { subscription: mockSubscription } };
     });
     
-    mockSupabase.auth.getSession.mockResolvedValue({
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
       data: { session: null },
       error: null,
     });
     
-    mockSupabase.auth.signUp.mockResolvedValue({ error: null });
-    mockSupabase.auth.signInWithPassword.mockResolvedValue({ error: null });
-    mockSupabase.auth.signInWithOAuth.mockResolvedValue({ error: null });
-    mockSupabase.auth.signOut.mockResolvedValue({ error: null });
+    vi.mocked(supabase.auth.signUp).mockResolvedValue({ 
+      data: { user: null, session: null },
+      error: null 
+    });
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ 
+      data: { user: null, session: null },
+      error: null 
+    });
+    vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ 
+      data: { provider: 'google' as const, url: null },
+      error: null 
+    });
+    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
     
     // Mock sessionStorage
     Object.defineProperty(window, 'sessionStorage', {
@@ -120,7 +122,7 @@ describe('AuthContext', () => {
   });
 
   it('should set user and session on initial load', async () => {
-    mockSupabase.auth.getSession.mockResolvedValue({
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
@@ -214,7 +216,7 @@ describe('AuthContext', () => {
       signUpResult = await result.current!.signUp('test@example.com', 'password', 'Test User');
     });
 
-    expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
+    expect(vi.mocked(supabase.auth.signUp)).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'password',
       options: {
@@ -224,7 +226,10 @@ describe('AuthContext', () => {
         }
       }
     });
-    expect(signUpResult).toEqual({ error: null });
+    expect(signUpResult).toEqual({ 
+      data: { user: null, session: null },
+      error: null 
+    });
   });
 
   it('should handle sign in', async () => {
@@ -242,11 +247,14 @@ describe('AuthContext', () => {
       signInResult = await result.current!.signIn('test@example.com', 'password');
     });
 
-    expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
+    expect(vi.mocked(supabase.auth.signInWithPassword)).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'password'
     });
-    expect(signInResult).toEqual({ error: null });
+    expect(signInResult).toEqual({ 
+      data: { user: null, session: null },
+      error: null 
+    });
   });
 
   it('should handle Google sign in', async () => {
@@ -264,17 +272,20 @@ describe('AuthContext', () => {
       signInResult = await result.current!.signInWithGoogle();
     });
 
-    expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+    expect(vi.mocked(supabase.auth.signInWithOAuth)).toHaveBeenCalledWith({
       provider: 'google',
       options: {
         redirectTo: 'http://localhost:3000/'
       }
     });
-    expect(signInResult).toEqual({ error: null });
+    expect(signInResult).toEqual({ 
+      data: { provider: 'google', url: null },
+      error: null 
+    });
   });
 
   it('should handle sign out', async () => {
-    mockSupabase.auth.signOut.mockResolvedValue({ error: null });
+    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
 
     const { result } = renderHook(
       () => React.useContext(AuthContext),
@@ -290,15 +301,19 @@ describe('AuthContext', () => {
       await result.current!.signOut();
     });
 
-    expect(mockSupabase.auth.signOut).toHaveBeenCalled();
+    expect(vi.mocked(supabase.auth.signOut)).toHaveBeenCalled();
     expect(window.sessionStorage.removeItem).toHaveBeenCalledWith('pendingRedirect');
     expect(result.current?.user).toBe(null);
     expect(result.current?.session).toBe(null);
   });
 
   it('should handle sign out errors gracefully', async () => {
-    const mockError = new Error('Network error');
-    mockSupabase.auth.signOut.mockResolvedValue({ error: mockError });
+    const mockError = {
+      message: 'Network error',
+      code: 'network_error',
+      status: 500,
+    } as AuthError;
+    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: mockError });
     console.warn = vi.fn();
 
     const { result } = renderHook(
