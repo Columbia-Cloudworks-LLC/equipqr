@@ -1,232 +1,40 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, Copy, Edit, Trash2, Lock, Globe, Building } from 'lucide-react';
-import { usePMTemplates, useDeletePMTemplate, useClonePMTemplate } from '@/hooks/usePMTemplates';
-import { ChecklistTemplateEditor } from './ChecklistTemplateEditor';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { PMChecklistItem } from '@/services/preventativeMaintenanceService';
+import { CheckCircle, Users, Globe, ArrowRight, Plus } from 'lucide-react';
+import { usePMTemplates } from '@/hooks/usePMTemplates';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { usePermissions } from '@/hooks/usePermissions';
+import { generateSectionsSummary } from '@/services/pmChecklistTemplatesService';
 
 export const OrganizationChecklistsTab: React.FC = () => {
-  const { currentOrganization } = useOrganization();
-  const { data: templates = [], isLoading } = usePMTemplates();
-  const deleteTemplateMutation = useDeletePMTemplate();
-  const cloneTemplateMutation = useClonePMTemplate();
+  const navigate = useNavigate();
+  const { currentOrganization } = useSimpleOrganization();
+  const { data: templates, isLoading } = usePMTemplates();
+  const { hasRole } = usePermissions();
 
-  const [editorDialogOpen, setEditorDialogOpen] = useState(false);
-  const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<{
-    id: string;
-    name: string;
-    description?: string | null;
-    template_data: PMChecklistItem[];
-  } | null>(null);
-  const [cloningTemplateId, setCloningTemplateId] = useState<string | null>(null);
-  const [cloneName, setCloneName] = useState('');
+  const isAdmin = hasRole(['owner', 'admin']);
 
-  const globalTemplates = templates.filter(t => t.organization_id === null);
-  const orgTemplates = templates.filter(t => t.organization_id !== null);
+  // Separate templates into global and organization-specific
+  const globalTemplates = templates?.filter(t => !t.organization_id) || [];
+  const orgTemplates = templates?.filter(t => t.organization_id === currentOrganization?.id) || [];
 
-  const handleCreateNew = () => {
-    setEditingTemplate(null);
-    setEditorDialogOpen(true);
+  const handleViewAllTemplates = () => {
+    navigate('/pm-templates');
   };
-
-  const handleEdit = (template: any) => {
-    // We need to fetch the full template data
-    // For now, we'll create a basic structure
-    setEditingTemplate({
-      id: template.id,
-      name: template.name,
-      description: template.description,
-      template_data: [] // This would be populated from the API
-    });
-    setEditorDialogOpen(true);
-  };
-
-  const handleDelete = async (templateId: string) => {
-    try {
-      await deleteTemplateMutation.mutateAsync(templateId);
-    } catch (error) {
-      console.error('Failed to delete template:', error);
-    }
-  };
-
-  const handleClone = (templateId: string, templateName: string) => {
-    setCloningTemplateId(templateId);
-    setCloneName(`${templateName} (Copy)`);
-    setCloneDialogOpen(true);
-  };
-
-  const handleCloneConfirm = async () => {
-    if (!cloningTemplateId) return;
-
-    try {
-      await cloneTemplateMutation.mutateAsync({
-        sourceId: cloningTemplateId,
-        newName: cloneName
-      });
-      setCloneDialogOpen(false);
-      setCloningTemplateId(null);
-      setCloneName('');
-    } catch (error) {
-      console.error('Failed to clone template:', error);
-    }
-  };
-
-  const renderTemplateCard = (template: any, isGlobal: boolean) => (
-    <Card key={template.id} className="relative">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-lg flex items-center gap-2">
-              {template.name}
-              {isGlobal && <Globe className="h-4 w-4 text-muted-foreground" />}
-              {!isGlobal && <Building className="h-4 w-4 text-muted-foreground" />}
-              {template.is_protected && <Lock className="h-4 w-4 text-amber-500" />}
-            </CardTitle>
-            <CardDescription className="mt-1">
-              {template.description || 'No description provided'}
-            </CardDescription>
-          </div>
-          <div className="flex gap-1">
-            <Badge variant={isGlobal ? "secondary" : "default"}>
-              {isGlobal ? 'Global' : 'Organization'}
-            </Badge>
-            {template.is_protected && (
-              <Badge variant="outline" className="text-amber-600">
-                Protected
-              </Badge>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent>
-        <div className="space-y-3">
-          {/* Section breakdown */}
-          <div>
-            <div className="text-sm font-medium mb-1">Sections ({template.sections.length})</div>
-            <div className="flex flex-wrap gap-1">
-              {template.sections.map((section: any) => (
-                <Badge key={section.name} variant="outline" className="text-xs">
-                  {section.name} ({section.count})
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          {/* Total items */}
-          <div className="text-sm text-muted-foreground">
-            Total items: {template.itemCount}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleClone(template.id, template.name)}
-              disabled={cloneTemplateMutation.isPending}
-            >
-              <Copy className="mr-1 h-3 w-3" />
-              Clone
-            </Button>
-
-            {!isGlobal && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(template)}
-                  disabled={template.is_protected}
-                >
-                  <Edit className="mr-1 h-3 w-3" />
-                  Edit
-                </Button>
-
-                {!template.is_protected && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={deleteTemplateMutation.isPending}
-                      >
-                        <Trash2 className="mr-1 h-3 w-3" />
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Template</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{template.name}"? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(template.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Checklist Templates</h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-3 bg-muted rounded"></div>
-                  <div className="h-3 bg-muted rounded w-2/3"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-muted rounded w-1/3"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-muted rounded"></div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -234,109 +42,131 @@ export const OrganizationChecklistsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Checklist Templates</h2>
+          <h3 className="text-lg font-semibold">PM Checklist Templates</h3>
           <p className="text-sm text-muted-foreground">
-            Manage reusable preventive maintenance checklists for your organization
+            Manage preventative maintenance checklist templates for your organization
           </p>
         </div>
-        <Button onClick={handleCreateNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Template
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <Button onClick={() => navigate('/pm-templates')} variant="outline">
+              <Plus className="mr-2 h-4 w-4" />
+              New Template
+            </Button>
+          )}
+          <Button onClick={handleViewAllTemplates}>
+            View All Templates
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Global Templates */}
-      {globalTemplates.length > 0 && (
-        <div>
-          <h3 className="text-md font-medium mb-3 flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            Global Templates
-          </h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {globalTemplates.map(template => renderTemplateCard(template, true))}
-          </div>
-        </div>
-      )}
+      <div className="grid gap-4">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center">
+                <Globe className="mr-2 h-4 w-4" />
+                Global Templates
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{globalTemplates.length}</div>
+              <p className="text-xs text-muted-foreground">Available to all organizations</p>
+            </CardContent>
+          </Card>
 
-      {/* Organization Templates */}
-      <div>
-        <h3 className="text-md font-medium mb-3 flex items-center gap-2">
-          <Building className="h-4 w-4" />
-          {currentOrganization?.name} Templates
-        </h3>
-        {orgTemplates.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {orgTemplates.map(template => renderTemplateCard(template, false))}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center">
+                <Users className="mr-2 h-4 w-4" />
+                Organization Templates
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{orgTemplates.length}</div>
+              <p className="text-xs text-muted-foreground">Custom for your organization</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Total Templates
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{(templates?.length || 0)}</div>
+              <p className="text-xs text-muted-foreground">Ready to use</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Templates Preview */}
+        {templates && templates.length > 0 ? (
+          <div>
+            <h4 className="font-medium mb-3">Recent Templates</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {templates.slice(0, 4).map((template) => {
+                const isOrgTemplate = template.organization_id === currentOrganization?.id;
+                
+                return (
+                  <Card key={template.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-sm line-clamp-1">{template.name}</CardTitle>
+                        <div className="flex gap-1 ml-2">
+                          {!isOrgTemplate && (
+                            <Badge variant="secondary" className="text-xs">
+                              Global
+                            </Badge>
+                          )}
+                          {template.is_protected && (
+                            <Badge variant="outline" className="text-xs">
+                              Protected
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {template.description && (
+                        <CardDescription className="text-xs line-clamp-2">
+                          {template.description}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{template.sections.length} sections</span>
+                        <span>{template.itemCount} items</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         ) : (
-          <Card className="p-6 text-center">
-            <div className="text-muted-foreground">
-              No organization templates yet. Create your first template or clone from global templates.
-            </div>
+          <Card className="text-center py-8">
+            <CardContent>
+              <CheckCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h4 className="font-medium mb-2">No Templates Yet</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Create or access PM checklist templates to standardize maintenance procedures
+              </p>
+              {isAdmin && (
+                <Button onClick={() => navigate('/pm-templates')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create First Template
+                </Button>
+              )}
+            </CardContent>
           </Card>
         )}
       </div>
-
-      {/* Template Editor Dialog */}
-      <Dialog open={editorDialogOpen} onOpenChange={setEditorDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingTemplate ? 'Edit Template' : 'Create New Template'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingTemplate 
-                ? 'Modify the checklist template for your organization.' 
-                : 'Create a new checklist template for your organization.'
-              }
-            </DialogDescription>
-          </DialogHeader>
-          <ChecklistTemplateEditor 
-            template={editingTemplate}
-            onSave={() => setEditorDialogOpen(false)}
-            onCancel={() => setEditorDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Clone Dialog */}
-      <Dialog open={cloneDialogOpen} onOpenChange={setCloneDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Clone Template</DialogTitle>
-            <DialogDescription>
-              Create a copy of this template for your organization.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="cloneName">Template Name</Label>
-              <Input
-                id="cloneName"
-                value={cloneName}
-                onChange={(e) => setCloneName(e.target.value)}
-                placeholder="Enter name for cloned template"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setCloneDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCloneConfirm}
-                disabled={!cloneName.trim() || cloneTemplateMutation.isPending}
-              >
-                Clone Template
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
