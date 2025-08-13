@@ -1,7 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
-
+import { Database } from '@/integrations/supabase/types';
 import { PMChecklistItem } from './preventativeMaintenanceService';
 import { nanoid } from 'nanoid';
+
+type PMTemplateInsert = Database['public']['Tables']['pm_checklist_templates']['Insert'];
+type PMTemplateUpdate = Database['public']['Tables']['pm_checklist_templates']['Update'];
 
 // Temporary type until Supabase types are regenerated
 export type PMTemplate = {
@@ -78,7 +81,7 @@ export const pmChecklistTemplatesService = {
   // List all templates accessible to an organization (global + org-specific)
   async listTemplates(orgId: string): Promise<PMTemplate[]> {
     const { data, error } = await supabase
-      .from('pm_checklist_templates' as any)
+      .from('pm_checklist_templates')
       .select('*')
       .or(`organization_id.is.null,organization_id.eq.${orgId}`)
       .order('organization_id', { nullsFirst: true })
@@ -91,7 +94,7 @@ export const pmChecklistTemplatesService = {
   // Get a specific template by ID
   async getTemplate(id: string): Promise<PMTemplate | null> {
     const { data, error } = await supabase
-      .from('pm_checklist_templates' as any)
+      .from('pm_checklist_templates')
       .select('*')
       .eq('id', id)
       .single();
@@ -119,16 +122,18 @@ export const pmChecklistTemplatesService = {
       notes: ''
     }));
 
+    const insertData: PMTemplateInsert = {
+      organization_id: templateData.organizationId,
+      name: templateData.name,
+      description: templateData.description,
+      template_data: sanitizedData,
+      created_by: templateData.created_by,
+      updated_by: templateData.created_by
+    };
+
     const { data, error } = await supabase
-      .from('pm_checklist_templates' as any)
-      .insert({
-        organization_id: templateData.organizationId,
-        name: templateData.name,
-        description: templateData.description,
-        template_data: sanitizedData,
-        created_by: templateData.created_by,
-        updated_by: templateData.created_by
-      })
+      .from('pm_checklist_templates')
+      .insert(insertData)
       .select()
       .single();
 
@@ -143,7 +148,7 @@ export const pmChecklistTemplatesService = {
     template_data?: PMChecklistItem[];
     updated_by: string;
   }): Promise<PMTemplate> {
-    const updateData: any = {
+    const updateData: PMTemplateUpdate = {
       updated_by: updates.updated_by
     };
 
@@ -159,7 +164,7 @@ export const pmChecklistTemplatesService = {
     }
 
     const { data, error } = await supabase
-      .from('pm_checklist_templates' as any)
+      .from('pm_checklist_templates')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -172,7 +177,7 @@ export const pmChecklistTemplatesService = {
   // Delete a template (will fail for protected templates via RLS)
   async deleteTemplate(id: string): Promise<void> {
     const { error } = await supabase
-      .from('pm_checklist_templates' as any)
+      .from('pm_checklist_templates')
       .delete()
       .eq('id', id);
 
@@ -201,17 +206,19 @@ export const pmChecklistTemplatesService = {
 
     const cloneName = newName || `${sourceTemplate.name} (Copy)`;
 
+    const insertData: PMTemplateInsert = {
+      organization_id: targetOrgId,
+      name: cloneName,
+      description: sourceTemplate.description ? `${sourceTemplate.description} (Cloned)` : 'Cloned template',
+      template_data: clonedData,
+      is_protected: false, // Cloned templates are never protected
+      created_by: (await supabase.auth.getUser()).data.user?.id || '',
+      updated_by: (await supabase.auth.getUser()).data.user?.id || ''
+    };
+
     const { data, error } = await supabase
-      .from('pm_checklist_templates' as any)
-      .insert({
-        organization_id: targetOrgId,
-        name: cloneName,
-        description: sourceTemplate.description ? `${sourceTemplate.description} (Cloned)` : 'Cloned template',
-        template_data: clonedData,
-        is_protected: false, // Cloned templates are never protected
-        created_by: (await supabase.auth.getUser()).data.user?.id || '',
-        updated_by: (await supabase.auth.getUser()).data.user?.id || ''
-      })
+      .from('pm_checklist_templates')
+      .insert(insertData)
       .select()
       .single();
 

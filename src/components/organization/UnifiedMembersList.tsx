@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Mail, UserMinus, UserPlus, Users, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
 import { useUpdateMemberRole, useRemoveMember } from '@/hooks/useOrganizationMembers';
@@ -95,7 +95,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
       if (a.name !== 'Pending Invite' && b.name === 'Pending Invite') return -1;
       return a.name.localeCompare(b.name);
     });
-  }, [members, invitations, teamMemberships, getTeamCount]);
+  }, [members, invitations, getTeamCount]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
