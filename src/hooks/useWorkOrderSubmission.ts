@@ -82,6 +82,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           priority: data.priority,
           dueDate: data.dueDate || undefined,
           hasPM: data.hasPM || false,
+          pmTemplateId: data.pmTemplateId || undefined,
           assignmentType: data.assignmentType === 'unassigned' ? undefined : data.assignmentType,
           assignmentId: (data.assignmentType === 'unassigned' || !data.assignmentId) ? undefined : data.assignmentId,
         };

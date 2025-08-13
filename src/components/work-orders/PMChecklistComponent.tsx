@@ -423,7 +423,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Forklift Preventative Maintenance Checklist</title>
+          <title>${pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
@@ -444,7 +444,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         </head>
         <body>
           <div class="header">
-            <h1>Forklift Preventative Maintenance Checklist</h1>
+            <h1>${pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</h1>
             <p><strong>PM ID:</strong> ${pm.id}</p>
             <p><strong>Status:</strong> ${pm.status}</p>
             <p><strong>Created:</strong> ${new Date(pm.created_at).toLocaleDateString()}</p>
@@ -590,7 +590,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             <div className="flex items-center gap-3">
               {getStatusIcon()}
               <div>
-                <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
+                <CardTitle>{pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</CardTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className={getStatusColor()}>
                     {pm.status.replace('_', ' ').toUpperCase()}
@@ -616,7 +616,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             <div className="flex items-center gap-3">
               {getStatusIcon()}
               <div>
-                <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
+                <CardTitle>{pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</CardTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className={getStatusColor()}>
                     {pm.status.replace('_', ' ').toUpperCase()}
@@ -659,7 +659,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 {getStatusIcon()}
                 <CardTitle className="text-lg leading-tight">
-                  Forklift Preventative Maintenance Checklist
+                  {pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}
                 </CardTitle>
               </div>
               <PrintExportDropdown
@@ -692,7 +692,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             <div className="flex items-center gap-3">
               {getStatusIcon()}
               <div>
-                <CardTitle>Forklift Preventative Maintenance Checklist</CardTitle>
+                <CardTitle>{pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</CardTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className={getStatusColor()}>
                     {pm.status.replace('_', ' ').toUpperCase()}

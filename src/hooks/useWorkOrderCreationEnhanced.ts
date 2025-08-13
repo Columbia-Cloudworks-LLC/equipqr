@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { createWorkOrder } from '@/services/supabaseDataService';
-import { createPM } from '@/services/preventativeMaintenanceService';
+import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -15,6 +15,7 @@ export interface EnhancedCreateWorkOrderData {
   dueDate?: string;
   equipmentWorkingHours?: number;
   hasPM?: boolean;
+  pmTemplateId?: string;
   assignmentType?: 'user' | 'team';
   assignmentId?: string;
 }
@@ -23,6 +24,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const initializePMChecklist = useInitializePMChecklist();
 
   return useMutation({
     mutationFn: async (data: EnhancedCreateWorkOrderData) => {
@@ -92,20 +94,19 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: a
         }
       }
 
-      // If PM is required, create the PM record
+      // If PM is required, initialize the PM checklist with template
       if (data.hasPM) {
-        const pmData = {
-          workOrderId: workOrder.id,
-          equipmentId: data.equipmentId,
-          organizationId: currentOrganization.id,
-          checklistData: [], // Will be initialized with default checklist
-        };
-
-        const pm = await createPM(pmData);
-        if (!pm) {
-          console.error('Failed to create PM record');
+        try {
+          await initializePMChecklist.mutateAsync({
+            workOrderId: workOrder.id,
+            equipmentId: data.equipmentId,
+            organizationId: currentOrganization.id,
+            templateId: data.pmTemplateId,
+          });
+        } catch (error) {
+          console.error('Failed to initialize PM checklist:', error);
           // Don't throw error here - work order was created successfully
-          toast.error('Work order created but failed to create PM checklist');
+          toast.error('Work order created but failed to initialize PM checklist');
         }
       }
 
