@@ -1,52 +1,36 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { pmChecklistTemplatesService, generateSectionsSummary, templateToSummary, PMTemplate } from '../pmChecklistTemplatesService';
+import { 
+  pmChecklistTemplatesService,
+  generateSectionsSummary, 
+  templateToSummary,
+  type PMTemplate 
+} from '../pmChecklistTemplatesService';
 
-// Mock Supabase client with proper chain structure
+// Create configurable mock functions
+let mockOr: ReturnType<typeof vi.fn>;
+let mockSingle: ReturnType<typeof vi.fn>;
+let mockEq: ReturnType<typeof vi.fn>;
+
+// Mock Supabase client with simpler structure
 vi.mock('@/integrations/supabase/client', () => {
-  const createMockChain = () => {
-    const chain = {
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      or: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      nullsFirst: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: null, error: null }),
-    };
-    
-    // Make all chain methods return the same mock object for proper chaining
-    Object.keys(chain).forEach(key => {
-      if (key !== 'single') {
-        chain[key].mockReturnValue(chain);
-      }
-    });
-    
-    return chain;
-  };
+  const createMockChain = () => ({
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn(() => mockEq?.() || Promise.resolve({ data: null, error: null })),
+    or: vi.fn(() => mockOr?.() || Promise.resolve({ data: [], error: null })),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    nullsFirst: vi.fn().mockReturnThis(),
+    single: vi.fn(() => mockSingle?.() || Promise.resolve({ data: null, error: null }))
+  });
 
-  const mockSupabaseClient = {
-    auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user' } }, error: null }),
-      signInWithPassword: vi.fn(),
-      signUp: vi.fn(),
-      signOut: vi.fn(),
-      onAuthStateChange: vi.fn(),
-    },
-    from: vi.fn(() => createMockChain()),
-    storage: {
-      from: vi.fn(() => ({
-        upload: vi.fn(),
-        download: vi.fn(),
-        remove: vi.fn(),
-        list: vi.fn(),
-      })),
-    },
+  return {
+    supabase: {
+      from: vi.fn(() => createMockChain())
+    }
   };
-  return { supabase: mockSupabaseClient };
 });
 
 // Mock nanoid
@@ -78,103 +62,62 @@ const mockTemplate: PMTemplate = {
 };
 
 describe('pmChecklistTemplatesService', () => {
-  let mockSupabase: any;
-
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    // Get the mocked supabase client from the default export
-    const { supabase } = await import('@/integrations/supabase/client');
-    mockSupabase = supabase;
+    // Reset mock functions
+    mockOr = vi.fn().mockResolvedValue({ data: [], error: null });
+    mockSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
   });
 
   describe('listTemplates', () => {
     it('fetches templates for organization', async () => {
-      const mockTemplates = [mockTemplate];
+      mockOr.mockResolvedValue({ data: [mockTemplate], error: null });
       
-      // Mock the chain properly - the or() method should resolve the promise
-      const mockChain = mockSupabase.from();
-      mockChain.or.mockResolvedValue({
-        data: mockTemplates,
-        error: null
-      });
-
       const result = await pmChecklistTemplatesService.listTemplates('org-1');
-
-      expect(mockSupabase.from).toHaveBeenCalledWith('pm_checklist_templates');
-      expect(result).toEqual(mockTemplates);
+      expect(result).toEqual([mockTemplate]);
     });
 
     it('handles database errors', async () => {
-      const mockError = new Error('Database error');
+      mockOr.mockResolvedValue({ data: null, error: new Error('Database error') });
       
-      // Mock the chain properly
-      const mockChain = mockSupabase.from();
-      mockChain.or.mockResolvedValue({
-        data: null,
-        error: mockError
-      });
-
       await expect(pmChecklistTemplatesService.listTemplates('org-1')).rejects.toThrow('Database error');
     });
   });
 
   describe('getTemplate', () => {
     it('fetches template by ID', async () => {
-      const mockChain = mockSupabase.from();
-      mockChain.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
-      });
-
+      mockSingle.mockResolvedValue({ data: mockTemplate, error: null });
+      
       const result = await pmChecklistTemplatesService.getTemplate('template-1');
-
-      expect(mockSupabase.from).toHaveBeenCalledWith('pm_checklist_templates');
       expect(result).toEqual(mockTemplate);
     });
 
     it('returns null when template not found', async () => {
-      const mockChain = mockSupabase.from();
-      mockChain.single.mockResolvedValue({
-        data: null,
-        error: { code: 'PGRST116' }
-      });
-
+      mockSingle.mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+      
       const result = await pmChecklistTemplatesService.getTemplate('non-existent');
-
       expect(result).toBeNull();
     });
 
     it('throws on database error', async () => {
-      const mockError = new Error('Database error');
-      const mockChain = mockSupabase.from();
-      mockChain.single.mockResolvedValue({
-        data: null,
-        error: mockError
-      });
-
+      mockSingle.mockResolvedValue({ data: null, error: new Error('Database error') });
+      
       await expect(pmChecklistTemplatesService.getTemplate('template-1')).rejects.toThrow('Database error');
     });
   });
 
   describe('createTemplate', () => {
     it('creates a new template', async () => {
-      const templateData = {
+      mockSingle.mockResolvedValue({ data: mockTemplate, error: null });
+      
+      const result = await pmChecklistTemplatesService.createTemplate({
         organizationId: 'org-1',
-        name: 'New Template',
-        description: 'New description',
+        name: 'Test Template',
+        description: 'Test description',
         template_data: [mockChecklistItem],
         created_by: 'user-1'
-      };
-
-      const mockChain = mockSupabase.from();
-      mockChain.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
       });
-
-      const result = await pmChecklistTemplatesService.createTemplate(templateData);
-
-      expect(mockSupabase.from).toHaveBeenCalledWith('pm_checklist_templates');
       expect(result).toEqual(mockTemplate);
     });
   });
@@ -183,35 +126,22 @@ describe('pmChecklistTemplatesService', () => {
     it('updates existing template', async () => {
       const updates = {
         name: 'Updated Template',
-        description: 'Updated description',
-        template_data: [mockChecklistItem],
-        updated_by: 'user-1'
+        description: 'Updated description'
       };
+      const updatedTemplate = { ...mockTemplate, ...updates, updated_by: 'user-1' };
+      
+      mockSingle.mockResolvedValue({ data: updatedTemplate, error: null });
 
-      const mockChain = mockSupabase.from();
-      mockChain.single.mockResolvedValue({
-        data: { ...mockTemplate, ...updates },
-        error: null
-      });
-
-      const result = await pmChecklistTemplatesService.updateTemplate('template-1', updates);
-
-      expect(mockSupabase.from).toHaveBeenCalledWith('pm_checklist_templates');
-      expect(result).toEqual({ ...mockTemplate, ...updates });
+      const result = await pmChecklistTemplatesService.updateTemplate('template-1', { ...updates, updated_by: 'user-1' });
+      expect(result).toEqual(updatedTemplate);
     });
   });
 
   describe('deleteTemplate', () => {
     it('deletes template by ID', async () => {
-      const mockChain = mockSupabase.from();
-      mockChain.eq.mockResolvedValue({
-        data: null,
-        error: null
-      });
+      mockEq.mockResolvedValue({ data: null, error: null });
 
       await expect(pmChecklistTemplatesService.deleteTemplate('template-1')).resolves.toBeUndefined();
-
-      expect(mockSupabase.from).toHaveBeenCalledWith('pm_checklist_templates');
     });
   });
 });

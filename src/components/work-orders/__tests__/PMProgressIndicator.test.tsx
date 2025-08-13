@@ -50,33 +50,13 @@ const mockPMData = {
   organization_id: 'org-1'
 };
 
+// Simple mock utility
 const createMockQueryResult = (data: unknown) => ({
   data,
   isLoading: false,
   isError: false,
-  isPending: false,
-  error: null,
-  status: 'success' as const,
-  isSuccess: true,
-  isFetching: false,
-  isRefetching: false,
-  refetch: vi.fn(),
-  fetchStatus: 'idle' as const,
-  isLoadingError: false,
-  isRefetchError: false,
-  dataUpdatedAt: Date.now(),
-  errorUpdatedAt: 0,
-  errorUpdateCount: 0,
-  failureCount: 0,
-  failureReason: null,
-  isStale: false,
-  isPlaceholderData: false,
-  isInitialLoading: false,
-  isFetched: true,
-  isFetchedAfterMount: true,
-  isPaused: false,
-  promise: Promise.resolve(data)
-}) as any;
+  error: null
+} as ReturnType<typeof usePMByWorkOrderId>);
 
 describe('PMProgressIndicator', () => {
   beforeEach(() => {
