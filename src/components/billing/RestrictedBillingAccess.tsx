@@ -9,9 +9,7 @@ interface RestrictedBillingAccessProps {
   currentOrganizationName: string;
 }
 
-const RestrictedBillingAccess: React.FC<RestrictedBillingAccessProps> = ({
-  currentOrganizationName
-}) => {
+const RestrictedBillingAccess: React.FC<RestrictedBillingAccessProps> = () => {
   const { organizations, switchOrganization } = useSimpleOrganization();
   const navigate = useNavigate();
 

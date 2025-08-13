@@ -43,7 +43,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   isLoading,
   canInviteMembers
 }) => {
-  const { currentOrganization } = useSimpleOrganization();
+  
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   
   const { data: invitations = [] } = useOrganizationInvitations(organizationId);
@@ -95,7 +95,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
       if (a.name !== 'Pending Invite' && b.name === 'Pending Invite') return -1;
       return a.name.localeCompare(b.name);
     });
-  }, [members, invitations, teamMemberships]);
+  }, [members, invitations, teamMemberships, getTeamCount]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -123,7 +123,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     try {
       await updateMemberRole.mutateAsync({ memberId, newRole });
       toast.success('Member role updated successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update member role');
     }
   };
@@ -132,7 +132,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     try {
       await removeMember.mutateAsync(memberId);
       toast.success(`${memberName} has been removed from the organization`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to remove member');
     }
   };
@@ -141,7 +141,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     try {
       await resendInvitation.mutateAsync(invitationId);
       toast.success('Invitation resent successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to resend invitation');
     }
   };
@@ -150,7 +150,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     try {
       await cancelInvitation.mutateAsync(invitationId);
       toast.success('Invitation cancelled successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to cancel invitation');
     }
   };

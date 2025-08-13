@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,7 +50,12 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
 
     setIsUpdating(true);
     try {
-      const updates: any = {
+      const updates: {
+        name: string;
+        updated_at: string;
+        logo?: string;
+        background_color?: string;
+      } = {
         name: data.name,
         updated_at: new Date().toISOString(),
       };

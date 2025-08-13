@@ -1,9 +1,7 @@
 
 import React, { useState } from 'react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useOptimizedOrganizationMembers } from '@/hooks/useOptimizedOrganizationMembers';
-import { useOrganizationStats } from '@/hooks/useOrganizationStats';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
@@ -11,8 +9,6 @@ import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
 import { OrganizationSettingsDialog } from '@/components/organization/OrganizationSettingsDialog';
 import RestrictedOrganizationAccess from '@/components/organization/RestrictedOrganizationAccess';
-import { calculateBilling } from '@/utils/billing';
-import { toast } from 'sonner';
 
 const Organization = () => {
   const { currentOrganization, isLoading } = useSimpleOrganization();

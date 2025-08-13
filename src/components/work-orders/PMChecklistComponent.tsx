@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle, RotateCcw } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
 import { createSegmentsForSection } from '@/utils/pmChecklistHelpers';
 import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
@@ -61,7 +61,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   // Browser storage for backup
   const storageKey = `pm-checklist-${pm.id}`;
-  const { saveToStorage, loadFromStorage, clearStorage } = useBrowserStorage({
+  const { loadFromStorage, clearStorage } = useBrowserStorage({
     key: storageKey,
     data: { checklist, notes },
     enabled: !readOnly
@@ -369,19 +369,6 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   }, [checklist, notes, pm.id, onUpdate, storageKey]);
 
   // Print/Export handlers
-  const handlePrintPDF = useCallback(() => {
-    try {
-      PMChecklistPDFGenerator.generateAndPrint(pm, checklist, {
-        includeProgress: true,
-        includeNotes: true,
-        includeTimestamps: true
-      });
-      toast.success('PDF generated for printing');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.error('Failed to generate PDF');
-    }
-  }, [pm, checklist]);
 
   const handleDownloadPDF = useCallback(() => {
     try {
@@ -402,85 +389,6 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   }, [pm, checklist, workOrder, equipment, team, organization, assignee]);
 
-  const handleBrowserPrint = useCallback(() => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const sections = Array.from(new Set(checklist.map(item => item.section)));
-    const getConditionText = (condition: number | null | undefined) => {
-      if (condition === null || condition === undefined) return 'Not Rated';
-      switch (condition) {
-        case 1: return 'OK';
-        case 2: return 'Adjusted';
-        case 3: return 'Recommend Repairs';
-        case 4: return 'Requires Immediate Repairs';
-        case 5: return 'Unsafe Condition Present';
-        default: return 'Unknown';
-      }
-    };
-
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
-            .section { margin: 20px 0; }
-            .section-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; padding: 10px; background-color: #f0f0f0; }
-            .checklist-item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
-            .required { border-left: 4px solid #e74c3c; }
-            .condition { font-weight: bold; }
-            .condition-unrated { color: #e74c3c; }
-            .condition-1 { color: #27ae60; }
-            .condition-2 { color: #f39c12; }
-            .condition-3 { color: #e67e22; }
-            .condition-4 { color: #e74c3c; }
-            .condition-5 { color: #c0392b; }
-            .notes { margin-top: 20px; padding: 15px; background-color: #f8f9fa; }
-            @media print { .no-print { display: none; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>${pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</h1>
-            <p><strong>PM ID:</strong> ${pm.id}</p>
-            <p><strong>Status:</strong> ${pm.status}</p>
-            <p><strong>Created:</strong> ${new Date(pm.created_at).toLocaleDateString()}</p>
-            ${pm.completed_at ? `<p><strong>Completed:</strong> ${new Date(pm.completed_at).toLocaleDateString()}</p>` : ''}
-          </div>
-          
-          ${sections.map(section => `
-            <div class="section">
-              <div class="section-title">${section}</div>
-              ${checklist.filter(item => item.section === section).map(item => `
-                <div class="checklist-item ${item.required ? 'required' : ''}">
-                  <div>
-                    <strong>${item.title}</strong> ${item.required ? '(Required)' : '(Optional)'}
-                    <span class="condition condition-${item.condition || 'unrated'}"> - ${getConditionText(item.condition)}</span>
-                  </div>
-                  ${item.description ? `<p><em>${item.description}</em></p>` : ''}
-                  ${item.notes ? `<p><strong>Notes:</strong> ${item.notes}</p>` : ''}
-                </div>
-              `).join('')}
-            </div>
-          `).join('')}
-          
-          ${notes ? `
-            <div class="notes">
-              <h3>General Notes</h3>
-              <p>${notes.replace(/\n/g, '<br>')}</p>
-            </div>
-          ` : ''}
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.print();
-  }, [pm, checklist, notes]);
 
   const getStatusIcon = () => {
     switch (pm.status) {

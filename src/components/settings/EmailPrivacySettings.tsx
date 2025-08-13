@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -28,7 +27,7 @@ export const EmailPrivacySettings: React.FC<EmailPrivacySettingsProps> = ({
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ email_private: newEmailPrivate } as any)
+        .update({ email_private: newEmailPrivate })
         .eq('id', user.id);
 
       if (error) throw error;

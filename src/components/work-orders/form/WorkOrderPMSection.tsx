@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
@@ -13,11 +13,10 @@ import { Wrench, Info, CheckCircle2, Globe } from "lucide-react";
 import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 import { usePMTemplates } from '@/hooks/usePMTemplates';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
-import { generateSectionsSummary } from '@/services/pmChecklistTemplatesService';
 
 interface WorkOrderPMSectionProps {
   values: WorkOrderFormData & { pmTemplateId?: string };
-  setValue: (field: keyof (WorkOrderFormData & { pmTemplateId?: string }), value: any) => void;
+  setValue: (field: keyof (WorkOrderFormData & { pmTemplateId?: string }), value: string | boolean | null) => void;
 }
 
 export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({

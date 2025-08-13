@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { z } from 'zod';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
@@ -51,7 +51,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     hasInitialized: boolean;
   }>({ hasInitialized: false });
 
-  const initialValues: Partial<WorkOrderFormData> = {
+  const initialValues: Partial<WorkOrderFormData> = useMemo(() => ({
     title: workOrder?.title || '',
     description: workOrder?.description || '',
     equipmentId: workOrder?.equipment_id || equipmentId || '',
@@ -67,7 +67,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     historicalStartDate: undefined,
     historicalNotes: '',
     completedDate: undefined,
-  };
+  }), [workOrder, equipmentId, initialIsHistorical]);
 
   const form = useFormValidation(workOrderFormSchema, initialValues);
 

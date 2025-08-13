@@ -137,9 +137,10 @@ export const useDeletePMTemplate = () => {
       }
       toast.success('Template deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error deleting template:', error);
-      if (error.message?.includes('protected')) {
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (errorMessage.includes('protected')) {
         toast.error('Cannot delete protected template');
       } else {
         toast.error('Failed to delete template');

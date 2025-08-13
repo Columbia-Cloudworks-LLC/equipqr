@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+
 import { PMChecklistItem } from './preventativeMaintenanceService';
 import { nanoid } from 'nanoid';
 
@@ -10,7 +10,7 @@ export type PMTemplate = {
   name: string;
   description: string | null;
   is_protected: boolean;
-  template_data: any; // Will be PMChecklistItem[] but stored as JSON
+  template_data: PMChecklistItem[]; // PMChecklistItem[] stored as JSON
   created_by: string;
   updated_by: string | null;
   created_at: string;

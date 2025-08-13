@@ -16,7 +16,7 @@ interface UseWorkOrderSubmissionProps {
 }
 
 export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWorkOrderSubmissionProps) => {
-  const { currentOrganization } = useOrganization();
+  
   const navigate = useNavigate();
   const isEditMode = !!workOrder;
 
