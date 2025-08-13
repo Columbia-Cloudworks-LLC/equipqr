@@ -6,25 +6,35 @@ import {
   type PMTemplate 
 } from '../pmChecklistTemplatesService';
 
-// Create configurable mock functions
-let mockOr: ReturnType<typeof vi.fn>;
-let mockSingle: ReturnType<typeof vi.fn>;
-let mockEq: ReturnType<typeof vi.fn>;
+// Create configurable mock return values
+let mockListResult: any;
+let mockSingleResult: any;
+let mockEqResult: any;
 
-// Mock Supabase client with simpler structure
+// Mock Supabase client with proper fluent interface
 vi.mock('@/integrations/supabase/client', () => {
-  const createMockChain = () => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn(() => mockEq?.() || Promise.resolve({ data: null, error: null })),
-    or: vi.fn(() => mockOr?.() || Promise.resolve({ data: [], error: null })),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    nullsFirst: vi.fn().mockReturnThis(),
-    single: vi.fn(() => mockSingle?.() || Promise.resolve({ data: null, error: null }))
-  });
+  const createMockChain = () => {
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      or: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      nullsFirst: vi.fn().mockReturnThis(),
+      single: vi.fn(() => mockSingleResult || Promise.resolve({ data: null, error: null })),
+      then: vi.fn((callback) => {
+        const result = mockListResult || { data: [], error: null };
+        return Promise.resolve(result).then(callback);
+      })
+    };
+    
+    // Add proper promise interface
+    Object.setPrototypeOf(chain, Promise.prototype);
+    return chain;
+  };
 
   return {
     supabase: {
@@ -64,22 +74,22 @@ const mockTemplate: PMTemplate = {
 describe('pmChecklistTemplatesService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset mock functions
-    mockOr = vi.fn().mockResolvedValue({ data: [], error: null });
-    mockSingle = vi.fn().mockResolvedValue({ data: null, error: null });
-    mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
+    // Reset mock return values
+    mockListResult = { data: [], error: null };
+    mockSingleResult = Promise.resolve({ data: null, error: null });
+    mockEqResult = { data: null, error: null };
   });
 
   describe('listTemplates', () => {
     it('fetches templates for organization', async () => {
-      mockOr.mockResolvedValue({ data: [mockTemplate], error: null });
+      mockListResult = { data: [mockTemplate], error: null };
       
       const result = await pmChecklistTemplatesService.listTemplates('org-1');
       expect(result).toEqual([mockTemplate]);
     });
 
     it('handles database errors', async () => {
-      mockOr.mockResolvedValue({ data: null, error: new Error('Database error') });
+      mockListResult = { data: null, error: new Error('Database error') };
       
       await expect(pmChecklistTemplatesService.listTemplates('org-1')).rejects.toThrow('Database error');
     });
@@ -87,21 +97,21 @@ describe('pmChecklistTemplatesService', () => {
 
   describe('getTemplate', () => {
     it('fetches template by ID', async () => {
-      mockSingle.mockResolvedValue({ data: mockTemplate, error: null });
+      mockSingleResult = Promise.resolve({ data: mockTemplate, error: null });
       
       const result = await pmChecklistTemplatesService.getTemplate('template-1');
       expect(result).toEqual(mockTemplate);
     });
 
     it('returns null when template not found', async () => {
-      mockSingle.mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+      mockSingleResult = Promise.resolve({ data: null, error: { code: 'PGRST116' } });
       
       const result = await pmChecklistTemplatesService.getTemplate('non-existent');
       expect(result).toBeNull();
     });
 
     it('throws on database error', async () => {
-      mockSingle.mockResolvedValue({ data: null, error: new Error('Database error') });
+      mockSingleResult = Promise.resolve({ data: null, error: new Error('Database error') });
       
       await expect(pmChecklistTemplatesService.getTemplate('template-1')).rejects.toThrow('Database error');
     });
@@ -109,7 +119,7 @@ describe('pmChecklistTemplatesService', () => {
 
   describe('createTemplate', () => {
     it('creates a new template', async () => {
-      mockSingle.mockResolvedValue({ data: mockTemplate, error: null });
+      mockSingleResult = Promise.resolve({ data: mockTemplate, error: null });
       
       const result = await pmChecklistTemplatesService.createTemplate({
         organizationId: 'org-1',
@@ -130,7 +140,7 @@ describe('pmChecklistTemplatesService', () => {
       };
       const updatedTemplate = { ...mockTemplate, ...updates, updated_by: 'user-1' };
       
-      mockSingle.mockResolvedValue({ data: updatedTemplate, error: null });
+      mockSingleResult = Promise.resolve({ data: updatedTemplate, error: null });
 
       const result = await pmChecklistTemplatesService.updateTemplate('template-1', { ...updates, updated_by: 'user-1' });
       expect(result).toEqual(updatedTemplate);
@@ -139,7 +149,7 @@ describe('pmChecklistTemplatesService', () => {
 
   describe('deleteTemplate', () => {
     it('deletes template by ID', async () => {
-      mockEq.mockResolvedValue({ data: null, error: null });
+      mockListResult = { data: null, error: null };
 
       await expect(pmChecklistTemplatesService.deleteTemplate('template-1')).resolves.toBeUndefined();
     });
