@@ -16,10 +16,12 @@ export const createMockSupabaseClient = () => ({
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     single: vi.fn(),
     then: vi.fn(),
+    nullsFirst: vi.fn().mockReturnThis(),
   })),
   storage: {
     from: vi.fn(() => ({

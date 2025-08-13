@@ -461,7 +461,9 @@ describe('PMTemplates Page', () => {
       fireEvent.click(cloneButtons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText('Clone Template')).toBeInTheDocument();
+        const dialog = screen.getByRole('dialog');
+        expect(dialog).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Clone Template' })).toBeInTheDocument();
       });
     });
 

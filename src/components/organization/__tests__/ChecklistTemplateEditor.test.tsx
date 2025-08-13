@@ -6,7 +6,6 @@ import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock hooks with named imports
 import { useCreatePMTemplate, useUpdatePMTemplate } from '@/hooks/usePMTemplates';
-import { toast } from 'sonner';
 
 vi.mock('@/hooks/usePMTemplates', () => ({
   useCreatePMTemplate: vi.fn(),

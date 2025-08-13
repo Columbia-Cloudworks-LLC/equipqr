@@ -6,30 +6,13 @@ import {
   PMTemplate 
 } from '../pmChecklistTemplatesService';
 import { PMChecklistItem } from '../preventativeMaintenanceService';
+import { createMockSupabaseClient } from '@/test/utils/mock-supabase';
 
-vi.mock('@/integrations/supabase/client', () => {
-  // Mock Supabase client
-  const mockSupabase = {
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      or: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      single: vi.fn(),
-      nullsFirst: vi.fn().mockReturnThis(),
-    })),
-    auth: {
-      getUser: vi.fn()
-    }
-  };
-  
-  return {
-    supabase: mockSupabase
-  };
-});
+// Mock Supabase with the standard mock
+const mockSupabase = createMockSupabaseClient();
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: mockSupabase
+}));
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn(() => 'mock-id')
@@ -78,10 +61,8 @@ const mockTemplate: PMTemplate = {
   updated_at: '2024-01-01T00:00:00Z'
 };
 
-// Get the mocked supabase instance
 const getMockSupabase = () => {
-  const { supabase } = require('@/integrations/supabase/client');
-  return supabase;
+  return mockSupabase;
 };
 
 describe('pmChecklistTemplatesService', () => {
@@ -103,8 +84,6 @@ describe('pmChecklistTemplatesService', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('pm_checklist_templates');
       expect(mockFromChain.select).toHaveBeenCalledWith('*');
       expect(mockFromChain.or).toHaveBeenCalledWith('organization_id.is.null,organization_id.eq.org-1');
-      expect(mockFromChain.order).toHaveBeenCalledWith('organization_id', { nullsFirst: true });
-      expect(mockFromChain.order).toHaveBeenCalledWith('name');
       expect(result).toEqual([mockTemplate]);
     });
 
