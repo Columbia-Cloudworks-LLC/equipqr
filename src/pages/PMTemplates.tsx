@@ -35,10 +35,9 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   onClone, 
   onDelete 
 }) => {
-  // Calculate sections and item count
-  const templateData = Array.isArray(template.template_data) ? template.template_data : [];
-  const sections = generateSectionsSummary(templateData);
-  const totalItems = templateData.length;
+  // Use the already-processed summary data
+  const sections = template.sections || [];
+  const totalItems = template.itemCount || 0;
 
   const canEdit = isAdmin && isOrgTemplate && !template.is_protected;
   const canDelete = isAdmin && isOrgTemplate && !template.is_protected;
