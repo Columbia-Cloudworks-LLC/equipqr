@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Search, Package, Users as UsersIcon, Loader2 } from 'lucide-react';
 import { usePMTemplate } from '@/hooks/usePMTemplates';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
@@ -132,112 +132,61 @@ export const TemplateApplicationDialog: React.FC<TemplateApplicationDialogProps>
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="single" className="flex-1 min-h-0">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="single">Single Equipment</TabsTrigger>
-            <TabsTrigger value="multiple">Multiple Equipment</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="single" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="search">Search Equipment</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Search by name, model, or serial number..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              <div className="max-h-96 overflow-y-auto space-y-2">
-                {filteredEquipment.map((eq) => (
-                  <Card key={eq.id} className="p-4 hover:bg-muted/50 cursor-pointer" 
-                        onClick={() => handleSelectEquipment(eq.id, !selectedEquipment.includes(eq.id))}>
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        checked={selectedEquipment.includes(eq.id)}
-                        onCheckedChange={(checked) => handleSelectEquipment(eq.id, checked as boolean)}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                          <p className="font-medium truncate">{eq.name}</p>
-                          <Badge variant="outline">{eq.status}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {eq.manufacturer} {eq.model} • {eq.serial_number}
-                        </p>
-                        {eq.location && (
-                          <p className="text-xs text-muted-foreground">📍 {eq.location}</p>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+        <div className="space-y-4 flex-1 min-h-0">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2 flex-1">
+              <Label htmlFor="search">Search Equipment</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Search by name, model, or serial number..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
               </div>
             </div>
-          </TabsContent>
+            <div className="flex items-center space-x-2 ml-4">
+              <Checkbox
+                checked={selectedEquipment.length === filteredEquipment.length && filteredEquipment.length > 0}
+                onCheckedChange={handleSelectAll}
+              />
+              <Label>Select All ({filteredEquipment.length})</Label>
+            </div>
+          </div>
 
-          <TabsContent value="multiple" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <Label htmlFor="search-multi">Search Equipment</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="search-multi"
-                      placeholder="Search by name, model, or serial number..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                    />
+          <div className="text-sm text-muted-foreground">
+            {selectedEquipment.length} of {filteredEquipment.length} equipment selected
+          </div>
+
+          <div className="max-h-96 overflow-y-auto space-y-2">
+            {filteredEquipment.map((eq) => (
+              <Card key={eq.id} className="p-3 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => handleSelectEquipment(eq.id, !selectedEquipment.includes(eq.id))}>
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    checked={selectedEquipment.includes(eq.id)}
+                    onCheckedChange={(checked) => handleSelectEquipment(eq.id, checked as boolean)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <p className="font-medium truncate">{eq.name}</p>
+                      <Badge variant="outline" className="text-xs">{eq.status}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {eq.manufacturer} {eq.model} • {eq.serial_number}
+                    </p>
+                    {eq.location && (
+                      <p className="text-xs text-muted-foreground">📍 {eq.location}</p>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={selectedEquipment.length === filteredEquipment.length && filteredEquipment.length > 0}
-                    onCheckedChange={handleSelectAll}
-                  />
-                  <Label>Select All ({filteredEquipment.length})</Label>
-                </div>
-              </div>
-
-              <div className="text-sm text-muted-foreground">
-                {selectedEquipment.length} of {filteredEquipment.length} equipment selected
-              </div>
-
-              <div className="max-h-96 overflow-y-auto space-y-2">
-                {filteredEquipment.map((eq) => (
-                  <Card key={eq.id} className="p-3 hover:bg-muted/50 cursor-pointer"
-                        onClick={() => handleSelectEquipment(eq.id, !selectedEquipment.includes(eq.id))}>
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        checked={selectedEquipment.includes(eq.id)}
-                        onCheckedChange={(checked) => handleSelectEquipment(eq.id, checked as boolean)}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                          <p className="font-medium truncate">{eq.name}</p>
-                          <Badge variant="outline" className="text-xs">{eq.status}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {eq.manufacturer} {eq.model} • {eq.serial_number}
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+              </Card>
+            ))}
+          </div>
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
