@@ -20,9 +20,7 @@ const Organization = () => {
 
   // Custom hooks for data and business logic
   const { data: members = [], isLoading: membersLoading } = useOptimizedOrganizationMembers(currentOrganization?.id || '');
-  const { data: orgAdmins = [], isLoading: adminsLoading } = useOrganizationAdmins(currentOrganization?.id || '');
   const { data: fleetMapSubscription } = useFleetMapSubscription(currentOrganization?.id || '');
-  const organizationStats = useOrganizationStats(currentOrganization);
   const permissions = usePagePermissions(currentOrganization);
   
 
@@ -54,19 +52,6 @@ const Organization = () => {
     setSettingsDialogOpen(true);
   };
 
-  const handleUpgradeToPremium = () => {
-    const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
-    if (billing.userSlots.totalUsers === 1) {
-      toast.info('Invite team members to unlock collaboration features at $10/month per additional user.');
-    } else {
-      toast.success('Redirecting to billing page...');
-    }
-  };
-
-  const handleInviteMember = () => {
-    // This is now handled by the unified dialog in OrganizationTabs
-  };
-
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       <OrganizationHeader 
@@ -77,16 +62,10 @@ const Organization = () => {
 
       <OrganizationTabs
         members={members}
-        admins={orgAdmins}
         organizationId={currentOrganization.id}
         currentUserRole={currentUserRole}
         permissions={permissions}
         membersLoading={membersLoading}
-        adminsLoading={adminsLoading}
-        onInviteMember={handleInviteMember}
-        onUpgrade={handleUpgradeToPremium}
-        organization={currentOrganization}
-        organizationStats={organizationStats}
         fleetMapSubscription={fleetMapSubscription}
       />
 
