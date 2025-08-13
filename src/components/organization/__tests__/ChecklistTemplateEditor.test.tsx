@@ -86,7 +86,7 @@ const mockHooks = {
 
 describe('ChecklistTemplateEditor', () => {
   const defaultProps = {
-    template: null as any,
+    template: null as typeof mockTemplate | null,
     onSave: vi.fn(),
     onCancel: vi.fn()
   };
@@ -94,9 +94,9 @@ describe('ChecklistTemplateEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Setup mocks using vi.mocked with type casting
-    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate as any);
-    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate as any);
+    // Setup mocks using vi.mocked with proper type casting
+    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate as unknown as ReturnType<typeof useCreatePMTemplate>);
+    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate as unknown as ReturnType<typeof useUpdatePMTemplate>);
   });
 
   describe('Component Rendering', () => {
@@ -252,7 +252,7 @@ describe('ChecklistTemplateEditor', () => {
       vi.mocked(useCreatePMTemplate).mockReturnValue({
         ...mockHooks.useCreatePMTemplate,
         mutate: mockMutate
-      } as any);
+      } as unknown as ReturnType<typeof useCreatePMTemplate>);
 
       render(
         <TestProviders>
@@ -287,8 +287,9 @@ describe('ChecklistTemplateEditor', () => {
     it('shows loading state during submission', () => {
       vi.mocked(useCreatePMTemplate).mockReturnValue({
         ...mockHooks.useCreatePMTemplate,
-        isPending: true
-      } as any);
+        isPending: true,
+        status: 'pending'
+      } as unknown as ReturnType<typeof useCreatePMTemplate>);
 
       render(
         <TestProviders>

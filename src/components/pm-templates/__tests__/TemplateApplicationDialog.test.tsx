@@ -96,7 +96,14 @@ const mockHooks = {
     isStale: false
   },
   useSimpleOrganization: {
-    organization: { id: 'org-1', name: 'Test Org' }
+    currentOrganization: { id: 'org-1', name: 'Test Org' },
+    organizations: [],
+    userOrganizations: [],
+    setCurrentOrganization: vi.fn(),
+    isLoading: false,
+    error: null,
+    switchToOrganization: vi.fn(),
+    refreshOrganizations: vi.fn()
   },
   useEquipmentByOrganization: {
     data: mockEquipment,
@@ -172,12 +179,12 @@ describe('TemplateApplicationDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Setup mocks using vi.mocked with type casting
-    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as any);
-    vi.mocked(useSimpleOrganization).mockReturnValue(mockHooks.useSimpleOrganization as any);
-    vi.mocked(useEquipmentByOrganization).mockReturnValue(mockHooks.useEquipmentByOrganization as any);
-    vi.mocked(useCreateWorkOrder).mockReturnValue(mockHooks.useCreateWorkOrder as any);
-    vi.mocked(useInitializePMChecklist).mockReturnValue(mockHooks.useInitializePMChecklist as any);
+    // Setup mocks using vi.mocked with proper type casting
+    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as unknown as ReturnType<typeof usePMTemplate>);
+    vi.mocked(useSimpleOrganization).mockReturnValue(mockHooks.useSimpleOrganization as unknown as ReturnType<typeof useSimpleOrganization>);
+    vi.mocked(useEquipmentByOrganization).mockReturnValue(mockHooks.useEquipmentByOrganization as unknown as ReturnType<typeof useEquipmentByOrganization>);
+    vi.mocked(useCreateWorkOrder).mockReturnValue(mockHooks.useCreateWorkOrder as unknown as ReturnType<typeof useCreateWorkOrder>);
+    vi.mocked(useInitializePMChecklist).mockReturnValue(mockHooks.useInitializePMChecklist as unknown as ReturnType<typeof useInitializePMChecklist>);
   });
 
   describe('Dialog Rendering', () => {
@@ -397,8 +404,9 @@ describe('TemplateApplicationDialog', () => {
     it('shows loading state during creation', async () => {
       vi.mocked(useCreateWorkOrder).mockReturnValue({
         ...mockHooks.useCreateWorkOrder,
-        isPending: true
-      } as any);
+        isPending: true,
+        status: 'pending'
+      } as unknown as ReturnType<typeof useCreateWorkOrder>);
 
       render(
         <TestProviders>
@@ -440,7 +448,7 @@ describe('TemplateApplicationDialog', () => {
         isLoading: true,
         isSuccess: false,
         status: 'pending'
-      } as any);
+      } as unknown as ReturnType<typeof usePMTemplate>);
 
       render(
         <TestProviders>
@@ -458,7 +466,7 @@ describe('TemplateApplicationDialog', () => {
         isLoading: true,
         isSuccess: false,
         status: 'pending'
-      } as any);
+      } as unknown as ReturnType<typeof useEquipmentByOrganization>);
 
       render(
         <TestProviders>
@@ -478,7 +486,7 @@ describe('TemplateApplicationDialog', () => {
         isLoading: false,
         isSuccess: false,
         status: 'success'
-      } as any);
+      } as unknown as ReturnType<typeof usePMTemplate>);
 
       render(
         <TestProviders>
@@ -496,7 +504,7 @@ describe('TemplateApplicationDialog', () => {
         isLoading: false,
         isSuccess: true,
         status: 'success'
-      } as any);
+      } as unknown as ReturnType<typeof useEquipmentByOrganization>);
 
       render(
         <TestProviders>

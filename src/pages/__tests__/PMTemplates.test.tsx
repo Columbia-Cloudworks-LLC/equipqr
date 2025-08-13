@@ -40,13 +40,13 @@ vi.mock('@/hooks/useSimplifiedOrganizationRestrictions', () => ({
 
 // Mock components
 vi.mock('@/components/organization/ChecklistTemplateEditor', () => ({
-  default: vi.fn(({ isOpen, onClose }) => 
+  default: vi.fn(({ isOpen }) => 
     isOpen ? <div data-testid="template-editor">Template Editor</div> : null
   ),
 }));
 
 vi.mock('@/components/pm-templates/TemplateApplicationDialog', () => ({
-  default: vi.fn(({ open, onClose }) => 
+  default: vi.fn(({ open }) => 
     open ? <div data-testid="application-dialog">Application Dialog</div> : null
   ),
 }));
@@ -208,29 +208,60 @@ describe('PMTemplates Page', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     
-    // Setup default mocks using vi.mocked with type casting
-    vi.mocked(usePMTemplates).mockReturnValue(mockHooks.usePMTemplates as any);
-    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as any);
-    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate as any);
-    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate as any);
-    vi.mocked(useDeletePMTemplate).mockReturnValue(mockHooks.useDeletePMTemplate as any);
-    vi.mocked(useClonePMTemplate).mockReturnValue(mockHooks.useClonePMTemplate as any);
+    // Setup default mocks using vi.mocked with proper typing
+    vi.mocked(usePMTemplates).mockReturnValue(mockHooks.usePMTemplates as unknown as ReturnType<typeof usePMTemplates>);
+    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as unknown as ReturnType<typeof usePMTemplate>);
+    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate as unknown as ReturnType<typeof useCreatePMTemplate>);
+    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate as unknown as ReturnType<typeof useUpdatePMTemplate>);
+    vi.mocked(useDeletePMTemplate).mockReturnValue(mockHooks.useDeletePMTemplate as unknown as ReturnType<typeof useDeletePMTemplate>);
+    vi.mocked(useClonePMTemplate).mockReturnValue(mockHooks.useClonePMTemplate as unknown as ReturnType<typeof useClonePMTemplate>);
 
     vi.mocked(useSimpleOrganization).mockReturnValue({
-      organization: { id: 'org-1', name: 'Test Org' }
-    } as any);
+      currentOrganization: { id: 'org-1', name: 'Test Org' },
+      organizations: [],
+      userOrganizations: [],
+      setCurrentOrganization: vi.fn(),
+      isLoading: false,
+      error: null,
+      switchToOrganization: vi.fn(),
+      refreshOrganizations: vi.fn()
+    } as unknown as ReturnType<typeof useSimpleOrganization>);
 
     vi.mocked(usePermissions).mockReturnValue({
       isAdmin: true,
       canManageOrganization: true,
-      hasRole: vi.fn().mockReturnValue(true)
-    } as any);
+      hasRole: vi.fn().mockReturnValue(true),
+      canManageTeam: vi.fn().mockReturnValue(true),
+      canViewTeam: vi.fn().mockReturnValue(true),
+      canCreateTeam: vi.fn().mockReturnValue(true),
+      canManageEquipment: vi.fn().mockReturnValue(true),
+      canViewEquipment: vi.fn().mockReturnValue(true),
+      canCreateEquipment: vi.fn().mockReturnValue(true),
+      canManageWorkOrders: vi.fn().mockReturnValue(true),
+      canViewWorkOrders: vi.fn().mockReturnValue(true),
+      canCreateWorkOrders: vi.fn().mockReturnValue(true),
+      canManageReports: vi.fn().mockReturnValue(true),
+      canViewReports: vi.fn().mockReturnValue(true),
+      canManageUsers: vi.fn().mockReturnValue(true),
+      canInviteUsers: vi.fn().mockReturnValue(true),
+      isOwner: true,
+      isMember: false,
+      isTeamManager: vi.fn().mockReturnValue(false)
+    } as unknown as ReturnType<typeof usePermissions>);
 
     vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
-      canCreateCustomTemplates: true,
-      canCreateCustomPMTemplates: true,
-      hasLicensedUsers: true
-    } as any);
+      restrictions: {
+        canCreateCustomTemplates: true,
+        canCreateCustomPMTemplates: true,
+        hasLicensedUsers: true,
+        upgradeMessage: null
+      },
+      checkRestriction: vi.fn(),
+      getRestrictionMessage: vi.fn(),
+      isSingleUser: false,
+      canUpgrade: true,
+      isLoading: false
+    } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
   });
 
   describe('Core Rendering', () => {
@@ -246,7 +277,16 @@ describe('PMTemplates Page', () => {
     });
 
     it('shows no organization message when no organization selected', () => {
-      vi.mocked(useSimpleOrganization).mockReturnValue({ organization: null } as any);
+      vi.mocked(useSimpleOrganization).mockReturnValue({
+        currentOrganization: null,
+        organizations: [],
+        userOrganizations: [],
+        setCurrentOrganization: vi.fn(),
+        isLoading: false,
+        error: null,
+        switchToOrganization: vi.fn(),
+        refreshOrganizations: vi.fn()
+      } as unknown as ReturnType<typeof useSimpleOrganization>);
 
       render(
         <TestProviders>
@@ -261,8 +301,24 @@ describe('PMTemplates Page', () => {
       vi.mocked(usePermissions).mockReturnValue({
         isAdmin: false,
         canManageOrganization: false,
-        hasRole: vi.fn().mockReturnValue(false)
-      } as any);
+        hasRole: vi.fn().mockReturnValue(false),
+        canManageTeam: vi.fn().mockReturnValue(false),
+        canViewTeam: vi.fn().mockReturnValue(false),
+        canCreateTeam: vi.fn().mockReturnValue(false),
+        canManageEquipment: vi.fn().mockReturnValue(false),
+        canViewEquipment: vi.fn().mockReturnValue(false),
+        canCreateEquipment: vi.fn().mockReturnValue(false),
+        canManageWorkOrders: vi.fn().mockReturnValue(false),
+        canViewWorkOrders: vi.fn().mockReturnValue(false),
+        canCreateWorkOrders: vi.fn().mockReturnValue(false),
+        canManageReports: vi.fn().mockReturnValue(false),
+        canViewReports: vi.fn().mockReturnValue(false),
+        canManageUsers: vi.fn().mockReturnValue(false),
+        canInviteUsers: vi.fn().mockReturnValue(false),
+        isOwner: false,
+        isMember: true,
+        isTeamManager: vi.fn().mockReturnValue(false)
+      } as unknown as ReturnType<typeof usePermissions>);
 
       render(
         <TestProviders>
@@ -280,7 +336,7 @@ describe('PMTemplates Page', () => {
         data: undefined,
         isSuccess: false,
         status: 'pending'
-      } as any);
+      } as unknown as ReturnType<typeof usePMTemplates>);
 
       render(
         <TestProviders>
@@ -318,10 +374,22 @@ describe('PMTemplates Page', () => {
 
     it('shows upgrade message for unlicensed users', () => {
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
-        canCreateCustomTemplates: false,
-        canCreateCustomPMTemplates: false,
-        hasLicensedUsers: false
-      } as any);
+        restrictions: {
+          canCreateCustomTemplates: false,
+          canCreateCustomPMTemplates: false,
+          hasLicensedUsers: false,
+          canManageTeams: false,
+          canAssignEquipmentToTeams: false,
+          canUploadImages: false,
+          canAccessFleetMap: false,
+          upgradeMessage: 'Upgrade required'
+        },
+        checkRestriction: vi.fn(),
+        getRestrictionMessage: vi.fn(),
+        isSingleUser: true,
+        canUpgrade: true,
+        isLoading: false
+      } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
 
       render(
         <TestProviders>
@@ -386,10 +454,22 @@ describe('PMTemplates Page', () => {
 
     it('disables Clone for unlicensed users', () => {
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
-        canCreateCustomTemplates: false,
-        canCreateCustomPMTemplates: false,
-        hasLicensedUsers: false
-      } as any);
+        restrictions: {
+          canCreateCustomTemplates: false,
+          canCreateCustomPMTemplates: false,
+          hasLicensedUsers: false,
+          canManageTeams: false,
+          canAssignEquipmentToTeams: false,
+          canUploadImages: false,
+          canAccessFleetMap: false,
+          upgradeMessage: 'Upgrade required'
+        },
+        checkRestriction: vi.fn(),
+        getRestrictionMessage: vi.fn(),
+        isSingleUser: true,
+        canUpgrade: true,
+        isLoading: false
+      } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
 
       render(
         <TestProviders>
@@ -489,7 +569,7 @@ describe('PMTemplates Page', () => {
       vi.mocked(usePMTemplates).mockReturnValue({
         ...mockHooks.usePMTemplates,
         data: []
-      } as any);
+      } as unknown as ReturnType<typeof usePMTemplates>);
 
       render(
         <TestProviders>
