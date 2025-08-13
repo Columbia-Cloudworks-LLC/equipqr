@@ -12,31 +12,37 @@ import {
 } from '../usePMTemplates';
 
 // Mock dependencies
+const mockUseOrganization = vi.fn();
+const mockUseAuth = vi.fn();
+const mockPmChecklistTemplatesService = {
+  listTemplates: vi.fn(),
+  getTemplate: vi.fn(),
+  createTemplate: vi.fn(),
+  updateTemplate: vi.fn(),
+  deleteTemplate: vi.fn(),
+  cloneTemplate: vi.fn(),
+};
+const mockTemplateToSummary = vi.fn();
+const mockToast = {
+  success: vi.fn(),
+  error: vi.fn(),
+};
+
 vi.mock('@/contexts/OrganizationContext', () => ({
-  useOrganization: vi.fn(),
+  useOrganization: mockUseOrganization,
 }));
 
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: vi.fn(),
+  useAuth: mockUseAuth,
 }));
 
 vi.mock('@/services/pmChecklistTemplatesService', () => ({
-  pmChecklistTemplatesService: {
-    listTemplates: vi.fn(),
-    getTemplate: vi.fn(),
-    createTemplate: vi.fn(),
-    updateTemplate: vi.fn(),
-    deleteTemplate: vi.fn(),
-    cloneTemplate: vi.fn(),
-  },
-  templateToSummary: vi.fn(),
+  pmChecklistTemplatesService: mockPmChecklistTemplatesService,
+  templateToSummary: mockTemplateToSummary,
 }));
 
 vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
+  toast: mockToast,
 }));
 
 const mockTemplates = [
@@ -105,24 +111,19 @@ describe('usePMTemplates', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    const { useOrganization } = require('@/contexts/OrganizationContext');
-    const { useAuth } = require('@/hooks/useAuth');
-    
-    useOrganization.mockReturnValue({
+    mockUseOrganization.mockReturnValue({
       currentOrganization: { id: 'org-1', name: 'Test Org' }
     });
     
-    useAuth.mockReturnValue({
+    mockUseAuth.mockReturnValue({
       user: { id: 'user-1', email: 'test@example.com' }
     });
   });
 
   describe('usePMTemplates', () => {
     it('fetches and transforms template list', async () => {
-      const { pmChecklistTemplatesService, templateToSummary } = require('@/services/pmChecklistTemplatesService');
-      
-      pmChecklistTemplatesService.listTemplates.mockResolvedValue(mockTemplates);
-      templateToSummary.mockImplementation((template: any) => 
+      mockPmChecklistTemplatesService.listTemplates.mockResolvedValue(mockTemplates);
+      mockTemplateToSummary.mockImplementation((template: typeof mockTemplates[0]) => 
         mockTemplateSummaries.find(s => s.id === template.id)
       );
 
@@ -132,13 +133,12 @@ describe('usePMTemplates', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(pmChecklistTemplatesService.listTemplates).toHaveBeenCalledWith('org-1');
+      expect(mockPmChecklistTemplatesService.listTemplates).toHaveBeenCalledWith('org-1');
       expect(result.current.data).toEqual(mockTemplateSummaries);
     });
 
     it('is disabled when no organization is selected', () => {
-      const { useOrganization } = require('@/contexts/OrganizationContext');
-      useOrganization.mockReturnValue({ currentOrganization: null });
+      mockUseOrganization.mockReturnValue({ currentOrganization: null });
 
       const { result } = renderHook(() => usePMTemplates(), { wrapper });
 
@@ -146,8 +146,7 @@ describe('usePMTemplates', () => {
     });
 
     it('handles loading state', () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      pmChecklistTemplatesService.listTemplates.mockImplementation(() => new Promise(() => {}));
+      mockPmChecklistTemplatesService.listTemplates.mockImplementation(() => new Promise(() => {}));
 
       const { result } = renderHook(() => usePMTemplates(), { wrapper });
 
@@ -155,8 +154,7 @@ describe('usePMTemplates', () => {
     });
 
     it('handles error state', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      pmChecklistTemplatesService.listTemplates.mockRejectedValue(new Error('Network error'));
+      mockPmChecklistTemplatesService.listTemplates.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() => usePMTemplates(), { wrapper });
 
@@ -170,8 +168,7 @@ describe('usePMTemplates', () => {
 
   describe('usePMTemplate', () => {
     it('fetches single template by ID', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      pmChecklistTemplatesService.getTemplate.mockResolvedValue(mockTemplates[0]);
+      mockPmChecklistTemplatesService.getTemplate.mockResolvedValue(mockTemplates[0]);
 
       const { result } = renderHook(() => usePMTemplate('template-1'), { wrapper });
 
@@ -179,7 +176,7 @@ describe('usePMTemplates', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(pmChecklistTemplatesService.getTemplate).toHaveBeenCalledWith('template-1');
+      expect(mockPmChecklistTemplatesService.getTemplate).toHaveBeenCalledWith('template-1');
       expect(result.current.data).toEqual(mockTemplates[0]);
     });
 
@@ -191,10 +188,7 @@ describe('usePMTemplates', () => {
 
   describe('useCreatePMTemplate', () => {
     it('creates new template successfully', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      const { toast } = require('sonner');
-      
-      pmChecklistTemplatesService.createTemplate.mockResolvedValue(mockTemplates[0]);
+      mockPmChecklistTemplatesService.createTemplate.mockResolvedValue(mockTemplates[0]);
 
       const { result } = renderHook(() => useCreatePMTemplate(), { wrapper });
 
@@ -208,7 +202,7 @@ describe('usePMTemplates', () => {
 
       await result.current.mutateAsync(templateData);
 
-      expect(pmChecklistTemplatesService.createTemplate).toHaveBeenCalledWith({
+      expect(mockPmChecklistTemplatesService.createTemplate).toHaveBeenCalledWith({
         organizationId: 'org-1',
         name: 'New Template',
         description: 'Test description',
@@ -216,14 +210,11 @@ describe('usePMTemplates', () => {
         created_by: 'user-1'
       });
 
-      expect(toast.success).toHaveBeenCalledWith('Template created successfully');
+      expect(mockToast.success).toHaveBeenCalledWith('Template created successfully');
     });
 
     it('handles creation error with permission message', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      const { toast } = require('sonner');
-      
-      pmChecklistTemplatesService.createTemplate.mockRejectedValue(
+      mockPmChecklistTemplatesService.createTemplate.mockRejectedValue(
         new Error('insufficient privileges')
       );
 
@@ -234,20 +225,17 @@ describe('usePMTemplates', () => {
           name: 'Test',
           template_data: []
         });
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 
-      expect(toast.error).toHaveBeenCalledWith(
+      expect(mockToast.error).toHaveBeenCalledWith(
         'Custom PM templates require user licenses. Please upgrade your plan.'
       );
     });
 
     it('handles general creation error', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      const { toast } = require('sonner');
-      
-      pmChecklistTemplatesService.createTemplate.mockRejectedValue(
+      mockPmChecklistTemplatesService.createTemplate.mockRejectedValue(
         new Error('Network error')
       );
 
@@ -258,16 +246,15 @@ describe('usePMTemplates', () => {
           name: 'Test',
           template_data: []
         });
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 
-      expect(toast.error).toHaveBeenCalledWith('Failed to create template');
+      expect(mockToast.error).toHaveBeenCalledWith('Failed to create template');
     });
 
     it('throws error when organization or user not found', async () => {
-      const { useOrganization } = require('@/contexts/OrganizationContext');
-      useOrganization.mockReturnValue({ currentOrganization: null });
+      mockUseOrganization.mockReturnValue({ currentOrganization: null });
 
       const { result } = renderHook(() => useCreatePMTemplate(), { wrapper });
 
@@ -282,10 +269,7 @@ describe('usePMTemplates', () => {
 
   describe('useUpdatePMTemplate', () => {
     it('updates template successfully', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      const { toast } = require('sonner');
-      
-      pmChecklistTemplatesService.updateTemplate.mockResolvedValue(mockTemplates[0]);
+      mockPmChecklistTemplatesService.updateTemplate.mockResolvedValue(mockTemplates[0]);
 
       const { result } = renderHook(() => useUpdatePMTemplate(), { wrapper });
 
@@ -299,19 +283,16 @@ describe('usePMTemplates', () => {
         updates
       });
 
-      expect(pmChecklistTemplatesService.updateTemplate).toHaveBeenCalledWith('template-1', {
+      expect(mockPmChecklistTemplatesService.updateTemplate).toHaveBeenCalledWith('template-1', {
         ...updates,
         updated_by: 'user-1'
       });
 
-      expect(toast.success).toHaveBeenCalledWith('Template updated successfully');
+      expect(mockToast.success).toHaveBeenCalledWith('Template updated successfully');
     });
 
     it('handles update permission error', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      const { toast } = require('sonner');
-      
-      pmChecklistTemplatesService.updateTemplate.mockRejectedValue(
+      mockPmChecklistTemplatesService.updateTemplate.mockRejectedValue(
         new Error('permission denied')
       );
 
@@ -322,11 +303,11 @@ describe('usePMTemplates', () => {
           templateId: 'template-1',
           updates: { name: 'Test' }
         });
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 
-      expect(toast.error).toHaveBeenCalledWith(
+      expect(mockToast.error).toHaveBeenCalledWith(
         'Custom PM templates require user licenses. Please upgrade your plan.'
       );
     });
@@ -334,24 +315,18 @@ describe('usePMTemplates', () => {
 
   describe('useDeletePMTemplate', () => {
     it('deletes template successfully', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      const { toast } = require('sonner');
-      
-      pmChecklistTemplatesService.deleteTemplate.mockResolvedValue(undefined);
+      mockPmChecklistTemplatesService.deleteTemplate.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useDeletePMTemplate(), { wrapper });
 
       await result.current.mutateAsync('template-1');
 
-      expect(pmChecklistTemplatesService.deleteTemplate).toHaveBeenCalledWith('template-1');
-      expect(toast.success).toHaveBeenCalledWith('Template deleted successfully');
+      expect(mockPmChecklistTemplatesService.deleteTemplate).toHaveBeenCalledWith('template-1');
+      expect(mockToast.success).toHaveBeenCalledWith('Template deleted successfully');
     });
 
     it('handles protected template deletion error', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      const { toast } = require('sonner');
-      
-      pmChecklistTemplatesService.deleteTemplate.mockRejectedValue(
+      mockPmChecklistTemplatesService.deleteTemplate.mockRejectedValue(
         new Error('Cannot delete protected template')
       );
 
@@ -359,20 +334,17 @@ describe('usePMTemplates', () => {
 
       try {
         await result.current.mutateAsync('template-1');
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 
-      expect(toast.error).toHaveBeenCalledWith('Cannot delete protected template');
+      expect(mockToast.error).toHaveBeenCalledWith('Cannot delete protected template');
     });
   });
 
   describe('useClonePMTemplate', () => {
     it('clones template successfully', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      const { toast } = require('sonner');
-      
-      pmChecklistTemplatesService.cloneTemplate.mockResolvedValue(mockTemplates[1]);
+      mockPmChecklistTemplatesService.cloneTemplate.mockResolvedValue(mockTemplates[1]);
 
       const { result } = renderHook(() => useClonePMTemplate(), { wrapper });
 
@@ -381,20 +353,17 @@ describe('usePMTemplates', () => {
         newName: 'Cloned Template'
       });
 
-      expect(pmChecklistTemplatesService.cloneTemplate).toHaveBeenCalledWith(
+      expect(mockPmChecklistTemplatesService.cloneTemplate).toHaveBeenCalledWith(
         'template-1',
         'org-1',
         'Cloned Template'
       );
 
-      expect(toast.success).toHaveBeenCalledWith('Template cloned successfully');
+      expect(mockToast.success).toHaveBeenCalledWith('Template cloned successfully');
     });
 
     it('handles clone permission error', async () => {
-      const { pmChecklistTemplatesService } = require('@/services/pmChecklistTemplatesService');
-      const { toast } = require('sonner');
-      
-      pmChecklistTemplatesService.cloneTemplate.mockRejectedValue(
+      mockPmChecklistTemplatesService.cloneTemplate.mockRejectedValue(
         new Error('insufficient privileges')
       );
 
@@ -404,18 +373,17 @@ describe('usePMTemplates', () => {
         await result.current.mutateAsync({
           sourceId: 'template-1'
         });
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 
-      expect(toast.error).toHaveBeenCalledWith(
+      expect(mockToast.error).toHaveBeenCalledWith(
         'Custom PM templates require user licenses. Please upgrade your plan.'
       );
     });
 
     it('throws error when organization not found', async () => {
-      const { useOrganization } = require('@/contexts/OrganizationContext');
-      useOrganization.mockReturnValue({ currentOrganization: null });
+      mockUseOrganization.mockReturnValue({ currentOrganization: null });
 
       const { result } = renderHook(() => useClonePMTemplate(), { wrapper });
 

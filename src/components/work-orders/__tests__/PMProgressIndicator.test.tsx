@@ -5,8 +5,9 @@ import PMProgressIndicator from '../PMProgressIndicator';
 import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock hooks
+const mockUsePMData = vi.fn();
 vi.mock('@/hooks/usePMData', () => ({
-  usePMData: vi.fn(),
+  usePMData: mockUsePMData,
 }));
 
 const mockPMData = {
@@ -51,8 +52,7 @@ describe('PMProgressIndicator', () => {
 
   describe('No PM Required', () => {
     it('shows nothing when PM is not required', () => {
-      const { usePMData } = require('@/hooks/usePMData');
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: { requires_pm: false },
         isLoading: false
       });
@@ -67,8 +67,7 @@ describe('PMProgressIndicator', () => {
     });
 
     it('shows nothing when PM data is null', () => {
-      const { usePMData } = require('@/hooks/usePMData');
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: null,
         isLoading: false
       });
@@ -85,8 +84,7 @@ describe('PMProgressIndicator', () => {
 
   describe('PM Required Badge', () => {
     it('shows PM Required badge with progress bar', () => {
-      const { usePMData } = require('@/hooks/usePMData');
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });
@@ -102,8 +100,7 @@ describe('PMProgressIndicator', () => {
     });
 
     it('calculates completion percentage correctly', () => {
-      const { usePMData } = require('@/hooks/usePMData');
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });
@@ -121,7 +118,6 @@ describe('PMProgressIndicator', () => {
     });
 
     it('shows 0% when no items completed', () => {
-      const { usePMData } = require('@/hooks/usePMData');
       const incompletePMData = {
         requires_pm: true,
         pm_checklist: [
@@ -144,7 +140,7 @@ describe('PMProgressIndicator', () => {
         ]
       };
 
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: incompletePMData,
         isLoading: false
       });
@@ -161,13 +157,12 @@ describe('PMProgressIndicator', () => {
     });
 
     it('handles empty checklist', () => {
-      const { usePMData } = require('@/hooks/usePMData');
       const emptyPMData = {
         requires_pm: true,
         pm_checklist: []
       };
 
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: emptyPMData,
         isLoading: false
       });
@@ -186,7 +181,6 @@ describe('PMProgressIndicator', () => {
 
   describe('PM Complete Badge', () => {
     it('shows PM Complete badge when all items finished', () => {
-      const { usePMData } = require('@/hooks/usePMData');
       const completePMData = {
         requires_pm: true,
         pm_checklist: [
@@ -209,7 +203,7 @@ describe('PMProgressIndicator', () => {
         ]
       };
 
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: completePMData,
         isLoading: false
       });
@@ -225,7 +219,6 @@ describe('PMProgressIndicator', () => {
     });
 
     it('shows complete state with 100% progress', () => {
-      const { usePMData } = require('@/hooks/usePMData');
       const completePMData = {
         requires_pm: true,
         pm_checklist: [
@@ -240,7 +233,7 @@ describe('PMProgressIndicator', () => {
         ]
       };
 
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: completePMData,
         isLoading: false
       });
@@ -259,8 +252,7 @@ describe('PMProgressIndicator', () => {
 
   describe('Loading State', () => {
     it('shows loading state when PM data is loading', () => {
-      const { usePMData } = require('@/hooks/usePMData');
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: null,
         isLoading: true
       });
@@ -277,13 +269,12 @@ describe('PMProgressIndicator', () => {
 
   describe('Edge Cases', () => {
     it('handles null checklist data', () => {
-      const { usePMData } = require('@/hooks/usePMData');
       const nullChecklistData = {
         requires_pm: true,
         pm_checklist: null
       };
 
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: nullChecklistData,
         isLoading: false
       });
@@ -298,13 +289,12 @@ describe('PMProgressIndicator', () => {
     });
 
     it('handles undefined checklist data', () => {
-      const { usePMData } = require('@/hooks/usePMData');
       const undefinedChecklistData = {
         requires_pm: true,
         pm_checklist: undefined
       };
 
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: undefinedChecklistData,
         isLoading: false
       });
@@ -319,7 +309,6 @@ describe('PMProgressIndicator', () => {
     });
 
     it('considers various condition values as completed', () => {
-      const { usePMData } = require('@/hooks/usePMData');
       const mixedConditionData = {
         requires_pm: true,
         pm_checklist: [
@@ -332,7 +321,7 @@ describe('PMProgressIndicator', () => {
         ]
       };
 
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: mixedConditionData,
         isLoading: false
       });
@@ -352,8 +341,7 @@ describe('PMProgressIndicator', () => {
 
   describe('Progress Bar Styling', () => {
     it('applies correct progress bar width', () => {
-      const { usePMData } = require('@/hooks/usePMData');
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });
@@ -372,8 +360,7 @@ describe('PMProgressIndicator', () => {
 
   describe('Accessibility', () => {
     it('provides proper ARIA attributes for progress bar', () => {
-      const { usePMData } = require('@/hooks/usePMData');
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });
@@ -391,8 +378,7 @@ describe('PMProgressIndicator', () => {
     });
 
     it('provides descriptive text for screen readers', () => {
-      const { usePMData } = require('@/hooks/usePMData');
-      usePMData.mockReturnValue({
+      mockUsePMData.mockReturnValue({
         data: mockPMData,
         isLoading: false
       });

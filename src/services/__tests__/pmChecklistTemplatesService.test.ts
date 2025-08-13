@@ -456,7 +456,7 @@ describe('Helper Functions', () => {
     it('handles JSON string template_data', () => {
       const templateWithStringData = {
         ...mockTemplate,
-        template_data: JSON.stringify(mockTemplateData) as any
+        template_data: JSON.stringify(mockTemplateData) as unknown as PMChecklistItem[]
       };
       
       const result = templateToSummary(templateWithStringData);
@@ -467,7 +467,7 @@ describe('Helper Functions', () => {
     it('handles malformed template_data', () => {
       const templateWithBadData = {
         ...mockTemplate,
-        template_data: { invalid: 'data' } as any
+        template_data: { invalid: 'data' } as unknown as PMChecklistItem[]
       };
       
       const result = templateToSummary(templateWithBadData);
@@ -478,7 +478,7 @@ describe('Helper Functions', () => {
     it('handles invalid JSON string', () => {
       const templateWithInvalidJson = {
         ...mockTemplate,
-        template_data: '{ invalid json' as any
+        template_data: '{ invalid json' as unknown as PMChecklistItem[]
       };
       
       const result = templateToSummary(templateWithInvalidJson);

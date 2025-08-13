@@ -55,13 +55,12 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
 
-  // Get team count for a user
-  const getTeamCount = (userId: string) => {
-    return teamMemberships.filter(tm => tm.team_id && userId).length;
-  };
-
   // Combine members and pending invitations into unified list
   const unifiedMembers: UnifiedMember[] = useMemo(() => {
+    // Get team count for a user
+    const getTeamCount = (userId: string) => {
+      return teamMemberships.filter(tm => tm.team_id && userId).length;
+    };
     const activeMembers: UnifiedMember[] = members.map(member => ({
       id: member.id,
       name: member.name || 'Unknown',
@@ -95,7 +94,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
       if (a.name !== 'Pending Invite' && b.name === 'Pending Invite') return -1;
       return a.name.localeCompare(b.name);
     });
-  }, [members, invitations, getTeamCount]);
+  }, [members, invitations, teamMemberships]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
