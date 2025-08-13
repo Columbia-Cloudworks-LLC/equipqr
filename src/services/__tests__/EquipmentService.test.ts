@@ -99,7 +99,7 @@ describe('EquipmentService', () => {
         last_maintenance: '2024-01-01'
       };
 
-      const result = await service.create(incompleteData as any);
+      const result = await service.create(incompleteData as Parameters<typeof service.create>[0]);
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();

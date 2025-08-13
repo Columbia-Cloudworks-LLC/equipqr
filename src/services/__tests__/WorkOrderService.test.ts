@@ -97,7 +97,7 @@ describe('WorkOrderService', () => {
         priority: 'medium' as const
       };
 
-      const result = await service.create(incompleteData as any);
+      const result = await service.create(incompleteData as Parameters<typeof service.create>[0]);
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();

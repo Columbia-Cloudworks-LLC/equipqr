@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '../useAuth';
 import { AuthContext } from '@/contexts/AuthContext';
 import React from 'react';
+import type { User, Session } from '@supabase/supabase-js';
 
 // Mock Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -23,10 +24,13 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 // Create mock context value
 interface MockAuthContextOverrides {
-  user?: any;
-  session?: any;
+  user?: User | null;
+  session?: Session | null;
   isLoading?: boolean;
-  [key: string]: any;
+  signIn?: () => Promise<{ error: Error | null }>;
+  signUp?: () => Promise<{ error: Error | null }>;
+  signOut?: () => Promise<void>;
+  signInWithGoogle?: () => Promise<{ error: Error | null }>;
 }
 
 const createMockAuthContextValue = (overrides: MockAuthContextOverrides = {}) => ({
@@ -37,9 +41,12 @@ const createMockAuthContextValue = (overrides: MockAuthContextOverrides = {}) =>
     user_metadata: {},
     aud: 'authenticated',
     created_at: '2024-01-01T00:00:00Z'
-  },
+  } as User,
   session: 'session' in overrides ? overrides.session : {
     access_token: 'token',
+    refresh_token: 'refresh_token',
+    expires_in: 3600,
+    token_type: 'bearer',
     user: {
       id: 'user-1',
       email: 'test@example.com',
@@ -48,7 +55,7 @@ const createMockAuthContextValue = (overrides: MockAuthContextOverrides = {}) =>
       aud: 'authenticated',
       created_at: '2024-01-01T00:00:00Z'
     }
-  },
+  } as Session,
   isLoading: false,
   signIn: vi.fn(),
   signUp: vi.fn(),
