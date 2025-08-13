@@ -50,8 +50,9 @@ describe('AuthContext', () => {
     };
   };
 
-  beforeEach(async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
+  beforeEach(() => {
+    // Use direct import to avoid async issues
+    const { supabase } = require('@/integrations/supabase/client');
     mockSupabase = supabase as unknown as typeof mockSupabase;
     
     mockSubscription = { unsubscribe: vi.fn() };
@@ -65,6 +66,11 @@ describe('AuthContext', () => {
       data: { session: null },
       error: null,
     });
+    
+    mockSupabase.auth.signUp.mockResolvedValue({ error: null });
+    mockSupabase.auth.signInWithPassword.mockResolvedValue({ error: null });
+    mockSupabase.auth.signInWithOAuth.mockResolvedValue({ error: null });
+    mockSupabase.auth.signOut.mockResolvedValue({ error: null });
     
     // Mock sessionStorage
     Object.defineProperty(window, 'sessionStorage', {
@@ -85,10 +91,17 @@ describe('AuthContext', () => {
       },
       writable: true,
     });
+
+    // Mock setTimeout to execute immediately
+    global.setTimeout = vi.fn((fn) => {
+      fn();
+      return 1;
+    }) as unknown as typeof setTimeout;
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.clearAllTimers();
   });
 
   const createWrapper = () => ({ children }: { children: React.ReactNode }) => (
@@ -145,9 +158,7 @@ describe('AuthContext', () => {
 
   it('should handle pending redirect after sign-in', async () => {
     const mockRedirectUrl = 'http://localhost:3000/equipment/123';
-    const mockSetTimeout = vi.fn((fn) => fn()); // Execute immediately for tests
-    global.setTimeout = mockSetTimeout as unknown as typeof setTimeout;
-
+    
     window.sessionStorage.getItem = vi.fn().mockReturnValue(mockRedirectUrl);
     window.sessionStorage.removeItem = vi.fn();
 
@@ -158,18 +169,16 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    }, { timeout: 10000 });
+    });
 
-    await act(async () => {
+    act(() => {
       authStateChangeCallback('SIGNED_IN', mockSession);
     });
 
-    await waitFor(() => {
-      expect(window.sessionStorage.getItem).toHaveBeenCalledWith('pendingRedirect');
-      expect(window.sessionStorage.removeItem).toHaveBeenCalledWith('pendingRedirect');
-      expect(mockSetTimeout).toHaveBeenCalledWith(expect.any(Function), 100);
-    }, { timeout: 10000 });
-  }, 15000);
+    expect(window.sessionStorage.getItem).toHaveBeenCalledWith('pendingRedirect');
+    expect(window.sessionStorage.removeItem).toHaveBeenCalledWith('pendingRedirect');
+    expect(global.setTimeout).toHaveBeenCalledWith(expect.any(Function), 100);
+  });
 
   it('should handle token refresh without triggering redirect', async () => {
     const { result } = renderHook(
@@ -179,23 +188,18 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    }, { timeout: 10000 });
+    });
 
     act(() => {
       authStateChangeCallback('TOKEN_REFRESHED', mockSession);
     });
 
-    await waitFor(() => {
-      expect(result.current?.user).toEqual(mockUser);
-      expect(result.current?.session).toEqual(mockSession);
-    }, { timeout: 10000 });
-    
+    expect(result.current?.user).toEqual(mockUser);
+    expect(result.current?.session).toEqual(mockSession);
     expect(window.sessionStorage.getItem).not.toHaveBeenCalled();
   });
 
   it('should handle sign up', async () => {
-    mockSupabase.auth.signUp.mockResolvedValue({ error: null });
-
     const { result } = renderHook(
       () => React.useContext(AuthContext),
       { wrapper: createWrapper() }
@@ -203,31 +207,27 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    }, { timeout: 10000 });
+    });
 
     let signUpResult;
     await act(async () => {
       signUpResult = await result.current!.signUp('test@example.com', 'password', 'Test User');
     });
 
-    await waitFor(() => {
-      expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password',
-        options: {
-          emailRedirectTo: 'http://localhost:3000/',
-          data: {
-            name: 'Test User'
-          }
+    expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password',
+      options: {
+        emailRedirectTo: 'http://localhost:3000/',
+        data: {
+          name: 'Test User'
         }
-      });
-      expect(signUpResult).toEqual({ error: null });
-    }, { timeout: 10000 });
-  }, 15000);
+      }
+    });
+    expect(signUpResult).toEqual({ error: null });
+  });
 
   it('should handle sign in', async () => {
-    mockSupabase.auth.signInWithPassword.mockResolvedValue({ error: null });
-
     const { result } = renderHook(
       () => React.useContext(AuthContext),
       { wrapper: createWrapper() }
@@ -235,25 +235,21 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    }, { timeout: 10000 });
+    });
 
     let signInResult;
     await act(async () => {
       signInResult = await result.current!.signIn('test@example.com', 'password');
     });
 
-    await waitFor(() => {
-      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password'
-      });
-      expect(signInResult).toEqual({ error: null });
-    }, { timeout: 10000 });
-  }, 15000);
+    expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password'
+    });
+    expect(signInResult).toEqual({ error: null });
+  });
 
   it('should handle Google sign in', async () => {
-    mockSupabase.auth.signInWithOAuth.mockResolvedValue({ error: null });
-
     const { result } = renderHook(
       () => React.useContext(AuthContext),
       { wrapper: createWrapper() }
@@ -261,23 +257,21 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    }, { timeout: 10000 });
+    });
 
     let signInResult;
     await act(async () => {
       signInResult = await result.current!.signInWithGoogle();
     });
 
-    await waitFor(() => {
-      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: 'google',
-        options: {
-          redirectTo: 'http://localhost:3000/'
-        }
-      });
-      expect(signInResult).toEqual({ error: null });
-    }, { timeout: 10000 });
-  }, 15000);
+    expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'google',
+      options: {
+        redirectTo: 'http://localhost:3000/'
+      }
+    });
+    expect(signInResult).toEqual({ error: null });
+  });
 
   it('should handle sign out', async () => {
     mockSupabase.auth.signOut.mockResolvedValue({ error: null });
