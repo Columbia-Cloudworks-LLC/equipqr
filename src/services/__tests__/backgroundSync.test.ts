@@ -290,6 +290,16 @@ describe('BackgroundSyncService', () => {
     });
 
     it('should queue items when offline', () => {
+      // Set service to offline
+      Object.defineProperty(navigator, 'onLine', {
+        writable: true,
+        value: false,
+      });
+      
+      // Trigger offline event
+      const offlineEvent = new Event('offline');
+      window.dispatchEvent(offlineEvent);
+      
       const payload = {
         eventType: 'UPDATE',
         new: { id: 'eq-1', name: 'Test Equipment' },
@@ -306,6 +316,16 @@ describe('BackgroundSyncService', () => {
     });
 
     it('should limit queue size', () => {
+      // Set service to offline first
+      Object.defineProperty(navigator, 'onLine', {
+        writable: true,
+        value: false,
+      });
+      
+      // Trigger offline event
+      const offlineEvent = new Event('offline');
+      window.dispatchEvent(offlineEvent);
+      
       const payload = {
         eventType: 'UPDATE',
         new: { id: 'eq-1', name: 'Test Equipment' },

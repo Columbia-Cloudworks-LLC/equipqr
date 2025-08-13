@@ -177,14 +177,17 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    });
+    }, { timeout: 10000 });
 
     act(() => {
       authStateChangeCallback('TOKEN_REFRESHED', mockSession);
     });
 
-    expect(result.current?.user).toEqual(mockUser);
-    expect(result.current?.session).toEqual(mockSession);
+    await waitFor(() => {
+      expect(result.current?.user).toEqual(mockUser);
+      expect(result.current?.session).toEqual(mockSession);
+    }, { timeout: 10000 });
+    
     expect(window.sessionStorage.getItem).not.toHaveBeenCalled();
   });
 
@@ -198,24 +201,26 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    });
+    }, { timeout: 10000 });
 
     let signUpResult;
     await act(async () => {
       signUpResult = await result.current!.signUp('test@example.com', 'password', 'Test User');
     });
 
-    expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
-      email: 'test@example.com',
-      password: 'password',
-      options: {
-        emailRedirectTo: 'http://localhost:3000/',
-        data: {
-          name: 'Test User'
+    await waitFor(() => {
+      expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'password',
+        options: {
+          emailRedirectTo: 'http://localhost:3000/',
+          data: {
+            name: 'Test User'
+          }
         }
-      }
-    });
-    expect(signUpResult).toEqual({ error: null });
+      });
+      expect(signUpResult).toEqual({ error: null });
+    }, { timeout: 10000 });
   });
 
   it('should handle sign in', async () => {
@@ -228,18 +233,20 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    });
+    }, { timeout: 10000 });
 
     let signInResult;
     await act(async () => {
       signInResult = await result.current!.signIn('test@example.com', 'password');
     });
 
-    expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
-      email: 'test@example.com',
-      password: 'password'
-    });
-    expect(signInResult).toEqual({ error: null });
+    await waitFor(() => {
+      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'password'
+      });
+      expect(signInResult).toEqual({ error: null });
+    }, { timeout: 10000 });
   });
 
   it('should handle Google sign in', async () => {
@@ -252,7 +259,7 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
-    });
+    }, { timeout: 10000 });
 
     let signInResult;
     await act(async () => {

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { SessionProvider, SessionContext } from '../SessionContext';
@@ -281,10 +281,15 @@ describe('SessionContext', () => {
       expect(result.current?.isLoading).toBe(false);
     });
 
-    result.current!.clearSession();
+    act(() => {
+      result.current!.clearSession();
+    });
 
+    await waitFor(() => {
+      expect(result.current?.sessionData).toBe(null);
+    });
+    
     expect(SessionStorageService.clearSessionStorage).toHaveBeenCalled();
-    expect(result.current?.sessionData).toBe(null);
   });
 
   it('should handle user changes', async () => {

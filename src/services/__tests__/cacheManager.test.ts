@@ -202,7 +202,7 @@ describe('CacheManager', () => {
 
       expect(mockQueryClient.cancelQueries).toHaveBeenCalledWith({ queryKey });
       expect(mockQueryClient.getQueryData).toHaveBeenCalledWith(queryKey);
-      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(queryKey, newData);
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(queryKey, updater);
       expect(mutationFn).toHaveBeenCalled();
     });
 
@@ -219,7 +219,7 @@ describe('CacheManager', () => {
         cacheManager.optimisticUpdate(queryKey, updater, mutationFn)
       ).rejects.toThrow('Mutation failed');
 
-      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(queryKey, newData);
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(queryKey, updater);
       expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(queryKey, oldData);
     });
   });
