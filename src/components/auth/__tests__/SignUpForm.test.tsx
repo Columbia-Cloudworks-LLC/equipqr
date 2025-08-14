@@ -15,8 +15,14 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Mock HCaptcha component
+interface HCaptchaProps {
+  onSuccess: (token: string) => void;
+  onError?: () => void;
+  onExpire?: () => void;
+}
+
 vi.mock('@/components/ui/HCaptcha', () => ({
-  default: ({ onSuccess, onError, onExpire }: any) => (
+  default: ({ onSuccess, onError, onExpire }: HCaptchaProps) => (
     <div data-testid="hcaptcha-mock">
       <button 
         type="button"
@@ -163,7 +169,7 @@ describe('SignUpForm', () => {
       await user.type(confirmPasswordInput, 'password456');
       
       expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
-      expect(screen.getByTestId('lucide-x-circle')).toBeInTheDocument();
+      expect(screen.getByTestId('password-match-error')).toBeInTheDocument();
     });
 
     it('should show success icon when passwords match', async () => {
@@ -177,7 +183,7 @@ describe('SignUpForm', () => {
       await user.type(confirmPasswordInput, 'password123');
       
       expect(screen.queryByText(/passwords do not match/i)).not.toBeInTheDocument();
-      expect(screen.getByTestId('lucide-check-circle')).toBeInTheDocument();
+      expect(screen.getByTestId('password-match-success')).toBeInTheDocument();
     });
 
     it('should validate password match when changing password field', async () => {
@@ -208,8 +214,8 @@ describe('SignUpForm', () => {
       // Clear confirm password
       await user.clear(confirmPasswordInput);
       
-      expect(screen.queryByTestId('lucide-check-circle')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('lucide-x-circle')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('password-match-success')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('password-match-error')).not.toBeInTheDocument();
     });
   });
 
@@ -400,6 +406,14 @@ describe('SignUpForm', () => {
       const onError = vi.fn();
       const setIsLoading = vi.fn();
       
+      interface SupabaseAuthError {
+        message: string;
+        code: string;
+        status: number;
+        __isAuthError: boolean;
+        name: string;
+      }
+
       mockSignUp.mockResolvedValue({ 
         error: { 
           message: 'Email already registered',
@@ -528,14 +542,14 @@ describe('SignUpForm', () => {
     it('should show loading spinner when isLoading is true', () => {
       render(<SignUpForm {...defaultProps} isLoading={true} />);
       
-      expect(screen.getByTestId('lucide-loader-2')).toBeInTheDocument();
+      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create account & organization/i })).toBeDisabled();
     });
 
     it('should not show loading spinner when isLoading is false', () => {
       render(<SignUpForm {...defaultProps} isLoading={false} />);
       
-      expect(screen.queryByTestId('lucide-loader-2')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
     });
 
     it('should prevent multiple rapid submissions', async () => {

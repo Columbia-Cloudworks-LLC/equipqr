@@ -171,9 +171,9 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
           {passwordMatch !== null && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
               {passwordMatch ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-green-500" data-testid="password-match-success" />
               ) : (
-                <XCircle className="h-4 w-4 text-destructive" />
+                <XCircle className="h-4 w-4 text-destructive" data-testid="password-match-error" />
               )}
             </div>
           )}
@@ -194,7 +194,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
         className="w-full" 
         disabled={isLoading || !isFormValid()}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" data-testid="loading-spinner" />}
         Create Account & Organization
       </Button>
     </form>
