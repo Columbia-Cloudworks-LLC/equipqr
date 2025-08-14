@@ -8,7 +8,7 @@ interface Team {
 }
 
 interface EquipmentCSVData extends Omit<EquipmentRecord, 'custom_attributes'> {
-  custom_attributes: Record<string, any>;
+  custom_attributes: Record<string, string | number | boolean | null>;
 }
 
 export const generateEquipmentCSV = (
@@ -54,7 +54,7 @@ export const generateEquipmentCSV = (
   const headers = [...standardColumns, ...Array.from(customAttributeKeys)];
 
   // Helper function to escape CSV values
-  const escapeCSVValue = (value: any): string => {
+  const escapeCSVValue = (value: unknown): string => {
     if (value === null || value === undefined) {
       return '';
     }

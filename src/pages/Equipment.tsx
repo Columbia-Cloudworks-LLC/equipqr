@@ -24,7 +24,6 @@ const Equipment = () => {
   const {
     filters,
     sortConfig,
-    showAdvancedFilters,
     filteredAndSortedEquipment,
     filterOptions,
     isLoading,
@@ -33,8 +32,7 @@ const Equipment = () => {
     updateFilter,
     updateSort,
     clearFilters,
-    applyQuickFilter,
-    setShowAdvancedFilters
+    applyQuickFilter
   } = useEquipmentFiltering(currentOrganization?.id);
   
   const [showForm, setShowForm] = useState<boolean>(false);
@@ -67,10 +65,6 @@ const Equipment = () => {
     setShowForm(true);
   };
 
-  const handleEditEquipment = (equipment: EquipmentRecord) => {
-    setEditingEquipment(equipment);
-    setShowForm(true);
-  };
 
   const handleCloseForm = () => {
     setShowForm(false);
