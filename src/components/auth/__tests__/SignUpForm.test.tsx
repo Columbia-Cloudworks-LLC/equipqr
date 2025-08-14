@@ -3,6 +3,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SignUpForm from '../SignUpForm';
+
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock Supabase
@@ -407,9 +408,7 @@ describe('SignUpForm', () => {
       
       mockSignUp.mockResolvedValue({ 
         error: {
-          message: 'Email already registered',
-          code: 'user_already_exists',
-          status: 400,
+          message: 'Email already registered'
         } as any,
         data: { user: null, session: null } 
       });
@@ -495,9 +494,7 @@ describe('SignUpForm', () => {
       
       mockSignUp.mockResolvedValue({ 
         error: {
-          message: 'Signup failed',
-          code: 'signup_error',
-          status: 400,
+          message: 'Signup failed'
         } as any,
         data: { user: null, session: null } 
       });
