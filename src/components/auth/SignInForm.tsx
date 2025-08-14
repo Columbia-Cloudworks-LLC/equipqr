@@ -21,15 +21,21 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isLoading) return; // Prevent multiple submissions
+    
+    // Set loading immediately to prevent race conditions
     setIsLoading(true);
 
-    const { error } = await signIn(formData.email, formData.password);
-    
-    if (error) {
-      onError(error.message);
+    try {
+      const { error } = await signIn(formData.email, formData.password);
+      
+      if (error) {
+        onError(error.message);
+      }
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
@@ -55,7 +61,11 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
         />
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading && (
+          <div role="status" aria-label="Loading">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          </div>
+        )}
         Sign In
       </Button>
     </form>
