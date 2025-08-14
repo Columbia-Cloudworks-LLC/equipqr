@@ -408,7 +408,10 @@ describe('SignUpForm', () => {
       
       mockSignUp.mockResolvedValue({ 
         error: {
-          message: 'Email already registered'
+          message: 'Email already registered',
+          code: 'user_already_exists',
+          status: 400,
+          name: 'AuthError'
         } as any,
         data: { user: null, session: null } 
       });
@@ -494,7 +497,10 @@ describe('SignUpForm', () => {
       
       mockSignUp.mockResolvedValue({ 
         error: {
-          message: 'Signup failed'
+          message: 'Signup failed',
+          code: 'signup_error',
+          status: 400,
+          name: 'AuthError'
         } as any,
         data: { user: null, session: null } 
       });
