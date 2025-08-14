@@ -406,7 +406,11 @@ describe('SignUpForm', () => {
       const setIsLoading = vi.fn();
       
       mockSignUp.mockResolvedValue({ 
-        error: { message: 'Email already registered' } as any,
+        error: {
+          message: 'Email already registered',
+          code: 'user_already_exists',
+          status: 400,
+        } as any,
         data: { user: null, session: null } 
       });
       
@@ -490,7 +494,11 @@ describe('SignUpForm', () => {
       const user = userEvent.setup();
       
       mockSignUp.mockResolvedValue({ 
-        error: { message: 'Signup failed' } as any,
+        error: {
+          message: 'Signup failed',
+          code: 'signup_error',
+          status: 400,
+        } as any,
         data: { user: null, session: null } 
       });
       
