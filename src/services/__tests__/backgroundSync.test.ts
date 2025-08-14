@@ -321,8 +321,8 @@ describe('BackgroundSyncService', () => {
 
       expect(equipmentHandler).toBeDefined();
 
-      // Add 100 items to queue to trigger queue limiting
-      for (let i = 0; i < 100; i++) {
+      // Add 101 items to queue to trigger queue limiting (need > 100 to trigger the condition)
+      for (let i = 0; i < 101; i++) {
         equipmentHandler({
           eventType: 'INSERT',
           new: { id: `eq-${i}`, name: `Equipment ${i}` },
