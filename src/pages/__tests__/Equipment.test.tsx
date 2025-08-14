@@ -9,7 +9,10 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
-  usePermissions: () => ({ canCreateEquipment: () => true }),
+  usePermissions: () => ({ 
+    canCreateEquipment: () => true,
+    hasRole: vi.fn(() => true)
+  }),
 }));
 
 // Mock filtering hook to control states

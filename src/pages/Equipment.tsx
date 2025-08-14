@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
+import { exportEquipmentCSV } from '@/services/equipmentCSVService';
+import { useToast } from '@/hooks/use-toast';
 import type { EquipmentRecord } from '@/types/equipment';
 
 import EquipmentForm from '@/components/equipment/EquipmentForm';
@@ -15,13 +17,13 @@ import EquipmentLoadingState from '@/components/equipment/EquipmentLoadingState'
 
 const Equipment = () => {
   const { currentOrganization } = useSimpleOrganization();
-  const { canCreateEquipment } = usePermissions();
+  const { canCreateEquipment, hasRole } = usePermissions();
+  const { toast } = useToast();
   
   // Use the new enhanced filtering hook with explicit organization ID
   const {
     filters,
     sortConfig,
-    showAdvancedFilters,
     filteredAndSortedEquipment,
     filterOptions,
     isLoading,
@@ -30,15 +32,16 @@ const Equipment = () => {
     updateFilter,
     updateSort,
     clearFilters,
-    applyQuickFilter,
-    setShowAdvancedFilters
+    applyQuickFilter
   } = useEquipmentFiltering(currentOrganization?.id);
   
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   const canCreate = canCreateEquipment();
+  const canExport = hasRole(['owner', 'admin']);
 
   if (!currentOrganization) {
     return (
@@ -62,14 +65,36 @@ const Equipment = () => {
     setShowForm(true);
   };
 
-  const handleEditEquipment = (equipment: EquipmentRecord) => {
-    setEditingEquipment(equipment);
-    setShowForm(true);
-  };
 
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingEquipment(null);
+  };
+
+  const handleExportCSV = async () => {
+    if (!currentOrganization || !canExport) return;
+    
+    setIsExporting(true);
+    try {
+      await exportEquipmentCSV(
+        filteredAndSortedEquipment,
+        filterOptions.teams || [],
+        currentOrganization.name
+      );
+      toast({
+        title: "Export successful",
+        description: `Exported ${filteredAndSortedEquipment.length} equipment records to CSV.`,
+      });
+    } catch (error) {
+      console.error('Failed to export equipment CSV:', error);
+      toast({
+        title: "Export failed", 
+        description: "There was an error exporting the equipment data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Equipment data comes from the filtering hook
@@ -96,6 +121,9 @@ const Equipment = () => {
         onSortChange={updateSort}
         resultCount={filteredAndSortedEquipment.length}
         totalCount={equipment.length}
+        canExport={canExport}
+        onExportCSV={handleExportCSV}
+        isExporting={isExporting}
       />
 
       <EquipmentGrid
