@@ -96,7 +96,7 @@ export const generateEquipmentCSV = (
         formatDate(item.installation_date),
         formatDate(item.last_maintenance),
         item.working_hours ? String(item.working_hours) : '0',
-        item.image_url || ''
+        `${window.location.origin}/dashboard/equipment/${item.id}`
       ];
 
       // Add custom attribute values
