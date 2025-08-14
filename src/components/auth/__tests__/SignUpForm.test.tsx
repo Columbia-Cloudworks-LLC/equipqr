@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SignUpForm from '../SignUpForm';
 
 import { supabase } from '@/integrations/supabase/client';
+import type { AuthError } from '@supabase/supabase-js';
 
 // Mock Supabase
 vi.mock('@/integrations/supabase/client', () => ({
@@ -412,7 +413,7 @@ describe('SignUpForm', () => {
           code: 'user_already_exists',
           status: 400,
           name: 'AuthError'
-        } as any,
+        } as AuthError,
         data: { user: null, session: null } 
       });
       
@@ -501,7 +502,7 @@ describe('SignUpForm', () => {
           code: 'signup_error',
           status: 400,
           name: 'AuthError'
-        } as any,
+        } as AuthError,
         data: { user: null, session: null } 
       });
       
