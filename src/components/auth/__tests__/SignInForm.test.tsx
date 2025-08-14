@@ -160,6 +160,13 @@ describe('SignInForm', () => {
   it('should handle multiple rapid submissions', async () => {
     const user = userEvent.setup();
     
+    // Mock signIn with delay to simulate real network conditions
+    mockSignIn.mockImplementation(() => 
+      new Promise(resolve => 
+        setTimeout(() => resolve({ error: null }), 50)
+      )
+    );
+    
     // Create a wrapper that manages loading state internally
     const TestWrapper = () => {
       const [localIsLoading, setLocalIsLoading] = React.useState(false);
@@ -181,11 +188,16 @@ describe('SignInForm', () => {
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'password123');
     
-    // Rapid clicks - only first should trigger submission due to loading state
-    await act(async () => {
-      await user.click(submitButton);
-      await user.click(submitButton);
-      await user.click(submitButton);
+    // Fire first click and immediately fire additional rapid clicks
+    await user.click(submitButton);
+    
+    // Fire additional rapid clicks while first submission is processing
+    user.click(submitButton); // Don't await - fire immediately
+    user.click(submitButton); // Don't await - fire immediately
+    
+    // Wait for the button to be disabled (loading state active)
+    await waitFor(() => {
+      expect(submitButton).toBeDisabled();
     });
 
     // Should only be called once due to loading state protection
