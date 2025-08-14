@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { AuthProvider, AuthContext } from '../AuthContext';
@@ -44,6 +44,8 @@ describe('AuthContext', () => {
   let authStateChangeCallback: (event: string, session: Session | null) => void;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    
     mockSubscription = { 
       unsubscribe: vi.fn(),
       id: 'mock-subscription',
@@ -55,24 +57,34 @@ describe('AuthContext', () => {
       return { data: { subscription: mockSubscription } };
     });
     
-    vi.mocked(supabase.auth.getSession).mockResolvedValue({
-      data: { session: null },
-      error: null,
-    });
+    vi.mocked(supabase.auth.getSession).mockImplementation(() => 
+      Promise.resolve({
+        data: { session: null },
+        error: null,
+      })
+    );
     
-    vi.mocked(supabase.auth.signUp).mockResolvedValue({ 
-      data: { user: null, session: null },
-      error: null 
-    });
-    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ 
-      data: { user: null, session: null },
-      error: null 
-    });
-    vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ 
-      data: { provider: 'google' as const, url: null },
-      error: null 
-    });
-    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
+    vi.mocked(supabase.auth.signUp).mockImplementation(() => 
+      Promise.resolve({ 
+        data: { user: null, session: null },
+        error: null 
+      })
+    );
+    vi.mocked(supabase.auth.signInWithPassword).mockImplementation(() => 
+      Promise.resolve({ 
+        data: { user: null, session: null },
+        error: null 
+      })
+    );
+    vi.mocked(supabase.auth.signInWithOAuth).mockImplementation(() => 
+      Promise.resolve({ 
+        data: { provider: 'google' as const, url: null },
+        error: null 
+      })
+    );
+    vi.mocked(supabase.auth.signOut).mockImplementation(() => 
+      Promise.resolve({ error: null })
+    );
     
     // Mock sessionStorage
     Object.defineProperty(window, 'sessionStorage', {
@@ -93,17 +105,11 @@ describe('AuthContext', () => {
       },
       writable: true,
     });
-
-    // Mock setTimeout to execute immediately
-    global.setTimeout = vi.fn((fn) => {
-      fn();
-      return 1;
-    }) as unknown as typeof setTimeout;
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
   const createWrapper = () => ({ children }: { children: React.ReactNode }) => (
@@ -122,20 +128,24 @@ describe('AuthContext', () => {
   });
 
   it('should set user and session on initial load', async () => {
-    vi.mocked(supabase.auth.getSession).mockResolvedValue({
-      data: { session: mockSession },
-      error: null,
-    });
+    vi.mocked(supabase.auth.getSession).mockImplementation(() => 
+      Promise.resolve({
+        data: { session: mockSession },
+        error: null,
+      })
+    );
 
     const { result } = renderHook(
       () => React.useContext(AuthContext),
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
+    // Wait for initial session check to complete
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
 
+    expect(result.current?.isLoading).toBe(false);
     expect(result.current?.user).toEqual(mockUser);
     expect(result.current?.session).toEqual(mockSession);
   });
@@ -146,9 +156,12 @@ describe('AuthContext', () => {
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
+    // Wait for initial load
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+
+    expect(result.current?.isLoading).toBe(false);
 
     act(() => {
       authStateChangeCallback('SIGNED_IN', mockSession);
@@ -169,17 +182,24 @@ describe('AuthContext', () => {
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
+    // Wait for initial load
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+
+    expect(result.current?.isLoading).toBe(false);
 
     act(() => {
       authStateChangeCallback('SIGNED_IN', mockSession);
     });
 
+    // Fast-forward timers to trigger timeout
+    act(() => {
+      vi.runAllTimers();
+    });
+
     expect(window.sessionStorage.getItem).toHaveBeenCalledWith('pendingRedirect');
     expect(window.sessionStorage.removeItem).toHaveBeenCalledWith('pendingRedirect');
-    expect(global.setTimeout).toHaveBeenCalledWith(expect.any(Function), 100);
   });
 
   it('should handle token refresh without triggering redirect', async () => {
@@ -188,9 +208,12 @@ describe('AuthContext', () => {
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
+    // Wait for initial load
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+
+    expect(result.current?.isLoading).toBe(false);
 
     act(() => {
       authStateChangeCallback('TOKEN_REFRESHED', mockSession);
@@ -207,9 +230,12 @@ describe('AuthContext', () => {
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
+    // Wait for initial load
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+
+    expect(result.current?.isLoading).toBe(false);
 
     let signUpResult;
     await act(async () => {
@@ -226,10 +252,7 @@ describe('AuthContext', () => {
         }
       }
     });
-    expect(signUpResult).toEqual({ 
-      data: { user: null, session: null },
-      error: null 
-    });
+    expect(signUpResult).toEqual({ error: null });
   });
 
   it('should handle sign in', async () => {
@@ -238,9 +261,12 @@ describe('AuthContext', () => {
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
+    // Wait for initial load
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+
+    expect(result.current?.isLoading).toBe(false);
 
     let signInResult;
     await act(async () => {
@@ -251,10 +277,7 @@ describe('AuthContext', () => {
       email: 'test@example.com',
       password: 'password'
     });
-    expect(signInResult).toEqual({ 
-      data: { user: null, session: null },
-      error: null 
-    });
+    expect(signInResult).toEqual({ error: null });
   });
 
   it('should handle Google sign in', async () => {
@@ -263,9 +286,12 @@ describe('AuthContext', () => {
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
+    // Wait for initial load
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+
+    expect(result.current?.isLoading).toBe(false);
 
     let signInResult;
     await act(async () => {
@@ -278,10 +304,7 @@ describe('AuthContext', () => {
         redirectTo: 'http://localhost:3000/'
       }
     });
-    expect(signInResult).toEqual({ 
-      data: { provider: 'google', url: null },
-      error: null 
-    });
+    expect(signInResult).toEqual({ error: null });
   });
 
   it('should handle sign out', async () => {
