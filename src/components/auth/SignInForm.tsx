@@ -24,15 +24,18 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
     
     if (isLoading) return; // Prevent multiple submissions
     
+    // Set loading immediately to prevent race conditions
     setIsLoading(true);
 
-    const { error } = await signIn(formData.email, formData.password);
-    
-    if (error) {
-      onError(error.message);
+    try {
+      const { error } = await signIn(formData.email, formData.password);
+      
+      if (error) {
+        onError(error.message);
+      }
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (

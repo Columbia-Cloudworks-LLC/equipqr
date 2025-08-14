@@ -160,19 +160,14 @@ describe('SignInForm', () => {
   it('should handle multiple rapid submissions', async () => {
     const user = userEvent.setup();
     
-    // Create a component instance that tracks its own loading state
-    const TestWrapper = () => {
-      const [localIsLoading, setLocalIsLoading] = React.useState(false);
-      return (
-        <SignInForm 
-          {...defaultProps} 
-          isLoading={localIsLoading}
-          setIsLoading={setLocalIsLoading}
-        />
-      );
-    };
+    // Mock signIn to have a delay to test race conditions
+    mockSignIn.mockImplementation(() => 
+      new Promise(resolve => 
+        setTimeout(() => resolve({ error: null }), 100)
+      )
+    );
     
-    render(<TestWrapper />);
+    render(<SignInForm {...defaultProps} />);
 
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');
