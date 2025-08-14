@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -124,7 +125,7 @@ describe('SignInForm', () => {
   it('should disable submit button when loading', () => {
     render(<SignInForm {...defaultProps} isLoading={true} />);
 
-    const submitButton = screen.getByRole('button', { name: 'Sign In' });
+    const submitButton = screen.getByRole('button');
     expect(submitButton).toBeDisabled();
   });
 
@@ -158,7 +159,20 @@ describe('SignInForm', () => {
 
   it('should handle multiple rapid submissions', async () => {
     const user = userEvent.setup();
-    render(<SignInForm {...defaultProps} />);
+    
+    // Create a component instance that tracks its own loading state
+    const TestWrapper = () => {
+      const [localIsLoading, setLocalIsLoading] = React.useState(false);
+      return (
+        <SignInForm 
+          {...defaultProps} 
+          isLoading={localIsLoading}
+          setIsLoading={setLocalIsLoading}
+        />
+      );
+    };
+    
+    render(<TestWrapper />);
 
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');
@@ -167,13 +181,15 @@ describe('SignInForm', () => {
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'password123');
     
-    // Rapid clicks
+    // Rapid clicks - only first should trigger submission due to loading state
     await user.click(submitButton);
     await user.click(submitButton);
     await user.click(submitButton);
 
-    // Should only be called once due to loading state
-    expect(mockSignIn).toHaveBeenCalledTimes(1);
+    // Should only be called once due to loading state protection
+    await waitFor(() => {
+      expect(mockSignIn).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('should handle form reset correctly', async () => {

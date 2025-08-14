@@ -7,7 +7,7 @@ import ProtectedRoute from '../ProtectedRoute';
 const mockUseAuth = vi.fn();
 
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: mockUseAuth,
+  useAuth: () => mockUseAuth(),
 }));
 
 // Mock Navigate component
