@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import HCaptchaComponent from '@/components/ui/HCaptcha';
 import { supabase } from '@/integrations/supabase/client';

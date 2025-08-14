@@ -383,7 +383,6 @@ describe('SignUpForm', () => {
     });
 
     it('should handle submission with incomplete form', async () => {
-      const user = userEvent.setup();
       const onError = vi.fn();
       render(<SignUpForm {...defaultProps} onError={onError} />);
       
@@ -406,22 +405,8 @@ describe('SignUpForm', () => {
       const onError = vi.fn();
       const setIsLoading = vi.fn();
       
-      interface SupabaseAuthError {
-        message: string;
-        code: string;
-        status: number;
-        __isAuthError: boolean;
-        name: string;
-      }
-
       mockSignUp.mockResolvedValue({ 
-        error: { 
-          message: 'Email already registered',
-          code: 'user_already_exists',
-          status: 400,
-          __isAuthError: true,
-          name: 'AuthError'
-        } as any, 
+        error: { message: 'Email already registered' } as any,
         data: { user: null, session: null } 
       });
       
@@ -505,13 +490,7 @@ describe('SignUpForm', () => {
       const user = userEvent.setup();
       
       mockSignUp.mockResolvedValue({ 
-        error: { 
-          message: 'Signup failed',
-          code: 'signup_error',
-          status: 400,
-          __isAuthError: true,
-          name: 'AuthError'
-        } as any, 
+        error: { message: 'Signup failed' } as any,
         data: { user: null, session: null } 
       });
       
