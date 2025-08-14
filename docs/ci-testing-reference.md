@@ -4,12 +4,33 @@
 
 This document provides comprehensive guidance for writing reliable, type-safe tests in the EquipQR project. It's based on real-world testing challenges and solutions encountered during development, specifically addressing common pitfalls that can cause test failures and waste development resources.
 
+**Current Project Status:**
+- ✅ All CI tests passing
+- ✅ SignIn and SignUp forms achieve 100% test coverage
+- ✅ TypeScript `any` type violations resolved
+- ⚠️ Overall coverage: 10.91% lines (target: 70%)
+
 **Key Principles:**
 - Always use proper TypeScript types (never `any`)
 - Mock Supabase fluent interfaces correctly
 - Remove unused variables immediately
 - Test error conditions with proper error objects
 - Use semantic interfaces for mock data
+
+## Success Story: TypeScript `any` Type Resolution
+
+**Problem**: SignUpForm tests were using `as any` type assertions for AuthError objects, violating type safety principles.
+
+**Solution**: Import `AuthError` type from `@supabase/supabase-js` and replace type assertions:
+```typescript
+// ✅ CORRECT: Import AuthError type
+import type { AuthError } from '@supabase/supabase-js';
+
+// Replace type assertions
+} as AuthError,  // Instead of } as any,
+```
+
+**Result**: 100% test coverage for authentication forms with full type safety.
 
 ## Test Architecture Overview
 
@@ -388,7 +409,17 @@ describe('error handling', () => {
 Use proper error objects that match Supabase's structure:
 
 ```typescript
-// ✅ CORRECT: Proper error object
+// ✅ CORRECT: Supabase AuthError type
+import type { AuthError } from '@supabase/supabase-js';
+
+const mockAuthError = {
+  message: 'User already exists',
+  code: 'user_already_exists',
+  status: 400,
+  name: 'AuthError'
+} as AuthError;
+
+// ✅ CORRECT: Generic error object
 const mockError = {
   message: 'Invalid input',
   details: 'Field validation failed',
@@ -398,6 +429,9 @@ const mockError = {
 
 // ❌ WRONG: Simple string error
 const badError = 'Something went wrong';
+
+// ❌ WRONG: Using any type assertion
+const wrongError = { message: 'Error' } as any;
 ```
 
 ## Debugging Failed Tests
@@ -513,20 +547,102 @@ jobs:
       - run: npm run build
 ```
 
+## Current Test Coverage Status
+
+### Existing Tests with 100% Coverage
+- ✅ `SignInForm` - Complete authentication flow testing
+- ✅ `SignUpForm` - Complete registration flow testing
+- ✅ `AuthContext` - Authentication state management
+- ✅ `useAuth` - Authentication hook
+
+### Tests with Good Coverage
+- 🟡 `Button` (UI component)
+- 🟡 `Card` (UI component)
+- 🟡 `ProtectedRoute` (routing)
+- 🟡 `ChecklistTemplateEditor` (feature component)
+- 🟡 Various utilities (`currencyUtils`, `dateFormatter`, `equipmentHelpers`)
+
+### Coverage Improvement Strategy
+
+**Current Status**: 10.91% line coverage (target: 70%)
+
+**Priority Components for Testing:**
+1. Core business logic components (equipment, work orders, teams)
+2. Service layer interactions with Supabase
+3. Custom hooks for data management
+4. Form components with validation
+5. Critical user workflows
+
+**Recommended Testing Order:**
+1. Service layer tests (high impact, easier to test)
+2. Hook tests (useEquipment, useWorkOrders, useTeams)
+3. Page component tests (Equipment, WorkOrders, Teams)
+4. Integration tests for complete workflows
+
+## Real-World Testing Examples
+
+### AuthError Pattern (From SignUpForm)
+```typescript
+// ✅ Successful pattern used in production
+import type { AuthError } from '@supabase/supabase-js';
+
+const mockAuthError = {
+  message: 'User already exists',
+  code: 'user_already_exists',
+  status: 400,
+  name: 'AuthError'
+} as AuthError;
+
+// Usage in test
+mockSupabaseAuth.signUp.mockResolvedValue({
+  error: mockAuthError,
+  data: { user: null, session: null }
+});
+```
+
+### TestProviders Pattern (Currently Used)
+```typescript
+// ✅ Working pattern from our codebase
+export const TestProviders = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return (
+    <MemoryRouter initialEntries={['/']}>
+      <QueryClientProvider client={queryClient}>
+        <MockAuthProvider>
+          <MockSessionProvider>
+            <MockSessionProvider2>
+              <MockUserProvider>
+                <MockSimpleOrganizationProvider>
+                  {children}
+                </MockSimpleOrganizationProvider>
+              </MockUserProvider>
+            </MockSessionProvider2>
+          </MockSessionProvider>
+        </MockAuthProvider>
+      </QueryClientProvider>
+    </MemoryRouter>
+  );
+};
+```
+
 ## Checklist for New Tests
 
 ### Before Writing Tests
 
 - [ ] Identify component type (service, hook, or component)
-- [ ] Review existing similar tests for patterns
+- [ ] Review existing similar tests for patterns (SignInForm/SignUpForm for auth components)
 - [ ] Plan mock data requirements
 - [ ] Define expected test scenarios (success, error, edge cases)
 
 ### During Test Implementation
 
-- [ ] Use proper TypeScript interfaces (no `any`)
+- [ ] Use proper TypeScript interfaces (no `any`) - **CRITICAL**
+- [ ] Import AuthError type for authentication tests
 - [ ] Configure Supabase mocks with fluent interface support
-- [ ] Set up appropriate React providers for context
+- [ ] Set up appropriate React providers using TestProviders
 - [ ] Include both positive and negative test cases
 - [ ] Remove any unused variables immediately
 
@@ -543,7 +659,7 @@ jobs:
 - [ ] ✅ Fluent interface methods return `this` (not `undefined`)
 - [ ] ✅ Terminal methods return promises with data/error structure
 - [ ] ✅ All mock variables are actually used in tests
-- [ ] ✅ No `any` types are used anywhere
+- [ ] ✅ No `any` types are used anywhere (AuthError type imported instead)
 - [ ] ✅ Error test cases use proper error objects
 - [ ] ✅ Mock data matches expected interface structure
 
