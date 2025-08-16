@@ -1,7 +1,7 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
-import userEvent from '@testing-library/user-event';
-import QRCodeDisplay from '../QRCodeDisplay';
+import { QRCodeDisplay } from '../QRCodeDisplay';
 
 // Mock QRCode library
 vi.mock('qrcode', () => ({
@@ -250,7 +250,7 @@ describe('QRCodeDisplay', () => {
     it('sanitizes equipment name for filename', () => {
       render(<QRCodeDisplay {...defaultProps} equipmentName="Test Equipment #1 @$%" />);
       
-      expect(screen.getByText('test_equipment____1____-qr.png')).toBeInTheDocument();
+      expect(screen.getByText('test_equipment__1____-qr.png')).toBeInTheDocument();
     });
 
     it('handles download error', async () => {

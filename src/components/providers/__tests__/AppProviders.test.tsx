@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@/test/utils/test-utils';
+import { render, screen } from '@testing-library/react';
 import { AppProviders } from '../AppProviders';
 
 // Mock all the provider components
@@ -10,7 +10,7 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('next-themes', () => ({
-  ThemeProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="theme-provider">{children}</div>
+  ThemeProvider: vi.fn(({ children }: { children: React.ReactNode }) => <div data-testid="theme-provider">{children}</div>)
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -34,7 +34,7 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    BrowserRouter: ({ children }: { children: React.ReactNode }) => <div data-testid="router">{children}</div>
+    BrowserRouter: vi.fn(({ children }: { children: React.ReactNode }) => <div data-testid="router">{children}</div>)
   };
 });
 
