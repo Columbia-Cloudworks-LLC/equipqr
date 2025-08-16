@@ -85,10 +85,12 @@ beforeAll(() => {
   };
   
   console.error = (...args) => {
-    // Suppress specific Dialog accessibility warnings during tests
+    // Suppress specific Dialog accessibility warnings and act() warnings during tests
     const message = args[0]?.toString() || '';
     if (message.includes('Missing `Description`') || 
-        message.includes('DialogContent` requires a `DialogTitle`')) {
+        message.includes('DialogContent` requires a `DialogTitle`') ||
+        message.includes('Warning: An update to') ||
+        message.includes('not wrapped in act(...)')) {
       return;
     }
     originalError.apply(console, args);
@@ -96,6 +98,10 @@ beforeAll(() => {
 
   // Ensure consistent global objects across Node versions
   if (typeof global.structuredClone === 'undefined') {
-    global.structuredClone = (obj: any) => JSON.parse(JSON.stringify(obj));
+    Object.defineProperty(global, 'structuredClone', {
+      value: <T>(obj: T): T => JSON.parse(JSON.stringify(obj)),
+      writable: true,
+      configurable: true
+    });
   }
 });
