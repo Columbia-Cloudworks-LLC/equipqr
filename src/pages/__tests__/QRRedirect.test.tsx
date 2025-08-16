@@ -55,7 +55,7 @@ describe('QRRedirect', () => {
       render(<QRRedirect />);
       
       const handler = screen.getByTestId('qr-redirect-handler');
-      expect(handler).toHaveAttribute('data-equipment-id', 'undefined');
+      expect(handler.getAttribute('data-equipment-id')).toBeNull();
       expect(screen.getByText('QR Redirect Handler - Equipment ID: undefined')).toBeInTheDocument();
     });
 
@@ -65,7 +65,7 @@ describe('QRRedirect', () => {
       render(<QRRedirect />);
       
       const handler = screen.getByTestId('qr-redirect-handler');
-      expect(handler).toHaveAttribute('data-equipment-id', 'undefined');
+      expect(handler.getAttribute('data-equipment-id')).toBeNull();
       expect(screen.getByText('QR Redirect Handler - Equipment ID: undefined')).toBeInTheDocument();
     });
 
@@ -118,8 +118,9 @@ describe('QRRedirect', () => {
       
       render(<QRRedirect />);
       
-      // Should render the QRRedirectHandler component inside the test providers
-      expect(screen.getByTestId('qr-redirect-handler')).toBeInTheDocument();
+      // Should render the QRRedirectHandler component
+      const handler = screen.getByTestId('qr-redirect-handler');
+      expect(handler).toBeInTheDocument();
     });
 
     it('does not add any additional wrapper elements', () => {
@@ -127,8 +128,9 @@ describe('QRRedirect', () => {
       
       render(<QRRedirect />);
       
-      // QRRedirectHandler should be rendered
-      expect(screen.getByTestId('qr-redirect-handler')).toBeInTheDocument();
+      // QRRedirectHandler should be rendered directly
+      const handler = screen.getByTestId('qr-redirect-handler');
+      expect(handler).toBeInTheDocument();
     });
   });
 
