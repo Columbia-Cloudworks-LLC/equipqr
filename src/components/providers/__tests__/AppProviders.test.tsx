@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { AppProviders as AppProvidersComponent } from '../AppProviders';
 
 // Mock all the provider components
 vi.mock('@tanstack/react-query', () => ({
@@ -42,7 +43,7 @@ vi.mock('@/components/ui/toaster', () => ({
 }));
 
 describe('AppProviders', () => {
-  let AppProviders: any;
+  let AppProviders: typeof AppProvidersComponent;
 
   beforeEach(async () => {
     vi.clearAllMocks();
