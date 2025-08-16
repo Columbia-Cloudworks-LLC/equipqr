@@ -40,7 +40,7 @@ beforeAll(() => {
     })),
   });
 
-  // Mock window.location
+// Mock window.location
   Object.defineProperty(window, 'location', {
     value: {
       href: 'http://localhost:3000',
@@ -51,4 +51,27 @@ beforeAll(() => {
     },
     writable: true,
   });
+
+  // Suppress specific warnings to reduce noise in test output
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  
+  console.warn = (...args) => {
+    // Suppress React Router Future Flag warnings during tests
+    const message = args[0]?.toString() || '';
+    if (message.includes('React Router Future Flag Warning')) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+  
+  console.error = (...args) => {
+    // Suppress specific Dialog accessibility warnings during tests
+    const message = args[0]?.toString() || '';
+    if (message.includes('Missing `Description`') || 
+        message.includes('DialogContent` requires a `DialogTitle`')) {
+      return;
+    }
+    originalError.apply(console, args);
+  };
 });
