@@ -2,6 +2,15 @@ import '@testing-library/jest-dom';
 import { afterEach, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
+// Mock react-router-dom with proper MemoryRouter export
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    BrowserRouter: ({ children }: { children: React.ReactNode }) => children,
+  };
+});
+
 // Make vi globally available for tests
 globalThis.vi = vi;
 

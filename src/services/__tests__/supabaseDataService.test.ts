@@ -149,8 +149,16 @@ describe('supabaseDataService', () => {
         { id: 'team-2', name: 'Team 2', organization_id: 'org-1' }
       ];
 
+      // Type-safe query builder interface
+      interface MockQueryBuilder {
+        select: ReturnType<typeof vi.fn>;
+        eq: ReturnType<typeof vi.fn>;
+        in: ReturnType<typeof vi.fn>;
+        order: ReturnType<typeof vi.fn>;
+      }
+
       // Create separate query builders for each table
-      const createQueryBuilder = (data: any, error: any = null) => ({
+      const createQueryBuilder = (data: unknown, error: unknown = null): MockQueryBuilder => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
@@ -183,7 +191,14 @@ describe('supabaseDataService', () => {
     });
 
     it('returns empty array when no teams found', async () => {
-      const createQueryBuilder = (data: any, error: any = null) => ({
+      interface MockQueryBuilder {
+        select: ReturnType<typeof vi.fn>;
+        eq: ReturnType<typeof vi.fn>;
+        in: ReturnType<typeof vi.fn>;
+        order: ReturnType<typeof vi.fn>;
+      }
+
+      const createQueryBuilder = (data: unknown, error: unknown = null): MockQueryBuilder => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
@@ -198,7 +213,14 @@ describe('supabaseDataService', () => {
     });
 
     it('handles database error gracefully', async () => {
-      const createQueryBuilder = (data: any, error: any = null) => ({
+      interface MockQueryBuilder {
+        select: ReturnType<typeof vi.fn>;
+        eq: ReturnType<typeof vi.fn>;
+        in: ReturnType<typeof vi.fn>;
+        order: ReturnType<typeof vi.fn>;
+      }
+
+      const createQueryBuilder = (data: unknown, error: unknown = null): MockQueryBuilder => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
@@ -213,7 +235,14 @@ describe('supabaseDataService', () => {
     });
 
     it('handles null teams data', async () => {
-      const createQueryBuilder = (data: any, error: any = null) => ({
+      interface MockQueryBuilder {
+        select: ReturnType<typeof vi.fn>;
+        eq: ReturnType<typeof vi.fn>;
+        in: ReturnType<typeof vi.fn>;
+        order: ReturnType<typeof vi.fn>;
+      }
+
+      const createQueryBuilder = (data: unknown, error: unknown = null): MockQueryBuilder => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
@@ -228,7 +257,14 @@ describe('supabaseDataService', () => {
     });
 
     it('handles empty teams array', async () => {
-      const createQueryBuilder = (data: any, error: any = null) => ({
+      interface MockQueryBuilder {
+        select: ReturnType<typeof vi.fn>;
+        eq: ReturnType<typeof vi.fn>;
+        in: ReturnType<typeof vi.fn>;
+        order: ReturnType<typeof vi.fn>;
+      }
+
+      const createQueryBuilder = (data: unknown, error: unknown = null): MockQueryBuilder => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),

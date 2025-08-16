@@ -24,9 +24,13 @@ vi.mock('@/contexts/SessionContext', () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="session-provider">{children}</div>
 }));
 
-vi.mock('react-router-dom', () => ({
-  BrowserRouter: ({ children }: { children: React.ReactNode }) => <div data-testid="router">{children}</div>
-}));
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    BrowserRouter: ({ children }: { children: React.ReactNode }) => <div data-testid="router">{children}</div>
+  };
+});
 
 vi.mock('@/components/ui/toaster', () => ({
   Toaster: () => <div data-testid="toaster" />
