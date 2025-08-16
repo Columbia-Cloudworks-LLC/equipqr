@@ -1,7 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { AppProviders } from '../AppProviders';
 
 // Mock all the provider components
 vi.mock('@tanstack/react-query', () => ({
@@ -43,8 +42,13 @@ vi.mock('@/components/ui/toaster', () => ({
 }));
 
 describe('AppProviders', () => {
-  beforeEach(() => {
+  let AppProviders: any;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    vi.resetModules();
+    const module = await import('../AppProviders');
+    AppProviders = module.AppProviders;
   });
 
   describe('Provider Hierarchy', () => {
