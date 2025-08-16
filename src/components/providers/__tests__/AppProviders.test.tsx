@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils/test-utils';
 import { AppProviders } from '../AppProviders';
@@ -20,9 +21,14 @@ vi.mock('@/contexts/UserContext', () => ({
   UserProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="user-provider">{children}</div>
 }));
 
-vi.mock('@/contexts/SessionContext', () => ({
-  SessionProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="session-provider">{children}</div>
-}));
+vi.mock('@/contexts/SessionContext', async () => {
+  const actual = await vi.importActual('@/contexts/SessionContext');
+  return {
+    ...actual,
+    SessionContext: React.createContext(undefined),
+    SessionProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="session-provider">{children}</div>
+  };
+});
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');

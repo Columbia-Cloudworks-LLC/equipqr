@@ -50,7 +50,8 @@ describe('QRCodeDisplay', () => {
       value: {
         writeText: vi.fn().mockResolvedValue(undefined)
       },
-      writable: true
+      writable: true,
+      configurable: true
     });
   });
 
@@ -226,11 +227,13 @@ describe('QRCodeDisplay', () => {
     it('downloads QR code when download button is clicked', async () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
+      // Wait for QR code to be generated and displayed
       await waitFor(() => {
-        const downloadButton = screen.getByText(/Download PNG/i);
-        expect(downloadButton).toBeInTheDocument();
-        fireEvent.click(downloadButton);
+        expect(screen.getByRole('img', { name: 'Equipment QR Code' })).toBeInTheDocument();
       });
+
+      const downloadButton = screen.getByRole('button', { name: /download/i });
+      fireEvent.click(downloadButton);
       
       await waitFor(() => {
         expect(mockQRCode.default.toDataURL).toHaveBeenCalledTimes(2); // Once for display, once for download
@@ -247,7 +250,7 @@ describe('QRCodeDisplay', () => {
     it('sanitizes equipment name for filename', () => {
       render(<QRCodeDisplay {...defaultProps} equipmentName="Test Equipment #1 @$%" />);
       
-      expect(screen.getByText(/test_equipment.*1.*-qr\.png/)).toBeInTheDocument();
+      expect(screen.getByText('test_equipment____1____-qr.png')).toBeInTheDocument();
     });
 
     it('handles download error', async () => {
@@ -256,19 +259,26 @@ describe('QRCodeDisplay', () => {
         .mockResolvedValueOnce('data:image/png;base64,mock-qr-code') // For initial display
         .mockRejectedValueOnce(new Error('Download failed')); // For download attempt
       
-      render(<QRCodeDisplay {...defaultProps} />);
+      // Mock navigator.clipboard for this test
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: vi.fn().mockResolvedValue(undefined)
+        },
+        writable: true,
+        configurable: true
+      });
       
-      const user = userEvent.setup();
+      render(<QRCodeDisplay {...defaultProps} />);
       
       await waitFor(() => {
         expect(screen.getByRole('img', { name: 'Equipment QR Code' })).toBeInTheDocument();
       });
 
       const downloadButton = screen.getByRole('button', { name: /download/i });
-      await user.click(downloadButton);
+      fireEvent.click(downloadButton);
       
       await waitFor(() => {
-        expect(mockToast.toast.error).toHaveBeenCalledWith('Failed to generate QR code');
+        expect(mockToast.toast.error).toHaveBeenCalledWith('Failed to download QR code');
       });
     });
   });

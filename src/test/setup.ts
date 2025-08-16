@@ -49,7 +49,7 @@ beforeAll(() => {
     })),
   });
 
-// Mock window.location
+  // Mock window.location
   Object.defineProperty(window, 'location', {
     value: {
       href: 'http://localhost:3000',
@@ -59,6 +59,16 @@ beforeAll(() => {
       hash: '',
     },
     writable: true,
+    configurable: true,
+  });
+
+  // Mock navigator.clipboard globally
+  Object.defineProperty(navigator, 'clipboard', {
+    value: {
+      writeText: vi.fn().mockResolvedValue(undefined)
+    },
+    writable: true,
+    configurable: true
   });
 
   // Suppress specific warnings to reduce noise in test output
