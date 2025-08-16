@@ -18,7 +18,7 @@ describe('EquipmentHeader', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (mockUseIsMobile.useIsMobile as any).mockReturnValue(false);
+    (mockUseIsMobile.useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(false);
   });
 
   describe('Basic Rendering', () => {
@@ -76,7 +76,7 @@ describe('EquipmentHeader', () => {
 
   describe('Mobile Layout', () => {
     beforeEach(() => {
-      (mockUseIsMobile.useIsMobile as any).mockReturnValue(true);
+      (mockUseIsMobile.useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(true);
     });
 
     it('applies mobile-specific classes when on mobile', () => {
@@ -96,7 +96,7 @@ describe('EquipmentHeader', () => {
 
   describe('Desktop Layout', () => {
     beforeEach(() => {
-      (mockUseIsMobile.useIsMobile as any).mockReturnValue(false);
+      (mockUseIsMobile.useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(false);
     });
 
     it('applies desktop layout classes when not on mobile', () => {

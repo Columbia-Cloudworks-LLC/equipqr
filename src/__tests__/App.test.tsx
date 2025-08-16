@@ -90,7 +90,7 @@ describe('App', () => {
     vi.clearAllMocks();
   });
 
-  const renderApp = (initialEntries = ['/']) => {
+  const renderApp = () => {
     return render(
       <BrowserRouter>
         <App />
@@ -107,27 +107,27 @@ describe('App', () => {
 
   describe('Route Navigation', () => {
     it('renders landing page for root route', () => {
-      renderApp(['/']);
+      renderApp();
       expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     });
 
     it('renders auth page for /auth route', () => {
-      renderApp(['/auth']);
+      renderApp();
       expect(screen.getByTestId('auth-page')).toBeInTheDocument();
     });
 
     it('renders support page for /support route', () => {
-      renderApp(['/support']);
+      renderApp();
       expect(screen.getByTestId('support-page')).toBeInTheDocument();
     });
 
     it('renders terms page for /terms-of-service route', () => {
-      renderApp(['/terms-of-service']);
+      renderApp();
       expect(screen.getByTestId('terms-page')).toBeInTheDocument();
     });
 
     it('renders privacy page for /privacy-policy route', () => {
-      renderApp(['/privacy-policy']);
+      renderApp();
       expect(screen.getByTestId('privacy-page')).toBeInTheDocument();
     });
   });
@@ -142,13 +142,13 @@ describe('App', () => {
 
   describe('Redirect Routes', () => {
     it('handles equipment redirect route', () => {
-      renderApp(['/equipment/test-id']);
+      renderApp();
       expect(screen.getByTestId('navigate')).toBeInTheDocument();
       expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/dashboard/equipment/test-id');
     });
 
     it('handles work order redirect route', () => {
-      renderApp(['/work-orders/test-work-order']);
+      renderApp();
       expect(screen.getByTestId('navigate')).toBeInTheDocument();
       expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/dashboard/work-orders/test-work-order');
     });
@@ -156,7 +156,7 @@ describe('App', () => {
 
   describe('BrandedTopBar Component', () => {
     it('renders TopBar component', () => {
-      renderApp(['/dashboard']);
+      renderApp();
       expect(screen.getByTestId('top-bar')).toBeInTheDocument();
     });
   });

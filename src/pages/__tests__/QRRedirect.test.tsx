@@ -3,9 +3,13 @@ import { render, screen } from '@/test/utils/test-utils';
 import QRRedirect from '../QRRedirect';
 
 // Mock useParams
-vi.mock('react-router-dom', () => ({
-  useParams: vi.fn()
-}));
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useParams: vi.fn()
+  };
+});
 
 // Mock QRRedirectHandler component
 vi.mock('@/components/qr/QRRedirectHandler', () => ({
@@ -25,7 +29,7 @@ describe('QRRedirect', () => {
 
   describe('Component Rendering', () => {
     it('renders QRRedirectHandler component', () => {
-      (useParams as any).mockReturnValue({ equipmentId: 'test-equipment-id' });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: 'test-equipment-id' });
       
       render(<QRRedirect />);
       
@@ -34,7 +38,7 @@ describe('QRRedirect', () => {
 
     it('passes equipmentId from params to QRRedirectHandler', () => {
       const testEquipmentId = 'test-equipment-123';
-      (useParams as any).mockReturnValue({ equipmentId: testEquipmentId });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: testEquipmentId });
       
       render(<QRRedirect />);
       
@@ -46,7 +50,7 @@ describe('QRRedirect', () => {
 
   describe('URL Parameter Handling', () => {
     it('handles missing equipmentId parameter', () => {
-      (useParams as any).mockReturnValue({});
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({});
       
       render(<QRRedirect />);
       
@@ -56,7 +60,7 @@ describe('QRRedirect', () => {
     });
 
     it('handles undefined equipmentId parameter', () => {
-      (useParams as any).mockReturnValue({ equipmentId: undefined });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: undefined });
       
       render(<QRRedirect />);
       
@@ -66,7 +70,7 @@ describe('QRRedirect', () => {
     });
 
     it('handles empty string equipmentId parameter', () => {
-      (useParams as any).mockReturnValue({ equipmentId: '' });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: '' });
       
       render(<QRRedirect />);
       
@@ -77,7 +81,7 @@ describe('QRRedirect', () => {
 
     it('handles special characters in equipmentId', () => {
       const specialId = 'equipment-id-with-special-chars-!@#$%';
-      (useParams as any).mockReturnValue({ equipmentId: specialId });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: specialId });
       
       render(<QRRedirect />);
       
@@ -90,7 +94,7 @@ describe('QRRedirect', () => {
   describe('TypeScript Type Safety', () => {
     it('correctly types equipmentId parameter', () => {
       const equipmentId = 'typed-equipment-id';
-      (useParams as any).mockReturnValue({ equipmentId });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId });
       
       render(<QRRedirect />);
       
@@ -99,7 +103,7 @@ describe('QRRedirect', () => {
     });
 
     it('handles numeric equipmentId (as string from URL)', () => {
-      (useParams as any).mockReturnValue({ equipmentId: '12345' });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: '12345' });
       
       render(<QRRedirect />);
       
@@ -110,7 +114,7 @@ describe('QRRedirect', () => {
 
   describe('Component Structure', () => {
     it('renders as a simple wrapper component', () => {
-      (useParams as any).mockReturnValue({ equipmentId: 'test-id' });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: 'test-id' });
       
       const { container } = render(<QRRedirect />);
       
@@ -120,7 +124,7 @@ describe('QRRedirect', () => {
     });
 
     it('does not add any additional wrapper elements', () => {
-      (useParams as any).mockReturnValue({ equipmentId: 'test-id' });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: 'test-id' });
       
       const { container } = render(<QRRedirect />);
       
@@ -132,7 +136,7 @@ describe('QRRedirect', () => {
   describe('Integration', () => {
     it('works with React Router params system', () => {
       // Simulate how React Router would call useParams
-      (useParams as any).mockReturnValue({ 
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({
         equipmentId: 'integration-test-id',
         // Other potential params that might be present
         someOtherParam: 'other-value'
@@ -149,12 +153,12 @@ describe('QRRedirect', () => {
       const { rerender } = render(<QRRedirect />);
       
       // Initial render with first equipmentId
-      (useParams as any).mockReturnValue({ equipmentId: 'first-id' });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: 'first-id' });
       rerender(<QRRedirect />);
       expect(screen.getByText('QR Redirect Handler - Equipment ID: first-id')).toBeInTheDocument();
       
       // Re-render with different equipmentId
-      (useParams as any).mockReturnValue({ equipmentId: 'second-id' });
+      (useParams as ReturnType<typeof vi.fn>).mockReturnValue({ equipmentId: 'second-id' });
       rerender(<QRRedirect />);
       expect(screen.getByText('QR Redirect Handler - Equipment ID: second-id')).toBeInTheDocument();
     });

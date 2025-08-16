@@ -36,7 +36,7 @@ describe('QRCodeDisplay', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock successful QR code generation by default
-    (mockQRCode.default.toDataURL as any).mockResolvedValue('data:image/png;base64,mock-qr-code');
+    (mockQRCode.default.toDataURL as ReturnType<typeof vi.fn>).mockResolvedValue('data:image/png;base64,mock-qr-code');
     
     // Mock window.location.origin
     Object.defineProperty(window, 'location', {
@@ -110,7 +110,7 @@ describe('QRCodeDisplay', () => {
     });
 
     it('shows loading state while generating QR code', () => {
-      (mockQRCode.default.toDataURL as any).mockImplementation(() => new Promise(() => {})); // Never resolves
+      (mockQRCode.default.toDataURL as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {})); // Never resolves
       
       render(<QRCodeDisplay {...defaultProps} />);
       
@@ -118,7 +118,7 @@ describe('QRCodeDisplay', () => {
     });
 
     it('handles QR code generation error', async () => {
-      (mockQRCode.default.toDataURL as any).mockRejectedValue(new Error('Generation failed'));
+      (mockQRCode.default.toDataURL as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Generation failed'));
       
       render(<QRCodeDisplay {...defaultProps} />);
       
@@ -168,7 +168,7 @@ describe('QRCodeDisplay', () => {
     });
 
     it('handles copy error', async () => {
-      (navigator.clipboard.writeText as any).mockRejectedValue(new Error('Copy failed'));
+      (navigator.clipboard.writeText as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Copy failed'));
       
       render(<QRCodeDisplay {...defaultProps} />);
       
@@ -189,9 +189,9 @@ describe('QRCodeDisplay', () => {
         download: '',
         href: ''
       };
-      vi.spyOn(document, 'createElement').mockReturnValue(mockLink as any);
-      vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any);
-      vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any);
+      vi.spyOn(document, 'createElement').mockReturnValue(mockLink as unknown as HTMLAnchorElement);
+      vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as unknown as HTMLAnchorElement);
+      vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as unknown as HTMLAnchorElement);
     });
 
     it('shows download format selector', () => {
@@ -243,7 +243,7 @@ describe('QRCodeDisplay', () => {
     });
 
     it('handles download error', async () => {
-      (mockQRCode.default.toDataURL as any).mockRejectedValueOnce(new Error('Download failed'));
+      (mockQRCode.default.toDataURL as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Download failed'));
       
       render(<QRCodeDisplay {...defaultProps} />);
       

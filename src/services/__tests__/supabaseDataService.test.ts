@@ -32,7 +32,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getEquipmentByOrganization('org-1');
 
@@ -50,7 +50,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getEquipmentByOrganization('org-1');
 
@@ -64,7 +64,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockRejectedValue(new Error('Network error'))
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getEquipmentByOrganization('org-1');
 
@@ -78,7 +78,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockResolvedValue({ data: null, error: null })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getEquipmentByOrganization('org-1');
 
@@ -96,7 +96,7 @@ describe('supabaseDataService', () => {
         single: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getEquipmentById('org-1', 'eq-1');
 
@@ -115,7 +115,7 @@ describe('supabaseDataService', () => {
         single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getEquipmentById('org-1', 'nonexistent');
 
@@ -129,7 +129,7 @@ describe('supabaseDataService', () => {
         single: vi.fn().mockRejectedValue(new Error('Network error'))
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getEquipmentById('org-1', 'eq-1');
 
@@ -160,7 +160,7 @@ describe('supabaseDataService', () => {
         in: vi.fn().mockResolvedValue({ data: [], error: null })
       };
 
-      (supabase.from as any)
+      (supabase.from as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce(mockTeamsQuery)
         .mockReturnValueOnce(mockMembersQuery)
         .mockReturnValueOnce(mockWorkOrdersQuery);
@@ -181,7 +181,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockResolvedValue({ data: [], error: null })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getTeamsByOrganization('org-1');
 
@@ -195,7 +195,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getTeamsByOrganization('org-1');
 
@@ -209,7 +209,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockResolvedValue({ data: null, error: null })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getTeamsByOrganization('org-1');
 
@@ -223,7 +223,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockResolvedValue({ data: [], error: null })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getTeamsByOrganization('org-1');
 
@@ -241,7 +241,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockRejectedValue(new Error('Test error'))
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       await getEquipmentByOrganization('org-1');
 
@@ -259,7 +259,7 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockResolvedValue({ data: [], error: null })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await getEquipmentByOrganization('');
 
@@ -274,9 +274,9 @@ describe('supabaseDataService', () => {
         order: vi.fn().mockResolvedValue({ data: [], error: null })
       };
 
-      (supabase.from as any).mockReturnValue(mockQuery);
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await getEquipmentByOrganization(null as any);
+      const result = await getEquipmentByOrganization(null as string);
 
       expect(result).toEqual([]);
     });
