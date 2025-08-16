@@ -93,4 +93,9 @@ beforeAll(() => {
     }
     originalError.apply(console, args);
   };
+
+  // Ensure consistent global objects across Node versions
+  if (typeof global.structuredClone === 'undefined') {
+    global.structuredClone = (obj: any) => JSON.parse(JSON.stringify(obj));
+  }
 });
