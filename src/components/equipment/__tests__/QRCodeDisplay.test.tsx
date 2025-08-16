@@ -73,7 +73,7 @@ describe('QRCodeDisplay', () => {
       render(<QRCodeDisplay {...defaultProps} onClose={onClose} />);
       
       // Dialog should have a way to close - look for close button or escape handling
-      const closeButton = screen.getByText('Close');
+      const closeButton = screen.getByRole('button', { name: 'Close' });
       fireEvent.click(closeButton);
       
       expect(onClose).toHaveBeenCalled();
@@ -138,7 +138,7 @@ describe('QRCodeDisplay', () => {
     it('shows copy button for URL', () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
-      const copyButton = screen.getByRole('button', { name: /copy/i });
+      const copyButton = screen.getByRole('button', { name: 'Copy URL to clipboard' });
       expect(copyButton).toBeInTheDocument();
     });
   });
@@ -147,7 +147,7 @@ describe('QRCodeDisplay', () => {
     it('copies URL to clipboard when copy button is clicked', async () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
-      const copyButton = screen.getByRole('button', { name: /copy/i });
+    const copyButton = screen.getByRole('button', { name: 'Copy URL to clipboard' });
       fireEvent.click(copyButton);
       
       await waitFor(() => {
@@ -159,7 +159,7 @@ describe('QRCodeDisplay', () => {
     it('shows check icon after successful copy', async () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
-      const copyButton = screen.getByRole('button', { name: /copy/i });
+    const copyButton = screen.getByRole('button', { name: 'Copy URL to clipboard' });
       fireEvent.click(copyButton);
       
       await waitFor(() => {
@@ -172,7 +172,7 @@ describe('QRCodeDisplay', () => {
       
       render(<QRCodeDisplay {...defaultProps} />);
       
-      const copyButton = screen.getByRole('button', { name: /copy/i });
+    const copyButton = screen.getByRole('button', { name: 'Copy URL to clipboard' });
       fireEvent.click(copyButton);
       
       await waitFor(() => {

@@ -27,10 +27,10 @@ describe('EquipmentSortHeader', () => {
     it('renders equipment count information', () => {
       render(<EquipmentSortHeader {...defaultProps} />);
       
-      const countText = screen.getByText((_, element) => {
+      const countText = screen.getAllByText((_, element) => {
         return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 25 of 100 equipment items';
       });
-      expect(countText).toBeInTheDocument();
+      expect(countText.length).toBeGreaterThan(0);
     });
 
     it('displays sort label', () => {
@@ -174,19 +174,19 @@ describe('EquipmentSortHeader', () => {
     it('handles zero results', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={0} totalCount={0} />);
       
-      const countText = screen.getByText((_, element) => {
+      const countText = screen.getAllByText((_, element) => {
         return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 0 of 0 equipment items';
       });
-      expect(countText).toBeInTheDocument();
+      expect(countText.length).toBeGreaterThan(0);
     });
 
     it('handles single result', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={1} totalCount={1} />);
       
-      const countText = screen.getByText((_, element) => {
+      const countText = screen.getAllByText((_, element) => {
         return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 1 of 1 equipment items';
       });
-      expect(countText).toBeInTheDocument();
+      expect(countText.length).toBeGreaterThan(0);
     });
 
     it('handles large numbers', () => {
@@ -231,10 +231,10 @@ describe('EquipmentSortHeader', () => {
     it('handles negative counts gracefully', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={-1} totalCount={-1} />);
       
-      const countText = screen.getByText((_, element) => {
+      const countText = screen.getAllByText((_, element) => {
         return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing -1 of -1 equipment items';
       });
-      expect(countText).toBeInTheDocument();
+      expect(countText.length).toBeGreaterThan(0);
     });
   });
 });

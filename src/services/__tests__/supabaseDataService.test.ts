@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { 
   getEquipmentByOrganization, 
   getEquipmentById, 
@@ -165,7 +165,7 @@ describe('supabaseDataService', () => {
         in: vi.fn().mockResolvedValue({ data: [], error: null })
       };
 
-      (supabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
+      (supabase.from as Mock).mockImplementation((table: string) => {
         switch (table) {
           case 'teams': return mockTeamsQuery;
           case 'team_members': return mockMembersQuery;

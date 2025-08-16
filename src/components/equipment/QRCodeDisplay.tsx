@@ -138,12 +138,14 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
                 size="sm"
                 onClick={copyQRCodeUrl}
                 className="flex items-center gap-1"
+                aria-label="Copy URL to clipboard"
               >
                 {copied ? (
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
+                {copied ? 'Copied' : 'Copy'}
               </Button>
             </div>
           </div>
