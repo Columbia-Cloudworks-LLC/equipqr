@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@/test/utils/test-utils';
+import { render, screen, fireEvent, within } from '@/test/utils/test-utils';
 import EquipmentSortHeader from '../EquipmentSortHeader';
 import { SortConfig } from '@/hooks/useEquipmentFiltering';
 
@@ -27,7 +27,10 @@ describe('EquipmentSortHeader', () => {
     it('renders equipment count information', () => {
       render(<EquipmentSortHeader {...defaultProps} />);
       
-      expect(screen.getByText(/Showing\s*25\s*of\s*100\s*equipment items/i)).toBeInTheDocument();
+      const countText = screen.getByText((_, element) => {
+        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 25 of 100 equipment items';
+      });
+      expect(countText).toBeInTheDocument();
     });
 
     it('displays sort label', () => {
@@ -55,8 +58,8 @@ describe('EquipmentSortHeader', () => {
     it('displays current sort field in select', () => {
       render(<EquipmentSortHeader {...defaultProps} />);
       
-      // Should show 'Name' as selected since field is 'name'
-      expect(screen.getByDisplayValue('Name')).toBeInTheDocument();
+      const combobox = screen.getByRole('combobox');
+      expect(within(combobox).getByText('Name')).toBeInTheDocument();
     });
 
     it('calls onSortChange when select value changes', () => {
@@ -100,23 +103,24 @@ describe('EquipmentSortHeader', () => {
   });
 
   describe('Sort Options', () => {
-    it('includes all expected sort options', () => {
+    it('includes all expected sort options', async () => {
       render(<EquipmentSortHeader {...defaultProps} />);
       
-      const select = screen.getByRole('combobox');
-      fireEvent.click(select);
+      const combobox = screen.getByRole('combobox');
+      fireEvent.click(combobox);
       
-      // Check for all sort options
-      expect(screen.getByText('Name')).toBeInTheDocument();
-      expect(screen.getByText('Manufacturer')).toBeInTheDocument();
-      expect(screen.getByText('Model')).toBeInTheDocument();
-      expect(screen.getByText('Location')).toBeInTheDocument();
-      expect(screen.getByText('Status')).toBeInTheDocument();
-      expect(screen.getByText('Installation Date')).toBeInTheDocument();
-      expect(screen.getByText('Last Maintenance')).toBeInTheDocument();
-      expect(screen.getByText('Warranty Expiration')).toBeInTheDocument();
-      expect(screen.getByText('Date Added')).toBeInTheDocument();
-      expect(screen.getByText('Last Updated')).toBeInTheDocument();
+      // Wait for dropdown and check options within listbox
+      const listbox = await screen.findByRole('listbox');
+      expect(within(listbox).getByRole('option', { name: 'Name' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Manufacturer' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Model' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Location' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Status' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Installation Date' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Last Maintenance' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Warranty Expiration' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Date Added' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Last Updated' })).toBeInTheDocument();
     });
   });
 
@@ -170,14 +174,19 @@ describe('EquipmentSortHeader', () => {
     it('handles zero results', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={0} totalCount={0} />);
       
-      expect(screen.getByText('0')).toBeInTheDocument();
-      expect(screen.getByText('equipment items')).toBeInTheDocument();
+      const countText = screen.getByText((_, element) => {
+        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 0 of 0 equipment items';
+      });
+      expect(countText).toBeInTheDocument();
     });
 
     it('handles single result', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={1} totalCount={1} />);
       
-      expect(screen.getByText('1')).toBeInTheDocument();
+      const countText = screen.getByText((_, element) => {
+        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 1 of 1 equipment items';
+      });
+      expect(countText).toBeInTheDocument();
     });
 
     it('handles large numbers', () => {
@@ -192,19 +201,22 @@ describe('EquipmentSortHeader', () => {
     it('handles different sort fields', () => {
       render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'manufacturer', direction: 'asc' }} />);
       
-      expect(screen.getByDisplayValue('Manufacturer')).toBeInTheDocument();
+      const combobox = screen.getByRole('combobox');
+      expect(within(combobox).getByText('Manufacturer')).toBeInTheDocument();
     });
 
     it('handles installation_date field mapping', () => {
       render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'installation_date', direction: 'asc' }} />);
       
-      expect(screen.getByDisplayValue('Installation Date')).toBeInTheDocument();
+      const combobox = screen.getByRole('combobox');
+      expect(within(combobox).getByText('Installation Date')).toBeInTheDocument();
     });
 
     it('handles created_at field mapping', () => {
       render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'created_at', direction: 'asc' }} />);
       
-      expect(screen.getByDisplayValue('Date Added')).toBeInTheDocument();
+      const combobox = screen.getByRole('combobox');
+      expect(within(combobox).getByText('Date Added')).toBeInTheDocument();
     });
   });
 
@@ -219,8 +231,10 @@ describe('EquipmentSortHeader', () => {
     it('handles negative counts gracefully', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={-1} totalCount={-1} />);
       
-      // Should still render without crashing
-      expect(screen.getByText('equipment items')).toBeInTheDocument();
+      const countText = screen.getByText((_, element) => {
+        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing -1 of -1 equipment items';
+      });
+      expect(countText).toBeInTheDocument();
     });
   });
 });
