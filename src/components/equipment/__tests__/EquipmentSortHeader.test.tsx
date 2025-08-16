@@ -109,8 +109,10 @@ describe('EquipmentSortHeader', () => {
       const combobox = screen.getByRole('combobox');
       fireEvent.click(combobox);
       
-      // Wait for dropdown and check options within listbox
+      // Wait for dropdown to appear and find all options
       const listbox = await screen.findByRole('listbox');
+      
+      // Use within() to scope the queries to the listbox
       expect(within(listbox).getByRole('option', { name: 'Name' })).toBeInTheDocument();
       expect(within(listbox).getByRole('option', { name: 'Manufacturer' })).toBeInTheDocument();
       expect(within(listbox).getByRole('option', { name: 'Model' })).toBeInTheDocument();

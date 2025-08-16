@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@/test/utils/test-utils';
-import { BrowserRouter } from 'react-router-dom';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
 
 // Mock all the page components
@@ -90,11 +90,11 @@ describe('App', () => {
     vi.clearAllMocks();
   });
 
-  const renderApp = () => {
+  const renderApp = (initialEntries = ['/']) => {
     return render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={initialEntries}>
         <App />
-      </BrowserRouter>
+      </MemoryRouter>
     );
   };
 
@@ -112,22 +112,22 @@ describe('App', () => {
     });
 
     it('renders auth page for /auth route', () => {
-      renderApp();
+      renderApp(['/auth']);
       expect(screen.getByTestId('auth-page')).toBeInTheDocument();
     });
 
     it('renders support page for /support route', () => {
-      renderApp();
+      renderApp(['/support']);
       expect(screen.getByTestId('support-page')).toBeInTheDocument();
     });
 
     it('renders terms page for /terms-of-service route', () => {
-      renderApp();
+      renderApp(['/terms-of-service']);
       expect(screen.getByTestId('terms-page')).toBeInTheDocument();
     });
 
     it('renders privacy page for /privacy-policy route', () => {
-      renderApp();
+      renderApp(['/privacy-policy']);
       expect(screen.getByTestId('privacy-page')).toBeInTheDocument();
     });
   });
@@ -142,13 +142,13 @@ describe('App', () => {
 
   describe('Redirect Routes', () => {
     it('handles equipment redirect route', () => {
-      renderApp();
+      renderApp(['/equipment/test-id']);
       expect(screen.getByTestId('navigate')).toBeInTheDocument();
       expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/dashboard/equipment/test-id');
     });
 
     it('handles work order redirect route', () => {
-      renderApp();
+      renderApp(['/work-orders/test-work-order']);
       expect(screen.getByTestId('navigate')).toBeInTheDocument();
       expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/dashboard/work-orders/test-work-order');
     });

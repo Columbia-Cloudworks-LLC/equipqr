@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
+import { render, screen, fireEvent, waitFor, within } from '@/test/utils/test-utils';
 import QRCodeDisplay from '../QRCodeDisplay';
 
 // Mock QRCode library
@@ -211,12 +211,9 @@ describe('QRCodeDisplay', () => {
       const combobox = screen.getByRole('combobox');
       fireEvent.click(combobox);
       
-      // Wait for the dropdown to appear
-      await waitFor(() => {
-        expect(screen.getByRole('option', { name: 'JPG' })).toBeInTheDocument();
-      });
-      
-      const jpgOption = screen.getByRole('option', { name: 'JPG' });
+      // Wait for the dropdown to appear and use within() to scope queries
+      const listbox = await screen.findByRole('listbox');
+      const jpgOption = within(listbox).getByRole('option', { name: 'JPG' });
       fireEvent.click(jpgOption);
       
       await waitFor(() => {

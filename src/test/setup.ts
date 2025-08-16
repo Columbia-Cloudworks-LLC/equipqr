@@ -27,12 +27,22 @@ beforeAll(() => {
     disconnect: vi.fn(),
   }));
 
-  // Mock ResizeObserver
+  // Mock ResizeObserver as a class
   global.ResizeObserver = vi.fn().mockImplementation(() => ({
     observe: vi.fn(),
     unobserve: vi.fn(),
     disconnect: vi.fn(),
   }));
+
+  // Mock DocumentFragment.getElementById for Radix UI accessibility checks
+  if (typeof DocumentFragment.prototype.getElementById === 'undefined') {
+    DocumentFragment.prototype.getElementById = function(id: string): HTMLElement | null {
+      return this.querySelector(`#${id}`) as HTMLElement | null;
+    };
+  }
+
+  // Mock Element.scrollIntoView for Radix Select components
+  Element.prototype.scrollIntoView = vi.fn();
 
   // Mock window.matchMedia
   Object.defineProperty(window, 'matchMedia', {
