@@ -160,10 +160,16 @@ describe('supabaseDataService', () => {
         in: vi.fn().mockResolvedValue({ data: [], error: null })
       };
 
+      const mockEquipmentQuery = {
+        select: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue({ data: [], error: null })
+      };
+
       (supabase.from as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce(mockTeamsQuery)
         .mockReturnValueOnce(mockMembersQuery)
-        .mockReturnValueOnce(mockWorkOrdersQuery);
+        .mockReturnValueOnce(mockWorkOrdersQuery)
+        .mockReturnValueOnce(mockEquipmentQuery);
 
       const result = await getTeamsByOrganization('org-1');
 

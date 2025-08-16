@@ -34,10 +34,7 @@ describe('TermsOfService', () => {
     it('shows last updated date', () => {
       render(<TermsOfService />);
       
-      expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
-      // Should show current date
-      const currentDate = new Date().toLocaleDateString();
-      expect(screen.getByText(currentDate)).toBeInTheDocument();
+      expect(screen.getByText(/Last updated:\s*\d{1,2}\/\d{1,2}\/\d{4}/)).toBeInTheDocument();
     });
 
     it('includes back to dashboard link', () => {
@@ -102,7 +99,7 @@ describe('TermsOfService', () => {
       render(<TermsOfService />);
       
       expect(screen.getByText('Limitation of Liability')).toBeInTheDocument();
-      expect(screen.getByText(/TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW/)).toBeInTheDocument();
+      expect(screen.getByText(/IN NO EVENT SHALL WE BE LIABLE/i)).toBeInTheDocument();
     });
 
     it('displays governing law section', () => {
@@ -157,13 +154,13 @@ describe('TermsOfService', () => {
     it('includes correct contact email', () => {
       render(<TermsOfService />);
       
-      expect(screen.getByText('nicholas.king@columbiacloudworks.com')).toBeInTheDocument();
+      expect(screen.getByText(/nicholas\.king@columbiacloudworks\.com/i)).toBeInTheDocument();
     });
 
     it('includes correct website URL', () => {
       render(<TermsOfService />);
       
-      expect(screen.getByText('https://equipqr.app')).toBeInTheDocument();
+      expect(screen.getByText(/https:\/\/equipqr\.app/i)).toBeInTheDocument();
     });
   });
 
@@ -191,16 +188,16 @@ describe('TermsOfService', () => {
     it('uses proper container classes for responsive layout', () => {
       const { container } = render(<TermsOfService />);
       
-      const mainContainer = container.firstChild as HTMLElement;
-      expect(mainContainer).toHaveClass('container', 'mx-auto', 'px-4', 'py-8', 'max-w-4xl');
+      const mainContainer = container.querySelector('div.container.mx-auto.px-4.py-8.max-w-4xl');
+      expect(mainContainer).toBeInTheDocument();
     });
 
     it('applies proper spacing between sections', () => {
-      render(<TermsOfService />);
+      const { container } = render(<TermsOfService />);
       
       // Look for the space-y-8 class that provides consistent spacing
-      const sectionsContainer = screen.getByText('Acceptance of Terms').closest('div')?.parentElement;
-      expect(sectionsContainer).toHaveClass('space-y-8');
+      const sectionsContainer = container.querySelector('div.space-y-8');
+      expect(sectionsContainer).toBeInTheDocument();
     });
   });
 

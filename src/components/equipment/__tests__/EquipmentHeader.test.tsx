@@ -82,7 +82,8 @@ describe('EquipmentHeader', () => {
     it('applies mobile-specific classes when on mobile', () => {
       render(<EquipmentHeader {...defaultProps} />);
       
-      const container = screen.getByText('Equipment').closest('div');
+      const heading = screen.getByRole('heading', { level: 1, name: 'Equipment' });
+      const container = heading.parentElement?.parentElement;
       expect(container).toHaveClass('space-y-4');
     });
 
@@ -150,7 +151,7 @@ describe('EquipmentHeader', () => {
     it('handles empty organization name', () => {
       render(<EquipmentHeader {...defaultProps} organizationName="" />);
       
-      expect(screen.getByText('Manage equipment for ')).toBeInTheDocument();
+      expect(screen.getByText(/^Manage equipment for\s*$/)).toBeInTheDocument();
     });
 
     it('handles long organization name', () => {

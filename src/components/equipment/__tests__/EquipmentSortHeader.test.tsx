@@ -27,11 +27,7 @@ describe('EquipmentSortHeader', () => {
     it('renders equipment count information', () => {
       render(<EquipmentSortHeader {...defaultProps} />);
       
-      expect(screen.getByText('Showing')).toBeInTheDocument();
-      expect(screen.getByText('25')).toBeInTheDocument();
-      expect(screen.getByText('of')).toBeInTheDocument();
-      expect(screen.getByText('100')).toBeInTheDocument();
-      expect(screen.getByText('equipment items')).toBeInTheDocument();
+      expect(screen.getByText(/Showing\s*25\s*of\s*100\s*equipment items/i)).toBeInTheDocument();
     });
 
     it('displays sort label', () => {
