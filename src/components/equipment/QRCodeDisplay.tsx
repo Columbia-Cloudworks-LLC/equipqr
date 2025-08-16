@@ -167,12 +167,13 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
               </Select>
             </div>
             
-            {equipmentName && (
-              <div className="text-xs text-muted-foreground">
-                <span className="font-medium">Filename:</span>{' '}
-                {sanitizeFilename(equipmentName)}-qr.{selectedFormat}
-              </div>
-            )}
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Filename:</span>{' '}
+              {(() => {
+                const baseFilename = equipmentName ? sanitizeFilename(equipmentName) : `equipment-${equipmentId}`;
+                return `${baseFilename}-qr.${selectedFormat}`;
+              })()}
+            </div>
           </div>
 
           {/* Instructions */}

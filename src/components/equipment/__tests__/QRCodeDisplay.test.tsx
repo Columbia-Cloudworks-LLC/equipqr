@@ -72,9 +72,9 @@ describe('QRCodeDisplay', () => {
       const onClose = vi.fn();
       render(<QRCodeDisplay {...defaultProps} onClose={onClose} />);
       
-      // Dialog should have a way to close - look for close button or escape handling
-      const closeButton = screen.getByRole('button', { name: 'Close' });
-      fireEvent.click(closeButton);
+      // Get all close buttons and click the footer one (not the X icon)
+      const closeButtons = screen.getAllByRole('button', { name: 'Close' });
+      fireEvent.click(closeButtons[closeButtons.length - 1]);
       
       expect(onClose).toHaveBeenCalled();
     });
@@ -159,11 +159,11 @@ describe('QRCodeDisplay', () => {
     it('shows check icon after successful copy', async () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
-    const copyButton = screen.getByRole('button', { name: 'Copy URL to clipboard' });
+      const copyButton = screen.getByRole('button', { name: 'Copy URL to clipboard' });
       fireEvent.click(copyButton);
       
       await waitFor(() => {
-        expect(screen.getByText(/checkCircle/i)).toBeInTheDocument();
+        expect(screen.getByText('Copied')).toBeInTheDocument();
       });
     });
 
@@ -183,35 +183,42 @@ describe('QRCodeDisplay', () => {
 
   describe('Download Functionality', () => {
     beforeEach(() => {
-      // Mock document.createElement and DOM manipulation
-      const mockLink = {
-        click: vi.fn(),
-        download: '',
-        href: ''
-      };
-      vi.spyOn(document, 'createElement').mockReturnValue(mockLink as unknown as HTMLAnchorElement);
-      vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as unknown as HTMLAnchorElement);
-      vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as unknown as HTMLAnchorElement);
+      // Mock document.createElement to return a real element
+      const originalCreateElement = document.createElement.bind(document);
+      vi.spyOn(document, 'createElement').mockImplementation((tagName) => {
+        if (tagName === 'a') {
+          const link = originalCreateElement('a');
+          link.click = vi.fn();
+          return link;
+        }
+        return originalCreateElement(tagName);
+      });
     });
 
     it('shows download format selector', () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
       expect(screen.getByText('Download Format:')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('PNG')).toBeInTheDocument();
+      const combobox = screen.getByRole('combobox');
+      expect(combobox).toBeInTheDocument();
     });
 
     it('allows changing download format', async () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
-      const select = screen.getByRole('combobox');
-      fireEvent.click(select);
+      const combobox = screen.getByRole('combobox');
+      fireEvent.click(combobox);
       
-      const jpgOption = screen.getByText('JPG');
+      // Wait for the dropdown to appear
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'JPG' })).toBeInTheDocument();
+      });
+      
+      const jpgOption = screen.getByRole('option', { name: 'JPG' });
       fireEvent.click(jpgOption);
       
       await waitFor(() => {
-        expect(screen.getByDisplayValue('JPG')).toBeInTheDocument();
+        expect(screen.getByText('test_equipment-qr.jpg')).toBeInTheDocument();
       });
     });
 

@@ -138,40 +138,38 @@ describe('supabaseDataService', () => {
   });
 
   describe('getTeamsByOrganization', () => {
+    beforeEach(() => {
+      // Reset the mock before each test in this describe block
+      vi.clearAllMocks();
+    });
+
     it('fetches teams successfully', async () => {
       const mockTeams = [
         { id: 'team-1', name: 'Team 1', organization_id: 'org-1' },
         { id: 'team-2', name: 'Team 2', organization_id: 'org-1' }
       ];
 
-      const mockTeamsQuery = {
+      // Create separate query builders for each table
+      const createQueryBuilder = (data: any, error: any = null) => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockTeams, error: null })
-      };
+        in: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data, error })
+      });
 
-      const mockMembersQuery = {
-        select: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
+      const mockTeamsQuery = createQueryBuilder(mockTeams);
+      const mockMembersQuery = createQueryBuilder([]);
+      const mockWorkOrdersQuery = createQueryBuilder([]);
+      const mockEquipmentQuery = createQueryBuilder([]);
 
-      const mockWorkOrdersQuery = {
-        select: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
-
-      const mockEquipmentQuery = {
-        select: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
-
+      // Mock supabase.from to return appropriate query builder based on table
       (supabase.from as Mock).mockImplementation((table: string) => {
         switch (table) {
           case 'teams': return mockTeamsQuery;
           case 'team_members': return mockMembersQuery;
           case 'work_orders': return mockWorkOrdersQuery;
           case 'equipment': return mockEquipmentQuery;
-          default: return { select: vi.fn().mockReturnThis() };
+          default: return createQueryBuilder([]);
         }
       });
 
@@ -185,13 +183,14 @@ describe('supabaseDataService', () => {
     });
 
     it('returns empty array when no teams found', async () => {
-      const mockQuery = {
+      const createQueryBuilder = (data: any, error: any = null) => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
+        in: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data, error })
+      });
 
-      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+      (supabase.from as Mock).mockImplementation(() => createQueryBuilder([]));
 
       const result = await getTeamsByOrganization('org-1');
 
@@ -199,13 +198,14 @@ describe('supabaseDataService', () => {
     });
 
     it('handles database error gracefully', async () => {
-      const mockQuery = {
+      const createQueryBuilder = (data: any, error: any = null) => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } })
-      };
+        in: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data, error })
+      });
 
-      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+      (supabase.from as Mock).mockImplementation(() => createQueryBuilder(null, { message: 'Database error' }));
 
       const result = await getTeamsByOrganization('org-1');
 
@@ -213,13 +213,14 @@ describe('supabaseDataService', () => {
     });
 
     it('handles null teams data', async () => {
-      const mockQuery = {
+      const createQueryBuilder = (data: any, error: any = null) => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: null, error: null })
-      };
+        in: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data, error })
+      });
 
-      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+      (supabase.from as Mock).mockImplementation(() => createQueryBuilder(null));
 
       const result = await getTeamsByOrganization('org-1');
 
@@ -227,13 +228,14 @@ describe('supabaseDataService', () => {
     });
 
     it('handles empty teams array', async () => {
-      const mockQuery = {
+      const createQueryBuilder = (data: any, error: any = null) => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
+        in: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data, error })
+      });
 
-      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+      (supabase.from as Mock).mockImplementation(() => createQueryBuilder([]));
 
       const result = await getTeamsByOrganization('org-1');
 
