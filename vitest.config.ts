@@ -24,6 +24,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/*.config.*',
         '**/dist/**',
+        'src/main.tsx', // Vite entry point
         'src/data/**', // Static data files
         'src/components/landing/**', // Landing page components
         'src/components/billing/**', // Billing components  
