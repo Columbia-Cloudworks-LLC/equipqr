@@ -14,23 +14,29 @@ vi.mock('../use-toast', () => ({
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn(() => Promise.resolve({ data: null, error: null }))
-        }))
-      })),
-      update: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          select: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
-          }))
-        }))
-      })),
-      delete: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
-      }))
-    }))
+    from: vi.fn(() => {
+      const createChain = () => {
+        const chain = {
+          select: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockReturnThis(),
+          update: vi.fn().mockReturnThis(),
+          delete: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        };
+        
+        // Make chain methods return the chain for proper chaining
+        Object.keys(chain).forEach(key => {
+          if (key !== 'single') {
+            chain[key].mockReturnValue(chain);
+          }
+        });
+        
+        return chain;
+      };
+      
+      return createChain();
+    })
   }
 }));
 
@@ -60,6 +66,8 @@ describe('useSupabaseData hooks', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Silence expected error logs
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   describe('useCreateEquipment', () => {
