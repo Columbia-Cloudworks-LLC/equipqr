@@ -71,17 +71,18 @@ vi.mock('@/components/auth/ProtectedRoute', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
 }));
 
-// Mock the redirect components
-const mockNavigate = vi.fn();
+vi.mock('@/components/providers/AppProviders', () => ({
+  AppProviders: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+}));
+
+// Mock react-router-dom
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    Navigate: ({ to }: { to: string }) => {
-      mockNavigate(to);
-      return <div data-testid="navigate" data-to={to}>Navigate to {to}</div>;
-    },
-    useParams: vi.fn(() => ({ equipmentId: 'test-id', workOrderId: 'test-work-order' }))
+    Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to}></div>,
+    useParams: () => ({ equipmentId: 'test-id', workOrderId: 'test-work-order' }),
+    BrowserRouter: ({ children }: { children: React.ReactNode }) => children,
   };
 });
 
