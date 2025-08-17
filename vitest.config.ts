@@ -12,9 +12,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov', 'json-summary'],
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'node_modules/',
         'src/test/',
+        'src/integrations/supabase/types.ts',
+        'scripts/**',
+        'supabase/**',
+        'functions/**',
         '**/*.d.ts',
         '**/*.config.*',
         '**/dist/**',
