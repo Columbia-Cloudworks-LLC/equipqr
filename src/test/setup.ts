@@ -27,16 +27,20 @@ beforeAll(() => {
     disconnect: vi.fn(),
   }));
 
-  // Mock ResizeObserver as a proper class with all required methods
-  const ResizeObserverMock = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  }));
+  // Mock ResizeObserver as a proper class that matches browser behavior
+  class ResizeObserverMock {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+    
+    constructor(callback: ResizeObserverCallback) {
+      // Store callback for potential future use in tests
+    }
+  }
   
-  global.ResizeObserver = ResizeObserverMock;
-  window.ResizeObserver = ResizeObserverMock;
-  globalThis.ResizeObserver = ResizeObserverMock;
+  global.ResizeObserver = ResizeObserverMock as any;
+  window.ResizeObserver = ResizeObserverMock as any;
+  globalThis.ResizeObserver = ResizeObserverMock as any;
 
   // Mock DocumentFragment.getElementById for Radix UI accessibility checks
   if (typeof DocumentFragment.prototype.getElementById === 'undefined') {
