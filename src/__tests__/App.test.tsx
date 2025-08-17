@@ -157,7 +157,7 @@ describe('App', () => {
 
   describe('BrandedTopBar Component', () => {
     it('renders TopBar component', () => {
-      renderApp();
+      renderApp(['/dashboard']);
       expect(screen.getByTestId('top-bar')).toBeInTheDocument();
     });
   });
