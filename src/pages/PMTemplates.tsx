@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock } from 'lucide-react';
 import { TemplateAssignmentDialog } from '@/components/pm-templates/TemplateAssignmentDialog';
 import { ChecklistTemplateEditor } from '@/components/organization/ChecklistTemplateEditor';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 // Enhanced Template Card Component
@@ -401,6 +401,9 @@ const PMTemplates = () => {
       {editingTemplate && (
         <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && handleCloseEditor()}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+            <DialogDescription className="sr-only">
+              {editingTemplate === 'new' ? 'Create a new PM template' : 'Edit existing PM template'}
+            </DialogDescription>
             <ChecklistTemplateEditor
               template={editingTemplate === 'new' ? undefined : templateToEdit}
               onSave={handleCloseEditor}
@@ -423,6 +426,9 @@ const PMTemplates = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Clone Template</DialogTitle>
+            <DialogDescription>
+              Create a copy of this template that you can customize for your organization.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>

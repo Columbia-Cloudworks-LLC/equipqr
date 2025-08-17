@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Copy, CheckCircle } from 'lucide-react';
@@ -104,6 +104,9 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
       <DialogContent className={`max-w-md ${isMobile ? 'max-h-[90vh] overflow-y-auto p-4' : ''}`}>
         <DialogHeader>
           <DialogTitle>Equipment QR Code</DialogTitle>
+          <DialogDescription className="sr-only">
+            Generate, view, and download QR code for equipment {equipmentName || equipmentId}
+          </DialogDescription>
         </DialogHeader>
         
         <div className={`${isMobile ? 'space-y-4' : 'space-y-6'}`}>

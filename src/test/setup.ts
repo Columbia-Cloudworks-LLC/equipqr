@@ -124,7 +124,24 @@ beforeAll(() => {
     if (message.includes('Missing `Description`') || 
         message.includes('DialogContent` requires a `DialogTitle`') ||
         message.includes('Warning: An update to') ||
-        message.includes('not wrapped in act(...)')) {
+        message.includes('not wrapped in act(...)') ||
+        // Suppress expected error messages from tests
+        message.includes('Error creating template:') ||
+        message.includes('Error updating template:') ||
+        message.includes('Error deleting template:') ||
+        message.includes('Error cloning template:') ||
+        message.includes('Error fetching equipment:') ||
+        message.includes('Error in getEquipmentByOrganization:') ||
+        message.includes('Error fetching equipment by ID:') ||
+        message.includes('Error in getEquipmentById:') ||
+        message.includes('Error fetching teams:') ||
+        message.includes('Error generating QR code:') ||
+        message.includes('Failed to copy URL:') ||
+        message.includes('Error downloading QR code:') ||
+        message.includes('Service error:') ||
+        message.includes('Failed to parse template data for template:') ||
+        message.includes('Error fetching organization') ||
+        message.includes('invalid input syntax for type uuid:')) {
       return;
     }
     originalError.apply(console, args);
