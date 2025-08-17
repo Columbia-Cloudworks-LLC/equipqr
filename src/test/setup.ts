@@ -32,15 +32,31 @@ beforeAll(() => {
     observe = vi.fn();
     unobserve = vi.fn();
     disconnect = vi.fn();
+    private callback: ResizeObserverCallback;
     
     constructor(callback: ResizeObserverCallback) {
-      // Store callback for potential future use in tests
+      this.callback = callback;
     }
   }
   
-  global.ResizeObserver = ResizeObserverMock as any;
-  window.ResizeObserver = ResizeObserverMock as any;
-  globalThis.ResizeObserver = ResizeObserverMock as any;
+  // Use Object.defineProperty to avoid TypeScript any issues
+  Object.defineProperty(global, 'ResizeObserver', {
+    value: ResizeObserverMock,
+    writable: true,
+    configurable: true
+  });
+  
+  Object.defineProperty(window, 'ResizeObserver', {
+    value: ResizeObserverMock,
+    writable: true,
+    configurable: true
+  });
+  
+  Object.defineProperty(globalThis, 'ResizeObserver', {
+    value: ResizeObserverMock,
+    writable: true,
+    configurable: true
+  });
 
   // Mock DocumentFragment.getElementById for Radix UI accessibility checks
   if (typeof DocumentFragment.prototype.getElementById === 'undefined') {
