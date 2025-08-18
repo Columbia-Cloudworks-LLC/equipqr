@@ -1,11 +1,13 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Wrench, Users, ClipboardList, AlertTriangle } from 'lucide-react';
+import { Package, Users, ClipboardList, AlertTriangle } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/hooks/useTeamBasedDashboard';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import TeamQuickList from '@/components/dashboard/TeamQuickList';
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
@@ -64,13 +66,34 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="h-20 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
-          ))}
+          <StatsCard
+            icon={<Package className="h-4 w-4" />}
+            label="Total Equipment"
+            value={0}
+            sublabel="0 active"
+            loading={true}
+          />
+          <StatsCard
+            icon={<AlertTriangle className="h-4 w-4" />}
+            label="Overdue Work"
+            value={0}
+            sublabel="Past due work orders"
+            loading={true}
+          />
+          <StatsCard
+            icon={<ClipboardList className="h-4 w-4" />}
+            label="Total Work Orders"
+            value={0}
+            sublabel="0 active"
+            loading={true}
+          />
+          <StatsCard
+            icon={<Users className="h-4 w-4" />}
+            label="Org Members"
+            value={0}
+            sublabel="Active organization members"
+            loading={true}
+          />
         </div>
       </div>
     );
@@ -91,66 +114,45 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Link to="/dashboard/equipment">
-          <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Equipment</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="total-equipment-stat">{stats?.totalEquipment || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.activeEquipment || 0} active
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <StatsCard
+          icon={<Package className="h-4 w-4" />}
+          label="Total Equipment"
+          value={stats?.totalEquipment || 0}
+          sublabel={`${stats?.activeEquipment || 0} active`}
+          to="/dashboard/equipment"
+          ariaDescription="View all equipment in the fleet"
+        />
 
-        <Link to="/dashboard/equipment?status=maintenance">
-          <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Maintenance Required</CardTitle>
-              <Wrench className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="maintenance-equipment-stat">{stats?.maintenanceEquipment || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Equipment needing attention
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <StatsCard
+          icon={<AlertTriangle className="h-4 w-4" />}
+          label="Overdue Work"
+          value={stats?.overdueWorkOrders || 0}
+          sublabel="Past due work orders"
+          to="/dashboard/work-orders?date=overdue"
+          ariaDescription="View overdue work orders"
+        />
 
-        <Link to="/dashboard/work-orders">
-          <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Work Orders</CardTitle>
-              <ClipboardList className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="total-workorders-stat">{stats?.totalWorkOrders || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {workOrders?.filter(wo => wo.status !== 'completed').length || 0} active
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <StatsCard
+          icon={<ClipboardList className="h-4 w-4" />}
+          label="Total Work Orders"
+          value={stats?.totalWorkOrders || 0}
+          sublabel={`${workOrders?.filter(wo => wo.status !== 'completed').length || 0} active`}
+          to="/dashboard/work-orders"
+          ariaDescription="View all work orders"
+        />
 
-        <Link to="/dashboard/organization">
-          <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Org Members</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="member-count-stat">{currentOrganization.memberCount}</div>
-              <p className="text-xs text-muted-foreground">
-                Active organization members
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <StatsCard
+          icon={<Users className="h-4 w-4" />}
+          label="Org Members"
+          value={currentOrganization.memberCount}
+          sublabel="Active organization members"
+          to="/dashboard/organization"
+          ariaDescription="View organization members"
+        />
       </div>
+
+      {/* Team Quick List */}
+      <TeamQuickList />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Recent Equipment */}

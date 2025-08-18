@@ -19,9 +19,7 @@ interface SlotBasedBillingProps {
 
 const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
   storageUsedGB,
-  fleetMapEnabled,
-  onPurchaseSlots: _onPurchaseSlots,
-  onUpgradeToMultiUser: _onUpgradeToMultiUser
+  fleetMapEnabled
 }) => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
@@ -88,7 +86,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                   <div className="p-3 bg-muted rounded-lg">
                     <div className="text-lg font-bold">{billing.userSlots.totalPurchased || 0}</div>
                     <div className="text-sm text-muted-foreground">Licenses Owned</div>
@@ -100,6 +98,10 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
                   <div className="p-3 bg-muted rounded-lg">
                     <div className="text-lg font-bold">{billing.userSlots.availableSlots || 0}</div>
                     <div className="text-sm text-muted-foreground">Available</div>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="text-lg font-bold">{billing.userSlots.exemptedSlots || 0}</div>
+                    <div className="text-sm text-muted-foreground">Exempted</div>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
                     <div className="text-lg font-bold">${billing.userSlots.costPerUser}</div>

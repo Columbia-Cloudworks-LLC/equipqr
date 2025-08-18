@@ -130,7 +130,7 @@ vi.mock('@/hooks/usePermissions', () => ({
 
 vi.mock('@/hooks/useTeams', () => ({
   useTeams: vi.fn(() => ({
-    data: [],
+    teams: [],
     isLoading: false,
     error: null
   }))
@@ -324,7 +324,7 @@ describe('Dashboard', () => {
 
     render(<Dashboard />);
     
-    expect(screen.getByTestId('total-equipment-stat')).toHaveTextContent('3');
+    expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('3');
     expect(screen.getByText('Recent Equipment')).toBeInTheDocument();
     expect(screen.getByText('Equipment 1')).toBeInTheDocument();
   });
@@ -366,6 +366,6 @@ describe('Dashboard', () => {
     
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
-    expect(screen.getByTestId('total-equipment-stat')).toHaveTextContent('0');
+    expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('0');
   });
 });

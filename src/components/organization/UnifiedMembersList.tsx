@@ -14,6 +14,7 @@ import { useUpdateMemberRole, useRemoveMember } from '@/hooks/useOrganizationMem
 import { RealOrganizationMember } from '@/hooks/useOptimizedOrganizationMembers';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
+import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import { toast } from 'sonner';
 
 interface UnifiedMember {
@@ -170,10 +171,17 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Organization Members ({unifiedMembers.length})
-          </CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Organization Members ({unifiedMembers.length})
+            </CardTitle>
+            <PurchaseLicensesButton 
+              variant="default" 
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white focus-visible:ring-green-600" 
+            />
+          </div>
           {canInviteMembers && (
             <Button onClick={() => setInviteDialogOpen(true)} size="sm">
               <UserPlus className="mr-2 h-4 w-4" />
