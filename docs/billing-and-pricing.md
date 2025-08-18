@@ -20,6 +20,12 @@ Users can choose the quantity of user licenses they want to buy from 1 to 99 usi
 Users must buy licenses before they can send an invitation via e-mail to someone that will occupy the slots.
 Users buy licenses by purchasing a quantity of a Stripe subscription at $10 a month.
 
+#### Billing Exemptions
+- **Purpose**: Administrative tool to provide additional license capacity without billing
+- **Effect**: Increases available license slots but does not reduce billing costs
+- **Use Case**: Trials, support escalations, or special arrangements
+- **Management**: Only organization owners can manage exemptions through admin tools
+
 #### 2. Storage
 - **Free Tier**: 5GB included
 - **Overage Rate**: $0.10 per GB per month

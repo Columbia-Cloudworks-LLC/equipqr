@@ -180,6 +180,43 @@ describe('calculateBilling', () => {
       expect(result.userSlots.exemptedSlots).toBe(1);
       expect(result.userSlots.availableSlots).toBe(2); // total_purchased + exempted - used
     });
+
+    it('should not affect billing cost despite exemptions', () => {
+      const members = [
+        createMember('active', 'owner'),
+        createMember('active', 'member'),
+        createMember('active', 'member')
+      ];
+      
+      // With exemptions
+      const slotAvailabilityWithExemptions = createSlotAvailability(3, 2, 5); // 3 purchased, 2 used, 5 exempted
+      const stateWithExemptions: BillingState = {
+        members,
+        slotAvailability: slotAvailabilityWithExemptions,
+        storageGB: 0,
+        fleetMapEnabled: false
+      };
+
+      // Without exemptions
+      const slotAvailabilityWithoutExemptions = createSlotAvailability(3, 2, 0); // 3 purchased, 2 used, 0 exempted
+      const stateWithoutExemptions: BillingState = {
+        members,
+        slotAvailability: slotAvailabilityWithoutExemptions,
+        storageGB: 0,
+        fleetMapEnabled: false
+      };
+
+      const resultWithExemptions = calculateBilling(stateWithExemptions);
+      const resultWithoutExemptions = calculateBilling(stateWithoutExemptions);
+
+      // Costs should be identical - exemptions only affect capacity, not billing
+      expect(resultWithExemptions.userSlots.totalCost).toBe(resultWithoutExemptions.userSlots.totalCost);
+      expect(resultWithExemptions.totals.monthlyTotal).toBe(resultWithoutExemptions.totals.monthlyTotal);
+      
+      // But available slots should be different
+      expect(resultWithExemptions.userSlots.availableSlots).toBe(6); // 3 + 5 - 2
+      expect(resultWithoutExemptions.userSlots.availableSlots).toBe(1); // 3 + 0 - 2
+    });
   });
 
   describe('Storage calculations', () => {
