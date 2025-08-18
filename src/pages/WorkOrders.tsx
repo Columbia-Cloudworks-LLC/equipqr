@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/hooks/useTeamBasedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
@@ -30,6 +31,8 @@ const WorkOrders = () => {
   const { currentOrganization } = useOrganization();
   const { currentUser } = useUser();
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
+  const initializedFromUrl = useRef(false);
 
   // Use team-based access control
   const { userTeamIds, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
@@ -52,6 +55,16 @@ const WorkOrders = () => {
     applyQuickFilter,
     updateFilter
   } = useWorkOrderFilters(allWorkOrders, currentUser?.id);
+
+  // Apply URL parameter filters on initial load
+  useEffect(() => {
+    if (initializedFromUrl.current) return;
+    const date = searchParams.get('date');
+    if (date === 'overdue') {
+      applyQuickFilter('overdue');
+      initializedFromUrl.current = true;
+    }
+  }, [searchParams, applyQuickFilter]);
 
   // Check for unassigned work orders in single-user organization
   const unassignedCount = allWorkOrders.filter(order => 

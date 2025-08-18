@@ -73,10 +73,10 @@ const Dashboard = () => {
             loading={true}
           />
           <StatsCard
-            icon={<Wrench className="h-4 w-4" />}
-            label="Maintenance Required"
+            icon={<AlertTriangle className="h-4 w-4" />}
+            label="Overdue Work"
             value={0}
-            sublabel="Equipment needing attention"
+            sublabel="Past due work orders"
             loading={true}
           />
           <StatsCard
@@ -123,12 +123,12 @@ const Dashboard = () => {
         />
 
         <StatsCard
-          icon={<Wrench className="h-4 w-4" />}
-          label="Maintenance Required"
-          value={stats?.maintenanceEquipment || 0}
-          sublabel="Equipment needing attention"
-          to="/dashboard/equipment?status=maintenance"
-          ariaDescription="View equipment requiring maintenance"
+          icon={<AlertTriangle className="h-4 w-4" />}
+          label="Overdue Work"
+          value={stats?.overdueWorkOrders || 0}
+          sublabel="Past due work orders"
+          to="/dashboard/work-orders?date=overdue"
+          ariaDescription="View overdue work orders"
         />
 
         <StatsCard
