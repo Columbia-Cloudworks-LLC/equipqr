@@ -65,6 +65,12 @@ import { MockSessionProvider } from '@/test/utils/mock-providers';
 
 ## CI Pipeline Requirements
 
+### Migration Safety
+- All migration files must follow naming pattern: `YYYYMMDDHHMMSS_description.sql`
+- Migrations must use `IF EXISTS`/`IF NOT EXISTS` for safe execution
+- No foreign keys to `auth.users` - use `public.profiles` instead
+- Automatic filename validation runs before tests
+
 ### Test Execution
 - All tests must pass
 - Coverage thresholds must be met (70% minimum)
@@ -72,10 +78,11 @@ import { MockSessionProvider } from '@/test/utils/mock-providers';
 - Minimal console noise from expected error paths
 
 ### Quality Gates
-1. **Test Coverage**: ≥70% for lines, branches, functions, statements
-2. **Accessibility**: No missing DialogDescription warnings
-3. **Console Cleanliness**: Expected error messages suppressed
-4. **Build Success**: No TypeScript errors
+1. **Migration Safety**: All migration filenames follow required pattern
+2. **Test Coverage**: ≥70% for lines, branches, functions, statements
+3. **Accessibility**: No missing DialogDescription warnings
+4. **Console Cleanliness**: Expected error messages suppressed
+5. **Build Success**: No TypeScript errors
 
 ## Best Practices
 
@@ -105,6 +112,9 @@ import { MockSessionProvider } from '@/test/utils/mock-providers';
 
 ### Debug Commands
 ```bash
+# Check migration filenames
+node scripts/check-migration-filenames.mjs
+
 # Run tests with coverage
 npm run test:coverage
 
