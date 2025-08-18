@@ -19,9 +19,7 @@ interface SlotBasedBillingProps {
 
 const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
   storageUsedGB,
-  fleetMapEnabled,
-  onPurchaseSlots: _onPurchaseSlots,
-  onUpgradeToMultiUser: _onUpgradeToMultiUser
+  fleetMapEnabled
 }) => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');

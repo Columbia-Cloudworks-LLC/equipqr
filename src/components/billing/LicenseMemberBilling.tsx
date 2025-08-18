@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { Users, AlertCircle, Calendar } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
@@ -44,7 +44,6 @@ const LicenseMemberBilling = () => {
 
   const billing = calculateBilling({ members, slotAvailability, storageGB: 0, fleetMapEnabled: false });
   const hasActiveLicenses = hasLicenses(slotAvailability);
-  const licenseStatus = getLicenseStatus(slotAvailability, members.filter(m => m.status === 'active').length);
 
   return (
     <Card>

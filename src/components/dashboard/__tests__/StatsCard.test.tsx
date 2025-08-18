@@ -8,7 +8,6 @@ interface MockLinkProps {
   to: string;
   children: React.ReactNode;
   className?: string;
-  [key: string]: any;
 }
 
 // Mock react-router-dom
