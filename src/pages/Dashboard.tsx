@@ -7,6 +7,7 @@ import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWo
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import TeamQuickList from '@/components/dashboard/TeamQuickList';
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
@@ -149,6 +150,9 @@ const Dashboard = () => {
           ariaDescription="View organization members"
         />
       </div>
+
+      {/* Team Quick List */}
+      <TeamQuickList />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Recent Equipment */}

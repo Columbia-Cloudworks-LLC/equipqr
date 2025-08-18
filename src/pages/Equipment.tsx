@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
@@ -19,6 +20,8 @@ const Equipment = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { canCreateEquipment, hasRole } = usePermissions();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const initializedFromUrl = useRef(false);
   
   // Use the new enhanced filtering hook with explicit organization ID
   const {
@@ -39,6 +42,16 @@ const Equipment = () => {
   const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+
+  // Apply URL parameter filters on initial load
+  useEffect(() => {
+    if (initializedFromUrl.current) return;
+    const team = searchParams.get('team');
+    if (team) {
+      updateFilter('team', team);
+      initializedFromUrl.current = true;
+    }
+  }, [searchParams, updateFilter]);
 
   const canCreate = canCreateEquipment();
   const canExport = hasRole(['owner', 'admin']);
