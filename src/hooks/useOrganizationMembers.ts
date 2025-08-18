@@ -31,8 +31,7 @@ export const useOrganizationMembers = (organizationId: string) => {
           user_id,
           profiles:user_id (
             id,
-            name,
-            email
+            name
           )
         `)
         .eq('organization_id', organizationId)
@@ -46,7 +45,7 @@ export const useOrganizationMembers = (organizationId: string) => {
       return (data || []).map(member => ({
         id: member.user_id, // Use user_id as the ID for consistency
         name: (member.profiles as any)?.name || 'Unknown',
-        email: (member.profiles as any)?.email || '',
+        email: '', // No longer display other users' emails
         role: member.role as 'owner' | 'admin' | 'member',
         status: member.status as 'active' | 'pending' | 'inactive',
         joinedDate: member.joined_date,

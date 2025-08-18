@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1106,7 +1106,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          email: string
+          email: string | null
           email_private: boolean | null
           id: string
           name: string
@@ -1114,7 +1114,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          email: string
+          email?: string | null
           email_private?: boolean | null
           id: string
           name: string
@@ -1122,7 +1122,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          email?: string
+          email?: string | null
           email_private?: boolean | null
           id?: string
           name?: string
@@ -1715,27 +1715,27 @@ export type Database = {
         Returns: Json
       }
       can_manage_invitation_atomic: {
-        Args: { user_uuid: string; invitation_id: string }
+        Args: { invitation_id: string; user_uuid: string }
         Returns: boolean
       }
       can_manage_invitation_optimized: {
-        Args: { user_uuid: string; invitation_id: string }
+        Args: { invitation_id: string; user_uuid: string }
         Returns: boolean
       }
       can_manage_invitation_safe: {
-        Args: { user_uuid: string; invitation_id: string }
+        Args: { invitation_id: string; user_uuid: string }
         Returns: boolean
       }
       check_admin_bypass_fixed: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       check_admin_permission_safe: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       check_admin_with_context: {
-        Args: { user_uuid: string; org_id: string; bypass_context?: string }
+        Args: { bypass_context?: string; org_id: string; user_uuid: string }
         Returns: boolean
       }
       check_email_exists_in_auth: {
@@ -1743,27 +1743,27 @@ export type Database = {
         Returns: boolean
       }
       check_member_bypass_fixed: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       check_org_access_direct: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       check_org_access_secure: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       check_org_admin_secure: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       check_team_access_secure: {
-        Args: { user_uuid: string; team_uuid: string }
+        Args: { team_uuid: string; user_uuid: string }
         Returns: boolean
       }
       check_team_role_secure: {
-        Args: { user_uuid: string; team_uuid: string; required_role: string }
+        Args: { required_role: string; team_uuid: string; user_uuid: string }
         Returns: boolean
       }
       clear_rls_context: {
@@ -1772,71 +1772,71 @@ export type Database = {
       }
       create_historical_work_order_with_pm: {
         Args: {
-          p_organization_id: string
-          p_equipment_id: string
-          p_title: string
-          p_description: string
-          p_priority: Database["public"]["Enums"]["work_order_priority"]
-          p_status: Database["public"]["Enums"]["work_order_status"]
-          p_historical_start_date: string
-          p_historical_notes?: string
           p_assignee_id?: string
-          p_team_id?: string
-          p_due_date?: string
           p_completed_date?: string
+          p_description: string
+          p_due_date?: string
+          p_equipment_id: string
           p_has_pm?: boolean
-          p_pm_status?: string
+          p_historical_notes?: string
+          p_historical_start_date: string
+          p_organization_id: string
+          p_pm_checklist_data?: Json
           p_pm_completion_date?: string
           p_pm_notes?: string
-          p_pm_checklist_data?: Json
+          p_pm_status?: string
+          p_priority: Database["public"]["Enums"]["work_order_priority"]
+          p_status: Database["public"]["Enums"]["work_order_status"]
+          p_team_id?: string
+          p_title: string
         }
         Returns: Json
       }
       create_invitation_atomic: {
         Args: {
-          p_organization_id: string
           p_email: string
-          p_role: string
-          p_message?: string
           p_invited_by?: string
+          p_message?: string
+          p_organization_id: string
+          p_role: string
         }
         Returns: string
       }
       create_invitation_bypass: {
         Args: {
-          p_organization_id: string
           p_email: string
-          p_role: string
-          p_message?: string
           p_invited_by?: string
+          p_message?: string
+          p_organization_id: string
+          p_role: string
         }
         Returns: string
       }
       create_invitation_bypass_optimized: {
         Args: {
-          p_organization_id: string
           p_email: string
-          p_role: string
-          p_message?: string
           p_invited_by?: string
+          p_message?: string
+          p_organization_id: string
+          p_role: string
         }
         Returns: string
       }
       create_invitation_with_context: {
         Args: {
-          p_organization_id: string
           p_email: string
-          p_role: string
-          p_message?: string
           p_invited_by?: string
+          p_message?: string
+          p_organization_id: string
+          p_role: string
         }
         Returns: string
       }
       get_current_billing_period: {
         Args: Record<PropertyKey, never>
         Returns: {
-          period_start: string
           period_end: string
+          period_start: string
         }[]
       }
       get_current_user_id: {
@@ -1846,58 +1846,58 @@ export type Database = {
       get_invitation_by_token_secure: {
         Args: { p_token: string }
         Returns: {
+          email: string
+          expires_at: string
           id: string
+          invited_by_name: string
+          message: string
           organization_id: string
           organization_name: string
-          email: string
           role: string
           status: string
-          expires_at: string
-          message: string
-          invited_by_name: string
         }[]
       }
       get_invitations_atomic: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: {
-          id: string
-          email: string
-          role: string
-          status: string
-          message: string
-          created_at: string
-          expires_at: string
           accepted_at: string
+          created_at: string
           declined_at: string
+          email: string
           expired_at: string
-          slot_reserved: boolean
+          expires_at: string
+          id: string
+          message: string
+          role: string
           slot_purchase_id: string
+          slot_reserved: boolean
+          status: string
         }[]
       }
       get_invitations_bypass_optimized: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: {
-          id: string
-          email: string
-          role: string
-          status: string
-          message: string
-          created_at: string
-          expires_at: string
           accepted_at: string
+          created_at: string
           declined_at: string
+          email: string
           expired_at: string
-          slot_reserved: boolean
+          expires_at: string
+          id: string
+          message: string
+          role: string
           slot_purchase_id: string
+          slot_reserved: boolean
+          status: string
         }[]
       }
       get_latest_completed_pm: {
         Args: { equipment_uuid: string }
         Returns: {
-          id: string
-          work_order_id: string
           completed_at: string
           completed_by: string
+          id: string
+          work_order_id: string
           work_order_title: string
         }[]
       }
@@ -1906,18 +1906,18 @@ export type Database = {
         Returns: {
           exemption_type: string
           exemption_value: number
-          reason: string
           expires_at: string
+          reason: string
         }[]
       }
       get_organization_member_profile: {
         Args: { member_user_id: string }
         Returns: {
-          id: string
-          name: string
+          created_at: string
           email: string
           email_private: boolean
-          created_at: string
+          id: string
+          name: string
           updated_at: string
         }[]
       }
@@ -1928,56 +1928,56 @@ export type Database = {
       get_organization_slot_availability: {
         Args: { org_id: string }
         Returns: {
+          available_slots: number
+          current_period_end: string
+          current_period_start: string
           total_purchased: number
           used_slots: number
-          available_slots: number
-          current_period_start: string
-          current_period_end: string
         }[]
       }
       get_organization_slot_availability_with_exemptions: {
         Args: { org_id: string }
         Returns: {
+          available_slots: number
+          current_period_end: string
+          current_period_start: string
+          exempted_slots: number
           total_purchased: number
           used_slots: number
-          available_slots: number
-          exempted_slots: number
-          current_period_start: string
-          current_period_end: string
         }[]
       }
       get_user_invitations_safe: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: {
-          id: string
-          email: string
-          role: string
-          status: string
-          message: string
-          created_at: string
-          expires_at: string
           accepted_at: string
+          created_at: string
           declined_at: string
+          email: string
           expired_at: string
-          slot_reserved: boolean
+          expires_at: string
+          id: string
+          message: string
+          role: string
           slot_purchase_id: string
+          slot_reserved: boolean
+          status: string
         }[]
       }
       get_user_managed_teams: {
         Args: { user_uuid: string }
         Returns: {
+          is_only_manager: boolean
+          organization_id: string
           team_id: string
           team_name: string
-          organization_id: string
-          is_only_manager: boolean
         }[]
       }
       get_user_org_role_direct: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: string
       }
       get_user_org_role_secure: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: string
       }
       get_user_organization_membership: {
@@ -1995,12 +1995,12 @@ export type Database = {
         }[]
       }
       get_user_team_memberships: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: {
+          joined_date: string
+          role: string
           team_id: string
           team_name: string
-          role: string
-          joined_date: string
         }[]
       }
       handle_invitation_account_creation: {
@@ -2008,31 +2008,31 @@ export type Database = {
         Returns: Json
       }
       handle_team_manager_removal: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: Json
       }
       is_org_admin: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       is_org_member: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       is_organization_admin: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       is_organization_member: {
-        Args: { user_uuid: string; org_id: string }
+        Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
       log_invitation_performance: {
         Args: {
-          function_name: string
-          execution_time_ms: number
-          success: boolean
           error_message?: string
+          execution_time_ms: number
+          function_name: string
+          success: boolean
         }
         Returns: undefined
       }
@@ -2041,15 +2041,15 @@ export type Database = {
         Returns: undefined
       }
       release_reserved_slot: {
-        Args: { org_id: string; invitation_id: string }
+        Args: { invitation_id: string; org_id: string }
         Returns: undefined
       }
       remove_organization_member_safely: {
-        Args: { user_uuid: string; org_id: string; removed_by: string }
+        Args: { org_id: string; removed_by: string; user_uuid: string }
         Returns: Json
       }
       reserve_slot_for_invitation: {
-        Args: { org_id: string; invitation_id: string }
+        Args: { invitation_id: string; org_id: string }
         Returns: boolean
       }
       revert_pm_completion: {
@@ -2057,7 +2057,7 @@ export type Database = {
         Returns: Json
       }
       revert_work_order_status: {
-        Args: { p_work_order_id: string; p_reason?: string }
+        Args: { p_reason?: string; p_work_order_id: string }
         Returns: Json
       }
       set_bypass_triggers: {
@@ -2071,10 +2071,10 @@ export type Database = {
       sync_stripe_subscription_slots: {
         Args: {
           org_id: string
-          subscription_id: string
-          quantity: number
-          period_start: string
           period_end: string
+          period_start: string
+          quantity: number
+          subscription_id: string
         }
         Returns: undefined
       }
@@ -2082,9 +2082,9 @@ export type Database = {
         Args: {
           p_equipment_id: string
           p_new_hours: number
+          p_notes?: string
           p_update_source?: string
           p_work_order_id?: string
-          p_notes?: string
         }
         Returns: Json
       }
