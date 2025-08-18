@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { TeamWithMembers } from '@/services/teamService';
+import { updateTeam } from '@/services/teamService';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 
 interface TeamMetadataEditorProps {
   open: boolean;
@@ -25,19 +28,41 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
   onClose, 
   team 
 }) => {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     
-    const updatedTeam = {
-      ...team,
+    const updates = {
       name: formData.get('name') as string,
       description: formData.get('description') as string,
     };
 
-    // In real implementation, this would call an update team mutation
-    console.log('Updating team:', updatedTeam);
-    onClose();
+    setIsLoading(true);
+    try {
+      await updateTeam(team.id, updates);
+      
+      // Invalidate queries to refresh team data
+      queryClient.invalidateQueries({ queryKey: ['team', team.id] });
+      queryClient.invalidateQueries({ queryKey: ['teams', team.organization_id] });
+      
+      toast({
+        title: "Team updated",
+        description: "Team information has been successfully updated.",
+      });
+      
+      onClose();
+    } catch (error) {
+      toast({
+        title: "Error updating team",
+        description: error instanceof Error ? error.message : "Failed to update team. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -78,11 +103,11 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
           </Card>
 
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit">
-              Save Changes
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </form>
