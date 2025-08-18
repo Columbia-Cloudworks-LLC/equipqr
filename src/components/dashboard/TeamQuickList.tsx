@@ -16,7 +16,7 @@ const TeamQuickList = () => {
   
   // For regular users, we need to filter to only teams they're members of
   // This filtering is already handled in useTeams hook based on team memberships
-  const visibleTeams = isOrgAdmin ? teams : teams;
+  const visibleTeams = isOrgAdmin ? (teams || []) : (teams || []);
 
   if (!currentOrganization) {
     return null;

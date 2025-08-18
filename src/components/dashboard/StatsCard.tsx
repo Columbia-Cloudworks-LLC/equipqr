@@ -84,7 +84,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   );
 
   if (to && !loading) {
-    return <Link to={to}>{content}</Link>;
+    return <Link to={to} className="cursor-pointer">{content}</Link>;
   }
 
   return content;

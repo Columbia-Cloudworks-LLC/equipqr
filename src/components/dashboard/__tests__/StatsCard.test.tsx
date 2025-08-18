@@ -4,13 +4,20 @@ import { StatsCard } from '../StatsCard';
 import { Package } from 'lucide-react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
+interface MockLinkProps {
+  to: string;
+  children: React.ReactNode;
+  className?: string;
+  [key: string]: any;
+}
+
 // Mock react-router-dom
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    Link: ({ to, children, ...props }: any) => (
+    Link: ({ to, children, ...props }: MockLinkProps) => (
       <a href={to} onClick={() => mockNavigate(to)} {...props}>
         {children}
       </a>
