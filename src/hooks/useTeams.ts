@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTeam } from '@/hooks/useTeam';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 
 export interface Team {
   id: string;
@@ -11,18 +12,25 @@ export interface Team {
 
 export const useTeams = () => {
   const { teamMemberships } = useTeam();
+  const { currentOrganization } = useSimpleOrganization();
   
   const { data: teams, isLoading, error } = useQuery({
-    queryKey: ['teams'],
+    queryKey: ['teams', currentOrganization?.id],
     queryFn: async () => {
+      if (!currentOrganization?.id) {
+        return [];
+      }
+      
       const { data, error } = await supabase
         .from('teams')
         .select('*')
+        .eq('organization_id', currentOrganization.id)
         .order('name');
       
       if (error) throw error;
       return data as Team[];
     },
+    enabled: !!currentOrganization?.id,
   });
 
   // Get teams that the current user can manage (where they are a manager)
