@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
+import ProfileSettings from '@/components/settings/ProfileSettings';
 import { EmailPrivacySettings } from '@/components/settings/EmailPrivacySettings';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
@@ -47,6 +48,8 @@ const SettingsContent = () => {
           Manage your account preferences and application settings.
         </p>
       </div>
+
+      <ProfileSettings />
 
       <PersonalizationSettings />
 

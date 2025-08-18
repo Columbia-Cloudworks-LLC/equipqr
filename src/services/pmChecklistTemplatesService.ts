@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { PMChecklistItem } from './preventativeMaintenanceService';
 import { nanoid } from 'nanoid';
+import { safeJsonParse } from '@/lib/safeJsonParse';
 
 type PMTemplateInsert = Database['public']['Tables']['pm_checklist_templates']['Insert'];
 type PMTemplateUpdate = Database['public']['Tables']['pm_checklist_templates']['Update'];
@@ -47,22 +48,21 @@ export const templateToSummary = (template: PMTemplate): PMTemplateSummary => {
   // Safely handle JSON type conversion with proper type checking
   let templateData: PMChecklistItem[] = [];
   
-  try {
-    // Handle different possible formats of template_data from Supabase
-    if (Array.isArray(template.template_data)) {
-      templateData = template.template_data as PMChecklistItem[];
-    } else if (typeof template.template_data === 'string') {
-      // If it's a JSON string, parse it
-      const parsed = JSON.parse(template.template_data);
-      if (Array.isArray(parsed)) {
-        templateData = parsed as PMChecklistItem[];
-      }
-    } else if (template.template_data && typeof template.template_data === 'object') {
-      // If it's already an object but not an array, it might be a single item or malformed
-      templateData = [];
+  // Handle different possible formats of template_data from Supabase
+  if (Array.isArray(template.template_data)) {
+    templateData = template.template_data as PMChecklistItem[];
+  } else if (typeof template.template_data === 'string') {
+    // If it's a JSON string, parse it safely
+    const parsed = safeJsonParse(
+      template.template_data,
+      [],
+      { context: `template: ${template.id}` }
+    );
+    if (Array.isArray(parsed)) {
+      templateData = parsed as PMChecklistItem[];
     }
-  } catch (error) {
-    console.warn('Failed to parse template data for template:', template.id, error);
+  } else if (template.template_data && typeof template.template_data === 'object') {
+    // If it's already an object but not an array, it might be a single item or malformed
     templateData = [];
   }
   

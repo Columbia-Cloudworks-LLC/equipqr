@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { OrganizationMember } from '@/types/organization';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,11 +78,11 @@ const MembersList: React.FC<MembersListProps> = ({
     });
   };
 
-  const handleResendInvitation = (memberId: string, memberEmail: string) => {
+  const handleResendInvitation = (memberId: string, memberName: string) => {
     onResendInvitation(memberId);
     toast({
       title: 'Invitation Sent',
-      description: `Invitation has been resent to ${memberEmail}.`,
+      description: `Invitation has been resent to ${memberName}.`,
     });
   };
 
@@ -106,7 +106,6 @@ const MembersList: React.FC<MembersListProps> = ({
                 </Avatar>
                 <div>
                   <div className="font-medium">{member.name}</div>
-                  <div className="text-sm text-muted-foreground">{member.email}</div>
                   <div className="text-xs text-muted-foreground">
                     Joined {new Date(member.joinedDate).toLocaleDateString()}
                   </div>
@@ -147,7 +146,7 @@ const MembersList: React.FC<MembersListProps> = ({
                     <DropdownMenuContent align="end">
                       {member.status === 'pending' && (
                         <DropdownMenuItem
-                          onClick={() => handleResendInvitation(member.id, member.email)}
+                          onClick={() => handleResendInvitation(member.id, member.name)}
                         >
                           <Mail className="mr-2 h-4 w-4" />
                           Resend Invitation
