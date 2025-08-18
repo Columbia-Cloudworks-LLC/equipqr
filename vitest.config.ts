@@ -38,6 +38,7 @@ export default defineConfig({
         'src/components/security/**', // Security components
         'src/components/session/**', // Session components
         'src/components/settings/**', // Settings components
+        'src/components/common/**', // Common components
         'src/components/teams/**', // Teams components
         'src/contexts/CacheContext.tsx', // Cache context
         'src/contexts/SettingsContext.tsx', // Settings context

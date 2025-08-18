@@ -13,6 +13,18 @@ export interface RealOrganizationMember {
   avatar?: string;
 }
 
+interface OrganizationMemberRow {
+  id: string;
+  role: string;
+  status: string;
+  joined_date: string;
+  user_id: string;
+  profiles: {
+    id: string;
+    name: string;
+  } | null;
+}
+
 export const useOrganizationMembers = (organizationId: string) => {
   // Note: For real-time updates, use useEnhancedOrganizationMembers instead
   
@@ -42,9 +54,10 @@ export const useOrganizationMembers = (organizationId: string) => {
         throw error;
       }
 
-      return (data || []).map(member => ({
+      const typedData = data as OrganizationMemberRow[];
+      return (typedData || []).map(member => ({
         id: member.user_id, // Use user_id as the ID for consistency
-        name: (member.profiles as any)?.name || 'Unknown',
+        name: member.profiles?.name || 'Unknown',
         email: '', // No longer display other users' emails
         role: member.role as 'owner' | 'admin' | 'member',
         status: member.status as 'active' | 'pending' | 'inactive',
