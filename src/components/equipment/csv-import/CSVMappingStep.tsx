@@ -163,9 +163,11 @@ export const CSVMappingStep: React.FC<CSVMappingStepProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
                       <SelectItem value="manufacturer">Manufacturer</SelectItem>
                       <SelectItem value="model">Model</SelectItem>
                       <SelectItem value="serial">Serial Number</SelectItem>
+                      <SelectItem value="location">Location</SelectItem>
                       <SelectItem value="last_maintenance">Last Maintenance</SelectItem>
                       <SelectItem value="custom">Custom Attribute</SelectItem>
                       <SelectItem value="skip">Skip Column</SelectItem>

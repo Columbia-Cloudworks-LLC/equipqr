@@ -1,8 +1,10 @@
 export interface MappedRow {
   rowIndex: number;
+  name?: string;
   manufacturer?: string;
   model?: string;
   serial?: string;
+  location?: string;
   last_maintenance?: string;
   customAttributes: Record<string, any>;
   raw: Record<string, string>;
@@ -11,9 +13,11 @@ export interface MappedRow {
 export interface ImportPreviewRow {
   rowIndex: number;
   action: 'create' | 'merge' | 'error';
+  name?: string;
   manufacturer?: string;
   model?: string;
   serial?: string;
+  location?: string;
   last_maintenance?: string;
   customAttributes: Record<string, any>;
   error?: string;
@@ -39,7 +43,7 @@ export interface ImportChunkResult {
 
 export interface ColumnMapping {
   header: string;
-  mappedTo: 'manufacturer' | 'model' | 'serial' | 'last_maintenance' | 'custom' | 'skip';
+  mappedTo: 'name' | 'manufacturer' | 'model' | 'serial' | 'location' | 'last_maintenance' | 'custom' | 'skip';
   customKey?: string;
   isDuplicate?: boolean;
   duplicateIndex?: number;
@@ -70,8 +74,10 @@ export interface FieldSynonyms {
 }
 
 export const FIELD_SYNONYMS: FieldSynonyms = {
+  name: ['name', 'equipment_name', 'asset_name', 'title', 'description'],
   manufacturer: ['manufacturer', 'mfr', 'mfg', 'brand', 'make'],
   model: ['model', 'model_no', 'model_number', 'model_name'],
   serial: ['serial', 'serial_no', 'serial_number', 'sn', 'serial_num'],
+  location: ['location', 'site', 'facility', 'building', 'area', 'position'],
   last_maintenance: ['last_maintenance', 'last maintenance', 'last_service_date', 'pm_date', 'maintenance_date']
 };

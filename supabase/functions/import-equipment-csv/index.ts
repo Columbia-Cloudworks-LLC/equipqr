@@ -7,9 +7,11 @@ const corsHeaders = {
 };
 
 interface MappedRow {
+  name?: string;
   manufacturer?: string;
   model?: string;
   serial?: string;
+  location?: string;
   last_maintenance?: string;
   customAttributes: Record<string, any>;
 }
@@ -19,7 +21,7 @@ interface ImportRequest {
   rows: Record<string, string>[];
   mappings: Array<{
     header: string;
-    mappedTo: 'manufacturer' | 'model' | 'serial' | 'last_maintenance' | 'custom' | 'skip';
+    mappedTo: 'name' | 'manufacturer' | 'model' | 'serial' | 'location' | 'last_maintenance' | 'custom' | 'skip';
     customKey?: string;
   }>;
   importId: string;
@@ -214,6 +216,16 @@ async function handleImport(
           updated_at: new Date().toISOString()
         };
 
+        // Update name if provided
+        if (mappedRow.name && mappedRow.name.trim() !== '') {
+          updateData.name = mappedRow.name.trim();
+        }
+
+        // Update location if provided
+        if (mappedRow.location && mappedRow.location.trim() !== '') {
+          updateData.location = mappedRow.location.trim();
+        }
+
         // Merge custom attributes
         if (Object.keys(mappedRow.customAttributes).length > 0) {
           updateData.custom_attributes = {
@@ -242,12 +254,12 @@ async function handleImport(
         // Create new equipment
         const insertData: any = {
           organization_id: organizationId,
-          name: `${mappedRow.manufacturer || ''} ${mappedRow.model || ''}`.trim() || 'Imported Equipment',
+          name: mappedRow.name || `${mappedRow.manufacturer || ''} ${mappedRow.model || ''}`.trim() || 'Imported Equipment',
           manufacturer: mappedRow.manufacturer || '',
           model: mappedRow.model || '',
           serial_number: mappedRow.serial || '',
           status: 'active',
-          location: 'Unknown',
+          location: mappedRow.location || 'Unknown',
           installation_date: new Date().toISOString().split('T')[0],
           custom_attributes: mappedRow.customAttributes,
           import_id: importId,

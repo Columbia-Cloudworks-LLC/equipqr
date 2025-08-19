@@ -68,7 +68,7 @@ export const autoMapHeaders = (headers: string[]): ColumnMapping[] => {
         usedFields.add(field);
         return {
           header,
-          mappedTo: field as 'manufacturer' | 'model' | 'serial' | 'last_maintenance',
+          mappedTo: field as 'name' | 'manufacturer' | 'model' | 'serial' | 'location' | 'last_maintenance',
           isDuplicate,
           duplicateIndex
         };
@@ -151,9 +151,11 @@ export const mapRowData = (
   
   const result: MappedRow = {
     rowIndex,
+    name: resolved.name,
     manufacturer: resolved.manufacturer,
     model: resolved.model,
     serial: resolved.serial,
+    location: resolved.location,
     last_maintenance: resolved.last_maintenance,
     customAttributes: {},
     raw: row
@@ -161,7 +163,7 @@ export const mapRowData = (
   
   // Add custom attributes
   for (const [key, value] of Object.entries(resolved)) {
-    if (!['manufacturer', 'model', 'serial', 'last_maintenance'].includes(key)) {
+    if (!['name', 'manufacturer', 'model', 'serial', 'location', 'last_maintenance'].includes(key)) {
       if (!isEmptyCell(value)) {
         result.customAttributes[key] = inferType(value);
       }

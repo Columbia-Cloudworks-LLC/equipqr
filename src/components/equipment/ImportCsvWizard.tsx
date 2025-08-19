@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { useTeamsByOrganization } from '@/hooks/useSupabaseData';
 import { Upload, FileText, Download, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 
@@ -175,30 +176,24 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
     if (!state.parsedData || !state.mappings.length) return;
 
     try {
-      const response = await fetch('/api/import/equipment-csv', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('import-equipment-csv', {
+        body: {
           dryRun: true,
           rows: state.parsedData.slice(0, 100), // First 100 rows for dry run
           mappings: state.mappings,
           importId: state.importId,
           teamId: state.selectedTeamId,
           organizationId
-        })
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (error) {
+        throw new Error(error.message || 'Dry run failed');
       }
-
-      const result = await response.json();
       
       setState(prev => ({
         ...prev,
-        dryRunResult: result,
+        dryRunResult: data,
         step: 3
       }));
     } catch (error) {
@@ -240,12 +235,8 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         
-        const response = await fetch('/api/import/equipment-csv', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        const { data: chunkResult, error } = await supabase.functions.invoke('import-equipment-csv', {
+          body: {
             dryRun: false,
             rows: chunk,
             mappings: state.mappings,
@@ -253,14 +244,12 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
             teamId: state.selectedTeamId,
             organizationId,
             chunkIndex: i
-          })
+          }
         });
 
-        if (!response.ok) {
-          throw new Error(`Chunk ${i + 1} failed: HTTP ${response.status}`);
+        if (error) {
+          throw new Error(`Chunk ${i + 1} failed: ${error.message}`);
         }
-
-        const chunkResult: ImportChunkResult = await response.json();
         
         totalCreated += chunkResult.created;
         totalMerged += chunkResult.merged;
