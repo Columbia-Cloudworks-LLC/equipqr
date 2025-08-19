@@ -7,6 +7,7 @@ export const normalizeHeader = (header: string): string => {
   return header
     .trim()
     .toLowerCase()
+    .replace(/[_-]/g, ' ') // Convert underscores and hyphens to spaces first
     .replace(/\s+/g, ' ')
     .replace(/[^\w\s]/g, '');
 };
@@ -73,6 +74,21 @@ export const autoMapHeaders = (headers: string[]): ColumnMapping[] => {
           duplicateIndex
         };
       }
+    }
+    
+    // Special heuristic for serial number fields - if header starts with "serial"
+    if (!usedFields.has('serial') && (
+      normalized.startsWith('serial') || 
+      normalized.startsWith('sn') || 
+      normalized.startsWith('s n')
+    )) {
+      usedFields.add('serial');
+      return {
+        header,
+        mappedTo: 'serial',
+        isDuplicate,
+        duplicateIndex
+      };
     }
     
     // Map to custom attribute

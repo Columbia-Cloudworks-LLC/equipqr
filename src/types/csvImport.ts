@@ -77,7 +77,7 @@ export const FIELD_SYNONYMS: FieldSynonyms = {
   name: ['name', 'equipment_name', 'asset_name', 'title', 'description'],
   manufacturer: ['manufacturer', 'mfr', 'mfg', 'brand', 'make'],
   model: ['model', 'model_no', 'model_number', 'model_name'],
-  serial: ['serial', 'serial_no', 'serial_number', 'sn', 'serial_num'],
+  serial: ['serial', 'serial_no', 'serial_number', 'sn', 'serial_num', 'serial number', 'serial#', 's/n', 's n'],
   location: ['location', 'site', 'facility', 'building', 'area', 'position'],
   last_maintenance: ['last_maintenance', 'last maintenance', 'last_service_date', 'pm_date', 'maintenance_date']
 };
