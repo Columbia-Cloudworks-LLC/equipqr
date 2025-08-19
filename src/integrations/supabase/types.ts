@@ -153,6 +153,7 @@ export type Database = {
           default_pm_template_id: string | null
           id: string
           image_url: string | null
+          import_id: string | null
           installation_date: string
           last_known_location: Json | null
           last_maintenance: string | null
@@ -175,6 +176,7 @@ export type Database = {
           default_pm_template_id?: string | null
           id?: string
           image_url?: string | null
+          import_id?: string | null
           installation_date: string
           last_known_location?: Json | null
           last_maintenance?: string | null
@@ -197,6 +199,7 @@ export type Database = {
           default_pm_template_id?: string | null
           id?: string
           image_url?: string | null
+          import_id?: string | null
           installation_date?: string
           last_known_location?: Json | null
           last_maintenance?: string | null

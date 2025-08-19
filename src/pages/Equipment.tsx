@@ -15,6 +15,7 @@ import { EquipmentFilters } from '@/components/equipment/EquipmentFilters';
 import EquipmentSortHeader from '@/components/equipment/EquipmentSortHeader';
 import EquipmentGrid from '@/components/equipment/EquipmentGrid';
 import EquipmentLoadingState from '@/components/equipment/EquipmentLoadingState';
+import ImportCsvWizard from '@/components/equipment/ImportCsvWizard';
 
 const Equipment = () => {
   const { currentOrganization } = useSimpleOrganization();
@@ -41,6 +42,7 @@ const Equipment = () => {
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
+  const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Apply URL parameter filters on initial load
@@ -117,7 +119,9 @@ const Equipment = () => {
       <EquipmentHeader
         organizationName={currentOrganization.name}
         canCreate={canCreate}
+        canImport={canExport}
         onAddEquipment={handleAddEquipment}
+        onImportCsv={() => setShowImportCsv(true)}
       />
 
       <EquipmentFilters
@@ -162,6 +166,14 @@ const Equipment = () => {
         open={!!showQRCode}
         onClose={() => setShowQRCode(null)}
         equipmentName={equipment.find(eq => eq.id === showQRCode)?.name}
+      />
+
+      {/* CSV Import Wizard */}
+      <ImportCsvWizard
+        open={showImportCsv}
+        onClose={() => setShowImportCsv(false)}
+        organizationId={currentOrganization.id}
+        organizationName={currentOrganization.name}
       />
     </div>
   );
