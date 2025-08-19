@@ -92,7 +92,8 @@ describe('useSupabaseData hooks', () => {
         warranty_expiration: null,
         last_maintenance: null,
         team_id: null,
-        default_pm_template_id: null
+        default_pm_template_id: null,
+        import_id: null
       };
 
       result.current.mutate(equipmentData);
