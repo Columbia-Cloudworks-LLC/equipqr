@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, QrCode, MapPin, Calendar } from 'lucide-react';
+import { ArrowLeft, QrCode, MapPin, Calendar, Trash2 } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 type Equipment = Tables<'equipment'>;
@@ -10,11 +10,15 @@ type Equipment = Tables<'equipment'>;
 interface MobileEquipmentHeaderProps {
   equipment: Equipment;
   onShowQRCode: () => void;
+  canDelete?: boolean;
+  onDelete?: () => void;
 }
 
 const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
   equipment,
   onShowQRCode,
+  canDelete = false,
+  onDelete,
 }) => {
   const navigate = useNavigate();
 
@@ -44,9 +48,16 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
-        <Button size="sm" onClick={onShowQRCode}>
-          <QrCode className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={onShowQRCode}>
+            <QrCode className="h-4 w-4" />
+          </Button>
+          {canDelete && onDelete && (
+            <Button size="sm" variant="destructive" onClick={onDelete}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Equipment Title and Status */}
