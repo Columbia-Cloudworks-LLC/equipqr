@@ -1,0 +1,428 @@
+import React, { useState, useCallback } from 'react';
+import Papa from 'papaparse';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { useTeamsByOrganization } from '@/hooks/useSupabaseData';
+import { Upload, FileText, Download, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+
+import { CSVUploadStep } from './csv-import/CSVUploadStep';
+import { CSVMappingStep } from './csv-import/CSVMappingStep';
+import { CSVPreviewStep } from './csv-import/CSVPreviewStep';
+import { CSVSuccessStep } from './csv-import/CSVSuccessStep';
+
+import type { CSVImportState, ImportChunkResult } from '@/types/csvImport';
+import { stripBOM, generateImportId, downloadErrorsCSV } from '@/utils/csvImportUtils';
+
+interface ImportCsvWizardProps {
+  open: boolean;
+  onClose: () => void;
+  organizationId: string;
+  organizationName: string;
+}
+
+const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
+  open,
+  onClose,
+  organizationId,
+  organizationName
+}) => {
+  const { toast } = useToast();
+  const { data: teams = [] } = useTeamsByOrganization(organizationId);
+  
+  const [state, setState] = useState<CSVImportState>({
+    step: 1,
+    file: null,
+    parsedData: null,
+    headers: [],
+    delimiter: ',',
+    rowCount: 0,
+    mappings: [],
+    selectedTeamId: null,
+    dryRunResult: null,
+    importProgress: {
+      processed: 0,
+      total: 0,
+      isImporting: false,
+      completed: false,
+      errors: []
+    },
+    importId: generateImportId()
+  });
+
+  const resetState = useCallback(() => {
+    setState({
+      step: 1,
+      file: null,
+      parsedData: null,
+      headers: [],
+      delimiter: ',',
+      rowCount: 0,
+      mappings: [],
+      selectedTeamId: null,
+      dryRunResult: null,
+      importProgress: {
+        processed: 0,
+        total: 0,
+        isImporting: false,
+        completed: false,
+        errors: []
+      },
+      importId: generateImportId()
+    });
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (state.importProgress.isImporting) {
+      toast({
+        title: "Import in progress",
+        description: "Please wait for the import to complete before closing.",
+        variant: "destructive"
+      });
+      return;
+    }
+    resetState();
+    onClose();
+  }, [state.importProgress.isImporting, resetState, onClose, toast]);
+
+  const handleFileUpload = useCallback((file: File) => {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "File too large",
+        description: "CSV files must be under 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = stripBOM(e.target?.result as string);
+      
+      Papa.parse(content, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        worker: true,
+        complete: (results) => {
+          if (results.errors.length > 0) {
+            toast({
+              title: "Parse error",
+              description: "Failed to parse CSV file. Please check the format.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          const data = results.data as Record<string, string>[];
+          
+          if (data.length === 0) {
+            toast({
+              title: "Empty file",
+              description: "The CSV file contains no data rows.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          if (data.length > 10000) {
+            toast({
+              title: "Too many rows",
+              description: "CSV files are limited to 10,000 rows maximum.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          const headers = Object.keys(data[0]);
+          const delimiter = results.meta.delimiter || ',';
+
+          setState(prev => ({
+            ...prev,
+            file,
+            parsedData: data,
+            headers,
+            delimiter,
+            rowCount: data.length,
+            step: 2
+          }));
+        },
+        error: (error) => {
+          toast({
+            title: "Parse error",
+            description: error.message || "Failed to parse CSV file.",
+            variant: "destructive"
+          });
+        }
+      });
+    };
+
+    reader.onerror = () => {
+      toast({
+        title: "File read error",
+        description: "Failed to read the CSV file.",
+        variant: "destructive"
+      });
+    };
+
+    reader.readAsText(file);
+  }, [toast]);
+
+  const performDryRun = useCallback(async () => {
+    if (!state.parsedData || !state.mappings.length) return;
+
+    try {
+      const response = await fetch('/api/import/equipment-csv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dryRun: true,
+          rows: state.parsedData.slice(0, 100), // First 100 rows for dry run
+          mappings: state.mappings,
+          importId: state.importId,
+          teamId: state.selectedTeamId,
+          organizationId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      setState(prev => ({
+        ...prev,
+        dryRunResult: result,
+        step: 3
+      }));
+    } catch (error) {
+      console.error('Dry run error:', error);
+      toast({
+        title: "Dry run failed",
+        description: "Failed to validate import data. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [state.parsedData, state.mappings, state.importId, state.selectedTeamId, organizationId, toast]);
+
+  const performImport = useCallback(async () => {
+    if (!state.parsedData || !state.dryRunResult) return;
+
+    setState(prev => ({
+      ...prev,
+      importProgress: {
+        ...prev.importProgress,
+        isImporting: true,
+        processed: 0,
+        total: state.parsedData!.length
+      }
+    }));
+
+    const chunkSize = 500;
+    const chunks = [];
+    
+    for (let i = 0; i < state.parsedData.length; i += chunkSize) {
+      chunks.push(state.parsedData.slice(i, i + chunkSize));
+    }
+
+    let totalCreated = 0;
+    let totalMerged = 0;
+    let totalFailed = 0;
+    const allErrors: Array<{ row: number; reason: string }> = [];
+
+    try {
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        
+        const response = await fetch('/api/import/equipment-csv', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dryRun: false,
+            rows: chunk,
+            mappings: state.mappings,
+            importId: state.importId,
+            teamId: state.selectedTeamId,
+            organizationId,
+            chunkIndex: i
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Chunk ${i + 1} failed: HTTP ${response.status}`);
+        }
+
+        const chunkResult: ImportChunkResult = await response.json();
+        
+        totalCreated += chunkResult.created;
+        totalMerged += chunkResult.merged;
+        totalFailed += chunkResult.failed;
+        allErrors.push(...chunkResult.failures.map(f => ({ 
+          row: f.row + (i * chunkSize), 
+          reason: f.reason 
+        })));
+
+        setState(prev => ({
+          ...prev,
+          importProgress: {
+            ...prev.importProgress,
+            processed: (i + 1) * chunkSize
+          }
+        }));
+      }
+
+      setState(prev => ({
+        ...prev,
+        importProgress: {
+          processed: state.parsedData!.length,
+          total: state.parsedData!.length,
+          isImporting: false,
+          completed: true,
+          errors: allErrors
+        }
+      }));
+
+      toast({
+        title: "Import completed",
+        description: `Created: ${totalCreated}, Merged: ${totalMerged}, Failed: ${totalFailed}`,
+      });
+
+    } catch (error) {
+      console.error('Import error:', error);
+      setState(prev => ({
+        ...prev,
+        importProgress: {
+          ...prev.importProgress,
+          isImporting: false
+        }
+      }));
+      
+      toast({
+        title: "Import failed",
+        description: "The import process encountered an error. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [state.parsedData, state.dryRunResult, state.mappings, state.importId, state.selectedTeamId, organizationId, toast]);
+
+  const getStepIcon = (stepNumber: number) => {
+    if (stepNumber < state.step) return <CheckCircle className="w-5 h-5 text-primary" />;
+    if (stepNumber === state.step) return <div className="w-5 h-5 rounded-full bg-primary" />;
+    return <div className="w-5 h-5 rounded-full bg-muted" />;
+  };
+
+  const renderStepContent = () => {
+    switch (state.step) {
+      case 1:
+        return (
+          <CSVUploadStep
+            onFileUpload={handleFileUpload}
+            file={state.file}
+            rowCount={state.rowCount}
+            delimiter={state.delimiter}
+          />
+        );
+      case 2:
+        return (
+          <CSVMappingStep
+            headers={state.headers}
+            mappings={state.mappings}
+            onMappingsChange={(mappings) => setState(prev => ({ ...prev, mappings }))}
+            teams={teams}
+            selectedTeamId={state.selectedTeamId}
+            onTeamChange={(teamId) => setState(prev => ({ ...prev, selectedTeamId: teamId }))}
+            onNext={performDryRun}
+            onBack={() => setState(prev => ({ ...prev, step: 1 }))}
+          />
+        );
+      case 3:
+        return (
+          <CSVPreviewStep
+            dryRunResult={state.dryRunResult}
+            onImport={performImport}
+            onBack={() => setState(prev => ({ ...prev, step: 2 }))}
+            importProgress={state.importProgress}
+            parsedData={state.parsedData}
+            onDownloadErrors={() => {
+              if (state.dryRunResult?.errors.length && state.parsedData) {
+                downloadErrorsCSV(state.dryRunResult.errors, state.parsedData);
+              }
+            }}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (state.importProgress.completed) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <CSVSuccessStep
+            importProgress={state.importProgress}
+            organizationName={organizationName}
+            importId={state.importId}
+            onClose={handleClose}
+            onDownloadErrors={() => {
+              if (state.importProgress.errors.length && state.parsedData) {
+                downloadErrorsCSV(state.importProgress.errors, state.parsedData);
+              }
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Upload className="w-5 h-5" />
+            Import Equipment CSV
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Step Indicator */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {getStepIcon(1)}
+              <span className={`text-sm ${state.step >= 1 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                Upload
+              </span>
+            </div>
+            <div className="w-8 h-px bg-border" />
+            <div className="flex items-center gap-2">
+              {getStepIcon(2)}
+              <span className={`text-sm ${state.step >= 2 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                Map
+              </span>
+            </div>
+            <div className="w-8 h-px bg-border" />
+            <div className="flex items-center gap-2">
+              {getStepIcon(3)}
+              <span className={`text-sm ${state.step >= 3 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                Preview & Import
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {renderStepContent()}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default ImportCsvWizard;
