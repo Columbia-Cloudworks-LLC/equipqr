@@ -2,10 +2,15 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Download, X } from 'lucide-react';
-import type { ImportProgress } from '@/types/csvImport';
 
 interface CSVSuccessStepProps {
-  importProgress: ImportProgress;
+  importProgress: {
+    processed: number;
+    total: number;
+    isImporting: boolean;
+    completed: boolean;
+    errors: Array<{ row: number; reason: string }>;
+  };
   organizationName: string;
   importId: string;
   selectedTeamId: string | null;
