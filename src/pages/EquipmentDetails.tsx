@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -146,7 +145,7 @@ const EquipmentDetails = () => {
   };
 
   const handleDeleteSuccess = () => {
-    navigate('/equipment');
+    navigate('/dashboard/equipment');
   };
 
   // Check if current user is admin/owner

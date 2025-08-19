@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import Papa from 'papaparse';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTeamsByOrganization } from '@/hooks/useSupabaseData';
 import { Upload, CheckCircle } from 'lucide-react';
@@ -28,6 +29,7 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
   organizationName
 }) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: teams = [] } = useTeamsByOrganization(organizationId);
   
   const [state, setState] = useState<CSVImportState>({
@@ -81,9 +83,16 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
       });
       return;
     }
+    
+    // If import was completed successfully, invalidate equipment queries to refresh the list
+    if (state.importProgress.completed) {
+      queryClient.invalidateQueries({ queryKey: ['equipment', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-optimized', organizationId] });
+    }
+    
     resetState();
     onClose();
-  }, [state.importProgress.isImporting, resetState, onClose, toast]);
+  }, [state.importProgress.isImporting, state.importProgress.completed, resetState, onClose, toast, queryClient, organizationId]);
 
   const handleFileUpload = useCallback((file: File) => {
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
