@@ -230,6 +230,8 @@ const EquipmentDetails = () => {
           <MobileEquipmentHeader 
             equipment={equipment}
             onShowQRCode={handleShowQRCode}
+            canDelete={isAdmin}
+            onDelete={handleDeleteEquipment}
           />
         </div>
       ) : (
