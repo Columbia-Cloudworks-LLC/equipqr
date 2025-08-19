@@ -75,11 +75,19 @@ export const DeleteEquipmentDialog = ({
     setAcknowledged(false);
   };
 
+  const handleDialogChange = (open: boolean) => {
+    if (!open) {
+      setStep('initial');
+      setAcknowledged(false);
+    }
+    onOpenChange(open);
+  };
+
   const totalImages = (impact?.equipmentNoteImages || 0) + (impact?.workOrderImages || 0);
 
   if (step === 'initial') {
     return (
-      <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialog open={open} onOpenChange={handleDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -110,13 +118,13 @@ export const DeleteEquipmentDialog = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancel}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <Button 
               onClick={handleContinue}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
               disabled={impactLoading}
             >
               Continue
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -124,7 +132,7 @@ export const DeleteEquipmentDialog = ({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
