@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, MapPin, Calendar, Package, QrCode } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Package, QrCode, Trash2 } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useEquipmentById } from '@/hooks/useSupabaseData';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -19,7 +19,10 @@ import MobileEquipmentHeader from '@/components/equipment/MobileEquipmentHeader'
 import ResponsiveEquipmentTabs from '@/components/equipment/ResponsiveEquipmentTabs';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
+import { DeleteEquipmentDialog } from '@/components/equipment/DeleteEquipmentDialog';
 import { useCreateScan } from '@/hooks/useSupabaseData';
+import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 const EquipmentDetails = () => {
@@ -34,7 +37,11 @@ const EquipmentDetails = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [scanLogged, setScanLogged] = useState(false);
+
+  const { user } = useAuth();
+  const { data: organizationMembers } = useOrganizationMembers(currentOrganization?.id || '');
 
   const isLoading = orgLoading || equipmentLoading;
 
@@ -133,6 +140,18 @@ const EquipmentDetails = () => {
   const handleCloseQRCode = () => {
     setIsQRCodeOpen(false);
   };
+
+  const handleDeleteEquipment = () => {
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSuccess = () => {
+    navigate('/equipment');
+  };
+
+  // Check if current user is admin/owner
+  const currentUserMember = organizationMembers?.find(member => member.id === user?.id);
+  const isAdmin = currentUserMember?.role === 'owner' || currentUserMember?.role === 'admin';
 
   if (!currentOrganization) {
     return (
@@ -239,10 +258,18 @@ const EquipmentDetails = () => {
               <Badge className={getStatusColor(equipment.status)}>
                 {equipment.status}
               </Badge>
-              <Button size="sm" onClick={handleShowQRCode}>
-                <QrCode className="h-4 w-4 mr-2" />
-                QR Code
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleShowQRCode}>
+                  <QrCode className="h-4 w-4 mr-2" />
+                  QR Code
+                </Button>
+                {isAdmin && (
+                  <Button size="sm" variant="destructive" onClick={handleDeleteEquipment}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -368,6 +395,18 @@ const EquipmentDetails = () => {
         equipmentId={equipment.id}
         equipmentName={equipment.name}
       />
+
+      {/* Delete Equipment Dialog */}
+      {isAdmin && (
+        <DeleteEquipmentDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          equipmentId={equipment.id}
+          equipmentName={equipment.name}
+          orgId={currentOrganization.id}
+          onSuccess={handleDeleteSuccess}
+        />
+      )}
     </div>
   );
 };

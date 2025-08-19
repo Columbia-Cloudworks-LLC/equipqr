@@ -106,3 +106,8 @@ export const deleteWorkOrderCascade = async (workOrderId: string): Promise<void>
     throw error;
   }
 };
+
+// Wrapper function for external use
+export const deleteWorkOrder = async (workOrderId: string): Promise<void> => {
+  return deleteWorkOrderCascade(workOrderId);
+};
