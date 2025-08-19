@@ -360,6 +360,7 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
             importProgress={state.importProgress}
             organizationName={organizationName}
             importId={state.importId}
+            selectedTeamId={state.selectedTeamId}
             onClose={handleClose}
             onDownloadErrors={() => {
               if (state.importProgress.errors.length && state.parsedData) {

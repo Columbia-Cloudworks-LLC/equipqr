@@ -14,6 +14,7 @@ interface CSVSuccessStepProps {
   };
   organizationName: string;
   importId: string;
+  selectedTeamId?: string | null;
   onClose: () => void;
   onDownloadErrors: () => void;
 }
@@ -22,6 +23,7 @@ export const CSVSuccessStep: React.FC<CSVSuccessStepProps> = ({
   importProgress,
   organizationName,
   importId,
+  selectedTeamId,
   onClose,
   onDownloadErrors
 }) => {
@@ -31,8 +33,12 @@ export const CSVSuccessStep: React.FC<CSVSuccessStepProps> = ({
   const errorCount = importProgress.errors.length;
   
   const handleViewImported = () => {
-    // Navigate to equipment page with filter for this import
-    navigate(`/equipment?importId=${importId}`);
+    // Navigate to equipment page with team filter if selected
+    if (selectedTeamId) {
+      navigate(`/dashboard/equipment?team=${selectedTeamId}`);
+    } else {
+      navigate('/dashboard/equipment');
+    }
     onClose();
   };
 
