@@ -8,8 +8,9 @@ export const normalizeHeader = (header: string): string => {
     .trim()
     .toLowerCase()
     .replace(/[_-]/g, ' ') // Convert underscores and hyphens to spaces first
-    .replace(/\s+/g, ' ')
-    .replace(/[^\w\s]/g, '');
+    .replace(/\//g, ' ') // Convert forward slashes to spaces for S/N
+    .replace(/[^\w\s]/g, '') // Remove special characters
+    .replace(/\s+/g, ' '); // Normalize multiple spaces to single space
 };
 
 /**
@@ -105,7 +106,7 @@ export const autoMapHeaders = (headers: string[]): ColumnMapping[] => {
 /**
  * Check if a cell value is considered empty
  */
-export const isEmptyCell = (value: any): boolean => {
+export const isEmptyCell = (value: string | number | boolean | null | undefined): boolean => {
   if (value === null || value === undefined) return true;
   if (typeof value === 'string') {
     const trimmed = value.trim();

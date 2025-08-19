@@ -1,13 +1,13 @@
-// Mock the hook before importing anything else
-const mockUseIsMobile = {
-  useIsMobile: vi.fn()
-};
+import { vi, beforeEach, describe, it, expect } from 'vitest';
 
-vi.mock('@/hooks/use-mobile', () => mockUseIsMobile);
+// Mock the hook
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: vi.fn()
+}));
 
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentHeader from '../EquipmentHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const defaultProps = {
   organizationName: 'Test Organization',
@@ -20,7 +20,7 @@ const defaultProps = {
 describe('EquipmentHeader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (mockUseIsMobile.useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    (useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(false);
   });
 
   describe('Basic Rendering', () => {
@@ -65,7 +65,7 @@ describe('EquipmentHeader', () => {
 
   describe('Responsive Layout', () => {
     it('applies mobile layout classes when on mobile', () => {
-      (mockUseIsMobile.useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      (useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(true);
       
       render(<EquipmentHeader {...defaultProps} />);
       
@@ -124,7 +124,7 @@ describe('EquipmentHeader', () => {
 
   describe('Mobile Layout Adjustments', () => {
     beforeEach(() => {
-      (mockUseIsMobile.useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      (useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(true);
     });
 
     it('applies full width to buttons on mobile', () => {

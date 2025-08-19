@@ -155,7 +155,7 @@ export const CSVMappingStep: React.FC<CSVMappingStepProps> = ({
                   <Select
                     value={mapping.mappedTo}
                     onValueChange={(value) => updateMapping(index, { 
-                      mappedTo: value as any,
+                      mappedTo: value as ColumnMapping['mappedTo'],
                       customKey: value === 'custom' ? toSnakeCase(mapping.header) : undefined
                     })}
                   >

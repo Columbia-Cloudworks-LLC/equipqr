@@ -6,7 +6,7 @@ export interface MappedRow {
   serial?: string;
   location?: string;
   last_maintenance?: string;
-  customAttributes: Record<string, any>;
+  customAttributes: Record<string, string | number | boolean | null>;
   raw: Record<string, string>;
 }
 
@@ -19,7 +19,7 @@ export interface ImportPreviewRow {
   serial?: string;
   location?: string;
   last_maintenance?: string;
-  customAttributes: Record<string, any>;
+  customAttributes: Record<string, string | number | boolean | null>;
   error?: string;
   warning?: string;
 }
