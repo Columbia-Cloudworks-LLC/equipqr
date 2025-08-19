@@ -29,7 +29,6 @@ export const CSVPreviewStep: React.FC<CSVPreviewStepProps> = ({
   onImport,
   onBack,
   importProgress,
-  parsedData,
   onDownloadErrors
 }) => {
   if (!dryRunResult) {

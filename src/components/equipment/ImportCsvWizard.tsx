@@ -1,21 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import Papa from 'papaparse';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTeamsByOrganization } from '@/hooks/useSupabaseData';
-import { Upload, FileText, Download, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Upload, CheckCircle } from 'lucide-react';
 
 import { CSVUploadStep } from './csv-import/CSVUploadStep';
 import { CSVMappingStep } from './csv-import/CSVMappingStep';
 import { CSVPreviewStep } from './csv-import/CSVPreviewStep';
 import { CSVSuccessStep } from './csv-import/CSVSuccessStep';
 
-import type { CSVImportState, ImportChunkResult } from '@/types/csvImport';
+import type { CSVImportState } from '@/types/csvImport';
 import { stripBOM, generateImportId, downloadErrorsCSV } from '@/utils/csvImportUtils';
 
 interface ImportCsvWizardProps {

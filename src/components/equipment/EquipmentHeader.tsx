@@ -21,14 +21,14 @@ const EquipmentHeader: React.FC<EquipmentHeaderProps> = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className={isMobile ? "space-y-4" : "flex items-center justify-between"}>
+    <div className={isMobile ? "space-y-4" : "flex items-center justify-between"} data-testid="equipment-header">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
         <p className="text-muted-foreground">
           Manage equipment for {organizationName}
         </p>
       </div>
-      <div className={`flex gap-2 ${isMobile ? 'flex-col w-full' : ''}`}>
+      <div className={`flex gap-2 ${isMobile ? 'flex-col w-full' : ''}`} data-testid="button-container">
         {canImport && (
           <Button 
             variant="outline"

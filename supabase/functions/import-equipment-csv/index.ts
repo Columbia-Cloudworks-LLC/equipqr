@@ -13,7 +13,7 @@ interface MappedRow {
   serial?: string;
   location?: string;
   last_maintenance?: string;
-  customAttributes: Record<string, any>;
+  customAttributes: Record<string, string | number | boolean | null>;
 }
 
 interface ImportRequest {
@@ -92,7 +92,7 @@ serve(async (req) => {
     if (dryRun) {
       return await handleDryRun(organizationId, rows, mappings);
     } else {
-      return await handleImport(organizationId, rows, mappings, importId, teamId, user.id);
+      return await handleImport(organizationId, rows, mappings, importId, teamId);
     }
 
   } catch (error) {
@@ -110,13 +110,28 @@ serve(async (req) => {
 async function handleDryRun(
   organizationId: string,
   rows: Record<string, string>[],
-  mappings: Array<any>
+  mappings: Array<{
+    header: string;
+    mappedTo: 'name' | 'manufacturer' | 'model' | 'serial' | 'location' | 'last_maintenance' | 'custom' | 'skip';
+    customKey?: string;
+  }>
 ) {
   let validCount = 0;
   let willCreate = 0;
   let willMerge = 0;
   let errorCount = 0;
-  const sample: any[] = [];
+  const sample: Array<{
+    rowIndex: number;
+    action: 'create' | 'merge' | 'error';
+    name?: string;
+    manufacturer?: string;
+    model?: string;
+    serial?: string;
+    location?: string;
+    last_maintenance?: string;
+    customAttributes: Record<string, string | number | boolean | null>;
+    error?: string;
+  }> = [];
   const warnings: string[] = [];
   const errors: Array<{ row: number; reason: string }> = [];
 
@@ -186,10 +201,13 @@ async function handleDryRun(
 async function handleImport(
   organizationId: string,
   rows: Record<string, string>[],
-  mappings: Array<any>,
+  mappings: Array<{
+    header: string;
+    mappedTo: 'name' | 'manufacturer' | 'model' | 'serial' | 'location' | 'last_maintenance' | 'custom' | 'skip';
+    customKey?: string;
+  }>,
   importId: string,
-  teamId: string | null,
-  userId: string
+  teamId: string | null
 ) {
   let created = 0;
   let merged = 0;
@@ -212,7 +230,7 @@ async function handleImport(
       
       if (existing) {
         // Merge logic
-        const updateData: any = {
+        const updateData: Record<string, string | Record<string, string | number | boolean | null>> = {
           updated_at: new Date().toISOString()
         };
 
@@ -252,7 +270,7 @@ async function handleImport(
         merged++;
       } else {
         // Create new equipment
-        const insertData: any = {
+        const insertData: Record<string, string | Record<string, string | number | boolean | null> | null> = {
           organization_id: organizationId,
           name: mappedRow.name || `${mappedRow.manufacturer || ''} ${mappedRow.model || ''}`.trim() || 'Imported Equipment',
           manufacturer: mappedRow.manufacturer || '',
@@ -292,7 +310,11 @@ async function handleImport(
   });
 }
 
-function mapRow(row: Record<string, string>, mappings: Array<any>): MappedRow {
+function mapRow(row: Record<string, string>, mappings: Array<{
+  header: string;
+  mappedTo: 'name' | 'manufacturer' | 'model' | 'serial' | 'location' | 'last_maintenance' | 'custom' | 'skip';
+  customKey?: string;
+}>): MappedRow {
   const result: MappedRow = {
     customAttributes: {}
   };
@@ -304,7 +326,7 @@ function mapRow(row: Record<string, string>, mappings: Array<any>): MappedRow {
     if (mapping.mappedTo === 'custom') {
       result.customAttributes[mapping.customKey || mapping.header] = inferType(value);
     } else if (mapping.mappedTo !== 'skip') {
-      (result as any)[mapping.mappedTo] = value.trim();
+      (result as Record<string, string>)[mapping.mappedTo] = value.trim();
     }
   }
 

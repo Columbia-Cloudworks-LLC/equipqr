@@ -299,7 +299,7 @@ export const downloadErrorsCSV = (
   const csvContent = [
     headers.join(','),
     ...errorRows.map(row => 
-      headers.map(header => `"${(row as any)[header] || ''}"`).join(',')
+      headers.map(header => `"${(row as Record<string, string>)[header] || ''}"`).join(',')
     )
   ].join('\n');
   

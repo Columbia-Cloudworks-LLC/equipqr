@@ -69,7 +69,7 @@ describe('EquipmentHeader', () => {
       
       render(<EquipmentHeader {...defaultProps} />);
       
-      const container = screen.getByText('Equipment').closest('div');
+      const container = screen.getByTestId('equipment-header');
       expect(container).toHaveClass('space-y-4');
     });
   });
@@ -140,7 +140,7 @@ describe('EquipmentHeader', () => {
     it('stacks buttons vertically on mobile', () => {
       render(<EquipmentHeader {...defaultProps} canImport={true} />);
       
-      const buttonContainer = screen.getByText('Import CSV').closest('.flex');
+      const buttonContainer = screen.getByTestId('button-container');
       expect(buttonContainer).toHaveClass('flex-col');
     });
   });

@@ -72,7 +72,7 @@ export const CSVMappingStep: React.FC<CSVMappingStepProps> = ({
       groupedDuplicates.get(key || '')!.push(mapping);
     });
     
-    return Array.from(groupedDuplicates.entries()).filter(([_, mappings]) => mappings.length > 1);
+    return Array.from(groupedDuplicates.entries()).filter(([, mappings]) => mappings.length > 1);
   };
 
   const duplicateWarnings = getDuplicateWarnings();
