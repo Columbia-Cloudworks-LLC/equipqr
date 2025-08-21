@@ -14,15 +14,18 @@ export interface StandardError {
 }
 
 // Common error patterns for Supabase
-const SUPABASE_ERROR_PATTERNS = {
-  'Invalid input': { category: 'validation' as ErrorCategory, severity: 'warning' as ErrorSeverity },
-  'Permission denied': { category: 'permission' as ErrorCategory, severity: 'error' as ErrorSeverity },
-  'Network error': { category: 'network' as ErrorCategory, severity: 'error' as ErrorSeverity },
-  'JWT expired': { category: 'permission' as ErrorCategory, severity: 'warning' as ErrorSeverity },
-  'Row level security': { category: 'permission' as ErrorCategory, severity: 'error' as ErrorSeverity },
-  'duplicate key': { category: 'validation' as ErrorCategory, severity: 'warning' as ErrorSeverity },
-  'foreign key': { category: 'validation' as ErrorCategory, severity: 'warning' as ErrorSeverity },
-} as const;
+const SUPABASE_ERROR_PATTERNS: Record<
+  string,
+  { category: ErrorCategory; severity: ErrorSeverity }
+> = {
+  'Invalid input': { category: 'validation', severity: 'warning' },
+  'Permission denied': { category: 'permission', severity: 'error' },
+  'Network error': { category: 'network', severity: 'error' },
+  'JWT expired': { category: 'permission', severity: 'warning' },
+  'Row level security': { category: 'permission', severity: 'error' },
+  'duplicate key': { category: 'validation', severity: 'warning' },
+  'foreign key': { category: 'validation', severity: 'warning' },
+};
 
 export const classifyError = (error: unknown): StandardError => {
   const errorMessage = getErrorMessage(error);
@@ -115,30 +118,32 @@ export const showErrorToast = (error: unknown, context?: string): StandardError 
   return standardError;
 };
 
-export const createRetryFunction = (
-  fn: () => Promise<unknown>,
-  maxRetries: number = 3,
-  delay: number = 1000
-) => {
-  return async (): Promise<unknown> => {
+export const createRetryFunction = <T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  delay = 1000
+): (() => Promise<T>) => {
+  return async (): Promise<T> => {
     let lastError: unknown;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await fn();
       } catch (error) {
         lastError = error;
         const standardError = classifyError(error);
-        
+
         if (!standardError.retryable || attempt === maxRetries) {
           throw error;
         }
-        
+
         // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt - 1)));
+        await new Promise(resolve =>
+          setTimeout(resolve, delay * Math.pow(2, attempt - 1))
+        );
       }
     }
-    
+
     throw lastError;
   };
 };
