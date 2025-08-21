@@ -60,7 +60,7 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 };
 
 // Legacy function for backward compatibility
-export const getEquipmentNotes = async (equipmentId: string, _organizationId: string) => {
+export const getEquipmentNotes = async (equipmentId: string) => {
   return getEquipmentNotesWithImages(equipmentId);
 };
 
