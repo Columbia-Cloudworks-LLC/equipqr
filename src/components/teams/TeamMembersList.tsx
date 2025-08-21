@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,11 +16,13 @@ interface TeamMembersListProps {
   team: TeamWithMembers;
 }
 
+type TeamMemberWithProfile = TeamWithMembers['members'][number];
+
 const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
   const { currentOrganization } = useOrganization();
   const { removeMember } = useTeamMembers(team.id, currentOrganization?.id);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [selectedMember, setSelectedMember] = useState<TeamMemberWithProfile | null>(null);
   const { canManageTeam } = usePermissions();
   
   const canManage = canManageTeam(team.id);
@@ -55,12 +57,12 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
     }
   };
 
-  const handleChangeRole = (member: any) => {
+  const handleChangeRole = (member: TeamMemberWithProfile) => {
     setSelectedMember(member);
     setShowRoleDialog(true);
   };
 
-  const handleRemoveMember = async (member: any) => {
+  const handleRemoveMember = async (member: TeamMemberWithProfile) => {
     const memberName = member.profiles?.name || 'this member';
     const confirmed = window.confirm(`Are you sure you want to remove ${memberName} from the team?`);
     
@@ -76,6 +78,9 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
     }
   };
 
+  // Ensure members array exists and has the expected structure
+  const members = team.members || [];
+
   return (
     <div className="space-y-4">
       <Table>
@@ -88,7 +93,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {team.members.map((member) => (
+          {members.map((member) => (
             <TableRow key={member.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
@@ -146,7 +151,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
         </TableBody>
       </Table>
 
-      {team.members.length === 0 && (
+      {members.length === 0 && (
         <div className="text-center py-8">
           <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No team members</h3>

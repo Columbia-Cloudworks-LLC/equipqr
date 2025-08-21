@@ -1,3 +1,4 @@
+
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
@@ -22,6 +23,7 @@ vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: vi.fn(() => ({
     canManageEquipment: () => true,
     hasRole: () => true,
+    isOrganizationAdmin: () => true,
   })),
 }));
 
@@ -76,6 +78,7 @@ const createPermissionsMock = (overrides: Partial<ReturnType<typeof usePermissio
   canChangeWorkOrderStatus: () => true,
   canManageOrganization: () => true,
   canInviteMembers: () => true,
+  isOrganizationAdmin: () => true,
   hasRole: () => true,
   isTeamMember: () => true,
   isTeamManager: () => true,

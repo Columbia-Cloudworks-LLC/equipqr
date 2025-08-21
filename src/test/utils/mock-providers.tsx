@@ -61,14 +61,8 @@ const mockSessionContextValue = {
 
 // Mock AuthContext value
 const mockAuthContextValue = {
-  user: { id: 'user-1', email: 'test@example.com' },
-  session: {
-    user: { id: 'user-1', email: 'test@example.com' },
-    access_token: 'token',
-    refresh_token: 'refresh_token',
-    expires_in: 3600,
-    token_type: 'bearer',
-  },
+  user: null, // Use null to match Supabase User type
+  session: null,
   isLoading: false,
   signUp: async () => ({ error: null }),
   signIn: async () => ({ error: null }),
