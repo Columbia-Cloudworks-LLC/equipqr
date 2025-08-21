@@ -22,6 +22,7 @@ export const usePermissions = () => {
     // Organization permissions
     canManageOrganization: () => permissions.organization.canManage,
     canInviteMembers: () => permissions.organization.canInviteMembers,
+    isOrganizationAdmin: () => permissions.organization.canManage, // Add missing method
     // Utility functions
     hasRole: permissions.hasRole,
     isTeamMember: permissions.isTeamMember,

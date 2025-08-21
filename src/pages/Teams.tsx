@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,11 +15,11 @@ const Teams = () => {
   const navigate = useNavigate();
   const { currentOrganization } = useSimpleOrganization();
   const { data: teams = [], isLoading } = useOptimizedTeams();
-  const { isOrganizationAdmin } = usePermissions();
+  const { canCreateTeam } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const canCreateTeams = isOrganizationAdmin();
+  const canCreateTeams = canCreateTeam();
 
   // Filter teams based on search term
   const filteredTeams = teams.filter(team =>

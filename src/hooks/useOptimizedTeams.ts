@@ -87,8 +87,14 @@ export const useOptimizedTeams = () => {
         }
         
         const profile = profilesMap.get(member.user_id);
+        
+        // Filter out 'owner' role which shouldn't exist in teams, and safely cast
+        const validRoles: ('manager' | 'technician' | 'requestor' | 'viewer')[] = ['manager', 'technician', 'requestor', 'viewer'];
+        const memberRole = validRoles.includes(member.role as any) ? member.role as 'manager' | 'technician' | 'requestor' | 'viewer' : 'technician';
+        
         acc[member.team_id].push({
           ...member,
+          role: memberRole,
           profiles: profile ? {
             id: profile.id,
             name: profile.name,

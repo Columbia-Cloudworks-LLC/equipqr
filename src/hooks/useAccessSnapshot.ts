@@ -35,7 +35,8 @@ export const useAccessSnapshot = () => {
         };
       }
 
-      const { data, error } = await supabase.rpc('get_user_access_snapshot', {
+      // Use .rpc() method with proper typing
+      const { data, error } = await supabase.rpc('get_user_access_snapshot' as any, {
         user_uuid: user.id
       });
 
@@ -44,7 +45,10 @@ export const useAccessSnapshot = () => {
         throw error;
       }
 
-      return data || {
+      // Safely cast the return data
+      const accessData = data as AccessSnapshot;
+      
+      return accessData || {
         organizations: [],
         accessibleTeamIds: [],
         profiles: []
