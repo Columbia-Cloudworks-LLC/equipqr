@@ -175,7 +175,7 @@ export class PermissionEngine {
     this.rules.get(permission)!.sort((a, b) => b.priority - a.priority);
   }
 
-  private getCacheKey(permission: string, context: UserContext, entityContext?: any): string {
+  private getCacheKey(permission: string, context: UserContext, entityContext?: EntityContext): string {
     const entityKey = entityContext ? JSON.stringify(entityContext) : 'null';
     return `${permission}:${context.userId}:${context.organizationId}:${entityKey}`;
   }
@@ -205,9 +205,9 @@ export class PermissionEngine {
   }
 
   public hasPermission(
-    permission: string, 
-    context: UserContext, 
-    entityContext?: any
+    permission: string,
+    context: UserContext,
+    entityContext?: EntityContext
   ): boolean {
     const cacheKey = this.getCacheKey(permission, context, entityContext);
     const cached = this.getFromCache(cacheKey);
@@ -236,7 +236,7 @@ export class PermissionEngine {
   public batchCheck(
     permissions: string[],
     context: UserContext,
-    entityContext?: any
+    entityContext?: EntityContext
   ): Record<string, boolean> {
     const results: Record<string, boolean> = {};
     

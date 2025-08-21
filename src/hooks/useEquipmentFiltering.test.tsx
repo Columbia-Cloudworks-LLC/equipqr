@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -78,11 +78,11 @@ const teamFixtures = [
 ];
 
 beforeEach(() => {
-  (useSyncEquipmentByOrganization as any).mockReturnValue({
+  (useSyncEquipmentByOrganization as Mock).mockReturnValue({
     data: equipmentFixtures,
     isLoading: false,
   });
-  (useSyncTeamsByOrganization as any).mockReturnValue({
+  (useSyncTeamsByOrganization as Mock).mockReturnValue({
     data: teamFixtures,
     isLoading: false,
   });

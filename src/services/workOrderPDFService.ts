@@ -69,7 +69,7 @@ export const generatePMChecklistPDF = async (workOrderId: string): Promise<void>
     let yPosition = 120;
     const checklistData = (pmData.checklist_data as unknown) as PMChecklistItem[];
     
-    checklistData.forEach((item, index) => {
+    checklistData.forEach(item => {
       pdf.setFontSize(10);
       const status = item.completed ? '✓' : '☐';
       pdf.text(`${status} ${item.task}`, 25, yPosition);

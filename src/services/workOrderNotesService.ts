@@ -128,7 +128,7 @@ export const getWorkOrderNotesWithImages = async (workOrderId: string) => {
 
     // Get author names separately
     const authorIds = [...new Set(notes.map(note => note.author_id))];
-    let profiles: any[] = [];
+    let profiles: Array<{ id: string; name?: string }> = [];
     
     if (authorIds.length > 0) {
       const { data: profileData } = await supabase
@@ -147,7 +147,7 @@ export const getWorkOrderNotesWithImages = async (workOrderId: string) => {
 
     // Get uploader names for images
     const uploaderIds = [...new Set((allImages || []).map(img => img.uploaded_by))];
-    let uploaderProfiles: any[] = [];
+    let uploaderProfiles: Array<{ id: string; name?: string }> = [];
     
     if (uploaderIds.length > 0) {
       const { data: uploaderData } = await supabase
@@ -199,7 +199,7 @@ export const getWorkOrderImages = async (workOrderId: string) => {
 
     // Get uploader names
     const uploaderIds = [...new Set(images.map(img => img.uploaded_by))];
-    let uploaderProfiles: any[] = [];
+    let uploaderProfiles: Array<{ id: string; name?: string }> = [];
     
     if (uploaderIds.length > 0) {
       const { data: uploaderData } = await supabase

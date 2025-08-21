@@ -64,14 +64,13 @@ export const getOptimizedTeamsByOrganization = async (organizationId: string): P
     }
 
     // Get work order counts by joining through equipment
-    const teamIds = teamsWithMembers.map(team => team.id);
     const { data: workOrderCounts } = await supabase
       .from('work_orders')
       .select('equipment_id, equipment:equipment_id(team_id)')
       .not('status', 'eq', 'completed');
 
     return teamsWithMembers.map(team => {
-      const teamMembers = (team.team_members || []).map((member: any) => ({
+      const teamMembers = (team.team_members || []).map((member: { user_id: string; profiles?: { name?: string; email?: string }; role: TeamMember['role'] }) => ({
         id: member.user_id,
         name: member.profiles?.name || 'Unknown',
         email: member.profiles?.email || '',
@@ -124,9 +123,9 @@ export const getOptimizedWorkOrdersByOrganization = async (organizationId: strin
 
     return (data || []).map(wo => ({
       ...wo,
-      assigneeName: (wo.assignee as any)?.name,
-      teamName: (wo.equipment as any)?.teams?.name,
-      equipmentName: (wo.equipment as any)?.name
+      assigneeName: (wo.assignee as { name?: string } | null | undefined)?.name,
+      teamName: (wo.equipment as { teams?: { name?: string } } | null | undefined)?.teams?.name,
+      equipmentName: (wo.equipment as { name?: string } | null | undefined)?.name
     }));
   } catch (error) {
     logger.error('Error in getOptimizedWorkOrdersByOrganization:', error);
@@ -199,7 +198,7 @@ export const getOptimizedNotesByEquipmentId = async (organizationId: string, equ
 
     return (data || []).map(note => ({
       ...note,
-      authorName: (note.author as any)?.name || 'Unknown'
+      authorName: (note.author as { name?: string } | null | undefined)?.name || 'Unknown'
     }));
   } catch (error) {
     logger.error('Error in getOptimizedNotesByEquipmentId:', error);
@@ -260,9 +259,9 @@ export const getOptimizedWorkOrderById = async (organizationId: string, workOrde
 
     return {
       ...data,
-      assigneeName: (data.assignee as any)?.name,
-      teamName: (data.equipment as any)?.teams?.name,
-      equipmentName: (data.equipment as any)?.name
+      assigneeName: (data.assignee as { name?: string } | null | undefined)?.name,
+      teamName: (data.equipment as { teams?: { name?: string } } | null | undefined)?.teams?.name,
+      equipmentName: (data.equipment as { name?: string } | null | undefined)?.name
     };
   } catch (error) {
     logger.error('Error in getOptimizedWorkOrderById:', error);
