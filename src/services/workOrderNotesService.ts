@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -67,7 +68,7 @@ export const createWorkOrderNoteWithImages = async (
         .upload(fileName, file);
 
       if (uploadError) {
-        console.error('Failed to upload image:', uploadError);
+        logger.error('Failed to upload image:', uploadError);
         continue;
       }
 
@@ -93,7 +94,7 @@ export const createWorkOrderNoteWithImages = async (
         .single();
 
       if (imageError) {
-        console.error('Failed to save image record:', imageError);
+        logger.error('Failed to save image record:', imageError);
         continue;
       }
 
@@ -102,7 +103,7 @@ export const createWorkOrderNoteWithImages = async (
         note_id: note.id
       });
     } catch (error) {
-      console.error('Error processing image:', error);
+      logger.error('Error processing image:', error);
     }
   }
 
@@ -178,7 +179,7 @@ export const getWorkOrderNotesWithImages = async (workOrderId: string) => {
       };
     });
   } catch (error) {
-    console.error('Error fetching work order notes:', error);
+    logger.error('Error fetching work order notes:', error);
     return [];
   }
 };
@@ -219,7 +220,7 @@ export const getWorkOrderImages = async (workOrderId: string) => {
       };
     });
   } catch (error) {
-    console.error('Error fetching work order images:', error);
+    logger.error('Error fetching work order images:', error);
     return [];
   }
 };

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface WorkingHoursHistoryEntry {
@@ -32,7 +33,7 @@ export const updateEquipmentWorkingHours = async (data: UpdateWorkingHoursData) 
   });
 
   if (error) {
-    console.error('Error updating equipment working hours:', error);
+    logger.error('Error updating equipment working hours:', error);
     throw error;
   }
 
@@ -62,7 +63,7 @@ export const getEquipmentWorkingHoursHistory = async (
     .eq('equipment_id', equipmentId);
 
   if (countError) {
-    console.error('Error fetching working hours history count:', countError);
+    logger.error('Error fetching working hours history count:', countError);
     throw countError;
   }
 
@@ -75,7 +76,7 @@ export const getEquipmentWorkingHoursHistory = async (
     .range(from, to);
 
   if (error) {
-    console.error('Error fetching working hours history:', error);
+    logger.error('Error fetching working hours history:', error);
     throw error;
   }
 
@@ -99,7 +100,7 @@ export const getEquipmentCurrentWorkingHours = async (equipmentId: string): Prom
     .single();
 
   if (error) {
-    console.error('Error fetching current working hours:', error);
+    logger.error('Error fetching current working hours:', error);
     throw error;
   }
 

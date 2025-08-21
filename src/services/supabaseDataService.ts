@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 
@@ -45,13 +46,13 @@ export const getEquipmentByOrganization = async (organizationId: string): Promis
       .order('name');
 
     if (error) {
-      console.error('Error fetching equipment:', error);
+      logger.error('Error fetching equipment:', error);
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('Error in getEquipmentByOrganization:', error);
+    logger.error('Error in getEquipmentByOrganization:', error);
     return [];
   }
 };
@@ -66,13 +67,13 @@ export const getEquipmentById = async (organizationId: string, equipmentId: stri
       .single();
 
     if (error || !data) {
-      console.error('Error fetching equipment by ID:', error);
+      logger.error('Error fetching equipment by ID:', error);
       return undefined;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getEquipmentById:', error);
+    logger.error('Error in getEquipmentById:', error);
     return undefined;
   }
 };
@@ -88,7 +89,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
       .order('name');
 
     if (teamsError) {
-      console.error('Error fetching teams:', teamsError);
+      logger.error('Error fetching teams:', teamsError);
       return [];
     }
 
@@ -115,7 +116,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
       .in('team_id', teamIds);
 
     if (membersError) {
-      console.error('Error fetching team members:', membersError);
+      logger.error('Error fetching team members:', membersError);
     }
 
     // Get work order counts for teams through equipment
@@ -126,7 +127,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
       .in('team_id', teamIds);
 
     if (equipmentError) {
-      console.error('Error fetching equipment for work order counts:', equipmentError);
+      logger.error('Error fetching equipment for work order counts:', equipmentError);
     }
 
     // Get work order counts
@@ -140,7 +141,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
       { data: [], error: null };
 
     if (workOrderError) {
-      console.error('Error fetching work order counts:', workOrderError);
+      logger.error('Error fetching work order counts:', workOrderError);
     }
 
     // Build teams with member and work order data
@@ -169,7 +170,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
       };
     });
   } catch (error) {
-    console.error('Error in getTeamsByOrganization:', error);
+    logger.error('Error in getTeamsByOrganization:', error);
     return [];
   }
 };
@@ -184,7 +185,7 @@ export const getDashboardStatsByOrganization = async (organizationId: string): P
       .eq('organization_id', organizationId);
 
     if (equipmentError) {
-      console.error('Error fetching equipment stats:', equipmentError);
+      logger.error('Error fetching equipment stats:', equipmentError);
     }
 
     // Get work order stats
@@ -194,7 +195,7 @@ export const getDashboardStatsByOrganization = async (organizationId: string): P
       .eq('organization_id', organizationId);
 
     if (workOrderError) {
-      console.error('Error fetching work order stats:', workOrderError);
+      logger.error('Error fetching work order stats:', workOrderError);
     }
 
     const equipment = equipmentData || [];
@@ -207,7 +208,7 @@ export const getDashboardStatsByOrganization = async (organizationId: string): P
       totalWorkOrders: workOrders.length
     };
   } catch (error) {
-    console.error('Error in getDashboardStatsByOrganization:', error);
+    logger.error('Error in getDashboardStatsByOrganization:', error);
     return {
       totalEquipment: 0,
       activeEquipment: 0,
@@ -233,7 +234,7 @@ export const getNotesByEquipmentId = async (organizationId: string, equipmentId:
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching notes:', error);
+      logger.error('Error fetching notes:', error);
       return [];
     }
 
@@ -245,7 +246,7 @@ export const getNotesByEquipmentId = async (organizationId: string, equipmentId:
       .in('id', authorIds);
 
     if (profilesError) {
-      console.error('Error fetching author profiles:', profilesError);
+      logger.error('Error fetching author profiles:', profilesError);
     }
 
     return (data || []).map(note => ({
@@ -253,7 +254,7 @@ export const getNotesByEquipmentId = async (organizationId: string, equipmentId:
       authorName: profiles?.find(p => p.id === note.author_id)?.name || 'Unknown'
     }));
   } catch (error) {
-    console.error('Error in getNotesByEquipmentId:', error);
+    logger.error('Error in getNotesByEquipmentId:', error);
     return [];
   }
 };
@@ -269,7 +270,7 @@ export const getWorkOrdersByEquipmentId = async (organizationId: string, equipme
       .order('created_date', { ascending: false });
 
     if (error) {
-      console.error('Error fetching work orders:', error);
+      logger.error('Error fetching work orders:', error);
       return [];
     }
 
@@ -295,7 +296,7 @@ export const getWorkOrdersByEquipmentId = async (organizationId: string, equipme
       teamName: undefined // Team info now comes from equipment assignment
     }));
   } catch (error) {
-    console.error('Error in getWorkOrdersByEquipmentId:', error);
+    logger.error('Error in getWorkOrdersByEquipmentId:', error);
     return [];
   }
 };
@@ -310,7 +311,7 @@ export const getAllWorkOrdersByOrganization = async (organizationId: string): Pr
       .order('created_date', { ascending: false });
 
     if (workOrdersError) {
-      console.error('Error fetching all work orders:', workOrdersError);
+      logger.error('Error fetching all work orders:', workOrdersError);
       return [];
     }
 
@@ -327,7 +328,7 @@ export const getAllWorkOrdersByOrganization = async (organizationId: string): Pr
       { data: [], error: null };
 
     if (profilesError) {
-      console.error('Error fetching assignee profiles:', profilesError);
+      logger.error('Error fetching assignee profiles:', profilesError);
     }
 
     // Combine work orders with assignee names
@@ -337,7 +338,7 @@ export const getAllWorkOrdersByOrganization = async (organizationId: string): Pr
       teamName: undefined // Team info now comes from equipment assignment
     }));
   } catch (error) {
-    console.error('Error in getAllWorkOrdersByOrganization:', error);
+    logger.error('Error in getAllWorkOrdersByOrganization:', error);
     return [];
   }
 };
@@ -352,7 +353,7 @@ export const getWorkOrderById = async (organizationId: string, workOrderId: stri
       .single();
 
     if (error || !data) {
-      console.error('Error fetching work order by ID:', error);
+      logger.error('Error fetching work order by ID:', error);
       return undefined;
     }
 
@@ -367,7 +368,7 @@ export const getWorkOrderById = async (organizationId: string, workOrderId: stri
       teamName: undefined // Team info now comes from equipment assignment
     };
   } catch (error) {
-    console.error('Error in getWorkOrderById:', error);
+    logger.error('Error in getWorkOrderById:', error);
     return undefined;
   }
 };
@@ -388,7 +389,7 @@ export const getScansByEquipmentId = async (organizationId: string, equipmentId:
       .order('scanned_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching scans:', error);
+      logger.error('Error fetching scans:', error);
       return [];
     }
 
@@ -400,7 +401,7 @@ export const getScansByEquipmentId = async (organizationId: string, equipmentId:
       .in('id', userIds);
 
     if (profilesError) {
-      console.error('Error fetching user profiles:', profilesError);
+      logger.error('Error fetching user profiles:', profilesError);
     }
 
     return (data || []).map(scan => ({
@@ -408,7 +409,7 @@ export const getScansByEquipmentId = async (organizationId: string, equipmentId:
       scannedByName: profiles?.find(p => p.id === scan.scanned_by)?.name || 'Unknown'
     }));
   } catch (error) {
-    console.error('Error in getScansByEquipmentId:', error);
+    logger.error('Error in getScansByEquipmentId:', error);
     return [];
   }
 };
@@ -423,7 +424,7 @@ export const createScan = async (
   try {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
-      console.error('User not authenticated');
+      logger.error('User not authenticated');
       return null;
     }
 
@@ -439,7 +440,7 @@ export const createScan = async (
       .single();
 
     if (error) {
-      console.error('Error creating scan:', error);
+      logger.error('Error creating scan:', error);
       return null;
     }
 
@@ -455,7 +456,7 @@ export const createScan = async (
       scannedByName: profile?.name || 'Unknown'
     };
   } catch (error) {
-    console.error('Error in createScan:', error);
+    logger.error('Error in createScan:', error);
     return null;
   }
 };
@@ -481,13 +482,13 @@ export const updateWorkOrderStatus = async (
       .eq('organization_id', organizationId);
 
     if (error) {
-      console.error('Error updating work order status:', error);
+      logger.error('Error updating work order status:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in updateWorkOrderStatus:', error);
+    logger.error('Error in updateWorkOrderStatus:', error);
     return false;
   }
 };
@@ -508,13 +509,13 @@ export const createEquipment = async (
       .single();
 
     if (error) {
-      console.error('Error creating equipment:', error);
+      logger.error('Error creating equipment:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in createEquipment:', error);
+    logger.error('Error in createEquipment:', error);
     return null;
   }
 };
@@ -527,7 +528,7 @@ export const createWorkOrder = async (
   try {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
-      console.error('User not authenticated');
+      logger.error('User not authenticated');
       return null;
     }
 
@@ -542,7 +543,7 @@ export const createWorkOrder = async (
       .single();
 
     if (error) {
-      console.error('Error creating work order:', error);
+      logger.error('Error creating work order:', error);
       return null;
     }
 
@@ -557,7 +558,7 @@ export const createWorkOrder = async (
       teamName: undefined // Team info now comes from equipment assignment
     };
   } catch (error) {
-    console.error('Error in createWorkOrder:', error);
+    logger.error('Error in createWorkOrder:', error);
     return null;
   }
 };
@@ -572,7 +573,7 @@ export const createNote = async (
   try {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
-      console.error('User not authenticated');
+      logger.error('User not authenticated');
       return null;
     }
 
@@ -588,7 +589,7 @@ export const createNote = async (
       .single();
 
     if (error) {
-      console.error('Error creating note:', error);
+      logger.error('Error creating note:', error);
       return null;
     }
 
@@ -604,7 +605,7 @@ export const createNote = async (
       authorName: profile?.name || 'Unknown'
     };
   } catch (error) {
-    console.error('Error in createNote:', error);
+    logger.error('Error in createNote:', error);
     return null;
   }
 };
@@ -625,13 +626,13 @@ export const updateEquipment = async (
       .single();
 
     if (error) {
-      console.error('Error updating equipment:', error);
+      logger.error('Error updating equipment:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in updateEquipment:', error);
+    logger.error('Error in updateEquipment:', error);
     return null;
   }
 };

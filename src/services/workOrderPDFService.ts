@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -91,7 +92,7 @@ export const generatePMChecklistPDF = async (workOrderId: string): Promise<void>
     // Download
     pdf.save(`PM-Checklist-${workOrder.title}-${Date.now()}.pdf`);
   } catch (error) {
-    console.error('Error generating PM PDF:', error);
+    logger.error('Error generating PM PDF:', error);
     throw error;
   }
 };

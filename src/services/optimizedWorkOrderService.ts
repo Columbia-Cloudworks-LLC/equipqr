@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedWorkOrder } from './workOrdersEnhancedService';
@@ -143,7 +144,7 @@ export const getFilteredWorkOrdersByOrganization = async (
       createdByName: wo.creator?.name
     }));
   } catch (error) {
-    console.error('Error fetching filtered work orders:', error);
+    logger.error('Error fetching filtered work orders:', error);
     throw error;
   }
 };

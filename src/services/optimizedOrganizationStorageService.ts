@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { monitorQuery } from '@/utils/queryMonitoring';
 
@@ -131,7 +132,7 @@ export class OptimizedOrganizationStorageService {
       };
 
     } catch (error) {
-      console.error('Error fetching organization storage usage:', error);
+      logger.error('Error fetching organization storage usage:', error);
       throw new Error(`Failed to fetch storage usage: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

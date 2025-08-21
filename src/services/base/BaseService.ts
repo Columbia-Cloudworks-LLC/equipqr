@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 
 export interface ApiResponse<T> {
   data: T | null;
@@ -24,7 +25,7 @@ export abstract class BaseService {
   }
 
   protected handleError(error: any): ApiResponse<null> {
-    console.error('Service error:', error);
+    logger.error('Service error:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Operation failed',

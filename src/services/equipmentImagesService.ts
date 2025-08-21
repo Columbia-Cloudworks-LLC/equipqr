@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { getEquipmentImages } from './equipmentNotesService';
 import { getWorkOrderImages } from './workOrderNotesService';
@@ -95,7 +96,7 @@ export const getAllEquipmentImages = async (
     );
 
   } catch (error) {
-    console.error('Error fetching equipment images:', error);
+    logger.error('Error fetching equipment images:', error);
     return [];
   }
 };

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface RevertResult {
@@ -18,7 +19,7 @@ export const workOrderRevertService = {
       if (error) throw error;
       return data as unknown as RevertResult;
     } catch (error) {
-      console.error('Error reverting work order status:', error);
+      logger.error('Error reverting work order status:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to revert work order status'
@@ -36,7 +37,7 @@ export const workOrderRevertService = {
       if (error) throw error;
       return data as unknown as RevertResult;
     } catch (error) {
-      console.error('Error reverting PM completion:', error);
+      logger.error('Error reverting PM completion:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to revert PM completion'
@@ -61,7 +62,7 @@ export const workOrderRevertService = {
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
-      console.error('Error fetching work order history:', error);
+      logger.error('Error fetching work order history:', error);
       return { data: null, error };
     }
   },
@@ -83,7 +84,7 @@ export const workOrderRevertService = {
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
-      console.error('Error fetching PM history:', error);
+      logger.error('Error fetching PM history:', error);
       return { data: null, error };
     }
   }

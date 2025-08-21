@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -62,7 +63,7 @@ export const getWorkOrderCosts = async (workOrderId: string): Promise<WorkOrderC
       created_by_name: profilesMap[cost.created_by] || 'Unknown'
     }));
   } catch (error) {
-    console.error('Error fetching work order costs:', error);
+    logger.error('Error fetching work order costs:', error);
     throw error;
   }
 };
@@ -96,7 +97,7 @@ export const createWorkOrderCost = async (costData: CreateWorkOrderCostData): Pr
       created_by_name: profile?.name || 'Unknown'
     };
   } catch (error) {
-    console.error('Error creating work order cost:', error);
+    logger.error('Error creating work order cost:', error);
     throw error;
   }
 };
@@ -128,7 +129,7 @@ export const updateWorkOrderCost = async (
       created_by_name: profile?.name || 'Unknown'
     };
   } catch (error) {
-    console.error('Error updating work order cost:', error);
+    logger.error('Error updating work order cost:', error);
     throw error;
   }
 };
@@ -143,7 +144,7 @@ export const deleteWorkOrderCost = async (costId: string): Promise<void> => {
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error deleting work order cost:', error);
+    logger.error('Error deleting work order cost:', error);
     throw error;
   }
 };

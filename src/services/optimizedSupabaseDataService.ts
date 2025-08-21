@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 
@@ -54,7 +55,7 @@ export const getOptimizedTeamsByOrganization = async (organizationId: string): P
       .order('name');
 
     if (error) {
-      console.error('Error fetching teams with members:', error);
+      logger.error('Error fetching teams with members:', error);
       return [];
     }
 
@@ -87,7 +88,7 @@ export const getOptimizedTeamsByOrganization = async (organizationId: string): P
       };
     });
   } catch (error) {
-    console.error('Error in getOptimizedTeamsByOrganization:', error);
+    logger.error('Error in getOptimizedTeamsByOrganization:', error);
     return [];
   }
 };
@@ -117,7 +118,7 @@ export const getOptimizedWorkOrdersByOrganization = async (organizationId: strin
       .order('created_date', { ascending: false });
 
     if (error) {
-      console.error('Error fetching optimized work orders:', error);
+      logger.error('Error fetching optimized work orders:', error);
       return [];
     }
 
@@ -128,7 +129,7 @@ export const getOptimizedWorkOrdersByOrganization = async (organizationId: strin
       equipmentName: (wo.equipment as any)?.name
     }));
   } catch (error) {
-    console.error('Error in getOptimizedWorkOrdersByOrganization:', error);
+    logger.error('Error in getOptimizedWorkOrdersByOrganization:', error);
     return [];
   }
 };
@@ -160,7 +161,7 @@ export const getOptimizedDashboardStats = async (organizationId: string): Promis
       pendingWorkOrders: workOrders.filter(wo => !['completed', 'cancelled'].includes(wo.status)).length
     };
   } catch (error) {
-    console.error('Error in getOptimizedDashboardStats:', error);
+    logger.error('Error in getOptimizedDashboardStats:', error);
     return {
       totalEquipment: 0,
       activeEquipment: 0,
@@ -192,7 +193,7 @@ export const getOptimizedNotesByEquipmentId = async (organizationId: string, equ
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching optimized notes:', error);
+      logger.error('Error fetching optimized notes:', error);
       return [];
     }
 
@@ -201,7 +202,7 @@ export const getOptimizedNotesByEquipmentId = async (organizationId: string, equ
       authorName: (note.author as any)?.name || 'Unknown'
     }));
   } catch (error) {
-    console.error('Error in getOptimizedNotesByEquipmentId:', error);
+    logger.error('Error in getOptimizedNotesByEquipmentId:', error);
     return [];
   }
 };
@@ -216,13 +217,13 @@ export const getOptimizedEquipmentByOrganization = async (organizationId: string
       .order('name');
 
     if (error) {
-      console.error('Error fetching equipment:', error);
+      logger.error('Error fetching equipment:', error);
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('Error in getOptimizedEquipmentByOrganization:', error);
+    logger.error('Error in getOptimizedEquipmentByOrganization:', error);
     return [];
   }
 };
@@ -253,7 +254,7 @@ export const getOptimizedWorkOrderById = async (organizationId: string, workOrde
       .single();
 
     if (error || !data) {
-      console.error('Error fetching optimized work order by ID:', error);
+      logger.error('Error fetching optimized work order by ID:', error);
       return undefined;
     }
 
@@ -264,7 +265,7 @@ export const getOptimizedWorkOrderById = async (organizationId: string, workOrde
       equipmentName: (data.equipment as any)?.name
     };
   } catch (error) {
-    console.error('Error in getOptimizedWorkOrderById:', error);
+    logger.error('Error in getOptimizedWorkOrderById:', error);
     return undefined;
   }
 };

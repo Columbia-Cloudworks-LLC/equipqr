@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import { UserContext, PermissionRule, PermissionCache } from '@/types/permissions';
 
 type EntityContext = { teamId?: string; assigneeId?: string; [key: string]: unknown };
@@ -224,7 +225,7 @@ export class PermissionEngine {
           return true;
         }
       } catch (error) {
-        console.warn(`Permission rule ${rule.name} failed:`, error);
+        logger.warn(`Permission rule ${rule.name} failed:`, error);
       }
     }
 
