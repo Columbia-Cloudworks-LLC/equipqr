@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface OptimizedTeam {
@@ -48,7 +49,7 @@ export const getTeamMembersOptimized = async (teamId: string): Promise<Optimized
       user_email: member.profiles?.email
     }));
   } catch (error) {
-    console.error('Error fetching team members:', error);
+    logger.error('Error fetching team members:', error);
     return [];
   }
 };
@@ -77,7 +78,7 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
       updated_at: team.updated_at
     }));
   } catch (error) {
-    console.error('Error fetching organization teams:', error);
+    logger.error('Error fetching organization teams:', error);
     return [];
   }
 };
@@ -109,7 +110,7 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<OptimizedTea
       updated_at: data.updated_at
     };
   } catch (error) {
-    console.error('Error fetching team by ID:', error);
+    logger.error('Error fetching team by ID:', error);
     return null;
   }
 };
@@ -128,7 +129,7 @@ export const isTeamManager = async (userId: string, teamId: string): Promise<boo
     if (error && error.code !== 'PGRST116') throw error;
     return !!data;
   } catch (error) {
-    console.error('Error checking team manager status:', error);
+    logger.error('Error checking team manager status:', error);
     return false;
   }
 };

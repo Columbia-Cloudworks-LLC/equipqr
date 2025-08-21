@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { SessionData } from '@/contexts/SessionContext';
 import { 
   getSessionStorageKey, 
@@ -18,7 +19,7 @@ export class SessionStorageService {
       
       // Check version compatibility - force refresh due to RLS changes
       if (parsed.version !== SESSION_VERSION) {
-        console.log('🔄 Session version updated, clearing stored data');
+        logger.info('🔄 Session version updated, clearing stored data');
         localStorage.removeItem(SESSION_STORAGE_KEY);
         return null;
       }
@@ -28,14 +29,14 @@ export class SessionStorageService {
       const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
       
       if (lastUpdated < fourHoursAgo) {
-        console.log('⏰ Session data is older than 4 hours, will refresh on next fetch');
+        logger.info('⏰ Session data is older than 4 hours, will refresh on next fetch');
         // Don't clear immediately, but mark for refresh
         return parsed;
       }
       
       return parsed;
     } catch (error) {
-      console.error('💥 Error loading session from storage:', error);
+      logger.error('💥 Error loading session from storage:', error);
       localStorage.removeItem(SESSION_STORAGE_KEY);
       return null;
     }
@@ -45,7 +46,7 @@ export class SessionStorageService {
     try {
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.error('💾 Error saving session to storage:', error);
+      logger.error('💾 Error saving session to storage:', error);
     }
   }
 

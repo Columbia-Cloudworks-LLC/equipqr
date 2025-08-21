@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, Database, Json } from '@/integrations/supabase/types';
@@ -885,7 +886,7 @@ export const createPM = async (data: CreatePMData): Promise<PreventativeMaintena
   try {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
-      console.error('User not authenticated');
+      logger.error('User not authenticated');
       return null;
     }
 
@@ -905,13 +906,13 @@ export const createPM = async (data: CreatePMData): Promise<PreventativeMaintena
       .single();
 
     if (error) {
-      console.error('Error creating PM:', error);
+      logger.error('Error creating PM:', error);
       return null;
     }
 
     return pm;
   } catch (error) {
-    console.error('Error in createPM:', error);
+    logger.error('Error in createPM:', error);
     return null;
   }
 };
@@ -926,13 +927,13 @@ export const getPMByWorkOrderId = async (workOrderId: string): Promise<Preventat
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching PM:', error);
+      logger.error('Error fetching PM:', error);
       return null;
     }
 
     return data || null;
   } catch (error) {
-    console.error('Error in getPMByWorkOrderId:', error);
+    logger.error('Error in getPMByWorkOrderId:', error);
     return null;
   }
 };
@@ -942,7 +943,7 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
   try {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
-      console.error('User not authenticated');
+      logger.error('User not authenticated');
       return null;
     }
 
@@ -968,13 +969,13 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       .single();
 
     if (error) {
-      console.error('Error updating PM:', error);
+      logger.error('Error updating PM:', error);
       return null;
     }
 
     return pm;
   } catch (error) {
-    console.error('Error in updatePM:', error);
+    logger.error('Error in updatePM:', error);
     return null;
   }
 };
@@ -986,13 +987,13 @@ export const getLatestCompletedPM = async (equipmentId: string) => {
       .rpc('get_latest_completed_pm', { equipment_uuid: equipmentId });
 
     if (error) {
-      console.error('Error fetching latest PM:', error);
+      logger.error('Error fetching latest PM:', error);
       return null;
     }
 
     return data?.[0] || null;
   } catch (error) {
-    console.error('Error in getLatestCompletedPM:', error);
+    logger.error('Error in getLatestCompletedPM:', error);
     return null;
   }
 };
@@ -1006,13 +1007,13 @@ export const deletePM = async (pmId: string): Promise<boolean> => {
       .eq('id', pmId);
 
     if (error) {
-      console.error('Error deleting PM:', error);
+      logger.error('Error deleting PM:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in deletePM:', error);
+    logger.error('Error in deletePM:', error);
     return false;
   }
 };

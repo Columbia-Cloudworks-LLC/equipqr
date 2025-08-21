@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface EquipmentTemplateAssignment {
@@ -46,7 +47,7 @@ export class EquipmentTemplateService {
         await this.assignTemplateToEquipment(equipmentId, templateId);
         successCount++;
       } catch (error) {
-        console.error(`Failed to assign template to equipment ${equipmentId}:`, error);
+        logger.error(`Failed to assign template to equipment ${equipmentId}:`, error);
         errorCount++;
       }
     }
@@ -66,7 +67,7 @@ export class EquipmentTemplateService {
         await this.removeTemplateFromEquipment(equipmentId);
         successCount++;
       } catch (error) {
-        console.error(`Failed to remove template from equipment ${equipmentId}:`, error);
+        logger.error(`Failed to remove template from equipment ${equipmentId}:`, error);
         errorCount++;
       }
     }

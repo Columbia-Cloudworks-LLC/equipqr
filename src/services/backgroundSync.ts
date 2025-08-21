@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { cacheManager } from './cacheManager';
@@ -232,7 +233,7 @@ export class BackgroundSyncService {
 
   private handleReconnection(organizationId: string) {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error(`Max reconnection attempts reached for org ${organizationId}`);
+      logger.error(`Max reconnection attempts reached for org ${organizationId}`);
       return;
     }
 
@@ -274,7 +275,7 @@ export class BackgroundSyncService {
       try {
         await Promise.all(batch.map(item => this.processSyncItem(item)));
       } catch (error) {
-        console.error('Error processing sync batch:', error);
+        logger.error('Error processing sync batch:', error);
         // Re-queue failed items
         this.syncQueue.unshift(...batch);
         break;
@@ -308,7 +309,7 @@ export class BackgroundSyncService {
         // Sync critical data that might have been missed
         await this.syncCriticalData(organizationId);
       } catch (error) {
-        console.error('Periodic sync error:', error);
+        logger.error('Periodic sync error:', error);
       }
     }, intervalMs);
 

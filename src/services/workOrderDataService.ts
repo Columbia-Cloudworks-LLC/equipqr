@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -58,7 +59,7 @@ export const getWorkOrderByIdWithAssignee = async (
       .single();
 
     if (error || !data) {
-      console.error('Error fetching work order with assignee:', error);
+      logger.error('Error fetching work order with assignee:', error);
       return null;
     }
 
@@ -87,7 +88,7 @@ export const getWorkOrderByIdWithAssignee = async (
       updated_at: data.updated_at
     };
   } catch (error) {
-    console.error('Error in getWorkOrderByIdWithAssignee:', error);
+    logger.error('Error in getWorkOrderByIdWithAssignee:', error);
     return null;
   }
 };

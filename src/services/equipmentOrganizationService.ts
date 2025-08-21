@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface EquipmentOrganizationInfo {
@@ -13,7 +14,7 @@ export interface EquipmentOrganizationInfo {
  */
 export const getEquipmentOrganization = async (equipmentId: string): Promise<EquipmentOrganizationInfo | null> => {
   try {
-    console.log('🔍 Fetching equipment organization for:', equipmentId);
+    logger.info('🔍 Fetching equipment organization for:', equipmentId);
     
     // Get equipment with organization info
     const { data: equipment, error: equipmentError } = await supabase
@@ -30,19 +31,19 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
       .single();
 
     if (equipmentError) {
-      console.error('❌ Error fetching equipment:', equipmentError);
+      logger.error('❌ Error fetching equipment:', equipmentError);
       return null;
     }
 
     if (!equipment) {
-      console.log('⚠️ Equipment not found:', equipmentId);
+      logger.info('⚠️ Equipment not found:', equipmentId);
       return null;
     }
 
     // Check if current user has access to this organization
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('❌ No authenticated user');
+      logger.info('❌ No authenticated user');
       return null;
     }
 
@@ -55,7 +56,7 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
       .maybeSingle();
 
     if (membershipError) {
-      console.error('❌ Error checking organization membership:', membershipError);
+      logger.error('❌ Error checking organization membership:', membershipError);
     }
 
     const result: EquipmentOrganizationInfo = {
@@ -66,11 +67,11 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
       userRole: membership?.role
     };
 
-    console.log('✅ Equipment organization info:', result);
+    logger.info('✅ Equipment organization info:', result);
     return result;
 
   } catch (error) {
-    console.error('❌ Unexpected error in getEquipmentOrganization:', error);
+    logger.error('❌ Unexpected error in getEquipmentOrganization:', error);
     return null;
   }
 };
@@ -86,13 +87,13 @@ export const checkUserHasMultipleOrganizations = async (): Promise<boolean> => {
       .eq('status', 'active');
 
     if (error) {
-      console.error('❌ Error checking user organizations:', error);
+      logger.error('❌ Error checking user organizations:', error);
       return false;
     }
 
     return (memberships?.length || 0) > 1;
   } catch (error) {
-    console.error('❌ Unexpected error checking multiple organizations:', error);
+    logger.error('❌ Unexpected error checking multiple organizations:', error);
     return false;
   }
 };

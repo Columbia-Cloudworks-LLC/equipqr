@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface WorkOrderImageCount {
@@ -23,7 +24,7 @@ export const getWorkOrderImageCount = async (workOrderId: string): Promise<WorkO
       images: data || []
     };
   } catch (error) {
-    console.error('Error fetching work order image count:', error);
+    logger.error('Error fetching work order image count:', error);
     throw error;
   }
 };
@@ -48,7 +49,7 @@ export const deleteWorkOrderCascade = async (workOrderId: string): Promise<void>
         .remove(filePaths);
 
       if (storageError) {
-        console.warn('Some storage files could not be deleted:', storageError);
+        logger.warn('Some storage files could not be deleted:', storageError);
         // Continue with database deletion even if storage cleanup fails
       }
     }
@@ -102,7 +103,7 @@ export const deleteWorkOrderCascade = async (workOrderId: string): Promise<void>
     if (workOrderError) throw workOrderError;
 
   } catch (error) {
-    console.error('Error deleting work order:', error);
+    logger.error('Error deleting work order:', error);
     throw error;
   }
 };

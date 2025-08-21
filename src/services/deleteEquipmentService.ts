@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { deleteWorkOrder } from './deleteWorkOrderService';
 
@@ -122,7 +123,7 @@ const deleteEquipmentNoteImagesFromStorage = async (images: EquipmentNoteImage[]
   // Log any failures but don't throw
   results.forEach((result, index) => {
     if (result.status === 'rejected') {
-      console.warn(`Failed to delete equipment note image ${filePaths[index]}:`, result.reason);
+      logger.warn(`Failed to delete equipment note image ${filePaths[index]}:`, result.reason);
     }
   });
 };
@@ -164,7 +165,7 @@ export const getEquipmentDeletionImpact = async (equipmentId: string): Promise<E
       workOrderImages: workOrderImageCount
     };
   } catch (error) {
-    console.error('Error getting equipment deletion impact:', error);
+    logger.error('Error getting equipment deletion impact:', error);
     throw error;
   }
 };
@@ -174,24 +175,24 @@ export const deleteEquipmentCascade = async (equipmentId: string, orgId: string)
     // Check admin access first
     await checkAdminAccess(orgId);
 
-    console.log(`Starting cascade deletion for equipment ${equipmentId}`);
+    logger.info(`Starting cascade deletion for equipment ${equipmentId}`);
 
     // Step 1: Collect all data that needs to be deleted
-    console.log('Collecting equipment note images...');
+    logger.info('Collecting equipment note images...');
     const equipmentNoteImages = await getEquipmentNoteImages(equipmentId);
 
-    console.log('Collecting work orders with images...');
+    logger.info('Collecting work orders with images...');
     const workOrdersWithImages = await getWorkOrdersWithImages(equipmentId);
 
     // Step 2: Delete work orders (this handles all WO-related data including PMs)
-    console.log(`Deleting ${workOrdersWithImages.length} work orders...`);
+    logger.info(`Deleting ${workOrdersWithImages.length} work orders...`);
     for (const wo of workOrdersWithImages) {
       await deleteWorkOrder(wo.id);
     }
 
     // Step 3: Delete equipment note images (DB rows then storage)
     if (equipmentNoteImages.length > 0) {
-      console.log(`Deleting ${equipmentNoteImages.length} equipment note images from database...`);
+      logger.info(`Deleting ${equipmentNoteImages.length} equipment note images from database...`);
       
       // Delete from database first
       const { error: dbDeleteError } = await supabase
@@ -202,12 +203,12 @@ export const deleteEquipmentCascade = async (equipmentId: string, orgId: string)
       if (dbDeleteError) throw dbDeleteError;
 
       // Then delete from storage
-      console.log('Deleting equipment note images from storage...');
+      logger.info('Deleting equipment note images from storage...');
       await deleteEquipmentNoteImagesFromStorage(equipmentNoteImages);
     }
 
     // Step 4: Delete equipment notes
-    console.log('Deleting equipment notes...');
+    logger.info('Deleting equipment notes...');
     const { error: notesError } = await supabase
       .from('equipment_notes')
       .delete()
@@ -216,7 +217,7 @@ export const deleteEquipmentCascade = async (equipmentId: string, orgId: string)
     if (notesError) throw notesError;
 
     // Step 5: Delete scans (optional but tidy)
-    console.log('Deleting equipment scans...');
+    logger.info('Deleting equipment scans...');
     const { error: scansError } = await supabase
       .from('scans')
       .delete()
@@ -225,7 +226,7 @@ export const deleteEquipmentCascade = async (equipmentId: string, orgId: string)
     if (scansError) throw scansError;
 
     // Step 6: Finally delete the equipment record
-    console.log('Deleting equipment record...');
+    logger.info('Deleting equipment record...');
     const { error: equipmentError } = await supabase
       .from('equipment')
       .delete()
@@ -233,10 +234,10 @@ export const deleteEquipmentCascade = async (equipmentId: string, orgId: string)
 
     if (equipmentError) throw equipmentError;
 
-    console.log(`Successfully deleted equipment ${equipmentId} and all related data`);
+    logger.info(`Successfully deleted equipment ${equipmentId} and all related data`);
 
   } catch (error) {
-    console.error('Error in equipment cascade deletion:', error);
+    logger.error('Error in equipment cascade deletion:', error);
     throw error;
   }
 };

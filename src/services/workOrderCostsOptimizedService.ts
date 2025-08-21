@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface WorkOrderCost {
@@ -54,7 +55,7 @@ export const getMyCosts = async (organizationId: string, userId: string): Promis
       workOrderTitle: cost.work_orders?.title
     }));
   } catch (error) {
-    console.error('Error fetching user costs:', error);
+    logger.error('Error fetching user costs:', error);
     return [];
   }
 };
@@ -98,7 +99,7 @@ export const getAllCostsWithCreators = async (organizationId: string): Promise<W
       workOrderTitle: cost.work_orders?.title
     }));
   } catch (error) {
-    console.error('Error fetching all costs:', error);
+    logger.error('Error fetching all costs:', error);
     return [];
   }
 };
@@ -151,7 +152,7 @@ export const getCostSummaryByUser = async (organizationId: string) => {
 
     return Object.values(summary);
   } catch (error) {
-    console.error('Error fetching cost summary:', error);
+    logger.error('Error fetching cost summary:', error);
     return [];
   }
 };
