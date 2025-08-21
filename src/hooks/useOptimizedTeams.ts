@@ -30,12 +30,12 @@ export interface OptimizedTeam {
 
 export const useOptimizedTeams = () => {
   const { currentOrganization } = useSimpleOrganization();
-  const { data: accessSnapshot } = useAccessSnapshot();
+  const { data: accessSnapshot, isLoading: isAccessLoading } = useAccessSnapshot();
 
   return useQuery({
-    queryKey: ['optimized-teams', currentOrganization?.id, accessSnapshot?.accessibleTeamIds],
+    queryKey: ['optimized-teams', currentOrganization?.id],
     queryFn: async (): Promise<OptimizedTeam[]> => {
-      if (!currentOrganization || !accessSnapshot) {
+      if (!currentOrganization) {
         return [];
       }
 
@@ -55,9 +55,13 @@ export const useOptimizedTeams = () => {
         return [];
       }
 
-      // Filter teams based on access
-      const accessibleTeamIds = new Set(accessSnapshot.accessibleTeamIds);
-      const accessibleTeams = teams.filter(team => accessibleTeamIds.has(team.id));
+      // If we have access snapshot, filter teams based on access
+      // Otherwise, show all teams (fallback behavior)
+      let accessibleTeams = teams;
+      if (accessSnapshot && accessSnapshot.accessibleTeamIds.length > 0) {
+        const accessibleTeamIds = new Set(accessSnapshot.accessibleTeamIds);
+        accessibleTeams = teams.filter(team => accessibleTeamIds.has(team.id));
+      }
 
       if (accessibleTeams.length === 0) {
         return [];
@@ -67,7 +71,10 @@ export const useOptimizedTeams = () => {
       const teamIds = accessibleTeams.map(team => team.id);
       const { data: teamMembers, error: membersError } = await supabase
         .from('team_members')
-        .select('*')
+        .select(`
+          *,
+          profiles!inner(id, name, email)
+        `)
         .in('team_id', teamIds);
 
       if (membersError) {
@@ -75,18 +82,11 @@ export const useOptimizedTeams = () => {
         throw membersError;
       }
 
-      // Create a map of profiles from the access snapshot
-      const profilesMap = new Map(
-        accessSnapshot.profiles.map(profile => [profile.id, profile])
-      );
-
       // Group members by team and enrich with profile data
       const membersByTeam = (teamMembers || []).reduce((acc, member) => {
         if (!acc[member.team_id]) {
           acc[member.team_id] = [];
         }
-        
-        const profile = profilesMap.get(member.user_id);
         
         // Filter out 'owner' role which shouldn't exist in teams, and safely cast
         const validRoles: ('manager' | 'technician' | 'requestor' | 'viewer')[] = ['manager', 'technician', 'requestor', 'viewer'];
@@ -95,10 +95,10 @@ export const useOptimizedTeams = () => {
         acc[member.team_id].push({
           ...member,
           role: memberRole,
-          profiles: profile ? {
-            id: profile.id,
-            name: profile.name,
-            email: profile.email
+          profiles: member.profiles ? {
+            id: member.profiles.id,
+            name: member.profiles.name,
+            email: member.profiles.email
           } : null
         });
         
@@ -112,7 +112,7 @@ export const useOptimizedTeams = () => {
         member_count: (membersByTeam[team.id] || []).length
       }));
     },
-    enabled: !!(currentOrganization && accessSnapshot),
+    enabled: !!currentOrganization && !isAccessLoading,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
