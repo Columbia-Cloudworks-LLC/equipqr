@@ -1,97 +1,50 @@
 
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Users, Settings, Crown, User, Trash2, UserX } from 'lucide-react';
-import { useSession } from '@/hooks/useSession';
-import { useTeams, useTeamMutations } from '@/hooks/useTeamManagement';
-import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import TeamForm from '@/components/teams/TeamForm';
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Users, Plus, Search, Settings, UserCheck, Eye, Wrench } from 'lucide-react';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOptimizedTeams } from '@/hooks/useOptimizedTeams';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useNavigate } from 'react-router-dom';
+import CreateTeamDialog from '@/components/teams/CreateTeamDialog';
 
 const Teams = () => {
-  const { getCurrentOrganization, isLoading, getUserTeamIds } = useSession();
-  const currentOrganization = getCurrentOrganization();
-  const [showForm, setShowForm] = useState(false);
-  const [deleteTeamId, setDeleteTeamId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { currentOrganization } = useSimpleOrganization();
+  const { data: teams = [], isLoading } = useOptimizedTeams();
+  const { isOrganizationAdmin } = usePermissions();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  // Use teams hook for data
-  const { data: allTeams = [], isLoading: teamsLoading } = useTeams(currentOrganization?.id);
-  
-  // Team mutations
-  const { deleteTeam } = useTeamMutations();
-  
-  // Check permissions
-  const permissions = useUnifiedPermissions();
-  const canCreateTeams = permissions.organization.canCreateTeams;
-  
-  // Get user's team memberships for current organization
-  const userTeamIds = getUserTeamIds();
-  
-  // Determine what teams to show based on user role and memberships
-  const { teamsToShow, userHasTeamMemberships, isOrgAdmin } = useMemo(() => {
-    if (!currentOrganization || !userTeamIds) {
-      return { teamsToShow: [], userHasTeamMemberships: false, isOrgAdmin: false };
-    }
-    
-    const isOrgAdmin = ['owner', 'admin'].includes(currentOrganization.userRole);
-    const userHasTeamMemberships = userTeamIds.length > 0;
-    
-    // Organization admins can see all teams
-    if (isOrgAdmin) {
-      return { teamsToShow: allTeams, userHasTeamMemberships, isOrgAdmin };
-    }
-    
-    // Regular members can only see teams they belong to
-    const userTeams = allTeams.filter(team => userTeamIds.includes(team.id));
-    return { teamsToShow: userTeams, userHasTeamMemberships, isOrgAdmin };
-  }, [allTeams, userTeamIds, currentOrganization]);
+  const canCreateTeams = isOrganizationAdmin();
 
-  if (isLoading || teamsLoading || !currentOrganization) {
-    return (
-      <div className="space-y-6" data-testid="teams-loading">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Teams</h1>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(2)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="h-48 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Filter teams based on search term
+  const filteredTeams = teams.filter(team =>
+    team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    team.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'owner':
-        return <Crown className="h-4 w-4 text-yellow-600" />;
       case 'manager':
-        return <Users className="h-4 w-4 text-blue-600" />;
+        return <Settings className="h-3 w-3" />;
       case 'technician':
-        return <User className="h-4 w-4 text-green-600" />;
+        return <Wrench className="h-3 w-3" />;
       case 'requestor':
-        return <User className="h-4 w-4 text-orange-600" />;
+        return <UserCheck className="h-3 w-3" />;
       case 'viewer':
-        return <User className="h-4 w-4 text-gray-600" />;
+        return <Eye className="h-3 w-3" />;
       default:
-        return <User className="h-4 w-4 text-gray-600" />;
+        return <UserCheck className="h-3 w-3" />;
     }
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'owner':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'manager':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'technician':
@@ -105,192 +58,187 @@ const Teams = () => {
     }
   };
 
-  const handleDeleteTeam = (teamId: string) => {
-    setDeleteTeamId(teamId);
-  };
-
-  const confirmDeleteTeam = () => {
-    if (deleteTeamId) {
-      deleteTeam.mutate(deleteTeamId);
-      setDeleteTeamId(null);
-    }
-  };
-
-  const selectedTeam = teamsToShow.find(team => team.id === deleteTeamId);
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Teams</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your organization's teams and members
+            </p>
+          </div>
+        </div>
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Teams</h1>
-          <p className="text-muted-foreground">
-            Manage teams for {currentOrganization.name}
+          <h1 className="text-3xl font-bold">Teams</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your organization's teams and members
           </p>
         </div>
-        {teamsToShow.length > 0 && canCreateTeams && (
-          <Button onClick={() => setShowForm(true)} className="flex items-center gap-2" data-testid="header-create-team-button">
+        {canCreateTeams && (
+          <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             Create Team
           </Button>
         )}
       </div>
 
-      {/* No Team Memberships Message */}
-      {!userHasTeamMemberships && !isOrgAdmin && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <UserX className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Team Access</h3>
-            <p className="text-muted-foreground mb-4">
-              You are not yet a member of any teams in {currentOrganization?.name}. Contact an organization administrator to give you a role on a team to see equipment and work orders for that team.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search teams..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
 
       {/* Teams Grid */}
-      {(userHasTeamMemberships || isOrgAdmin) && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {teamsToShow.map((team) => (
-          <Card key={team.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="h-5 w-5 text-blue-600" />
-                    {team.name}
-                  </CardTitle>
-                  <CardDescription className="mt-2">
-                    {team.description}
-                  </CardDescription>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Team Stats */}
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{team.members?.length || 0} members</span>
-                </div>
-                <div className="text-muted-foreground">
-                  {team.member_count || 0} total members
-                </div>
-              </div>
-
-              {/* Team Members Preview */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium">Team Members</h4>
-                <div className="space-y-2">
-                   {(team.members || []).slice(0, 3).map((member) => {
-                     const memberName = member.profiles?.name || 'Unknown User';
-                     const memberEmail = member.profiles?.email || 'No email';
-                     
-                     return (
-                       <div key={member.id} className="flex items-center justify-between">
-                         <div className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={undefined} />
-                              <AvatarFallback className="text-xs">
-                                {memberName.split(' ').map(n => n[0]).join('').toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-sm font-medium">{memberName}</p>
-                              <p className="text-xs text-muted-foreground">{memberEmail}</p>
-                            </div>
-                         </div>
-                         <Badge className={getRoleColor(member.role)} variant="outline">
-                           <div className="flex items-center gap-1">
-                             {getRoleIcon(member.role)}
-                             {member.role}
-                           </div>
-                         </Badge>
-                       </div>
-                     );
-                   })}
-                  {(team.members || []).length > 3 && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      +{(team.members || []).length - 3} more members
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => navigate(`/dashboard/teams/${team.id}`)}
-                >
-                  View Details
-                </Button>
-                {permissions.teams.getPermissions(team.id).canDelete && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleDeleteTeam(team.id)}
-                    className="text-destructive hover:text-destructive"
-                    aria-label="Delete team"
-                  >
-                    <Trash2 className="h-4 w-4" />
+      {filteredTeams.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            {searchTerm ? (
+              <>
+                <h3 className="text-lg font-semibold mb-2">No teams found</h3>
+                <p className="text-muted-foreground">
+                  No teams match your search criteria. Try a different search term.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold mb-2">No teams yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  {canCreateTeams
+                    ? "Get started by creating your first team to organize your maintenance work."
+                    : "No teams have been created yet. Contact your administrator to create teams."
+                  }
+                </p>
+                {canCreateTeams && (
+                  <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create First Team
                   </Button>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredTeams.map((team) => (
+            <Card key={team.id} className="hover:shadow-md transition-shadow cursor-pointer group">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg group-hover:text-primary transition-colors truncate">
+                      {team.name}
+                    </CardTitle>
+                    <CardDescription className="mt-1 line-clamp-2">
+                      {team.description || 'No description provided'}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                {/* Member Count */}
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{team.member_count} members</span>
+                  </div>
+                </div>
+
+                {/* Member Preview */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium">Team Members</h4>
+                  <div className="space-y-2">
+                    {team.members.slice(0, 3).map((member) => {
+                      const memberName = member.profiles?.name || 'Unknown User';
+                      const memberEmail = member.profiles?.email || 'No email';
+                      
+                      return (
+                        <div key={member.id} className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-xs bg-muted">
+                              {memberName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{memberName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{memberEmail}</p>
+                          </div>
+                          <Badge variant="outline" className={`${getRoleColor(member.role)} text-xs`}>
+                            <div className="flex items-center gap-1">
+                              {getRoleIcon(member.role)}
+                              {member.role}
+                            </div>
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                    {team.members.length > 3 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        +{team.members.length - 3} more members
+                      </p>
+                    )}
+                    {team.members.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        No members yet
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/dashboard/teams/${team.id}`)}
+                    className="w-full"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Team
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
 
-      {/* Empty State for Admins */}
-      {isOrgAdmin && teamsToShow.length === 0 && canCreateTeams && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No teams found</h3>
-            <p className="text-muted-foreground mb-4">
-              Get started by creating your first team for {currentOrganization?.name}.
-            </p>
-            <Button onClick={() => setShowForm(true)} data-testid="empty-state-create-team-button">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Team
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Team Form Modal */}
-      <TeamForm 
-        open={showForm} 
-        onClose={() => setShowForm(false)} 
+      <CreateTeamDialog 
+        open={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        organizationId={currentOrganization?.id || ''}
       />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteTeamId} onOpenChange={() => setDeleteTeamId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Team</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the team "{selectedTeam?.name}"? This action cannot be undone and will remove all team assignments.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDeleteTeam}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete Team
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

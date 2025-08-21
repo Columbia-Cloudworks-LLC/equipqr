@@ -76,6 +76,9 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
     }
   };
 
+  // Ensure members array exists and has the expected structure
+  const members = team.members || [];
+
   return (
     <div className="space-y-4">
       <Table>
@@ -88,7 +91,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {team.members.map((member) => (
+          {members.map((member) => (
             <TableRow key={member.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
@@ -146,7 +149,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
         </TableBody>
       </Table>
 
-      {team.members.length === 0 && (
+      {members.length === 0 && (
         <div className="text-center py-8">
           <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No team members</h3>
