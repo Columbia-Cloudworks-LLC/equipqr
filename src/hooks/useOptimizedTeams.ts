@@ -83,15 +83,19 @@ export const useOptimizedTeams = () => {
       }
 
       // Group members by team and enrich with profile data
+      const validRoles = ['manager', 'technician', 'requestor', 'viewer'] as const;
+      type ValidRole = typeof validRoles[number];
+
+      const isValidRole = (role: string): role is ValidRole =>
+        (validRoles as readonly string[]).includes(role);
+
       const membersByTeam = (teamMembers || []).reduce((acc, member) => {
         if (!acc[member.team_id]) {
           acc[member.team_id] = [];
         }
-        
-        // Filter out 'owner' role which shouldn't exist in teams, and safely cast
-        const validRoles: ('manager' | 'technician' | 'requestor' | 'viewer')[] = ['manager', 'technician', 'requestor', 'viewer'];
-        const memberRole = validRoles.includes(member.role as any) ? member.role as 'manager' | 'technician' | 'requestor' | 'viewer' : 'technician';
-        
+
+        const memberRole: ValidRole = isValidRole(member.role) ? member.role : 'technician';
+
         acc[member.team_id].push({
           ...member,
           role: memberRole,
@@ -101,7 +105,7 @@ export const useOptimizedTeams = () => {
             email: member.profiles.email
           } : null
         });
-        
+
         return acc;
       }, {} as Record<string, OptimizedTeamMember[]>);
 
