@@ -174,10 +174,10 @@ const Teams = () => {
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{team.members.length} members</span>
+                  <span className="font-medium">{team.members?.length || 0} members</span>
                 </div>
                 <div className="text-muted-foreground">
-                  {team.member_count} total members
+                  {team.member_count || 0} total members
                 </div>
               </div>
 
@@ -185,7 +185,7 @@ const Teams = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Team Members</h4>
                 <div className="space-y-2">
-                   {team.members.slice(0, 3).map((member) => {
+                   {(team.members || []).slice(0, 3).map((member) => {
                      const memberName = member.profiles?.name || 'Unknown User';
                      const memberEmail = member.profiles?.email || 'No email';
                      
@@ -212,9 +212,9 @@ const Teams = () => {
                        </div>
                      );
                    })}
-                  {team.members.length > 3 && (
+                  {(team.members || []).length > 3 && (
                     <p className="text-xs text-muted-foreground text-center">
-                      +{team.members.length - 3} more members
+                      +{(team.members || []).length - 3} more members
                     </p>
                   )}
                 </div>
