@@ -37,7 +37,7 @@ export const useAccessSnapshot = () => {
 
       try {
         // Try to use RPC function first
-        const { data, error } = await supabase.rpc('get_user_access_snapshot' as any, {
+        const { data, error } = await supabase.rpc('get_user_access_snapshot' as never, {
           user_uuid: user.id
         });
 
