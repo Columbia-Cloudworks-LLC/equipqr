@@ -36,28 +36,16 @@ export const useAccessSnapshot = () => {
       }
 
       try {
-        // Try to use RPC function first
-        const { data, error } = await supabase.rpc('get_user_access_snapshot' as never, {
-          user_uuid: user.id
-        });
-
-        if (error) {
-          // If RPC function doesn't exist, fall back to direct queries
-          console.warn('RPC function get_user_access_snapshot not found, using fallback queries');
-          return await getFallbackAccessSnapshot(user.id);
-        }
-
-        // Safely cast the return data
-        const accessData = data as AccessSnapshot;
-        
-        return accessData || {
+        // Fallback to direct queries since RPC doesn't exist yet
+        console.log('Using direct queries for access snapshot');
+        return await getFallbackAccessSnapshot(user.id);
+      } catch (error) {
+        console.error('Access snapshot queries failed:', error);
+        return {
           organizations: [],
           accessibleTeamIds: [],
           profiles: []
         };
-      } catch (error) {
-        console.warn('Access snapshot RPC failed, using fallback:', error);
-        return await getFallbackAccessSnapshot(user.id);
       }
     },
     enabled: !!user,

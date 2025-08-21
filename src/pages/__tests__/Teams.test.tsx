@@ -64,8 +64,45 @@ const renderTeamsPage = () => render(<Teams />);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockUseSimpleOrganization.mockReturnValue({ currentOrganization: { id: 'org-1' } });
-  mockUsePermissions.mockReturnValue({ canCreateTeam: () => true });
+  mockUseSimpleOrganization.mockReturnValue({ 
+    currentOrganization: { 
+      id: 'org-1',
+      name: 'Test Organization',
+      plan: 'premium' as const,
+      memberCount: 1,
+      maxMembers: 5,
+      features: [],
+      userRole: 'owner' as const,
+      userStatus: 'active' as const
+    },
+    organizations: [],
+    userOrganizations: [],
+    setCurrentOrganization: vi.fn(),
+    switchOrganization: vi.fn(),
+    isLoading: false,
+    error: null,
+    refetch: vi.fn().mockResolvedValue(undefined)
+  });
+  mockUsePermissions.mockReturnValue({ 
+    canManageTeam: () => true,
+    canViewTeam: () => true,
+    canCreateTeam: () => true,
+    canManageEquipment: () => true,
+    canViewEquipment: () => true,
+    canCreateEquipment: () => true,
+    canUpdateEquipmentStatus: () => true,
+    canManageWorkOrder: () => true,
+    canViewWorkOrder: () => true,
+    canCreateWorkOrder: () => true,
+    canAssignWorkOrder: () => true,
+    canChangeWorkOrderStatus: () => true,
+    canManageOrganization: () => true,
+    canInviteMembers: () => true,
+    isOrganizationAdmin: () => true,
+    hasRole: () => true,
+    isTeamMember: () => true,
+    isTeamManager: () => true
+  });
   mockUseOptimizedTeams.mockReturnValue({ data: [], isLoading: false } as unknown as UseQueryResult<OptimizedTeam[], Error>);
 });
 
