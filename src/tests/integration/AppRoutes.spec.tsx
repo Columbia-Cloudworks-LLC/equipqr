@@ -3,6 +3,25 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from '@/App';
 
+// Mock auth hook to bypass provider requirement
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: {}, isLoading: false })
+}));
+
+// Mock user context hook used by layout components
+vi.mock('@/contexts/UserContext', () => ({
+  useUser: () => ({
+    currentUser: { id: '1', email: 'test@example.com', name: 'Test User' },
+    isLoading: false,
+    setCurrentUser: () => {}
+  })
+}));
+
+// Mock simple organization hook used by the sidebar
+vi.mock('@/hooks/useSimpleOrganization', () => ({
+  useSimpleOrganization: () => ({ currentOrganization: null })
+}));
+
 // Mock all page components
 vi.mock('@/pages/Dashboard', () => ({ default: () => <div data-testid="dashboard-page">Dashboard</div> }));
 vi.mock('@/pages/Equipment', () => ({ default: () => <div data-testid="equipment-page">Equipment</div> }));
@@ -20,6 +39,7 @@ vi.mock('@/components/landing/SmartLanding', () => ({ default: () => <div data-t
 vi.mock('@/pages/Auth', () => ({ default: () => <div data-testid="auth-page">Auth</div> }));
 vi.mock('@/pages/TermsOfService', () => ({ default: () => <div data-testid="terms-page">Terms</div> }));
 vi.mock('@/pages/PrivacyPolicy', () => ({ default: () => <div data-testid="privacy-page">Privacy</div> }));
+vi.mock('@/components/layout/AppSidebar', () => ({ default: () => <div data-testid="app-sidebar">Sidebar</div> }));
 
 // Mock contexts
 vi.mock('@/contexts/TeamContext', () => ({
