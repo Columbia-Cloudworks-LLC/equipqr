@@ -2,7 +2,7 @@
 let lastNavigationEvent: string | null = null;
 let navigationEventCount = 0;
 
-export const logNavigationEvent = (event: string, data?: any) => {
+export const logNavigationEvent = (event: string, data?: unknown) => {
   if (process.env.NODE_ENV === 'development') {
     navigationEventCount++;
     lastNavigationEvent = event;
