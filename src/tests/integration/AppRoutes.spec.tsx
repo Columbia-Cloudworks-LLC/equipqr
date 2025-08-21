@@ -44,7 +44,7 @@ vi.mock('@/components/layout/TopBar', () => ({
 }));
 
 vi.mock('@/components/providers/AppProviders', () => ({
-  default: ({ children }: { children: React.ReactNode }) => (
+  AppProviders: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="app-providers">{children}</div>
   )
 }));

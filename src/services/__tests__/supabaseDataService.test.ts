@@ -293,7 +293,7 @@ describe('supabaseDataService', () => {
 
       await getEquipmentByOrganization('org-1');
 
-      expect(consoleSpy).toHaveBeenCalledWith('Error in getEquipmentByOrganization:', expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith('🚨 Error in getEquipmentByOrganization:', expect.any(Error));
       
       consoleSpy.mockRestore();
     });

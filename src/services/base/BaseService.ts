@@ -14,7 +14,7 @@ export interface PaginationParams {
 }
 
 export interface FilterParams {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export abstract class BaseService {
@@ -24,7 +24,7 @@ export abstract class BaseService {
     this.organizationId = organizationId;
   }
 
-  protected handleError(error: any): ApiResponse<null> {
+  protected handleError(error: unknown): ApiResponse<null> {
     logger.error('Service error:', error);
     return {
       data: null,

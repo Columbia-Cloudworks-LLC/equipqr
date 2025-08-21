@@ -24,7 +24,7 @@ export const getAllEquipmentImages = async (
   equipmentId: string,
   organizationId: string,
   userRole: string,
-  userTeamIds: string[] = []
+  _userTeamIds: string[] = []
 ): Promise<EquipmentImageData[]> => {
   try {
     // Get equipment note images

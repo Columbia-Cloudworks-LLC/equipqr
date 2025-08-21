@@ -15,7 +15,21 @@ export interface OptimizedOrganizationMember {
 }
 
 // Get user's organizations using idx_organization_members_user_status
-export const getUserOrganizationsOptimized = async (userId: string): Promise<any[]> => {
+export interface OptimizedOrganization {
+  id: string;
+  name: string;
+  plan: string;
+  member_count: number;
+  max_members: number;
+  features: unknown;
+  created_at: string;
+  updated_at: string;
+  user_role: string;
+  joined_date: string;
+}
+
+// Get user's organizations using idx_organization_members_user_status
+export const getUserOrganizationsOptimized = async (userId: string): Promise<OptimizedOrganization[]> => {
   try {
     const { data, error } = await supabase
       .from('organization_members')

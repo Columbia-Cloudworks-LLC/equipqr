@@ -2,7 +2,6 @@ import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedWorkOrder } from './workOrdersEnhancedService';
-import { getTeamBasedWorkOrders, type TeamBasedWorkOrderFilters } from './teamBasedWorkOrderService';
 
 export interface WorkOrderFilters {
   status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all';
@@ -105,13 +104,18 @@ export const getFilteredWorkOrdersByOrganization = async (
         case 'overdue':
           query = query.lt('due_date', today.toISOString());
           break;
-        case 'today':
+        case 'today': {
           const tomorrow = new Date(today);
           tomorrow.setDate(tomorrow.getDate() + 1);
-          query = query.gte('due_date', today.toISOString()).lt('due_date', tomorrow.toISOString());
+          query = query
+            .gte('due_date', today.toISOString())
+            .lt('due_date', tomorrow.toISOString());
           break;
+        }
         case 'this_week':
-          query = query.gte('due_date', today.toISOString()).lt('due_date', weekFromNow.toISOString());
+          query = query
+            .gte('due_date', today.toISOString())
+            .lt('due_date', weekFromNow.toISOString());
           break;
       }
     }
