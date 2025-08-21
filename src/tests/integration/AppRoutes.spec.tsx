@@ -12,21 +12,21 @@ vi.mock('@/pages/WorkOrderDetails', () => ({ default: () => <div data-testid="wo
 vi.mock('@/pages/Teams', () => ({ default: () => <div data-testid="teams-page">Teams</div> }));
 vi.mock('@/pages/FleetMap', () => ({ default: () => <div data-testid="fleet-map-page">Fleet Map</div> }));
 vi.mock('@/pages/Organization', () => ({ default: () => <div data-testid="organization-page">Organization</div> }));
-vi.mock('@/pages/Scanner', () => ({ default: () => <div data-testid="scanner-page">Scanner</div> }));
+vi.mock('@/pages/QRScanner', () => ({ default: () => <div data-testid="scanner-page">Scanner</div> }));
 vi.mock('@/pages/Billing', () => ({ default: () => <div data-testid="billing-page">Billing</div> }));
 vi.mock('@/pages/Settings', () => ({ default: () => <div data-testid="settings-page">Settings</div> }));
 vi.mock('@/pages/Support', () => ({ default: () => <div data-testid="support-page">Support</div> }));
-vi.mock('@/pages/landing/Landing', () => ({ default: () => <div data-testid="landing-page">Landing</div> }));
-vi.mock('@/pages/auth/Auth', () => ({ default: () => <div data-testid="auth-page">Auth</div> }));
-vi.mock('@/pages/terms/Terms', () => ({ default: () => <div data-testid="terms-page">Terms</div> }));
-vi.mock('@/pages/privacy/Privacy', () => ({ default: () => <div data-testid="privacy-page">Privacy</div> }));
+vi.mock('@/components/landing/SmartLanding', () => ({ default: () => <div data-testid="landing-page">Landing</div> }));
+vi.mock('@/pages/Auth', () => ({ default: () => <div data-testid="auth-page">Auth</div> }));
+vi.mock('@/pages/TermsOfService', () => ({ default: () => <div data-testid="terms-page">Terms</div> }));
+vi.mock('@/pages/PrivacyPolicy', () => ({ default: () => <div data-testid="privacy-page">Privacy</div> }));
 
 // Mock contexts
 vi.mock('@/contexts/TeamContext', () => ({
   TeamProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="team-provider">{children}</div>
 }));
 
-vi.mock('@/providers/SimpleOrganizationProvider', () => ({
+vi.mock('@/contexts/SimpleOrganizationProvider', () => ({
   SimpleOrganizationProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="simple-organization-provider">{children}</div>
   )
@@ -35,6 +35,9 @@ vi.mock('@/providers/SimpleOrganizationProvider', () => ({
 vi.mock('@/components/ui/sidebar', () => ({
   SidebarProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="sidebar-provider">{children}</div>
+  ),
+  SidebarInset: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="sidebar-inset">{children}</div>
   )
 }));
 
@@ -54,8 +57,8 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    Navigate: ({ to }: { to: string }) => <div data-testid={`navigate-to-${to.replace('/', '')}`}>Navigating to {to}</div>,
-    useParams: () => ({ id: 'test-id' }),
+    Navigate: ({ to }: { to: string }) => <div data-testid="navigate-to">Navigating to {to}</div>,
+    useParams: () => ({ equipmentId: 'test-equipment', workOrderId: 'test-work-order' }),
     BrowserRouter: ({ children }: { children: React.ReactNode }) => <div data-testid="browser-router">{children}</div>
   };
 });
@@ -93,13 +96,13 @@ describe('App', () => {
     expect(screen.getByTestId('support-page')).toBeInTheDocument();
   });
 
-  it('renders terms page for /terms path', () => {
-    renderApp(['/terms']);
+  it('renders terms page for /terms-of-service path', () => {
+    renderApp(['/terms-of-service']);
     expect(screen.getByTestId('terms-page')).toBeInTheDocument();
   });
 
-  it('renders privacy page for /privacy path', () => {
-    renderApp(['/privacy']);
+  it('renders privacy page for /privacy-policy path', () => {
+    renderApp(['/privacy-policy']);
     expect(screen.getByTestId('privacy-page')).toBeInTheDocument();
   });
 
@@ -109,13 +112,17 @@ describe('App', () => {
   });
 
   it('redirects equipment to equipment list', () => {
-    renderApp(['/equipment']);
-    expect(screen.getByTestId('navigate-to-equipment')).toBeInTheDocument();
+    renderApp(['/equipment/test-equipment']);
+    expect(screen.getByTestId('navigate-to')).toHaveTextContent(
+      'Navigating to /dashboard/equipment/test-equipment'
+    );
   });
 
   it('redirects work-orders to work-orders list', () => {
-    renderApp(['/work-orders']);
-    expect(screen.getByTestId('navigate-to-work-orders')).toBeInTheDocument();
+    renderApp(['/work-orders/test-work-order']);
+    expect(screen.getByTestId('navigate-to')).toHaveTextContent(
+      'Navigating to /dashboard/work-orders/test-work-order'
+    );
   });
 
   it('renders TopBar component on dashboard route', () => {
