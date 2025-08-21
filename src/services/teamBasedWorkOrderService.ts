@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
@@ -110,7 +111,7 @@ export const getTeamBasedWorkOrders = async (
     const { data, error } = await query;
 
     if (error) {
-      console.error('❌ Error fetching team-based work orders:', error);
+      logger.error('❌ Error fetching team-based work orders:', error);
       throw error;
     }
 
@@ -135,7 +136,7 @@ export const getTeamBasedWorkOrders = async (
       createdByName: wo.creator?.name
     }));
   } catch (error) {
-    console.error('Error in getTeamBasedWorkOrders:', error);
+    logger.error('Error in getTeamBasedWorkOrders:', error);
     throw error;
   }
 };

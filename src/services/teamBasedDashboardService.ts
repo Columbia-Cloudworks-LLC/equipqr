@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { getAccessibleEquipmentIds } from './teamBasedEquipmentService';
 
@@ -53,7 +54,7 @@ export const getTeamBasedDashboardStats = async (
     const { data: equipmentData, error: equipmentError } = await equipmentQuery;
 
     if (equipmentError) {
-      console.error('Error fetching equipment stats:', equipmentError);
+      logger.error('Error fetching equipment stats:', equipmentError);
       throw equipmentError;
     }
 
@@ -80,7 +81,7 @@ export const getTeamBasedDashboardStats = async (
     const { data: workOrderData, error: workOrderError } = await workOrderQuery;
 
     if (workOrderError) {
-      console.error('Error fetching work order stats:', workOrderError);
+      logger.error('Error fetching work order stats:', workOrderError);
       throw workOrderError;
     }
 
@@ -113,7 +114,7 @@ export const getTeamBasedDashboardStats = async (
     const { data: teamData, error: teamError } = await teamQuery;
 
     if (teamError) {
-      console.error('Error fetching team stats:', teamError);
+      logger.error('Error fetching team stats:', teamError);
       throw teamError;
     }
 
@@ -130,7 +131,7 @@ export const getTeamBasedDashboardStats = async (
     return stats;
 
   } catch (error) {
-    console.error('Error in getTeamBasedDashboardStats:', error);
+    logger.error('Error in getTeamBasedDashboardStats:', error);
     throw error;
   }
 };

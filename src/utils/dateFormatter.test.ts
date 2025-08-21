@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDate, formatDateTime, getRelativeTime } from '../basicDateFormatter';
+import { formatDate, formatDateTime, getRelativeTime } from './basicDateFormatter';
 
 describe('dateFormatter', () => {
   describe('formatDate', () => {

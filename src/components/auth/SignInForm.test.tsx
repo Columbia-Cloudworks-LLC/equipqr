@@ -1,8 +1,8 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import SignInForm from '../SignInForm';
+import SignInForm from './SignInForm';
 
 // Mock useAuth hook - moved before vi.mock to avoid hoisting issues
 const mockSignIn = vi.fn();

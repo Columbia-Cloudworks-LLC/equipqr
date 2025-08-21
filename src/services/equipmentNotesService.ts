@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -59,7 +60,7 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 };
 
 // Legacy function for backward compatibility
-export const getEquipmentNotes = async (equipmentId: string, organizationId: string) => {
+export const getEquipmentNotes = async (equipmentId: string) => {
   return getEquipmentNotesWithImages(equipmentId);
 };
 
@@ -102,7 +103,7 @@ export const createEquipmentNoteWithImages = async (
         .upload(fileName, file);
 
       if (uploadError) {
-        console.error('Failed to upload image:', uploadError);
+        logger.error('Failed to upload image:', uploadError);
         continue;
       }
 
@@ -126,13 +127,13 @@ export const createEquipmentNoteWithImages = async (
         .single();
 
       if (imageError) {
-        console.error('Failed to save image record:', imageError);
+        logger.error('Failed to save image record:', imageError);
         continue;
       }
 
       uploadedImages.push(imageRecord);
     } catch (error) {
-      console.error('Error processing image:', error);
+      logger.error('Error processing image:', error);
     }
   }
 

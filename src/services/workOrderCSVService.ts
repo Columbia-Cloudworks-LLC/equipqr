@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface WorkOrderCost {
@@ -64,7 +65,7 @@ export const generateCostsCSV = async (workOrderId: string): Promise<void> => {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   } catch (error) {
-    console.error('Error generating costs CSV:', error);
+    logger.error('Error generating costs CSV:', error);
     throw error;
   }
 };

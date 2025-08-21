@@ -1,7 +1,7 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedWorkOrder } from './workOrdersEnhancedService';
-import { getTeamBasedWorkOrders, type TeamBasedWorkOrderFilters } from './teamBasedWorkOrderService';
 
 export interface WorkOrderFilters {
   status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all';
@@ -104,13 +104,18 @@ export const getFilteredWorkOrdersByOrganization = async (
         case 'overdue':
           query = query.lt('due_date', today.toISOString());
           break;
-        case 'today':
+        case 'today': {
           const tomorrow = new Date(today);
           tomorrow.setDate(tomorrow.getDate() + 1);
-          query = query.gte('due_date', today.toISOString()).lt('due_date', tomorrow.toISOString());
+          query = query
+            .gte('due_date', today.toISOString())
+            .lt('due_date', tomorrow.toISOString());
           break;
+        }
         case 'this_week':
-          query = query.gte('due_date', today.toISOString()).lt('due_date', weekFromNow.toISOString());
+          query = query
+            .gte('due_date', today.toISOString())
+            .lt('due_date', weekFromNow.toISOString());
           break;
       }
     }
@@ -143,7 +148,7 @@ export const getFilteredWorkOrdersByOrganization = async (
       createdByName: wo.creator?.name
     }));
   } catch (error) {
-    console.error('Error fetching filtered work orders:', error);
+    logger.error('Error fetching filtered work orders:', error);
     throw error;
   }
 };

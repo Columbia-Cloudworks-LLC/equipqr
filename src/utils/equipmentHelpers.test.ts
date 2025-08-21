@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getStatusColor, filterEquipment } from '../equipmentHelpers';
+import { getStatusColor, filterEquipment } from './equipmentHelpers';
 
 describe('equipmentHelpers', () => {
   const mockEquipment = [

@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import type { AppProviders as AppProvidersComponent } from '../AppProviders';
+import type { AppProviders as AppProvidersComponent } from './AppProviders';
 
 // Mock all the provider components
 vi.mock('@tanstack/react-query', () => ({
@@ -48,7 +48,7 @@ describe('AppProviders', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    const module = await import('../AppProviders');
+    const module = await import('./AppProviders');
     AppProviders = module.AppProviders;
   });
 

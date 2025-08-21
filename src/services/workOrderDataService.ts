@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -58,7 +59,7 @@ export const getWorkOrderByIdWithAssignee = async (
       .single();
 
     if (error || !data) {
-      console.error('Error fetching work order with assignee:', error);
+      logger.error('Error fetching work order with assignee:', error);
       return null;
     }
 
@@ -71,23 +72,23 @@ export const getWorkOrderByIdWithAssignee = async (
       priority: data.priority,
       status: data.status,
       assignee_id: data.assignee_id,
-      assigneeName: (data.assignee as any)?.name,
-      team_id: (data.equipment as any)?.team_id,
-      teamName: (data.equipment as any)?.teams?.name,
+      assigneeName: (data.assignee as { name?: string } | null | undefined)?.name,
+      team_id: (data.equipment as { team_id?: string } | null | undefined)?.team_id,
+      teamName: (data.equipment as { teams?: { name?: string } } | null | undefined)?.teams?.name,
       created_date: data.created_date,
       created_by: data.created_by,
       due_date: data.due_date,
       estimated_hours: data.estimated_hours,
       completed_date: data.completed_date,
       acceptance_date: data.acceptance_date,
-      equipmentName: (data.equipment as any)?.name,
-      createdByName: (data.creator as any)?.name,
+      equipmentName: (data.equipment as { name?: string } | null | undefined)?.name,
+      createdByName: (data.creator as { name?: string } | null | undefined)?.name,
       has_pm: data.has_pm,
       pm_required: data.pm_required,
       updated_at: data.updated_at
     };
   } catch (error) {
-    console.error('Error in getWorkOrderByIdWithAssignee:', error);
+    logger.error('Error in getWorkOrderByIdWithAssignee:', error);
     return null;
   }
 };

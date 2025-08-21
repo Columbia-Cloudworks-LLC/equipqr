@@ -6,7 +6,7 @@ vi.mock('@/hooks/use-mobile', () => ({
 }));
 
 import { render, screen } from '@testing-library/react';
-import EquipmentHeader from '../EquipmentHeader';
+import EquipmentHeader from './EquipmentHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const defaultProps = {

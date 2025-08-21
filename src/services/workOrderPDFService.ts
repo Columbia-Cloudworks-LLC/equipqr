@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -68,7 +69,7 @@ export const generatePMChecklistPDF = async (workOrderId: string): Promise<void>
     let yPosition = 120;
     const checklistData = (pmData.checklist_data as unknown) as PMChecklistItem[];
     
-    checklistData.forEach((item, index) => {
+    checklistData.forEach(item => {
       pdf.setFontSize(10);
       const status = item.completed ? '✓' : '☐';
       pdf.text(`${status} ${item.task}`, 25, yPosition);
@@ -91,7 +92,7 @@ export const generatePMChecklistPDF = async (workOrderId: string): Promise<void>
     // Download
     pdf.save(`PM-Checklist-${workOrder.title}-${Date.now()}.pdf`);
   } catch (error) {
-    console.error('Error generating PM PDF:', error);
+    logger.error('Error generating PM PDF:', error);
     throw error;
   }
 };

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface OptimizedOrganizationMember {
@@ -14,7 +15,21 @@ export interface OptimizedOrganizationMember {
 }
 
 // Get user's organizations using idx_organization_members_user_status
-export const getUserOrganizationsOptimized = async (userId: string): Promise<any[]> => {
+export interface OptimizedOrganization {
+  id: string;
+  name: string;
+  plan: string;
+  member_count: number;
+  max_members: number;
+  features: unknown;
+  created_at: string;
+  updated_at: string;
+  user_role: string;
+  joined_date: string;
+}
+
+// Get user's organizations using idx_organization_members_user_status
+export const getUserOrganizationsOptimized = async (userId: string): Promise<OptimizedOrganization[]> => {
   try {
     const { data, error } = await supabase
       .from('organization_members')
@@ -50,7 +65,7 @@ export const getUserOrganizationsOptimized = async (userId: string): Promise<any
       joined_date: om.joined_date
     }));
   } catch (error) {
-    console.error('Error fetching user organizations:', error);
+    logger.error('Error fetching user organizations:', error);
     return [];
   }
 };
@@ -86,7 +101,7 @@ export const getOrganizationMembersOptimized = async (organizationId: string): P
       activated_slot_at: member.activated_slot_at
     }));
   } catch (error) {
-    console.error('Error fetching organization members:', error);
+    logger.error('Error fetching organization members:', error);
     return [];
   }
 };
@@ -123,7 +138,7 @@ export const getOrganizationAdminsOptimized = async (organizationId: string): Pr
       activated_slot_at: member.activated_slot_at
     }));
   } catch (error) {
-    console.error('Error fetching organization admins:', error);
+    logger.error('Error fetching organization admins:', error);
     return [];
   }
 };
@@ -146,7 +161,7 @@ export const checkUserOrgAccess = async (userId: string, organizationId: string)
       role: data?.role
     };
   } catch (error) {
-    console.error('Error checking user organization access:', error);
+    logger.error('Error checking user organization access:', error);
     return { hasAccess: false };
   }
 };
@@ -165,7 +180,7 @@ export const updateOrganization = async (organizationId: string, updates: { name
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Error updating organization:', error);
+    logger.error('Error updating organization:', error);
     return false;
   }
 };
@@ -182,7 +197,7 @@ export const getOrganizationById = async (organizationId: string) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error fetching organization:', error);
+    logger.error('Error fetching organization:', error);
     return null;
   }
 };

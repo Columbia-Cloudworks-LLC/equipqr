@@ -5,10 +5,10 @@ import {
   useCreateEquipment, 
   useUpdateEquipment, 
   useCreateWorkOrder
-} from '../useSupabaseData';
+} from './useSupabaseData';
 
 // Mock dependencies
-vi.mock('../use-toast', () => ({
+vi.mock('@/hooks/use-toast', () => ({
   toast: vi.fn(),
 }));
 

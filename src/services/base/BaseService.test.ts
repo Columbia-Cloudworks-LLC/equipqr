@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BaseService, type ApiResponse, type PaginationParams, type FilterParams } from '../BaseService';
+import { BaseService, type ApiResponse, type PaginationParams, type FilterParams } from './BaseService';
 
 // Test implementation of BaseService
 class TestService extends BaseService {

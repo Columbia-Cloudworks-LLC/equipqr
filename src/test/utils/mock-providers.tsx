@@ -1,6 +1,7 @@
 // Mock providers file to avoid react-refresh warnings
 import React from 'react';
 import { SessionContext } from '@/contexts/SessionContext';
+import { AuthContext } from '@/contexts/AuthContext';
 
 // Mock SessionContext value
 const mockSessionContextValue = {
@@ -58,8 +59,27 @@ const mockSessionContextValue = {
   clearSession: () => {}
 };
 
+// Mock AuthContext value
+const mockAuthContextValue = {
+  user: { id: 'user-1', email: 'test@example.com' },
+  session: {
+    user: { id: 'user-1', email: 'test@example.com' },
+    access_token: 'token',
+    refresh_token: 'refresh_token',
+    expires_in: 3600,
+    token_type: 'bearer',
+  },
+  isLoading: false,
+  signUp: async () => ({ error: null }),
+  signIn: async () => ({ error: null }),
+  signInWithGoogle: async () => ({ error: null }),
+  signOut: async () => {},
+};
+
 export const MockAuthProvider = ({ children }: { children: React.ReactNode }) => (
-  <div data-testid="mock-auth-provider">{children}</div>
+  <AuthContext.Provider value={mockAuthContextValue}>
+    <div data-testid="mock-auth-provider">{children}</div>
+  </AuthContext.Provider>
 );
 
 export const MockSessionProvider = ({ children }: { children: React.ReactNode }) => (

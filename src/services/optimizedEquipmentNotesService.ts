@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface OptimizedEquipmentNote {
@@ -44,7 +45,7 @@ export const getEquipmentNotesOptimized = async (equipmentId: string): Promise<O
       last_modified_by: note.last_modified_by
     }));
   } catch (error) {
-    console.error('Error fetching equipment notes:', error);
+    logger.error('Error fetching equipment notes:', error);
     return [];
   }
 };
@@ -80,7 +81,7 @@ export const getUserEquipmentNotes = async (equipmentId: string, userId: string)
       last_modified_by: note.last_modified_by
     }));
   } catch (error) {
-    console.error('Error fetching user equipment notes:', error);
+    logger.error('Error fetching user equipment notes:', error);
     return [];
   }
 };
@@ -122,7 +123,7 @@ export const getRecentOrganizationNotes = async (organizationId: string, limit: 
       last_modified_by: note.last_modified_by
     }));
   } catch (error) {
-    console.error('Error fetching recent organization notes:', error);
+    logger.error('Error fetching recent organization notes:', error);
     return [];
   }
 };

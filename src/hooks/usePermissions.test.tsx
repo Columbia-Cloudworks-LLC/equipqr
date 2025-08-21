@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { usePermissions } from '../usePermissions';
+import { usePermissions } from './usePermissions';
 import { 
   createMockUserContext,
   createMockSimpleOrganizationContext

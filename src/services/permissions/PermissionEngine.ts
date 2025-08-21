@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import { UserContext, PermissionRule, PermissionCache } from '@/types/permissions';
 
 type EntityContext = { teamId?: string; assigneeId?: string; [key: string]: unknown };
@@ -174,7 +175,7 @@ export class PermissionEngine {
     this.rules.get(permission)!.sort((a, b) => b.priority - a.priority);
   }
 
-  private getCacheKey(permission: string, context: UserContext, entityContext?: any): string {
+  private getCacheKey(permission: string, context: UserContext, entityContext?: EntityContext): string {
     const entityKey = entityContext ? JSON.stringify(entityContext) : 'null';
     return `${permission}:${context.userId}:${context.organizationId}:${entityKey}`;
   }
@@ -204,9 +205,9 @@ export class PermissionEngine {
   }
 
   public hasPermission(
-    permission: string, 
-    context: UserContext, 
-    entityContext?: any
+    permission: string,
+    context: UserContext,
+    entityContext?: EntityContext
   ): boolean {
     const cacheKey = this.getCacheKey(permission, context, entityContext);
     const cached = this.getFromCache(cacheKey);
@@ -224,7 +225,7 @@ export class PermissionEngine {
           return true;
         }
       } catch (error) {
-        console.warn(`Permission rule ${rule.name} failed:`, error);
+        logger.warn(`Permission rule ${rule.name} failed:`, error);
       }
     }
 
@@ -235,7 +236,7 @@ export class PermissionEngine {
   public batchCheck(
     permissions: string[],
     context: UserContext,
-    entityContext?: any
+    entityContext?: EntityContext
   ): Record<string, boolean> {
     const results: Record<string, boolean> = {};
     

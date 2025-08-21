@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -53,7 +54,7 @@ export const getTeamAccessibleEquipment = async (
     const { data, error } = await query.order('name', { ascending: true });
 
     if (error) {
-      console.error('❌ Error fetching team-accessible equipment:', error);
+      logger.error('❌ Error fetching team-accessible equipment:', error);
       throw error;
     }
 
@@ -70,7 +71,7 @@ export const getTeamAccessibleEquipment = async (
       team_name: equipment.teams?.name
     }));
   } catch (error) {
-    console.error('Error in getTeamAccessibleEquipment:', error);
+    logger.error('Error in getTeamAccessibleEquipment:', error);
     throw error;
   }
 };
@@ -85,7 +86,7 @@ export const getAccessibleEquipmentIds = async (
     const equipment = await getTeamAccessibleEquipment(organizationId, userTeamIds, isOrgAdmin);
     return equipment.map(e => e.id);
   } catch (error) {
-    console.error('Error getting accessible equipment IDs:', error);
+    logger.error('Error getting accessible equipment IDs:', error);
     return [];
   }
 };
