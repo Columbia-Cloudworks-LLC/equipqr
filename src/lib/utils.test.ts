@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn } from '../utils';
+import { cn } from './utils';
 
 describe('utils', () => {
   describe('cn (className utility)', () => {

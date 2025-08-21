@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { safeJsonParse } from '../safeJsonParse';
+import { safeJsonParse } from './safeJsonParse';
 
 describe('safeJsonParse', () => {
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;

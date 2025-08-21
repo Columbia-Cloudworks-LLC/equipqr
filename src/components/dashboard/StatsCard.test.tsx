@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@/test/utils/test-utils';
-import { StatsCard } from '../StatsCard';
+import { StatsCard } from './StatsCard';
 import { Package } from 'lucide-react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 

@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAuth } from '../useAuth';
+import { useAuth } from './useAuth';
 import { AuthContext } from '@/contexts/AuthContext';
 import React from 'react';
 import type { User, Session } from '@supabase/supabase-js';

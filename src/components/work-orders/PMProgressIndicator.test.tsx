@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect, type MockedFunction } from 'vitest';
-import PMProgressIndicator from '../PMProgressIndicator';
+import PMProgressIndicator from './PMProgressIndicator';
 import { TestProviders } from '@/test/utils/TestProviders';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
 

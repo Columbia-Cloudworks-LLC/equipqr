@@ -1,4 +1,3 @@
-import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { cacheManager } from './cacheManager';

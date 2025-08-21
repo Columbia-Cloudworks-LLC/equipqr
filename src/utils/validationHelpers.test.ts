@@ -3,7 +3,7 @@ import {
   createValidationContext, 
   canUserManageTeam, 
   validateTeamAssignment 
-} from '../validationHelpers';
+} from './validationHelpers';
 
 describe('validationHelpers', () => {
   describe('createValidationContext', () => {

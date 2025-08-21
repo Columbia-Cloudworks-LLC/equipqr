@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@/test/utils/test-utils';
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { Button } from '../button';
+import { Button } from './button';
 
 describe('Button', () => {
   it('renders correctly', () => {

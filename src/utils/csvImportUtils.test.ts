@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeHeader, autoMapHeaders } from '../csvImportUtils';
-import { FIELD_SYNONYMS } from '../../types/csvImport';
+import { normalizeHeader, autoMapHeaders } from './csvImportUtils';
+import { FIELD_SYNONYMS } from '@/types/csvImport';
 
 describe('csvImportUtils', () => {
   describe('normalizeHeader', () => {

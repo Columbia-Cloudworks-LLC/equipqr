@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@/test/utils/test-utils';
-import EquipmentSortHeader from '../EquipmentSortHeader';
+import EquipmentSortHeader from './EquipmentSortHeader';
 import { SortConfig } from '@/hooks/useEquipmentFiltering';
 
 describe('EquipmentSortHeader', () => {

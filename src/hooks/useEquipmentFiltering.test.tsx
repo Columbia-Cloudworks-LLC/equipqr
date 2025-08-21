@@ -12,7 +12,7 @@ vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({ canManageOrganization: () => true }),
 }));
 
-import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
+import { useEquipmentFiltering } from './useEquipmentFiltering';
 import { useSyncEquipmentByOrganization, useSyncTeamsByOrganization } from '@/services/syncDataService';
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
