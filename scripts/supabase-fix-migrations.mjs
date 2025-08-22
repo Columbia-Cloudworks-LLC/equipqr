@@ -105,9 +105,10 @@ async function fixMigrations() {
     for (const file of sqlFiles) {
       const oldPath = join(migrationsDir, file);
 
-      // Handle dash-only names
-      if (file === '-.sql' || file.startsWith('-.') || file === '-') {
-        const newName = `${BASELINE_TS}_noop.sql`;
+      // Handle dash-only names (-.sql)
+      if (file === '-.sql') {
+        const timestamp = Date.now().toString().padStart(14, '0');
+        const newName = `${timestamp}_noop_dash_file.sql`;
         const newPath = join(migrationsDir, newName);
         console.log(`📝 Renaming dash-only migration: ${file} -> ${newName}`);
         await rename(oldPath, newPath);
@@ -119,7 +120,7 @@ async function fixMigrations() {
       // Handle timestamp-dash-noop (e.g., 20250812213628-.sql)
       const noopMatch = file.match(TS_NOOP_DASH);
       if (noopMatch) {
-        const newName = `${noopMatch[1]}_noop.sql`;
+        const newName = `${noopMatch[1]}_noop_migration.sql`;
         const newPath = join(migrationsDir, newName);
         console.log(`📝 Renaming invalid noop migration: ${file} -> ${newName}`);
         await rename(oldPath, newPath);
@@ -128,7 +129,7 @@ async function fixMigrations() {
         continue;
       }
 
-      // Replace dash after timestamp with underscore (e.g., 20250724021454-abc.sql -> 20250724021454_abc.sql)
+      // Replace dash after timestamp with underscore (most common case)
       const dashAfterTs = file.match(DASH_AFTER_TS);
       if (dashAfterTs) {
         const newName = `${dashAfterTs[1]}_${dashAfterTs[2]}`;
@@ -137,6 +138,19 @@ async function fixMigrations() {
         await rename(oldPath, newPath);
         renamedCount++;
         continue;
+      }
+
+      // Check for any remaining files with dashes in wrong places
+      if (file.includes('-') && !STANDARD_PATTERN.test(file)) {
+        // Replace all problematic dashes with underscores
+        const normalized = file.replace(/-/g, '_');
+        if (normalized !== file) {
+          const newPath = join(migrationsDir, normalized);
+          console.log(`📝 Normalizing dashes in filename: ${file} -> ${normalized}`);
+          await rename(oldPath, newPath);
+          renamedCount++;
+          continue;
+        }
       }
 
       // Optional warnings for non-standard names
