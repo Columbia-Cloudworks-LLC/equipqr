@@ -90,7 +90,7 @@ function App() {
             }
           />
 
-          {/* Protected routes with suspense for dashboard components */}
+          {/* Protected routes with persistent layout */}
           <Route
             path="/dashboard/*"
             element={
@@ -98,19 +98,31 @@ function App() {
                 <SimpleOrganizationProvider>
                   <TeamProvider>
                     <SidebarProvider>
-                      <Suspense fallback={
-                        <div className="min-h-screen flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                            <p className="text-muted-foreground">Loading dashboard...</p>
+                      <div className="flex min-h-screen w-full">
+                        <Suspense fallback={
+                          <div className="w-64 border-r bg-sidebar">
+                            <div className="animate-pulse h-full bg-sidebar-accent/20" />
                           </div>
-                        </div>
-                      }>
-                        <div className="flex min-h-screen w-full">
+                        }>
                           <AppSidebar />
-                          <SidebarInset className="flex-1 min-w-0">
+                        </Suspense>
+                        <SidebarInset className="flex-1 min-w-0">
+                          <Suspense fallback={
+                            <div className="h-14 sm:h-16 border-b">
+                              <div className="animate-pulse h-full bg-muted/20" />
+                            </div>
+                          }>
                             <BrandedTopBar />
-                            <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 overflow-auto min-w-0">
+                          </Suspense>
+                          <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 overflow-auto min-w-0">
+                            <Suspense fallback={
+                              <div className="flex items-center justify-center h-64">
+                                <div className="text-center">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                                  <p className="text-muted-foreground">Loading...</p>
+                                </div>
+                              </div>
+                            }>
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/equipment" element={<Equipment />} />
@@ -127,11 +139,13 @@ function App() {
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
                               </Routes>
-                            </main>
+                            </Suspense>
+                          </main>
+                          <Suspense fallback={null}>
                             <LegalFooter />
-                          </SidebarInset>
-                        </div>
-                      </Suspense>
+                          </Suspense>
+                        </SidebarInset>
+                      </div>
                     </SidebarProvider>
                   </TeamProvider>
                 </SimpleOrganizationProvider>
