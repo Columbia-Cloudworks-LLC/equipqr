@@ -1946,6 +1946,17 @@ export type Database = {
           work_order_title: string
         }[]
       }
+      get_member_profiles_secure: {
+        Args: { org_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          email_private: boolean
+          id: string
+          name: string
+          updated_at: string
+        }[]
+      }
       get_organization_exemptions: {
         Args: { org_id: string }
         Returns: {
@@ -2071,6 +2082,10 @@ export type Database = {
       is_organization_member: {
         Args: { org_id: string; user_uuid: string }
         Returns: boolean
+      }
+      leave_organization_safely: {
+        Args: { org_id: string }
+        Returns: Json
       }
       log_invitation_performance: {
         Args: {

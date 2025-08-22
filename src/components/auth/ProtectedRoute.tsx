@@ -11,12 +11,14 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, isLoading } = useAuth();
 
-  // Debugging logs for auth state
-  console.log('🔒 ProtectedRoute - Auth state:', { 
-    user: user ? `${user.email} (${user.id})` : 'null', 
-    isLoading,
-    timestamp: new Date().toISOString()
-  });
+  // Debugging logs for auth state (dev only to prevent PII logging)
+  if (import.meta.env.DEV) {
+    console.log('🔒 ProtectedRoute - Auth state:', { 
+      user: user ? `${user.email} (${user.id})` : 'null', 
+      isLoading,
+      timestamp: new Date().toISOString()
+    });
+  }
 
   if (isLoading) {
     return (
@@ -30,11 +32,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!user) {
-    console.log('🔒 ProtectedRoute - Redirecting to auth (no user)');
+    if (import.meta.env.DEV) {
+      console.log('🔒 ProtectedRoute - Redirecting to auth (no user)');
+    }
     return <Navigate to="/auth" replace />;
   }
 
-  console.log('🔒 ProtectedRoute - Access granted');
+  if (import.meta.env.DEV) {
+    console.log('🔒 ProtectedRoute - Access granted');
+  }
   return <>{children}</>;
 };
 
