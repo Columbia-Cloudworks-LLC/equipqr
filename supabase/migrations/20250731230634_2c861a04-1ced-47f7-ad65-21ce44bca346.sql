@@ -1,4 +1,8 @@
--- Fix the create_historical_work_order_with_pm function to properly handle PM checklists
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc WHERE proname = 'create_historical_work_order_with_pm'
+  ) THEN
 CREATE OR REPLACE FUNCTION public.create_historical_work_order_with_pm(
     p_organization_id uuid, 
     p_equipment_id uuid, 
@@ -15,7 +19,7 @@ CREATE OR REPLACE FUNCTION public.create_historical_work_order_with_pm(
     p_has_pm boolean DEFAULT false, 
     p_pm_status text DEFAULT 'pending'::text, 
     p_pm_completion_date timestamp with time zone DEFAULT NULL::timestamp with time zone, 
-    p_pm_notes text DEFAULT NULL::text, 
+    p_pm_notes text DEFAULT NULL::text,
     p_pm_checklist_data jsonb DEFAULT '[]'::jsonb
 )
 RETURNS jsonb
@@ -172,3 +176,5 @@ EXCEPTION WHEN OTHERS THEN
     );
 END;
 $function$;
+  END IF;
+END$$;

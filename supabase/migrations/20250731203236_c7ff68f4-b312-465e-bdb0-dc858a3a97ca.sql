@@ -1,73 +1,93 @@
--- Add support for historical work orders
-ALTER TABLE work_orders 
-ADD COLUMN is_historical BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN historical_start_date TIMESTAMP WITH TIME ZONE,
-ADD COLUMN historical_notes TEXT,
-ADD COLUMN created_by_admin UUID REFERENCES auth.users(id);
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'work_orders'
+  ) THEN
+    ALTER TABLE public.work_orders
+      ADD COLUMN IF NOT EXISTS is_historical BOOLEAN NOT NULL DEFAULT false,
+      ADD COLUMN IF NOT EXISTS historical_start_date TIMESTAMP WITH TIME ZONE,
+      ADD COLUMN IF NOT EXISTS historical_notes TEXT,
+      ADD COLUMN IF NOT EXISTS created_by_admin UUID REFERENCES auth.users(id);
 
--- Add historical PM support
-ALTER TABLE preventative_maintenance
-ADD COLUMN is_historical BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN historical_completion_date TIMESTAMP WITH TIME ZONE,
-ADD COLUMN historical_notes TEXT;
+    CREATE INDEX IF NOT EXISTS idx_work_orders_historical
+      ON public.work_orders(is_historical, organization_id);
 
--- Create index for better performance on historical queries
-CREATE INDEX idx_work_orders_historical ON work_orders(is_historical, organization_id);
-CREATE INDEX idx_pm_historical ON preventative_maintenance(is_historical, organization_id);
+    CREATE POLICY "Admins can create historical work orders"
+      ON public.work_orders
+      FOR INSERT
+      WITH CHECK (
+        is_historical = true AND
+        is_org_admin(auth.uid(), organization_id) AND
+        created_by_admin = auth.uid()
+      );
 
--- Update work order status history to track historical creation
-ALTER TABLE work_order_status_history
-ADD COLUMN is_historical_creation BOOLEAN DEFAULT false;
+    CREATE POLICY "Admins can update historical work orders"
+      ON public.work_orders
+      FOR UPDATE
+      USING (
+        is_historical = true AND
+        is_org_admin(auth.uid(), organization_id)
+      );
+  END IF;
+END$$;
 
--- Add PM status history for historical tracking
-CREATE TABLE IF NOT EXISTS pm_status_history (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    pm_id UUID NOT NULL REFERENCES preventative_maintenance(id) ON DELETE CASCADE,
-    old_status TEXT,
-    new_status TEXT NOT NULL,
-    changed_by UUID NOT NULL REFERENCES auth.users(id),
-    changed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    reason TEXT,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'preventative_maintenance'
+  ) THEN
+    ALTER TABLE public.preventative_maintenance
+      ADD COLUMN IF NOT EXISTS is_historical BOOLEAN NOT NULL DEFAULT false,
+      ADD COLUMN IF NOT EXISTS historical_completion_date TIMESTAMP WITH TIME ZONE,
+      ADD COLUMN IF NOT EXISTS historical_notes TEXT;
 
--- Create RLS policies for historical work orders
-CREATE POLICY "Admins can create historical work orders" 
-ON work_orders 
-FOR INSERT 
-WITH CHECK (
-    is_historical = true AND 
-    is_org_admin(auth.uid(), organization_id) AND
-    created_by_admin = auth.uid()
-);
+    CREATE INDEX IF NOT EXISTS idx_pm_historical
+      ON public.preventative_maintenance(is_historical, organization_id);
 
-CREATE POLICY "Admins can update historical work orders" 
-ON work_orders 
-FOR UPDATE 
-USING (
-    is_historical = true AND 
-    is_org_admin(auth.uid(), organization_id)
-);
+    ALTER TABLE IF EXISTS public.work_order_status_history
+      ADD COLUMN IF NOT EXISTS is_historical_creation BOOLEAN DEFAULT false;
 
--- RLS policies for historical PM records
-CREATE POLICY "Admins can create historical PM" 
-ON preventative_maintenance 
-FOR INSERT 
-WITH CHECK (
-    is_historical = true AND 
-    is_org_admin(auth.uid(), organization_id)
-);
+    CREATE TABLE IF NOT EXISTS pm_status_history (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        pm_id UUID NOT NULL REFERENCES preventative_maintenance(id) ON DELETE CASCADE,
+        old_status TEXT,
+        new_status TEXT NOT NULL,
+        changed_by UUID NOT NULL REFERENCES auth.users(id),
+        changed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+        reason TEXT,
+        metadata JSONB DEFAULT '{}',
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    );
 
-CREATE POLICY "Admins can update historical PM" 
-ON preventative_maintenance 
-FOR UPDATE 
-USING (
-    is_historical = true AND 
-    is_org_admin(auth.uid(), organization_id)
-);
+    CREATE POLICY "Admins can create historical PM"
+      ON public.preventative_maintenance
+      FOR INSERT
+      WITH CHECK (
+        is_historical = true AND
+        is_org_admin(auth.uid(), organization_id)
+      );
+
+    CREATE POLICY "Admins can update historical PM"
+      ON public.preventative_maintenance
+      FOR UPDATE
+      USING (
+        is_historical = true AND
+        is_org_admin(auth.uid(), organization_id)
+      );
+  END IF;
+END$$;
 
 -- Function to create historical work order with PM
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc WHERE proname = 'create_historical_work_order_with_pm'
+  ) OR (
+    EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'work_orders') AND
+    EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'preventative_maintenance')
+  ) THEN
 CREATE OR REPLACE FUNCTION create_historical_work_order_with_pm(
     p_organization_id UUID,
     p_equipment_id UUID,
@@ -202,3 +222,5 @@ BEGIN
     RETURN result;
 END;
 $$;
+END IF;
+END$$;
