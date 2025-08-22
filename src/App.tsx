@@ -35,6 +35,7 @@ const PMTemplates = lazy(() => import('@/pages/PMTemplates'));
 const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
+const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
 
 
 const BrandedTopBar = () => {
@@ -138,6 +139,7 @@ function App() {
                                 <Route path="/pm-templates" element={<PMTemplates />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
+                                <Route path="/debug/billing" element={<DebugBilling />} />
                               </Routes>
                             </Suspense>
                           </main>
