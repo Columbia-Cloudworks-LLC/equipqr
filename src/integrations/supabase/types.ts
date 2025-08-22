@@ -1241,6 +1241,33 @@ export type Database = {
           },
         ]
       }
+      stripe_event_logs: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          payload: Json | null
+          subscription_id: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          payload?: Json | null
+          subscription_id?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          payload?: Json | null
+          subscription_id?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string
