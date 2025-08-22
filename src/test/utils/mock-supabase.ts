@@ -37,6 +37,7 @@ export const createMockSupabaseClient = () => {
       onAuthStateChange: vi.fn(),
     },
     from: vi.fn(() => createMockChain()),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     storage: {
       from: vi.fn(() => ({
         upload: vi.fn(),

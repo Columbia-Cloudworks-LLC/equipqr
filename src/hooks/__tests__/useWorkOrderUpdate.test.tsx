@@ -1,8 +1,8 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type SpyInstance } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
-import { useQueryClient } from '@tanstack/react-query';
-import { useUpdateWorkOrder } from '../useWorkOrderUpdate';
+import { QueryClient, type UseMutationResult } from '@tanstack/react-query';
+import { useUpdateWorkOrder, type UpdateWorkOrderData } from '../useWorkOrderUpdate';
 
 // Mock dependencies
 vi.mock('@/integrations/supabase/client', async () => {
@@ -28,12 +28,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 
+type UpdateMutation = UseMutationResult<unknown, unknown, { workOrderId: string; data: UpdateWorkOrderData }, unknown>;
+
 interface TestComponentProps {
-  onReady?: (mutation: any) => void;
+  onReady?: (mutation: UpdateMutation) => void;
 }
 
 const TestComponent = ({ onReady }: TestComponentProps) => {
-  const mutation = useUpdateWorkOrder();
+  const mutation = useUpdateWorkOrder() as UpdateMutation;
   
   React.useEffect(() => {
     if (onReady) {
@@ -51,18 +53,16 @@ const TestComponent = ({ onReady }: TestComponentProps) => {
 };
 
 describe('useWorkOrderUpdate', () => {
-  let mockQueryClient: any;
+  let invalidateSpy: SpyInstance;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockQueryClient = {
-      invalidateQueries: vi.fn()
-    };
-    vi.mocked(useQueryClient).mockReturnValue(mockQueryClient);
+    invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    invalidateSpy.mockRestore();
   });
 
   it('should handle successful work order update', async () => {
@@ -73,7 +73,7 @@ describe('useWorkOrderUpdate', () => {
     };
 
     // Mock successful update
-    const mockChain = vi.mocked(supabase.from).mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
@@ -81,9 +81,9 @@ describe('useWorkOrderUpdate', () => {
         data: mockUpdatedWorkOrder,
         error: null
       })
-    } as any);
+    } as unknown as ReturnType<typeof supabase.from>);
 
-    let capturedMutation: any;
+    let capturedMutation: UpdateMutation | undefined;
     
     render(
       <TestComponent onReady={(mutation) => { capturedMutation = mutation; }} />
@@ -96,29 +96,29 @@ describe('useWorkOrderUpdate', () => {
 
     // Trigger the mutation
     const updateData = { title: 'Updated Work Order', status: 'in_progress' as const };
-    await capturedMutation.mutateAsync({ workOrderId: 'wo-1', data: updateData });
+    await capturedMutation!.mutateAsync({ workOrderId: 'wo-1', data: updateData });
 
     // Verify Supabase was called correctly
     expect(supabase.from).toHaveBeenCalledWith('work_orders');
 
     // Verify query invalidation
-    expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+    expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ['enhanced-work-orders', 'org-1']
     });
-    expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+    expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ['workOrders', 'org-1']
     });
-    expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+    expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ['work-orders-filtered-optimized', 'org-1']
     });
-    expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+    expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ['dashboardStats', 'org-1']
     });
 
     // Verify success toast
     expect(toast).toHaveBeenCalledWith({
-      title: 'Success',
-      description: 'Work order updated successfully'
+      title: 'Work Order Updated',
+      description: 'Work order has been successfully updated.'
     });
 
     // Verify success state
@@ -139,11 +139,11 @@ describe('useWorkOrderUpdate', () => {
         data: null,
         error: permissionError
       })
-    } as any);
+    } as unknown as ReturnType<typeof supabase.from>);
 
     vi.mocked(getErrorMessage).mockReturnValue('permission denied');
 
-    let capturedMutation: any;
+    let capturedMutation: UpdateMutation | undefined;
     
     render(
       <TestComponent onReady={(mutation) => { capturedMutation = mutation; }} />
@@ -155,17 +155,17 @@ describe('useWorkOrderUpdate', () => {
 
     // Trigger the mutation and expect it to reject
     await expect(
-      capturedMutation.mutateAsync({ workOrderId: 'wo-1', data: { title: 'Test' } })
+      capturedMutation!.mutateAsync({ workOrderId: 'wo-1', data: { title: 'Test' } })
     ).rejects.toThrow();
 
     // Verify error handling
     expect(getErrorMessage).toHaveBeenCalledWith(permissionError);
     expect(toast).toHaveBeenCalledWith({
       title: 'Update Failed',
-      description: 'You don\'t have permission to update this work order. Please contact your organization administrator.',
+      description: "You don't have permission to update this work order. Contact your administrator.",
       variant: 'destructive'
     });
-    expect(showErrorToast).toHaveBeenCalledWith(permissionError);
+    expect(showErrorToast).toHaveBeenCalledWith(permissionError, 'Work Order Update');
 
     // Verify error state
     await waitFor(() => {
@@ -185,11 +185,11 @@ describe('useWorkOrderUpdate', () => {
         data: null,
         error: genericError
       })
-    } as any);
+    } as unknown as ReturnType<typeof supabase.from>);
 
     vi.mocked(getErrorMessage).mockReturnValue('Network error');
 
-    let capturedMutation: any;
+    let capturedMutation: UpdateMutation | undefined;
     
     render(
       <TestComponent onReady={(mutation) => { capturedMutation = mutation; }} />
@@ -201,21 +201,21 @@ describe('useWorkOrderUpdate', () => {
 
     // Trigger the mutation and expect it to reject
     await expect(
-      capturedMutation.mutateAsync({ workOrderId: 'wo-1', data: { title: 'Test' } })
+      capturedMutation!.mutateAsync({ workOrderId: 'wo-1', data: { title: 'Test' } })
     ).rejects.toThrow();
 
     // Verify generic error handling
     expect(toast).toHaveBeenCalledWith({
       title: 'Update Failed',
-      description: 'Failed to update work order. Please try again.',
+      description: 'Failed to update work order. Please check your connection and try again.',
       variant: 'destructive'
     });
-    expect(showErrorToast).toHaveBeenCalledWith(genericError);
+    expect(showErrorToast).toHaveBeenCalledWith(genericError, 'Work Order Update');
   });
 
   it('should show loading state during mutation', async () => {
-    let resolveUpdate: (value: any) => void;
-    const updatePromise = new Promise((resolve) => {
+    let resolveUpdate: ((value: { data: unknown; error: unknown }) => void) | undefined;
+    const updatePromise = new Promise<{ data: unknown; error: unknown }>((resolve) => {
       resolveUpdate = resolve;
     });
 
@@ -225,9 +225,9 @@ describe('useWorkOrderUpdate', () => {
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockReturnValue(updatePromise)
-    } as any);
+    } as unknown as ReturnType<typeof supabase.from>);
 
-    let capturedMutation: any;
+    let capturedMutation: UpdateMutation | undefined;
     
     render(
       <TestComponent onReady={(mutation) => { capturedMutation = mutation; }} />
@@ -238,7 +238,7 @@ describe('useWorkOrderUpdate', () => {
     });
 
     // Trigger mutation without awaiting
-    capturedMutation.mutate({ workOrderId: 'wo-1', data: { title: 'Test' } });
+    capturedMutation!.mutate({ workOrderId: 'wo-1', data: { title: 'Test' } });
 
     // Verify loading state
     await waitFor(() => {
@@ -256,8 +256,8 @@ describe('useWorkOrderUpdate', () => {
   });
 
   it('should handle component unmount during pending mutation', async () => {
-    let resolveUpdate: (value: any) => void;
-    const updatePromise = new Promise((resolve) => {
+    let resolveUpdate: ((value: { data: unknown; error: unknown }) => void) | undefined;
+    const updatePromise = new Promise<{ data: unknown; error: unknown }>((resolve) => {
       resolveUpdate = resolve;
     });
 
@@ -267,9 +267,9 @@ describe('useWorkOrderUpdate', () => {
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockReturnValue(updatePromise)
-    } as any);
+    } as unknown as ReturnType<typeof supabase.from>);
 
-    let capturedMutation: any;
+    let capturedMutation: UpdateMutation | undefined;
     
     const { unmount } = render(
       <TestComponent onReady={(mutation) => { capturedMutation = mutation; }} />
@@ -280,7 +280,7 @@ describe('useWorkOrderUpdate', () => {
     });
 
     // Trigger mutation
-    capturedMutation.mutate({ workOrderId: 'wo-1', data: { title: 'Test' } });
+    capturedMutation!.mutate({ workOrderId: 'wo-1', data: { title: 'Test' } });
 
     // Unmount component while mutation is pending
     unmount();
