@@ -133,13 +133,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Refresh in background if needed
       if (needsRefresh) {
         // Background refresh needed
-        managerRefresh(false).finally(() => setIsLoading(false));
+        Promise.resolve(managerRefresh(false)).finally(() => setIsLoading(false));
       }
     } else {
       // No valid cache, fetching fresh session data
-      managerRefresh(true).finally(() => setIsLoading(false));
+      Promise.resolve(managerRefresh(true)).finally(() => setIsLoading(false));
     }
-  }, [user?.id, initializeSession]); // Only depend on user.id and initializeSession
+  }, [user?.id, initializeSession, managerRefresh]); // Depend on managerRefresh as well
 
   return (
     <SessionContext.Provider value={{
