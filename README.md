@@ -39,11 +39,19 @@ npm install
 ```
 
 3. Set up environment variables:
-Create a `.env.local` file with your Supabase credentials:
+Copy `.env.example` to `.env` and fill in your Supabase credentials:
 ```env
-VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
+
+Required environment variables:
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+
+Optional environment variables:
+- `VITE_STRIPE_PUBLISHABLE_KEY`: For billing features
+- `VITE_GOOGLE_MAPS_API_KEY`: For fleet map functionality
 
 4. Start the development server:
 ```bash
@@ -145,6 +153,8 @@ src/
 - [Technical Guide](./docs/technical-guide.md)
 - [Deployment Guide](./docs/deployment.md)
 - [Work Order Workflow](./docs/work-order-workflow.md)
+- [Database Migrations](./docs/database-migrations.md)
+- [CI Testing Guide](./docs/ci-testing-reference.md)
 
 ## 🤝 Contributing
 

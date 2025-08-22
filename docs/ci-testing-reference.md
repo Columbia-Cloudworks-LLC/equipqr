@@ -96,6 +96,41 @@ import { MockSessionProvider } from '@/test/utils/mock-providers';
 - Update mock patterns as APIs evolve
 - Keep test utilities DRY and reusable
 
+## Database Migration Testing
+
+### Migration Validation
+While the main CI pipeline focuses on code quality, it's important to validate database migrations separately:
+
+```bash
+# Local migration testing
+supabase db reset  # Test complete migration chain
+supabase db push   # Apply pending migrations
+npm run test       # Ensure tests pass with new schema
+```
+
+### Migration Requirements
+- All migration files must follow naming convention: `YYYYMMDDHHMMSS_name.sql`
+- Baseline tables (work_orders, equipment, organizations) must exist early in migration sequence
+- Use idempotent operations (`IF NOT EXISTS`, `IF NOT FOUND`)
+- Enable RLS on all user data tables
+
+### Optional CI Enhancement
+Add to `.github/workflows/ci.yml` for migration testing:
+```yaml
+  migration-test:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'supabase/migrations/')
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+      - name: Test migration chain
+        run: |
+          supabase start
+          supabase db reset
+          npm run test
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -103,6 +138,7 @@ import { MockSessionProvider } from '@/test/utils/mock-providers';
 2. **Accessibility Warnings**: Add DialogDescription to all DialogContent components  
 3. **Console Noise**: Update error message filters in test setup
 4. **Mock Failures**: Ensure consistent use of centralized mock utilities
+5. **Migration Failures**: Check naming conventions and baseline table existence
 
 ### Debug Commands
 ```bash
@@ -114,6 +150,9 @@ npx vitest run src/path/to/test.tsx
 
 # Debug test in watch mode
 npx vitest --reporter=verbose
+
+# Test database migrations locally
+supabase db reset && npm run test
 ```
 
 This configuration ensures reliable CI execution while maintaining focus on testing core application functionality.
