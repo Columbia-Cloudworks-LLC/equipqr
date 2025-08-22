@@ -184,10 +184,6 @@ beforeAll(() => {
     }
   };
 
-  // Make a11y functions globally available for tests
-  globalThis.startA11yChecks = startA11yChecks;
-  globalThis.stopA11yChecks = stopA11yChecks;
-
   // Ensure consistent global objects across Node versions
   if (typeof global.structuredClone === 'undefined') {
     Object.defineProperty(global, 'structuredClone', {
