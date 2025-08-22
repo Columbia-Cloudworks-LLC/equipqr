@@ -174,19 +174,15 @@ beforeAll(() => {
 
   // Run a11y checks periodically during tests
   let a11yCheckInterval: NodeJS.Timeout;
-  const startA11yChecks = () => {
+  global.startA11yChecks = () => {
     a11yCheckInterval = setInterval(checkDialogA11y, 100);
   };
-  
-  const stopA11yChecks = () => {
+
+  global.stopA11yChecks = () => {
     if (a11yCheckInterval) {
       clearInterval(a11yCheckInterval);
     }
   };
-
-  // Make a11y functions globally available for tests
-  globalThis.startA11yChecks = startA11yChecks;
-  globalThis.stopA11yChecks = stopA11yChecks;
 
   // Ensure consistent global objects across Node versions
   if (typeof global.structuredClone === 'undefined') {
