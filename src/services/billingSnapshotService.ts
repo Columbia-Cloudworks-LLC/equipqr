@@ -155,7 +155,10 @@ export const getBillingSnapshot = async (organizationId: string): Promise<Billin
       subscriptions: subscriptions || [],
       usage: usage || [],
       exemptions: exemptions || [],
-      events: events || []
+      events: (events || []).map(event => ({
+        ...event,
+        event_data: event.event_data as Record<string, unknown>
+      }))
     };
   } catch (error) {
     console.error('Error fetching billing snapshot:', error);

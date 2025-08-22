@@ -239,10 +239,66 @@ jobs:
         path: dist/
         retention-days: 7
 
+  db-reset:
+    name: Database Reset Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          
+    - name: Enforce npm usage
+      run: |
+        rm -f bun.lockb
+        if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
+          echo "Detected non-npm lockfile. This project uses npm only."
+          exit 1
+        fi
+        
+    - name: Install dependencies
+      run: |
+        set -e
+        npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
+
+    - name: Setup Supabase CLI
+      run: npm install -g supabase@latest
+      
+    - name: Start Supabase local environment
+      run: npx supabase start -x studio
+      timeout-minutes: 5
+      
+    - name: Fix migrations before reset
+      run: npm run fix:migrations
+      
+    - name: Test database reset
+      run: npx supabase db reset
+      timeout-minutes: 3
+      
+    - name: Stop Supabase environment
+      run: npx supabase stop
+      if: always()
+
   quality-gates:
     name: Quality Gates
     runs-on: ubuntu-latest
-    needs: [test, security, build]
+    needs: [test, security, build, db-reset]
     timeout-minutes: 10
     
     steps:
