@@ -11,8 +11,8 @@ const TestComponent = () => {
     <div>
       <div data-testid="is-loading">{isLoading.toString()}</div>
       <div data-testid="has-error">{(error ? 'true' : 'false')}</div>
-      <div data-testid="current-org-id">{sessionData?.currentOrganizationId || 'none'}</div>
-      <div data-testid="user-id">{sessionData?.session?.user?.id || 'user-1'}</div>
+        <div data-testid="current-org-id">{sessionData?.currentOrganizationId || 'none'}</div>
+        <div data-testid="user-id">{'user' in (sessionData || {}) ? (sessionData as any).user?.id : 'none'}</div>
       <button 
         data-testid="refresh-button" 
         onClick={() => refreshSession()}

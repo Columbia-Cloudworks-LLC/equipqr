@@ -6,12 +6,6 @@ declare global {
   // Expose A11y control functions for tests
   let startA11yChecks: () => void;
   let stopA11yChecks: () => void;
-  
-  // Extend globalThis to include our functions
-  namespace globalThis {
-    var startA11yChecks: () => void;
-    var stopA11yChecks: () => void;
-  }
 }
 
 // Mock react-router-dom with proper MemoryRouter export
