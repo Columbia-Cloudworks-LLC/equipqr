@@ -184,6 +184,7 @@ BEGIN
             );
         END;
         $function$;
+        $func$;
     END IF;
 END $$;
 
