@@ -101,29 +101,29 @@ describe('App', () => {
     expect(screen.getByTestId('app-providers')).toBeInTheDocument();
   });
 
-  it('renders landing page for root path', () => {
+  it('renders landing page for root path', async () => {
     renderApp(['/']);
-    expect(screen.getByTestId('landing-page')).toBeInTheDocument();
+    expect(await screen.findByTestId('landing-page')).toBeInTheDocument();
   });
 
-  it('renders auth page for /auth path', () => {
+  it('renders auth page for /auth path', async () => {
     renderApp(['/auth']);
-    expect(screen.getByTestId('auth-page')).toBeInTheDocument();
+    expect(await screen.findByTestId('auth-page')).toBeInTheDocument();
   });
 
-  it('renders support page for /support path', () => {
+  it('renders support page for /support path', async () => {
     renderApp(['/support']);
-    expect(screen.getByTestId('support-page')).toBeInTheDocument();
+    expect(await screen.findByTestId('support-page')).toBeInTheDocument();
   });
 
-  it('renders terms page for /terms-of-service path', () => {
+  it('renders terms page for /terms-of-service path', async () => {
     renderApp(['/terms-of-service']);
-    expect(screen.getByTestId('terms-page')).toBeInTheDocument();
+    expect(await screen.findByTestId('terms-page')).toBeInTheDocument();
   });
 
-  it('renders privacy page for /privacy-policy path', () => {
+  it('renders privacy page for /privacy-policy path', async () => {
     renderApp(['/privacy-policy']);
-    expect(screen.getByTestId('privacy-page')).toBeInTheDocument();
+    expect(await screen.findByTestId('privacy-page')).toBeInTheDocument();
   });
 
   it('contains app providers', () => {
@@ -145,8 +145,8 @@ describe('App', () => {
     );
   });
 
-  it('renders TopBar component on dashboard route', () => {
+  it('renders TopBar component on dashboard route', async () => {
     renderApp(['/dashboard']);
-    expect(screen.getByTestId('top-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('top-bar')).toBeInTheDocument();
   });
 });

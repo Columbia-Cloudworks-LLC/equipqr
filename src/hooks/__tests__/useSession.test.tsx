@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils/test-utils';
 import { render as rtlRender } from '@testing-library/react';
-import { SessionContext } from '@/contexts/SessionContext';
+import { SessionContext, type SessionData } from '@/contexts/SessionContext';
 import { useSession } from '../useSession';
+
+interface SessionDataWithUser extends SessionData {
+  user?: { id?: string };
+}
 
 const TestComponent = () => {
   const { sessionData, isLoading, error, refreshSession } = useSession();
@@ -12,7 +16,7 @@ const TestComponent = () => {
       <div data-testid="is-loading">{isLoading.toString()}</div>
       <div data-testid="has-error">{(error ? 'true' : 'false')}</div>
         <div data-testid="current-org-id">{sessionData?.currentOrganizationId || 'none'}</div>
-        <div data-testid="user-id">{'user' in (sessionData || {}) ? (sessionData as any).user?.id : 'none'}</div>
+        <div data-testid="user-id">{'user' in (sessionData || {}) ? (sessionData as SessionDataWithUser).user?.id : 'none'}</div>
       <button 
         data-testid="refresh-button" 
         onClick={() => refreshSession()}
