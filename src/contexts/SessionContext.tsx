@@ -59,7 +59,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const sessionManager = useSessionManager({
+  // Destructure stable functions from sessionManager to avoid recreating on every render
+  const {
+    refreshSession: managerRefresh,
+    switchOrganization: managerSwitchOrganization,
+    shouldRefreshOnVisibility,
+    initializeSession
+  } = useSessionManager({
     user,
     onSessionUpdate: setSessionData,
     onError: setError
@@ -75,8 +81,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [sessionData]);
 
   const switchOrganization = useCallback(async (organizationId: string) => {
-    await sessionManager.switchOrganization(organizationId, sessionData);
-  }, [sessionManager, sessionData]);
+    await managerSwitchOrganization(organizationId, sessionData);
+  }, [managerSwitchOrganization, sessionData]);
 
   const hasTeamRole = useCallback((teamId: string, role: string): boolean => {
     return SessionPermissionService.hasTeamRole(sessionData, teamId, role);
@@ -96,15 +102,18 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [sessionData]);
 
   const refreshSession = useCallback(async (force: boolean = false) => {
-    setIsLoading(force);
-    await sessionManager.refreshSession(force);
-    setIsLoading(false);
-  }, [sessionManager]);
+    try {
+      setIsLoading(force);
+      await managerRefresh(force);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [managerRefresh]);
 
   // Page visibility handling - more conservative approach
   usePageVisibility({
     onVisibilityChange: (isVisible) => {
-      if (sessionManager.shouldRefreshOnVisibility(isVisible)) {
+      if (shouldRefreshOnVisibility(isVisible)) {
         // Refreshing session due to page visibility change
         refreshSession(false);
       }
@@ -114,7 +123,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Initialize session on mount or user change
   useEffect(() => {
-    const { shouldLoadFromCache, cachedData, needsRefresh } = sessionManager.initializeSession();
+    const { shouldLoadFromCache, cachedData, needsRefresh } = initializeSession();
     
     if (shouldLoadFromCache && cachedData) {
       // Loading session from cache
@@ -124,13 +133,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Refresh in background if needed
       if (needsRefresh) {
         // Background refresh needed
-        refreshSession(false);
+        Promise.resolve(managerRefresh(false)).finally(() => setIsLoading(false));
       }
     } else {
       // No valid cache, fetching fresh session data
-      refreshSession(true);
+      Promise.resolve(managerRefresh(true)).finally(() => setIsLoading(false));
     }
-  }, [user, sessionManager, refreshSession]);
+  }, [user?.id, initializeSession, managerRefresh]); // Depend on managerRefresh as well
 
   return (
     <SessionContext.Provider value={{

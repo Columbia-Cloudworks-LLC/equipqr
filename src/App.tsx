@@ -7,13 +7,15 @@ import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvide
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
-// Lazy-loaded components to reduce initial bundle size
+// Critical components loaded eagerly to prevent loading issues for unauthenticated users
+import Auth from '@/pages/Auth';
+import SmartLanding from '@/components/landing/SmartLanding';
+import DebugAuth from '@/pages/DebugAuth';
+
+// Dashboard components can be lazy-loaded since they're only needed after auth
 const AppSidebar = lazy(() => import('@/components/layout/AppSidebar'));
 const TopBar = lazy(() => import('@/components/layout/TopBar'));
 const LegalFooter = lazy(() => import('@/components/layout/LegalFooter'));
-
-const Auth = lazy(() => import('@/pages/Auth'));
-const SmartLanding = lazy(() => import('@/components/landing/SmartLanding'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Equipment = lazy(() => import('@/pages/Equipment'));
 const EquipmentDetails = lazy(() => import('@/pages/EquipmentDetails'));
@@ -53,16 +55,18 @@ const RedirectToWorkOrder = () => {
 function App() {
   return (
     <AppProviders>
-      <Suspense fallback={<div>Loading...</div>}>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<SmartLanding />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/invitation/:token" element={<InvitationAccept />} />
-          <Route path="/qr/:equipmentId" element={<QRRedirect />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Routes>
+        {/* Public routes - no suspense needed, loaded eagerly */}
+        <Route path="/" element={<SmartLanding />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/debug-auth" element={<DebugAuth />} />
+        
+        {/* Other public routes with suspense for lazy loading */}
+        <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
+        <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
+        <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><QRRedirect /></Suspense>} />
+        <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
+        <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />
 
           {/* Redirect routes for backward compatibility */}
           <Route
@@ -86,7 +90,7 @@ function App() {
             }
           />
 
-          {/* Protected routes */}
+          {/* Protected routes with persistent layout */}
           <Route
             path="/dashboard/*"
             element={
@@ -95,28 +99,51 @@ function App() {
                   <TeamProvider>
                     <SidebarProvider>
                       <div className="flex min-h-screen w-full">
-                        <AppSidebar />
+                        <Suspense fallback={
+                          <div className="w-64 border-r bg-sidebar">
+                            <div className="animate-pulse h-full bg-sidebar-accent/20" />
+                          </div>
+                        }>
+                          <AppSidebar />
+                        </Suspense>
                         <SidebarInset className="flex-1 min-w-0">
-                          <BrandedTopBar />
+                          <Suspense fallback={
+                            <div className="h-14 sm:h-16 border-b">
+                              <div className="animate-pulse h-full bg-muted/20" />
+                            </div>
+                          }>
+                            <BrandedTopBar />
+                          </Suspense>
                           <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 overflow-auto min-w-0">
-                            <Routes>
-                              <Route path="/" element={<Dashboard />} />
-                              <Route path="/equipment" element={<Equipment />} />
-                              <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
-                              <Route path="/work-orders" element={<WorkOrders />} />
-                              <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
-                              <Route path="/teams" element={<Teams />} />
-                              <Route path="/teams/:teamId" element={<TeamDetails />} />
-                              <Route path="/fleet-map" element={<FleetMap />} />
-                              <Route path="/organization" element={<Organization />} />
-                              <Route path="/scanner" element={<QRScanner />} />
-                              <Route path="/billing" element={<Billing />} />
-                              <Route path="/pm-templates" element={<PMTemplates />} />
-                              <Route path="/settings" element={<Settings />} />
-                              <Route path="/reports" element={<Reports />} />
-                            </Routes>
+                            <Suspense fallback={
+                              <div className="flex items-center justify-center h-64">
+                                <div className="text-center">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                                  <p className="text-muted-foreground">Loading...</p>
+                                </div>
+                              </div>
+                            }>
+                              <Routes>
+                                <Route path="/" element={<Dashboard />} />
+                                <Route path="/equipment" element={<Equipment />} />
+                                <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
+                                <Route path="/work-orders" element={<WorkOrders />} />
+                                <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
+                                <Route path="/teams" element={<Teams />} />
+                                <Route path="/teams/:teamId" element={<TeamDetails />} />
+                                <Route path="/fleet-map" element={<FleetMap />} />
+                                <Route path="/organization" element={<Organization />} />
+                                <Route path="/scanner" element={<QRScanner />} />
+                                <Route path="/billing" element={<Billing />} />
+                                <Route path="/pm-templates" element={<PMTemplates />} />
+                                <Route path="/settings" element={<Settings />} />
+                                <Route path="/reports" element={<Reports />} />
+                              </Routes>
+                            </Suspense>
                           </main>
-                          <LegalFooter />
+                          <Suspense fallback={null}>
+                            <LegalFooter />
+                          </Suspense>
                         </SidebarInset>
                       </div>
                     </SidebarProvider>
@@ -126,7 +153,6 @@ function App() {
             }
           />
         </Routes>
-      </Suspense>
     </AppProviders>
   );
 }

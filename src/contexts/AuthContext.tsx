@@ -13,6 +13,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 
@@ -22,10 +23,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🔐 AuthProvider - Setting up auth listener');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // Auth state changed
+        console.log('🔐 Auth state change:', { 
+          event, 
+          user: session?.user?.email || 'none',
+          timestamp: new Date().toISOString()
+        });
         
         // Distinguish between different types of auth events
         const isTokenRefresh = event === 'TOKEN_REFRESHED';
@@ -57,7 +64,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // Initial session check
+      console.log('🔐 Initial session check:', { 
+        user: session?.user?.email || 'none',
+        hasSession: !!session 
+      });
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
