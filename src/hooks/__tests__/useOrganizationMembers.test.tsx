@@ -1,7 +1,7 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type SpyInstance } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
-import { useQueryClient } from '@tanstack/react-query';
+import { QueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { useOrganizationMembers, useUpdateMemberRole, useRemoveMember } from '../useOrganizationMembers';
 
 // Mock dependencies
@@ -16,6 +16,7 @@ vi.mock('sonner', () => ({
     error: vi.fn()
   }
 }));
+
 
 // Import mocked modules for assertions
 import { supabase } from '@/integrations/supabase/client';
@@ -38,8 +39,11 @@ const MembersProbe = ({ organizationId }: { organizationId: string }) => {
   );
 };
 
-const UpdateRoleProbe = ({ organizationId, onReady }: { organizationId: string; onReady?: (mutation: any) => void }) => {
-  const mutation = useUpdateMemberRole(organizationId);
+type UpdateRoleVariables = { memberId: string; newRole: 'admin' | 'member' };
+type UpdateRoleMutation = UseMutationResult<unknown, unknown, UpdateRoleVariables, unknown>;
+
+const UpdateRoleProbe = ({ organizationId, onReady }: { organizationId: string; onReady?: (mutation: UpdateRoleMutation) => void }) => {
+  const mutation = useUpdateMemberRole(organizationId) as UpdateRoleMutation;
   
   React.useEffect(() => {
     if (onReady) {
@@ -56,8 +60,10 @@ const UpdateRoleProbe = ({ organizationId, onReady }: { organizationId: string; 
   );
 };
 
-const RemoveMemberProbe = ({ organizationId, onReady }: { organizationId: string; onReady?: (mutation: any) => void }) => {
-  const mutation = useRemoveMember(organizationId);
+type RemoveMemberMutation = UseMutationResult<unknown, unknown, string, unknown>;
+
+const RemoveMemberProbe = ({ organizationId, onReady }: { organizationId: string; onReady?: (mutation: RemoveMemberMutation) => void }) => {
+  const mutation = useRemoveMember(organizationId) as RemoveMemberMutation;
   
   React.useEffect(() => {
     if (onReady) {
@@ -75,21 +81,19 @@ const RemoveMemberProbe = ({ organizationId, onReady }: { organizationId: string
 };
 
 describe('useOrganizationMembers', () => {
-  let mockQueryClient: any;
-  let consoleErrorSpy: any;
+  let consoleErrorSpy: SpyInstance;
+  let invalidateSpy: SpyInstance;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockQueryClient = {
-      invalidateQueries: vi.fn()
-    };
-    vi.mocked(useQueryClient).mockReturnValue(mockQueryClient);
+    invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.clearAllMocks();
     consoleErrorSpy.mockRestore();
+    invalidateSpy.mockRestore();
   });
 
   describe('useOrganizationMembers', () => {
@@ -108,12 +112,11 @@ describe('useOrganizationMembers', () => {
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        then: vi.fn().mockResolvedValue({
+        order: vi.fn().mockResolvedValue({
           data: mockMembersData,
           error: null
         })
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       render(<MembersProbe organizationId="org-1" />);
 
@@ -141,12 +144,11 @@ describe('useOrganizationMembers', () => {
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        then: vi.fn().mockResolvedValue({
+        order: vi.fn().mockResolvedValue({
           data: null,
           error: mockError
         })
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       render(<MembersProbe organizationId="org-1" />);
 
@@ -166,8 +168,8 @@ describe('useOrganizationMembers', () => {
     });
 
     it('should show loading state', async () => {
-      let resolveQuery: (value: any) => void;
-      const queryPromise = new Promise((resolve) => {
+      let resolveQuery: ((value: { data: unknown; error: unknown }) => void) | undefined;
+      const queryPromise = new Promise<{ data: unknown; error: unknown }>((resolve) => {
         resolveQuery = resolve;
       });
 
@@ -175,9 +177,8 @@ describe('useOrganizationMembers', () => {
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        then: vi.fn().mockReturnValue(queryPromise)
-      } as any);
+        order: vi.fn().mockReturnValue(queryPromise)
+      } as unknown as ReturnType<typeof supabase.from>);
 
       render(<MembersProbe organizationId="org-1" />);
 
@@ -194,8 +195,8 @@ describe('useOrganizationMembers', () => {
     });
 
     it('should handle component unmount during loading', async () => {
-      let resolveQuery: (value: any) => void;
-      const queryPromise = new Promise((resolve) => {
+      let resolveQuery: ((value: { data: unknown; error: unknown }) => void) | undefined;
+      const queryPromise = new Promise<{ data: unknown; error: unknown }>((resolve) => {
         resolveQuery = resolve;
       });
 
@@ -203,9 +204,8 @@ describe('useOrganizationMembers', () => {
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        then: vi.fn().mockReturnValue(queryPromise)
-      } as any);
+        order: vi.fn().mockReturnValue(queryPromise)
+      } as unknown as ReturnType<typeof supabase.from>);
 
       const { unmount } = render(<MembersProbe organizationId="org-1" />);
 
@@ -240,9 +240,9 @@ describe('useOrganizationMembers', () => {
           data: mockUpdatedMember,
           error: null
         })
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
-      let capturedMutation: any;
+      let capturedMutation: UpdateRoleMutation | undefined;
       
       render(
         <UpdateRoleProbe 
@@ -256,9 +256,9 @@ describe('useOrganizationMembers', () => {
       });
 
       // Trigger the mutation
-      await capturedMutation.mutateAsync({
-        userId: 'u1',
-        newRole: 'member' as const
+      await capturedMutation!.mutateAsync({
+        memberId: 'u1',
+        newRole: 'member'
       });
 
       // Verify Supabase was called correctly
@@ -266,7 +266,7 @@ describe('useOrganizationMembers', () => {
 
       // Verify success toast and query invalidation
       expect(toast.success).toHaveBeenCalledWith('Member role updated successfully');
-      expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+      expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ['organization-members', 'org-1']
       });
 
@@ -288,9 +288,9 @@ describe('useOrganizationMembers', () => {
           data: null,
           error: mockError
         })
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
-      let capturedMutation: any;
+      let capturedMutation: UpdateRoleMutation | undefined;
       
       render(
         <UpdateRoleProbe 
@@ -305,7 +305,7 @@ describe('useOrganizationMembers', () => {
 
       // Trigger the mutation and expect it to reject
       await expect(
-        capturedMutation.mutateAsync({ userId: 'u1', newRole: 'member' })
+        capturedMutation!.mutateAsync({ memberId: 'u1', newRole: 'member' })
       ).rejects.toThrow();
 
       // Verify error handling
@@ -347,7 +347,7 @@ describe('useOrganizationMembers', () => {
         error: null
       });
 
-      let capturedMutation: any;
+      let capturedMutation: RemoveMemberMutation | undefined;
       
       render(
         <RemoveMemberProbe 
@@ -361,7 +361,7 @@ describe('useOrganizationMembers', () => {
       });
 
       // Trigger the mutation
-      await capturedMutation.mutateAsync({ userId: 'u1' });
+      await capturedMutation!.mutateAsync('u1');
 
       // Verify RPC was called correctly
       expect(supabase.rpc).toHaveBeenCalledWith('remove_organization_member_safely', {
@@ -372,9 +372,9 @@ describe('useOrganizationMembers', () => {
 
       // Verify success toast with team transfer details
       expect(toast.success).toHaveBeenCalledWith(
-        'Bob Johnson has been removed from the organization. 2 teams were transferred to other managers.'
+        'Bob Johnson was removed successfully. Team management for 2 team(s) was transferred to the organization owner.'
       );
-      expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+      expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ['organization-members', 'org-1']
       });
 
@@ -410,7 +410,7 @@ describe('useOrganizationMembers', () => {
         error: null
       });
 
-      let capturedMutation: any;
+      let capturedMutation: RemoveMemberMutation | undefined;
       
       render(
         <RemoveMemberProbe 
@@ -425,7 +425,7 @@ describe('useOrganizationMembers', () => {
 
       // Trigger the mutation and expect it to reject
       await expect(
-        capturedMutation.mutateAsync({ userId: 'u1' })
+        capturedMutation!.mutateAsync('u1')
       ).rejects.toThrow();
 
       // Verify error toast
@@ -444,7 +444,7 @@ describe('useOrganizationMembers', () => {
         error: null
       });
 
-      let capturedMutation: any;
+      let capturedMutation: RemoveMemberMutation | undefined;
       
       render(
         <RemoveMemberProbe 
@@ -459,7 +459,7 @@ describe('useOrganizationMembers', () => {
 
       // Trigger the mutation and expect it to reject
       await expect(
-        capturedMutation.mutateAsync({ userId: 'u1' })
+        capturedMutation!.mutateAsync('u1')
       ).rejects.toThrow('User not authenticated');
 
       // Verify error toast

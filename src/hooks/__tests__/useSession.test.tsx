@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils/test-utils';
+import { render as rtlRender } from '@testing-library/react';
 import { SessionContext } from '@/contexts/SessionContext';
 import { useSession } from '../useSession';
 
@@ -11,7 +12,7 @@ const TestComponent = () => {
       <div data-testid="is-loading">{isLoading.toString()}</div>
       <div data-testid="has-error">{(error ? 'true' : 'false')}</div>
       <div data-testid="current-org-id">{sessionData?.currentOrganizationId || 'none'}</div>
-      <div data-testid="user-id">user-1</div>
+      <div data-testid="user-id">{sessionData?.user?.id || 'none'}</div>
       <button 
         data-testid="refresh-button" 
         onClick={() => refreshSession()}
@@ -101,7 +102,7 @@ describe('useSession', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect(() => {
-      render(
+      rtlRender(
         <div>
           <TestComponent />
         </div>

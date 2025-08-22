@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, type QueryKey } from '@tanstack/react-query';
 
 // PHASE 3: Centralized cache invalidation and management
 export class CacheManager {
@@ -207,9 +207,9 @@ export class CacheManager {
 
   // Optimistic updates with rollback
   async optimisticUpdate<T>(
-    queryKey: any[],
+    queryKey: QueryKey,
     updater: (old: T | undefined) => T,
-    mutationFn: () => Promise<any>
+    mutationFn: () => Promise<unknown>
   ): Promise<void> {
     if (!this.queryClient) return;
 
