@@ -4,8 +4,8 @@ import { cleanup } from '@testing-library/react';
 
 declare global {
   // Expose A11y control functions for tests
-  let startA11yChecks: () => void;
-  let stopA11yChecks: () => void;
+  var startA11yChecks: () => void;
+  var stopA11yChecks: () => void;
 }
 
 // Mock react-router-dom with proper MemoryRouter export
@@ -174,6 +174,7 @@ beforeAll(() => {
 
   // Run a11y checks periodically during tests
   let a11yCheckInterval: NodeJS.Timeout;
+  
   globalThis.startA11yChecks = () => {
     a11yCheckInterval = setInterval(checkDialogA11y, 100);
   };
