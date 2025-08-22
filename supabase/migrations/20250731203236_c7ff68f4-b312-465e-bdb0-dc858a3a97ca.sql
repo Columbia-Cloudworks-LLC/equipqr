@@ -4,7 +4,7 @@ BEGIN
     SELECT 1 FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name = 'work_orders'
   ) THEN
-    ALTER TABLE public.work_orders
+    ALTER TABLE IF EXISTS public.work_orders
       ADD COLUMN IF NOT EXISTS is_historical BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS historical_start_date TIMESTAMP WITH TIME ZONE,
       ADD COLUMN IF NOT EXISTS historical_notes TEXT,
@@ -38,7 +38,7 @@ BEGIN
     SELECT 1 FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name = 'preventative_maintenance'
   ) THEN
-    ALTER TABLE public.preventative_maintenance
+    ALTER TABLE IF EXISTS public.preventative_maintenance
       ADD COLUMN IF NOT EXISTS is_historical BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS historical_completion_date TIMESTAMP WITH TIME ZONE,
       ADD COLUMN IF NOT EXISTS historical_notes TEXT;
