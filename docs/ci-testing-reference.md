@@ -76,6 +76,7 @@ import { MockSessionProvider } from '@/test/utils/mock-providers';
 2. **Accessibility**: No missing DialogDescription warnings
 3. **Console Cleanliness**: Expected error messages suppressed
 4. **Build Success**: No TypeScript errors
+5. **JS Bundle Size (Gzipped)**: Every `dist/assets/*.js` must be ≤ 500KB
 
 ## Best Practices
 

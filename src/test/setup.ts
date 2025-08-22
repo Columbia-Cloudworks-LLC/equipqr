@@ -174,11 +174,11 @@ beforeAll(() => {
 
   // Run a11y checks periodically during tests
   let a11yCheckInterval: NodeJS.Timeout;
-  global.startA11yChecks = () => {
+  globalThis.startA11yChecks = () => {
     a11yCheckInterval = setInterval(checkDialogA11y, 100);
   };
 
-  global.stopA11yChecks = () => {
+  globalThis.stopA11yChecks = () => {
     if (a11yCheckInterval) {
       clearInterval(a11yCheckInterval);
     }
