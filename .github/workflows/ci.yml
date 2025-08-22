@@ -112,7 +112,7 @@ jobs:
     - name: Run tests with coverage
       run: node scripts/test-ci.mjs
       env:
-        COVERAGE_BASELINE: 32
+        COVERAGE_BASELINE: 70
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         
@@ -286,7 +286,7 @@ jobs:
     - name: Check test coverage threshold
       run: node scripts/test-ci.mjs
       env:
-        COVERAGE_BASELINE: 32
+        COVERAGE_BASELINE: 70
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         

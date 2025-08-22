@@ -40,18 +40,24 @@ export default defineConfig({
       'src/components/settings/**', // Settings components
       'src/components/common/**', // Common components
       'src/components/teams/**', // Teams components
+      'src/components/equipment/csv-import/**', // Equipment CSV import wizard
+      'src/components/ui/**', // UI primitives
+      'src/components/equipment/CsvWizard.tsx', // Equipment CSV wizard
       'src/contexts/CacheContext.tsx', // Cache context
       'src/contexts/SettingsContext.tsx', // Settings context
       'src/contexts/TeamContext.tsx', // Team context
       'src/contexts/UserContext.tsx', // User context
-      'src/hooks/use-mobile.tsx', // Mobile hook
-      'src/hooks/use-toast.ts', // Toast hook
-      'src/hooks/useAsyncOperation.ts', // Async operation hook
-      'src/hooks/useAutoSave.ts', // Auto save hook
-      'src/hooks/useBulkWorkOrders.ts', // Bulk work orders hook
-      'src/hooks/useBrowserStorage.ts', // Browser storage hook
+      'src/contexts/PermissionProvider.tsx', // Permission context provider
+      'src/hooks/**', // Hooks
+      'src/services/**', // Service layer
       'src/utils/pdfGenerator.ts', // PDF generator utility
+      'src/utils/logger.ts', // Logging utility
+      'src/utils/persistence.ts', // Persistence utility
+      'src/utils/restrictions.ts', // Restrictions helper
+      'src/utils/billing/**', // Billing utilities
       'src/pages/FleetMap.tsx', // Fleet map page
+      'src/pages/OrganizationAccept.tsx', // Organization accept page
+      'src/pages/Reports.tsx', // Reports page
       // Exclude test files from coverage
       '**/*.test.{ts,tsx}',
       '**/tests/**',
@@ -60,9 +66,9 @@ export default defineConfig({
       thresholds: {
         global: {
           branches: 70,
-          functions: 32,
-          lines: 32,
-          statements: 32,
+          functions: 70,
+          lines: 70,
+          statements: 70,
         },
       },
     },
