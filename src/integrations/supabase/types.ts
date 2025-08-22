@@ -1658,6 +1658,7 @@ export type Database = {
           pm_required: boolean
           priority: Database["public"]["Enums"]["work_order_priority"]
           status: Database["public"]["Enums"]["work_order_status"]
+          team_id: string | null
           title: string
           updated_at: string
         }
@@ -1683,6 +1684,7 @@ export type Database = {
           pm_required?: boolean
           priority?: Database["public"]["Enums"]["work_order_priority"]
           status?: Database["public"]["Enums"]["work_order_status"]
+          team_id?: string | null
           title: string
           updated_at?: string
         }
@@ -1708,6 +1710,7 @@ export type Database = {
           pm_required?: boolean
           priority?: Database["public"]["Enums"]["work_order_priority"]
           status?: Database["public"]["Enums"]["work_order_status"]
+          team_id?: string | null
           title?: string
           updated_at?: string
         }

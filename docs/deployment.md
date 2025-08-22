@@ -41,19 +41,31 @@ Create environment files for different deployment stages:
 
 #### `.env.local` (Development)
 ```env
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Optional Development Settings
 VITE_APP_TITLE=EquipQR Development
-VITE_API_URL=http://localhost:3001/api
 VITE_ENABLE_DEVTOOLS=true
 VITE_LOG_LEVEL=debug
 ```
 
 #### `.env.production` (Production)
 ```env
+# Supabase Configuration (Required)
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Optional Production Settings
 VITE_APP_TITLE=EquipQR
-VITE_API_URL=https://api.equipqr.app
 VITE_ENABLE_DEVTOOLS=false
 VITE_LOG_LEVEL=error
 VITE_SENTRY_DSN=your-sentry-dsn
+
+# Optional Service Integrations
+VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_key
+VITE_GOOGLE_MAPS_API_KEY=your_maps_key
 ```
 
 ### Configuration Management
@@ -64,9 +76,17 @@ export const config = {
     title: import.meta.env.VITE_APP_TITLE || 'EquipQR',
     version: import.meta.env.VITE_APP_VERSION || '1.0.0',
   },
-  api: {
-    baseUrl: import.meta.env.VITE_API_URL || '/api',
-    timeout: 30000,
+  supabase: {
+    url: import.meta.env.VITE_SUPABASE_URL,
+    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+  },
+  services: {
+    stripe: {
+      publishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+    },
+    maps: {
+      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    },
   },
   features: {
     enableDevTools: import.meta.env.VITE_ENABLE_DEVTOOLS === 'true',
@@ -220,9 +240,11 @@ self.addEventListener('install', (event) => {
 <!-- Add to index.html -->
 <meta http-equiv="Content-Security-Policy" 
       content="default-src 'self'; 
-               script-src 'self' 'unsafe-inline'; 
-               style-src 'self' 'unsafe-inline'; 
-               img-src 'self' data: https:;">
+               script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com; 
+               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+               font-src 'self' https://fonts.gstatic.com;
+               img-src 'self' data: https: blob:;
+               connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://maps.googleapis.com;">
 ```
 
 ### HTTPS Configuration
@@ -241,36 +263,42 @@ EquipQR is designed to work with Supabase for backend functionality:
 3. **Authentication**: Configure Supabase Auth for user management
 4. **Real-time Updates**: Enable real-time subscriptions for live data
 
-### Alternative Backend Options
+### Supabase Configuration
+EquipQR uses Supabase for all backend functionality. Ensure proper configuration:
+
 ```typescript
-// Generic API service configuration
-// src/lib/api.ts
-class ApiService {
-  private baseUrl: string;
-  
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
-  
-  async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      ...options,
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
-    }
-    
-    return response.json();
-  }
+// src/integrations/supabase/client.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing required Supabase environment variables');
 }
 
-export const apiService = new ApiService(config.api.baseUrl);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  }
+});
+```
+
+#### Database Migrations
+Ensure database schema is properly migrated before deployment:
+```bash
+# Local development
+supabase db push
+
+# Production deployment
+supabase db push --linked
 ```
 
 ## Monitoring and Logging
