@@ -2,6 +2,12 @@ import '@testing-library/jest-dom';
 import { afterEach, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
+declare global {
+  // Expose A11y control functions for tests
+  let startA11yChecks: () => void;
+  let stopA11yChecks: () => void;
+}
+
 // Mock react-router-dom with proper MemoryRouter export
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -179,8 +185,8 @@ beforeAll(() => {
   };
 
   // Make a11y functions globally available for tests
-  (global as any).startA11yChecks = startA11yChecks;
-  (global as any).stopA11yChecks = stopA11yChecks;
+  globalThis.startA11yChecks = startA11yChecks;
+  globalThis.stopA11yChecks = stopA11yChecks;
 
   // Ensure consistent global objects across Node versions
   if (typeof global.structuredClone === 'undefined') {
