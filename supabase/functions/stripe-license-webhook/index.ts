@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -13,23 +12,33 @@ const logStep = (step: string, details?: any) => {
   console.log(`[STRIPE-LICENSE-WEBHOOK] ${step}${detailsStr}`);
 };
 
-// Check if event has already been processed (idempotency)
+// Check if event has already been processed using webhook_events table
 const isEventProcessed = async (supabaseClient: any, eventId: string): Promise<boolean> => {
-  const { data, error } = await supabaseClient
-    .from("stripe_event_logs")
-    .select("id")
-    .eq("event_id", eventId)
-    .single();
-  
-  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-    logStep("Error checking event idempotency", { eventId, error: error.message });
+  try {
+    const { error } = await supabaseClient
+      .from("webhook_events")
+      .insert({ event_id: eventId });
+    
+    if (error) {
+      if (error.code === '23505') { // Unique violation - event already processed
+        logStep("Event already processed", { eventId });
+        return true;
+      }
+      // Other errors should be thrown
+      logStep("Error checking event processing status", { eventId, error: error.message });
+      throw error;
+    }
+    
+    // Successfully inserted - event is new
+    logStep("New event recorded", { eventId });
+    return false;
+  } catch (error) {
+    logStep("Error in event processing check", { eventId, error });
     throw error;
   }
-  
-  return !!data;
 };
 
-// Log processed event for idempotency
+// Log processed event for audit trail (keeping existing functionality)
 const logProcessedEvent = async (supabaseClient: any, event: any) => {
   const { error } = await supabaseClient
     .from("stripe_event_logs")
@@ -158,7 +167,7 @@ serve(async (req) => {
 
     logStep("Event type", { type: event.type, eventId: event.id });
 
-    // Check idempotency
+    // Check idempotency using webhook_events table
     if (await isEventProcessed(supabaseClient, event.id)) {
       logStep("Event already processed, skipping", { eventId: event.id });
       return new Response("Event already processed", { 
@@ -442,7 +451,7 @@ serve(async (req) => {
         logStep("Unhandled event type", { type: event.type });
     }
 
-    // Log the processed event for idempotency
+    // Log the processed event for audit trail (keeping existing functionality)
     await logProcessedEvent(supabaseClient, event);
 
     return new Response("Webhook processed", { 

@@ -1,3 +1,4 @@
+
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -96,16 +97,12 @@ describe('Stripe Event Logging', () => {
     });
   });
 
-  describe('Idempotency', () => {
-    it('should prevent duplicate event processing', async () => {
+  describe('Legacy stripe_event_logs Idempotency', () => {
+    it('should prevent duplicate event processing in audit logs', async () => {
       const mockInsert = vi.fn().mockRejectedValueOnce({
         code: '23505', // Unique constraint violation
         message: 'duplicate key value violates unique constraint'
       });
-
-
-
-
 
       (supabase.from as any).mockReturnValue({
         insert: mockInsert
@@ -126,7 +123,7 @@ describe('Stripe Event Logging', () => {
       }
     });
 
-    it('should allow new event processing', async () => {
+    it('should allow new event processing in audit logs', async () => {
       const mockInsert = vi.fn().mockResolvedValue({
         data: [{ id: 'log_123' }],
         error: null
@@ -235,6 +232,51 @@ describe('Stripe Event Logging', () => {
         
         expect(membersToDeactivate).toBe(expectedDeactivations);
       });
+    });
+  });
+
+  describe('Dual Idempotency System', () => {
+    it('should handle both webhook_events and stripe_event_logs idempotency', async () => {
+      // First, webhook_events should gate the processing
+      const webhookEventsInsert = vi.fn().mockRejectedValueOnce({
+        code: '23505',
+        message: 'duplicate key value violates unique constraint "webhook_events_pkey"'
+      });
+
+      // stripe_event_logs should still be callable for audit (but won't be reached if webhook_events blocks)
+      const eventLogsInsert = vi.fn().mockResolvedValue({
+        data: [{ id: 'log_123' }],
+        error: null
+      });
+
+      (supabase.from as any).mockImplementation((table: string) => {
+        if (table === 'webhook_events') {
+          return { insert: webhookEventsInsert };
+        }
+        if (table === 'stripe_event_logs') {
+          return { insert: eventLogsInsert };
+        }
+        return { insert: vi.fn() };
+      });
+
+      // Test webhook_events gating
+      try {
+        await supabase.from('webhook_events').insert({ event_id: 'evt_dual_123' });
+      } catch (error: any) {
+        expect(error.code).toBe('23505');
+        expect(webhookEventsInsert).toHaveBeenCalledWith({ event_id: 'evt_dual_123' });
+      }
+
+      // Test that stripe_event_logs would still work for audit
+      const auditResult = await supabase.from('stripe_event_logs').insert({
+        event_id: 'evt_audit_123',
+        type: 'invoice.payment_succeeded',
+        subscription_id: 'sub_123',
+        payload: { test: 'data' }
+      });
+
+      expect(auditResult.error).toBeNull();
+      expect(eventLogsInsert).toHaveBeenCalled();
     });
   });
 });
