@@ -4,8 +4,8 @@ import { cleanup } from '@testing-library/react';
 
 declare global {
   // Expose A11y control functions for tests
-  var startA11yChecks: () => void;
-  var stopA11yChecks: () => void;
+  let startA11yChecks: () => void;
+  let stopA11yChecks: () => void;
 }
 
 // Mock react-router-dom with proper MemoryRouter export
