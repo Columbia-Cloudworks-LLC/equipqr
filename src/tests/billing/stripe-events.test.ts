@@ -103,9 +103,9 @@ describe('Stripe Event Logging', () => {
         message: 'duplicate key value violates unique constraint'
       });
 
-      const mockFrom = vi.fn().mockReturnValue({
-        insert: mockInsert
-      });
+
+
+
 
       (supabase.from as any).mockReturnValue({
         insert: mockInsert
