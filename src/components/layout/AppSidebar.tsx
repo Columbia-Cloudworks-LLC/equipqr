@@ -34,7 +34,8 @@ import {
   LogOut,
   User,
   HelpCircle,
-  ClipboardCheck
+  ClipboardCheck,
+  Bug
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,10 @@ const managementNavigation = [
   { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
   { title: "Settings", url: "/dashboard/settings", icon: Settings },
+];
+
+const debugNavigation = [
+  { title: "Billing Debug", url: "/dashboard/debug/billing", icon: Bug },
 ];
 
 const AppSidebar = () => {
@@ -197,6 +202,43 @@ const AppSidebar = () => {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+          
+          {/* Debug section - only shown in development */}
+          {import.meta.env.DEV && (
+            <SidebarGroup>
+              <SidebarGroupLabel className={cn("text-xs", mutedTextColorClass)}>
+                Debug
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {debugNavigation.map((item) => {
+                    const isActive = location.pathname === item.url;
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton 
+                          asChild
+                          className={cn(
+                            "text-sm transition-colors",
+                            textColorClass,
+                            hasCustomBranding ? '' : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                            hoverBackgroundClass,
+                            isActive && hasCustomBranding ? activeBackgroundClass : '',
+                            isActive && hasCustomBranding ? 'font-medium' : '',
+                            isActive && !hasCustomBranding ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : ''
+                          )}
+                        >
+                          <Link to={item.url} onClick={handleNavClick}>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
         </SidebarContent>
         
         <SidebarFooter className="p-2 sm:p-3">
