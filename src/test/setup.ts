@@ -119,11 +119,9 @@ beforeAll(() => {
   };
   
   console.error = (...args) => {
-    // Suppress specific Dialog accessibility warnings and act() warnings during tests
+    // Suppress specific warnings and expected error messages during tests
     const message = args[0]?.toString() || '';
-    if (message.includes('Missing `Description`') || 
-        message.includes('DialogContent` requires a `DialogTitle`') ||
-        message.includes('Warning: An update to') ||
+    if (message.includes('Warning: An update to') ||
         message.includes('not wrapped in act(...)') ||
         // Suppress expected error messages from tests
         message.includes('Error creating template:') ||
@@ -141,11 +139,48 @@ beforeAll(() => {
         message.includes('Service error:') ||
         message.includes('Failed to parse template data for template:') ||
         message.includes('Error fetching organization') ||
-        message.includes('invalid input syntax for type uuid:')) {
+        message.includes('invalid input syntax for type uuid:') ||
+        message.includes('Error creating work order:') ||
+        message.includes('Error updating work order:') ||
+        message.includes('Error deleting work order:') ||
+        message.includes('Error fetching work orders:') ||
+        message.includes('Network request failed') ||
+        message.includes('Authentication error') ||
+        message.includes('Permission denied')) {
       return;
     }
     originalError.apply(console, args);
   };
+
+  // A11y checks for Dialog components
+  const checkDialogA11y = () => {
+    const dialogContents = document.querySelectorAll('[role="dialog"]');
+    dialogContents.forEach((dialog) => {
+      if (dialog.getAttribute('data-state') === 'open') {
+        const hasDescription = dialog.querySelector('[data-description], [aria-describedby]') ||
+                              dialog.hasAttribute('aria-describedby');
+        if (!hasDescription) {
+          console.error(`A11y Error: DialogContent is missing DialogDescription. All open dialogs must include a description for accessibility.`);
+        }
+      }
+    });
+  };
+
+  // Run a11y checks periodically during tests
+  let a11yCheckInterval: NodeJS.Timeout;
+  const startA11yChecks = () => {
+    a11yCheckInterval = setInterval(checkDialogA11y, 100);
+  };
+  
+  const stopA11yChecks = () => {
+    if (a11yCheckInterval) {
+      clearInterval(a11yCheckInterval);
+    }
+  };
+
+  // Make a11y functions globally available for tests
+  (global as any).startA11yChecks = startA11yChecks;
+  (global as any).stopA11yChecks = stopA11yChecks;
 
   // Ensure consistent global objects across Node versions
   if (typeof global.structuredClone === 'undefined') {
