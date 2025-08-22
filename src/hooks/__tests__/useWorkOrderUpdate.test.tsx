@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach, type SpyInstance } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
 import { QueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { useUpdateWorkOrder, type UpdateWorkOrderData } from '../useWorkOrderUpdate';
@@ -53,7 +53,7 @@ const TestComponent = ({ onReady }: TestComponentProps) => {
 };
 
 describe('useWorkOrderUpdate', () => {
-  let invalidateSpy: SpyInstance;
+  let invalidateSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();

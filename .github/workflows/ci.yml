@@ -324,6 +324,41 @@ jobs:
         echo "Images:"
         find dist -name "*.png" -o -name "*.jpg" -o -name "*.svg" | wc -l | xargs echo "Image count:"
         
+    - name: Check gzipped JS bundle sizes
+      run: |
+        if [ ! -d "dist" ]; then
+          echo "Build directory not found, running build..."
+          npm run build
+        fi
+        
+        echo "📦 Checking gzipped JavaScript bundle sizes:"
+        max_gzip_size=512000 # 500KB in bytes
+        failed=false
+        
+        for js_file in dist/assets/*.js; do
+          if [ -f "$js_file" ]; then
+            gzip_size=$(gzip -c "$js_file" | wc -c)
+            size_kb=$((gzip_size / 1024))
+            filename=$(basename "$js_file")
+            
+            echo "  $filename: ${size_kb}KB (gzipped)"
+            
+            if [ $gzip_size -gt $max_gzip_size ]; then
+              echo "::error file=$js_file::Gzipped JS bundle $filename (${size_kb}KB) exceeds 500KB limit"
+              failed=true
+            fi
+          fi
+        done
+        
+        if [ "$failed" = true ]; then
+          echo "❌ One or more JS bundles exceed the 500KB gzipped size limit"
+          exit 1
+        fi
+        echo "✅ All JS bundles within 500KB gzipped limit"
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
     - name: Success notification
       run: |
         echo "🎉 All quality gates passed!"

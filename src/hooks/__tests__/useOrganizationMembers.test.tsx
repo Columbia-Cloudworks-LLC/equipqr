@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach, type SpyInstance } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
 import { QueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { useOrganizationMembers, useUpdateMemberRole, useRemoveMember } from '../useOrganizationMembers';
@@ -81,8 +81,8 @@ const RemoveMemberProbe = ({ organizationId, onReady }: { organizationId: string
 };
 
 describe('useOrganizationMembers', () => {
-  let consoleErrorSpy: SpyInstance;
-  let invalidateSpy: SpyInstance;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let invalidateSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
