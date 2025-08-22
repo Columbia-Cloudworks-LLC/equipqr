@@ -278,7 +278,9 @@ jobs:
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
 
     - name: Setup Supabase CLI
-      run: npm install -g supabase@latest
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
       
     - name: Start Supabase local environment
       run: npx supabase start -x studio
