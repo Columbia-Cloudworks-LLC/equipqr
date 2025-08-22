@@ -1,0 +1,2 @@
+-- Intentionally left blank; schema covered by 20240101000000_initial_schema.sql baseline.
+-- This file exists to satisfy remote migration history.
