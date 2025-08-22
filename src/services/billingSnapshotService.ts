@@ -46,12 +46,12 @@ export interface BillingSnapshot {
     reason?: string;
     expires_at?: string;
   }[];
-  events: {
-    event_type: string;
-    amount_change: number;
-    effective_date: string;
-    event_data: any;
-  }[];
+    events: {
+      event_type: string;
+      amount_change: number;
+      effective_date: string;
+      event_data: Record<string, unknown>;
+    }[];
 }
 
 export const getBillingSnapshot = async (organizationId: string): Promise<BillingSnapshot> => {

@@ -10,46 +10,24 @@ import { useBillingSnapshot } from '@/hooks/useBillingSnapshot';
 import { deepDiff } from '@/utils/jsonDiff';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import type { SimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 
-const DebugBilling: React.FC = () => {
+const DebugBillingContent: React.FC<{ currentOrganization: SimpleOrganization | null }> = ({ currentOrganization }) => {
   const [prettyView, setPrettyView] = useState(true);
-  const { currentOrganization } = useSimpleOrganization();
-
-  // Don't show debug page in production
-  if (!import.meta.env.DEV) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <CardTitle>Development Only</CardTitle>
-            <CardDescription>
-              This page is only available in development mode.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link to="/dashboard">Back to Dashboard</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const organizationId = currentOrganization?.id;
-  
-  const { 
-    data: localBilling, 
-    isLoading: localLoading, 
+
+  const {
+    data: localBilling,
+    isLoading: localLoading,
     error: localError,
-    refetch: refetchLocal 
+    refetch: refetchLocal,
   } = useLocalBillingCalculation(organizationId);
-  
-  const { 
-    data: snapshotData, 
-    isLoading: snapshotLoading, 
+
+  const {
+    data: snapshotData,
+    isLoading: snapshotLoading,
     error: snapshotError,
-    refetch: refetchSnapshot 
+    refetch: refetchSnapshot,
   } = useBillingSnapshot(organizationId);
 
   const handleRefreshAll = () => {
@@ -58,16 +36,13 @@ const DebugBilling: React.FC = () => {
     toast.success('Refreshed both calculations');
   };
 
-  const copyToClipboard = (data: any, label: string) => {
+  const copyToClipboard = (data: unknown, label: string) => {
     const text = prettyView ? JSON.stringify(data, null, 2) : JSON.stringify(data);
     navigator.clipboard.writeText(text);
     toast.success(`Copied ${label} to clipboard`);
   };
 
-  // Calculate diff
-  const differences = localBilling && snapshotData 
-    ? deepDiff(localBilling, snapshotData) 
-    : [];
+  const differences = localBilling && snapshotData ? deepDiff(localBilling, snapshotData) : [];
 
   const isAdmin = currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
 
@@ -244,6 +219,32 @@ const DebugBilling: React.FC = () => {
       )}
     </div>
   );
+};
+
+const DebugBilling: React.FC = () => {
+  const { currentOrganization } = useSimpleOrganization();
+
+  if (!import.meta.env.DEV) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CardTitle>Development Only</CardTitle>
+            <CardDescription>
+              This page is only available in development mode.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link to="/dashboard">Back to Dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return <DebugBillingContent currentOrganization={currentOrganization} />;
 };
 
 export default DebugBilling;
