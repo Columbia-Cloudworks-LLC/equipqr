@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 export interface Equipment {
@@ -20,6 +21,8 @@ export interface Equipment {
   updated_at: string;
   image_url?: string;
   customer_id?: string;
+  // Legacy compatibility - map to assigned_team_id
+  teamId?: string;
 }
 
 export interface CreateEquipmentData {
@@ -38,6 +41,10 @@ export interface CreateEquipmentData {
   warranty_expiration_date?: string;
   image_url?: string;
   customer_id?: string;
+  organizationId: string;
+  image?: File;
+  // Legacy compatibility
+  teamId?: string;
 }
 
 export interface UpdateEquipmentData {
@@ -56,6 +63,8 @@ export interface UpdateEquipmentData {
   warranty_expiration_date?: string;
   image_url?: string;
   customer_id?: string;
+  // Legacy compatibility
+  teamId?: string;
 }
 
 export const equipmentSchema = z.object({
@@ -77,3 +86,9 @@ export const equipmentSchema = z.object({
 });
 
 export type EquipmentFormData = z.infer<typeof equipmentSchema>;
+
+// Add the missing EquipmentRecord type
+export interface EquipmentRecord extends Equipment {
+  team_name?: string;
+  customer_name?: string;
+}

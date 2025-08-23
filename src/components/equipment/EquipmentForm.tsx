@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -101,7 +102,7 @@ export function EquipmentForm({
     defaultValues: {
       name: equipment?.name || "",
       description: equipment?.description || "",
-      teamId: equipment?.teamId || "",
+      teamId: equipment?.assigned_team_id || equipment?.teamId || "",
       customerId: equipment?.customer_id || undefined,
     }
   });
@@ -137,12 +138,17 @@ export function EquipmentForm({
   })
 
   const onSubmit = (data: EquipmentFormData) => {
-    const equipmentData = {
-      ...data,
+    const equipmentData: CreateEquipmentData = {
+      name: data.name,
+      type: 'General', // Default type
+      description: data.description,
+      status: 'active', // Default status
       organizationId: currentOrganization?.id as string,
+      teamId: data.teamId,
       image: data.image?.[0],
-      ...(customersEnabled && data.customerId && { customerId: data.customerId }),
+      ...(customersEnabled && data.customerId && { customer_id: data.customerId }),
     };
+    
     if (equipment) {
       updateEquipmentMutation.mutate(equipmentData);
     } else {
@@ -154,7 +160,7 @@ export function EquipmentForm({
     if (equipment && open) {
       setValue("name", equipment.name);
       setValue("description", equipment.description || "");
-      setValue("teamId", equipment.teamId);
+      setValue("teamId", equipment.assigned_team_id || equipment.teamId || "");
       setValue("customerId", equipment.customer_id || '');
     }
   }, [equipment, open, setValue]);
@@ -186,7 +192,7 @@ export function EquipmentForm({
             <Label htmlFor="image">Equipment image</Label>
             <Input type="file" id="image"  {...register('image')} />
             {errors.image && (
-              <p className="text-sm text-red-500">{errors.image.message}</p>
+              <p className="text-sm text-red-500">{errors.image.message?.toString()}</p>
             )}
           </div>
           
@@ -195,7 +201,7 @@ export function EquipmentForm({
             <Label htmlFor="teamId">Team</Label>
             <Select
               onValueChange={(value) => setValue('teamId', value)}
-              defaultValue={equipment?.teamId}
+              defaultValue={equipment?.assigned_team_id || equipment?.teamId}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a team" />

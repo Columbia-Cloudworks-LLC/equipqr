@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -21,7 +22,7 @@ import { EditEquipment } from './pages/EditEquipment';
 import { CreateWorkOrder } from './pages/CreateWorkOrder';
 import { EditWorkOrder } from './pages/EditWorkOrder';
 import { OrganizationProvider } from './context/OrganizationContext';
-import { Customers } from './pages/Customers';
+import Customers from './pages/Customers';
 import { useCustomersFeature } from '@/hooks/useCustomersFeature';
 
 const queryClient = new QueryClient();

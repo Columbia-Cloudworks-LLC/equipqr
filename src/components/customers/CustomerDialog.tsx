@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { customerService, Customer, CreateCustomerData, UpdateCustomerData } from '@/services/customerService';
+import { customerService, Customer } from '@/services/customerService';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
@@ -46,7 +46,10 @@ export function CustomerDialog({ open, onOpenChange, organizationId, customer }:
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateCustomerData) => customerService.createCustomer(organizationId, data),
+    mutationFn: (data: CustomerFormData) => customerService.createCustomer(organizationId, {
+      name: data.name,
+      status: data.status,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer created successfully');
@@ -60,7 +63,7 @@ export function CustomerDialog({ open, onOpenChange, organizationId, customer }:
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: UpdateCustomerData) => customerService.updateCustomer(customer!.id, data),
+    mutationFn: (data: CustomerFormData) => customerService.updateCustomer(customer!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer updated successfully');
