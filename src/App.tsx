@@ -23,6 +23,7 @@ import { CreateWorkOrder } from './pages/CreateWorkOrder';
 import { EditWorkOrder } from './pages/EditWorkOrder';
 import { OrganizationProvider } from './context/OrganizationContext';
 import { ConditionalCustomersRoute } from './components/ConditionalCustomersRoute';
+import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/auth" element={<Login />} />
 
           <Route path="/" element={
             user ? (
@@ -196,6 +198,9 @@ function App() {
               <Login />
             )
           } />
+          
+          {/* Catch-all route for 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </QueryClientProvider>
