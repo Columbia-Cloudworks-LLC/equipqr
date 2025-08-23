@@ -23,13 +23,12 @@ import { CreateWorkOrder } from './pages/CreateWorkOrder';
 import { EditWorkOrder } from './pages/EditWorkOrder';
 import { OrganizationProvider } from './context/OrganizationContext';
 import Customers from './pages/Customers';
-import { useCustomersFeature } from '@/hooks/useCustomersFeature';
+import { ConditionalCustomersRoute } from './components/ConditionalCustomersRoute';
 
 const queryClient = new QueryClient();
 
 function App() {
   const { user, isLoading } = useAuth();
-  const { isEnabled: customersEnabled } = useCustomersFeature();
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -189,19 +188,15 @@ function App() {
             )
           } />
           
-          {customersEnabled && (
-            <Route path="/customers" element={
-              user ? (
-                <OrganizationProvider>
-                  <AppLayout>
-                    <Customers />
-                  </AppLayout>
-                </OrganizationProvider>
-              ) : (
-                <Login />
-              )
-            } />
-          )}
+          <Route path="/customers" element={
+            user ? (
+              <OrganizationProvider>
+                <ConditionalCustomersRoute />
+              </OrganizationProvider>
+            ) : (
+              <Login />
+            )
+          } />
         </Routes>
       </Router>
     </QueryClientProvider>
