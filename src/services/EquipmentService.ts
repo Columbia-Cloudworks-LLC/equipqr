@@ -93,7 +93,7 @@ export class EquipmentService {
   constructor(private organizationId: string) {}
 
   async getAll(
-    filters: { status?: 'active' | 'maintenance' | 'inactive'; location?: string } = {},
+    filters: { status?: 'active' | 'maintenance' | 'inactive' | 'all'; location?: string } = {},
     pagination: { page?: number; limit?: number } = {}
   ) {
     let query = supabase.from('equipment').select('*').eq('organization_id', this.organizationId);
