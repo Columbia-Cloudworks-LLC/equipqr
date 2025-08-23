@@ -8,7 +8,7 @@ import Equipment from './pages/Equipment';
 import Teams from './pages/Teams';
 import { OrganizationSettings } from './pages/OrganizationSettings';
 import { ProfileSettings } from './pages/ProfileSettings';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
