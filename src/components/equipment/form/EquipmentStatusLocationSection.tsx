@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -71,7 +72,7 @@ const EquipmentStatusLocationSection: React.FC<EquipmentStatusLocationSectionPro
 
         <FormField
           control={form.control}
-          name="warranty_expiration"
+          name="warranty_expiration_date"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Warranty Expiration</FormLabel>

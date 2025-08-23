@@ -1,10 +1,13 @@
 
 import React from 'react';
 
-export const Equipment: React.FC = () => {
+const Equipment: React.FC = () => {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Equipment</h1>
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Equipment Management</h1>
+      <p>Equipment management interface will be implemented here.</p>
     </div>
   );
 };
+
+export default Equipment;

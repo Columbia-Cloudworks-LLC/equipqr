@@ -101,7 +101,7 @@ export function EquipmentForm({
     defaultValues: {
       name: equipment?.name || "",
       description: equipment?.description || "",
-      teamId: equipment?.assigned_team_id || equipment?.teamId || "",
+      teamId: equipment?.assigned_team_id || equipment?.team_id || "",
       customerId: equipment?.customer_id || undefined,
     }
   });
@@ -139,12 +139,19 @@ export function EquipmentForm({
   const onSubmit = (data: EquipmentFormData) => {
     const equipmentData: CreateEquipmentData = {
       name: data.name,
-      type: 'General', // Default type
+      type: 'General',
+      manufacturer: 'Default Manufacturer',
+      model: 'Default Model',
+      serial_number: 'DEFAULT-001',
       description: data.description,
-      status: 'active', // Default status
+      status: 'active',
+      location: 'Default Location',
+      installation_date: new Date().toISOString().split('T')[0],
       organizationId: currentOrganization?.id as string,
-      teamId: data.teamId,
+      team_id: data.teamId,
       image: data.image?.[0],
+      custom_attributes: {},
+      working_hours: 0,
       ...(customersEnabled && data.customerId && { customer_id: data.customerId }),
     };
     
@@ -159,7 +166,7 @@ export function EquipmentForm({
     if (equipment && open) {
       setValue("name", equipment.name);
       setValue("description", equipment.description || "");
-      setValue("teamId", equipment.assigned_team_id || equipment.teamId || "");
+      setValue("teamId", equipment.assigned_team_id || equipment.team_id || "");
       setValue("customerId", equipment.customer_id || '');
     }
   }, [equipment, open, setValue]);
@@ -191,7 +198,7 @@ export function EquipmentForm({
             <Label htmlFor="image">Equipment image</Label>
             <Input type="file" id="image"  {...register('image')} />
             {errors.image && (
-              <p className="text-sm text-red-500">{errors.image.message?.toString()}</p>
+              <p className="text-sm text-red-500">{String(errors.image.message)}</p>
             )}
           </div>
           
@@ -200,7 +207,7 @@ export function EquipmentForm({
             <Label htmlFor="teamId">Team</Label>
             <Select
               onValueChange={(value) => setValue('teamId', value)}
-              defaultValue={equipment?.assigned_team_id || equipment?.teamId}
+              defaultValue={equipment?.assigned_team_id || equipment?.team_id}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a team" />
