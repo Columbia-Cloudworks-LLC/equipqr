@@ -22,7 +22,6 @@ import { EditEquipment } from './pages/EditEquipment';
 import { CreateWorkOrder } from './pages/CreateWorkOrder';
 import { EditWorkOrder } from './pages/EditWorkOrder';
 import { OrganizationProvider } from './context/OrganizationContext';
-import Customers from './pages/Customers';
 import { ConditionalCustomersRoute } from './components/ConditionalCustomersRoute';
 
 const queryClient = new QueryClient();
