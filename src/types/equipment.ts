@@ -5,7 +5,7 @@ export interface Equipment {
   id: string;
   organization_id: string;
   name: string;
-  type: string;
+  type?: string;
   serial_number?: string;
   model_number?: string;
   model?: string;
@@ -18,7 +18,7 @@ export interface Equipment {
   team_id?: string;
   location?: string;
   purchase_date?: string;
-  warranty_expiration_date?: string;
+  warranty_expiration?: string;
   installation_date?: string;
   last_maintenance?: string;
   image_url?: string;
@@ -35,7 +35,7 @@ export interface Equipment {
 
 export interface CreateEquipmentData {
   name: string;
-  type: string;
+  type?: string;
   serial_number?: string;
   model_number?: string;
   model?: string;
@@ -48,7 +48,7 @@ export interface CreateEquipmentData {
   team_id?: string;
   location?: string;
   purchase_date?: string;
-  warranty_expiration_date?: string;
+  warranty_expiration?: string;
   installation_date?: string;
   last_maintenance?: string;
   image_url?: string;
@@ -78,7 +78,7 @@ export interface UpdateEquipmentData {
   team_id?: string;
   location?: string;
   purchase_date?: string;
-  warranty_expiration_date?: string;
+  warranty_expiration?: string;
   installation_date?: string;
   last_maintenance?: string;
   image_url?: string;
@@ -98,7 +98,7 @@ const baseEquipmentSchema = z.object({
   status: z.enum(['active', 'inactive', 'maintenance']),
   location: z.string().min(1, { message: 'Location is required.' }),
   installation_date: z.string().optional(),
-  warranty_expiration_date: z.string().optional(),
+  warranty_expiration: z.string().optional(),
   last_maintenance: z.string().optional(),
   notes: z.string().optional(),
   image_url: z.string().optional(),
@@ -110,6 +110,12 @@ const baseEquipmentSchema = z.object({
 });
 
 export const createEquipmentValidationSchema = (context: any) => baseEquipmentSchema;
+
+export type EquipmentValidationContext = {
+  userRole: 'owner' | 'admin' | 'manager' | 'member';
+  isOrgAdmin: boolean;
+  teamMemberships: Array<{ teamId: string; role: string }>;
+};
 
 export const equipmentSchema = baseEquipmentSchema.extend({
   type: z.string().min(3, { message: 'Type must be at least 3 characters.' }),

@@ -72,7 +72,7 @@ const EquipmentStatusLocationSection: React.FC<EquipmentStatusLocationSectionPro
 
         <FormField
           control={form.control}
-          name="warranty_expiration_date"
+          name="warranty_expiration"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Warranty Expiration</FormLabel>

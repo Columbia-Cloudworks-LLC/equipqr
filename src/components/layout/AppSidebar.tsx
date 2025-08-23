@@ -45,11 +45,11 @@ export function AppSidebar() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await signOut();
       queryClient.clear();
       navigate("/login");
     } catch (error) {

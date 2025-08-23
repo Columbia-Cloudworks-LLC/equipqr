@@ -104,6 +104,8 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
           image_url: values.image_url || null,
           last_known_location: values.last_known_location || null,
           team_id: values.team_id === 'unassigned' ? null : (values.team_id || null),
+          customer_id: (values as any).customer_id ?? null,
+          default_pm_template_id: values.default_pm_template_id || null,
         } as const;
 
         await updateEquipmentMutation.mutateAsync({
@@ -132,7 +134,8 @@ export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) 
           team_id: values.team_id === 'unassigned' ? null : (values.team_id || null),
           working_hours: 0, // Initialize with 0 hours for new equipment
           default_pm_template_id: values.default_pm_template_id || null,
-          import_id: null
+          import_id: null,
+          customer_id: (values as any).customer_id ?? null,
         };
         
         await createEquipmentMutation.mutateAsync(equipmentData);
