@@ -1,30 +1,52 @@
 
-import React, { createContext, useMemo, useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
-export interface Organization {
+interface Organization {
   id: string;
   name: string;
-  plan?: string | null;
+  plan: 'free' | 'pro' | 'enterprise';
+  memberCount: number;
+  maxMembers: number;
+  features: string[];
+  billingEmail: string;
+  isOwner: boolean;
+  userRole: 'admin' | 'member' | 'viewer';
+  userStatus: 'active' | 'inactive';
 }
 
-interface OrganizationContextValue {
+interface OrganizationContextType {
   currentOrganization: Organization | null;
-  setCurrentOrganization: (org: Organization | null) => void;
+  logout: () => void;
 }
 
-export const OrganizationContext = createContext<OrganizationContextValue | null>(null);
+export const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
 export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Minimal in-memory state; real app may load this from Supabase/user profile
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
 
-  const value = useMemo(
-    () => ({ currentOrganization, setCurrentOrganization }),
-    [currentOrganization]
-  );
+  useEffect(() => {
+    // Mock organization for now
+    setCurrentOrganization({
+      id: 'org-1',
+      name: 'Demo Organization',
+      plan: 'free',
+      memberCount: 1,
+      maxMembers: 10,
+      features: [],
+      billingEmail: 'admin@demo.com',
+      isOwner: true,
+      userRole: 'admin',
+      userStatus: 'active'
+    });
+  }, []);
+
+  const logout = () => {
+    // Handle logout logic
+    setCurrentOrganization(null);
+  };
 
   return (
-    <OrganizationContext.Provider value={value}>
+    <OrganizationContext.Provider value={{ currentOrganization, logout }}>
       {children}
     </OrganizationContext.Provider>
   );
