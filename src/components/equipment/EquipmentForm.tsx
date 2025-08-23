@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,7 +22,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization';
 import { Team } from '@/types/team';
-import { createEquipment, updateEquipment } from '@/services/equipmentService';
+import { createEquipment, updateEquipment } from '@/services/EquipmentService';
 import { Equipment, CreateEquipmentData, UpdateEquipmentData } from '@/types/equipment';
 import { customerService } from '@/services/customerService';
 import { useCustomersFeature } from '@/hooks/useCustomersFeature';
